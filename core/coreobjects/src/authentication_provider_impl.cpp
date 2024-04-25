@@ -1,16 +1,17 @@
 #include <coreobjects/authentication_provider_impl.h>
 #include <fstream>
 #include <coreobjects/user_internal_ptr.h>
-#include <boost/algorithm/string.hpp>
 #include <coretypes/filesystem.h>
 #include <coreobjects/errors.h>
+#include <coreobjects/user_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 // AuthenticationProviderImpl
 
-AuthenticationProviderImpl::AuthenticationProviderImpl()
-    : users(Dict<IString, IUser>())
+AuthenticationProviderImpl::AuthenticationProviderImpl(bool allowAnonymous)
+    : allowAnonymous(allowAnonymous)
+    , users(Dict<IString, IUser>())
 {
 }
 
@@ -25,6 +26,12 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 
     *userOut = user.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::isAnonymousAllowed(Bool* allowedOut)
+{
+    *allowedOut = this->allowAnonymous;
     return OPENDAQ_SUCCESS;
 }
 
@@ -56,8 +63,8 @@ bool AuthenticationProviderImpl::isPasswordValid(const StringPtr& hash, const St
 
 // StaticAuthenticationProviderImpl
 
-StaticAuthenticationProviderImpl::StaticAuthenticationProviderImpl(const ListPtr<IUser>& users)
-    : AuthenticationProviderImpl()
+StaticAuthenticationProviderImpl::StaticAuthenticationProviderImpl(bool allowAnonymous, const ListPtr<IUser>& users)
+    : AuthenticationProviderImpl(allowAnonymous)
 {
     loadUserList(users);
 }
@@ -66,27 +73,94 @@ StaticAuthenticationProviderImpl::StaticAuthenticationProviderImpl(const ListPtr
 // JsonStringAuthenticationProviderImpl
 
 JsonStringAuthenticationProviderImpl::JsonStringAuthenticationProviderImpl(const StringPtr& jsonString)
-    : AuthenticationProviderImpl()
+    : AuthenticationProviderImpl(false)
 {
     loadJsonString(jsonString);
 }
 
 void JsonStringAuthenticationProviderImpl::loadJsonString(const StringPtr& jsonString)
 {
-    std::string stdJsonString = jsonString;
-    boost::trim_left(stdJsonString);
-    boost::trim_right(stdJsonString);
+    rapidjson::Document document;
+    document.Parse(jsonString);
 
-    if (stdJsonString.empty())
-        return;
+    if (document.HasParseError())
+        throw ParseFailedException();
 
-    auto serializer = JsonDeserializer();
-    ListPtr<IUser> userList = serializer.deserialize(stdJsonString);
-    loadUserList(userList);
+    this->allowAnonymous = parseAllowAnonymous(document);
+    this->users = parseUsers(document);
+}
+
+bool JsonStringAuthenticationProviderImpl::parseAllowAnonymous(rapidjson::Document& document)
+{
+    if (!document.HasMember("allowAnonymous") || !document["allowAnonymous"].IsBool())
+        throw ParseFailedException();
+
+    return document["allowAnonymous"].GetBool();
+}
+
+DictPtr<IString, IUser> JsonStringAuthenticationProviderImpl::parseUsers(rapidjson::Document& document)
+{
+    auto users = Dict<IString, IUser>();
+
+    if (!document.HasMember("users") || !document["users"].IsArray())
+        return users;
+
+    if (!document["users"].IsArray())
+        throw ParseFailedException();
+
+    const auto userArray = document["users"].GetArray();
+
+    for (size_t i = 0; i < userArray.Size(); i++)
+    {
+        if (!userArray[i].IsObject())
+            throw ParseFailedException();
+
+        const auto user = parseUser(userArray[i].GetObject());
+        users.set(user.getUsername(), user);
+    }
+
+    return users;
+}
+
+UserPtr JsonStringAuthenticationProviderImpl::parseUser(const rapidjson::Value& userObject)
+{
+    if (!userObject.HasMember("username") || !userObject["username"].IsString())
+        throw ParseFailedException();
+    if (!userObject.HasMember("passwordHash") || !userObject["passwordHash"].IsString())
+        throw ParseFailedException();
+
+    const auto username = userObject["username"].GetString();
+    const auto passwordHash = userObject["passwordHash"].GetString();
+    const auto groups = parseUserGroups(userObject);
+    return User(username, passwordHash, groups);
+}
+
+ListPtr<IString> JsonStringAuthenticationProviderImpl::parseUserGroups(const rapidjson::Value& userObject)
+{
+    auto groups = List<IString>();
+
+    if (!userObject.HasMember("groups"))
+        return groups;
+    if (!userObject["groups"].IsArray())
+        throw ParseFailedException();
+
+    auto groupArray = userObject["groups"].GetArray();
+
+    for (size_t i = 0; i < groupArray.Size(); i++)
+    {
+        if (!groupArray[i].IsString())
+            throw ParseFailedException();
+
+        const auto groupName = groupArray[i].GetString();
+        groups.pushBack(groupName);
+    }
+
+    return groups;
 }
 
 
 // JsonFileAuthenticationProviderImpl
+
 
 JsonFileAuthenticationProviderImpl::JsonFileAuthenticationProviderImpl(const StringPtr& filename)
     : JsonStringAuthenticationProviderImpl(readJsonFile(filename))
@@ -113,8 +187,14 @@ std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& fi
 
 // Factories
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, StaticAuthenticationProviderImpl, IAuthenticationProvider, createStaticAuthenticationProvider, IList*, userList)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               StaticAuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createStaticAuthenticationProvider,
+                                                               Bool,
+                                                               allowAnonymous,
+                                                               IList*,
+                                                               userList)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
                                                                JsonStringAuthenticationProviderImpl,
@@ -123,8 +203,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
                                                                IString*,
                                                                jsonString)
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, JsonFileAuthenticationProviderImpl, IAuthenticationProvider, createJsonFileAuthenticationProvider, IString*, filename)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               JsonFileAuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createJsonFileAuthenticationProvider,
+                                                               IString*,
+                                                               filename)
 
 
 END_NAMESPACE_OPENDAQ

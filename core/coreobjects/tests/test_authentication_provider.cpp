@@ -14,6 +14,16 @@ TEST_F(AuthenticationProviderTest, Default)
     ASSERT_TRUE(provider.assigned());
     ASSERT_THROW(provider.authenticate("", ""), AuthenticationFailedException);
     ASSERT_THROW(provider.authenticate("user", "user"), AuthenticationFailedException);
+
+    ASSERT_TRUE(provider.isAnonymousAllowed());
+}
+
+TEST_F(AuthenticationProviderTest, NoAnonymous)
+{
+    auto provider = AuthenticationProvider(false);
+
+    ASSERT_TRUE(provider.assigned());
+    ASSERT_FALSE(provider.isAnonymousAllowed());
 }
 
 TEST_F(AuthenticationProviderTest, Static)
@@ -22,7 +32,7 @@ TEST_F(AuthenticationProviderTest, Static)
     auto user2 = User("admin", "admin");
     auto users = List<IUser>(user1, user2);
 
-    auto provider = StaticAuthenticationProvider(users);
+    auto provider = StaticAuthenticationProvider(false, users);
     ASSERT_TRUE(provider.assigned());
     ASSERT_THROW(provider.authenticate("manager", ""), AuthenticationFailedException);
     ASSERT_THROW(provider.authenticate("user", ""), AuthenticationFailedException);
@@ -32,7 +42,46 @@ TEST_F(AuthenticationProviderTest, Static)
 
     auto authenitcatedUser2 = provider.authenticate("admin", "admin");
     ASSERT_EQ(authenitcatedUser2.getUsername(), "admin");
+
+    ASSERT_FALSE(provider.isAnonymousAllowed());
 }
+
+TEST_F(AuthenticationProviderTest, Json)
+{
+    const std::string json = R"(
+        {
+            "allowAnonymous": true,
+            "users" : [
+                {"username" : "user", "passwordHash" : "pass", "groups" : [ "user", "guest" ]},
+                {"username" : "admin", "passwordHash" : "admin", "groups" : []},
+                {"username" : "jure", "passwordHash" : "jure"}
+            ]
+        }
+    )";
+
+    auto provider = JsonStringAuthenticationProvider(json);
+    ASSERT_TRUE(provider.assigned());
+    ASSERT_TRUE(provider.isAnonymousAllowed());
+
+    ASSERT_THROW(provider.authenticate("manager", ""), AuthenticationFailedException);
+    ASSERT_THROW(provider.authenticate("user", ""), AuthenticationFailedException);
+
+    auto authenitcatedUser1 = provider.authenticate("user", "pass");
+    ASSERT_EQ(authenitcatedUser1.getUsername(), "user");
+
+    auto authenitcatedUser2 = provider.authenticate("admin", "admin");
+    ASSERT_EQ(authenitcatedUser2.getUsername(), "admin");
+}
+
+TEST_F(AuthenticationProviderTest, JsonNoUsers)
+{
+    const std::string json = R"({"allowAnonymous": false})";
+
+    auto provider = JsonStringAuthenticationProvider(json);
+    ASSERT_TRUE(provider.assigned());
+    ASSERT_FALSE(provider.isAnonymousAllowed());
+}
+
 
 TEST_F(AuthenticationProviderTest, JsonMissingFile)
 {
@@ -42,35 +91,11 @@ TEST_F(AuthenticationProviderTest, JsonMissingFile)
 TEST_F(AuthenticationProviderTest, InvalidJson)
 {
     const auto invalidJson = "[{\"__type\":\" User \",";
-    ASSERT_THROW(JsonStringAuthenticationProvider(invalidJson), DeserializeException);
+    ASSERT_THROW(JsonStringAuthenticationProvider(invalidJson), ParseFailedException);
 }
 
 TEST_F(AuthenticationProviderTest, EmptyJson)
 {
-    auto provider = JsonStringAuthenticationProvider("   ");
-    ASSERT_TRUE(provider.assigned());
-}
-
-TEST_F(AuthenticationProviderTest, Json)
-{
-    auto user1 = User("user", "pass");
-    auto user2 = User("admin", "admin");
-    auto users = List<IUser>(user1, user2);
-
-    auto serializer = JsonSerializer();
-    users.serialize(serializer);
-    const auto json = serializer.getOutput();
-
-    auto provider = JsonStringAuthenticationProvider(json);
-    ASSERT_TRUE(provider.assigned());
-
-    ASSERT_THROW(provider.authenticate("manager", ""), AuthenticationFailedException);
-    ASSERT_THROW(provider.authenticate("user", ""), AuthenticationFailedException);
-
-    auto authenitcatedUser1 = provider.authenticate("user", "pass");
-    ASSERT_EQ(authenitcatedUser1.getUsername(), "user");
-
-    auto authenitcatedUser2 = provider.authenticate("admin", "admin");
-    ASSERT_EQ(authenitcatedUser2.getUsername(), "admin");
+    ASSERT_THROW(JsonStringAuthenticationProvider("   "), ParseFailedException);
 }
 

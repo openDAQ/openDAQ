@@ -45,6 +45,12 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
      * @param user[out] And instance of successfully authenticated user. If authentication is not successful, an exception is thrown.
      */
     virtual ErrCode INTERFACE_FUNC authenticate(IString* username, IString* password, IUser** userOut) = 0;
+
+    /*!
+     * @brief Returns true if anonymous authentication is allowed.
+     * @param allowedOut[out] True if anonymous authentication is allowed.
+     */
+    virtual ErrCode INTERFACE_FUNC isAnonymousAllowed(Bool* allowedOut) = 0;
 };
 
 /*!@}*/
@@ -53,8 +59,14 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
  * @brief Creates an authentication provider out of static list of users.
  * @param userList List of User objects.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, StaticAuthenticationProvider, IAuthenticationProvider, createStaticAuthenticationProvider, IList*, userList)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+                                                            StaticAuthenticationProvider,
+                                                            IAuthenticationProvider,
+                                                            createStaticAuthenticationProvider,
+                                                            Bool,
+                                                            allowAnonymous,
+                                                            IList*,
+                                                            userList)
 
 /*!
  * @brief Creates an authentication provider out of json string.
@@ -71,7 +83,11 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
  * @brief Creates an authentication provider out of json file.
  * @param filename File path to a json file containing a list of serialized User objects.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, JsonFileAuthenticationProvider, IAuthenticationProvider, createJsonFileAuthenticationProvider, IString*, filename)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+                                                            JsonFileAuthenticationProvider,
+                                                            IAuthenticationProvider,
+                                                            createJsonFileAuthenticationProvider,
+                                                            IString*,
+                                                            filename)
 
 END_NAMESPACE_OPENDAQ

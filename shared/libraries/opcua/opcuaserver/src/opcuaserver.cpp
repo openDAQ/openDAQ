@@ -12,7 +12,6 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 OpcUaServer::OpcUaServer()
     : eventManager(std::make_shared<ServerEventManager>(this))
-    , allowAnonymous(true)
 {
     setPort(OPCUA_DEFAULT_PORT);
     createSessionContextCallback = [this](const OpcUaNodeId& sessionId) { return createSessionContextCallbackImp(sessionId); };
@@ -48,11 +47,6 @@ uint16_t& OpcUaServer::getPort()
 void OpcUaServer::setPort(uint16_t port)
 {
     this->port = port;
-}
-
-void OpcUaServer::setAllowAnonymous(bool allowAnonymous)
-{
-    this->allowAnonymous = allowAnonymous;
 }
 
 void OpcUaServer::setAuthenticationProvider(const AuthenticationProviderPtr& authenticationProvider)
@@ -214,7 +208,7 @@ bool OpcUaServer::isUsernameIdentityTokenValid(const UA_UserNameIdentityToken* t
 
 bool OpcUaServer::isAnonymousIdentityTokenValid(const UA_AnonymousIdentityToken* /*token*/)
 {
-    return allowAnonymous;
+    return authenticationProvider.isAnonymousAllowed();
 }
 
 void OpcUaServer::createSession(const OpcUaNodeId& sessionId, void** sessionContext)

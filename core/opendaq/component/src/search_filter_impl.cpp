@@ -38,9 +38,9 @@ ErrCode RequiredTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bo
         return err;
 
     *accepts = true;
-    for (const auto tag : tags.getList())
+    for (const auto& requiredTag : requiredTags)
     {
-        if (!requiredTags.count(tag))
+        if (!tags.contains(requiredTag))
         {
             *accepts = false;
             break;

@@ -14,6 +14,13 @@ class StreamingTest : public testing::TestWithParam<std::tuple<std::string, std:
 public:
     void SetUp() override
     {
+        auto connectionString = std::get<2>(GetParam());
+        bool connectStringIpv6 = connectionString.find('[') != std::string::npos && connectionString.find(']') != std::string::npos;
+        if (connectStringIpv6 && test_helpers::Ipv6IsDisabled())
+        {
+            GTEST_SKIP() << "Ipv6 is disabled";
+        }
+
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
 

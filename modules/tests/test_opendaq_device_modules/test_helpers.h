@@ -18,6 +18,7 @@
 
 #include <thread>
 #include <future>
+#include <boost/asio.hpp>
 
 #include <opendaq/opendaq.h>
 #include <testutils/testutils.h>
@@ -90,6 +91,20 @@ namespace test_helpers
         std::chrono::seconds timeout = std::chrono::seconds(5))
     {
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
+    }
+
+    [[maybe_unused]]
+    static bool Ipv6IsDisabled()
+    {
+        boost::asio::io_service service;
+        boost::asio::ip::tcp::resolver resolver(service);
+
+        // Resolve a localhost address. If IPv6 is available, it should resolve to an IPv6 address.
+        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v6(), "localhost", "");
+
+        boost::system::error_code ec;
+        auto it = resolver.resolve(query, ec);
+        return ec.failed();
     }
 }
 

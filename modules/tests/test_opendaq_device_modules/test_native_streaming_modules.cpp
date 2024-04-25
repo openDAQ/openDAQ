@@ -40,6 +40,9 @@ TEST_F(NativeStreamingModulesTest, ConnectAndDisconnect)
 
 TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto server = CreateServerInstance();
 
     auto client = Instance();

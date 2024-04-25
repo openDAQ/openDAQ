@@ -75,6 +75,9 @@ TEST_F(NativeDeviceModulesTest, ConnectAndDisconnect)
 
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto server = CreateServerInstance();
     auto client = Instance();
     ASSERT_NO_THROW(client.addDevice("daq.nd://[::1]", nullptr));

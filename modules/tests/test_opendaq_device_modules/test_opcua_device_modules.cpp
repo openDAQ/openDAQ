@@ -53,6 +53,9 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
 
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto server = CreateServerInstance();
     auto client = Instance();
     auto config = client.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();

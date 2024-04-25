@@ -49,6 +49,9 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
 
 TEST_F(WebsocketModulesTest, ConnectViaIpv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);

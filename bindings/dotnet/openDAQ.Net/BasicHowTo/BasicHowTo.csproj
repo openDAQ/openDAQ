@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <PackageReference Include="openDAQ.Net" Version="2.0.0.9" /> -->
+    <PackageReference Include="openDAQ.Net" Version="3.0.0-beta" />
   </ItemGroup>
 
 </Project>

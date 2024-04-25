@@ -1,0 +1,131 @@
+#include <gtest/gtest.h>
+#include <opendaq/mock/mock_device_module.h>
+#include <opendaq/mock/mock_fb_module.h>
+#include <opendaq/opendaq.h>
+
+using namespace daq;
+
+class RegressionTestDevice : public testing::TestWithParam<StringPtr>
+{
+protected:
+    InstancePtr instance;
+    DevicePtr device;
+
+    void SetUp() override
+    {
+        auto logger = Logger();
+        auto moduleManager = ModuleManager("");
+        auto typeManager = TypeManager();
+        auto context = Context(nullptr, logger, typeManager, moduleManager);
+
+        ModulePtr deviceModule(MockDeviceModule_Create(context));
+        moduleManager.addModule(deviceModule);
+
+        const ModulePtr fbModule(MockFunctionBlockModule_Create(context));
+        moduleManager.addModule(fbModule);
+
+        instance = InstanceCustom(context, "mock_instance");
+
+        // device = instance.addDevice(GetParam());
+
+        // To be able to add and remove function blocks from Device?
+        instance.setRootDevice(GetParam());
+        device = instance.getRootDevice();
+    }
+};
+
+TEST_P(RegressionTestDevice, getInfo)
+{
+    ASSERT_NO_THROW(device.getInfo());
+}
+
+TEST_P(RegressionTestDevice, getDomain)
+{
+    ASSERT_NO_THROW(device.getDomain());
+}
+
+TEST_P(RegressionTestDevice, getInputsOutputsFolder)
+{
+    ASSERT_NO_THROW(device.getInputsOutputsFolder());
+}
+
+TEST_P(RegressionTestDevice, getCustomComponents)
+{
+    ASSERT_NO_THROW(device.getCustomComponents());
+}
+
+TEST_P(RegressionTestDevice, getSignals)
+{
+    ASSERT_NO_THROW(device.getSignals());
+}
+
+TEST_P(RegressionTestDevice, getSignalsRecursive)
+{
+    ASSERT_NO_THROW(device.getSignalsRecursive());
+}
+
+TEST_P(RegressionTestDevice, getChannels)
+{
+    ASSERT_NO_THROW(device.getChannels());
+}
+
+TEST_P(RegressionTestDevice, getChannelsRecursive)
+{
+    ASSERT_NO_THROW(device.getChannelsRecursive());
+}
+
+TEST_P(RegressionTestDevice, getDevices)
+{
+    ASSERT_NO_THROW(device.getDevices());
+}
+
+TEST_P(RegressionTestDevice, getAvailableDevices)
+{
+    ASSERT_NO_THROW(device.getAvailableDevices());
+}
+
+TEST_P(RegressionTestDevice, getAvailableDeviceTypes)
+{
+    ASSERT_NO_THROW(device.getAvailableDeviceTypes());
+}
+
+TEST_P(RegressionTestDevice, addDeviceRemoveDevice)
+{
+    DevicePtr dev;
+    ASSERT_NO_THROW(dev = device.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device.removeDevice(dev));
+}
+
+TEST_P(RegressionTestDevice, getFunctionBlocks)
+{
+    ASSERT_NO_THROW(device.getFunctionBlocks());
+}
+
+TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
+{
+    DictPtr<IString, IFunctionBlockType> fbTypes;
+    ASSERT_NO_THROW(fbTypes = device.getAvailableFunctionBlockTypes());
+}
+
+TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
+{
+    FunctionBlockPtr fb;
+    ASSERT_NO_THROW(fb = device.addFunctionBlock("mock_fb_uid"));
+    ASSERT_NO_THROW(device.removeFunctionBlock(fb));
+}
+
+TEST_P(RegressionTestDevice, saveConfigurationLoadConfiguration)
+{
+    StringPtr config;
+    ASSERT_NO_THROW(config = device.saveConfiguration());
+    ASSERT_NO_THROW(device.loadConfiguration(config));
+}
+
+TEST_P(RegressionTestDevice, getTicksSinceOrigin)
+{
+    ASSERT_NO_THROW(device.getTicksSinceOrigin());
+}
+
+INSTANTIATE_TEST_SUITE_P(Device,
+                         RegressionTestDevice,
+                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

@@ -42,6 +42,7 @@ void TmsServer::start()
 
     server = std::make_shared<OpcUaServer>();
     server->setPort(opcUaPort);
+    server->setAuthenticationProvider(context.getAuthenticationProvider());
     server->prepare();
 
     tmsContext = std::make_shared<TmsServerContext>(context, device);

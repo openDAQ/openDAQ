@@ -327,12 +327,12 @@ For example, openDAQ(TM) provides:
 
 When enumerating available <<device>>s, each <<module>> is queried for what <<device>>s it can connect to / create.
 This is done with the <<module>>'s provided discovery mechanism.
-The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module], xref:glossary.adoc#opendaq_native_client_module[Native Client Module] and
-xref:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module] use a {mdns-wiki}[mDNS] query to discover all supported devices on the network.
+The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module], xref:glossary.adoc#opendaq_native_client_module[Native Streaming Module] and
+xref:glossary.adoc#opendaq_streaming_lt_client_module[Streaming LT Client Module] use a {mdns-wiki}[mDNS] query to discover all supported devices on the network.
 Those <<device>>s are assumed to be running a {mdns-wiki}[mDNS] discovery service, 
 advertising the `_opcua-tcp._tcp.local.` service, with a `TXT` record entry of `caps=TMS` if device is openDAQ(TM) OPC UA-supported,
 a {mdns-wiki}[mDNS] discovery service, advertising the `_opendaq-streaming-native._tcp.local.` service, with a `TXT` record entry of `caps=OPENDAQ_NS` if device is Native-streaming-supported.
-and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-lt._tcp.local.` service, with a `TXT` record entry of `caps=WS` if device is Websocket-streaming-supported.
+and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-lt._tcp.local.` service, with a `TXT` record entry of `caps=LT` if device is Websocket-streaming-supported.
 
 [#opc_foundation]
 == OPC Foundation
@@ -372,37 +372,37 @@ It reads the structure of the remote <<device>> and mirrors it as a sub-device.
 Settings changed on the <<device>> mirror are also changed on the actual <<device>> itself.
 
 The openDAQ(TM) OPC-UA Client <<module>> also can use xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client Module]
-and xref:glossary.adoc#opendaq_websocket_streaming_client_module[openDAQ(TM) Websocket Streaming Client Module]
+and xref:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client Module]
 to connect to the server component created by the corresponding Streaming Server Module.
 Doing so enables transferring <<data_packet>>s from server <<signal>>s into client xref:glossary.adoc#device[Signals].
 
-[#opendaq_websocket_streaming_server_module]
-== Websocket Streaming Server Module
+[#opendaq_streaming_lt_server_module]
+== Streaming LT Server Module
 
 // suppress inspection "GrazieInspection"
 Allows for the creation of a web-socket streaming-lt server on an <<instance>>.
 It publishes <<device>> <<signal>>s and streams <<device>> data.
 
-[#opendaq_websocket_streaming_client_module]
-== Websocket Streaming Client Module
+[#opendaq_streaming_lt_client_module]
+== Streaming LT Client Module
 
 Allows for connecting to <<device>>s running a web-socket streaming-lt server.
 
-The openDAQ(TM) Websocket Streaming Client Module enables its own web-socket streaming-lt client, which connects
-to the server component created by the xref:glossary.adoc#opendaq_websocket_streaming_server_module[openDAQ(TM) Websocket Streaming Server Module].
+The openDAQ(TM) Streaming LT Client Module enables its own web-socket streaming client, which connects
+to the server component created by the xref:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server Module].
 Doing so reads server signals and transfers data packets from server signals into client signals.
 
-The openDAQ(TM) Websocket Streaming Client Module allows to read the list of all signals of
+The openDAQ(TM) Streaming LT Client Module allows to read the list of all signals of
 the remote <<device>> and mirror these as a flat list as if owned by a "pseudo" local <<device>>.
 This "Pseudo" <<device>> does not mirror <<channel>>s or <<function_block>>s of the remote <<device>>s,
 and does not provide a mechanism to change settings of the remote <<device>>.
 
-[#websocket_streaming_protocol]
-== openDAQ(TM) Websocket streaming-lt protocol
+[#streaming_lt_protocol]
+== openDAQ(TM) Streaming LT protocol
 
 The data transfer protocol used by openDAQ(TM) to publish <<device>> available <<signal>>s and send data from <<device>>s running an
-xref:glossary.adoc#opendaq_websocket_streaming_server_module[openDAQ(TM) Websocket Streaming Server]
-to an xref:glossary.adoc#opendaq_websocket_streaming_client_module[openDAQ(TM) Websocket Streaming Client].
+xref:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server]
+to an xref:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client].
 
 [#opendaq_native_server_module]
 == Native Server Module

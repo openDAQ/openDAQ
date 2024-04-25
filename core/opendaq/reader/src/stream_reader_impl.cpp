@@ -431,21 +431,19 @@ ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
+                    
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;
-
-                        if (status)
-                            *status = ReaderStatus(eventPacket, !invalid).detach();
-
                         return this->makeErrorInfo(
                             OPENDAQ_ERR_INVALID_DATA,
                             "Exception occurred while processing a signal descriptor change"
                         );
                     }
 
-                    if (status)
-                        *status = ReaderStatus(eventPacket, !invalid).detach();
                     return errCode;
                 }
                 break;

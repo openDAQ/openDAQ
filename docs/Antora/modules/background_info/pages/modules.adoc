@@ -6,7 +6,7 @@ or xref:function_blocks.adoc[Function Blocks]. Once loaded, they provide openDAQ
 connecting to/adding Devices, establishing Streaming connections, adding new Function Blocks, and hosting available types of Servers.
 
 The modules bundled with openDAQ(TM) are, for example, the openDAQ(TM) OpcUa Client, OpcUa Server,
-Native Streaming Server, Native Streaming Client, Websocket Streaming Server and Websocket Streaming Client.
+Native Streaming Server, Native Streaming Client, Streaming LT Server and Streaming LT Client.
 The xref:glossary:glossary.adoc#opendaq_opcua_server_module[OpcUa Server Module] contains a Server implementation
 that allows an openDAQ(TM) xref:glossary:glossary.adoc#device[Device] to publish its structure.
 The Streaming Server Modules contain a server implementations that allow an openDAQ(TM) device to stream its data.
@@ -67,15 +67,20 @@ Python::
 ----
 def loading_modules(context: opendaq.IContext):
     # Loads modules from the executable directory
-    manager1 = opendaq.ModuleManager(opendaq.String(''), context)
+    manager1 = opendaq.ModuleManager(opendaq.String(''))
+    manager1.load_modules(context)
     # Loads modules from the current working directory
-    manager2 = opendaq.ModuleManager(opendaq.String('.'), context)
+    manager2 = opendaq.ModuleManager(opendaq.String('.'))
+    manager2.load_modules(context)
     # Loads modules from a path relative to the current directory
-    manager3 = opendaq.ModuleManager(opendaq.String('./dir1/dir2'), context)
+    manager3 = opendaq.ModuleManager(opendaq.String('./dir1/dir2'))
+    manager3.load_modules(context)
     # Loads modules from an absolute path
-    manager4 = opendaq.ModuleManager(opendaq.String('/dir1/dir2'), context)
+    manager4 = opendaq.ModuleManager(opendaq.String('/dir1/dir2'))
+    manager4.load_modules(context)
     # Does not load any modules
-    manager5 = opendaq.ModuleManager(opendaq.String('[[none]]'), context)
+    manager5 = opendaq.ModuleManager(opendaq.String('[[none]]'))
+    manager5.load_modules(context)
 ----
 ====
 
@@ -91,8 +96,8 @@ Cpp::
 // if the path is not specified, the executable directory is used for the module path
 daq::InstancePtr instance1 = daq::Instance();
 
-// Uses the  current working directory as the module path
-daq::InstancePtr instance2 = daq::Instance(".");
+// Creating instance with existing context
+daq::InstancePtr instance2 = daq::Instance(context, "local_id");
 ----
 Python::
 +
@@ -101,8 +106,8 @@ Python::
 def instance():
     # if the path is not specified, the executable directory is used for the module path
     instance1 = opendaq.Instance()
-    # Uses the  current working directory as the module path
-    instance2 = opendaq.Instance(opendaq.String('.'))
+    # Creating instance with existing context
+    instance2 = opendaq.Instance(instance.context, opendaq.String('local_id'))
 ----
 ====
 

@@ -114,7 +114,7 @@ int main()
     // Allow multiple Streaming protocols by Device Configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket Streaming protocol as primary by Device Configuration
+    // Set Streaming LT protocol as primary by Device Configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Disregard direct Streaming connections for nested Devices,
@@ -337,7 +337,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Allow multiple Streaming protocol by Device Configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket Streaming protocol as primary by Device Configuration
+    // Set Streaming LT protocol as primary by Device Configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Find and connect to a Device hosting an OPC UA TMS server
@@ -407,7 +407,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cerr << "Wrong active Streaming source of AI signal" << std::endl;
         return 1;
     }
-    // Output samples using Reader with websocket Streaming
+    // Output samples using Reader with Streaming LT
     readSamples(signal);
 
     // Change the active Streaming source of Signal

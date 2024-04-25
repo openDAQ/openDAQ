@@ -58,7 +58,7 @@ Cpp::
 ----
 auto reader = TailReader(signal, 5);
 
-// Signal produces 3 samples: 1, 2, 3
+// Signal produces 3 samples: { 1, 2, 3 }
 
 SizeT count{5};
 double values[5]{};

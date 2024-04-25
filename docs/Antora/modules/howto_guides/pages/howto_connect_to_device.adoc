@@ -61,7 +61,7 @@ instance = opendaq.Instance()
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
-            print("Name: ", device_info.name,  ", Address: ",  capability.connection_string)
+            print('Name:', device_info.name, 'Address:', capability.connection_string)
 ----
 C#::
 +

@@ -7,19 +7,25 @@ using namespace daq;
 
 class RegressionTestDevice : public testing::TestWithParam<StringPtr>
 {
-protected:
+private:
+    ModuleManagerPtr moduleManager;
+    ContextPtr context;
+    ModulePtr deviceModule;
+    ModulePtr fbModule;
     InstancePtr instance;
+
+protected:
     DevicePtr device;
 
     void SetUp() override
     {
-        auto moduleManager = ModuleManager("");
-        auto context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+        moduleManager = ModuleManager("");
+        context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
-        ModulePtr deviceModule(MockDeviceModule_Create(context));
+        deviceModule = MockDeviceModule_Create(context);
         moduleManager.addModule(deviceModule);
 
-        const ModulePtr fbModule(MockFunctionBlockModule_Create(context));
+        fbModule = MockFunctionBlockModule_Create(context);
         moduleManager.addModule(fbModule);
 
         instance = InstanceCustom(context, "mock_instance");

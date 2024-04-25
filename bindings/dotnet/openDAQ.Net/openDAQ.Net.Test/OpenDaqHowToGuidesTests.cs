@@ -125,8 +125,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         Console.WriteLine($"Trying to connect to {desiredConnection} device");
 
-        if (doLog) Console.WriteLine("daqInstance.GetAvailableDevices()");
-        var availableDevicesInfos = daqInstance.GetAvailableDevices();
+        if (doLog) Console.WriteLine("daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
         var deviceInfoCount = availableDevicesInfos.Count;
         if (doLog) Console.WriteLine($"  {deviceInfoCount} devices available");
 
@@ -145,8 +145,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
             while (deviceInfoIterator.MoveNext())
             {
                 using var deviceInfo       = deviceInfoIterator.Current;
-                var deviceName             = deviceInfo.GetName();
-                var deviceConnectionString = deviceInfo.GetConnectionString();
+                var deviceName             = deviceInfo.Name;
+                var deviceConnectionString = deviceInfo.ConnectionString;
 
                 if (deviceName.StartsWith("HBK-CAL"))
                     continue;
@@ -188,7 +188,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         Assert.That(addedDevice, Is.Not.Null, "*** Test aborted - Device connection failed.");
 
-        var deviceNameStr = addedDevice.GetName();
+        var deviceNameStr = addedDevice.Name;
         Console.WriteLine($"- Device to test: '{deviceNameStr}'");
 
         return addedDevice;
@@ -201,17 +201,17 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void ConnectingGetAvailableDevicesTest()
+    public void ConnectingAvailableDevicesTest()
     {
         // Create an openDAQ(TM) Instance
         Instance instance = OpenDAQFactory.Instance();
 
         // Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
-        IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
+        IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
         foreach (var deviceInfo in availableDevicesInfo)
-            foreach (var capability in deviceInfo.GetServerCapabilities())
-                if (capability.GetProtocolName() == "openDAQ OpcUa")
-                    Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {capability.GetConnectionString()}");
+            foreach (var capability in deviceInfo.ServerCapabilities)
+                if (capability.ProtocolName == "openDAQ OpcUa")
+                    Console.WriteLine($"Name: {deviceInfo.Name}, Address: {capability.ConnectionString}");
     }
 
     [Test]
@@ -223,11 +223,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         // Discover and connect to all openDAQ(TM) OPC UA Devices
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-        IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
+        IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
         foreach (var deviceInfo in availableDevicesInfo)
-            foreach (var capability in deviceInfo.GetServerCapabilities())
-                if (capability.GetProtocolName() == "openDAQ OpcUa")
-                    devices.Add(instance.AddDevice(capability.GetConnectionString()));
+            foreach (var capability in deviceInfo.ServerCapabilities)
+                if (capability.ProtocolName == "openDAQ OpcUa")
+                    devices.Add(instance.AddDevice(capability.ConnectionString));
 
         //Hack: dispose device because otherwise we get exception in native code when GC tries to clean up
         foreach (var device in devices)
@@ -244,9 +244,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         // Discover and connect to all openDAQ(TM) reference Devices
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-        foreach (var deviceInfo in instance.GetAvailableDevices())
-            if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
-                devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
+        foreach (var deviceInfo in instance.AvailableDevices)
+            if (deviceInfo.ConnectionString.StartsWith("daqref://"))
+                devices.Add(instance.AddDevice(deviceInfo.ConnectionString));
     }
 
     #endregion Connect to a device
@@ -262,7 +262,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     public void FunctionBlockAddingGetAvailableTypesTest()
     {
         // Get available Function Block types
-        IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+        IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.AvailableFunctionBlockTypes;
         foreach (string functionBlockTypeName in functionBlockTypes.Keys)
             Console.WriteLine(functionBlockTypeName);
     }
@@ -281,10 +281,10 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-        FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
-        Console.WriteLine(functionBlockType.GetId());
-        Console.WriteLine(functionBlockType.GetName());
-        Console.WriteLine(functionBlockType.GetDescription());
+        FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
+        Console.WriteLine(functionBlockType.Id);
+        Console.WriteLine(functionBlockType.Name);
+        Console.WriteLine(functionBlockType.Description);
     }
 
     // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
@@ -299,7 +299,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Device device = instance.AddDevice("daqref://device0");
 
         // Get available Function Block types
-        IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+        IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.AvailableFunctionBlockTypes;
         foreach (string functionBlockTypeName in functionBlockTypes.Keys)
             Console.WriteLine(functionBlockTypeName);
 
@@ -311,10 +311,10 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
         // Print Function Block type info
-        FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
-        Console.WriteLine(functionBlockType.GetId());
-        Console.WriteLine(functionBlockType.GetName());
-        Console.WriteLine(functionBlockType.GetDescription());
+        FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
+        Console.WriteLine(functionBlockType.Id);
+        Console.WriteLine(functionBlockType.Name);
+        Console.WriteLine(functionBlockType.Description);
 
         return 0;
     }
@@ -329,9 +329,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-        IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+        IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;
         foreach (var prop in functionBlockProperties)
-            Console.WriteLine(prop.GetName());
+            Console.WriteLine(prop.Name);
     }
 
     [Test]
@@ -356,7 +356,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         // ...
     }
 
-	// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
+  // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
     [Test]
     [Category(SKIP_SETUP)]
     public void FunctionBlockConfigure_FullListingTest()
@@ -371,9 +371,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
         // List properties of the Function Block
-        IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+        IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;
         foreach (var prop in functionBlockProperties)
-            Console.WriteLine(prop.GetName());
+            Console.WriteLine(prop.Name);
 
         // Print current block size
         long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
@@ -383,13 +383,13 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
         functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
-		// Read data from the Signal
+    // Read data from the Signal
         // ...
 
         // Get the output Signal of the Function Block
         Signal outputSignal = functionBlock.GetSignals()[0];
 
-        Console.WriteLine(outputSignal.GetDescriptor().GetName());
+        Console.WriteLine(outputSignal.Descriptor.Name);
     }
 
     #endregion Configure function block
@@ -416,14 +416,14 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
 
         // Should return 0
-        var available = reader.GetAvailableCount();
+        var available = reader.AvailableCount;
 
         //
         // Signal produces 8 samples
         //
 
         // Should return 8
-        available = reader.GetAvailableCount();
+        available = reader.AvailableCount;
 
         nuint readCount = 5;
         double[] values = new double[readCount];
@@ -473,7 +473,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #region Save and load configuration
 
-	// Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
+  // Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     [Test]
     public void ConfigurationSaveTest()
     {
@@ -483,7 +483,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
     }
 
-	// Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
+  // Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     [Test]
     public void ConfigurationLoadTest()
     {
@@ -500,7 +500,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     public void _InternalConnectionTest()
     {
         var device = ConnectFirstAvailableDevice(instance, eDesiredConnection.OpcUa, doLog: true);
-        Console.WriteLine($"Connected device: {device.GetName()}");
+        Console.WriteLine($"Connected device: {device.Name}");
 
         //Hack: dispose device because otherwise we get exception in native code when GC tries to clean up
         device.Dispose();

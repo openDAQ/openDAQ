@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:45:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -81,6 +81,28 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             _rawListObject = Marshal.PtrToStructure<RawListObject>(objVirtualTable);
     }
 
+    /// <summary>Gets the number of elements contained in the list.</summary>
+    public nuint Count
+    {
+        get
+        {
+            //native output argument
+            nuint size;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawListObject.GetCount(base.NativePointer, out size);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return size;
+        }
+    }
     /// <summary>Gets the element at a specific position.</summary>
     /// <remarks>
     /// The reference count of the element that is retrieved is incremented. The client is
@@ -98,34 +120,13 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.GetItemAt(base.NativePointer, index, out objPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
         }
 
         return BaseObject.CreateInstance<TValue>(objPtr, incrementReference: false);
-    }
-
-    /// <summary>Gets the number of elements contained in the list.</summary>
-    /// <returns>The number of elements contained in the list.</returns>
-    public nuint GetCount()
-    {
-        //native output argument
-        nuint size;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawListObject.GetCount(base.NativePointer, out size);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return size;
     }
 
     /// <summary>Sets the element at a specific position.</summary>
@@ -139,7 +140,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.SetItemAt(base.NativePointer, index, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -156,7 +157,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.PushBack(base.NativePointer, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -173,7 +174,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.PushFront(base.NativePointer, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -193,7 +194,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.MoveBack(base.NativePointer, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -213,7 +214,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.MoveFront(base.NativePointer, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -236,7 +237,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.PopBack(base.NativePointer, out objPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -261,7 +262,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.PopFront(base.NativePointer, out objPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -281,7 +282,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.InsertAt(base.NativePointer, index, obj.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -305,7 +306,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.RemoveAt(base.NativePointer, index, out objPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -324,7 +325,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.DeleteAt(base.NativePointer, index);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -339,7 +340,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.Clear(base.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -359,7 +360,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.CreateStartIterator(base.NativePointer, out iteratorPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -381,7 +382,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawListObject.CreateEndIterator(base.NativePointer, out iteratorPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -449,7 +450,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
     #region ICollection<TValue> implementation
 
     /// <inheritdoc/>
-    int ICollection<TValue>.Count => (int)this.GetCount();
+    int ICollection<TValue>.Count => (int)this.Count;
 
     /// <inheritdoc/>
     bool ICollection<TValue>.IsReadOnly => false;
@@ -468,7 +469,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.Clear(base.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -551,7 +552,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createList(out objPtr);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new ListObject<TValue>(objPtr, incrementReference: false);
@@ -569,7 +570,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createList(out objPtr);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

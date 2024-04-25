@@ -133,20 +133,20 @@
     <!-- NuGet package creation in CI -->
     <!-- Windows runtimes -->
     <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll" />
-    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <OpenDaqModuleWinLibs Include="$(_SdkOutputPathWindows64)\modules\*.dll" />
-    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64\modules)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <!-- Linux runtimes -->
     <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.*" Exclude="$(_SdkOutputPathLinux64)\*.module.*" />
-    <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.*" />
-    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64\modules)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>

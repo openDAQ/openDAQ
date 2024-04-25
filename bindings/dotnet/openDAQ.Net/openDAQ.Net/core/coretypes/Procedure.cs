@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -47,6 +47,13 @@ internal unsafe class RawProcedure : RawBaseObject
 /// functions and other constructs.
 /// <para/>
 /// Available factories:
+/// <code>
+/// // Creates a new Procedure object. Throws exception if not successful.
+/// IFunction* Procedure_Create(ProcCall value)
+///
+/// // Creates a new Procedure object. Returns error code if not successful.
+/// ErrCode createProcedure(IFuncObject** obj, ProcCall value)
+/// </code>
 /// </remarks>
 [Guid("36247e6d-6bdd-5964-857d-0fd296eeb5c3")]
 public class Procedure : BaseObject
@@ -64,7 +71,7 @@ public class Procedure : BaseObject
 
     /// <summary>Calls the stored callback.</summary>
     /// <remarks>
-    /// If the callback expects no parameters, the <c>params</c> parameter has to be <c>null</c>. If it
+    /// If the callback expects no parameters, the <c>params</c> parameter has to be <c>nullptr</c>. If it
     /// expects a single parameter, pass any openDAQ object as the <c>params</c> parameter.
     /// If it expects multiple parameters, pass an IList&lt;IBaseObject&gt; as the <c>params</c> parameter.
     /// </remarks>
@@ -76,7 +83,7 @@ public class Procedure : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -105,7 +112,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createProcedure(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new Procedure(objPtr, incrementReference: false);
@@ -122,7 +129,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createProcedure(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -59,45 +59,49 @@ public class NumberObject : BaseObject
     }
 
     /// <summary>Gets a value stored in the object as a floating point value.</summary>
-    /// <returns>Stored value as a floating point.</returns>
-    public double GetFloatValue()
+    public double FloatValue
     {
-        //native output argument
-        double value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetFloatValue(base.NativePointer, out value);
+            //native output argument
+            double value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetFloatValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
 
     /// <summary>Gets a value stored in the object as an integer value.</summary>
-    /// <returns>Stored value as an integer.</returns>
-    public long GetIntValue()
+    public long IntValue
     {
-        //native output argument
-        long value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetIntValue(base.NativePointer, out value);
+            //native output argument
+            long value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetIntValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
 }
 

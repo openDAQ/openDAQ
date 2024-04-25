@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:45:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -74,6 +74,140 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             _rawDictObject = Marshal.PtrToStructure<RawDictObject>(objVirtualTable);
     }
 
+    /// <summary>Gets the number of elements contained in the dictionary.</summary>
+    public nuint Count
+    {
+        get
+        {
+            //native output argument
+            nuint size;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDictObject.GetCount(base.NativePointer, out size);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return size;
+        }
+    }
+
+    /// <summary>Gets the list of all keys in the dictionary.</summary>
+    /// <remarks>
+    /// The order of the keys is not defined.
+    /// <para/>
+    /// The client is responsible for calling <c>releaseRef</c> when the list is no longer needed.
+    /// </remarks>
+    public IListObject<TKey> KeyList
+    {
+        get
+        {
+            //native output argument
+            IntPtr keysPtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeyList(base.NativePointer, out keysPtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<TKey>(keysPtr, incrementReference: false);
+        }
+    }
+
+    /// <summary>Gets the list of all elements in the dictionary.</summary>
+    /// <remarks>
+    /// The order of the elements is not defined.
+    /// <para/>
+    /// The client is responsible for calling <c>releaseRef</c> when the list is no longer needed.
+    /// </remarks>
+    public IListObject<TValue> ValueList
+    {
+        get
+        {
+            //native output argument
+            IntPtr valuesPtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValueList(base.NativePointer, out valuesPtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<TValue>(valuesPtr, incrementReference: false);
+        }
+    }
+
+    /// <summary>Gets the iterable interface of the keys.</summary>
+    /// <remarks>
+    /// The Iterable interface enables iteration through the keys.
+    /// <para/>
+    /// The client is responsible for calling <c>releaseRef</c> when the interface is no longer needed.
+    /// </remarks>
+    public Iterable<TKey> Keys
+    {
+        get
+        {
+            //native output argument
+            IntPtr iterablePtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeys(base.NativePointer, out iterablePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new Iterable<TKey>(iterablePtr, incrementReference: false);
+        }
+    }
+
+    /// <summary>Gets the iterable interface of the elements.</summary>
+    /// <remarks>
+    /// The Iterable interface enables iteration through the elements.
+    /// <para/>
+    /// The client is responsible for calling <c>releaseRef</c> when the interface is no longer needed.
+    /// </remarks>
+    public Iterable<TValue> Values
+    {
+        get
+        {
+            //native output argument
+            IntPtr iterablePtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValues(base.NativePointer, out iterablePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new Iterable<TValue>(iterablePtr, incrementReference: false);
+        }
+    }
     /// <summary>Gets the element with the specified key.</summary>
     /// <remarks>
     /// The reference count of the element that is retrieved is incremented. The client is
@@ -91,7 +225,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Get(base.NativePointer, key.NativePointer, out valuePtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -111,7 +245,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Set(base.NativePointer, key.NativePointer, value.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -135,7 +269,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Remove(base.NativePointer, key.NativePointer, out valuePtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -154,7 +288,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.DeleteItem(base.NativePointer, key.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -169,32 +303,11 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Clear(base.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
         }
-    }
-
-    /// <summary>Gets the number of elements contained in the dictionary.</summary>
-    /// <returns>The number of elements contained in the dictionary.</returns>
-    public nuint GetCount()
-    {
-        //native output argument
-        nuint size;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.GetCount(base.NativePointer, out size);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return size;
     }
 
     /// <summary>Checks if the element with the specified key exists in the dictionary.</summary>
@@ -210,117 +323,13 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.HasKey(base.NativePointer, key.NativePointer, out hasKey);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
         }
 
         return hasKey;
-    }
-
-    /// <summary>Gets the list of all keys in the dictionary.</summary>
-    /// <remarks>
-    /// The order of the keys is not defined.
-    /// <para/>
-    /// The client is responsible for calling <c>releaseRef</c> when the list is no longer needed.
-    /// </remarks>
-    /// <returns>The list of the keys.</returns>
-    public IListObject<TKey> GetKeyList()
-    {
-        //native output argument
-        IntPtr keysPtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeyList(base.NativePointer, out keysPtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return new ListObject<TKey>(keysPtr, incrementReference: false);
-    }
-
-    /// <summary>Gets the list of all elements in the dictionary.</summary>
-    /// <remarks>
-    /// The order of the elements is not defined.
-    /// <para/>
-    /// The client is responsible for calling <c>releaseRef</c> when the list is no longer needed.
-    /// </remarks>
-    /// <returns>The list of the elements.</returns>
-    public IListObject<TValue> GetValueList()
-    {
-        //native output argument
-        IntPtr valuesPtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValueList(base.NativePointer, out valuesPtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return new ListObject<TValue>(valuesPtr, incrementReference: false);
-    }
-
-    /// <summary>Gets the iterable interface of the keys.</summary>
-    /// <remarks>
-    /// The Iterable interface enables iteration through the keys.
-    /// <para/>
-    /// The client is responsible for calling <c>releaseRef</c> when the interface is no longer needed.
-    /// </remarks>
-    /// <returns>The iterable interface of the keys.</returns>
-    public Iterable<TKey> GetKeys()
-    {
-        //native output argument
-        IntPtr iterablePtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeys(base.NativePointer, out iterablePtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return new Iterable<TKey>(iterablePtr, incrementReference: false);
-    }
-
-    /// <summary>Gets the iterable interface of the elements.</summary>
-    /// <remarks>
-    /// The Iterable interface enables iteration through the elements.
-    /// <para/>
-    /// The client is responsible for calling <c>releaseRef</c> when the interface is no longer needed.
-    /// </remarks>
-    /// <returns>The iterable interface of the elements.</returns>
-    public Iterable<TValue> GetValues()
-    {
-        //native output argument
-        IntPtr iterablePtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValues(base.NativePointer, out iterablePtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return new Iterable<TValue>(iterablePtr, incrementReference: false);
     }
 
     #region IDictObject<TKey, TValue> implementation
@@ -336,10 +345,10 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
     #region IDictionary<TKey, TValue> implementation
 
     /// <inheritdoc/>
-    ICollection<TKey> IDictionary<TKey, TValue>.Keys => this.GetKeyList();
+    ICollection<TKey> IDictionary<TKey, TValue>.Keys => this.KeyList;
 
     /// <inheritdoc/>
-    ICollection<TValue> IDictionary<TKey, TValue>.Values => this.GetValueList();
+    ICollection<TValue> IDictionary<TKey, TValue>.Values => this.ValueList;
 
     /// <inheritdoc/>
     TValue IDictionary<TKey, TValue>.this[TKey key]
@@ -398,7 +407,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
     #region ICollection<T> implementation
 
     /// <inheritdoc/>
-    int ICollection<KeyValuePair<TKey, TValue>>.Count => (int)this.GetCount();
+    int ICollection<KeyValuePair<TKey, TValue>>.Count => (int)this.Count;
 
     /// <inheritdoc/>
     bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
@@ -440,14 +449,14 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             throw new IndexOutOfRangeException(nameof(arrayIndex));
         }
 
-        int count = (int)this.GetCount();
+        int count = (int)this.Count;
 
         if (array.Length - arrayIndex < count)
         {
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
         }
 
-        foreach (TKey key in this.GetKeyList())
+        foreach (TKey key in this.KeyList)
         {
             TValue value = this.Get(key);
             array[arrayIndex++] = new KeyValuePair<TKey, TValue>(key, value);
@@ -519,7 +528,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createDict(out objPtr);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new DictObject<TKey, TValue>(objPtr, incrementReference: false);
@@ -538,7 +547,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createDict(out objPtr);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

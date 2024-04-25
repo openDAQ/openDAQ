@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -61,31 +61,33 @@ public class DaqType : BaseObject
     }
 
     /// <summary>Gets the name of the Type</summary>
-    /// <returns>The name of the Type.</returns>
-    public string GetName()
+    public string Name
     {
-        //native output argument
-        IntPtr typeNamePtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDaqType.GetName(base.NativePointer, out typeNamePtr);
+            //native output argument
+            IntPtr typeNamePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDaqType.GetName(base.NativePointer, out typeNamePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
-        }
 
-        // validate pointer
-        if (typeNamePtr == IntPtr.Zero)
-        {
-            return null;
-        }
+            // validate pointer
+            if (typeNamePtr == IntPtr.Zero)
+            {
+                return null;
+            }
 
-        using var typeName = new StringObject(typeNamePtr, incrementReference: false);
-        return typeName;
+            using var typeName = new StringObject(typeNamePtr, incrementReference: false);
+            return typeName;
+        }
     }
 }
 

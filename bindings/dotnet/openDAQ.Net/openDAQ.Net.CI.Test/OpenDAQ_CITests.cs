@@ -25,11 +25,11 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         // Create an Instance, loading modules from default location
         var instance = OpenDAQFactory.Instance();
 
-        var deviceInfos = instance.GetAvailableDevices();
+        var deviceInfos = instance.AvailableDevices;
 
         foreach (var deviceInfo in deviceInfos)
         {
-            var deviceConnectionString = deviceInfo.GetConnectionString();
+            var deviceConnectionString = deviceInfo.ConnectionString;
 
             //connectible device?
             if (!deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))
@@ -139,9 +139,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //finally free managed resources (release reference)
@@ -162,9 +162,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Assert.That(daqInstance.IsDisposed, Is.False);
 
             //can do something with 'daqInstance' here
-            using var info = daqInstance.GetInfo();
+            using var info = daqInstance.Info;
 
-            var name = info.GetName();
+            var name = info.Name;
             Console.WriteLine($"daqInstance name = '{name}'");
         } //losing scope here, automatically calling Dispose() and thus freeing managed resources (release reference)
 
@@ -182,9 +182,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //losing scope at the end of this method, automatically calling Dispose() and thus freeing managed resources (release reference)
@@ -192,20 +192,20 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
 
     [Test]
-    public void Test_0201_GetAvailableDevices()
+    public void Test_0201_AvailableDevicesProperty()
     {
         using Instance daqInstance = OpenDAQFactory.Instance(".");
 
-        Console.WriteLine("> daqInstance.GetAvailableDevices()");
-        var availableDevicesInfos = daqInstance.GetAvailableDevices();
+        Console.WriteLine("> daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
 
         Console.WriteLine($"  {availableDevicesInfos.Count} devices available");
 
         //list all devices
         foreach (var deviceInfo in availableDevicesInfos)
         {
-            var deviceName = deviceInfo.GetName();
-            var connectionString = deviceInfo.GetConnectionString();
+            var deviceName = deviceInfo.Name;
+            var connectionString = deviceInfo.ConnectionString;
             string model = deviceInfo.GetPropertyValue("model");
             string deviceClass = deviceInfo.GetPropertyValue("deviceClass");
             string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
@@ -223,12 +223,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         // Create an Instance, loading modules from default location
         var instance = OpenDAQFactory.Instance();
 
-        Console.WriteLine("instance.GetAvailableDevices()");
-        var deviceInfos = instance.GetAvailableDevices();
+        Console.WriteLine("instance.AvailableDevices");
+        var deviceInfos = instance.AvailableDevices;
 
         foreach (var deviceInfo in deviceInfos)
         {
-            var deviceConnectionString = deviceInfo.GetConnectionString();
+            var deviceConnectionString = deviceInfo.ConnectionString;
 
             //connectible device?
             if (!deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))
@@ -258,8 +258,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         foreach (var device in devices)
         {
-            var info = device.GetInfo();
-            Console.WriteLine($"  Name: '{info.GetName()}', Connection string: '{info.GetConnectionString()}'");
+            var info = device.Info;
+            Console.WriteLine($"  Name: '{info.Name}', Connection string: '{info.ConnectionString}'");
 
             device.PrintReferenceCount();
             //device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
@@ -288,9 +288,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (channelIterator.MoveNext() && (i++ < 50))
             {
                 using var channel = channelIterator.Current;
-                var channelName   = channel.GetName();
-                var localId       = channel.GetLocalId();
-                var globalId      = channel.GetGlobalId();
+                var channelName   = channel.Name;
+                var localId       = channel.LocalId;
+                var globalId      = channel.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {channelName} ({localId}) ({globalId})");
             }
@@ -318,9 +318,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var signal = signalIterator.Current;
-                var signalName   = signal.GetName();
-                var localId      = signal.GetLocalId();
-                var globalId     = signal.GetGlobalId();
+                var signalName   = signal.Name;
+                var localId      = signal.LocalId;
+                var globalId     = signal.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {signalName} ({localId}) ({globalId})");
             }
@@ -336,7 +336,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("daqInstance.GetAvailableFunctionBlocks()");
-        var availableFunctionBlockInfos = daqInstance.GetAvailableFunctionBlockTypes();
+        var availableFunctionBlockInfos = daqInstance.AvailableFunctionBlockTypes;
         Assert.Multiple(() =>
         {
             Assert.That(availableFunctionBlockInfos, Is.Not.Null);
@@ -348,7 +348,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         foreach (var key in availableFunctionBlockInfos.Keys)
         {
             using var functionBlockInfo = availableFunctionBlockInfos[key];
-            var functionBlockId         = functionBlockInfo.GetId();
+            var functionBlockId         = functionBlockInfo.Id;
 
             Console.WriteLine($"  - '{key}' ({functionBlockId})");
         }
@@ -381,7 +381,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var sig = signalIterator.Current;
-                var sigName = sig.GetName();
+                var sigName = sig.Name;
 
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
@@ -396,7 +396,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         //take the first available signal
         using var signal = signals[analogSignalNo - 1];
-        var signalName = signal.GetName();
+        var signalName = signal.Name;
         Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
 
         Console.WriteLine("OpenDAQFactory.CreateStreamReader()");
@@ -408,7 +408,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         nuint samplesCount = 0;
         using (var reader = OpenDAQFactory.CreateStreamReader<TValue>(signal))
         {
-            Console.WriteLine($"  ValueReadType = {reader.GetValueReadType()}, DomainReadType = {reader.GetDomainReadType()}");
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
 
             for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
             {

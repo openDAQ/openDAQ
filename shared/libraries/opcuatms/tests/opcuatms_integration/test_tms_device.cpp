@@ -52,7 +52,7 @@ TEST_F(TmsDeviceTest, CreateClientDevice)
     auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
     auto ctx = NullContext();
-    ASSERT_NO_THROW(TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr));
+    ASSERT_NO_THROW(TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId));
 }
 
 TEST_F(TmsDeviceTest, SubDevices)
@@ -63,7 +63,7 @@ TEST_F(TmsDeviceTest, SubDevices)
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
     ASSERT_EQ(clientDevice.getDevices().getCount(), 2u);
 }
 
@@ -75,7 +75,7 @@ TEST_F(TmsDeviceTest, FunctionBlocks)
     auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
     ListPtr<IFunctionBlock> functionBlocks;
     ASSERT_NO_THROW(functionBlocks = clientDevice.getFunctionBlocks());
     ASSERT_EQ(functionBlocks.getCount(), 1u);
@@ -92,7 +92,7 @@ TEST_F(TmsDeviceTest, GetSignals)
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
@@ -122,7 +122,7 @@ TEST_F(TmsDeviceTest, GetChannels)
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = clientDevice.getChannels());
     ASSERT_EQ(channels.getCount(), serverDevice.getChannels().getCount());
@@ -144,7 +144,7 @@ TEST_F(TmsDeviceTest, DISABLED_Property)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto ctx = NullContext();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
 
     auto serverVisibleProps = serverDevice.getVisibleProperties();
     auto visibleProperties = clientDevice.getVisibleProperties();
@@ -179,7 +179,7 @@ TEST_F(TmsDeviceTest, DeviceInfo)
     auto serverSubDevice = serverSubDevices[1];
     auto serverDeviceInfo = serverSubDevice.getInfo();
 
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
 
     auto clientSubDevices = clientDevice.getDevices();
     ASSERT_EQ(clientSubDevices.getCount(), 2u);
@@ -237,7 +237,7 @@ TEST_F(TmsDeviceTest, DeviceInfoServerCapabilities)
     auto serverSubDevice = serverSubDevices[1];
     auto serverDeviceInfo = serverSubDevice.getInfo();
 
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
 
     auto clientSubDevices = clientDevice.getDevices();
     ASSERT_EQ(clientSubDevices.getCount(), 2u);
@@ -267,7 +267,7 @@ TEST_F(TmsDeviceTest, DeviceGetTicksSinceOrigin)
     auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
     auto clientSubDevices = clientDevice.getDevices();
     auto clientSubDevice = clientSubDevices[1];
 
@@ -288,7 +288,7 @@ TEST_F(TmsDeviceTest, DeviceDomain)
     auto serverSubDevice = serverSubDevices[1];
     auto serverDeviceInfo = serverSubDevice.getInfo();
 
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
 
     auto clientSubDevices = clientDevice.getDevices();
     ASSERT_EQ(clientSubDevices.getCount(), 2u);
@@ -323,7 +323,7 @@ TEST_F(TmsDeviceTest, CustomComponents)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getItems().getCount(), clientSubDevice.getItems().getCount());
@@ -345,7 +345,7 @@ TEST_F(TmsDeviceTest, CustomComponentsProperties)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getItems().getCount(), clientSubDevice.getItems().getCount());
@@ -368,7 +368,7 @@ TEST_F(TmsDeviceTest, ComponentMethods)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getName(), clientSubDevice.getName());
@@ -393,7 +393,7 @@ TEST_F(TmsDeviceTest, DeviceProcedureProperty)
 
     auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     auto procProp = clientSubDevice.getProperty("stop");
@@ -412,7 +412,7 @@ TEST_F(TmsDeviceTest, SignalOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     const auto serverSignals = serverDevice.getSignals();
     const auto clientSignals = clientDevice.getSignals();
@@ -430,7 +430,7 @@ TEST_F(TmsDeviceTest, DeviceOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     const auto serverDevices = serverDevice.getDevices();
     const auto clientDevices = clientDevice.getDevices();
@@ -448,7 +448,7 @@ TEST_F(TmsDeviceTest, FunctionBlockOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     const auto serverFbs = serverDevice.getFunctionBlocks();
     const auto clientFbs = clientDevice.getFunctionBlocks();
@@ -469,7 +469,7 @@ TEST_F(TmsDeviceTest, IOFolderOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     const auto serverIO = serverDevice.getInputsOutputsFolder().getItems();
     const auto clientIO = clientDevice.getInputsOutputsFolder().getItems();
@@ -487,7 +487,7 @@ TEST_F(TmsDeviceTest, CustomComponentOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     const auto serverCmps = serverDevice.getCustomComponents();
     const auto clientCmps = clientDevice.getCustomComponents();
@@ -501,7 +501,7 @@ TEST_F(TmsDeviceTest, SdkPackageVersion)
     auto serverDevice = createDevice();
     auto tmsServerDevice = TmsServerDevice(serverDevice.getRootDevice(), this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     ASSERT_EQ(clientDevice.getInfo().getSdkVersion(), OPENDAQ_PACKAGE_VERSION);
 }

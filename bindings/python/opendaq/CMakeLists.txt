@@ -79,6 +79,8 @@ set(SRC_Cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp
+    generated/streaming/py_mirrored_device.cpp
+    generated/streaming/py_mirrored_device_config.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

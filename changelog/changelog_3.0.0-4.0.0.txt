@@ -1,3 +1,14 @@
+25.04.2024
+Description:
+  - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
+
++ [interface] IMirroredDevice
++ [function] IMirroredDevice::getStreamingSources(IList** streamingSources)
+
++ [interface] IMirroredDeviceConfig
++ [function] IMirroredDeviceConfig::addStreamingSource(IStreaming* streamingSource)
++ [function] IMirroredDeviceConfig::removeStreamingSource(IString* streamingConnectionString)
+
 23.04.2024
 Description:
   - Adding addresses in ServerCapability

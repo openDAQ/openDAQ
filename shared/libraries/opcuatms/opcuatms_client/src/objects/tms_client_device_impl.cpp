@@ -62,11 +62,8 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                          const StringPtr& localId,
                                          const TmsClientContextPtr& clientContext,
                                          const opcua::OpcUaNodeId& nodeId,
-                                         const FunctionPtr& createStreamingCallback,
                                          bool isRootDevice)
     : TmsClientComponentBaseImpl(ctx, parent, localId, clientContext, nodeId)
-    , createStreamingCallback(createStreamingCallback)
-    , isRootDevice(isRootDevice)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("TmsClientDevice")
@@ -82,15 +79,12 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
-
-    connectToStreamings();
-    setUpStreamings();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
 {
     fetchTimeDomain();
-    return TmsClientComponentBaseImpl<GenericDevice<IDevice, ITmsClientComponent>>::getDomain(deviceDomain);
+    return TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>::getDomain(deviceDomain);
 }
 
 void TmsClientDeviceImpl::findAndCreateSubdevices()
@@ -105,7 +99,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
         try
         {
             auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
+            auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId);
                         
             auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
@@ -525,45 +519,6 @@ void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& function
         throw OpcUaException(response->statusCode, "Failed to remove function block");
 
     removeNestedFunctionBlock(functionBlock);
-}
-
-void TmsClientDeviceImpl::setUpStreamings()
-{
-    auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignals(search::Recursive(search::Any()));
-    LOG_I("Device \"{}\" has established {} streaming connections", globalId, streamings.size());
-    for (const auto& streaming : streamings)
-    {
-        LOG_I("Device \"{}\" adding signals to a streaming connection on url: {}", globalId, streaming.getConnectionString());
-        streaming.addSignals(signals);
-        streaming.setActive(true);
-    }
-}
-
-void TmsClientDeviceImpl::connectToStreamings()
-{
-    DeviceInfoPtr info;
-    this->getInfo(&info);
-    if (createStreamingCallback.assigned())
-    {
-        for (const auto& capability : info.getServerCapabilities())
-        {
-            if (capability.getProtocolType() != ProtocolType::Streaming)
-                continue;
-
-            StreamingPtr streaming;
-            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, capability, isRootDevice);
-
-            if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
-            {
-                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("protocolId").asPtr<IString>());
-            }
-            else
-            {
-                streamings.push_back(streaming);
-            }
-        }
-    }
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

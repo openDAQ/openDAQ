@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <opcuatms_client/tms_attribute_collector.h>
+#include <opcuatms_client/objects/tms_client_device_factory.h>
 
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
@@ -21,11 +22,9 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 TmsClient::TmsClient(const ContextPtr& context,
                      const ComponentPtr& parent,
-                     const std::string& opcUaUrl,
-                     const FunctionPtr& createStreamingCallback)
+                     const std::string& opcUaUrl)
     : context(context)
     , opcUaUrl(opcUaUrl)
-    , createStreamingCallback(createStreamingCallback)
     , parent(parent)
     , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpcUaClient")
                                                      : throw ArgumentNullException("Logger must not be null"))
@@ -62,7 +61,7 @@ daq::DevicePtr TmsClient::connect()
     std::string rootDeviceBrowseName;
     getRootDeviceNodeAttributes(rootDeviceNodeId, rootDeviceBrowseName);
 
-    auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
+    auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId);
 
     const auto deviceInfo = device.getInfo();
     if (deviceInfo.hasProperty("OpenDaqPackageVersion"))

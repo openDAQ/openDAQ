@@ -2,7 +2,7 @@
 #include <opendaq/logger_sink_ptr.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
 
 using OpcuaDeviceModulesTest = testing::Test;
 
@@ -32,9 +32,7 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
+    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1");
     return instance;
 }
 
@@ -58,9 +56,7 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
     auto client = Instance();
-    auto config = client.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
-    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]", config));
+    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]"));
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)

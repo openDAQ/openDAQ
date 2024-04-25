@@ -104,7 +104,7 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
 
 bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString != "")
     {
         return onAcceptsConnectionParameters(connectionString, config);
     }
@@ -136,7 +136,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
         throw InvalidParameterException();
 
-    if (!streamingConnectionString.assigned())
+    if (!streamingConnectionString.assigned() || streamingConnectionString == "")
         streamingConnectionString = tryCreateWebsocketConnectionString(config);
 
     return WebsocketStreaming(streamingConnectionString, context);

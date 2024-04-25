@@ -1,4 +1,4 @@
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
 #include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/custom_log.h>
@@ -193,17 +193,7 @@ protected:
     {
         auto instance = Instance();
         auto connectionString = std::get<2>(GetParam());
-        if (connectionString.find("daq.opcua") == 0)
-        {
-            auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-            config.setPropertyValue("PrimaryStreamingProtocol", std::get<1>(GetParam()));
-            auto device = instance.addDevice(connectionString, config);
-        }
-        else
-        {
-            auto device = instance.addDevice(connectionString);
-        }
+        auto device = instance.addDevice(connectionString);
         return instance;
     }
 

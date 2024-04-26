@@ -8,16 +8,19 @@ class RegressionTestFolder : public testing::TestWithParam<StringPtr>
 private:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
+    InstancePtr instance;
 
 protected:
-    InstancePtr folder;
+    FolderPtr folder;
 
     void SetUp() override
     {
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
-        folder = InstanceCustom(context, "mock_instance");
+        instance = InstanceCustom(context, "mock_instance");
+
+        folder = instance.addDevice(GetParam());
     }
 };
 

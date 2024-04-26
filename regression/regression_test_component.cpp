@@ -12,7 +12,7 @@ private:
     InstancePtr instance;
 
 protected:
-    DevicePtr component;
+    ComponentPtr component;
 
     void SetUp() override
     {

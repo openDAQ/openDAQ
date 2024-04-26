@@ -20,6 +20,7 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
+        // TODO: should not rely on "ref_fb_module_trigger" being present
         fb = instance.addFunctionBlock("ref_fb_module_trigger");
     }
 };

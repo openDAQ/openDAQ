@@ -49,28 +49,28 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
      * @param groupId The id of a group to set permissions for.
      * @param permissions A set of permissions to allow for given group. Permissions not present in the set are denied.
      */
-    virtual ErrCode INTERFACE_FUNC set(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC assign(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
      * @brief Allow a set of permissions for a given group and inherit all others.
      * @param groupId The id of a group to allow permissions for.
-     * @param permissions A set of permissions to allow for given group. Permissions not persent in the set are inherited.
+     * @param permissions A set of permissions to allow for given group. Permissions not present in the set are inherited.
      */
-    virtual ErrCode INTERFACE_FUNC allow(IString * groupId, IPermissionMaskBuilder* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC allow(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
      * @brief Deny a set of permissions for a given group and inherit all others.
      * @param groupId The id of a group to deny permissions for.
-     * @param permissions A set of permissions to deny for given group. Permissions not persent in the set are inherited.
+     * @param permissions A set of permissions to deny for given group. Permissions not present in the set are inherited.
      */
-    virtual ErrCode INTERFACE_FUNC deny(IString * groupId, IPermissionMaskBuilder* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC deny(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Add permisisons of another permission config object, overwrite existing ones.
-     * @param config Permisison config object.
+     * @brief Add permissions of another permission config object, overwrite existing ones.
+     * @param config Permission config object.
      */
     virtual ErrCode INTERFACE_FUNC extend(IPermissions* config) = 0;
 

@@ -69,7 +69,7 @@ TEST_F(AccessControlTest, ComponentInherit)
     auto deviceManager = device.getPermissionManager();
     auto fbManager = fb.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", PermissionMaskBuilder().read().write()).build());
+    deviceManager.setPermissions(PermissionsBuilder().assign("guest", PermissionMaskBuilder().read().write()).build());
     fbManager.setPermissions(PermissionsBuilder()
                                  .inherit(true)
                                  .allow("guest", PermissionMaskBuilder().execute())
@@ -98,7 +98,7 @@ TEST_F(AccessControlTest, ObjectPropertyInherit)
     auto deviceManager = device.getPermissionManager();
     auto objectManager = object.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", PermissionMaskBuilder().read().write()).build());
+    deviceManager.setPermissions(PermissionsBuilder().assign("guest", PermissionMaskBuilder().read().write()).build());
     objectManager.setPermissions(PermissionsBuilder()
                                      .inherit(true)
                                      .allow("guest", PermissionMaskBuilder().execute())
@@ -129,7 +129,7 @@ TEST_F(AccessControlTest, ComponentAndObjectInherit)
     auto fbManager = fb.getPermissionManager();
     auto objectManager = object.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", PermissionMaskBuilder().read()).build());
+    deviceManager.setPermissions(PermissionsBuilder().assign("guest", PermissionMaskBuilder().read()).build());
     fbManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", PermissionMaskBuilder().write()).build());
     objectManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", PermissionMaskBuilder().execute()).build());
 

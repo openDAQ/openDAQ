@@ -28,9 +28,15 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
-                auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                auto connectionStringIpv4 = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                auto connectionStringIpv6 = fmt::format("{}[{}]/",
+                                    DaqOpcUaDevicePrefix,
+                                    discoveredDevice.ipv6Address);
                 auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-                cap.addConnectionString(connectionString);
+                cap.addConnectionString(connectionStringIpv4);
+                cap.addAddress(discoveredDevice.ipv4Address);
+                cap.addConnectionString(connectionStringIpv6);
+                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;
@@ -86,19 +92,19 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (prefix != DaqOpcUaDevicePrefix)
         throw InvalidParameterException("OpcUa does not support connection string with prefix");
 
-    FunctionPtr createStreamingCallback = [&](const ServerCapabilityPtr& capability,
+    FunctionPtr createStreamingCallback = [&](const ServerCapabilityConfigPtr& capability,
                                               bool isRootDevice) -> StreamingPtr
         {
             if (capability.getProtocolType() != ProtocolType::Streaming)
                 return nullptr;
 
             if (isRootDevice)
-                capability.setPropertyValue("address", host);
+                capability.addAddress(host);
 
             const StringPtr streamingHeuristic = deviceConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
             const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
 
-            const StringPtr protocolId = capability.getPropertyValue("protocolId");
+            const StringPtr protocolId = capability.getProtocolId();
 
             if (protocolId != nullptr)
                 if (const auto it = std::find(allowedStreamingProtocols.begin(),

@@ -8,6 +8,29 @@
 
 using namespace daq;
 
+void printObject(const PropertyObjectPtr& obj, int ident)
+{
+    // for(const auto& prop : obj.getVisibleProperties())
+    for (const auto& prop : obj.getAllProperties())
+    {
+        auto propName = prop.getName();
+
+        auto propValue = obj.getPropertyValue(propName);
+        auto propObj = propValue.asPtrOrNull<IPropertyObject>(true);
+
+        if (propObj.assigned())
+        {
+            fmt::println("{:\t<{}}{:<25}: {}", "\t", ident, propName, "");
+            printObject(propObj, ident + 1);
+        }
+        else
+        {
+            fmt::println("{:\t<{}}{:<25}: {}", "\t", ident, propName, propValue);
+        }
+        
+    }
+}
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
@@ -27,14 +50,21 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Output the names and connection strings of all connected-to devices
-    std::cout << "Connected devices:" << std::endl;
+    fmt::println("Connected devices:");
+
     for (auto device : devices)
     {
-        auto info = device.getInfo();
-        std::cout << "Name: " << info.getName() << ", Connection string: " << info.getConnectionString() << std::endl;
+        DeviceInfoPtr info = device.getInfo();
+
+        fmt::println("---------------");
+        
+        printObject(info, 1);
+
+        fmt::println("---------------");
     }
 
-    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+
+    fmt::println(R"(Press "enter" to exit the application...)");
     std::cin.get();
     return 0;
 }

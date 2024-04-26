@@ -17,7 +17,7 @@ TEST_F(UserTest, EmptyGroups)
     auto user = User("janm", "psswordHash");
 
     ASSERT_TRUE(user.getGroups().assigned());
-    ASSERT_EQ(user.getGroups().getCount(), 1);
+    ASSERT_EQ(user.getGroups().getCount(), 1u);
     ASSERT_EQ(user.getGroups().getItemAt(0), "everyone");
 }
 

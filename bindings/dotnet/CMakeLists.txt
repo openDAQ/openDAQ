@@ -1,6 +1,6 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 
-message(DEBUG "=== .NET Bindings ===")
+message(STATUS "=== .NET Bindings ===")
 message(DEBUG "CMAKE_SOURCE_DIR               = '${CMAKE_SOURCE_DIR}'")
 message(DEBUG "CMAKE_CURRENT_BINARY_DIR       = '${CMAKE_CURRENT_BINARY_DIR}'")
 message(DEBUG "CMAKE_CURRENT_SOURCE_DIR       = '${CMAKE_CURRENT_SOURCE_DIR}'")
@@ -41,14 +41,13 @@ set(test_path ${bindingsDir}/test_results)
 set(outFile ${outputBinDir}/${outputFileName})
 set(dotnet_config --configuration $<CONFIG>_Build)
 set(msbuild_parameters -p:NoWarn=1591 -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION}) # suppress: Warning CS1591 Missing XML comment for publicly visible type or member xy
-set(version_suffix --version-suffix "beta-\$\(SHORT_SHA\)")
-set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --framework net6.0 --verbosity normal ${msbuild_parameters} ${version_suffix})
-set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} --logger "junit\\\;LogFilePath=${test_path}/test_${targetName}_$<CONFIG>.xml")
-set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters} ${version_suffix})
+set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --framework net6.0 --verbosity minimal ${msbuild_parameters})
+set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} --logger "junit\\\;LogFilePath=${test_path}/test_${targetName}.xml")
+#set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})
 set(cleanCmd ${CMAKE_COMMAND} -E rm -r -f ${outputBinDir}) # clear outputBinDir (no warning if it doesn't exist)
 set(cmd dotnet build ${dotnet_cmd_args})        # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build
 set(testCmd dotnet test ${dotnet_test_args})    # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test
-set(packCmd dotnet pack ${dotnet_pack_args})    # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-pack
+#set(packCmd dotnet pack ${dotnet_pack_args})    # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-pack
 
 set(configEnabled "$<CONFIG:Debug,Release>")
 set(configRelease "$<CONFIG:Release>")
@@ -63,10 +62,11 @@ message(DEBUG "bindingsSrcDir                 = '${bindingsSrcDir}'")
 message(DEBUG "outputBinDir                   = '${outputBinDir}'")
 message(DEBUG "outFile                        = '${outFile}'")
 message(DEBUG "test_path                      = '${test_path}'")
+#message(DEBUG "SHORT_SHA                      = '$ENV{SHORT_SHA}'")
 message(DEBUG "cleanCmd                       = '${cleanCmd}'")
 message(DEBUG "cmd                            = '${cmd}'")
 message(DEBUG "testCmd                        = '${testCmd}'")
-message(DEBUG "packCmd                        = '${packCmd}'")
+#message(DEBUG "packCmd                        = '${packCmd}'")
 message(DEBUG "configEnabled                  = '${configEnabled}'")
 #-- [openDAQ.bindings.dotnet] targetName                     = 'DotNetBindings'
 #-- [openDAQ.bindings.dotnet] projectName                    = 'openDAQ.NET'
@@ -79,10 +79,10 @@ message(DEBUG "configEnabled                  = '${configEnabled}'")
 #-- [openDAQ.bindings.dotnet] outFile                        = 'C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/bin/x64/$<CONFIG>/openDAQ.NET.dll'
 #-- [openDAQ.bindings.dotnet] test_path                      = 'C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/test_results'
 #-- [openDAQ.bindings.dotnet] cleanCmd                       = 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe;-E;rm;-r;-f;C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/bin/x64/$<CONFIG>'
-#-- [openDAQ.bindings.dotnet] cmd                            = 'dotnet;build;openDAQ.NET.sln;--configuration;$<CONFIG>_Build;--framework;net6.0;--verbosity;normal;-p:NoWarn=1591;-p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/x64/msvc-22/full/bin;-p:OPENDAQ_PACKAGE_VERSION=2.1.0;--version-suffix;beta-$(SHORT_SHA)'
-#-- [openDAQ.bindings.dotnet] testCmd                        = 'dotnet;test;openDAQ.NET.sln;--no-build;--configuration;$<CONFIG>_Build;--logger;junit\;LogFilePath=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/test_results/test_DotNetBindings_$<CONFIG>.xml'
-#-- [openDAQ.bindings.dotnet] packCmd                        = 'dotnet;pack;openDAQ.NET.sln;--no-build;--configuration;$<CONFIG>_Build;-p:NoWarn=1591;-p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/x64/msvc-22/full/bin;-p:OPENDAQ_PACKAGE_VERSION=2.1.0;--version-suffix;beta-$(SHORT_SHA)'
+#-- [openDAQ.bindings.dotnet] cmd                            = 'dotnet;build;openDAQ.NET.sln;--configuration;$<CONFIG>_Build;--framework;net6.0;--verbosity;minimal;-p:NoWarn=1591;-p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/x64/msvc-22/full/bin;-p:OPENDAQ_PACKAGE_VERSION=3.0.0'
+#-- [openDAQ.bindings.dotnet] testCmd                        = 'dotnet;test;openDAQ.NET.sln;--no-build;--configuration;$<CONFIG>_Build;--logger;junit\;LogFilePath=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/test_results/test_DotNetBindings.xml'
 #-- [openDAQ.bindings.dotnet] configEnabled                  = '$<CONFIG:Debug,Release>'
+#-- [openDAQ.bindings.dotnet] Adding target dependencies: daq::coretypes;daq::coreobjects;daq::opendaq;opcua_client_module;ws_stream_cl_module;native_stream_cl_module;opcua_server_module;ws_stream_srv_module;native_stream_srv_module;empty_module;ref_device_module;ref_fb_module;audio_device_module
 #-- [openDAQ.bindings.dotnet] === .NET Bindings end ===
 
 #use all generated C# files as dependency (CONFIGURE_DEPENDS: list is re-evaluated on every build)
@@ -110,7 +110,7 @@ set(dependencyTargets ${SDK_TARGET_NAMESPACE}::coretypes
 )
 add_cmake_targets(${CMAKE_SOURCE_DIR}/modules/. dependencyTargets)
 
-message(STATUS "Adding target dependencies: ${dependencyTargets}")
+message(DEBUG "Adding target dependencies: ${dependencyTargets}")
 
 add_dependencies(${targetName} ${dependencyTargets}
                                ${SDK_TARGET_NAME}
@@ -127,18 +127,19 @@ add_custom_command(TARGET ${targetName}
 )
 
 # <PostBuildEvent>
-add_custom_command(TARGET ${targetName}
-                   # Run after all other rules within the target have been executed.
-                   POST_BUILD
-                   COMMENT "$<${configRelease}:[${targetName}] Building NuGet package (${platform}/$<CONFIG>)>"
-                   COMMAND "$<${configRelease}:${packCmd}>"
-                   WORKING_DIRECTORY "$<${configRelease}:${fullProjectDir}>"
-                   COMMAND_EXPAND_LISTS
-                   VERBATIM
-)
+#message(DEBUG "Adding POST_BUILD (dotnet pack)")
+#add_custom_command(TARGET ${targetName}
+#                   # Run after all other rules within the target have been executed.
+#                   POST_BUILD
+#                   COMMENT "$<${configRelease}:[${targetName}] Building NuGet package (${platform}/$<CONFIG>)>"
+#                   COMMAND "$<${configRelease}:${packCmd}>"
+#                   WORKING_DIRECTORY "$<${configRelease}:${fullProjectDir}>"
+#                   COMMAND_EXPAND_LISTS
+#                   VERBATIM
+#)
 
 if(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS)
-    message(STATUS "Adding 'test_${targetName}' (dotnet test)")
+    message(DEBUG "Adding 'test_${targetName}' (dotnet test)")
     add_test(NAME "test_${targetName}"
              COMMAND "$<${configEnabled}:${testCmd}>"
              WORKING_DIRECTORY "$<${configEnabled}:${fullProjectDir}>"

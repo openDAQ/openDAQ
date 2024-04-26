@@ -98,6 +98,8 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringCorrect)
     auto module = CreateModule();
 
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://[::1]"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionStringNull)
@@ -190,7 +192,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     serverCapability.setPrefix("daq.lt");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    serverCapability.setPropertyValue("address", "123.123.123.123");
+    serverCapability.addAddress("123.123.123.123");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.addProperty(IntProperty("Port", 1234));

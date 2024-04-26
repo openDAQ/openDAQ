@@ -41,7 +41,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Property Object, allowing for custom String, Int, Bool, or Float-type properties to be added.
  *
  * The getter methods represent a standardized set of Device properties according to the
- * OPC UA: Devices standard. Any additional String, Int, Bool, or Float-type properties can added, using the
+ * OPC UA: Devices standard. Any additional String, Int, Bool, or Float-type properties can be added, using the
  * appropriate Property Object "add property" method. Any other types of properties are invalid.
  * Although Integer-type properties are valid additions, Selection properties cannot be added to
  * Device Info.
@@ -50,7 +50,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * standard Property Objects. No metadata except the Value Type and Default Value are published
  * via OPC UA, and this only said Property metadata is visible to any clients.
  *
- * All fields - default (eg. platform, manufacturer...) and custom are represented as either:
+ * All fields - default (e.g. platform, manufacturer...) and custom are represented as either:
  *
  * - String-type properties
  * - Integer-type properties
@@ -59,7 +59,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * As such, listing all properties via Property Object methods, will return both the
  * names of the default and custom properties. All default properties are initialized to an empty
- * string with the exception of revisionCounter and Position that are integer properties and are
+ * string except for RevisionCounter and Position that are integer properties and are
  * thus initialized to '0'. The names of the properties are written in camelCase - for
  * example "systemUuid", "parentMacAddress", "manufacturerUri".
  *

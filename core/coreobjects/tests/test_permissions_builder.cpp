@@ -27,16 +27,16 @@ TEST_F(PermissionsBuilderTest, Inherited)
 TEST_F(PermissionsBuilderTest, Set)
 {
     auto builder = PermissionsBuilder();
-    auto config = builder.set("admin", PermissionMaskBuilder().read().write()).set("user", PermissionMaskBuilder().read()).build();
+    auto config = builder.assign("admin", PermissionMaskBuilder().read().write()).assign("user", PermissionMaskBuilder().read()).build();
     Int mask;
 
-    ASSERT_EQ(config.getAllowed().getCount(), 2);
+    ASSERT_EQ(config.getAllowed().getCount(), 2u);
     mask = config.getAllowed().get("admin");
     ASSERT_EQ(mask, (Int) (Permission::Read | Permission::Write));
     mask = config.getAllowed().get("user");
     ASSERT_EQ(mask, (Int) Permission::Read);
 
-    ASSERT_EQ(config.getDenied().getCount(), 2);
+    ASSERT_EQ(config.getDenied().getCount(), 2u);
     mask = config.getDenied().get("admin");
     ASSERT_EQ(mask, 0);
     mask = config.getDenied().get("user");
@@ -46,7 +46,7 @@ TEST_F(PermissionsBuilderTest, Set)
 TEST_F(PermissionsBuilderTest, SetOverwrite)
 {
     auto builder = PermissionsBuilder();
-    auto config = builder.set("admin", PermissionMaskBuilder().read().write()).set("admin", PermissionMaskBuilder().read()).build();
+    auto config = builder.assign("admin", PermissionMaskBuilder().read().write()).assign("admin", PermissionMaskBuilder().read()).build();
 
     Int mask = config.getAllowed().get("admin");
     ASSERT_EQ(mask, (Int) Permission::Read);
@@ -55,7 +55,7 @@ TEST_F(PermissionsBuilderTest, SetOverwrite)
 TEST_F(PermissionsBuilderTest, Allow)
 {
     auto builder = PermissionsBuilder();
-    auto config = builder.set("user", PermissionMaskBuilder().read()).allow("user", PermissionMaskBuilder().write()).build();
+    auto config = builder.assign("user", PermissionMaskBuilder().read()).allow("user", PermissionMaskBuilder().write()).build();
     Int mask;
 
     mask = config.getAllowed().get("user");
@@ -68,7 +68,7 @@ TEST_F(PermissionsBuilderTest, Allow)
 TEST_F(PermissionsBuilderTest, Deny)
 {
     auto builder = PermissionsBuilder();
-    auto config = builder.set("user", PermissionMaskBuilder().read()).deny("user", PermissionMaskBuilder().read()).build();
+    auto config = builder.assign("user", PermissionMaskBuilder().read()).deny("user", PermissionMaskBuilder().read()).build();
     Int mask;
 
     mask = config.getAllowed().get("user");
@@ -109,7 +109,7 @@ TEST_F(PermissionsBuilderTest, ExtendSimple)
     auto additionalConfig = PermissionsBuilder().allow("manager", PermissionMaskBuilder().execute()).build();
 
     auto builder = PermissionsBuilder();
-    auto config = builder.set("admin", PermissionMaskBuilder().read().write()).extend(additionalConfig).build();
+    auto config = builder.assign("admin", PermissionMaskBuilder().read().write()).extend(additionalConfig).build();
     Int mask;
 
     mask = config.getAllowed().get("admin");
@@ -130,12 +130,12 @@ TEST_F(PermissionsBuilderTest, Extend)
                                 .allow("admin", PermissionMaskBuilder().execute())
                                 .allow("user", PermissionMaskBuilder().write())
                                 .allow("manager", PermissionMaskBuilder().write())
-                                .set("guest", PermissionMaskBuilder().read())
+                                .assign("guest", PermissionMaskBuilder().read())
                                 .build();
 
     auto builder = PermissionsBuilder();
-    auto config = builder.set("admin", PermissionMaskBuilder().read().write())
-                      .set("user", PermissionMaskBuilder().read())
+    auto config = builder.assign("admin", PermissionMaskBuilder().read().write())
+                      .assign("user", PermissionMaskBuilder().read())
                       .extend(additionalConfig)
                       .build();
     Int mask;

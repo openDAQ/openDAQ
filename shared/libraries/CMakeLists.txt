@@ -25,3 +25,5 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     add_subdirectory(packet_streaming)
     add_subdirectory(config_protocol)
 endif()
+
+add_subdirectory(ping)

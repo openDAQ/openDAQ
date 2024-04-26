@@ -86,6 +86,7 @@ if (Boost_FOUND)
         Boost::locale
         Boost::beast
         Boost::align
+        Boost::asio
     )
 
     foreach(TARGET ${BOOST_TARGETS})

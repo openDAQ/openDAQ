@@ -28,7 +28,7 @@ public:
     explicit PermissionsBuilderImpl();
 
     ErrCode INTERFACE_FUNC inherit(Bool inherit) override;
-    ErrCode INTERFACE_FUNC set(IString* groupId, IPermissionMaskBuilder* permissions) override;
+    ErrCode INTERFACE_FUNC assign(IString* groupId, IPermissionMaskBuilder* permissions) override;
     ErrCode INTERFACE_FUNC allow(IString* groupId, IPermissionMaskBuilder* permissions) override;
     ErrCode INTERFACE_FUNC deny(IString* groupId, IPermissionMaskBuilder* permissions) override;
     ErrCode INTERFACE_FUNC extend(IPermissions* config) override;

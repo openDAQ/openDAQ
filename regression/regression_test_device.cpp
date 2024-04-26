@@ -10,7 +10,6 @@ private:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
     ModulePtr deviceModule;
-    ModulePtr fbModule;
     InstancePtr instance;
 
 protected:

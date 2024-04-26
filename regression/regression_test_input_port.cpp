@@ -7,11 +7,12 @@ class RegressionTestInputPort : public testing::TestWithParam<StringPtr>
 {
 private:
     ModuleManagerPtr moduleManager;
+    InstancePtr instance;
     ContextPtr context;
     FunctionBlockPtr fb;
 
 protected:
-    InstancePtr instance;
+    DevicePtr device;
     InputPortPtr port;
 
     void SetUp() override
@@ -21,8 +22,12 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
+        // TODO: to be able to get input port from functin block
+        instance.setRootDevice(GetParam());
+        device = instance.getRootDevice();
+
         // TODO: should not rely on "ref_fb_module_trigger" being present
-        fb = instance.addFunctionBlock("ref_fb_module_trigger");
+        fb = device.addFunctionBlock("ref_fb_module_trigger");
 
         port = fb.getInputPorts()[0];
     }
@@ -30,7 +35,7 @@ protected:
 
 TEST_P(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDisconnect)
 {
-    auto device = instance.addDevice(GetParam());
+    // TODO: fails here for OPC UA
     auto signal = device.getSignals()[0];
     Bool accepts;
     ASSERT_NO_THROW(accepts = port.acceptsSignal(signal));
@@ -46,7 +51,7 @@ TEST_P(RegressionTestInputPort, getRequiresSignal)
     ASSERT_NO_THROW(port.getRequiresSignal());
 }
 
-// TODO: "daq.opcua://127.0.0.1"?
+// TODO ???
 INSTANTIATE_TEST_SUITE_P(InputPort,
                          RegressionTestInputPort,
                          testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

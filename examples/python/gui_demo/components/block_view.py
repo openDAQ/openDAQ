@@ -1,21 +1,22 @@
 import tkinter as tk
 import opendaq as daq
 
-from .component import Component
+from ..event_port import EventPort
 from .input_ports_view import InputPortsView
 from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .attributes_dialog import AttributesDialog
 
-class BlockView(tk.Frame, Component):
+
+class BlockView(tk.Frame):
 
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
-        Component.__init__(self)
         self.parent = parent
         self.expanded = expanded
         self.node = node
         self.context = context
+        self.event_port = EventPort(self, event_callback=self.refresh)
 
         active = False
         name = 'None'
@@ -32,18 +33,19 @@ class BlockView(tk.Frame, Component):
         self.header_frame = tk.Frame(self)
         self.header_frame.pack(fill=tk.X)
         self.toggle_button = tk.Button(
-            self.header_frame, text='+', image=self.collapsed_img, command=self.handle_expand_toggle)
+            self.header_frame, text='+', image=self.collapsed_img, borderwidth=0, command=self.handle_expand_toggle)
         self.toggle_button.pack(side=tk.LEFT)
-        
+
         self.device_img = self.context.icons['device'] if self.context and self.context.icons and 'device' in self.context.icons else None
-        self.function_block_img = self.context.icons['function_block'] if self.context and self.context.icons and 'function_block' in self.context.icons else None
+        self.function_block_img = self.context.icons[
+            'function_block'] if self.context and self.context.icons and 'function_block' in self.context.icons else None
         self.folder_img = self.context.icons['folder'] if self.context and self.context.icons and 'folder' in self.context.icons else None
 
         self.label_icon = tk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
         self.label = tk.Label(self.header_frame, text=name)
         self.label.pack(side=tk.LEFT)
-        self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image,
+        self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0,
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node).show())
         self.edit_button.pack(side=tk.RIGHT)
         self.checkbox = tk.Checkbutton(
@@ -120,11 +122,11 @@ class BlockView(tk.Frame, Component):
             self.expanded_frame.pack_forget()
             self.toggle_button.config(text='+', image=self.collapsed_img)
 
-    def refresh(self):
-        return super().refresh()
+    def refresh(self, event):
+        pass
 
     def handle_active_toggle(self):
         if daq.IComponent.can_cast_from(self.node):
             ctx = daq.IComponent.cast_from(self.node)
             ctx.active = not ctx.active
-        self.refresh()
+            self.event_port.emit()

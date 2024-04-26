@@ -1,8 +1,10 @@
 import tkinter as tk
 import opendaq as daq
 from tkinter import ttk
+
 from ..utils import *
 from .attributes_dialog import AttributesDialog
+
 
 class OutputSignalRow(tk.Frame):
     def __init__(self, parent, output_signal: daq.ISignal, context=None, **kwargs):
@@ -19,8 +21,8 @@ class OutputSignalRow(tk.Frame):
                   ).pack(side=tk.LEFT, padx=5)
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
-        self.edit_button = ttk.Button(
-            self, text='Edit', image=self.edit_icon, command=self.handle_edit_clicked)
+        self.edit_button = tk.Button(
+            self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
         self.edit_button.pack(side=tk.RIGHT)
 
     def refresh(self):

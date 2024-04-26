@@ -1,7 +1,9 @@
 import tkinter as tk
 import opendaq as daq
 from tkinter import ttk
+
 from ..utils import *
+from ..event_port import EventPort
 from .attributes_dialog import AttributesDialog
 
 
@@ -12,6 +14,7 @@ class InputPortRowView(tk.Frame):
         self.input_port = input_port
         self.selection = ''
         self.context = context
+        self.event_port = EventPort(self)
 
         self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
 
@@ -27,12 +30,12 @@ class InputPortRowView(tk.Frame):
         self.connect_icon = context.icons['link'] if context and context.icons and 'link' in context.icons else None
         self.disconnect_icon = context.icons['unlink'] if context and context.icons and 'unlink' in context.icons else None
 
-        self.edit_button = ttk.Button(
-            self, text='Edit', image=self.edit_icon, command=self.handle_edit_clicked)
+        self.edit_button = tk.Button(
+            self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
         self.edit_button.pack(side=tk.RIGHT)
 
-        self.connect_button = ttk.Button(
-            self, text='Connect', image=self.connect_icon, command=self.handle_connect_clicked)
+        self.connect_button = tk.Button(
+            self, text='Connect', image=self.connect_icon, borderwidth=0, command=self.handle_connect_clicked)
         self.connect_button.pack(side=tk.RIGHT, padx=5)
 
         device = root_device(input_port)
@@ -76,8 +79,10 @@ class InputPortRowView(tk.Frame):
         print('Connect clicked')
         if (self.selection == 'none'):
             self.input_port.disconnect()
+            self.event_port.emit()
         elif self.selection != '':
             for signal in self.device.signals_recursive:
                 if signal.global_id == self.selection:
                     self.input_port.connect(signal)
+                    self.event_port.emit()
                     break

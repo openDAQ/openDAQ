@@ -1,14 +1,14 @@
-import tkinter as tk
-from .component import Component
-from tkinter import ttk, simpledialog
 import opendaq as daq
+import tkinter as tk
+from tkinter import ttk, simpledialog
 from functools import cmp_to_key
+
 from ..utils import *
 
-class PropertiesView(tk.Frame, Component):
+
+class PropertiesView(tk.Frame):
     def __init__(self, parent: tk.Frame, node=None, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
-        Component.__init__(self)
         self.parent = parent
         self.node = node
         self.context = context

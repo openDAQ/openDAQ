@@ -1,18 +1,18 @@
+import os
+import opendaq as daq
 import tkinter as tk
 from tkinter import ttk, simpledialog
+
 from ..utils import *
-import opendaq as daq
-import os
+from .diaolog import Dialog
 
 
-class AttributesDialog(tk.Toplevel):
+class AttributesDialog(Dialog):
     def __init__(self, parent, title, node, **kwargs):
-        tk.Toplevel.__init__(self, parent, **kwargs)
+        Dialog.__init__(self, parent, title, None, **kwargs)
         self.title(title)
         self.parent = parent
-        self.context = node
-
-        self.configure(padx=10, pady=5)
+        self.node = node
 
         tree = ttk.Treeview(self, columns=(
             'value', 'access'), show='tree headings')
@@ -38,12 +38,10 @@ class AttributesDialog(tk.Toplevel):
         tree.bind("<Double-1>", self.handle_double_click)
 
         self.tree = tree
-
-    def ok(self):
-        self.destroy()
+        self.initial_update_func = lambda: self.tree_update()
 
     def handle_double_click(self, event):
-        node = self.context
+        node = self.node
         if not node:
             return
 
@@ -92,7 +90,7 @@ class AttributesDialog(tk.Toplevel):
         self.tree.delete(*self.tree.get_children())
 
         self.attributes = {}
-        node = self.context
+        node = self.node
 
         if node is None:
             return
@@ -149,9 +147,3 @@ class AttributesDialog(tk.Toplevel):
                 value = yes_no[value]
             self.tree.insert(
                 '', tk.END, iid=attr, text=attr, values=(value, locked))
-
-    def show(self):
-        self.wait_visibility()
-        self.tree_update()
-        self.grab_set()
-        self.wait_window(self)

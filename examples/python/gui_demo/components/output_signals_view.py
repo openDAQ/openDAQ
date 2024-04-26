@@ -1,14 +1,13 @@
-import tkinter as tk
-from .component import Component
-from .output_signal_row import OutputSignalRow
-from tkinter import ttk, simpledialog
 import opendaq as daq
+import tkinter as tk
+from tkinter import ttk
+
+from .output_signal_row import OutputSignalRow
 
 
-class OutputSignalsView(tk.Frame, Component):
+class OutputSignalsView(tk.Frame):
     def __init__(self, parent, node=None, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
-        Component.__init__(self)
         self.parent = parent
         self.node = node
         self.context = context
@@ -29,13 +28,9 @@ class OutputSignalsView(tk.Frame, Component):
             elif daq.IFunctionBlock.can_cast_from(node):
                 node = daq.IFunctionBlock.cast_from(node)
 
-            if any(output_signal.domain_signal is None for output_signal in node.signals):
-                # Code to execute if there are signals with domain_signal is not None
-                for output_signal in node.signals:
-                    if output_signal.domain_signal == None:
-                        OutputSignalRow(self, output_signal, self.context).pack(
-                            anchor=tk.NW, fill=tk.X)
-                return
+            for output_signal in node.signals:
+                OutputSignalRow(self, output_signal, self.context).pack(
+                    anchor=tk.NW, fill=tk.X)
 
         ttk.Label(self, text='No output signals').pack(
             anchor=tk.CENTER, expand=True)

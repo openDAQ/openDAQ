@@ -1,14 +1,13 @@
+import opendaq as daq
 import tkinter as tk
-from .component import Component
+
 from .input_port_row_view import InputPortRowView
 from tkinter import ttk, simpledialog
-import opendaq as daq
 
 
-class InputPortsView(tk.Frame, Component):
+class InputPortsView(tk.Frame):
     def __init__(self, parent, node: daq.IFunctionBlock, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
-        Component.__init__(self)
         self.parent = parent
         self.node = node
         self.context = context
@@ -35,4 +34,5 @@ class InputPortsView(tk.Frame, Component):
                             self, input_port, self.context)
                         input_port_row.pack(anchor=tk.NW, fill=tk.X)
                     return
-        ttk.Label(self, text='No input ports').pack(anchor=tk.W, fill=tk.X)
+        ttk.Label(self, text='No input ports').pack(
+            anchor=tk.CENTER, expand=True)

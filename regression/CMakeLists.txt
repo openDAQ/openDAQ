@@ -6,6 +6,7 @@ set(TEST_SOURCES test_app.cpp
                  regression_test_fb.cpp
                  regression_test_component.cpp
                  regression_test_input_port.cpp
+                 regression_test_folder.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES})

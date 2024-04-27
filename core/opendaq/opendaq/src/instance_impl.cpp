@@ -296,6 +296,8 @@ ErrCode InstanceImpl::removeServer(IServer* server)
     if (it == servers.end())
         return OPENDAQ_ERR_NOTFOUND;
 
+    moduleManager.asPtr<IModuleManagerUtils>().removeDiscoveryDevice(it->getDeviceInfo());
+
     auto errCode = it->getObject()->stop();
 
     servers.erase(it);

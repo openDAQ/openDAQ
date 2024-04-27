@@ -50,6 +50,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC removeDiscoveryDevice(IDeviceInfo* info) override;
 
 
 private:

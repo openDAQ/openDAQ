@@ -601,6 +601,13 @@ ErrCode ModuleManagerImpl::registerDiscoveryDevice(IDeviceInfo* info, IPropertyO
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ModuleManagerImpl::removeDiscoveryDevice(IDeviceInfo* info)
+{
+    OPENDAQ_PARAM_NOT_NULL(info);
+    discoveryServer.removeDeviceemove(info);
+    return OPENDAQ_SUCCESS;
+}
+
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)
 {
     orphanedModules.tryUnload();

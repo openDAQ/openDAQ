@@ -284,11 +284,11 @@ int main(int argc, const char* argv[])
     }
 
     // Read input parameters
-    daq::Int websocketPort = config.getPropertyValue("WebsocketStreamingPort");
+    daq::Int websocketPort = config.getPropertyValue("Port");
     if (parseArgs(argc, argv, websocketPort, useRenderer, connectionString) < 0)
         return 0;
 
-    config.setPropertyValue("WebsocketStreamingPort", websocketPort);
+    config.setPropertyValue("Port", websocketPort);
 
     // Start a web-socket streaming server
     instance.addServer("openDAQ LT Streaming", config);

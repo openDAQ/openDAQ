@@ -36,6 +36,16 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
     const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(portProp);
 
+    const auto serviceProp = StringPropertyBuilder("ServiceName", "_opcua-tcp._tcp.local.")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(serviceProp);
+
+    const auto serviceCapProp = StringPropertyBuilder("ServiceCap", "OPENDAQ")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(serviceCapProp);
+
     return defaultConfig;
 }
 

@@ -593,6 +593,14 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
+ErrCode ModuleManagerImpl::registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(info);
+    OPENDAQ_PARAM_NOT_NULL(config);
+    discoveryServer.registerDevice(info, config);
+    return OPENDAQ_SUCCESS;
+}
+
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)
 {
     orphanedModules.tryUnload();

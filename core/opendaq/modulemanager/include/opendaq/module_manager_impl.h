@@ -22,11 +22,13 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
+#include <daq_discovery/daq_discovery_server.h>
 #include <vector>
 
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -47,6 +49,8 @@ public:
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
+    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config) override;
+
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
@@ -65,6 +69,8 @@ private:
 
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+
+    DiscoveryServer discoveryServer;
 };
 
 END_NAMESPACE_OPENDAQ

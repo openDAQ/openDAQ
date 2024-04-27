@@ -202,6 +202,10 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
             {
                 // Use the root device instead of Instance(this) to prevent cycling reference.
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
+                if (createdServer.assigned())
+                {
+                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getDeviceInfo(), serverConfig);
+                }
 
                 std::scoped_lock lock(configSync);
                 servers.push_back(createdServer);

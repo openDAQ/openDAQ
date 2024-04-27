@@ -4,9 +4,12 @@ set(MODULE_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 set(SRC_HEADERS common.h
                 daq_discovery_client.h
                 mdnsdiscovery_client.h
+                daq_discovery_server.h
+                mdnsdiscovery_server.h
 )
 
 set(SRC_CPPS daq_discovery_client.cpp
+             daq_discovery_server.cpp
 )
 
 prepend_include(daq_discovery SRC_HEADERS)

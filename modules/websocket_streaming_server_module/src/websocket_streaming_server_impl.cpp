@@ -13,7 +13,7 @@ WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice,
     , websocketStreamingServer(rootDevice, context)
     , config(config)
 {
-    const uint16_t streamingPort = config.getPropertyValue("WebsocketStreamingPort");
+    const uint16_t streamingPort = config.getPropertyValue("Port");
     const uint16_t controlPort = config.getPropertyValue("WebsocketControlPort");
 
     websocketStreamingServer.setStreamingPort(streamingPort);
@@ -29,12 +29,27 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
     auto defaultConfig = PropertyObject();
 
     const auto websocketPortProp =
-        IntPropertyBuilder("WebsocketStreamingPort", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
+        IntPropertyBuilder("Port", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketPortProp);
 
     const auto websocketControlPortProp =
         IntPropertyBuilder("WebsocketControlPort", 7438).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketControlPortProp);
+
+    const auto websocketServiceProp = StringPropertyBuilder("ServiceName", "_streaming-lt._tcp.local.")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(websocketServiceProp);
+
+    const auto serviceCapProp = StringPropertyBuilder("ServiceCap", "LT")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(serviceCapProp);
+
+    const auto servicePathProp = StringPropertyBuilder("ServicePath", "/")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(servicePathProp);
 
     return defaultConfig;
 }

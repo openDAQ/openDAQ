@@ -42,14 +42,14 @@ public:
         if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-            ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
+            ws_config.setPropertyValue("Port", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (subdeviceStreamingType == StreamingType::NativeStreaming)
         {
             auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-            ns_config.setPropertyValue("NativeStreamingPort", NATIVE_STREAMING_PORT + index);
+            ns_config.setPropertyValue("Port", NATIVE_STREAMING_PORT + index);
             instance.addServer("openDAQ Native Streaming", ns_config);
         }
 
@@ -88,14 +88,14 @@ public:
         if (gatewayStreamingType == StreamingType::WebsocketStreaming)
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-            ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
+            ws_config.setPropertyValue("Port", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (gatewayStreamingType == StreamingType::NativeStreaming)
         {
             auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-            ns_config.setPropertyValue("NativeStreamingPort", NATIVE_STREAMING_PORT);
+            ns_config.setPropertyValue("Port", NATIVE_STREAMING_PORT);
             instance.addServer("openDAQ Native Streaming", ns_config);
         }
 

@@ -88,6 +88,8 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * localId string argument.
      */
     virtual ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) = 0;
+
+    virtual ErrCode INTERFACE_FUNC registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config) = 0;
 };
 /*!@}*/
 

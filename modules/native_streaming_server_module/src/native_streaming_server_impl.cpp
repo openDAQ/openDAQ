@@ -34,7 +34,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     startTransportOperations();
 
     prepareServerHandler();
-    const uint16_t port = config.getPropertyValue("NativeStreamingPort");
+    const uint16_t port = config.getPropertyValue("Port");
     serverHandler->startServer(port);
 
     ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
@@ -269,11 +269,26 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    const auto websocketPortProp = IntPropertyBuilder("NativeStreamingPort", 7420)
+    const auto websocketPortProp = IntPropertyBuilder("Port", 7420)
         .setMinValue(minPortValue)
         .setMaxValue(maxPortValue)
         .build();
     defaultConfig.addProperty(websocketPortProp);
+
+    const auto serviceProp = StringPropertyBuilder("ServiceName", "_opendaq-streaming-native._tcp.local.")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(serviceProp);
+
+    const auto serviceCapProp = StringPropertyBuilder("ServiceCap", "OPENDAQ_NS")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(serviceCapProp);
+
+    const auto servicePathProp = StringPropertyBuilder("ServicePath", "/")
+        .setReadOnly(true)
+        .build();
+    defaultConfig.addProperty(servicePathProp);
 
     return defaultConfig;
 }

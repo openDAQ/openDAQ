@@ -110,12 +110,13 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::utility
         daq::component
         $<BUILD_INTERFACE:daq::icmp_ping>
+        $<BUILD_INTERFACE:daq::discovery>
     PUBLIC
         daq::coretypes
 )
 
 # we shouldn't link everything, only the necessary bits $<BUILD_INTERFACE:Boost::dll>
-opendaq_target_link_libraries(${BASE_NAME} PRIVATE $<BUILD_INTERFACE:Boost::dll> daq::discovery)
+opendaq_target_link_libraries(${BASE_NAME} PRIVATE $<BUILD_INTERFACE:Boost::dll>)
 
 opendaq_target_include_directories(${BASE_NAME}
     PUBLIC

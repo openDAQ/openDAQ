@@ -22,6 +22,7 @@
 #include <coreobjects/property_object.h>
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
+#include <opendaq/streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -244,6 +245,20 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * To scale the ticks into a domain unit, the Device's Domain should be used.
      */
     virtual ErrCode INTERFACE_FUNC getTicksSinceOrigin(UInt* ticks) = 0;
+
+    /*!
+     * @brief Connects to a streaming at the given connection string, adds it as a streaming source of device
+     * and returns created streaming object.
+     * @param[out] streaming The added streaming source.
+     * @param connectionString The connection string containing the address of the streaming. In example an
+     * IPv4/IPv6 address. The connection string can be found in the Server Capability objects returned by
+     * `getInfo().getServerCapabilities()`.
+     * @param config A config object to configure a streaming connection. This object can contain properties like
+     * various connection timeouts or other streaming protocol specific settings. Can be created from its corresponding
+     * Streaming type object. In case of a null value, it will use the default configuration.
+     */
+    virtual ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
+
 };
 /*!@}*/
 

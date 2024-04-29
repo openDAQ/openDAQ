@@ -166,4 +166,28 @@ PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
     return config;
 }
 
+StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+{
+    if (serverCapability.getProtocolId() != "opendaq_opcua_config")
+        return nullptr;
+
+    StringPtr connectionString = serverCapability.getConnectionString();
+    if (connectionString.getLength() != 0)
+        return connectionString;
+
+    StringPtr address;
+    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
+    {
+        address = addresses[0];
+    }
+    if (!address.assigned() || address.toStdString().empty())
+        throw InvalidParameterException("Address is not set");
+
+    if (!serverCapability.hasProperty("Port"))
+        throw InvalidParameterException("Port is not set");
+    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
+
+    return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
+}
+
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

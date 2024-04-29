@@ -32,6 +32,7 @@ void AsyncPacketReader::start()
 
 void AsyncPacketReader::stop()
 {
+    onPacketCallback = [](const SignalPtr& signal, const ListPtr<IPacket>& packets) {};
     readThreadStarted = false;
     if (readThread.joinable())
     {

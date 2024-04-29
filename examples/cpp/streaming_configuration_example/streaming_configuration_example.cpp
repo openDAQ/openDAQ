@@ -55,7 +55,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
                                                                     List<IString>("MinConnections",
                                                                                   "MinHops",
-                                                                                  "Fallbacks",
                                                                                   "NotConnected"),
                                                                     0);
     deviceConfig.addProperty(streamingConnectionHeuristicProp);

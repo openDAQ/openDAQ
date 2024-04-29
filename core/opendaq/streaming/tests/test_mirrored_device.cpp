@@ -48,6 +48,7 @@ TEST_F(MirroredDeviceTest, DuplicateStreamingSource)
     device.addStreamingSource(streaming);
     ASSERT_THROW(device.addStreamingSource(streaming), DuplicateItemException);
     ASSERT_THROW(device.addStreamingSource(streamingDuplicate), DuplicateItemException);
+    ASSERT_THROW(device.addStreaming("StreamingConnectionString"), DuplicateItemException);
 
     const auto streamingSources = device.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 1u);

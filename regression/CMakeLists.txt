@@ -16,3 +16,8 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opendaq_mocks
 )
+
+add_test(NAME ${TEST_APP}
+         COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
+         WORKING_DIRECTORY bin
+)

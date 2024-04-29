@@ -34,10 +34,13 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static StringPtr tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability);
     static DeviceTypePtr createWebsocketDeviceType();
+    static StringPtr createUrlConnectionString(const StringPtr& host,
+                                               const IntegerPtr& port,
+                                               const StringPtr& path);
 
     std::mutex sync;
     size_t deviceIndex;

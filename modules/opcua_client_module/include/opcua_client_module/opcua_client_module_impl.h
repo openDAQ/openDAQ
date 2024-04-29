@@ -32,6 +32,7 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
     static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);

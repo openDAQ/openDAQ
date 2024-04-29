@@ -105,6 +105,8 @@ public:
 
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
+    ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     
@@ -151,6 +153,8 @@ protected:
     bool clearFunctionBlocksOnUpdate() override;
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
+
+    virtual StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -702,6 +706,26 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
     addSubDevice(device);
 
     return device;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+    OPENDAQ_PARAM_NOT_NULL(streaming);
+
+    StreamingPtr streamingPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddStreaming, streamingPtr, connectionString, config);
+
+    *streaming = streamingPtr.detach();
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotImplementedException();
 }
 
 template <typename TInterface, typename... Interfaces>

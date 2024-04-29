@@ -243,4 +243,12 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getTicksSinceOrigin();
         },
         "Gets the number of ticks passed since the device's absolute origin.");
+    cls.def("add_streaming",
+        [](daq::IDevice *object, const std::string& connectionString, daq::IPropertyObject* config)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.addStreaming(connectionString, config).detach();
+        },
+        py::arg("connection_string"), py::arg("config") = nullptr,
+        "Connects to a streaming at the given connection string, adds it as a streaming source of device and returns created streaming object.");
 }

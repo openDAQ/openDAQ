@@ -6,6 +6,7 @@
 #include <boost/asio/dispatch.hpp>
 
 #include <opendaq/ids_parser.h>
+#include <opendaq/mirrored_device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -55,16 +56,66 @@ void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
     context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
 }
 
-void NativeDeviceHelper::addStreaming(const StreamingPtr& streaming)
-{
-    this->streaming = streaming;
-}
-
 void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
 {
+    auto device = deviceRef.getRef();
+    if (!device.assigned())
+        return;
+
+    // collect all related streaming sources for component by getting sources of all devices
+    // which are ancestors of the component
+    auto allStreamingSources = List<IStreaming>();
+    StreamingPtr activeStreamingSource;
+    ComponentPtr ancestorComponent = device.asPtr<IComponent>();
+
+    do
+    {
+        auto mirroredDevice = ancestorComponent.asPtrOrNull<IMirroredDevice>();
+        if (mirroredDevice.assigned())
+        {
+            auto streamingSources = mirroredDevice.getStreamingSources();
+            for (const auto& streaming : streamingSources)
+                allStreamingSources.pushBack(streaming);
+
+            // streaming sources are ordered by priority - cash first to be active
+            if (!streamingSources.empty())
+                activeStreamingSource = streamingSources[0];
+        }
+
+        if (ancestorComponent.supportsInterface<IFolder>())
+        {
+            auto nestedComponents = ancestorComponent.asPtr<IFolder>().getItems();
+            for (const auto& nestedComponent : nestedComponents)
+            {
+                if (IdsParser::isNestedComponentId(nestedComponent.getGlobalId(), component.getGlobalId()) ||
+                    nestedComponent.getGlobalId() == component.getGlobalId())
+                {
+                    ancestorComponent = nestedComponent;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    while(ancestorComponent != component);
+
+    if (!activeStreamingSource.assigned())
+        return;
+
+    auto setupStreamingForSignal = [this, allStreamingSources, activeStreamingSource](const SignalPtr& signal)
+    {
+        for (const auto& streaming : allStreamingSources)
+            tryAddSignalToStreaming(signal, streaming);
+        setSignalActiveStreamingSource(signal, activeStreamingSource);
+    };
+
+    // setup streaming sources for all signals of the component
     if (component.supportsInterface<ISignal>())
     {
-        tryAddSignalToStreaming(component.asPtr<ISignal>());
+        setupStreamingForSignal(component.asPtr<ISignal>());
     }
     else if (component.supportsInterface<IFolder>())
     {
@@ -73,7 +124,7 @@ void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& compone
         {
             if (nestedComponent.supportsInterface<ISignal>())
             {
-                tryAddSignalToStreaming(nestedComponent.asPtr<ISignal>());
+                setupStreamingForSignal(nestedComponent.asPtr<ISignal>());
             }
         }
     }
@@ -89,7 +140,7 @@ void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEv
 
     auto deviceGlobalId = device.getGlobalId().toStdString();
     auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
-    if (deviceGlobalId != addedComponentGlobalId && !IdsParser::isNestedComponentId(deviceGlobalId, addedComponentGlobalId))
+    if (!IdsParser::isNestedComponentId(deviceGlobalId, addedComponentGlobalId))
         return;
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
@@ -115,7 +166,7 @@ void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const Core
     enableStreamingForComponent(updatedComponent);
 }
 
-void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal)
+void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming)
 {
     if (!signal.getPublic())
         return;
@@ -133,6 +184,12 @@ void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal)
     {
         checkErrorInfo(errCode);
     }
+}
+
+void NativeDeviceHelper::setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming)
+{
+    if (!signal.getPublic())
+        return;
 
     auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
     mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());

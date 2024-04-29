@@ -26,16 +26,16 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
-                                    WebsocketDevicePrefix,
-                                    discoveredDevice.ipv4Address,
-                                    discoveredDevice.servicePort,
-                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                auto connectionStringIpv6 = fmt::format("{}[{}]:{}{}",
-                                    WebsocketDevicePrefix,
-                                    discoveredDevice.ipv6Address,
-                                    discoveredDevice.servicePort,
-                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
+                    discoveredDevice.ipv4Address,
+                    discoveredDevice.servicePort,
+                    discoveredDevice.getPropertyOrDefault("path", "/")
+                );
+                auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
+                    "[" + discoveredDevice.ipv6Address + "]",
+                    discoveredDevice.servicePort,
+                    discoveredDevice.getPropertyOrDefault("path", "/")
+                );
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
@@ -108,61 +108,53 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     {
         return onAcceptsConnectionParameters(connectionString, config);
     }
-    else if (config.assigned())
-    {
-        if (config.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
-        {
-            try
-            {
-                auto generatedConnectionString = tryCreateWebsocketConnectionString(config);
-                return true;
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W("Failed to interpret streaming info config: {}", e.what())
-            }
-        }
-    }
     return false;
 }
 
 StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    StringPtr streamingConnectionString = connectionString;
-
-    if (!streamingConnectionString.assigned() && !config.assigned())
+    if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
+    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
-    if (!streamingConnectionString.assigned() || streamingConnectionString == "")
-        streamingConnectionString = tryCreateWebsocketConnectionString(config);
-
-    return WebsocketStreaming(streamingConnectionString, context);
+    return WebsocketStreaming(connectionString, context);
 }
 
-StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability)
+StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
 {
-    if (capability == nullptr)
-        throw InvalidParameterException("Capability is not set");
+    if (serverCapability.getProtocolId() != "opendaq_lt_streaming")
+        return nullptr;
 
-    StringPtr connectionString = capability.getPropertyValue("PrimaryConnectionString");
+    StringPtr connectionString = serverCapability.getConnectionString();
     if (connectionString.getLength() != 0)
         return connectionString;
 
     StringPtr address;
-    if (ListPtr<IString> addresses = capability.getAddresses(); addresses.getCount() > 0)
+    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
     {
         address = addresses[0];
     }
     if (!address.assigned() || address.toStdString().empty())
-        throw InvalidParameterException("Device address is not set");
+        throw InvalidParameterException("Address is not set");
 
-    auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
-    connectionString = String(fmt::format("{}{}:{}", WebsocketDevicePrefix, address, port));
+    if (!serverCapability.hasProperty("Port"))
+        throw InvalidParameterException("Port is not set");
+    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
-    return connectionString;
+    return WebsocketStreamingClientModule::createUrlConnectionString(
+        address,
+        port,
+        serverCapability.hasProperty("Path") ? serverCapability.getPropertyValue("Path") : ""
+    );
+}
+
+StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const StringPtr& host,
+                                                                    const IntegerPtr& port,
+                                                                    const StringPtr& path)
+{
+    return String(fmt::format("daq.lt://{}:{}{}", host, port, path));
 }
 
 DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()

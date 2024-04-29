@@ -5,7 +5,9 @@
 
 #include <opendaq/module_ptr.h>
 #include <coretypes/common.h>
+#include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/device_info_factory.h>
 
 #include <opendaq/context_factory.h>
 
@@ -57,6 +59,29 @@ TEST_F(OpcUaClientModuleTest, EnumerateDevices)
 
     ListPtr<IDeviceInfo> deviceInfo;
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
+}
+
+TEST_F(OpcUaClientModuleTest, CreateConnectionString)
+{
+    auto context = NullContext();
+    ModulePtr module;
+    createModule(&module, context);
+
+    StringPtr connectionString;
+
+    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
+    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
+    ASSERT_FALSE(connectionString.assigned());
+
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+
+    serverCapability.addAddress("123.123.123.123");
+    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+
+    serverCapability.addProperty(IntProperty("Port", 1234));
+    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+    ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
 }
 
 TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringNull)

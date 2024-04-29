@@ -38,6 +38,7 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
     static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
@@ -47,6 +48,17 @@ private:
     static StringPtr getPort(const StringPtr& url);
     static StringPtr getPath(const StringPtr& url);
     static bool validateConnectionString(const StringPtr& connectionString);
+
+    /// adds address to server capabilities
+    /// @param capabilities The list of device server capabilities
+    /// @param address IPv4 or IPv6 device address
+    static void completeServerCapabilities(const ListPtr<IServerCapability>& capabilities,
+                                           const StringPtr& address);
+
+    static StringPtr createUrlConnectionString(const char* prefix,
+                                               const StringPtr& host,
+                                               const IntegerPtr& port,
+                                               const StringPtr& path);
 
     std::shared_ptr<boost::asio::io_context> addStreamingProcessingContext(const StringPtr& connectionString);
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr createAndConnectTransportClient(
@@ -66,10 +78,10 @@ private:
                                  const StringPtr& host,
                                  const StringPtr& port,
                                  const StringPtr& path);
-    PropertyObjectPtr createDeviceDefaultConfig();
+    PropertyObjectPtr createConnectionDefaultConfig();
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr createTransportLayerDefaultConfig();
-    bool validateDeviceConfig(const PropertyObjectPtr& config);
+    bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 
     std::mutex sync;

@@ -22,7 +22,6 @@ int main(int /*argc*/, const char* /*argv*/[])
             }
         }
     }
-    return 0 ;
 
     // Exit if no device is found
     if (!device.assigned())

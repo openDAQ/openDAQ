@@ -44,12 +44,22 @@ public:
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
+        , serverId (createServerId(this->serverConfig))
     {
     }
 
     ErrCode INTERFACE_FUNC stop() override
     {
         return wrapHandler(this, &Self::onStopServer);
+    }
+
+    ErrCode INTERFACE_FUNC getServerId(IString** serverId) override
+    {
+        if (serverId == nullptr)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *serverId = this->serverId.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
     }
 
 protected:
@@ -62,6 +72,20 @@ protected:
     DevicePtr rootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;
+
+private: 
+    StringPtr createServerId(const PropertyObjectPtr& serverConfig)
+    {
+        std::string result;
+        if (StringPtr manufacturer = serverConfig.getPropertyValue("Manufacturer"); manufacturer != nullptr)
+            result = manufacturer.toStdString();
+        result += "_";
+        if (StringPtr serialNumber = serverConfig.getPropertyValue("SerialNumber"); serialNumber != nullptr)
+            result += serialNumber.toStdString();
+        return result;
+    }
+
+    StringPtr serverId;
 };
 
 END_NAMESPACE_OPENDAQ

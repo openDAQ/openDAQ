@@ -33,6 +33,11 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
+    defaultConfig.addProperty(StringPropertyBuilder("Name", "OpenDAQ_OpcUa"));
+    defaultConfig.addProperty(StringPropertyBuilder("Manufacturer", "openDAQ"));
+    defaultConfig.addProperty(StringPropertyBuilder("Model", ""));
+    defaultConfig.addProperty(StringPropertyBuilder("SerialNumber", ""));
+
     const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(portProp);
 

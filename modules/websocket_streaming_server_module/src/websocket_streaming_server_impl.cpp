@@ -28,6 +28,11 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
+    defaultConfig.addProperty(StringPropertyBuilder("Name", "OpenDAQ_LT"));
+    defaultConfig.addProperty(StringPropertyBuilder("Manufacturer", "openDAQ"));
+    defaultConfig.addProperty(StringPropertyBuilder("Model", ""));
+    defaultConfig.addProperty(StringPropertyBuilder("SerialNumber", ""));
+
     const auto websocketPortProp =
         IntPropertyBuilder("Port", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketPortProp);

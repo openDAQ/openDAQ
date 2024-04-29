@@ -269,11 +269,16 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    const auto websocketPortProp = IntPropertyBuilder("Port", 7420)
+    defaultConfig.addProperty(StringPropertyBuilder("Name", "OpenDAQ_NS"));
+    defaultConfig.addProperty(StringPropertyBuilder("Manufacturer", "openDAQ"));
+    defaultConfig.addProperty(StringPropertyBuilder("Model", ""));
+    defaultConfig.addProperty(StringPropertyBuilder("SerialNumber", ""));
+
+    const auto portProp = IntPropertyBuilder("Port", 7420)
         .setMinValue(minPortValue)
         .setMaxValue(maxPortValue)
         .build();
-    defaultConfig.addProperty(websocketPortProp);
+    defaultConfig.addProperty(portProp);
 
     const auto serviceProp = StringPropertyBuilder("ServiceName", "_opendaq-streaming-native._tcp.local.")
         .setReadOnly(true)
@@ -289,6 +294,8 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
         .setReadOnly(true)
         .build();
     defaultConfig.addProperty(servicePathProp);
+
+
 
     return defaultConfig;
 }

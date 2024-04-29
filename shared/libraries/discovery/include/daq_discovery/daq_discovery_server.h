@@ -27,8 +27,8 @@ class DiscoveryServer final
 public:
     explicit DiscoveryServer() = default;
 
-    void registerDevice(const DeviceInfoPtr& deviceInfo, const PropertyObjectPtr& config);
-    void removeDevice(const DeviceInfoPtr& deviceInfo);
+    void registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config);
+    void removeDevice(const StringPtr& serverId);
     
 private:
     MDNSDiscoveryServer server;

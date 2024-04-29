@@ -49,8 +49,8 @@ public:
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
-    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config) override;
-    ErrCode INTERFACE_FUNC removeDiscoveryDevice(IDeviceInfo* info) override;
+    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) override;
 
 
 private:
@@ -71,7 +71,7 @@ private:
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 
-    DiscoveryServer discoveryServer;
+    discovery::DiscoveryServer discoveryServer;
 };
 
 END_NAMESPACE_OPENDAQ

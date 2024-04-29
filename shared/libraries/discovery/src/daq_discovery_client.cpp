@@ -1,4 +1,4 @@
-#include "daq_discovery/daq_discovery_client.h"
+#include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>

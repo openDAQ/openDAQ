@@ -25,13 +25,13 @@
 #include <mutex>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <thread>
 #include <stdio.h>
 
 #include <errno.h>
-// #include <signal.h>
 
-#include "daq_discovery/common.h"
+#include <daq_discovery/common.h>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -63,13 +63,13 @@ private:
     {
         for (const auto & [key, value] : properties)
         {
-            auto record = (mdns_record_t) {
-                .name = {serviceInstance.c_str(), serviceInstance.size()},
-                .type = MDNS_RECORDTYPE_TXT,
-                .data.txt.key = {key.c_str(), key.size()},
-                .data.txt.value = {value.c_str(), value.size()},
-                .rclass = 0,
-                .ttl = 0};
+            mdns_record_t record;
+            record.name = {serviceInstance.c_str(), serviceInstance.size()},
+            record.type = MDNS_RECORDTYPE_TXT,
+            record.data.txt.key = {key.c_str(), key.size()},
+            record.data.txt.value = {value.c_str(), value.size()},
+            record.rclass = 0,
+            record.ttl = 0;
             records.push_back(record);
         }
     }
@@ -124,7 +124,8 @@ private:
     std::vector<int> sockets;
 };
 
-std::string MDNSDiscoveryServer::getHostname() {
+std::string MDNSDiscoveryServer::getHostname() 
+{
     char hostname_buffer[256];
     std::string hostname;
 
@@ -170,36 +171,36 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     device.serviceInstance = hostName + "." + device.serviceName;
     device.serviceQualified = hostName + ".local.";
 
-    device.record_ptr = {
-        .name = {device.serviceName.c_str(), device.serviceName.size()},
-        .type = MDNS_RECORDTYPE_PTR,
-        .data.ptr.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
-        .rclass = 0,
-        .ttl = 0};
+    auto recordPtr = device.record_ptr;
+    recordPtr.name = {device.serviceName.c_str(), device.serviceName.size()},
+    recordPtr.type = MDNS_RECORDTYPE_PTR,
+    recordPtr.data.ptr.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
+    recordPtr.rclass = 0,
+    recordPtr.ttl = 0;
 
-    device.record_srv = {
-        .name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
-        .type = MDNS_RECORDTYPE_SRV,
-        .data.srv.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
-        .data.srv.port = device.servicePort,
-        .data.srv.priority = 0,
-        .data.srv.weight = 0,
-        .rclass = 0,
-        .ttl = 0};
+    auto& recordSrv = device.record_srv;
+    recordSrv.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
+    recordSrv.type = MDNS_RECORDTYPE_SRV,
+    recordSrv.data.srv.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
+    recordSrv.data.srv.port = device.servicePort,
+    recordSrv.data.srv.priority = 0,
+    recordSrv.data.srv.weight = 0,
+    recordSrv.rclass = 0,
+    recordSrv.ttl = 0;
 
-    device.record_a = {
-        .name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
-        .type = MDNS_RECORDTYPE_A,
-        .data.a.addr = serviceAddressIpv4,
-        .rclass = 0,
-        .ttl = 0};
+    auto& recordA = device.record_a;
+    recordA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
+    recordA.type = MDNS_RECORDTYPE_A,
+    recordA.data.a.addr = serviceAddressIpv4,
+    recordA.rclass = 0,
+    recordA.ttl = 0;
 
-    device.record_aaaa = {
-        .name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
-        .type = MDNS_RECORDTYPE_AAAA,
-        .data.aaaa.addr = serviceAddressIpv6,
-        .rclass = 0,
-        .ttl = 0};
+    auto& recordAAA = device.record_aaaa;
+    recordAAA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
+    recordAAA.type = MDNS_RECORDTYPE_AAAA,
+    recordAAA.data.aaaa.addr = serviceAddressIpv6,
+    recordAAA.rclass = 0,
+    recordAAA.ttl = 0;
 
     std::vector<mdns_record_t> records;
     records.reserve(device.properties.size() + 3);
@@ -590,10 +591,10 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
         {
             if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
             {
-                mdns_record_t answer = {
-                    .name = {name.c_str(), name.size()}, 
-                    .type = MDNS_RECORDTYPE_PTR, 
-                    .data.ptr.name = {serviceName.c_str(), serviceName.size()}};
+                mdns_record_t answer;
+                answer.name = {name.c_str(), name.size()}, 
+                answer.type = MDNS_RECORDTYPE_PTR, 
+                answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
 
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
             }

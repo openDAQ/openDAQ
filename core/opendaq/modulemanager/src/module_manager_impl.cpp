@@ -593,18 +593,18 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-ErrCode ModuleManagerImpl::registerDiscoveryDevice(IDeviceInfo* info, IPropertyObject* config)
+ErrCode ModuleManagerImpl::registerDiscoveryDevice(IString* serverId, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(info);
+    OPENDAQ_PARAM_NOT_NULL(serverId);
     OPENDAQ_PARAM_NOT_NULL(config);
-    discoveryServer.registerDevice(info, config);
+    discoveryServer.registerDevice(serverId, config);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ModuleManagerImpl::removeDiscoveryDevice(IDeviceInfo* info)
+ErrCode ModuleManagerImpl::removeDiscoveryDevice(IString* serverId)
 {
-    OPENDAQ_PARAM_NOT_NULL(info);
-    discoveryServer.removeDeviceemove(info);
+    OPENDAQ_PARAM_NOT_NULL(serverId);
+    discoveryServer.removeDevice(serverId);
     return OPENDAQ_SUCCESS;
 }
 

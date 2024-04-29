@@ -204,7 +204,7 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
                 if (createdServer.assigned())
                 {
-                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getDeviceInfo(), serverConfig);
+                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getServerId(), serverConfig);
                 }
 
                 std::scoped_lock lock(configSync);
@@ -296,7 +296,7 @@ ErrCode InstanceImpl::removeServer(IServer* server)
     if (it == servers.end())
         return OPENDAQ_ERR_NOTFOUND;
 
-    moduleManager.asPtr<IModuleManagerUtils>().removeDiscoveryDevice(it->getDeviceInfo());
+    moduleManager.asPtr<IModuleManagerUtils>().removeDiscoveryDevice(it->getServerId());
 
     auto errCode = it->getObject()->stop();
 

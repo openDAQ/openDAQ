@@ -162,6 +162,18 @@
             }
         },
         {
+            "name": "regression_tests",
+            "hidden": false,
+            "inherits": [
+                "full"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_CI_RUNNER": true,
+                "OPENDAQ_DEBUG_WARNINGS_AS_ERRORS": true,
+                "OPENDAQ_ALWAYS_FETCH_BOOST": false
+            }
+        },
+        {
             "name": "full/release",
             "hidden": true,
             "displayName": "Full - Release",

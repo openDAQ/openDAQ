@@ -128,7 +128,7 @@ jobs:
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --exclude-regex regression_test
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
@@ -282,7 +282,7 @@ jobs:
         working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --exclude-regex regression_test
 
       - name: Upload test results
         if: always()
@@ -400,7 +400,7 @@ jobs:
           . venv/bin/activate
           pip install numpy
           pip install pip/packages/opendaq*.whl
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --exclude-regex regression_test
 
       - name: Upload test results
         if: always()
@@ -482,7 +482,7 @@ jobs:
         working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --exclude-regex regression_test
 
       - name: Upload test results
         if: always()

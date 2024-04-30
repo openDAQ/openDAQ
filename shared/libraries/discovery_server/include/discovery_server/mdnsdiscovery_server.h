@@ -54,11 +54,6 @@ private:
 
     std::string serviceInstance;
     std::string serviceQualified;
-
-    mdns_record_t record_ptr;
-    mdns_record_t record_srv;
-    mdns_record_t record_a;
-    mdns_record_t record_aaaa;
 };
 
 class MDNSDiscoveryServer
@@ -84,6 +79,11 @@ private:
                  uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* data,
                  size_t size, size_t name_offset, size_t name_length, size_t record_offset,
                  size_t record_length, void* user_data);
+
+    mdns_record_t createPtrRecord(const MdnsDiscoveredDevice& device) const;
+    mdns_record_t createSrvRecord(const MdnsDiscoveredDevice& device) const;
+    mdns_record_t createARecord(const MdnsDiscoveredDevice& device) const;
+    mdns_record_t createAaaaRecord(const MdnsDiscoveredDevice& device) const;
 
     std::string hostName;
     sockaddr_in serviceAddressIpv4;

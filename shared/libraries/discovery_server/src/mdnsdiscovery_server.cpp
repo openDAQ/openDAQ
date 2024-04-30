@@ -31,7 +31,6 @@ MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint3
         this->serviceName += ".";
 }
 
-
 void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
 {
     for (const auto & [key, value] : properties)
@@ -89,19 +88,20 @@ void MDNSDiscoveryServer::start()
     }
 }
 
-void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
+mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredDevice& device) const
 {
-    device.serviceInstance = hostName + "." + device.serviceName;
-    device.serviceQualified = hostName + ".local.";
-
-    auto& recordPtr = device.record_ptr;
+    mdns_record_t recordPtr;
     recordPtr.name = {device.serviceName.c_str(), device.serviceName.size()},
     recordPtr.type = MDNS_RECORDTYPE_PTR,
     recordPtr.data.ptr.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
     recordPtr.rclass = 0,
     recordPtr.ttl = 0;
+    return recordPtr;
+}
+mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& device) const
+{
 
-    auto& recordSrv = device.record_srv;
+    mdns_record_t recordSrv;
     recordSrv.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
     recordSrv.type = MDNS_RECORDTYPE_SRV,
     recordSrv.data.srv.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
@@ -110,34 +110,51 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     recordSrv.data.srv.weight = 0,
     recordSrv.rclass = 0,
     recordSrv.ttl = 0;
-
-    auto& recordA = device.record_a;
+    return recordSrv;
+}
+mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredDevice& device) const
+{
+    mdns_record_t recordA;
     recordA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
     recordA.type = MDNS_RECORDTYPE_A,
     recordA.data.a.addr = serviceAddressIpv4,
     recordA.rclass = 0,
     recordA.ttl = 0;
-
-    auto& recordAAA = device.record_aaaa;
+    return recordA;
+}
+mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& device) const
+{
+    mdns_record_t recordAAA;
     recordAAA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
     recordAAA.type = MDNS_RECORDTYPE_AAAA,
     recordAAA.data.aaaa.addr = serviceAddressIpv6,
     recordAAA.rclass = 0,
     recordAAA.ttl = 0;
+    return recordAAA;
+}
+
+void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
+{
+    device.serviceInstance = hostName + "." + device.serviceName;
+    device.serviceQualified = hostName + ".local.";
+
+    printf("Added device %s\n", device.serviceQualified.c_str());
+
+    
 
     std::vector<mdns_record_t> records;
     records.reserve(device.properties.size() + 3);
-    records.push_back(device.record_srv);
+    records.push_back(createSrvRecord(device));
     if (serviceAddressIpv4.sin_family == AF_INET)
-        records.push_back(device.record_a);
+        records.push_back(createARecord(device));
     if (serviceAddressIpv6.sin6_family == AF_INET6)
-        records.push_back(device.record_aaaa);
+        records.push_back(createAaaaRecord(device));
     device.populateRecords(records);
 
     std::vector<char> buffer(2048);
     for (const auto & socket : sockets)
     {
-        mdns_announce_multicast(socket, buffer.data(), buffer.size(), device.record_ptr, 0, 0, records.data(), records.size());
+        mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
     }
 
     std::lock_guard<std::mutex> lock(mx);
@@ -153,19 +170,20 @@ void MDNSDiscoveryServer::removeDevice(const std::string& id)
     if (it != devices.end())
     {
         auto& device = it->second;
+        printf("Removed device %s\n", device.serviceQualified.c_str());
         std::vector<mdns_record_t> records;
         records.reserve(device.properties.size() + 3);
-        records.push_back(device.record_srv);
+        records.push_back(createSrvRecord(device));
         if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(device.record_a);
+            records.push_back(createARecord(device));
         if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(device.record_aaaa);
+            records.push_back(createAaaaRecord(device));
         device.populateRecords(records);
 
         std::vector<char> buffer(2048);
         for (const auto & socket : sockets)
         {
-            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), device.record_ptr, 0, 0, records.data(), records.size());
+            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
         }
 
         devices.erase(it);
@@ -185,17 +203,17 @@ void MDNSDiscoveryServer::stop()
     {
         std::vector<mdns_record_t> records;
         records.reserve(device.properties.size() + 3);
-        records.push_back(device.record_srv);
+        records.push_back(createSrvRecord(device));
         if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(device.record_a);
+            records.push_back(createARecord(device));
         if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(device.record_aaaa);
+            records.push_back(createAaaaRecord(device));
         device.populateRecords(records);
 
         std::vector<char> buffer(2048);
         for (const auto & socket : sockets)
         {
-            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), device.record_ptr, 0, 0, records.data(), records.size());
+            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
         }
     }
 }
@@ -469,17 +487,54 @@ inline void MDNSDiscoveryServer::openClientSockets()
 
 void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, socklen_t addrlen, 
                             std::vector<char>& buffer, uint16_t query_id, uint16_t rtype, 
-                            const std::string& name, mdns_record_t answer) 
+                            const std::string& name, mdns_record_t answer, const std::vector<mdns_record_t>& records) 
 {
     if (unicast) 
     {
         mdns_query_answer_unicast(sock, from, addrlen, buffer.data(), buffer.size(),
-                                  query_id, mdns_record_type(rtype), name.c_str(), name.size(), answer, 0, 0, 0, 0);
+                                  query_id, mdns_record_type(rtype), name.c_str(), name.size(), answer, 0, 0, records.data(), records.size());
+        void* d = buffer.data();
+        printf("%p\n", d);
     } 
     else 
     {
-        mdns_query_answer_multicast(sock, buffer.data(), buffer.size(), answer, 0, 0, 0, 0);
+        mdns_query_answer_multicast(sock, buffer.data(), buffer.size(), answer, 0, 0, records.data(), records.size());
     }
+}
+
+inline std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
+{
+    char host[NI_MAXHOST] = {0};
+    char service[NI_MAXSERV] = {0};
+    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
+                        service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
+    if (ret != 0)
+        return "";
+
+    if (addr->sin_port != 0 && includePort)
+        return std::string(host) + ":" + service;
+    return std::string(host);
+}
+
+inline std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort)
+{
+    char host[NI_MAXHOST] = {0};
+    char service[NI_MAXSERV] = {0};
+    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
+                          service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
+    if (ret != 0)
+        return "";
+
+    if (addr->sin6_port != 0 && includePort)
+        return "[" + std::string(host) + "]:" + service;
+	return std::string(host);
+}
+
+inline std::string ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
+{
+    if (addr->sa_family == AF_INET6)
+        return ipv6AddressToString(reinterpret_cast<const sockaddr_in6*>(addr), addrlen, includePort);
+    return ipv4AddressToString(reinterpret_cast<const sockaddr_in*>(addr), addrlen, includePort);
 }
 
 int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
@@ -500,6 +555,24 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
       mdns_string_t nameTmp = mdns_string_extract(data, size, &offset, nameBuffer.data(), nameBuffer.size());
       name = std::string(MDNS_STRING_ARGS(nameTmp));
     }
+
+    const char* record_name = 0;
+	if (rtype == MDNS_RECORDTYPE_PTR)
+		record_name = "PTR";
+	else if (rtype == MDNS_RECORDTYPE_SRV)
+		record_name = "SRV";
+	else if (rtype == MDNS_RECORDTYPE_A)
+		record_name = "A";
+	else if (rtype == MDNS_RECORDTYPE_AAAA)
+		record_name = "AAAA";
+	else if (rtype == MDNS_RECORDTYPE_TXT)
+		record_name = "TXT";
+	else if (rtype == MDNS_RECORDTYPE_ANY)
+		record_name = "ANY";
+	else
+		return 0;
+
+    printf("Query %s %s\n", record_name, name.c_str());
     
     std::vector<char>sendBuffer(1024);
 
@@ -519,73 +592,90 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 answer.type = MDNS_RECORDTYPE_PTR, 
                 answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
 
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
+                printf("  --> (name == dns_sd) answer %.*s (%s)\n", MDNS_STRING_FORMAT(answer.data.ptr.name),
+			       (unicast ? "unicast" : "multicast"));
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, {});
             }
         } 
         else if (name == serviceName) 
         {
             if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
             {
-                mdns_record_t answer = device.record_ptr;
+                mdns_record_t answer = createPtrRecord(device);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 3);
 
-                records.push_back(device.record_srv);
+                records.push_back(createSrvRecord(device));
                 if (serviceAddressIpv4.sin_family == AF_INET)
-                    records.push_back(device.record_a);
+                    records.push_back(createARecord(device));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(device.record_aaaa);
+                    records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
+                printf("  --> (name == serviceName) answer %.*s (%s)\n",
+			       MDNS_STRING_FORMAT(createPtrRecord(device).data.ptr.name),
+			       (unicast ? "unicast" : "multicast"));
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
         else if (name == device.serviceInstance) 
         {
             if ((rtype == MDNS_RECORDTYPE_SRV) || (rtype == MDNS_RECORDTYPE_ANY)) 
             {
-                mdns_record_t answer = device.record_srv;
+                mdns_record_t answer = createSrvRecord(device);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 2);
 
                 if (serviceAddressIpv4.sin_family == AF_INET)
-                    records.push_back(device.record_a);
+                    records.push_back(createARecord(device));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(device.record_aaaa);
+                    records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
+                printf("  --> (name == device.serviceInstance) answer %.*s port %d (%s)\n",
+			       MDNS_STRING_FORMAT(createSrvRecord(device).data.srv.name), device.servicePort,
+			       (unicast ? "unicast" : "multicast"));
+
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
         else if (name == device.serviceQualified) 
         {
             if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET)) 
             {
-                mdns_record_t answer = device.record_a;
+                mdns_record_t answer = createARecord(device);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 1);
 
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(device.record_aaaa);
+                    records.push_back(answer);
                 device.populateRecords(records);
 
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
+                auto addrstr = ipAddressToString((sockaddr*)&answer.data.a.addr, sizeof(answer.data.a.addr), true);
+                printf("  --> (name == device.serviceQualified) answer  %.*s ipv4 %s (%s)\n", MDNS_STRING_FORMAT(answer.name),
+			        addrstr.c_str(), (unicast ? "unicast" : "multicast"));
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
             else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
             {
-                mdns_record_t answer = device.record_aaaa;
+                mdns_record_t answer = createAaaaRecord(device);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 1);
 
                 if (serviceAddressIpv4.sin_family == AF_INET)
-                    records.push_back(device.record_a);
+                    records.push_back(answer);
                 device.populateRecords(records);
 
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer);
+                auto addrstr = ipAddressToString((sockaddr*)&answer.data.aaaa.addr, sizeof(answer.data.aaaa.addr), true);
+                printf("  --> name == device.serviceQualified answer %.*s ipv6 %s (%s)\n",
+			       MDNS_STRING_FORMAT(answer.name), addrstr.c_str(),
+			       (unicast ? "unicast" : "multicast"));
+
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }
     }

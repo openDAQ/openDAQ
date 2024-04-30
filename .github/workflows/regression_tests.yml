@@ -7,22 +7,21 @@ on:
   pull_request:
   
 env:
+  target_tag: v3.0.0
   cmake_preset: regression_tests
   test_path: ${{ github.workspace }}/junit_reports/
-  build_path: ${{ github.workspace }}/build
-  package_path: ${{ github.workspace }}/build/_packages/
 
 jobs:
-  build_linux:
+  regression_tests:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }} #TODO: not sure if needed
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -52,10 +51,8 @@ jobs:
           
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
-      - name: Checkout
-        uses: actions/checkout@v3
 
+      # TODO probably don't need everything listed here?
       - name: Install build dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
@@ -67,9 +64,30 @@ jobs:
       - name: Install latest CMake
         run: pip install cmake
 
+      - name: Checkout target
+        uses: actions/checkout@v3
+        ref: ${{ env.target_tag }}
+
+      - name: Configure target
+        run: | #TODO: DCI_GIT_BRANCH?
+          mkdir build_target
+          cd build_target
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+
+      - name: Build target
+        working-directory: build_target
+        run: cmake --build .
+        
+      - name: Run simulator from target
+        working-directory: build_target/bin
+        run: |
+          ./quick_start_simulator &
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        
       - name: Configure
         run: |
-          mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
@@ -77,28 +95,15 @@ jobs:
         working-directory: build
         run: cmake --build .
 
-      - name: Test
+      - name: Regression test
         working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
 
-      - name: Upload test results
+      - name: Upload regression test results
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
-
-      - name: Package
-        if: matrix.cpack != ''
-        working-directory: build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Upload package
-        if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3
-        with:
-          name: Packages (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7

@@ -22,10 +22,10 @@
 #include <string>
 #include <map>
 #include <unordered_map>
+#include <vector>
 #include <thread>
 #include <atomic>
 #include <mdns.h>
-
 
 #ifdef _WIN32
     #include <winsock2.h>

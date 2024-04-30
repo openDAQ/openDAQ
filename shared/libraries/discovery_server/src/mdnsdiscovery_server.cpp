@@ -140,8 +140,6 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
 
     printf("Added device %s\n", device.serviceQualified.c_str());
 
-    
-
     std::vector<mdns_record_t> records;
     records.reserve(device.properties.size() + 3);
     records.push_back(createSrvRecord(device));

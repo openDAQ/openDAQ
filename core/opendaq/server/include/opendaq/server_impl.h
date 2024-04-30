@@ -89,11 +89,14 @@ private:
             return nullptr;
 
         std::string result;
-        if (StringPtr manufacturer = serverConfig.getPropertyValue("Manufacturer"); manufacturer != nullptr)
-            result = manufacturer.toStdString();
+        if (serverConfig.hasProperty("Name"))
+            result += std::string(serverConfig.getPropertyValue("Name"));
         result += "_";
-        if (StringPtr serialNumber = serverConfig.getPropertyValue("SerialNumber"); serialNumber != nullptr)
-            result += serialNumber.toStdString();
+        if (serverConfig.hasProperty("ServiceCap"))
+            result += std::string(serverConfig.getPropertyValue("ServiceCap"));
+        result += "_";
+        if (serverConfig.hasProperty("Port"))
+            result += std::string(serverConfig.getPropertyValue("Port"));
         return result;
     }
 

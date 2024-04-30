@@ -28,7 +28,7 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_LT"));
+    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_Server"));
     defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
     defaultConfig.addProperty(StringProperty("Model", ""));
     defaultConfig.addProperty(StringProperty("SerialNumber", "local"));

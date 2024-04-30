@@ -33,7 +33,7 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_OpcUa"));
+    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_Server"));
     defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
     defaultConfig.addProperty(StringProperty("Model", ""));
     defaultConfig.addProperty(StringProperty("SerialNumber", "local"));

@@ -2,7 +2,7 @@ name: openDAQ regression tests
 
 on:
   workflow_dispatch:
-  
+  push:
   pull_request:
   
 env:

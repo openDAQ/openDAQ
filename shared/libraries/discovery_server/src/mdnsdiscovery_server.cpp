@@ -306,7 +306,7 @@ void MDNSDiscoveryServer::serviceLoop()
         {
             if (socket >= nfds)
                 nfds = socket + 1;
-            FD_SET(socket, &readfs);
+            FD_SET((u_int) socket, &readfs);
         }
 
         struct timeval timeout;
@@ -321,7 +321,7 @@ void MDNSDiscoveryServer::serviceLoop()
                 {
                     mdns_socket_listen(socket, buffer.data(), buffer.size(), callbackWrapper, &callback);
                 }
-                FD_SET(socket, &readfs);
+                FD_SET((u_int) socket, &readfs);
             }
         } 
         else 

@@ -26,7 +26,7 @@ class BlockView(tk.Frame):
             active = node.active
             name = node.name
 
-        self.configure(relief=tk.GROOVE, border=0.5, padx=5, pady=5)
+        self.configure(relief=tk.SOLID, border=0.5, padx=5, pady=5)
         self.edit_image = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.collapsed_img = self.context.icons['right'] if self.context and self.context.icons and 'right' in self.context.icons else None
         self.expanded_img = self.context.icons['down'] if self.context and self.context.icons and 'down' in self.context.icons else None

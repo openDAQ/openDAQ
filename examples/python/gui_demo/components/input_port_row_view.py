@@ -16,7 +16,7 @@ class InputPortRowView(tk.Frame):
         self.context = context
         self.event_port = EventPort(self)
 
-        self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
+        self.configure(padx=10, pady=5)
 
         ttk.Label(self, text=input_port.name).pack(side=tk.LEFT, padx=5)
         self.input_var = tk.StringVar()

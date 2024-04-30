@@ -87,7 +87,6 @@ class App(tk.Tk):
 
         frame_navigator_for_properties = tk.Frame(
             main_frame_navigator)
-        frame_navigator_for_properties.pack_propagate(False)
 
         self.tree_widget_create(main_frame_navigator)
 
@@ -417,7 +416,7 @@ class App(tk.Tk):
             for upper_node in reversed(upper_nodes):
                 block_view = BlockView(
                     self.right_side_panel, upper_node, self.context)
-                block_view.pack(fill=tk.X)
+                block_view.pack(fill=tk.X, padx=5, pady=5)
 
             def draw_sub_fbs(fb, level=0):
                 if fb is None:
@@ -427,7 +426,7 @@ class App(tk.Tk):
                     fb = daq.IFunctionBlock.cast_from(fb)
                     b = BlockView(self.right_side_panel, fb,
                                   self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5*level, 0))
+                    b.pack(fill=tk.X, padx=(5 + 10*level, 5), pady=5)
 
                 if fb.has_item('FB'):
                     fb_folder = fb.get_item('FB')
@@ -440,7 +439,7 @@ class App(tk.Tk):
         elif type(found) is daq.IDevice:
             block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
-            block_view.pack(fill=tk.X)
+            block_view.pack(fill=tk.X, padx=5, pady=5)
 
     # MARK: - Tree view handlers
 

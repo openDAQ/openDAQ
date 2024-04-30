@@ -4,6 +4,7 @@ from tkinter import ttk, simpledialog
 from functools import cmp_to_key
 
 from ..utils import *
+from ..event_port import EventPort
 
 
 class PropertiesView(tk.Frame):
@@ -12,8 +13,9 @@ class PropertiesView(tk.Frame):
         self.parent = parent
         self.node = node
         self.context = context
+        self.event_port = EventPort(self)
 
-        self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
+        self.configure(padx=10, pady=5)
 
         ttk.Label(self, text='Properties').pack(anchor=tk.W)
         tree = ttk.Treeview(self, columns=('value'), show='tree headings')
@@ -103,6 +105,7 @@ class PropertiesView(tk.Frame):
 
         property_info = node.get_property(property_name)
         property_value = node.get_property_value(property_name)
+        old_value = property_value
         if not property_info:
             return
 
@@ -155,5 +158,7 @@ class PropertiesView(tk.Frame):
         if property_value is None:
             return
 
-        node.set_property_value(property_name, property_value)
-        self.refresh()
+        if old_value != property_value:
+            node.set_property_value(property_name, property_value)
+            self.refresh()
+            self.event_port.emit()

@@ -28,9 +28,11 @@ class OutputSignalsView(tk.Frame):
             elif daq.IFunctionBlock.can_cast_from(node):
                 node = daq.IFunctionBlock.cast_from(node)
 
-            for output_signal in node.signals:
-                OutputSignalRow(self, output_signal, self.context).pack(
-                    anchor=tk.NW, fill=tk.X)
+            if len(node.signals) > 0:
+                for output_signal in node.signals:
+                    OutputSignalRow(self, output_signal, self.context).pack(
+                        anchor=tk.NW, fill=tk.X)
+                return
 
         ttk.Label(self, text='No output signals').pack(
             anchor=tk.CENTER, expand=True)

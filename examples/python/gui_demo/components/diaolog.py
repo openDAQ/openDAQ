@@ -13,9 +13,10 @@ class Dialog(tk.Toplevel):
         self.wm_attributes("-topmost", True)
 
     def center_window(self):
-        x = self.parent.winfo_rootx() + self.parent.winfo_width() // 2 - \
+        main_window = self.parent.winfo_toplevel()
+        x = main_window.winfo_rootx() + main_window.winfo_width() // 2 - \
             self.winfo_width() // 2
-        y = self.parent.winfo_rooty() + self.parent.winfo_height() // 2 - \
+        y = main_window.winfo_rooty() + main_window.winfo_height() // 2 - \
             self.winfo_height() // 2
         self.geometry(f'+{x}+{y}')
 

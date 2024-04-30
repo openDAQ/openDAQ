@@ -931,7 +931,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                 //double amplitude = channel.GetPropertyValue("Amplitude");
 
                 double amplitude = amplitudeValueOld;
-                if (amplitude < 1.05d || amplitude > 9.95d)
+                if (9.95d < amplitude || amplitude < 1.05d)
                 {
                     amplitudeStep *= -1d;
                 }
@@ -1032,5 +1032,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         //the reference counter will not be reduced here automatically leaving the scope, depending on the non-deterministic garbage collector to call the finalizer
 
         //using GC.Collect() here will remove most of the references but not necessarily all (in time)
+
+        // Check Signal Data Descriptor's Sample Type and name
     }
 }

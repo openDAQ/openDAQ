@@ -53,9 +53,9 @@ C#::
 [source,csharp]
 ----
 // List properties of the Function Block
-IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;
 foreach (var prop in functionBlockProperties)
-    Console.WriteLine(prop.GetName());
+    Console.WriteLine(prop.Name);
 ----
 ====
 
@@ -255,9 +255,9 @@ Device device = instance.AddDevice("daqref://device0");
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
 // List properties of the Function Block
-IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;
 foreach (var prop in functionBlockProperties)
-    Console.WriteLine(prop.GetName());
+    Console.WriteLine(prop.Name);
 
 // Print current block size
 long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
@@ -273,6 +273,6 @@ functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]
 // Get the output Signal of the Function Block
 Signal outputSignal = functionBlock.GetSignals()[0];
 
-Console.WriteLine(outputSignal.GetDescriptor().GetName());
+Console.WriteLine(outputSignal.Descriptor.Name);
 ----
 ====

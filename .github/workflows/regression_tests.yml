@@ -1,6 +1,7 @@
 name: openDAQ regression tests
 
 on:
+  # TODO: modify
   workflow_dispatch:
   push:
   pull_request:

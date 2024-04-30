@@ -3,8 +3,7 @@ name: openDAQ regression tests
 on:
   workflow_dispatch:
   
-  push:
-    branches: [regression-tests]
+  pull_request:
   
 env:
   cmake_preset: regression_tests

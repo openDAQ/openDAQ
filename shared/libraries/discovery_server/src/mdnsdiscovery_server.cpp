@@ -15,114 +15,37 @@
  * limitations under the License.
  */
 
-#pragma once
-
+#include <discovery_server/mdnsdiscovery_server.h>
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
-#include <mdns.h>
-#include <mutex>
-#include <string>
-#include <map>
-#include <unordered_map>
-#include <thread>
-#include <stdio.h>
+BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
-#include <errno.h>
-
-#include <daq_discovery/common.h>
-
-#ifdef _WIN32
-    #include <winsock2.h>
-    #include <iphlpapi.h>
-#else
-    #include <netdb.h>
-    #include <ifaddrs.h>
-    #include <net/if.h>
-    #include <sys/time.h>
-#endif
-
-BEGIN_NAMESPACE_DISCOVERY
-
-struct MdnsDiscoveredDevice
+MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties)
+    : serviceName(serviceName)
+    , servicePort(servicePort)
+    , properties(std::move(properties))
 {
-    MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties)
-        : serviceName(serviceName)
-        , servicePort(servicePort)
-        , properties(std::move(properties))
-    {
-        if (this->serviceName.back() != '.')
-            this->serviceName += ".";
-    }
+    if (this->serviceName.back() != '.')
+        this->serviceName += ".";
+}
 
-private:
-    friend class MDNSDiscoveryServer;
 
-    void populateRecords(std::vector<mdns_record_t>& records) const 
-    {
-        for (const auto & [key, value] : properties)
-        {
-            mdns_record_t record;
-            record.name = {serviceInstance.c_str(), serviceInstance.size()},
-            record.type = MDNS_RECORDTYPE_TXT,
-            record.data.txt.key = {key.c_str(), key.size()},
-            record.data.txt.value = {value.c_str(), value.size()},
-            record.rclass = 0,
-            record.ttl = 0;
-            records.push_back(record);
-        }
-    }
-
-    std::string serviceName;
-    uint16_t servicePort;
-    std::unordered_map<std::string, std::string> properties;
-
-    std::string serviceInstance;
-    std::string serviceQualified;
-
-    mdns_record_t record_ptr;
-    mdns_record_t record_srv;
-    mdns_record_t record_a;
-    mdns_record_t record_aaaa;
-};
-
-class MDNSDiscoveryServer
+void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
 {
-public:
-	explicit MDNSDiscoveryServer();
-    ~MDNSDiscoveryServer();
-
-    void addDevice(const std::string& id, MdnsDiscoveredDevice& device);
-    void removeDevice(const std::string& id);
-    
-private:
-    void start();
-    void stop();
-    void serviceLoop();
-
-    std::string getHostname();
-    
-    void openClientSockets();
-    void openServerSockets(std::vector<int>& sockets);
-
-    int serviceCallback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
-                 uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* data,
-                 size_t size, size_t name_offset, size_t name_length, size_t record_offset,
-                 size_t record_length, void* user_data);
-
-    std::string hostName;
-    sockaddr_in serviceAddressIpv4;
-    sockaddr_in6 serviceAddressIpv6;
-    
-    std::mutex mx;
-    std::atomic<bool> running {false};
-    std::thread serviceThread;
-    
-    std::map<std::string, MdnsDiscoveredDevice> devices;
-
-    std::vector<int> sockets;
-};
+    for (const auto & [key, value] : properties)
+    {
+        mdns_record_t record;
+        record.name = {serviceInstance.c_str(), serviceInstance.size()},
+        record.type = MDNS_RECORDTYPE_TXT,
+        record.data.txt.key = {key.c_str(), key.size()},
+        record.data.txt.value = {value.c_str(), value.size()},
+        record.rclass = 0,
+        record.ttl = 0;
+        records.push_back(record);
+    }
+}
 
 std::string MDNSDiscoveryServer::getHostname() 
 {
@@ -143,7 +66,7 @@ std::string MDNSDiscoveryServer::getHostname()
     return hostname;
 }
     
-MDNSDiscoveryServer::MDNSDiscoveryServer()
+MDNSDiscoveryServer::MDNSDiscoveryServer(void)
 {
 #ifdef _WIN32
     WORD versionWanted = MAKEWORD(1, 1);
@@ -171,7 +94,7 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     device.serviceInstance = hostName + "." + device.serviceName;
     device.serviceQualified = hostName + ".local.";
 
-    auto recordPtr = device.record_ptr;
+    auto& recordPtr = device.record_ptr;
     recordPtr.name = {device.serviceName.c_str(), device.serviceName.size()},
     recordPtr.type = MDNS_RECORDTYPE_PTR,
     recordPtr.data.ptr.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
@@ -277,7 +200,7 @@ void MDNSDiscoveryServer::stop()
     }
 }
 
-MDNSDiscoveryServer::~MDNSDiscoveryServer()
+MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
 {
     stop();
     
@@ -669,4 +592,4 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
     return 0;
 }
 
-END_NAMESPACE_DISCOVERY
+END_NAMESPACE_DISCOVERY_SERVICE

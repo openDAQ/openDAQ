@@ -9,7 +9,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 using namespace daq;
 
 WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(nullptr, rootDevice, nullptr, nullptr)
+    : Server(config, rootDevice, nullptr, nullptr)
     , websocketStreamingServer(rootDevice, context)
     , config(config)
 {
@@ -28,10 +28,10 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringPropertyBuilder("Name", "OpenDAQ_LT"));
-    defaultConfig.addProperty(StringPropertyBuilder("Manufacturer", "openDAQ"));
-    defaultConfig.addProperty(StringPropertyBuilder("Model", ""));
-    defaultConfig.addProperty(StringPropertyBuilder("SerialNumber", ""));
+    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_LT"));
+    defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
+    defaultConfig.addProperty(StringProperty("Model", ""));
+    defaultConfig.addProperty(StringProperty("SerialNumber", "local"));
 
     const auto websocketPortProp =
         IntPropertyBuilder("Port", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();

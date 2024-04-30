@@ -62,6 +62,15 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config)
+    {
+        if (config == nullptr)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *config = this->serverConfig.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
 protected:
     virtual void onStopServer()
     {
@@ -76,6 +85,9 @@ protected:
 private: 
     StringPtr createServerId(const PropertyObjectPtr& serverConfig)
     {
+        if (serverConfig == nullptr)
+            return nullptr;
+
         std::string result;
         if (StringPtr manufacturer = serverConfig.getPropertyValue("Manufacturer"); manufacturer != nullptr)
             result = manufacturer.toStdString();

@@ -13,25 +13,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#pragma once
-#include <coretypes/listobject_factory.h>
-#include <opendaq/device_info_ptr.h>
-#include <daq_discovery/mdnsdiscovery_server.h>
-
-BEGIN_NAMESPACE_DISCOVERY
-
-
-class DiscoveryServer final
-{
-public:
-    explicit DiscoveryServer() = default;
-
-    void registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config);
-    void removeDevice(const StringPtr& serverId);
-    
-private:
-    MDNSDiscoveryServer server;
-};
-
-END_NAMESPACE_DISCOVERY
+#define BEGIN_NAMESPACE_DISCOVERY_SERVICE namespace daq { namespace discovery_service {
+#define END_NAMESPACE_DISCOVERY_SERVICE } }

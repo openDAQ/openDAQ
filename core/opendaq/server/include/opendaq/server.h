@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/server_type.h>
 #include <opendaq/device.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,6 +25,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup structure_servers
  * @addtogroup structure_server Server
  * @{
+ */
+
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
 /*!
@@ -45,6 +50,8 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     virtual ErrCode INTERFACE_FUNC stop() = 0;
 
     virtual ErrCode INTERFACE_FUNC getServerId(IString** serverId) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/
 

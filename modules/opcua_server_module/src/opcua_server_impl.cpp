@@ -11,7 +11,7 @@ using namespace daq;
 using namespace daq::opcua;
 
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(nullptr, rootDevice, nullptr, nullptr)
+    : Server(config, rootDevice, nullptr, nullptr)
     , server(rootDevice, context)
     , config(config)
     , context(context)
@@ -33,10 +33,10 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringPropertyBuilder("Name", "OpenDAQ_OpcUa"));
-    defaultConfig.addProperty(StringPropertyBuilder("Manufacturer", "openDAQ"));
-    defaultConfig.addProperty(StringPropertyBuilder("Model", ""));
-    defaultConfig.addProperty(StringPropertyBuilder("SerialNumber", ""));
+    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_OpcUa"));
+    defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
+    defaultConfig.addProperty(StringProperty("Model", ""));
+    defaultConfig.addProperty(StringProperty("SerialNumber", "local"));
 
     const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(portProp);

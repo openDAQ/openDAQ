@@ -22,7 +22,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
-#include <daq_discovery/daq_discovery_server.h>
+#include <discovery_server/daq_discovery_server.h>
 #include <vector>
 
 #include <thread>
@@ -71,7 +71,7 @@ private:
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 
-    discovery::DiscoveryServer discoveryServer;
+    discovery_service::DiscoveryServer discoveryServer;
 };
 
 END_NAMESPACE_OPENDAQ

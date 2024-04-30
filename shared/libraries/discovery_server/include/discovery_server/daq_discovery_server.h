@@ -15,18 +15,23 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/server.h>
-#include <coretypes\stringobject.h>
+#include <coretypes/listobject_factory.h>
+#include <discovery_server/mdnsdiscovery_server.h>
+#include <coreobjects/property_object_ptr.h>
 
-class MockServerImpl : public daq::ImplementationOf<daq::IServer>
+BEGIN_NAMESPACE_DISCOVERY_SERVICE
+
+
+class DiscoveryServer final
 {
 public:
-    explicit MockServerImpl();
+    explicit DiscoveryServer() = default;
 
-    daq::ErrCode INTERFACE_FUNC stop() override;
-    daq::ErrCode INTERFACE_FUNC getServerId(daq::IString** serverId) override;
-    daq::ErrCode INTERFACE_FUNC getServerConfig(daq::IPropertyObject** config) override;
+    void registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config);
+    void removeDevice(const StringPtr& serverId);
+    
+private:
+    MDNSDiscoveryServer server;
 };
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)
+END_NAMESPACE_DISCOVERY_SERVICE

@@ -62,7 +62,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a device using device info connection string
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
         if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)

@@ -2,7 +2,7 @@
 
 Streaming in the openDAQ(TM) architecture refers to the transport layer mechanism for continuous and real-time
 receiving of data from a data acquisition xref:background_info:device.adoc[Device], often facilitated by
-the use of protocols like xref:glossary:glossary.adoc#websocket_streaming_protocol[Websocket streaming], or
+the use of protocols like xref:glossary:glossary.adoc#streaming_lt_protocol[Streaming LT], or
 xref:glossary:glossary.adoc#native_streaming_protocol[openDAQ(TM) native streaming]. The data transmission
 follows a subscription-based model, where the client subscribes to xref:background_info:signals.adoc[Signals]'
 data produced by the Device. Streaming mechanism involves the receiving data in binary format over a
@@ -47,8 +47,8 @@ xref:glossary:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) N
 initiating a connection with the openDAQ(TM) Native Streaming Server on the local machine, utilizing
 the default values: port number `7420` and path `"/"` . Similarly, the connection string
 `"daq.lt://192.168.1.3:7413/streaming"` will be accepted by the
-xref:glossary:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module], and this
-module will initiate a connection with the Websocket Streaming Server hosted on a remote machine with the
+xref:glossary:glossary.adoc#opendaq_streaming_lt_client_module[Streaming LT Client Module], and this
+module will initiate a connection with the Streaming LT Server hosted on a remote machine with the
 address `"192.168.1.3"`, employing the specified values for the port number (`7413`) and path (`"/streaming"`) .
 
 == Instantiating Streaming upon Device connection

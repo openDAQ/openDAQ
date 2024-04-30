@@ -54,7 +54,7 @@ C#::
 [source,csharp]
 ----
 // Get available Function Block types
-IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.AvailableFunctionBlockTypes;
 foreach (string functionBlockTypeName in functionBlockTypes.Keys)
     Console.WriteLine(functionBlockTypeName);
 ----
@@ -124,10 +124,10 @@ C#::
 [source,csharp]
 ----
 // Print Function Block type info
-FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
-Console.WriteLine(functionBlockType.GetId());
-Console.WriteLine(functionBlockType.GetName());
-Console.WriteLine(functionBlockType.GetDescription());
+FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
+Console.WriteLine(functionBlockType.Id);
+Console.WriteLine(functionBlockType.Name);
+Console.WriteLine(functionBlockType.Description);
 ----
 ====
 
@@ -222,7 +222,7 @@ Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 Device device = instance.AddDevice("daqref://device0");
 
 // Get available Function Block types
-IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.AvailableFunctionBlockTypes;
 foreach (string functionBlockTypeName in functionBlockTypes.Keys)
     Console.WriteLine(functionBlockTypeName);
 
@@ -234,10 +234,10 @@ if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
 // Print Function Block type info
-FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
-Console.WriteLine(functionBlockType.GetId());
-Console.WriteLine(functionBlockType.GetName());
-Console.WriteLine(functionBlockType.GetDescription());
+FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
+Console.WriteLine(functionBlockType.Id);
+Console.WriteLine(functionBlockType.Name);
+Console.WriteLine(functionBlockType.Description);
 
 return 0;
 ----

@@ -78,7 +78,6 @@ quick_start_simulator.exe
 If using this method of simulating a Device, use the "daq.opcua://127.0.0.1" connection string in all
 `addDevice(std::string connectionString)` calls in the later examples of this guide.
 --
-
 Python::
 +
 --
@@ -103,6 +102,32 @@ input('Press "Enter" to exit the application ...')
 
 If using this method of simulating a Device, use `add_device('daq.opcua://127.0.0.1')`
 in all `add_device` calls in the later examples of this guide.
+--
+C#::
++
+--
+The following code example creates a C# application that simulates an openDAQ(TM) Device:
+
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance to interact with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
+
+// Add a reference device and set it as root
+instance.SetRootDevice("daqref://device0");
+device = instance.RootDevice;
+
+// Start the openDAQ OPC UA and native streaming servers
+instance.AddStandardServers();
+
+Console.Write("Press a key to exit the application ...");
+Console.ReadKey(intercept: true);
+----
+
+When simulating a Device this way, use `instance.AddDevice("daq.opcua://127.0.0.1");`
+in all other examples of this guide.
 --
 ====
 
@@ -140,7 +165,6 @@ int main(int argc, const char* argv[])
 }
 ----
 --
-
 Python::
 +
 --
@@ -152,6 +176,20 @@ a openDAQ(TM) instance:
 import opendaq
 
 instance = opendaq.Instance()
+----
+--
+C#::
++
+--
+We start by editing our code with a basic openDAQ(TM) application skeleton in a new `.cs` file, starting with creating
+a openDAQ(TM) instance:
+
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
 ----
 --
 ====
@@ -202,6 +240,7 @@ You are therefore required to enter the simulator's connection string manually w
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -227,8 +266,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 import opendaq
@@ -242,6 +283,28 @@ for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         print(' - Supports protocol "{}" by connection string: "{}"'.format(capability.protocol_name, capability.connection_string))
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
+
+// Find and output the names and connection strings of all available devices
+foreach (var deviceInfo in instance.AvailableDevices)
+{
+    Console.WriteLine($"Name: {deviceInfo.Name}, Connection string: {deviceInfo.ConnectionString}");
+    foreach (var capability in deviceInfo.ServerCapabilities)
+    {
+        Console.WriteLine($" - Supports protocol: {capability.ProtocolName}, by connection string: {capability.ConnectionString}");
+    }
+}
+----
+--
 ====
 Now run the simulator and the above client code. We should see the console output several Device names and connection
 strings. 
@@ -275,6 +338,7 @@ In the following example, we connect to our simulator, Simulator connection stri
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -311,8 +375,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 import opendaq
@@ -332,6 +398,38 @@ else:
 # Output the name of the added device
 print(device.info.name)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
+
+// Find and connect to a simulator device
+Device device = null;
+foreach (var deviceInfo in instance.AvailableDevices)
+{
+    if (deviceInfo.ConnectionString.StartsWith("daq://openDAQ_"))
+    {
+        device = instance.AddDevice(deviceInfo.ConnectionString);
+        break; 
+    }
+}
+
+if (device == null)
+{
+    // Exit if no device is found
+    return 0;
+}
+
+// Output the name of the added device
+Console.WriteLine(device.Info.Name);
+----
+--
 ====
 
 Adding a remote Device with its connection string connects to said Device. The Device can be used as
@@ -348,6 +446,7 @@ In the example above was shown connecting to the simulator with prefered protoco
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -391,8 +490,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 import opendaq
@@ -414,6 +515,43 @@ else:
 # Output the name of the added device
 print(device.info.name)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
+
+// This will ignore daq ref and daq audio
+// Find and connect to a simulator hosting an openDAQ(TM) OPC UA server
+Device device = null;
+foreach (var deviceInfo in instance.AvailableDevices)
+{
+    if (!deviceInfo.ConnectionString.StartsWith("daq://openDAQ_"))
+        continue;
+
+    foreach (var serverCapability in deviceInfo.Capabilities)
+    {
+        if (serverCapability.ProtocolName == "openDAQ OpcUa")
+        {
+            device = instance.AddDevice(serverCapability.ConnectionString);
+            break;
+        }
+    }
+}
+
+// Exit if no device is found
+if (device == null)
+    return 0;
+
+// Output the name of the added device
+Console.WriteLine(device.Info.Name);
+----
+--
 ====
 
 === The openDAQ(TM) Instance and Root Device
@@ -427,21 +565,34 @@ are accessing the sub-devices of the Root Device.
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 // The following two calls are equivalent
 instance.getDevices();
 instance.getRootDevice().getDevices();
 ----
-
+--
 Python::
 +
+--
 [source,python]
 ----
 # The following two calls are equivalent
 instance.devices
 instance.root_device.devices
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+// The following two calls are equivalent
+instance.Devices;
+instance.RootDevice.Devices;
+----
+--
 ====
 
 The openDAQ(TM) Instance creates a default Root Device when constructed. The default Root Device gains access
@@ -468,6 +619,7 @@ samples every `25ms`.
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -511,9 +663,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
-
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -542,6 +695,41 @@ time.sleep(0.5)
 for overridden_type_value in reader.read(10):
     print(overridden_type_value)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected ...
+
+// Get the first device channel
+var channel = device.GetChannels()[0];
+
+// Get the first channel signal
+var signal = channel.GetSignals()[0];
+
+// Output 40 samples using reader
+var reader = OpenDAQFactory.CreateStreamReader(signal); //defaults to CreateStreamReader<double, long>
+
+// Allocate buffer for reading double samples
+double[] samples = new double[100];
+int cnt = 0;
+while (cnt < 40)
+{
+    Thread.Sleep(25);
+
+    // Read up to 100 samples, storing the amount read into `count`
+    nuint count = 100;
+    reader.Read(samples, ref count);
+    if (count > 0)
+    {
+        Console.WriteLine(samples[count - 1]);
+        cnt++;
+    }
+}
+----
+--
 ====
 
 Reading last value of a signal can be simplified by using the signal's last-value method. The following example shows how to read the last value of the signal.
@@ -550,6 +738,7 @@ Reading last value of a signal can be simplified by using the signal's last-valu
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -585,9 +774,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
-
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -610,6 +800,34 @@ while cnt < 40:
         cnt += 1
 
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected ...
+
+// Get the first device channel
+var channel = device.GetChannels()[0];
+
+// Get the first channel signal
+var signal = channel.GetSignals()[0];
+
+int cnt = 0;
+while (cnt < 40)
+{
+    Thread.Sleep(25);
+
+    var lastSignalValue = signal.LastValue;
+    if (lastSignalValue != null)
+    {
+        Console.WriteLine(lastSignalValue);
+        cnt++;
+    }
+}
+----
+--
 ====
 
 ==== Reading time-stamps
@@ -634,6 +852,7 @@ In the following example, we use our Stream Reader to read both the Signal and d
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -687,9 +906,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
-
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -713,6 +933,51 @@ while cnt < 4:
         print('Value:', samples[-1], ', Domain:', domain_values[-1], unit_symbol)
         cnt += 1
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected ...
+
+// Get the first device channel
+var channel = device.GetChannels()[0];
+
+// Get the first channel signal
+var signal = channel.GetSignals()[0];
+
+// Output 40 samples using reader
+var reader = OpenDAQFactory.CreateStreamReader(signal); //defaults to CreateStreamReader<double, long>
+
+// Get the resolution and origin
+var descriptor = signal.DomainSignal.Descriptor;
+var resolution = descriptor.TickResolution;
+var origin = descriptor.Origin;
+var unitSymbol = descriptor.Unit.Symbol;
+
+Console.WriteLine($"Origin: {origin}");
+
+// Allocate buffer for reading double samples
+double[] samples = new double[100];
+long[] domainSamples = new long[100];
+int cnt = 0;
+while(cnt < 40)
+{
+    Thread.Sleep(100);
+
+    // Read up to 100 samples every 100ms, storing the amount read into `count`
+    nuint count = 100;
+    reader.ReadWithDomain(samples, domainSamples, ref count);
+    if (count > 0)
+    {
+        double domainValue = (double)domainSamples[count - 1] * ((double)resolution.Numerator / resolution.Denominator);
+        Console.WriteLine($"Value: {samples[count - 1]}, Domain: {domainValue}{unitSymbol}");
+        cnt++;
+    }
+}
+----
+--
 ====
 
 Running the example, we can see very high numbers for the domain values. This is due to them being relative to
@@ -732,6 +997,7 @@ How to use a Time Reader is further explained in the xref:howto_guides:howto_rea
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -779,9 +1045,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
-
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -798,6 +1065,15 @@ while cnt < 4:
         print(f'Value: {samples[-1]}, Domain: {time_stamps[-1]}')
         cnt += 1
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//TimeReader currently not available in .NET Bindings
+----
+--
 ====
 
 === Function Blocks
@@ -836,6 +1112,7 @@ of our simulated Device to its Input Port.
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -858,8 +1135,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -870,6 +1149,21 @@ renderer.input_ports[0].connect(signal)
 
 time.sleep(5)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected and signal reference is retrieved ...
+
+// Create an instance of the renderer function block
+var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
+
+// Connect the first output signal of the device to the renderer
+renderer.GetInputPorts()[0].Connect(signal);
+----
+--
 ====
 
 Try running the above code snippet. You should see a new window pop-up, displaying the sine wave Device Signal,
@@ -901,6 +1195,7 @@ We extend our code to add and connect the statistics Function Block:
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -926,8 +1221,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -939,6 +1236,24 @@ statistics.input_ports[0].connect(signal)
 # Connect the first output signal of the statistics to the renderer
 renderer.input_ports[1].connect(statistics.signals[0])
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected, signal reference is retrieved, renderer added ...
+
+// Create an instance of the statistics function block
+var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+
+// Connect the first output signal of the device to the statistics
+statistics.GetInputPorts()[0].Connect(signal);
+
+// Connect the first output signal of the statistics to the renderer
+renderer.GetInputPorts()[1].Connect(statistics.GetSignals()[0]);
+----
+--
 ====
 
 NOTE: We now connected the statistics Signal to the 2nd Input Port of the renderer. Both the renderer
@@ -966,6 +1281,7 @@ of the simulated Device. We adjust its Signal's frequency and noise level and mo
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
@@ -1000,8 +1316,10 @@ int main(int argc, const char* argv[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 # ...
@@ -1024,6 +1342,35 @@ while True:
         amplitude_step = -amplitude_step
     channel.set_property_value('Amplitude', amplitude + amplitude_step)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+//device is connected, signal reference is retrieved, renderer and statistics added ...
+
+// List the names of all properties
+foreach (var prop in channel.VisibleProperties)
+    Console.WriteLine(prop.Name);
+
+// Set the frequency to 5 Hz
+channel.SetPropertyValue("Frequency", 5);
+// Set the noise amplitude to 0.75
+channel.SetPropertyValue("NoiseAmplitude", 0.75d);
+
+// Modulate the signal amplitude by a step of 0.1 every 25ms.
+double amplStep = 0.1d;
+while (true)
+{
+    Thread.Sleep(25);
+    double ampl = channel.GetPropertyValue("Amplitude");
+    if (9.95d < ampl || ampl < 1.05d)
+        amplStep *= -1d;
+    channel.SetPropertyValue("Amplitude", ampl + amplStep);
+}
+----
+--
 ====
 
 The rendered output now displays a noisy Signal with a modulating amplitude. Below it, it shows the
@@ -1035,6 +1382,7 @@ averaged Signal, drawing a smoother sine wave.
 ====
 Cpp::
 +
+--
 [source,cpp]
 ----
 #include <chrono>
@@ -1047,7 +1395,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create a new Instance that we will use for all the interactions with the SDK
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
-    // Connecting to the simiulator
+    // Connecting to the simulator
     const auto availableDevices = instance.getAvailableDevices();
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
@@ -1095,7 +1443,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         std::this_thread::sleep_for(100ms);
 
-        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        // Read up to 100 samples every 100ms, storing the amount read into `count`
         daq::SizeT count = 100;
         reader.readWithDomain(samples, domainSamples, &count);
         if (count > 0)
@@ -1118,7 +1466,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         std::this_thread::sleep_for(100ms);
 
-        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        // Read up to 100 samples every 100ms, storing the amount read into `count`
         daq::SizeT count = 100;
         reader.readWithDomain(samples, timeStamps, &count);
         if (count > 0)
@@ -1168,8 +1516,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     return 0;
 }
 ----
+--
 Python::
 +
+--
 [source,python]
 ----
 import opendaq
@@ -1236,4 +1586,110 @@ for i in range(400):
         amplitude_step = -amplitude_step
     channel.set_property_value('Amplitude', amplitude + amplitude_step)
 ----
+--
+C#::
++
+--
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+var instance = OpenDAQFactory.Instance();
+
+// Find and connect to a simulator device
+Device device = null;
+foreach (var deviceInfo in instance.AvailableDevices)
+{
+    if (deviceInfo.ConnectionString.StartsWith("daq://openDAQ_"))
+    {
+        device = instance.AddDevice(deviceInfo.ConnectionString);
+        break; 
+    }
+}
+
+if (device == null)
+{
+    Console.WriteLine("No relevant device found!");
+    return 0;
+}
+
+// Output the name of the added device
+Console.WriteLine(device.Info.Name);
+
+// Get the first channel and its signal
+var channel = device.GetChannels()[0];
+var signal = channel.GetSignals()[0];
+
+var reader = OpenDAQFactory.CreateStreamReader(signal); //defaults to CreateStreamReader<double, long>
+
+// Get the resolution and origin
+var descriptor = signal.DomainSignal.Descriptor;
+var resolution = descriptor.TickResolution;
+var origin = descriptor.Origin;
+var unitSymbol = descriptor.Unit.Symbol;
+
+Console.WriteLine($"Reading signal: {signal.Name}");
+Console.WriteLine($"Origin: {origin}");
+
+// Allocate buffer for reading double samples
+double[] samples = new double[100];
+long[] domainSamples = new long[100];
+int cnt = 0;
+while(cnt < 40)
+{
+    Thread.Sleep(100);
+
+    // Read up to 100 samples every 100ms, storing the amount read into `count`
+    nuint count = 100;
+    reader.ReadWithDomain(samples, domainSamples, ref count);
+    if (count > 0)
+    {
+        double domainValue = (double)domainSamples[count - 1] * ((double)resolution.Numerator / resolution.Denominator);
+        Console.WriteLine($"Value: {samples[count - 1]}, Domain: {domainValue}{unitSymbol}");
+        cnt++;
+    }
+}
+
+//TimeReader currently not available in .NET Bindings
+
+// Create an instance of the renderer function block
+var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
+
+// Connect the first output signal of the device to the renderer
+renderer.GetInputPorts()[0].Connect(signal);
+
+// Create an instance of the statistics function block
+var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+
+// Connect the first output signal of the device to the statistics
+statistics.GetInputPorts()[0].Connect(signal);
+
+// Connect the first output signal of the statistics to the renderer
+renderer.GetInputPorts()[1].Connect(statistics.GetSignals()[0]);
+
+// List the names of all properties
+foreach (var prop in channel.VisibleProperties)
+    Console.WriteLine(prop.Name);
+
+// Set the frequency to 5 Hz
+channel.SetPropertyValue("Frequency", 5);
+// Set the noise amplitude to 0.75
+channel.SetPropertyValue("NoiseAmplitude", 0.75d);
+
+// Modulate the signal amplitude by a step of 0.1 every 25ms.
+double amplStep = 0.1d;
+while (true)
+{
+    Thread.Sleep(25);
+    double ampl = channel.GetPropertyValue("Amplitude");
+    if (9.95d < ampl || ampl < 1.05d)
+        amplStep *= -1d;
+    channel.SetPropertyValue("Amplitude", ampl + amplStep);
+}
+
+Console.Write("Press a key to exit the application ...");
+Console.ReadKey(intercept: true);
+----
+--
 ====

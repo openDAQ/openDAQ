@@ -25,6 +25,13 @@ Python::
 # Get last value of a Signal
 my_last_value = my_signal.last_value
 ----
+C#::
++
+[source,csharp]
+----
+// Get last value of a Signal
+var myLastValue = mySignal.LastValue;
+----
 ====
 
 [#last_value_signal_types]
@@ -58,6 +65,13 @@ Python::
 ----
 # Retrieve the Signal's Sample Type
 my_sample_type = my_signal.descriptor.sample_type
+----
+C#::
++
+[source,csharp]
+----
+// Retrieve the Signal's Sample Type
+var mySampleType = mySignal.Descriptor.SampleType;
 ----
 ====
 
@@ -97,6 +111,21 @@ Python::
 ----
 # Not supported in Python yet
 ----
+C#::
++
+[source,csharp]
+----
+var myDescriptor = mySignal.Descriptor;
+Debug.Assert(myDescriptor.SampleType == SampleType.Struct);
+Debug.Assert(myDescriptor.Name == "MyStruct");
+// Check Struct Fields
+var myStructFields = myDescriptor.StructFields;
+Debug.Assert(myStructFields.Count == 2);
+Debug.Assert(myStructFields[0].SampleType == SampleType.Int32);
+Debug.Assert(myStructFields[0].Name == "MyInt32");
+Debug.Assert(myStructFields[1].SampleType == SampleType.Float64);
+Debug.Assert(myStructFields[1].Name == "MyFloat64");
+----
 ====
 
 Knowing this, we can then do: 
@@ -118,6 +147,15 @@ Python::
 [source,python]
 ----
 # Not supported in Python yet
+----
+C#::
++
+[source,csharp]
+----
+Struct myStruct = mySignal.LastValue;
+// Extract values
+long myInt = myStruct.Get("MyInt32");
+double myFloat = myStruct.Get("MyFloat64");
 ----
 ====
 
@@ -163,6 +201,19 @@ my_list = my_signal.last_value
 assert len(my_list) == 2
 # Extract the second item in List
 my_item = my_list[1]
+----
+C#::
++
+[source,csharp]
+----
+// Check Dimensions count in Signal's Data Descriptor
+Debug.Assert(mySignal.Descriptor.Dimensions.Count == 1);
+// Get last value of a Signal
+var myList = mySignal.LastValue.Cast<ListObject<BaseObject>>();
+// Check the number of elements in List
+Debug.Assert(myList.Count == 2);
+// Extract the second item on list
+var myItem = myList.GetItemAt(1);
 ----
 ====
 

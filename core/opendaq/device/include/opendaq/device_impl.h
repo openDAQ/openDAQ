@@ -42,10 +42,10 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
 class GenericDevice;
 
-template <typename... TTraits>
-using DeviceBase = GenericDevice<IDevice, TTraits...>;
+template <typename TInterface, typename... TTraits>
+using DeviceBase = GenericDevice<TInterface, TTraits...>;
 
-using Device = DeviceBase<>;
+using Device = DeviceBase<IDevice>;
 
 template <typename TInterface, typename... Interfaces>
 class GenericDevice : public SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>

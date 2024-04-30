@@ -24,10 +24,9 @@ inline DevicePtr TmsClientDevice(const ContextPtr& context,
                                  const ComponentPtr& parent,
                                  const StringPtr& localId,
                                  const daq::opcua::tms::TmsClientContextPtr& clientContext,
-                                 const opcua::OpcUaNodeId& nodeId,
-                                 const FunctionPtr& createStreamingCallback)
+                                 const opcua::OpcUaNodeId& nodeId)
 {
-    DevicePtr obj(createWithImplementation<IDevice, TmsClientDeviceImpl>(context, parent, localId, clientContext, nodeId, createStreamingCallback, false));
+    DevicePtr obj(createWithImplementation<IDevice, TmsClientDeviceImpl>(context, parent, localId, clientContext, nodeId, false));
     return obj;
 }
 
@@ -35,10 +34,9 @@ inline DevicePtr TmsClientRootDevice(const ContextPtr& context,
                                      const ComponentPtr& parent,
                                      const StringPtr& localId,
                                      const daq::opcua::tms::TmsClientContextPtr& clientContext,
-                                     const opcua::OpcUaNodeId& nodeId,
-                                     const FunctionPtr& createStreamingCallback)
+                                     const opcua::OpcUaNodeId& nodeId)
 {
-    DevicePtr obj(createWithImplementation<IDevice, TmsClientDeviceImpl>(context, parent, localId, clientContext, nodeId, createStreamingCallback, true));
+    DevicePtr obj(createWithImplementation<IDevice, TmsClientDeviceImpl>(context, parent, localId, clientContext, nodeId, true));
     return obj;
 }
 

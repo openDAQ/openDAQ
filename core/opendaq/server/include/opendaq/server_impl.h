@@ -62,7 +62,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config)
+    ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config) override
     {
         if (config == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;

@@ -105,7 +105,10 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
+        if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
+            device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
+        else if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
+            device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;
 }
@@ -174,7 +177,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     nativeStreaming.setActive(true);
 
     deviceHelper->addStreaming(nativeStreaming);
-    // TODO check streaming options recursively and add optional streamings
+    // TODO add streaming sources via IMirroredDeviceConfig interface
 
     deviceHelper->subscribeToCoreEvent(context);
 
@@ -341,7 +344,7 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
                                                                    const PropertyObjectPtr& config)
 {
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString != "")
     {
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
@@ -434,7 +437,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     StringPtr path;
     StringPtr streamingConnectionString;
 
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString != "")
     {
         host = getHost(connectionString);
         port = getPort(connectionString);

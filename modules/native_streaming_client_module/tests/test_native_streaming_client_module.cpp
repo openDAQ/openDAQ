@@ -99,6 +99,12 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringNull)
     ASSERT_THROW(module.acceptsStreamingConnectionParameters(nullptr), ArgumentNullException);
 }
 
+TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringEmpty)
+{
+    auto module = CreateModule();
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(""));
+}
+
 TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringCorrect)
 {
     auto module = CreateModule();
@@ -114,7 +120,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
     ASSERT_THROW(device = module.createStreaming(nullptr, nullptr), ArgumentNullException);
 }
 
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
+TEST_F(NativeStreamingClientModuleTest, AcceptsServerCapability)
 {
     auto context = NullContext();
     ModulePtr module;
@@ -122,12 +128,15 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
  
     ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters("", serverCapability));
 
     serverCapability.addAddress("123.123.123.123");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters("", serverCapability));
 
     serverCapability.addProperty(IntProperty("Port", 1234));
     ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("", serverCapability));
 }
 
 TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)

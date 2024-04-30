@@ -19,6 +19,7 @@
 #include <future>
 #include <thread>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/mirrored_device_config_ptr.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -44,12 +45,6 @@ public:
         auto clientLogger = Logger();
         clientContext = Context(Scheduler(clientLogger, 1), clientLogger, TypeManager(), nullptr);
         instance = createDevice();
-
-        createStreamingCallback = Function([this](const ServerCapabilityPtr& /*capability*/,
-                                                  bool /*isRootDevice*/)
-                                           {
-                                               return createStreaming();
-                                           });
     }
 
     void TearDown() override
@@ -188,12 +183,19 @@ protected:
         return WebsocketStreaming(STREAMING_URL, clientContext);
     }
 
-    void setActiveStreamingSource(const DevicePtr& device)
+    void setStreamingSource(const DevicePtr& device)
     {
-        for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
+        streaming = createStreaming();
+        streaming.setActive(true);
+
+        auto mirroredDeviceConfig = device.template asPtr<IMirroredDeviceConfig>();
+        mirroredDeviceConfig.addStreamingSource(streaming);
+        auto signals = device.getSignals(search::Recursive(search::Visible()));
+        streaming.addSignals(signals);
+        for (const auto& signal : signals)
         {
             auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-            mirroredSignalConfigPtr.setActiveStreamingSource(STREAMING_URL);
+            mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
         }
     }
 
@@ -201,7 +203,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     ContextPtr clientContext;
     InstancePtr instance;
-    FunctionPtr createStreamingCallback;
+    StreamingPtr streaming;
 };
 
 TEST_F(StreamingIntegrationTest, Connect)
@@ -272,9 +274,9 @@ TEST_F(StreamingIntegrationTest, ByteStep)
     auto server = TmsServer(instance);
     server.start();
 
-    auto client = TmsClient(clientContext, nullptr, OPCUA_URL, createStreamingCallback);
+    auto client = TmsClient(clientContext, nullptr, OPCUA_URL);
     auto clientDevice = client.connect();
-    setActiveStreamingSource(clientDevice);
+    setStreamingSource(clientDevice);
 
     auto mirroredSignalPtr = getSignal(clientDevice, "ByteStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
@@ -317,9 +319,9 @@ TEST_F(StreamingIntegrationTest, ChangingSignal)
     auto server = TmsServer(instance);
     server.start();
 
-    auto client = TmsClient(clientContext, nullptr, OPCUA_URL, createStreamingCallback);
+    auto client = TmsClient(clientContext, nullptr, OPCUA_URL);
     auto clientDevice = client.connect();
-    setActiveStreamingSource(clientDevice);
+    setStreamingSource(clientDevice);
 
     auto mirroredSignalPtr = getSignal(clientDevice, "ChangingSignal").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
@@ -368,9 +370,9 @@ TEST_F(StreamingIntegrationTest, AllSignalsAsync)
     auto server = TmsServer(instance);
     server.start();
 
-    auto client = TmsClient(clientContext, nullptr, OPCUA_URL, createStreamingCallback);
+    auto client = TmsClient(clientContext, nullptr, OPCUA_URL);
     auto clientDevice = client.connect();
-    setActiveStreamingSource(clientDevice);
+    setStreamingSource(clientDevice);
 
     for (const auto& signal : signals)
     {
@@ -441,15 +443,9 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
     auto server = TmsServer(instance);
     server.start();
 
-    auto streaming = createStreaming();
-    auto createStreamingCb = Function([&](const ServerCapabilityPtr& /*capability*/,
-                                          bool /*isRootDevice*/)
-                                      {
-                                          return streaming;
-                                      });
-    auto client = TmsClient(clientContext, nullptr, OPCUA_URL, createStreamingCb);
+    auto client = TmsClient(clientContext, nullptr, OPCUA_URL);
     auto clientDevice = client.connect();
-    setActiveStreamingSource(clientDevice);
+    setStreamingSource(clientDevice);
 
     streaming.setActive(False);
 

@@ -17,7 +17,7 @@
 #pragma once
 #include <coretypes/intfs.h>
 #include <opendaq/server.h>
-#include <coretypes\stringobject.h>
+#include <coretypes/stringobject.h>
 
 class MockServerImpl : public daq::ImplementationOf<daq::IServer>
 {

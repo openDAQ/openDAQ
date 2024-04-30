@@ -24,6 +24,8 @@
 #include <coretypes/string_ptr.h>
 #include <discovery_server/daq_discovery_server.h>
 #include <vector>
+#include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_ptr.h>
 
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
@@ -57,6 +59,16 @@ private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
+    static PropertyObjectPtr populateStreamingConfig(const PropertyObjectPtr& streamingConfig);
+    static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
+
+    void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
+
+    void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
+                                  const ListPtr<IString>& allowedStreamingProtocols,
+                                  bool overrideActiveSourceForSignal);
+
+    StreamingPtr createStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

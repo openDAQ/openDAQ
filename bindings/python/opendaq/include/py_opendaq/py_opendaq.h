@@ -90,6 +90,8 @@ PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> declareIMirroredSignalPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEventArgs(pybind11::module_ m);
+PyDaqIntf<daq::IMirroredDevice, daq::IDevice> declareIMirroredDevice(pybind11::module_ m);
+PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> declareIMirroredDeviceConfig(pybind11::module_ m);
 PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> declareIComponentStatusContainer(pybind11::module_ m);
@@ -171,6 +173,8 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
 void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> cls);
 void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> cls);
 void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> cls);
+void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, daq::IDevice> cls);
+void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> cls);
 void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);
 void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);

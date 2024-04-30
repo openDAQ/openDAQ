@@ -49,6 +49,25 @@ TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
     ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
 }
 
+TEST_F(NativeStreamingModulesTest, DiscoveringServer)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(device.assigned());
+}
+
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

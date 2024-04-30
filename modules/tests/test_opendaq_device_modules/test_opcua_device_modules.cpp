@@ -59,6 +59,25 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
     ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]"));
 }
 
+TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(device.assigned());
+}
+
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;

@@ -616,6 +616,9 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
 
 ErrCode ModuleManagerImpl::registerDiscoveryDevice(IString* serverId, IPropertyObject* config)
 {
+    if (serverId == nullptr || config == nullptr)
+        return OPENDAQ_IGNORED;
+
     OPENDAQ_PARAM_NOT_NULL(serverId);
     OPENDAQ_PARAM_NOT_NULL(config);
     discoveryServer.registerDevice(serverId, config);
@@ -624,7 +627,9 @@ ErrCode ModuleManagerImpl::registerDiscoveryDevice(IString* serverId, IPropertyO
 
 ErrCode ModuleManagerImpl::removeDiscoveryDevice(IString* serverId)
 {
-    OPENDAQ_PARAM_NOT_NULL(serverId);
+    if (serverId == nullptr)
+        return OPENDAQ_IGNORED;
+
     discoveryServer.removeDevice(serverId);
     return OPENDAQ_SUCCESS;
 }

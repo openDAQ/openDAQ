@@ -57,6 +57,25 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     client.addDevice("daq.lt://[::1]", nullptr);
 }
 
+TEST_F(WebsocketModulesTest, DiscoveringServer)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(device.assigned());
+}
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

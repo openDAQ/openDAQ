@@ -88,6 +88,30 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, DiscoveringServer)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(device.assigned());
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;

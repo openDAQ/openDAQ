@@ -77,10 +77,6 @@ jobs:
       - name: Build target
         working-directory: build_target
         run: cmake --build .
-        
-      - name: Run simulator from target
-        working-directory: build_target/bin
-        run: ./quick_start_simulator &
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -94,11 +90,15 @@ jobs:
         working-directory: build
         run: cmake --build .
 
-      - name: Regression test
-        working-directory: build
+      - name: Run simulator from target and preform regression tests
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
+        run: |
+          cd build_target/bin
+          ./quick_start_simulator &
+          sleep 5
+          cd ../../build
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
 
       - name: Upload regression test results
         if: always()

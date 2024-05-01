@@ -80,8 +80,7 @@ jobs:
         
       - name: Run simulator from target
         working-directory: build_target/bin
-        run: |
-          ./quick_start_simulator &
+        run: ./quick_start_simulator &
 
       - name: Checkout
         uses: actions/checkout@v3

@@ -2,6 +2,19 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
+/*RequestedNodeIdBaseOnName*/
+
+static daq::opcua::OpcUaNodeId RequestedNodeIdBaseOnName(const std::string& name, const OpcUaNodeId& parentNodeId)
+{
+    if (parentNodeId.getValue().identifierType == UA_NODEIDTYPE_STRING)
+    {
+        std::string newNodeIdStr = utils::ToStdString(parentNodeId.getValue().identifier.string) + "/" + name;
+        return OpcUaNodeId(parentNodeId.getNamespaceIndex(), newNodeIdStr);
+    }
+    return UA_NODEID_NULL;
+}
+
+
 /*AddNodeParams*/
 
 AddNodeParams::AddNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId, const OpcUaNodeId& referenceTypeId)
@@ -41,6 +54,12 @@ AddObjectNodeParams::AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId, 
 {
 }
 
+AddVariableNodeParams::AddVariableNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId)
+    : GenericAddNodeParams<UA_VariableAttributes>(
+                  RequestedNodeIdBaseOnName(name, parentNodeId), parentNodeId, OpcUaNodeId(UA_NS0ID_HASPROPERTY), UA_VariableAttributes_default)
+{
+}
+
 /*AddVariableNodeParams*/
 
 AddVariableNodeParams::AddVariableNodeParams(const OpcUaNodeId& requestedNewNodeId)
@@ -69,6 +88,12 @@ AddMethodNodeParams::AddMethodNodeParams(const OpcUaNodeId& requestedNewNodeId)
 AddMethodNodeParams::AddMethodNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId)
     : GenericAddNodeParams<UA_MethodAttributes>(
           requestedNewNodeId, parentNodeId, OpcUaNodeId(UA_NS0ID_HASPROPERTY), UA_MethodAttributes_default)
+{
+}
+
+AddMethodNodeParams::AddMethodNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId)
+    : GenericAddNodeParams<UA_MethodAttributes>(
+                  RequestedNodeIdBaseOnName(name, parentNodeId), parentNodeId, OpcUaNodeId(UA_NS0ID_HASPROPERTY), UA_MethodAttributes_default)
 {
 }
 

@@ -21,7 +21,7 @@ opcua::OpcUaNodeId TmsServerVariable<CoreType>::createNode(const opcua::OpcUaNod
     this->typeBrowseName = this->readTypeBrowseName();
     std::string name = this->getBrowseName();
 
-    auto params = AddVariableNodeParams(UA_NODEID_NULL, parentNodeId);
+    auto params = AddVariableNodeParams(name, parentNodeId);
     configureVariableNodeAttributes(params.attr);
     params.setBrowseName(name);
     params.typeDefinition = this->getTmsTypeId();

@@ -62,6 +62,7 @@ class AddVariableNodeParams : public GenericAddNodeParams<UA_VariableAttributes>
 public:
     AddVariableNodeParams(const OpcUaNodeId& requestedNewNodeId);
     AddVariableNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId);
+    AddVariableNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId);
 
     void setDataType(const OpcUaNodeId& dataTypeId);
 
@@ -73,6 +74,8 @@ class AddMethodNodeParams : public GenericAddNodeParams<UA_MethodAttributes>
 public:
     AddMethodNodeParams(const OpcUaNodeId& requestedNewNodeId);
     AddMethodNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId);
+    AddMethodNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId);
+
     ~AddMethodNodeParams();
 
     UA_MethodCallback method{};

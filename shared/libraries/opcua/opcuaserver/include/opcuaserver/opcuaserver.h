@@ -137,6 +137,7 @@ private:
                                          const UA_ExtensionObject* userIdentityToken,
                                          void** sessionContext);
     static void closeSession(UA_Server* server, UA_AccessControl* ac, const UA_NodeId* sessionId, void* sessionContext);
+    static UA_StatusCode generateChildId(UA_Server *server, const UA_NodeId *sessionId, void *sessionContext, const UA_NodeId *sourceNodeId, const UA_NodeId *targetParentNodeId, const UA_NodeId *referenceTypeId, UA_NodeId *targetNodeId);
     static UA_StatusCode authenticateUser(OpcUaServer* serverInstance, const UA_ExtensionObject* userIdentityToken);
 
     // missing UA_Server void* member workaround...

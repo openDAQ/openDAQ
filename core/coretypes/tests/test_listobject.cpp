@@ -836,3 +836,14 @@ TEST_F(ListObjectTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IList>(), "{E7866BCC-0563-5504-B61B-A8116B614D8F}");
 }
+
+TEST_F(ListObjectTest, ToVector)
+{
+    auto obj1 = List<IInteger>(1, 2, 3);
+    auto obj1Vector = obj1.toVector();
+
+    ASSERT_EQ(obj1Vector.size(), 3u);
+    ASSERT_EQ(obj1Vector[0], 1);
+    ASSERT_EQ(obj1Vector[1], 2);
+    ASSERT_EQ(obj1Vector[2], 3);
+}

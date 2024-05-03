@@ -2,7 +2,7 @@ name: openDAQ regression tests
 
 on:
   workflow_dispatch:
-  schedule: [{cron: "0 0 * * *"}] # Run every day
+  schedule: [{cron: "0 0 * * *"}] # Run every day at midnight
   push: # TODO: delete this before merge
     branches: [regression-tests]
   

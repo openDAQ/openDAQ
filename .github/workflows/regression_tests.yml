@@ -86,19 +86,19 @@ jobs:
         working-directory: build_target
         run: cmake --build .
 
-      - name: Checkout
+      - name: Checkout current
         uses: actions/checkout@v3
         
-      - name: Configure
+      - name: Configure current
         run: | #TODO: DCI_GIT_BRANCH?
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: Build
+      - name: Build current
         working-directory: build
         run: cmake --build .
 
-      - name: Run simulator from target and perform regression tests
+      - name: Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |

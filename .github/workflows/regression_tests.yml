@@ -91,6 +91,7 @@ jobs:
         
       - name: Configure current
         run: | #TODO: DCI_GIT_BRANCH?
+          mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 

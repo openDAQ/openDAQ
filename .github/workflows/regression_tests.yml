@@ -3,7 +3,7 @@ name: openDAQ regression tests
 on:
   workflow_dispatch:
   schedule: [{cron: "0 0 * * *"}] # Run every day
-  push: # TODO delete this before merge
+  push: # TODO: delete this before merge
     branches: [regression-tests]
   
 env:
@@ -52,7 +52,7 @@ jobs:
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
 
-      # TODO probably don't need everything listed here?
+      # TODO: probably don't need everything listed here?
       - name: Install build dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \

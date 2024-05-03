@@ -51,7 +51,7 @@ TEST_P(RegressionTestInputPort, getRequiresSignal)
     ASSERT_NO_THROW(port.getRequiresSignal());
 }
 
-// TODO ???
+// TODO: ???
 INSTANTIATE_TEST_SUITE_P(InputPort,
                          RegressionTestInputPort,
                          testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

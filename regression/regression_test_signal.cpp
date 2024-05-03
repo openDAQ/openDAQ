@@ -72,7 +72,7 @@ TEST_P(RegressionTestSignal, getLastValue)
     ASSERT_NO_THROW(signal.getLastValue());
 }
 
-// TODO ???
+// TODO: ???
 INSTANTIATE_TEST_SUITE_P(Signal,
                          RegressionTestSignal,
                          testing::Values(/*"daq.opcua://127.0.0.1",*/ "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

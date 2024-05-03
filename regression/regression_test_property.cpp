@@ -117,7 +117,7 @@ TEST_P(RegressionTestProperty, getCallableInfo)
     ASSERT_NO_THROW(property.getCallableInfo());
 }
 
-// TODO enable
+// TODO: enable
 TEST_P(RegressionTestProperty, DISABLED_getStructType)
 {
     ASSERT_NO_THROW(property.getStructType());

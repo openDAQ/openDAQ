@@ -75,6 +75,7 @@ jobs:
         with:
           sparse-checkout: |
             CMakePresets.json
+          sparse-checkout-cone-mode: false
 
       - name: Configure target
         run: | #TODO: DCI_GIT_BRANCH?

@@ -74,6 +74,7 @@ jobs:
         uses: Bhacaz/checkout-files@v2
         with:
          files: CMakePresets.json
+         branch: ${{ github.head_ref || github.ref_name }}
 
       - name: Configure target
         run: | #TODO: DCI_GIT_BRANCH?

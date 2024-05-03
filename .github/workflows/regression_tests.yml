@@ -1,10 +1,10 @@
 name: openDAQ regression tests
 
 on:
-  # TODO: modify
   workflow_dispatch:
-  push:
-  pull_request:
+  schedule: [{cron: "0 0 * * *"}] # Run every day
+  push: # TODO delete this before merge
+    branches: [regression-tests]
   
 env:
   target_tag: v3.0.0
@@ -90,7 +90,7 @@ jobs:
         working-directory: build
         run: cmake --build .
 
-      - name: Run simulator from target and preform regression tests
+      - name: Run simulator from target and perform regression tests
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
@@ -104,5 +104,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: Unit Test Results (${{ matrix.name }})
+          name: Regression Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}

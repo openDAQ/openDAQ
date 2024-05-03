@@ -71,11 +71,9 @@ jobs:
       
       # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
       - name: Checkout CMakePresets.json to get the regression_tests preset
-        uses: actions/checkout@v3
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            CMakePresets.json
-          clean: false
+         files: CMakePresets.json
 
       - name: Configure target
         run: | #TODO: DCI_GIT_BRANCH?

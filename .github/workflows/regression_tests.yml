@@ -68,6 +68,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ env.target_tag }}
+      
+      # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0 yet)
+      - name: Checkout .github folder to get the regression_tests preset
+        uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            .github
 
       - name: Configure target
         run: | #TODO: DCI_GIT_BRANCH?

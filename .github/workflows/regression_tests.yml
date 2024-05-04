@@ -76,11 +76,17 @@ jobs:
          files: CMakePresets.json
          branch: ${{ github.head_ref || github.ref_name }}
 
+      - name: LS1
+        run: ls
+
       - name: Configure target
         run: | #TODO: DCI_GIT_BRANCH?
           mkdir build_target
           cd build_target
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+
+      - name: LS2
+        run: ls
 
       - name: Build target
         working-directory: build_target

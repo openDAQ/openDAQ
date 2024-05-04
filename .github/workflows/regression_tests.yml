@@ -68,51 +68,51 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ env.target_tag }}
+          path: target
       
       # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
       - name: Checkout CMakePresets.json to get the regression_tests preset
         uses: Bhacaz/checkout-files@v2
+        working-directory: target
         with:
          files: CMakePresets.json
          branch: ${{ github.head_ref || github.ref_name }}
 
-      - name: LS1
-        run: ls
-
       - name: Configure target
+        working-directory: target
         run: | #TODO: DCI_GIT_BRANCH?
-          mkdir build_target
-          cd build_target
+          mkdir build
+          cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: LS2
-        run: ls
-
       - name: Build target
-        working-directory: build_target
+        working-directory: target/build
         run: cmake --build .
 
       - name: Checkout current
         uses: actions/checkout@v3
+        with:
+          path: current
         
       - name: Configure current
+        working-directory: current
         run: | #TODO: DCI_GIT_BRANCH?
           mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build current
-        working-directory: build
+        working-directory: current/build
         run: cmake --build .
 
       - name: Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
-          cd build_target/bin
+          cd target/build/bin
           ./quick_start_simulator &
           sleep 5
-          cd ../../build
+          cd ../../../current/build
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
 
       - name: Upload regression test results

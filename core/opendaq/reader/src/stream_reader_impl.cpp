@@ -145,7 +145,7 @@ void StreamReaderImpl::readDescriptorFromPort()
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
 {
-    inputPort = InputPort(signal.getContext(), nullptr, "readsig");
+    inputPort = InputPort(signal.getContext(), nullptr, "readsig", true);
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
 
@@ -445,6 +445,14 @@ ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
                     }
 
                     return errCode;
+                }
+
+                if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+                {
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+
+                    return OPENDAQ_SUCCESS;
                 }
                 break;
             }

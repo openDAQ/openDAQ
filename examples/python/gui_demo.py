@@ -53,6 +53,7 @@ class DisplayType(enum.Enum):
             return DisplayType.FUNCTION_BLOCKS
         return DisplayType.UNSPECIFIED
 
+
 class App(tk.Tk):
 
     # MARK: -- INIT
@@ -167,7 +168,7 @@ class App(tk.Tk):
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
-        self.tree_update(self.context.selected_node)
+        self.tree_update()
 
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
@@ -204,41 +205,48 @@ class App(tk.Tk):
 
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
+        self.right_side_panel_clear()
 
         self.context.selected_node = new_selected_node
 
-        self.tree_traverse_components_recursive(self.context.instance, self.current_tab())
-        self.context.selected_node = self.tree_restore_selection(
+        self.tree_traverse_components_recursive(
+            self.context.instance, self.current_tab())
+        self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
 
-    def tree_traverse_components_recursive(self, component, display_type = DisplayType.UNSPECIFIED):
+    def tree_traverse_components_recursive(self, component, display_type=DisplayType.UNSPECIFIED):
         if component is None:
             return
 
         folder = daq.IFolder.cast_from(
             component) if component and daq.IFolder.can_cast_from(component) else None
-        
-        #tree view only in topology mode + parent exists
-        parent_id = '' if display_type not in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None) or component.parent is None else component.parent.global_id
+
+        # tree view only in topology mode + parent exists
+        parent_id = '' if display_type not in (
+            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None) or component.parent is None else component.parent.global_id
 
         if folder is None or folder.items:
-            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):    
+            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):
                 self.tree_add_component(parent_id, component)
             elif display_type == DisplayType.SIGNALS and daq.ISignal.can_cast_from(component):
-                self.tree_add_component(parent_id, daq.ISignal.cast_from(component))
+                self.tree_add_component(
+                    parent_id, daq.ISignal.cast_from(component))
             elif display_type == DisplayType.CHANNELS:
                 if daq.IChannel.can_cast_from(component):
-                    self.tree_add_component(parent_id, daq.IChannel.cast_from(component))
+                    self.tree_add_component(
+                        parent_id, daq.IChannel.cast_from(component))
             elif display_type == DisplayType.FUNCTION_BLOCKS:
                 if daq.IFunctionBlock.can_cast_from(component) and not daq.IChannel.can_cast_from(component):
-                    self.tree_add_component(parent_id, daq.IFunctionBlock.cast_from(component))
+                    self.tree_add_component(
+                        parent_id, daq.IFunctionBlock.cast_from(component))
 
         if folder is not None:
-            if not(daq.IFunctionBlock.can_cast_from(component) and display_type == DisplayType.FUNCTION_BLOCKS):
+            if not (daq.IFunctionBlock.can_cast_from(component) and display_type == DisplayType.FUNCTION_BLOCKS):
                 for item in folder.items:
-                    self.tree_traverse_components_recursive(item, display_type=display_type)
+                    self.tree_traverse_components_recursive(
+                        item, display_type=display_type)
 
-    def tree_add_component(self, parent_node_id, component: daq.IComponent):
+    def tree_add_component(self, parent_node_id, component):
         component_node_id = component.global_id
         component_name = component.name
         icon = icon = self.context.icons['circle']
@@ -285,19 +293,20 @@ class App(tk.Tk):
         self.context.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):
-        iid = '' if old_node is None else old_node.global_id
-        node = find_component(iid, self.context.instance)
+        desired_iid = old_node.global_id if old_node else ''
+        current_iid = treeview_get_first_selection(self.tree) or ''
 
-        # don't drop the focus if root node is selected
-        if isinstance(old_node, daq.IInstance):
-            node = old_node
+        node = find_component(desired_iid, self.context.instance)
 
-        if node and self.tree.exists(node.global_id):
-            self.tree.selection_set(iid)
-            self.tree.focus(iid)
-        else:
-            node = None
-        return node
+        # if component is alive and in treeview
+        if node and self.tree.exists(desired_iid):
+            if desired_iid != current_iid:  # if component is not already selected
+                self.tree.selection_set(desired_iid)
+                self.tree.focus(desired_iid)
+        elif old_node and old_node.parent:  # try to select parent
+            self.tree_restore_selection(old_node.parent)
+        else:  # fallback
+            self.tree.selection_set('')
 
     def right_side_panel_create(self, parent_frame):
 
@@ -376,7 +385,9 @@ class App(tk.Tk):
     def handle_tree_right_button(self, event):
         iid = event.widget.identify_row(event.y)
         if iid:
-            event.widget.selection_set(iid)
+            selected_iid = treeview_get_first_selection(event.widget) or ''
+            if iid != selected_iid:
+                event.widget.selection_set(iid)
         else:
             event.widget.selection_set()
 
@@ -392,10 +403,11 @@ class App(tk.Tk):
         if iid:
             node = find_component(iid, self.context.instance)
             if node:
-                if daq.IFunctionBlock.can_cast_from(node):
-                    self.tree_popup.entryconfig(
-                        "Remove", state="normal", command=lambda: self.handle_tree_menu_remove_function_block(node))
-                elif daq.IDevice.can_cast_from(node):
+                if daq.IFunctionBlock.can_cast_from(node) and not daq.IChannel.can_cast_from(node):
+                    if get_nearest_fb(node.parent) is None:
+                        self.tree_popup.entryconfig(
+                            "Remove", state="normal", command=lambda: self.handle_tree_menu_remove_function_block(node))
+                elif daq.IDevice.can_cast_from(node) and node.global_id != self.context.instance.global_id:
                     self.tree_popup.entryconfig(
                         "Remove", state="normal", command=lambda: self.handle_tree_menu_remove_device(node))
         try:
@@ -420,6 +432,10 @@ class App(tk.Tk):
                 print(
                     f'io folder {node} named: {folder.name} items: {folder.items}')
             return self.find_fb_or_device(node.parent)
+
+    def right_side_panel_clear(self):
+        for widget in self.right_side_panel.children.values():
+            widget.pack_forget()
 
     def right_side_panel_draw_node(self, node):
         if node is None:
@@ -491,14 +507,12 @@ class App(tk.Tk):
         item = self.tree.item(selected_item)
 
         node_unique_id = item['values'][0]
-        if not node_unique_id in self.context.nodes:
+        if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]
         self.context.selected_node = node
 
-        for widget in self.right_side_panel.children.values():
-            widget.pack_forget()
-
+        self.right_side_panel_clear()
         self.right_side_panel_draw_node(node)
 
     def handle_tree_menu_remove_function_block(self, node):
@@ -554,8 +568,7 @@ class App(tk.Tk):
         self.tree_update(self.context.selected_node)
 
     def on_tab_change(self, event):
-        self.context.selected_node = None
-        self.tree_update()
+        self.tree_update(self.context.selected_node)
 
     def current_tab(self):
         return DisplayType.from_tab_index(self.nb.index('current')) if self.nb is not None else DisplayType.UNSPECIFIED

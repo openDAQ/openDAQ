@@ -6,7 +6,7 @@ from tkinter import ttk, simpledialog
 
 
 class InputPortsView(tk.Frame):
-    def __init__(self, parent, node: daq.IFunctionBlock, context=None, **kwargs):
+    def __init__(self, parent, node, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.node = node
@@ -24,7 +24,7 @@ class InputPortsView(tk.Frame):
             side=tk.TOP, fill=tk.X, pady=5)
         self.fill_input_ports(self.node)
 
-    def fill_input_ports(self, node: daq.IFunctionBlock):
+    def fill_input_ports(self, node):
         if node is not None:
             if daq.IFunctionBlock.can_cast_from(node):
                 node = daq.IFunctionBlock.cast_from(node)

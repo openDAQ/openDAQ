@@ -21,7 +21,7 @@ class OutputSignalsView(tk.Frame):
         ttk.Label(self, text='Output signals').pack(anchor=tk.W, pady=5)
         self.fill_output_signal(self.node)
 
-    def fill_output_signal(self, node: daq.IDevice):
+    def fill_output_signal(self, node):
         if node is not None and (daq.IFunctionBlock.can_cast_from(node) or daq.IDevice.can_cast_from(node)):
             if daq.IDevice.can_cast_from(node):
                 node = daq.IDevice.cast_from(node)

@@ -134,7 +134,7 @@ class AddDeviceDialog(Dialog):
         self.parent_device_tree.selection_set(nearest_device.global_id)
         self.event_port.emit()
 
-    def update_child_devices(self, tree, parent_device: daq.IDevice):
+    def update_child_devices(self, tree, parent_device):
         tree.delete(*tree.get_children())
 
         for conn in self.context.all_devices[parent_device.global_id]:

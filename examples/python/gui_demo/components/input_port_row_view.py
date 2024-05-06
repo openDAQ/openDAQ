@@ -8,7 +8,7 @@ from .attributes_dialog import AttributesDialog
 
 
 class InputPortRowView(tk.Frame):
-    def __init__(self, parent, input_port: daq.IInputPort, context=None, **kwargs):
+    def __init__(self, parent, input_port, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.input_port = input_port

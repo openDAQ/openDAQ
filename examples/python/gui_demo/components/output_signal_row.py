@@ -7,7 +7,7 @@ from .attributes_dialog import AttributesDialog
 
 
 class OutputSignalRow(tk.Frame):
-    def __init__(self, parent, output_signal: daq.ISignal, context=None, **kwargs):
+    def __init__(self, parent, output_signal, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.output_signal = output_signal

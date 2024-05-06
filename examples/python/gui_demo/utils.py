@@ -24,13 +24,21 @@ def treeview_get_first_selection(treeview):
     return sel[0]
 
 
-def get_nearest_device(component: daq.IComponent, default=None):
+def get_nearest_device(component, default=None):
     while component:
         if daq.IDevice.can_cast_from(component):
             return daq.IDevice.cast_from(component)
         component = component.parent
 
     return default
+
+
+def get_nearest_fb(component):
+    while component:
+        if daq.IFunctionBlock.can_cast_from(component):
+            return daq.IFunctionBlock.cast_from(component)
+        component = component.parent
+    return None
 
 
 def get_nearest_named_parent_folder(component, name):
@@ -49,7 +57,7 @@ def show_modal(window):
     window.wait_window(window)
 
 
-def show_selection(title, current_value, values: daq.IList):
+def show_selection(title, current_value, values):
     global result
     result = current_value
     top = tk.Toplevel()

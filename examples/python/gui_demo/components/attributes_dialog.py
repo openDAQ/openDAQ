@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, simpledialog
 
 from ..utils import *
+from ..event_port import EventPort
 from .diaolog import Dialog
 
 
@@ -13,6 +14,7 @@ class AttributesDialog(Dialog):
         self.title(title)
         self.parent = parent
         self.node = node
+        self.event_port = EventPort(parent)
 
         tree_frame = tk.Frame(self)
 
@@ -103,15 +105,23 @@ class AttributesDialog(Dialog):
 
         if type(value) is bool:
             new_value = not value
-            pass
         elif type(value) is int:
+            self.withdraw()
             new_value = simpledialog.askinteger(
                 sel, prompt=prompt, initialvalue=value)
-            pass
+            try:
+                self.deiconify()
+            except tk.TclError:
+                return
+
         elif type(value) is str:
+            self.withdraw()
             new_value = simpledialog.askstring(
                 sel, prompt=prompt, initialvalue=value)
-            pass
+            try: # handle the case when the main window is closed
+                self.deiconify()
+            except tk.TclError:
+                return
 
         if new_value is None or new_value == value:
             return
@@ -121,6 +131,7 @@ class AttributesDialog(Dialog):
         print(f'Value changed for {sel}: {value} -> {new_value}')
 
         self.tree_update()
+        self.event_port.emit()
 
     def tree_update(self):
         self.tree.delete(*self.tree.get_children())

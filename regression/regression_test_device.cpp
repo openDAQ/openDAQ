@@ -4,26 +4,27 @@
 
 using namespace daq;
 
-class RegressionTestDevice : public testing::TestWithParam<StringPtr>
+class RegressionTestDevice
 {
-private:
+protected:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
-    ModulePtr deviceModule;
     InstancePtr instance;
-
-protected:
     DevicePtr device;
 
-    void SetUp() override
+    void setUp()
     {
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
-
-        deviceModule = MockDeviceModule_Create(context);
-        moduleManager.addModule(deviceModule);
-
         instance = InstanceCustom(context, "mock_instance");
+    }
+};
+
+class RegressionTestDeviceAll : public RegressionTestDevice, public testing::TestWithParam<StringPtr>
+{
+    void SetUp() override
+    {
+        setUp();
 
         // device = instance.addDevice(GetParam());
 
@@ -33,81 +34,215 @@ protected:
     }
 };
 
-TEST_P(RegressionTestDevice, getInfo)
+class RegressionTestDeviceOpcUa : public RegressionTestDevice, public testing::Test
 {
-    ASSERT_NO_THROW(device.getInfo());
+    void SetUp() override
+    {
+        setUp();
+
+        // device = instance.addDevice(GetParam());
+
+        // TODO: to be able to add and remove function blocks from Device?
+        instance.setRootDevice("daq.opcua://127.0.0.1");
+        device = instance.getRootDevice();
+    }
+};
+
+class RegressionTestDeviceNs : public RegressionTestDevice, public testing::Test
+{
+    void SetUp() override
+    {
+        setUp();
+
+        // device = instance.addDevice(GetParam());
+
+        // TODO: to be able to add and remove function blocks from Device?
+        instance.setRootDevice("daq.ns://127.0.0.1");
+        device = instance.getRootDevice();
+    }
+};
+
+class RegressionTestDeviceLt : public RegressionTestDevice, public testing::Test
+{
+    void SetUp() override
+    {
+        setUp();
+
+        // device = instance.addDevice(GetParam());
+
+        // TODO: to be able to add and remove function blocks from Device?
+        instance.setRootDevice("daq.lt://127.0.0.1");
+        device = instance.getRootDevice();
+    }
+};
+
+TEST_F(RegressionTestDeviceOpcUa, getInfo)
+{
+    DeviceInfoPtr info;
+    ASSERT_NO_THROW(info = device.getInfo());
+    ASSERT_EQ(info.getName(), "Device 1");
+    ASSERT_EQ(info.getModel(), "Reference Device");
+    ASSERT_EQ(info.getSerialNumber(), "dev_ser_1");
 }
 
-TEST_P(RegressionTestDevice, getDomain)
+TEST_F(RegressionTestDeviceNs, getInfo)
 {
-    ASSERT_NO_THROW(device.getDomain());
+    DeviceInfoPtr info;
+    ASSERT_NO_THROW(info = device.getInfo());
+    ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
 }
 
-TEST_P(RegressionTestDevice, getInputsOutputsFolder)
+TEST_F(RegressionTestDeviceLt, getInfo)
 {
-    ASSERT_NO_THROW(device.getInputsOutputsFolder());
+    DeviceInfoPtr info;
+    ASSERT_NO_THROW(info = device.getInfo());
+    ASSERT_EQ(info.getName(), "WebsocketClientPseudoDevice");
 }
 
-TEST_P(RegressionTestDevice, getCustomComponents)
+TEST_F(RegressionTestDeviceOpcUa, getDomain)
 {
-    ASSERT_NO_THROW(device.getCustomComponents());
+    DeviceDomainPtr domain;
+    ASSERT_NO_THROW(domain = device.getDomain());
+    ASSERT_EQ(domain.getTickResolution().getNumerator(), 1);
+    ASSERT_EQ(domain.getTickResolution().getDenominator(), 1000000);
+    ASSERT_EQ(domain.getOrigin(), "1970-01-01T00:00:00Z");
+    ASSERT_EQ(domain.getUnit(), Unit(""));
 }
 
-TEST_P(RegressionTestDevice, getSignals)
+TEST_F(RegressionTestDeviceOpcUa, getInputsOutputsFolder)
 {
-    ASSERT_NO_THROW(device.getSignals());
+    FolderPtr folder;
+    ASSERT_NO_THROW(folder = device.getInputsOutputsFolder());
+    ASSERT_EQ(folder.getItems().getCount(), 2);
 }
 
-TEST_P(RegressionTestDevice, getSignalsRecursive)
+TEST_F(RegressionTestDeviceOpcUa, getCustomComponents)
 {
-    ASSERT_NO_THROW(device.getSignalsRecursive());
+    ListPtr<IComponent> components;
+    ASSERT_NO_THROW(components = device.getCustomComponents());
+    ASSERT_EQ(components[0].getAllProperties()[0].getName(), "UseSync");
 }
 
-TEST_P(RegressionTestDevice, getChannels)
+TEST_F(RegressionTestDeviceOpcUa, getSignals)
 {
-    ASSERT_NO_THROW(device.getChannels());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignals());
+    ASSERT_EQ(signals.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getChannelsRecursive)
+TEST_F(RegressionTestDeviceNs, getSignals)
 {
-    ASSERT_NO_THROW(device.getChannelsRecursive());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignals());
+    ASSERT_EQ(signals.getCount(), 2);
 }
 
-TEST_P(RegressionTestDevice, getDevices)
+TEST_F(RegressionTestDeviceLt, getSignals)
 {
-    ASSERT_NO_THROW(device.getDevices());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignals());
+    ASSERT_EQ(signals.getCount(), 4);
 }
 
-TEST_P(RegressionTestDevice, getAvailableDevices)
+TEST_F(RegressionTestDeviceOpcUa, getSignalsRecursive)
 {
-    ASSERT_NO_THROW(device.getAvailableDevices());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignalsRecursive());
+    ASSERT_EQ(signals.getCount(), 2);
 }
 
-TEST_P(RegressionTestDevice, getAvailableDeviceTypes)
+TEST_F(RegressionTestDeviceNs, getSignalsRecursive)
 {
-    ASSERT_NO_THROW(device.getAvailableDeviceTypes());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignalsRecursive());
+    ASSERT_EQ(signals.getCount(), 2);
 }
 
-// TODO: ???
-TEST_P(RegressionTestDevice, addDeviceRemoveDevice)
+TEST_F(RegressionTestDeviceLt, getSignalsRecursive)
 {
-    DevicePtr dev;
-    ASSERT_NO_THROW(dev = device.addDevice("mock_phys_device"));
-    ASSERT_NO_THROW(device.removeDevice(dev));
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = device.getSignalsRecursive());
+    ASSERT_EQ(signals.getCount(), 4);
 }
 
-TEST_P(RegressionTestDevice, getFunctionBlocks)
+TEST_F(RegressionTestDeviceOpcUa, getChannels)
 {
-    ASSERT_NO_THROW(device.getFunctionBlocks());
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannels());
+    ASSERT_EQ(channels.getCount(), 2);
 }
 
-TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
+TEST_F(RegressionTestDeviceNs, getChannels)
 {
-    DictPtr<IString, IFunctionBlockType> fbTypes;
-    ASSERT_NO_THROW(fbTypes = device.getAvailableFunctionBlockTypes());
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannels());
+    ASSERT_EQ(channels.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
+TEST_F(RegressionTestDeviceLt, getChannels)
+{
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannels());
+    ASSERT_EQ(channels.getCount(), 0);
+}
+
+TEST_F(RegressionTestDeviceOpcUa, getChannelsRecursive)
+{
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannelsRecursive());
+    ASSERT_EQ(channels.getCount(), 2);
+}
+
+TEST_F(RegressionTestDeviceNs, getChannelsRecursive)
+{
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannelsRecursive());
+    ASSERT_EQ(channels.getCount(), 0);
+}
+
+TEST_F(RegressionTestDeviceLt, getChannelsRecursive)
+{
+    ListPtr<IChannel> channels;
+    ASSERT_NO_THROW(channels = device.getChannelsRecursive());
+    ASSERT_EQ(channels.getCount(), 0);
+}
+
+TEST_P(RegressionTestDeviceAll, getDevices)
+{
+    ListPtr<IDevice> devices;
+    ASSERT_NO_THROW(devices = device.getDevices());
+    ASSERT_EQ(devices.getCount(), 0);
+}
+
+TEST_P(RegressionTestDeviceAll, getAvailableDevices)
+{
+    ListPtr<IDeviceInfo> infos;
+    ASSERT_NO_THROW(infos = device.getAvailableDevices());
+    ASSERT_EQ(infos.getCount(), 0);
+}
+
+TEST_P(RegressionTestDeviceAll, getAvailableDeviceTypes)
+{
+    DictPtr<IString, IDeviceType> types;
+    ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
+    ASSERT_EQ(types.getCount(), 0);
+}
+
+TEST_P(RegressionTestDeviceAll, getFunctionBlocks)
+{
+    ListPtr<IFunctionBlock> functionBlocks;
+    ASSERT_NO_THROW(functionBlocks = device.getFunctionBlocks());
+    ASSERT_EQ(functionBlocks.getCount(), 0);
+}
+
+TEST_P(RegressionTestDeviceAll, getAvailableFunctionBlockTypes)
+{
+    DictPtr<IString, IFunctionBlockType> types;
+    ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
+    ASSERT_EQ(types.getCount(), 8);
+}
+
+TEST_P(RegressionTestDeviceAll, addFunctionBlockRemoveFunctionBlock)
 {
     // TODO: should not rely on "ref_fb_module_trigger" being present
     FunctionBlockPtr fb;
@@ -115,18 +250,18 @@ TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));
 }
 
-TEST_P(RegressionTestDevice, saveConfigurationLoadConfiguration)
+TEST_P(RegressionTestDeviceAll, saveConfigurationLoadConfiguration)
 {
     StringPtr config;
     ASSERT_NO_THROW(config = device.saveConfiguration());
     ASSERT_NO_THROW(device.loadConfiguration(config));
 }
 
-TEST_P(RegressionTestDevice, getTicksSinceOrigin)
+TEST_P(RegressionTestDeviceAll, getTicksSinceOrigin)
 {
     ASSERT_NO_THROW(device.getTicksSinceOrigin());
 }
 
 INSTANTIATE_TEST_SUITE_P(Device,
-                         RegressionTestDevice,
+                         RegressionTestDeviceAll,
                          testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

@@ -30,6 +30,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12

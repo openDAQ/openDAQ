@@ -141,6 +141,7 @@ option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
 option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
+option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
 
 # Additional build options
 option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
@@ -679,7 +680,10 @@ add_subdirectory(app)
 add_subdirectory(examples)
 add_subdirectory(docs)
 add_subdirectory(simulator)
-add_subdirectory(regression)
+
+if (OPENDAQ_ENABLE_REGRESSION_TESTS)
+    add_subdirectory(regression)
+endif()
 
 if (NOT BUILDING_AS_SUBMODULE)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")

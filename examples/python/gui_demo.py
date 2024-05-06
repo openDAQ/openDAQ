@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import enum
 
 import tkinter as tk
 from tkinter import ttk
@@ -33,6 +34,24 @@ except:
     from opendaq.gui_demo.app_context import *
     from opendaq.gui_demo.event_port import EventPort
 
+
+class DisplayType(enum.Enum):
+    TOPOLOGY = 0
+    SIGNALS = 1
+    CHANNELS = 2
+    FUNCTION_BLOCKS = 3
+    UNSPECIFIED = 4
+
+    def from_tab_index(index):
+        if index == 0:
+            return DisplayType.TOPOLOGY
+        elif index == 1:
+            return DisplayType.SIGNALS
+        elif index == 2:
+            return DisplayType.CHANNELS
+        elif index == 3:
+            return DisplayType.FUNCTION_BLOCKS
+        return DisplayType.UNSPECIFIED
 
 class App(tk.Tk):
 
@@ -80,6 +99,15 @@ class App(tk.Tk):
 
         main_frame_bottom = tk.Frame(self)
         main_frame_bottom.pack(fill=tk.constants.BOTH, expand=True)
+
+        nb = ttk.Notebook(main_frame_bottom)
+        nb.add(ttk.Frame(nb), text='Full Topology')
+        nb.add(ttk.Frame(nb), text='Signals')
+        nb.add(ttk.Frame(nb), text='Channels')
+        nb.add(ttk.Frame(nb), text='Function blocks')
+        nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
+        nb.pack(fill=tk.X)
+        self.nb = nb
 
         main_frame_navigator = tk.PanedWindow(
             main_frame_bottom, orient=tk.constants.HORIZONTAL)
@@ -179,25 +207,36 @@ class App(tk.Tk):
 
         self.context.selected_node = new_selected_node
 
-        self.tree_traverse_components_recursive(self.context.instance)
+        self.tree_traverse_components_recursive(self.context.instance, self.current_tab())
         self.context.selected_node = self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
 
-    def tree_traverse_components_recursive(self, component):
+    def tree_traverse_components_recursive(self, component, display_type = DisplayType.UNSPECIFIED):
         if component is None:
             return
 
         folder = daq.IFolder.cast_from(
             component) if component and daq.IFolder.can_cast_from(component) else None
+        
+        #tree view only in topology mode + parent exists
+        parent_id = '' if display_type not in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None) or component.parent is None else component.parent.global_id
 
-        # add item to tree if it is not a folder or non-empty folder
         if folder is None or folder.items:
-            self.tree_add_component(
-                '' if component.parent is None else component.parent.global_id, component)
+            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):    
+                self.tree_add_component(parent_id, component)
+            elif display_type == DisplayType.SIGNALS and daq.ISignal.can_cast_from(component):
+                self.tree_add_component(parent_id, daq.ISignal.cast_from(component))
+            elif display_type == DisplayType.CHANNELS:
+                if daq.IChannel.can_cast_from(component):
+                    self.tree_add_component(parent_id, daq.IChannel.cast_from(component))
+            elif display_type == DisplayType.FUNCTION_BLOCKS:
+                if daq.IFunctionBlock.can_cast_from(component) and not daq.IChannel.can_cast_from(component):
+                    self.tree_add_component(parent_id, daq.IFunctionBlock.cast_from(component))
 
         if folder is not None:
-            for item in folder.items:
-                self.tree_traverse_components_recursive(item)
+            if not(daq.IFunctionBlock.can_cast_from(component) and display_type == DisplayType.FUNCTION_BLOCKS):
+                for item in folder.items:
+                    self.tree_traverse_components_recursive(item, display_type=display_type)
 
     def tree_add_component(self, parent_node_id, component: daq.IComponent):
         component_node_id = component.global_id
@@ -513,6 +552,13 @@ class App(tk.Tk):
     def on_refresh_event(self, event):
         print('APP: refresh event received')
         self.tree_update(self.context.selected_node)
+
+    def on_tab_change(self, event):
+        self.context.selected_node = None
+        self.tree_update()
+
+    def current_tab(self):
+        return DisplayType.from_tab_index(self.nb.index('current')) if self.nb is not None else DisplayType.UNSPECIFIED
 
 
 # MARK: - Entry point

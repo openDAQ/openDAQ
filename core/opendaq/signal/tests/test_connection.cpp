@@ -26,7 +26,9 @@ TEST_P(ConnectionTest, InitialState)
 {
     EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(GetParam()));
     const auto connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
+#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE
     EXPECT_CALL(inputPort.mock(), getGlobalId(testing::_)).WillOnce(Get(String("id")));
+#endif
     EXPECT_EQ(connection.getPacketCount(), 0u);
     EXPECT_EQ(connection.getSignal(), signal.ptr);
     EXPECT_EQ(connection.getInputPort(), inputPort.ptr);

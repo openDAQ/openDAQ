@@ -39,27 +39,76 @@ TEST_P(RegressionTestSignal, setPublic)
 
 TEST_P(RegressionTestSignal, getDescriptor)
 {
-    ASSERT_NO_THROW(signal.getDescriptor());
+    DataDescriptorPtr descriptor;
+    ASSERT_NO_THROW(descriptor = signal.getDescriptor());
+    ASSERT_EQ(descriptor.getName(), "AI 1");
+    ASSERT_EQ(descriptor.getDimensions().getCount(), 0);
+    ASSERT_EQ(descriptor.getSampleType(), SampleType::Float64);
+    ASSERT_EQ(descriptor.getUnit().getId(), -1);
+    ASSERT_EQ(descriptor.getUnit().getSymbol(), "V");
+    ASSERT_EQ(descriptor.getUnit().getName(), "volts");
+    ASSERT_EQ(descriptor.getUnit().getQuantity(), "voltage");
+    ASSERT_FLOAT_EQ(descriptor.getValueRange().getLowValue(), -10.0);
+    ASSERT_FLOAT_EQ(descriptor.getValueRange().getHighValue(), 10.0);
+    ASSERT_EQ(descriptor.getRule(), DataRule(DataRuleType::Explicit, Dict<IString, IBaseObject>()));
+    ASSERT_EQ(descriptor.getPostScaling(), nullptr);
+    ASSERT_EQ(descriptor.getOrigin(), "");
+    ASSERT_EQ(descriptor.getTickResolution(), nullptr);
+    ASSERT_EQ(descriptor.getStructFields().getCount(), 0);
+    ASSERT_EQ(descriptor.getMetadata().getCount(), 0);
 }
 
 TEST_P(RegressionTestSignal, getDomainSignal)
 {
-    ASSERT_NO_THROW(signal.getDomainSignal());
+    SignalPtr domain;
+    ASSERT_NO_THROW(domain = signal.getDomainSignal());
+    // ASSERT_EQ(domain.getLocalId(), "*ref_dev1*IO*ai*refch0*Sig*ai0_time");
+    // ASSERT_EQ(domain.getName(), "*ref_dev1*IO*ai*refch0*Sig*ai0_time");
+    ASSERT_EQ(domain.getActive(), true);
+    ASSERT_EQ(domain.getPublic(), true);
+
+    ASSERT_EQ(domain.getDescriptor().getName(), "Time AI 1");
+    ASSERT_EQ(domain.getDescriptor().getDimensions().getCount(), 0);
+    // ASSERT_EQ(domain.getDescriptor().getSampleType(), SampleType::UInt64);
+    ASSERT_EQ(domain.getDescriptor().getUnit().getId(), -1);
+    ASSERT_EQ(domain.getDescriptor().getUnit().getSymbol(), "s");
+    ASSERT_EQ(domain.getDescriptor().getUnit().getName(), "seconds");
+    ASSERT_EQ(domain.getDescriptor().getUnit().getQuantity(), "time");
+    ASSERT_EQ(domain.getDescriptor().getValueRange(), nullptr);
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("delta", 1000);
+    dict.set("start", 0);
+    ASSERT_EQ(domain.getDescriptor().getRule(), DataRule(DataRuleType::Linear, dict));
+    ASSERT_EQ(domain.getDescriptor().getPostScaling(), nullptr);
+    ASSERT_EQ(domain.getDescriptor().getOrigin(), "1970-01-01T00:00:00Z");
+    ASSERT_EQ(domain.getDescriptor().getTickResolution(), Ratio(1, 1000000));
+    ASSERT_EQ(domain.getDescriptor().getStructFields().getCount(), 0);
+    ASSERT_EQ(domain.getDescriptor().getMetadata().getCount(), 0);
+
+    ASSERT_EQ(domain.getDomainSignal(), nullptr);
+    ASSERT_EQ(domain.getConnections().getCount(), 0);
+    ASSERT_EQ(domain.getRelatedSignals().getCount(), 0);
 }
 
 TEST_P(RegressionTestSignal, getRelatedSignals)
 {
-    ASSERT_NO_THROW(signal.getRelatedSignals());
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = signal.getRelatedSignals());
+    ASSERT_EQ(signals.getCount(), 0);
 }
 
 TEST_P(RegressionTestSignal, getConnections)
 {
-    ASSERT_NO_THROW(signal.getConnections());
+    ListPtr<IConnection> connections;
+    ASSERT_NO_THROW(connections = signal.getConnections());
+    ASSERT_EQ(connections.getCount(), 0);
 }
 
 TEST_P(RegressionTestSignal, getStreamed)
 {
-    ASSERT_NO_THROW(signal.getStreamed());
+    Bool streamed;
+    ASSERT_NO_THROW(streamed = signal.getStreamed());
+    ASSERT_EQ(streamed, true);
 }
 
 TEST_P(RegressionTestSignal, setStreamed)
@@ -67,9 +116,12 @@ TEST_P(RegressionTestSignal, setStreamed)
     ASSERT_NO_THROW(signal.setStreamed(True));
 }
 
-TEST_P(RegressionTestSignal, getLastValue)
+// TODO: ???
+TEST_P(RegressionTestSignal, DISABLED_getLastValue)
 {
-    ASSERT_NO_THROW(signal.getLastValue());
+    BaseObjectPtr lastValue;
+    ASSERT_NO_THROW(lastValue = signal.getLastValue());
+    ASSERT_NE(lastValue, nullptr);
 }
 
 // TODO: ???

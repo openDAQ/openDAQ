@@ -88,6 +88,7 @@ TEST_P(RegressionTestDevice, getAvailableDeviceTypes)
     ASSERT_NO_THROW(device.getAvailableDeviceTypes());
 }
 
+// TODO: ???
 TEST_P(RegressionTestDevice, addDeviceRemoveDevice)
 {
     DevicePtr dev;

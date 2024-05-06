@@ -22,6 +22,7 @@
 #include <opendaq/channel_impl.h>
 #include "opcuatms_client/objects/tms_client_component.h"
 #include <opendaq/server_capability_impl.h>
+#include <opendaq/input_port_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -64,7 +65,19 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, ServerCapabilityConfigImpl> = 0>
+    template <class T = Impl, template_utils::enable_if_any<T, GenericInputPortImpl<ITmsClientComponent>> = 0>
+    TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
+                                    const ComponentPtr& parent,
+                                    const StringPtr& localId,
+                                    const TmsClientContextPtr& clientContext,
+                                    const opcua::OpcUaNodeId& nodeId)
+        : TmsClientObjectImpl(ctx, clientContext, nodeId)
+        , Impl(ctx, parent, localId)
+    {
+        init();
+    }
+
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, ServerCapabilityConfigImpl, GenericInputPortImpl<ITmsClientComponent>> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,

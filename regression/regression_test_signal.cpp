@@ -144,8 +144,8 @@ TEST_P(RegressionTestSignal, getLastValue)
 {
     BaseObjectPtr lastValue;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    ASSERT_NO_THROW(lastValue = signal.getLastValue());
-    if (GetParam() == "daq.opcua://127.0.0.1")  // TODO: ???
+    ASSERT_NO_THROW(lastValue = signal.getLastValue());  // TODO: not needed?
+    if (GetParam() == "daq.opcua://127.0.0.1")           // TODO: ???
         ASSERT_NE(lastValue, nullptr);
 }
 

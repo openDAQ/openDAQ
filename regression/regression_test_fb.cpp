@@ -23,7 +23,7 @@ protected:
 
         device = instance.addDevice(GetParam());
 
-        // TODO: should not rely on "ref_fb_module_trigger" being present
+        // TODO: should not rely on "ref_fb_module_trigger" being present?
         fb = device.addFunctionBlock("ref_fb_module_trigger");
     }
 };

@@ -23,7 +23,7 @@ protected:
 
         device = instance.addDevice(GetParam());
 
-        signal = device.getSignals()[0];
+        signal = instance.getSignalsRecursive()[0];
     }
 };
 
@@ -60,16 +60,38 @@ TEST_P(RegressionTestSignal, getDescriptor)
 
 TEST_P(RegressionTestSignal, getDomainSignal)
 {
+    StringPtr connectionString = GetParam();
+    StringPtr name;
+    StringPtr localID;
+    SampleType sampleType;  // TODO: why different in lt?
+
+    if (connectionString == "daq.opcua://127.0.0.1")
+    {
+        name = localID = "ai0_time";
+        sampleType = SampleType::Int64;
+    }
+    else if (connectionString == "daq.ns://127.0.0.1")
+    {
+        name = localID = "*ref_dev1*IO*ai*refch0*Sig*ai0_time";
+        sampleType = SampleType::Int64;
+    }
+    else if (connectionString == "daq.lt://127.0.0.1")
+    {
+        name = "ai0_time";
+        localID = "#ref_dev1#IO#ai#refch0#Sig#ai0_time";
+        sampleType = SampleType::UInt64;
+    }
+
     SignalPtr domain;
     ASSERT_NO_THROW(domain = signal.getDomainSignal());
-    // ASSERT_EQ(domain.getLocalId(), "*ref_dev1*IO*ai*refch0*Sig*ai0_time");
-    // ASSERT_EQ(domain.getName(), "*ref_dev1*IO*ai*refch0*Sig*ai0_time");
+    ASSERT_EQ(domain.getLocalId(), localID);
+    ASSERT_EQ(domain.getName(), name);
     ASSERT_EQ(domain.getActive(), true);
     ASSERT_EQ(domain.getPublic(), true);
 
     ASSERT_EQ(domain.getDescriptor().getName(), "Time AI 1");
     ASSERT_EQ(domain.getDescriptor().getDimensions().getCount(), 0);
-    // ASSERT_EQ(domain.getDescriptor().getSampleType(), SampleType::UInt64);
+    ASSERT_EQ(domain.getDescriptor().getSampleType(), sampleType);
     ASSERT_EQ(domain.getDescriptor().getUnit().getId(), -1);
     ASSERT_EQ(domain.getDescriptor().getUnit().getSymbol(), "s");
     ASSERT_EQ(domain.getDescriptor().getUnit().getName(), "seconds");
@@ -116,15 +138,14 @@ TEST_P(RegressionTestSignal, setStreamed)
     ASSERT_NO_THROW(signal.setStreamed(True));
 }
 
-// TODO: ???
-TEST_P(RegressionTestSignal, DISABLED_getLastValue)
+TEST_P(RegressionTestSignal, getLastValue)
 {
     BaseObjectPtr lastValue;
     ASSERT_NO_THROW(lastValue = signal.getLastValue());
-    ASSERT_NE(lastValue, nullptr);
+    if (GetParam() == "daq.opcua://127.0.0.1")  // TODO: ???
+        ASSERT_NE(lastValue, nullptr);
 }
 
-// TODO: ???
 INSTANTIATE_TEST_SUITE_P(Signal,
                          RegressionTestSignal,
-                         testing::Values(/*"daq.opcua://127.0.0.1",*/ "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));
+                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

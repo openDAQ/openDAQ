@@ -78,7 +78,7 @@ def show_selection(title, current_value, values):
             sel_text = "* "
         else:
             sel_text = ""
-        button = tk.Button(top, text=sel_text + value,
+        button = tk.Button(top, text=sel_text + str(value),
                            command=make_closure(idx))
         button.pack(expand=True, fill=tk.BOTH)
 

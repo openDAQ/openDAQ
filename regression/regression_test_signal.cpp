@@ -159,6 +159,17 @@ TEST_P(RegressionTestSignal, reader)
     ASSERT_GT(count, 0);
 }
 
+TEST_P(RegressionTestSignal, readerWithDomain)
+{
+    StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
+    double samples[100];
+    int64_t domain[100];
+    SizeT count = 100;
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    ASSERT_NO_THROW(reader.readWithDomain(samples, domain, &count));
+    ASSERT_GT(count, 0);
+}
+
 INSTANTIATE_TEST_SUITE_P(Signal,
                          RegressionTestSignal,
                          testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/opendaq.h>
+#include <chrono>
+#include <thread>
 
 using namespace daq;
 
@@ -141,9 +143,20 @@ TEST_P(RegressionTestSignal, setStreamed)
 TEST_P(RegressionTestSignal, getLastValue)
 {
     BaseObjectPtr lastValue;
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(lastValue = signal.getLastValue());
     if (GetParam() == "daq.opcua://127.0.0.1")  // TODO: ???
         ASSERT_NE(lastValue, nullptr);
+}
+
+TEST_P(RegressionTestSignal, reader)
+{
+    StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
+    double samples[100];
+    SizeT count = 100;
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    ASSERT_NO_THROW(reader.read(samples, &count));
+    ASSERT_GT(count, 0);
 }
 
 INSTANTIATE_TEST_SUITE_P(Signal,

@@ -23,101 +23,137 @@ protected:
 
         device = instance.addDevice(GetParam());
 
-        property = device.getAllProperties()[0];
+        property = device.getProperty("UserName");
     }
 };
 
 TEST_P(RegressionTestProperty, getValueType)
 {
-    ASSERT_NO_THROW(property.getValueType());
+    CoreType type;
+    ASSERT_NO_THROW(type = property.getValueType());
+    ASSERT_EQ(type, CoreType::ctString);
 }
 
 TEST_P(RegressionTestProperty, getKeyType)
 {
-    ASSERT_NO_THROW(property.getKeyType());
+    CoreType type;
+    ASSERT_NO_THROW(type = property.getKeyType());
+    ASSERT_EQ(type, CoreType::ctUndefined);
 }
 
 TEST_P(RegressionTestProperty, getItemType)
 {
-    ASSERT_NO_THROW(property.getItemType());
+    CoreType type;
+    ASSERT_NO_THROW(type = property.getItemType());
+    ASSERT_EQ(type, CoreType::ctUndefined);
 }
 
 TEST_P(RegressionTestProperty, getName)
 {
-    ASSERT_NO_THROW(property.getName());
+    StringPtr name;
+    ASSERT_NO_THROW(name = property.getName());
+    ASSERT_EQ(name, "UserName");
 }
 
 TEST_P(RegressionTestProperty, getDescription)
 {
-    ASSERT_NO_THROW(property.getDescription());
+    StringPtr description;
+    ASSERT_NO_THROW(description = property.getDescription());
+    ASSERT_EQ(description, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getUnit)
 {
-    ASSERT_NO_THROW(property.getUnit());
+    UnitPtr unit;
+    ASSERT_NO_THROW(unit = property.getUnit());
+    ASSERT_EQ(unit, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getMinValue)
 {
-    ASSERT_NO_THROW(property.getMinValue());
+    NumberPtr value;
+    ASSERT_NO_THROW(value = property.getMinValue());
+    ASSERT_EQ(value, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getMaxValue)
 {
-    ASSERT_NO_THROW(property.getMaxValue());
+    NumberPtr value;
+    ASSERT_NO_THROW(value = property.getMaxValue());
+    ASSERT_EQ(value, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getDefaultValue)
 {
-    ASSERT_NO_THROW(property.getDefaultValue());
+    BaseObjectPtr value;
+    ASSERT_NO_THROW(value = property.getDefaultValue());
+    ASSERT_EQ(value, "");
 }
 
 TEST_P(RegressionTestProperty, getSuggestedValues)
 {
-    ASSERT_NO_THROW(property.getSuggestedValues());
+    ListPtr<IBaseObject> values;
+    ASSERT_NO_THROW(values = property.getSuggestedValues());
+    ASSERT_EQ(values, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getVisible)
 {
-    ASSERT_NO_THROW(property.getVisible());
+    Bool visible;
+    ASSERT_NO_THROW(visible = property.getVisible());
+    ASSERT_EQ(visible, True);
 }
 
 TEST_P(RegressionTestProperty, getReadOnly)
 {
-    ASSERT_NO_THROW(property.getReadOnly());
+    Bool readOnly;
+    ASSERT_NO_THROW(readOnly = property.getReadOnly());
+    ASSERT_EQ(readOnly, False);
 }
 
 TEST_P(RegressionTestProperty, getSelectionValues)
 {
-    ASSERT_NO_THROW(property.getSelectionValues());
+    BaseObjectPtr values;
+    ASSERT_NO_THROW(values = property.getSelectionValues());
+    ASSERT_EQ(values, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getReferencedProperty)
 {
-    ASSERT_NO_THROW(property.getReferencedProperty());
+    PropertyPtr prop;
+    ASSERT_NO_THROW(prop = property.getReferencedProperty());
+    ASSERT_EQ(prop, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getIsReferenced)
 {
-    ASSERT_NO_THROW(property.getIsReferenced());
+    Bool isReferenced;
+    ASSERT_NO_THROW(isReferenced = property.getIsReferenced());
+    ASSERT_EQ(isReferenced, False);
 }
 
 TEST_P(RegressionTestProperty, getValidator)
 {
-    ASSERT_NO_THROW(property.getValidator());
+    ValidatorPtr validator;
+    ASSERT_NO_THROW(validator = property.getValidator());
+    ASSERT_EQ(validator, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getCoercer)
 {
-    ASSERT_NO_THROW(property.getCoercer());
+    CoercerPtr coercer;
+    ASSERT_NO_THROW(coercer = property.getCoercer());
+    ASSERT_EQ(coercer, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getCallableInfo)
 {
-    ASSERT_NO_THROW(property.getCallableInfo());
+    CallableInfoPtr info;
+    ASSERT_NO_THROW(info = property.getCallableInfo());
+    ASSERT_EQ(info, nullptr);
 }
 
-// TODO: enable
+// TODO: ???
 TEST_P(RegressionTestProperty, DISABLED_getStructType)
 {
     ASSERT_NO_THROW(property.getStructType());
@@ -125,12 +161,14 @@ TEST_P(RegressionTestProperty, DISABLED_getStructType)
 
 TEST_P(RegressionTestProperty, getOnPropertyValueWrite)
 {
-    ASSERT_NO_THROW(property.getOnPropertyValueWrite());
+    auto event = property.getOnPropertyValueWrite();
+    ASSERT_NE(event, nullptr);
 }
 
 TEST_P(RegressionTestProperty, getOnPropertyValueRead)
 {
-    ASSERT_NO_THROW(property.getOnPropertyValueRead());
+    auto event = property.getOnPropertyValueRead();
+    ASSERT_NE(event, nullptr);
 }
 
 INSTANTIATE_TEST_SUITE_P(Property,

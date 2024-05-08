@@ -28,6 +28,8 @@ protected:
 
         // TODO: should not rely on "ref_fb_module_trigger" being present
         fb = device.addFunctionBlock("ref_fb_module_trigger");
+        // TODO: remove function block???
+        // TODO: add function block once in simulator?
 
         port = fb.getInputPorts()[0];
     }

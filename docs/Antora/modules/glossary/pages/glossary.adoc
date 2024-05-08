@@ -351,7 +351,7 @@ The {opc-foundation-website}[OPC Foundation] (Open Platform Communications) is a
 == openDAQ(TM) OPC UA standard
 
 // suppress inspection "GrazieInspection"
-A test-and-measurement standared that describes openDAQ devices based on the OPC UA for devices standard.
+A test-and-measurement standard that describes openDAQ devices based on the OPC UA for devices standard.
 It is a protocol that describes the structure of a <<device>>.
 The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module] can connect to <<device>>s that adhere to this protocol.
 

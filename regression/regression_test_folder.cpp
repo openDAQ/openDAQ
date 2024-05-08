@@ -26,22 +26,30 @@ protected:
 
 TEST_P(RegressionTestFolder, getItems)
 {
-    ASSERT_NO_THROW(folder.getItems());
+    ListPtr<IComponent> items;
+    ASSERT_NO_THROW(items = folder.getItems());
+    ASSERT_GT(items.getCount(), 0);
 }
 
 TEST_P(RegressionTestFolder, isEmpty)
 {
-    ASSERT_NO_THROW(folder.isEmpty());
+    Bool isEmpty;
+    ASSERT_NO_THROW(isEmpty = folder.isEmpty());
+    ASSERT_FALSE(isEmpty);
 }
 
 TEST_P(RegressionTestFolder, hasItem)
 {
-    ASSERT_NO_THROW(folder.hasItem("test"));
+    Bool hasItem;
+    ASSERT_NO_THROW(hasItem = folder.hasItem("Sig"));
+    ASSERT_TRUE(hasItem);
 }
 
 TEST_P(RegressionTestFolder, getItem)
 {
-    ASSERT_NO_THROW(folder.getItem("Sig"));
+    ComponentPtr item;
+    ASSERT_NO_THROW(item = folder.getItem("Sig"));
+    ASSERT_NE(item, nullptr);
 }
 
 INSTANTIATE_TEST_SUITE_P(Folder,

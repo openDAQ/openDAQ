@@ -36,21 +36,24 @@ except:
 
 
 class DisplayType(enum.Enum):
-    TOPOLOGY = 0
+    SYSTEM_OVERVIEW = 0
     SIGNALS = 1
     CHANNELS = 2
     FUNCTION_BLOCKS = 3
-    UNSPECIFIED = 4
+    TOPOLOGY = 4
+    UNSPECIFIED = 5
 
     def from_tab_index(index):
         if index == 0:
-            return DisplayType.TOPOLOGY
+            return DisplayType.SYSTEM_OVERVIEW
         elif index == 1:
             return DisplayType.SIGNALS
         elif index == 2:
             return DisplayType.CHANNELS
         elif index == 3:
             return DisplayType.FUNCTION_BLOCKS
+        elif index == 4:
+            return DisplayType.TOPOLOGY
         return DisplayType.UNSPECIFIED
 
 
@@ -102,10 +105,11 @@ class App(tk.Tk):
         main_frame_bottom.pack(fill=tk.constants.BOTH, expand=True)
 
         nb = ttk.Notebook(main_frame_bottom)
-        nb.add(ttk.Frame(nb), text='Full Topology')
+        nb.add(ttk.Frame(nb), text='System Overview')
         nb.add(ttk.Frame(nb), text='Signals')
         nb.add(ttk.Frame(nb), text='Channels')
         nb.add(ttk.Frame(nb), text='Function blocks')
+        nb.add(ttk.Frame(nb), text='Full Topology')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb
@@ -223,11 +227,15 @@ class App(tk.Tk):
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
-            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None) or component.parent is None else component.parent.global_id
+            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
 
         if folder is None or folder.items:
             if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):
                 self.tree_add_component(parent_id, component)
+            elif display_type == DisplayType.SYSTEM_OVERVIEW:
+                if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component)):
+                    if not (daq.IFolder.can_cast_from(component) and component.name in ('IP', 'Sig')):
+                        self.tree_add_component(parent_id, component)
             elif display_type == DisplayType.SIGNALS and daq.ISignal.can_cast_from(component):
                 self.tree_add_component(
                     parent_id, daq.ISignal.cast_from(component))
@@ -538,27 +546,10 @@ class App(tk.Tk):
 
         if not node:
             return
+        parent = node.parent
+        self.context.remove_device(node)
 
-        if node.parent:
-            parent_device = get_nearest_device(node.parent)
-
-            parent_device.remove_device(node)
-
-            # return initial state to connection mapped info
-            device_info_id_mapped = self.context.all_devices[
-                parent_device.global_id][node.global_id]['device_info']
-            device_state_conn_mapped = self.context.all_devices[
-                parent_device.global_id][device_info_id_mapped.connection_string]
-            device_state_conn_mapped['enabled'] = False
-            device_state_conn_mapped['device'] = None
-
-            # removing id mapped info
-            self.context.all_devices[parent_device.global_id].pop(
-                node.global_id, None)
-            self.context.connected_devices[parent_device.global_id].pop(
-                node.global_id, None)
-
-            self.context.selected_node = parent_device
+        self.context.selected_node = parent
         self.tree_update(self.context.selected_node)
 
     # MARK: - Other

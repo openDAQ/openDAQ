@@ -16,6 +16,7 @@ class AttributesDialog(Dialog):
         self.node = node
         self.event_port = EventPort(parent)
 
+        self.geometry(f'{600}x{800}')
         tree_frame = tk.Frame(self)
 
         tree = ttk.Treeview(tree_frame, columns=(
@@ -33,9 +34,9 @@ class AttributesDialog(Dialog):
         tree.heading('#1', text='Value')
         tree.heading('#2', text='Locked')
         # layout
-        tree.column('#0', anchor=tk.CENTER, width=160, stretch=True)
-        tree.column('#1', anchor=tk.CENTER, width=480, stretch=True)
-        tree.column('#2', anchor=tk.CENTER, width=80, stretch=False)
+        tree.column('#0', anchor=tk.W, width=80, stretch=True)
+        tree.column('#1', anchor=tk.CENTER)
+        tree.column('#2', anchor=tk.CENTER, width=60, stretch=False)
         style = ttk.Style()
         style.configure("Treeview.Heading", font='Arial 10 bold')
 
@@ -49,7 +50,7 @@ class AttributesDialog(Dialog):
                 tk.Label(self, text='Signal Desciptor').pack(
                     anchor=tk.W, pady=5)
             elif daq.IDevice.can_cast_from(node):
-                tk.Label(self, text='Device Attributes').pack(
+                tk.Label(self, text='Device Info').pack(
                     anchor=tk.W, pady=5)
 
             # additional treeview for specific attributes
@@ -70,7 +71,7 @@ class AttributesDialog(Dialog):
             additional_tree.heading('#0', text='Name')
             additional_tree.heading('#1', text='Value')
             # layout
-            additional_tree.column('#0', anchor=tk.CENTER, width=80)
+            additional_tree.column('#0', anchor=tk.W, width=80)
             additional_tree.column('#1', anchor=tk.CENTER, stretch=True)
 
             self.additional_tree = additional_tree
@@ -118,7 +119,7 @@ class AttributesDialog(Dialog):
             self.withdraw()
             new_value = simpledialog.askstring(
                 sel, prompt=prompt, initialvalue=value)
-            try: # handle the case when the main window is closed
+            try:  # handle the case when the main window is closed
                 self.deiconify()
             except tk.TclError:
                 return

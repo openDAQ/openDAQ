@@ -80,6 +80,8 @@ class AddFunctionBlockDialog(Dialog):
 
         self.initial_update_func = lambda: self.update_parent_devices(
             self.device_tree, '', self.context.instance)
+        self.after(1, lambda: self.device_tree.selection_set(
+            self.context.instance.global_id))
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())

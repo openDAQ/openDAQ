@@ -23,57 +23,59 @@ class AppContext(object):
         self.icons = {}
         # daq
         self.instance = daq.Instance()
-        self.all_devices = {}
-        self.connected_devices = {}
+        self.enabled_devices = {}
         self.connection_string = ''
-        self.all_devices[self.instance.global_id] = dict()
-        self.connected_devices[self.instance.global_id] = dict()
 
-    def scan_devices(self, parent_device=None):
-        print(f'Scanning devices for {parent_device.info.name}')
-        parent_device = parent_device if parent_device else self.instance
+    def register_device(self, device_info):
+        conn = device_info.connection_string
+        # ignore reference devices unless explicitly requested
+        if not self.include_reference_devices and 'daqref' in conn:
+            return
+        # only add device to the list if it isn't there already
+        if not conn in self.enabled_devices:
+            self.enabled_devices[conn] = {
+                'device_info': device_info, 'device': None}
 
-        def add_device(device_info):
-            conn = device_info.connection_string
-            # ignore reference devices unless explicitly requested
-            if not self.include_reference_devices and 'daqref' in device_info.connection_string:
-                return
-            # only add device to the list if it isn't there already
-            if not conn in self.all_devices[parent_device.global_id]:
-                self.all_devices[parent_device.global_id][conn] = {
-                    'device_info': device_info, 'enabled': False, 'device': None}
-
-        if daq.IDevice.can_cast_from(parent_device):
-            parent_device = daq.IDevice.cast_from(parent_device)
-            if parent_device.global_id not in self.all_devices:
-                self.all_devices[parent_device.global_id] = dict()
-
-        for device_info in parent_device.available_devices:
-            add_device(device_info)
-
-    def add_first_available_device(self):
-        device_info = DeviceInfoLocal(self.connection_string)
-
-        device_state = {'device_info': device_info,
-                        'enabled': False, 'device': None}
-
-        self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
-
+    def add_device(self, device_info, parent_device: daq.IDevice):
+        if device_info is None:
+            return None
+        if parent_device is None:
+            return None
         try:
-            device = self.instance.add_device(
-                device_info.connection_string)
+            device = parent_device.add_device(device_info.connection_string)
             if device:
                 device_info.name = device.local_id
                 device_info.serial_number = device.info.serial_number
-                device_state['device'] = device
-                device_state['enabled'] = True
-
-                # multiple keys for the same device's state
-                self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
-                self.all_devices[self.instance.global_id][device.global_id] = device_state
-                self.connected_devices[self.instance.global_id][device_info.connection_string] = device_state
+                self.enabled_devices[device_info.connection_string] = {
+                    'device_info': device_info, 'device': device}
+                return device
         except RuntimeError as e:
             print(f'Error adding device {device_info.connection_string}: {e}')
+        return None
+
+    def remove_device(self, device):
+        if device is None:
+            return
+        parent_device = get_nearest_device(device.parent)
+        if parent_device is None:
+            return
+
+        subdevices = list_all_subdevices(device)
+        for subdevice in subdevices:
+            del self.enabled_devices[subdevice.info.connection_string]
+
+        parent_device.remove_device(device)
+        del self.enabled_devices[device.info.connection_string]
+
+    def scan_devices(self, parent_device=None):
+        parent_device = parent_device or self.instance
+
+        for device_info in parent_device.available_devices:
+            self.register_device(device_info)
+
+    def add_first_available_device(self):
+        device_info = DeviceInfoLocal(self.connection_string)
+        self.add_device(device_info, self.instance)
 
     def load_icons(self, directory):
         images = {}

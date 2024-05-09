@@ -108,6 +108,18 @@ def root_device(node):
     return node
 
 
+def list_all_subdevices(node: daq.IComponent):
+    result = []
+    if node is not None and daq.IFolder.can_cast_from(node):
+        node = daq.IFolder.cast_from(node)
+        for item in node.items:
+            if daq.IDevice.can_cast_from(item):
+                result.append(daq.IDevice.cast_from(item))
+        for item in node.items:
+            result.extend(list_all_subdevices(item))
+    return result
+
+
 def get_files_in_directory(directory):
     files = []
     for file in os.listdir(directory):

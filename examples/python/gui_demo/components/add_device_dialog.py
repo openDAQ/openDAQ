@@ -43,7 +43,8 @@ class AddDeviceDialog(Dialog):
 
         # device
 
-        device_tree_frame = ttk.Frame(self)
+        right_side_frame = ttk.Frame(self)
+        device_tree_frame = ttk.Frame(right_side_frame)
         device_tree = ttk.Treeview(device_tree_frame, columns=('used', 'name', 'conn'), displaycolumns=(
             'used', 'name', 'conn'), show='tree headings', selectmode='browse')
 
@@ -66,18 +67,33 @@ class AddDeviceDialog(Dialog):
 
         device_tree.bind(
             '<Double-1>', self.handle_device_tree_double_click)
-
         device_tree.pack(fill="both", expand=True)
+        device_tree_frame.pack(fill="both", expand=True)
 
-        device_tree_frame.grid(row=0, column=1)
-        device_tree_frame.grid_configure(sticky='nsew')
+        add_device_frame = tk.Frame(right_side_frame)
+        tk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
+        self.conn_string_entry = tk.Entry(add_device_frame)
+        self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
+        self.conn_string_entry.pack(
+            side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        tk.Button(add_device_frame, text='Add',
+                  command=self.handle_add_device).pack(side=tk.RIGHT)
+        add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
+                              padx=(5, 0), pady=(5, 0))
+
+        right_side_frame.grid(row=0, column=1)
+        right_side_frame.grid_configure(sticky='nsew')
 
         self.grid_rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=2)
 
+        self.dialog_parent_device = None
+
         self.initial_update_func = lambda: self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)
+        self.after(1, lambda: self.parent_device_tree.selection_set(
+            self.context.instance.global_id))
 
     def handle_parent_device_selected(self, event):
         selected_item = treeview_get_first_selection(
@@ -88,7 +104,6 @@ class AddDeviceDialog(Dialog):
         if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
             parent_device = daq.IDevice.cast_from(parent_device)
             self.dialog_parent_device = parent_device
-            self.context.scan_devices(parent_device)
             self.update_child_devices(
                 self.device_tree, parent_device)
 
@@ -103,48 +118,41 @@ class AddDeviceDialog(Dialog):
         item = self.device_tree.item(selected_item)
 
         conn = item['values'][2]
-        if not conn in self.context.all_devices[nearest_device.global_id]:
-            print("Something is wrong, device not found")
-            return
+        if conn not in self.context.enabled_devices:
+            device = self.context.add_device(
+                DeviceInfoLocal(conn), nearest_device)
+            if device:
+                self.update_parent_devices(
+                    self.parent_device_tree, '', self.context.instance)
+                self.parent_device_tree.selection_set(device.global_id)
+                self.event_port.emit()
 
-        device_state_conn_mapped = self.context.all_devices[nearest_device.global_id][conn]
-        will_be_enabled = not device_state_conn_mapped['enabled']
-        # will_be_enabled
-        if will_be_enabled:
-            try:
-                device = nearest_device.add_device(conn)
+    def handle_add_device(self):
+        connection_string = self.conn_string_entry.get()
+        if connection_string and self.dialog_parent_device is not None:
+            DeviceInfoLocal(connection_string)
+            device = self.context.add_device(DeviceInfoLocal(
+                connection_string), self.dialog_parent_device)
+            if device:
+                self.update_parent_devices(
+                    self.parent_device_tree, '', self.context.instance)
+                self.parent_device_tree.selection_set(device.global_id)
+                self.event_port.emit()
 
-                device_state_conn_mapped['device'] = device
-                device_state_conn_mapped['enabled'] = True
-
-                device_info = device_state_conn_mapped['device_info']
-                if isinstance(device_info, DeviceInfoLocal):
-                    device_info.name = device.local_id
-                    device_info.serial_number = device.info.serial_number
-
-                self.context.all_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
-                self.context.connected_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
-
-            except RuntimeError as e:
-                print(f'Error adding device: {e}')
-                device_state_conn_mapped['device'] = None
-                device_state_conn_mapped['enabled'] = False
-        self.update_parent_devices(
-            self.parent_device_tree, '', self.context.instance)
-        self.parent_device_tree.selection_set(nearest_device.global_id)
-        self.event_port.emit()
+    def handle_entry_enter(self, event):
+        self.handle_add_device()
 
     def update_child_devices(self, tree, parent_device):
         tree.delete(*tree.get_children())
 
-        for conn in self.context.all_devices[parent_device.global_id]:
-            # not displaying dups of already connected devices
-            if conn in self.context.connected_devices[parent_device.global_id]:
-                continue
+        if parent_device is None:
+            return
 
-            device_info = self.context.all_devices[parent_device.global_id][conn]['device_info']
+        for device_info in parent_device.available_devices:
             name = device_info.name
-            used = self.context.all_devices[parent_device.global_id][conn]['enabled']
+            conn = device_info.connection_string
+            used = conn in self.context.enabled_devices
+
             tree.insert('', tk.END, iid=conn, values=(
                 yes_no[used], name, conn))
 

@@ -600,27 +600,36 @@ void OpcUaServer::closeSession(UA_Server* server, UA_AccessControl* ac, const UA
 }
 
 
-UA_StatusCode OpcUaServer::generateChildId(UA_Server *server, const UA_NodeId *sessionId, void *sessionContext, const UA_NodeId *sourceNodeId, const UA_NodeId *targetParentNodeId, const UA_NodeId *referenceTypeId, UA_NodeId *targetNodeId)
+UA_StatusCode OpcUaServer::generateChildId(UA_Server* server,
+                                           const UA_NodeId*/*sessionId*/,
+                                           void*/*sessionContext*/,
+                                           const UA_NodeId* sourceNodeId,
+                                           const UA_NodeId* targetParentNodeId,
+                                           const UA_NodeId*/*referenceTypeId*/,
+                                           UA_NodeId* targetNodeId)
 {
     if (targetParentNodeId->identifierType == UA_NODEIDTYPE_STRING) {
-        std::string newNodeIdStr;
-        std::string parentNodeIdStr = utils::ToStdString(targetParentNodeId->identifier.string);
+        const std::string parentNodeIdStr = utils::ToStdString(targetParentNodeId->identifier.string);
         std::string objectTypeIdStr;
+		
         if (sourceNodeId->identifierType == UA_NODEIDTYPE_STRING)
         {
-            objectTypeIdStr = opcua::utils::ToStdString(sourceNodeId->identifier.string);
+            objectTypeIdStr = utils::ToStdString(sourceNodeId->identifier.string);
         }
         else if (sourceNodeId->identifierType == UA_NODEIDTYPE_NUMERIC)
         {
-            UA_QualifiedName* browseName = UA_QualifiedName_new();;
+            UA_QualifiedName* browseName = UA_QualifiedName_new();
             UA_Server_readBrowseName(server, *sourceNodeId, browseName);
-            objectTypeIdStr = opcua::utils::ToStdString(browseName->name);
+            objectTypeIdStr = utils::ToStdString(browseName->name);
             UA_QualifiedName_delete(browseName);
         }
+        else
+        {
+            return UA_STATUSCODE_GOOD;
+        }
 
-        parentNodeIdStr.append("/");
-        newNodeIdStr = parentNodeIdStr + objectTypeIdStr;
-        *targetNodeId = UA_NODEID_STRING_ALLOC(targetParentNodeId->namespaceIndex, const_cast<char*>(newNodeIdStr.c_str()));
+        const auto newNodeIdStr = parentNodeIdStr + "/" + objectTypeIdStr;
+        *targetNodeId = UA_NODEID_STRING_ALLOC(targetParentNodeId->namespaceIndex, newNodeIdStr.c_str());
     }
 
     return UA_STATUSCODE_GOOD;

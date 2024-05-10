@@ -172,4 +172,4 @@ TEST_P(RegressionTestSignal, readerWithDomain)
 
 INSTANTIATE_TEST_SUITE_P(Signal,
                          RegressionTestSignal,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));
+                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

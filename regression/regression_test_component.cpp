@@ -139,4 +139,4 @@ TEST_P(RegressionTestComponent, findComponent)
 
 INSTANTIATE_TEST_SUITE_P(Component,
                          RegressionTestComponent,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));
+                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

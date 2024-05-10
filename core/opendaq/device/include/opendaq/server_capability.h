@@ -116,7 +116,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     // [templateType(addresses, IString)]
     /*!
      * @brief Gets the device's list of addresses with the current protocol.
-     * @param[out] connectionStrings The device's list of addresses (hosts)
+     * @param[out] addresses The device's list of addresses (hosts)
      */
     virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
 };

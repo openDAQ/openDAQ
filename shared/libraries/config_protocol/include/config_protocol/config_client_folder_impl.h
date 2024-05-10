@@ -262,7 +262,7 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
     this->getItems(&itemsList, search::Any());
     for (const auto& item : itemsList)
     {
-        if (!serItems.hasKey(item.getName()))
+        if (!serItems.hasKey(item.getLocalId()))
             this->removeItem(item);
     }
 }

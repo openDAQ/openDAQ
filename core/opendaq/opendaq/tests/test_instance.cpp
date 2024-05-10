@@ -501,7 +501,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 
     instance.setRootDevice("mock_phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
-    ASSERT_EQ(instance.getRootDevice().getName(), "mockdev");
+    ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
 }
 
 END_NAMESPACE_OPENDAQ

@@ -31,7 +31,8 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     const size_t nanosecondsInSecond = 1000000000;
     auto delta = nanosecondsInSecond / 10000;
     time = 0;
-
+    
+    this->name = "MockPhysicalDevice";
     auto valueDescriptor = DataDescriptorBuilder()
                                .setSampleType(SampleType::UInt64)
                                .setRule(LinearDataRule(delta, 100))

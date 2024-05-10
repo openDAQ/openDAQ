@@ -98,6 +98,14 @@ namespace daq::config_protocol::test_utils
         {
             return true;
         }
+
+        DeviceInfoPtr onGetInfo() override
+        {
+            auto info = DeviceInfo("", this->localId);
+            info.setLocation("loc");
+            info.freeze();
+            return info.detach();
+        }
     };
 
 }

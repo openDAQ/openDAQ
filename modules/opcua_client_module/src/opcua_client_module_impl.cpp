@@ -31,15 +31,22 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
-                auto connectionStringIpv4 = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                auto connectionStringIpv6 = fmt::format("{}[{}]/",
-                                    DaqOpcUaDevicePrefix,
-                                    discoveredDevice.ipv6Address);
                 auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-                cap.addConnectionString(connectionStringIpv4);
-                cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString(connectionStringIpv6);
-                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                
+                if (!discoveredDevice.ipv4Address.empty())
+                {
+                    auto connectionStringIpv4 = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                    cap.addConnectionString(connectionStringIpv4);
+                    cap.addAddress(discoveredDevice.ipv4Address);
+                }
+
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    auto connectionStringIpv6 = fmt::format("{}[{}]/", DaqOpcUaDevicePrefix, discoveredDevice.ipv6Address);
+                    cap.addConnectionString(connectionStringIpv6);
+                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                }
+
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;

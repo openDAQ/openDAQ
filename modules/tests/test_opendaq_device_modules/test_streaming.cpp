@@ -39,7 +39,7 @@ public:
 
         for (const auto& device : devices)
         {
-            auto name = device.getInfo().getName();
+            auto name = device.getName();
             if (name == "MockPhysicalDevice")
                 device.setPropertyValue("GeneratePackets", packetCount);
         }

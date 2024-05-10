@@ -72,6 +72,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
     /*!
      * @brief Gets the name of the device
      * @param[out] name The name of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the name string value matches that of the device's "name" attribute.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
@@ -244,6 +247,15 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * (List containing IServerCapability objects, representing the supported protocols along with their properties).
      */
     virtual ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) = 0;
+
+    /*!
+     * @brief Gets the location of the device.
+     * @param[out] location The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the location string value matches that of the device's "location" property.
+     */
+    virtual ErrCode INTERFACE_FUNC getLocation(IString** location) = 0;
 };
 /*!@}*/
 

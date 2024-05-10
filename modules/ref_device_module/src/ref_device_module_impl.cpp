@@ -62,7 +62,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     const auto options = context.getOptions();
     StringPtr localId;
-    StringPtr name;
+    StringPtr name = fmt::format("Device {}", id);
 
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {

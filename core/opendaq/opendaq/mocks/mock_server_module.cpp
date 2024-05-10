@@ -133,8 +133,17 @@ ErrCode MockServerModuleImpl::createConnectionString(IString** /*connectionStrin
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, MockServerModule, IModule,
-    IContext*, ctx,
-    IModuleManager*, manager
-)
+    INTERNAL_FACTORY,
+    MockServerModule,
+    IModule,
+    IContext*,
+    ctx,
+    IModuleManager*,
+    manager
+    )

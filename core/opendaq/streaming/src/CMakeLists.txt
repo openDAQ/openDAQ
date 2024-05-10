@@ -8,6 +8,7 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_Streaming streaming.h)
+rtgen(SRC_StreamingType streaming_type.h)
 rtgen(SRC_MirroredSignal mirrored_signal_config.h)
 rtgen(SRC_SubscriptionEventArgs subscription_event_args.h)
 rtgen(SRC_MirroredSignalPrivate mirrored_signal_private.h)
@@ -35,7 +36,14 @@ source_group("mirrored_device" FILES ${SDK_HEADERS_DIR}/mirrored_device.h
                                      ${SDK_HEADERS_DIR}/mirrored_device_impl.h
 )
 
+source_group("streaming_type" FILES ${SDK_HEADERS_DIR}/streaming_type.h
+                                    ${SDK_HEADERS_DIR}/streaming_type_factory.h
+                                    ${SDK_HEADERS_DIR}/streaming_type_impl.h
+									streaming_type_impl.cpp
+)
+
 set(SRC_Cpp subscription_event_args_impl.cpp
+            streaming_type_impl.cpp
 )
 
 set(SRC_PublicHeaders streaming_impl.h
@@ -46,6 +54,9 @@ set(SRC_PublicHeaders streaming_impl.h
                       mirrored_device.h
                       mirrored_device_config.h
                       mirrored_device_impl.h
+					  streaming_type.h
+					  streaming_type_factory.h
+					  streaming_type_impl.h
 )
 
 set(SRC_PrivateHeaders subscription_event_args_impl.h

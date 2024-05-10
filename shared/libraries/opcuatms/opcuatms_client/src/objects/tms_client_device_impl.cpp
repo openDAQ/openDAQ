@@ -239,6 +239,16 @@ uint64_t TmsClientDeviceImpl::onGetTicksSinceOrigin()
     return ticksSinceOrigin;
 }
 
+DictPtr<IString, IDeviceType> TmsClientDeviceImpl::onGetAvailableDeviceTypes()
+{
+    return Dict<IString, IDeviceType>();
+}
+
+PropertyObjectPtr TmsClientDeviceImpl::onCreateDefaultAddDeviceConfig()
+{
+    return PropertyObject();
+}
+
 void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
 {
 

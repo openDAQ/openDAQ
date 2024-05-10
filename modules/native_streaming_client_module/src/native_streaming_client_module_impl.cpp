@@ -4,6 +4,7 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_type_factory.h>
 
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
@@ -131,6 +132,16 @@ DictPtr<IString, IDeviceType> NativeStreamingClientModule::onGetAvailableDeviceT
 
     auto deviceType = createDeviceType();
     result.set(deviceType.getId(), deviceType);
+
+    return result;
+}
+
+DictPtr<IString, IStreamingType> NativeStreamingClientModule::onGetAvailableStreamingTypes()
+{
+    auto result = Dict<IString, IStreamingType>();
+
+    auto streamingType = createStreamingType();
+    result.set(streamingType.getId(), streamingType);
 
     return result;
 }
@@ -354,9 +365,9 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
-               validateConnectionString(connectionString) &&
-               (config.assigned() ? validateConnectionConfig(config) : true);
+        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) && validateConnectionString(connectionString);
+       
+        /*(config.assigned() ? validateConnectionConfig(config) : true);*/
     }
     return false;
 }
@@ -429,7 +440,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     StringPtr path = getPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig;
-    if (config.assigned())
+    if (config.assigned() && config.hasProperty("TransportLayerConfig"))
         transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
     else
         transportLayerConfig = createTransportLayerDefaultConfig();
@@ -500,6 +511,14 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
                       "Device",
                       "Network device connected over Native configuration protocol",
                       NativeStreamingClientModule::createConnectionDefaultConfig());
+}
+
+StreamingTypePtr NativeStreamingClientModule::createStreamingType()
+{
+    return StreamingType(NativeStreamingDeviceTypeId,
+                  "NativeStreaming",
+                  "openDAQ native streaming protocol client",
+                  NativeStreamingClientModule::createConnectionDefaultConfig());
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)

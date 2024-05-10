@@ -28,6 +28,7 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
@@ -41,6 +42,7 @@ private:
     static StringPtr createUrlConnectionString(const StringPtr& host,
                                                const IntegerPtr& port,
                                                const StringPtr& path);
+    static StreamingTypePtr createWebsocketStreamingType();
 
     std::mutex sync;
     size_t deviceIndex;

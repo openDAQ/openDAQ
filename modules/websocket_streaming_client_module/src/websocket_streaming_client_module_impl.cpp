@@ -4,6 +4,7 @@
 #include <chrono>
 #include <websocket_streaming/websocket_client_device_factory.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
+#include <opendaq/streaming_type_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <regex>
 
@@ -73,9 +74,20 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
     return result;
 }
 
+DictPtr<IString, IStreamingType> WebsocketStreamingClientModule::onGetAvailableStreamingTypes()
+{
+    auto result = Dict<IString, IStreamingType>();
+
+    auto websocketStreamingType = createWebsocketStreamingType();
+
+    result.set(websocketStreamingType.getId(), websocketStreamingType);
+
+    return result;
+}
+
 DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
-                                                const ComponentPtr& parent,
-                                                const PropertyObjectPtr& config)
+                                                         const ComponentPtr& parent,
+                                                         const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
@@ -160,8 +172,15 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
 DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
 {
     return DeviceType(WebsocketDeviceTypeId,
-                      "Websocket enabled device",
+                      "Streaming LT enabled pseudo-device",
                       "Pseudo device, provides only signals of the remote device as flat list");
+}
+
+StreamingTypePtr WebsocketStreamingClientModule::createWebsocketStreamingType()
+{
+    return StreamingType(WebsocketDeviceTypeId,
+                      "Streaming LT",
+                      "openDAQ native streaming protocol client");
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

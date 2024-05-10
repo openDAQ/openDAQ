@@ -522,6 +522,11 @@ ErrCode InstanceImpl::addStreaming(IStreaming** streaming, IString* connectionSt
     return rootDevice->addStreaming(streaming, connectionString, config);
 }
 
+ErrCode InstanceImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
+{
+    return rootDevice->createDefaultAddDeviceConfig(defaultConfig);
+}
+
 ErrCode InstanceImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
     return rootDevice->getAvailableFunctionBlockTypes(functionBlockTypes);

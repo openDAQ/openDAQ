@@ -32,6 +32,7 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
@@ -44,6 +45,7 @@ private:
     static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
+    StreamingTypePtr createStreamingType();
     static StringPtr getHost(const StringPtr& url);
     static StringPtr getPort(const StringPtr& url);
     static StringPtr getPath(const StringPtr& url);

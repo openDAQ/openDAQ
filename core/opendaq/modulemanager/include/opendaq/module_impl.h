@@ -28,6 +28,7 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
 
 #include <opendaq/custom_log.h>
 
@@ -63,7 +64,7 @@ public:
 
     /*!
      * @brief Gets the module id.
-     * @param[out] id The module id.
+     * @param[out] moduleId The module id.
      */
     ErrCode INTERFACE_FUNC getId(IString** moduleId) override
     {
@@ -273,6 +274,18 @@ public:
         return errCode;
     }
 
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+        DictPtr<IString, IStreamingType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+
+        *streamingTypes = types.detach();
+        return errCode;
+    }
+
+
     // Helpers
 
     /*!
@@ -348,6 +361,11 @@ public:
     virtual DictPtr<IString, IServerType> onGetAvailableServerTypes()
     {
         return Dict<IString, IServerType>();
+    }
+
+    virtual DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes()
+    {
+        return Dict<IString, IStreamingType>();
     }
 
     virtual ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice)

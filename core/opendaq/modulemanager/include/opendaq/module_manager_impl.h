@@ -50,6 +50,8 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
+    ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
@@ -61,10 +63,14 @@ private:
     void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
 
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const ListPtr<IString>& allowedStreamingProtocols);
+                                  const ListPtr<IString>& allowedStreamingProtocols,
+                                  const PropertyObjectPtr& config);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
     StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
+
+    static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
+    PropertyObjectPtr createGeneralSettingsConfig();
 
     bool modulesLoaded;
     std::vector<std::string> paths;

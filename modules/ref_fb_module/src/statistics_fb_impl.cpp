@@ -64,6 +64,7 @@ void StatisticsFbImpl::initProperties()
         IntPropertyBuilder("Overlap", 0)
             .setMinValue(0)
             .setMaxValue(99)
+            .setUnit(Unit("%"))
             .build();
 
     objPtr.addProperty(overlapProperty);

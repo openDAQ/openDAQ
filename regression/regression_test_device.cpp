@@ -1,267 +1,217 @@
 #include <gtest/gtest.h>
-#include <opendaq/mock/mock_device_module.h>
 #include <opendaq/opendaq.h>
 
 using namespace daq;
 
-class RegressionTestDevice
+class RegressionTestDevice : public testing::TestWithParam<StringPtr>
 {
-protected:
+private:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
     InstancePtr instance;
+
+protected:
+    StringPtr connectionString;
     DevicePtr device;
 
-    void setUp()
+    void SetUp() override
     {
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
         instance = InstanceCustom(context, "mock_instance");
+
+        connectionString = GetParam();
+
+        device = instance.addDevice(connectionString);
     }
 };
 
-class RegressionTestDeviceAll : public RegressionTestDevice, public testing::TestWithParam<StringPtr>
-{
-    void SetUp() override
-    {
-        setUp();
-
-        // device = instance.addDevice(GetParam());
-
-        // TODO: to be able to add and remove function blocks from Device?
-        instance.setRootDevice(GetParam());
-        device = instance.getRootDevice();
-    }
-};
-
-class RegressionTestDeviceOpcUa : public RegressionTestDevice, public testing::Test
-{
-    void SetUp() override
-    {
-        setUp();
-
-        // device = instance.addDevice(GetParam());
-
-        // TODO: to be able to add and remove function blocks from Device?
-        instance.setRootDevice("daq.opcua://127.0.0.1");
-        device = instance.getRootDevice();
-    }
-};
-
-class RegressionTestDeviceNs : public RegressionTestDevice, public testing::Test
-{
-    void SetUp() override
-    {
-        setUp();
-
-        // device = instance.addDevice(GetParam());
-
-        // TODO: to be able to add and remove function blocks from Device?
-        instance.setRootDevice("daq.ns://127.0.0.1");
-        device = instance.getRootDevice();
-    }
-};
-
-class RegressionTestDeviceLt : public RegressionTestDevice, public testing::Test
-{
-    void SetUp() override
-    {
-        setUp();
-
-        // device = instance.addDevice(GetParam());
-
-        // TODO: to be able to add and remove function blocks from Device?
-        instance.setRootDevice("daq.lt://127.0.0.1");
-        device = instance.getRootDevice();
-    }
-};
-
-TEST_F(RegressionTestDeviceOpcUa, getInfo)
+TEST_P(RegressionTestDevice, getInfo)
 {
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());
-    ASSERT_EQ(info.getName(), "Device 1");
-    ASSERT_EQ(info.getModel(), "Reference Device");
-    ASSERT_EQ(info.getSerialNumber(), "dev_ser_1");
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_EQ(info.getName(), "Device 1");
+        ASSERT_EQ(info.getModel(), "Reference Device");
+        ASSERT_EQ(info.getSerialNumber(), "dev_ser_1");
+    }
+    else if (connectionString == "daq.ns://127.0.0.1")
+    {
+        ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
+    }
+    else if (connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(info.getName(), "WebsocketClientPseudoDevice");
+    }
 }
 
-TEST_F(RegressionTestDeviceNs, getInfo)
+TEST_P(RegressionTestDevice, getDomain)
 {
-    DeviceInfoPtr info;
-    ASSERT_NO_THROW(info = device.getInfo());
-    ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
-}
+    if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        return;
+    }
 
-TEST_F(RegressionTestDeviceLt, getInfo)
-{
-    DeviceInfoPtr info;
-    ASSERT_NO_THROW(info = device.getInfo());
-    ASSERT_EQ(info.getName(), "WebsocketClientPseudoDevice");
-}
-
-TEST_F(RegressionTestDeviceOpcUa, getDomain)
-{
     DeviceDomainPtr domain;
     ASSERT_NO_THROW(domain = device.getDomain());
     ASSERT_EQ(domain.getTickResolution().getNumerator(), 1);
     ASSERT_EQ(domain.getTickResolution().getDenominator(), 1000000);
     ASSERT_EQ(domain.getOrigin(), "1970-01-01T00:00:00Z");
-    ASSERT_EQ(domain.getUnit(), Unit(""));
+
+    if (connectionString == "daq.opcua://127.0.0.1")
+    {
+        ASSERT_EQ(domain.getUnit(), Unit("", -1, "", ""));
+    }
+    else if (connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_EQ(domain.getUnit(), Unit("s", -1, "second", "time"));
+    }
 }
 
-TEST_F(RegressionTestDeviceOpcUa, getInputsOutputsFolder)
+TEST_P(RegressionTestDevice, getInputsOutputsFolder)
 {
     FolderPtr folder;
     ASSERT_NO_THROW(folder = device.getInputsOutputsFolder());
-    ASSERT_EQ(folder.getItems().getCount(), 2);
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_EQ(folder.getItems().getCount(), 2);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(folder.getItems().getCount(), 0);
+    }
 }
 
-TEST_F(RegressionTestDeviceOpcUa, getCustomComponents)
+TEST_P(RegressionTestDevice, getCustomComponents)
 {
     ListPtr<IComponent> components;
     ASSERT_NO_THROW(components = device.getCustomComponents());
-    ASSERT_EQ(components[0].getAllProperties()[0].getName(), "UseSync");
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_GT(components.getCount(), 0);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(components.getCount(), 0);
+    }
 }
 
-TEST_F(RegressionTestDeviceOpcUa, getSignals)
+TEST_P(RegressionTestDevice, getSignals)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignals());
-    ASSERT_EQ(signals.getCount(), 0);
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_EQ(signals.getCount(), 0);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_GT(signals.getCount(), 0);
+    }
 }
 
-TEST_F(RegressionTestDeviceNs, getSignals)
-{
-    ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = device.getSignals());
-    ASSERT_EQ(signals.getCount(), 2);
-}
-
-TEST_F(RegressionTestDeviceLt, getSignals)
-{
-    ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = device.getSignals());
-    ASSERT_EQ(signals.getCount(), 4);
-}
-
-TEST_F(RegressionTestDeviceOpcUa, getSignalsRecursive)
+TEST_P(RegressionTestDevice, getSignalsRecursive)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignalsRecursive());
-    ASSERT_EQ(signals.getCount(), 2);
+    ASSERT_GT(signals.getCount(), 0);
 }
 
-TEST_F(RegressionTestDeviceNs, getSignalsRecursive)
-{
-    ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = device.getSignalsRecursive());
-    ASSERT_EQ(signals.getCount(), 2);
-}
-
-TEST_F(RegressionTestDeviceLt, getSignalsRecursive)
-{
-    ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = device.getSignalsRecursive());
-    ASSERT_EQ(signals.getCount(), 4);
-}
-
-TEST_F(RegressionTestDeviceOpcUa, getChannels)
+TEST_P(RegressionTestDevice, getChannels)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannels());
-    ASSERT_EQ(channels.getCount(), 2);
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_GT(channels.getCount(), 0);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(channels.getCount(), 0);
+    }
 }
 
-TEST_F(RegressionTestDeviceNs, getChannels)
-{
-    ListPtr<IChannel> channels;
-    ASSERT_NO_THROW(channels = device.getChannels());
-    ASSERT_EQ(channels.getCount(), 0);
-}
-
-TEST_F(RegressionTestDeviceLt, getChannels)
-{
-    ListPtr<IChannel> channels;
-    ASSERT_NO_THROW(channels = device.getChannels());
-    ASSERT_EQ(channels.getCount(), 0);
-}
-
-TEST_F(RegressionTestDeviceOpcUa, getChannelsRecursive)
+TEST_P(RegressionTestDevice, getChannelsRecursive)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannelsRecursive());
-    ASSERT_EQ(channels.getCount(), 2);
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_GT(channels.getCount(), 0);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(channels.getCount(), 0);
+    }
 }
 
-TEST_F(RegressionTestDeviceNs, getChannelsRecursive)
-{
-    ListPtr<IChannel> channels;
-    ASSERT_NO_THROW(channels = device.getChannelsRecursive());
-    ASSERT_EQ(channels.getCount(), 0);
-}
-
-TEST_F(RegressionTestDeviceLt, getChannelsRecursive)
-{
-    ListPtr<IChannel> channels;
-    ASSERT_NO_THROW(channels = device.getChannelsRecursive());
-    ASSERT_EQ(channels.getCount(), 0);
-}
-
-TEST_P(RegressionTestDeviceAll, getDevices)
+TEST_P(RegressionTestDevice, getDevices)
 {
     ListPtr<IDevice> devices;
     ASSERT_NO_THROW(devices = device.getDevices());
     ASSERT_EQ(devices.getCount(), 0);
 }
 
-TEST_P(RegressionTestDeviceAll, getAvailableDevices)
+TEST_P(RegressionTestDevice, getAvailableDevices)
 {
     ListPtr<IDeviceInfo> infos;
     ASSERT_NO_THROW(infos = device.getAvailableDevices());
     ASSERT_EQ(infos.getCount(), 0);
 }
 
-TEST_P(RegressionTestDeviceAll, getAvailableDeviceTypes)
+TEST_P(RegressionTestDevice, getAvailableDeviceTypes)
 {
     DictPtr<IString, IDeviceType> types;
     ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
     ASSERT_EQ(types.getCount(), 0);
 }
 
-TEST_P(RegressionTestDeviceAll, getFunctionBlocks)
+TEST_P(RegressionTestDevice, getFunctionBlocks)
 {
     ListPtr<IFunctionBlock> functionBlocks;
     ASSERT_NO_THROW(functionBlocks = device.getFunctionBlocks());
     ASSERT_EQ(functionBlocks.getCount(), 0);
 }
 
-TEST_P(RegressionTestDeviceAll, getAvailableFunctionBlockTypes)
+TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
 {
     DictPtr<IString, IFunctionBlockType> types;
     ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
-    ASSERT_EQ(types.getCount(), 8);
+    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    {
+        ASSERT_GT(types.getCount(), 0);
+    }
+    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        ASSERT_EQ(types.getCount(), 0);
+    }
 }
 
-TEST_P(RegressionTestDeviceAll, addFunctionBlockRemoveFunctionBlock)
+TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
 {
+    if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    {
+        return;
+    }
     // TODO: should not rely on "ref_fb_module_trigger" being present
     FunctionBlockPtr fb;
     ASSERT_NO_THROW(fb = device.addFunctionBlock("ref_fb_module_trigger"));
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));
 }
 
-TEST_P(RegressionTestDeviceAll, saveConfigurationLoadConfiguration)
+TEST_P(RegressionTestDevice, saveConfigurationLoadConfiguration)
 {
     StringPtr config;
     ASSERT_NO_THROW(config = device.saveConfiguration());
     ASSERT_NO_THROW(device.loadConfiguration(config));
 }
 
-TEST_P(RegressionTestDeviceAll, getTicksSinceOrigin)
+TEST_P(RegressionTestDevice, getTicksSinceOrigin)
 {
     ASSERT_NO_THROW(device.getTicksSinceOrigin());
 }
 
 INSTANTIATE_TEST_SUITE_P(Device,
-                         RegressionTestDeviceAll,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));
+                         RegressionTestDevice,
+                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

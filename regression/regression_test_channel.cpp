@@ -45,4 +45,4 @@ TEST_P(RegressionTestChannel, setPropertyValueGetPropertyValue)
 // TODO: ??? + no need for TEST_P if only OPC UA
 INSTANTIATE_TEST_SUITE_P(Channel,
                          RegressionTestChannel,
-                         testing::Values("daq.opcua://127.0.0.1" /*, "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"*/));
+                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1" /*, "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"*/));

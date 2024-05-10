@@ -56,4 +56,4 @@ TEST_P(RegressionTestInputPort, getRequiresSignal)
 // TODO: ???
 INSTANTIATE_TEST_SUITE_P(InputPort,
                          RegressionTestInputPort,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));
+                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

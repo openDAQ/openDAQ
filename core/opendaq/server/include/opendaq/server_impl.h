@@ -44,7 +44,7 @@ public:
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
-        , serverId (createServerId(this->serverConfig))
+        , serverId(std::move(createServerId(this->serverConfig)))
     {
     }
 

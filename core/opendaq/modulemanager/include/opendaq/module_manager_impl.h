@@ -31,7 +31,6 @@
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 
-
 BEGIN_NAMESPACE_OPENDAQ
 
 struct ModuleLibrary;
@@ -53,7 +52,6 @@ public:
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) override;
-
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);

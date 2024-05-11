@@ -51,10 +51,7 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
         .build();
     defaultConfig.addProperty(serviceCapProp);
 
-    const auto servicePathProp = StringPropertyBuilder("ServicePath", "/")
-        .setReadOnly(true)
-        .build();
-    defaultConfig.addProperty(servicePathProp);
+    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     return defaultConfig;
 }

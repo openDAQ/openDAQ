@@ -1,3 +1,13 @@
+11.05.2024
+Description:
+  mDNS discovery service
+
++ [function] IServer::getServerId(IString** serverId) = 0;
++ [function] IServer::getServerConfig(IPropertyObject** config) = 0;
+
++ [function] IModuleManagerUtils::registerDiscoveryDevice(IString* serverId, IPropertyObject* config);
++ [function] IModuleManagerUtils::removeDiscoveryDevice(IString* serverId);
+
 26.04.2024
 Description:
     Produce gap packets on request

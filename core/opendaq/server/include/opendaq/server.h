@@ -49,8 +49,16 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     */
     virtual ErrCode INTERFACE_FUNC stop() = 0;
 
+    /*!
+    * @brief Gets the server id which will be the key for the server in the module manager.
+    * @param[out] serverId The unique server id.
+    */
     virtual ErrCode INTERFACE_FUNC getServerId(IString** serverId) = 0;
 
+    /*!
+    * @brief Gets the server configuration properties
+    * @param[out] config The server configuration properties.
+    */
     virtual ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/

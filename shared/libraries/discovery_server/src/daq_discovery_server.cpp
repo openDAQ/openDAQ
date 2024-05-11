@@ -25,6 +25,7 @@ void DiscoveryServer::registerDevice(const StringPtr& serverId, const PropertyOb
     auto serviceCap = config.getPropertyValue("ServiceCap");
 
     std::unordered_map<std::string, std::string> properties;
+    properties["caps"] = serviceCap.asPtr<IString>().toStdString();
     if (config.hasProperty("Name"))
         properties["name"] = config.getPropertyValue("Name").asPtr<IString>().toStdString();
     if (config.hasProperty("Manufacturer"))
@@ -33,7 +34,6 @@ void DiscoveryServer::registerDevice(const StringPtr& serverId, const PropertyOb
         properties["model"] = config.getPropertyValue("Model").asPtr<IString>().toStdString();
     if (config.hasProperty("SerialNumber"))
         properties["serialNumber"] = config.getPropertyValue("SerialNumber").asPtr<IString>().toStdString();
-    properties["caps"] = serviceCap.asPtr<IString>().toStdString();
     if (config.hasProperty("ServicePath"))
         properties["path"] = config.getPropertyValue("ServicePath").asPtr<IString>().toStdString();
 

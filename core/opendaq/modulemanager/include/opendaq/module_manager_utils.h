@@ -89,7 +89,21 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) = 0;
 
+    /*!
+     * @brief Registers a device in the discovery service.
+     * @param serverId The unique identifier of the server.
+     * @param config The server configuration.
+     *
+     * Registers a device with the discovery service. The device is then discoverable by other devices on the network.
+     */
     virtual ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) = 0;
+
+    /*!
+     * @brief Removes a device from the discovery service.
+     * @param serverId The unique identifier of the server.
+     *
+     * Removes a device from the discovery service. The device is no longer discoverable by other devices on the network.
+     */
     virtual ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) = 0;
 };
 /*!@}*/

@@ -130,7 +130,7 @@ int main()
 
     // Find and connect to a device using device info connection string
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
         if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
@@ -353,7 +353,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a Device using the device info connection string
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
         if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
@@ -415,7 +415,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cerr << "Wrong active Streaming source of AI signal" << std::endl;
         return 1;
     }
-    // Output samples using Reader with websocket Streaming
+    // Output samples using Reader with Streaming LT
     readSamples(signal);
 
     // Change the active Streaming source of Signal

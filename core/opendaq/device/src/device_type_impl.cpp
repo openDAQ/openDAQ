@@ -11,8 +11,8 @@ namespace detail
 DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& name,
                                const StringPtr& description,
-                               const FunctionPtr& createDefaultConfigCallback)
-    : Super(detail::deviceTypeStructType, id, name, description, createDefaultConfigCallback)
+                               const PropertyObjectPtr& defaultConfig)
+    : Super(detail::deviceTypeStructType, id, name, description, defaultConfig)
 {
 }
 
@@ -21,7 +21,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
-    IFunction*, createDefaultConfigCallback
+    IPropertyObject*, defaultConfig
 )
 
 END_NAMESPACE_OPENDAQ

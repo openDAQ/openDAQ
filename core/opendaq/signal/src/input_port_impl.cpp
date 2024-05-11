@@ -8,6 +8,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     IInputPortConfig,
     IContext*, context,
     IComponent*, parent,
-    IString*, localId)
+    IString*, localId,
+    Bool, gapChecking)
 
 END_NAMESPACE_OPENDAQ

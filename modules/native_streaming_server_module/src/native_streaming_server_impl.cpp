@@ -300,19 +300,11 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
 
 ServerTypePtr NativeStreamingServerImpl::createType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingServerImpl::createDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return ServerType(
         "openDAQ Native Streaming",
         "openDAQ Native Streaming server",
         "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
-        configurationCallback);
+        NativeStreamingServerImpl::createDefaultConfig());
 }
 
 void NativeStreamingServerImpl::onStopServer()

@@ -40,13 +40,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     // do not start with "daq.opcua://" or "daq.lt://" or "daq.ns://"
     const auto deviceInfo = instance.getAvailableDevices();
     auto devices = List<IDevice>();
-    for (auto info : deviceInfo)
+    for (const auto& info : deviceInfo)
     {
-        for (const auto & capability : info.getServerCapabilities())
-        {
-            auto device = instance.addDevice(capability.getConnectionString());
-            devices.pushBack(device);
-        }
+        auto device = instance.addDevice(info.getConnectionString());
+        devices.pushBack(device);
     }
 
     // Output the names and connection strings of all connected-to devices

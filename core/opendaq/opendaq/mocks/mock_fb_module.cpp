@@ -68,16 +68,11 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableFunctionBlockTypes(IDict** func
 
 daq::FunctionBlockTypePtr MockFunctionBlockModuleImpl::CreateDeviceFunctionType()
 {
-    auto createDefaultConfig = [](IBaseObject* /*params*/, IBaseObject** result)
-    {
-        auto obj = PropertyObject();
-        obj.addProperty(IntProperty("TestConfigInt", 0));
-        obj.addProperty(StringProperty("TestConfigString", ""));
-        *result = obj.detach();
-        return OPENDAQ_SUCCESS;
-    };
+    auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(IntProperty("TestConfigInt", 0));
+    defaultConfig.addProperty(StringProperty("TestConfigString", ""));
 
-    return FunctionBlockType("mock_fb_uid", "mock_fb", "", createDefaultConfig);
+    return FunctionBlockType("mock_fb_uid", "mock_fb", "", defaultConfig);
 }
 
 ErrCode MockFunctionBlockModuleImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IString* localId, IPropertyObject* config)

@@ -40,10 +40,12 @@ bool TestComparators::FunctionBlockTypeEquals(const FunctionBlockTypePtr& a, con
     const auto configA = a.createDefaultConfig();
     const auto configB = b.createDefaultConfig();
 
-    if (!PropertyObjectEquals(configA, configB))
+    if (!configA.assigned() && !configB.assigned())
+        return true;
+    else if (configA.assigned() && configB.assigned())
+        return PropertyObjectEquals(configA, configB);
+    else
         return false;
-
-    return true;
 }
 
 END_NAMESPACE_OPENDAQ

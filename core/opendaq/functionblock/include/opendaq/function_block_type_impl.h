@@ -30,7 +30,7 @@ public:
     explicit FunctionBlockTypeImpl(const StringPtr& id,
                                    const StringPtr& name,
                                    const StringPtr& description,
-                                   const FunctionPtr& createDefaultConfigCallback);
+                                   const PropertyObjectPtr& defaultConfig);
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -44,8 +44,8 @@ public:
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& name,
                                                     const StringPtr& description,
-                                                    const FunctionPtr& createDefaultConfigCallback)
-    : Super(FunctionBlockTypeStructType(), id, name, description, createDefaultConfigCallback)
+                                                    const PropertyObjectPtr& defaultConfig)
+    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig)
 {
 }
 
@@ -75,14 +75,10 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
                     serializerPtr.writeString(description);
                 }
 
-                if (createDefaultConfigCallback.assigned())
+                if (defaultConfig.assigned())
                 {
-                    const auto defaultConfig = createDefaultConfigCallback.call();
-                    if (defaultConfig.assigned())
-                    {
-                        serializerPtr.key("defaultConfig");
-                        defaultConfig.serialize(serializerPtr);
-                    }
+                    serializerPtr.key("defaultConfig");
+                    defaultConfig.serialize(serializerPtr);
                 }
             }
 
@@ -128,14 +124,11 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
             if (serializedObj.hasKey("description"))
                 description = serializedObj.readString("description");
 
-            FunctionPtr createDefaultConfig;
+            PropertyObjectPtr defaultConfig;
             if (serializedObj.hasKey("defaultConfig"))
-            {
-                PropertyObjectPtr defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
-                createDefaultConfig = Function([defaultConfig] { return defaultConfig; });
-            }
+                defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-            *obj = createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, createDefaultConfig).detach();
+            *obj = createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig).detach();
         });
 }
 

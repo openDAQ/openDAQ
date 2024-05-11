@@ -485,34 +485,18 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return DeviceType(NativeStreamingDeviceTypeId,
                       "PseudoDevice",
                       "Pseudo device, provides only signals of the remote device as flat list",
-                      configurationCallback);
+                      NativeStreamingClientModule::createDeviceDefaultConfig());
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return DeviceType(NativeConfigurationDeviceTypeId,
                       "Device",
                       "Network device connected over Native configuration protocol",
-                      configurationCallback);
+                      NativeStreamingClientModule::createDeviceDefaultConfig());
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)

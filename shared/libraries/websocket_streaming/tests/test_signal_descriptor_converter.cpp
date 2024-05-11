@@ -329,7 +329,6 @@ TEST(SignalConverter, subscribedTimeSignal)
     std::string memberName = "This is the time";
 
     uint64_t ticksPerSecond = 10000000;
-    uint64_t startTime = 100000;
     uint64_t linearDelta = 1000;
     int32_t unitId = bsp::Unit::UNIT_ID_SECONDS;
     std::string unitDisplayName = "s";
@@ -367,7 +366,6 @@ TEST(SignalConverter, subscribedTimeSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParams);
     ASSERT_EQ(result, 0);
-    subscribedSignal.setTime(startTime);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
     auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
@@ -389,7 +387,7 @@ TEST(SignalConverter, subscribedTimeSignal)
     uint64_t resultDelta = params.get("delta");
     uint64_t resultStart = params.get("start");
     ASSERT_EQ(resultDelta, linearDelta);
-    ASSERT_EQ(resultStart, startTime);
+    ASSERT_EQ(resultStart, 0);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

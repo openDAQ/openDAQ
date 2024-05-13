@@ -30,6 +30,7 @@ TEST_P(RegressionTestDevice, getInfo)
 {
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());
+    ASSERT_NE(info, nullptr);
     if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
     {
         ASSERT_EQ(info.getName(), "Device 1");

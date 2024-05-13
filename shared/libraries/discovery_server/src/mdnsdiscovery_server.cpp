@@ -98,6 +98,7 @@ mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredDevice& d
     recordPtr.ttl = 0;
     return recordPtr;
 }
+
 mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& device) const
 {
 
@@ -112,6 +113,7 @@ mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& d
     recordSrv.ttl = 0;
     return recordSrv;
 }
+
 mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredDevice& device) const
 {
     mdns_record_t recordA;
@@ -122,6 +124,7 @@ mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredDevice& dev
     recordA.ttl = 0;
     return recordA;
 }
+
 mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& device) const
 {
     mdns_record_t recordAAA;
@@ -513,8 +516,8 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
     std::vector<char> nameBuffer(256);
     std::string name;
     {
-      mdns_string_t nameTmp = mdns_string_extract(data, size, &offset, nameBuffer.data(), nameBuffer.size());
-      name = std::string(MDNS_STRING_ARGS(nameTmp));
+        mdns_string_t nameTmp = mdns_string_extract(data, size, &offset, nameBuffer.data(), nameBuffer.size());
+        name = std::string(MDNS_STRING_ARGS(nameTmp));
     }
     
     std::vector<char>sendBuffer(1024);

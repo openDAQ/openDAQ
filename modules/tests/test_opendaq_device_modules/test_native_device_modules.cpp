@@ -106,8 +106,10 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     }
     ASSERT_TRUE(device.assigned());
 
+    device->releaseRef();
     client->releaseRef();
     server->releaseRef();
+    device.detach();
     client.detach();
     server.detach();
 }

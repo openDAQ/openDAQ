@@ -36,7 +36,7 @@ inline AuthenticationProviderPtr AuthenticationProvider()
 
 /*!
  * @brief Creates an empty authentication provider without any user.
- * @param allowAnonymous True if annonymous authentication is allowed.
+ * @param allowAnonymous True if anonymous authentication is allowed.
  */
 inline AuthenticationProviderPtr AuthenticationProvider(Bool allowAnonymous)
 {
@@ -46,7 +46,7 @@ inline AuthenticationProviderPtr AuthenticationProvider(Bool allowAnonymous)
 
 /*!
  * @brief Creates an authentication provider out of static list of users.
- * @param allowAnonymous True if annonymous authentication is allowed.
+ * @param allowAnonymous True if anonymous authentication is allowed.
  * @param users List of user objects.
  */
 inline AuthenticationProviderPtr StaticAuthenticationProvider(Bool allowAnonymous, const ListPtr<IUser>& users)

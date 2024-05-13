@@ -47,7 +47,8 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
     virtual ErrCode INTERFACE_FUNC authenticate(IString* username, IString* password, IUser** userOut) = 0;
 
     /*!
-     * @brief Returns true if anonymous authentication is allowed.
+     * @brief Returns true if anonymous authentication is allowed. When anonymous authentication is enabled, user can connect
+     * to the server without providing username or password.
      * @param allowedOut[out] True if anonymous authentication is allowed.
      */
     virtual ErrCode INTERFACE_FUNC isAnonymousAllowed(Bool* allowedOut) = 0;

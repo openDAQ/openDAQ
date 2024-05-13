@@ -45,6 +45,7 @@ namespace RTGen.CSharp.Generators
         private readonly Dictionary<string, string> _defaultArgumentValues    = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _genericTypeParameters    = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _castOperatorTypes        = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _manualFactories          = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _enumTypes                = new Dictionary<string, string>();
         private readonly List<string>               _keyWords                 = new List<string>();
         private readonly Dictionary<string, string> _renamedParameters        = new Dictionary<string, string>();
@@ -227,7 +228,9 @@ namespace RTGen.CSharp.Generators
                 _castOperatorTypes.Add("Integer", "long");
                 _castOperatorTypes.Add("String",  "string");
 
-                _enumTypes.Add("CoreType",        "CoreType");
+                _manualFactories.Add("Number", "CreateNumber");
+
+                _enumTypes.Add("CoreType", "CoreType");
 
                 //ignore certain factory argument types
                 _factoryEnumTypesToIgnore.Add("SampleType"); //replaced using `OpenDAQFactory.GetSampleType<TElementType>()`
@@ -273,7 +276,7 @@ namespace RTGen.CSharp.Generators
 
             //=== local functions =================================================================
 
-            string FixVariableMapping(string variable)
+            void FixVariableMapping(string variable)
             {
                 if (this.RtFileTypeMappings.TryGet(base.Variables[variable], out string mapping))
                 {
@@ -286,8 +289,6 @@ namespace RTGen.CSharp.Generators
                         base.Variables[variable] = mapping;
                     }
                 }
-
-                return mapping;
             }
 
             string GetUsings(string interfaceName)
@@ -389,11 +390,17 @@ namespace RTGen.CSharp.Generators
             {
                 if (factory == null)
                 {
+                    if (_manualFactories.TryGetValue(_currentClassType.NonInterfaceName, out string creatorName))
+                        return creatorName;
+
+                    //return $"Create{base.Variables["NonInterfaceType"]}";
                     return "#no factory found#";
                 }
-
-                IMethod factoryMethod = factory.ToOverload().Method;
-                return GetMethodVariable(factoryMethod, "Name");
+                else
+                {
+                    IMethod factoryMethod = factory.ToOverload().Method; //ToDo: check if has only one argument and if argument type fits
+                    return GetMethodVariable(factoryMethod, "Name");
+                }
             }
 
             string GetMappedTypeName(ITypeName rtClassType)
@@ -2218,7 +2225,7 @@ namespace RTGen.CSharp.Generators
             {
                 string typeName = type.Name;
 
-                if (_isBasedOnSampleReader && typeName.Equals(this.RtFile.CurrentClass.Type.Name))
+                if (_isBasedOnSampleReader && typeName.Equals(_currentClassType.Name))
                 {
                     typeName = _currentBaseClassName + "Base";
                 }
@@ -2261,7 +2268,7 @@ namespace RTGen.CSharp.Generators
 
         private string GetFirstGenericParameterFromClass(string defaultName = "BaseObject")
         {
-            //if (GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] classGenericParams))
+            //if (GetGenericParameters(_currentClassType, out string[] classGenericParams))
             //    return classGenericParams[0];
 
             return defaultName;
@@ -2359,7 +2366,7 @@ namespace RTGen.CSharp.Generators
         {
             genericParameter = null;
 
-            if (!GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] genericParams, out _))
+            if (!GetGenericParameters(_currentClassType, out string[] genericParams, out _))
             {
                 return false;
             }
@@ -2623,7 +2630,7 @@ namespace RTGen.CSharp.Generators
             {
                 returnValue = $"{returnArgName}; //ToDo: void";
             }
-            else if (GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] genericParams, out _)
+            else if (GetGenericParameters(_currentClassType, out string[] genericParams, out _)
                      && genericParams.Contains(nonInterfaceReturnTypePtr))
             {
                 //to return an instance of a generic parameter we use a BaseObject function instead of a constructor
@@ -2641,6 +2648,8 @@ namespace RTGen.CSharp.Generators
                 return string.Empty;
             }
 
+            //generate the cast operators -> $CSValueGetter$, $CSCastType$, $CSCreatorFactory$
+
             string templatePath = Utility.GetTemplate(Options.Language + ".method.casts.template");
             string castOperators = RenderFileTemplate(rtClass, templatePath, GetFileVariable);
 
@@ -2656,7 +2665,6 @@ namespace RTGen.CSharp.Generators
             code.AppendLine($"{base.Indentation}#region operators");
             code.AppendLine();
             code.AppendLine(castOperators);
-            code.AppendLine();
             code.AppendLine($"{base.Indentation}#endregion operators");
 
             code.TrimTrailingNewLines();

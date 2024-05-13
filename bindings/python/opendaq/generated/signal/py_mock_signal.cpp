@@ -27,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 MockSignal::MockSignal()
 {
     logger = daq::Logger();
-    context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr);
+    context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
     scheduler = context.getScheduler();
     signal = daq::Signal(context, nullptr, "MockValueSignal");
     domainSignal = daq::Signal(context, nullptr, "MockDomainSignal");

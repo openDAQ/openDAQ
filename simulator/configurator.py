@@ -9,12 +9,12 @@ def configure_opendaq_config(filename, manufacturer):
         data = json.load(json_file)
 
     # localId = manufacturer + _ + serial number
-    data["ReferenceDevice"]["LocalId"] = manufacturer + "_" + serial
+    data.setdefault("ReferenceDevice", {})["LocalId"] = manufacturer + "_" + serial
 
-    modules = data["Modules"]
-    modules["NativeStreamingServer"]["SerialNumber"] = serial
-    modules["OpcUaServer"]["SerialNumber"] = serial
-    modules["WebsocketStreamingServer"]["SerialNumber"] = serial
+    modules = data.setdefault("Modules", {})
+    modules.setdefault("NativeStreamingServer", {})["SerialNumber"] = serial
+    modules.setdefault("OpcUaServer", {})["SerialNumber"] = serial
+    modules.setdefault("WebsocketStreamingServer", {})["SerialNumber"] = serial
 
     with open(filename, "w") as json_file:
         json.dump(data, json_file, indent = 4)

@@ -21,19 +21,16 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 TmsClient::TmsClient(const ContextPtr& context,
                      const ComponentPtr& parent,
-                     const std::string& opcUaUrl,
-                     const FunctionPtr& createStreamingCallback)
-    : TmsClient(context, parent, OpcUaEndpoint(opcUaUrl), createStreamingCallback)
+                     const std::string& opcUaUrl)
+    : TmsClient(context, parent, OpcUaEndpoint(opcUaUrl))
 {
 }
 
 TmsClient::TmsClient(const ContextPtr& context,
                      const ComponentPtr& parent,
-                     const OpcUaEndpoint& endpoint,
-                     const FunctionPtr& createStreamingCallback)
+                     const OpcUaEndpoint& endpoint)
     : context(context)
     , endpoint(endpoint)
-    , createStreamingCallback(createStreamingCallback)
     , parent(parent)
     , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpcUaClient")
                                                      : throw ArgumentNullException("Logger must not be null"))

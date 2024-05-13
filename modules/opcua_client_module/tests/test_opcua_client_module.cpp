@@ -150,7 +150,7 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
     auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
-    ASSERT_EQ(config.getAllProperties().getCount(), 0u);
+    ASSERT_EQ(config.getAllProperties().getCount(), 2u);
 }
 
 TEST_F(OpcUaClientModuleTest, CreateFunctionBlockIdNull)

@@ -32,8 +32,7 @@ public:
 
     TmsClient(const ContextPtr& context,
               const ComponentPtr& parent,
-              const OpcUaEndpoint& endpoint,
-              const FunctionPtr& createStreamingCallback);
+              const OpcUaEndpoint& endpoint);
 
     daq::DevicePtr connect();
 

@@ -1,0 +1,3 @@
+project(regression_simulator)
+add_executable(regression_simulator regression_simulator.cpp)
+target_link_libraries(regression_simulator PRIVATE daq::opendaq)

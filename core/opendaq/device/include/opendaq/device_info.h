@@ -41,7 +41,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Property Object, allowing for custom String, Int, Bool, or Float-type properties to be added.
  *
  * The getter methods represent a standardized set of Device properties according to the
- * OPC UA: Devices standard. Any additional String, Int, Bool, or Float-type properties can added, using the
+ * OPC UA: Devices standard. Any additional String, Int, Bool, or Float-type properties can be added, using the
  * appropriate Property Object "add property" method. Any other types of properties are invalid.
  * Although Integer-type properties are valid additions, Selection properties cannot be added to
  * Device Info.

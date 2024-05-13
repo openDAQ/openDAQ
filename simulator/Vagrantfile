@@ -90,10 +90,10 @@ Vagrant.configure("2") do |config|
     SCRIPT
     config.vm.provision :shell, :inline => list_packages
 
-    # Install avahi daemon and fb module dependencies
+    # Install fb module dependencies
     config.vm.provision :shell, :inline => <<-SCRIPT
     sudo apt-get update
-    sudo apt-get install -y --no-install-recommends avahi-daemon net-tools libxcursor-dev libxrandr-dev
+    sudo apt-get install -y --no-install-recommends net-tools libxcursor-dev libxrandr-dev
     SCRIPT
 
     # Modify netplan to make VM export/import easier
@@ -104,14 +104,12 @@ Vagrant.configure("2") do |config|
     SCRIPT
 
     # Get files to /tmp/
-    config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
-    config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
     config.vm.provision "file", source: "simulator.service", destination: "/tmp/simulator.service"
     config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
 
     # Copy files to /home/opendaq/
-    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
+    config.vm.provision "shell", inline: "cp /tmp/{opendaq-config.json, simulator.service, configurator.py} /home/opendaq/"
 
     # Move systemd service file
     config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
@@ -121,7 +119,6 @@ Vagrant.configure("2") do |config|
 	
 	# Set permissions
     config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
-    config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /etc/avahi/services/"
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

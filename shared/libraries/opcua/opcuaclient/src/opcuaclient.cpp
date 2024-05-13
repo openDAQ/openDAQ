@@ -196,7 +196,7 @@ UA_Client* UaClientFactory::build()
     return client;
 }
 
-bool OpcUaClient::connect()
+void OpcUaClient::connect()
 {
     std::lock_guard guard(getLock());
 
@@ -211,7 +211,8 @@ bool OpcUaClient::connect()
         status =
             UA_Client_connectUsername(uaclient, endpoint.getUrl().c_str(), endpoint.getUsername().c_str(), endpoint.getPassword().c_str());
 
-    return OPCUA_STATUSCODE_SUCCEEDED(status);
+    if (!OPCUA_STATUSCODE_SUCCEEDED(status))
+        throw OpcUaException(status, "Failed to connect to OpcUa server");
 }
 
 void OpcUaClient::disconnect()

@@ -101,7 +101,7 @@ public:
     static constexpr size_t CONNECTION_TIMEOUT_SECONDS = 10;
 
     void initialize();
-    bool connect();
+    void connect();
     void disconnect();
     void clear();
     bool isConnected();

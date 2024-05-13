@@ -37,8 +37,8 @@ inline UA_Client* CreateClient()
 inline std::shared_ptr<OpcUaClient> CreateClientAndConnect()
 {
     auto client = std::make_shared<OpcUaClient>(SERVER_URL);
-    if (!client->connect())
-        throw std::runtime_error("Fail to connect");
+    client->connect();
+    assert(client->isConnected());
     return client;
 }
 

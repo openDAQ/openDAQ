@@ -44,9 +44,7 @@ daq::DevicePtr TmsClient::connect()
 {
     const auto startTime = std::chrono::steady_clock::now();
 
-    client = std::make_shared<OpcUaClient>(endpoint);
-    if (!client->connect())
-        throw NotFoundException();
+    createAndConectClient();
     client->runIterate();
 
     // A first connect is needed to read from the server the available namespaces out from the server
@@ -57,9 +55,8 @@ daq::DevicePtr TmsClient::connect()
 
     // After a disconnect, we need to register the data types, but only these which are available on server side.
     registerDaqTypes(endpoint, namespaces);
-    client = std::make_shared<OpcUaClient>(endpoint);
-    if (!client->connect())
-        throw NotFoundException();
+
+    createAndConectClient();
     client->runIterate();
 
     tmsClientContext = std::make_shared<TmsClientContext>(client, context);
@@ -105,6 +102,26 @@ void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string&
 
     nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
     browseNameOut = references.byBrowseName.begin().key();
+}
+
+void TmsClient::createAndConectClient()
+{
+    try
+    {
+        client = std::make_shared<OpcUaClient>(endpoint);
+        client->connect();
+    }
+    catch (const OpcUaException& e)
+    {
+        switch (e.getStatusCode())
+        {
+            case UA_STATUSCODE_BADUSERACCESSDENIED:
+            case UA_STATUSCODE_BADIDENTITYTOKENINVALID:
+                throw AuthenticationFailedException(e.what());
+            default:
+                throw NotFoundException(e.what());
+        }
+    }
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

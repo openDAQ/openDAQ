@@ -31,8 +31,8 @@ class NativeStreamingServerImpl : public daq::Server
 public:
     explicit NativeStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
-    static PropertyObjectPtr createDefaultConfig();
-    static ServerTypePtr createType();
+    static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
+    static ServerTypePtr createType(const ContextPtr& context);
 
 protected:
     void onStopServer() override;
@@ -58,6 +58,8 @@ protected:
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentUpdated(ComponentPtr& updatedComponent);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+
+    static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     std::thread readThread;
     bool readThreadActive;

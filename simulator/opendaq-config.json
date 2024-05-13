@@ -19,5 +19,27 @@
 		{
 			"LocalId": "falselocalid",
 			"Name": "Reference device simulator"
-		}
+		},
+    "Modules":
+        {
+            "NativeStreamingServer":
+                {
+                    "ServiceDiscoverable": false,
+                    "Port": 7420,
+                    "Name": "Reference device simulator",
+                    "Manufacturer": "OpenDAQ",
+                    "Model": "Reference device",
+                    "SerialNumber": "dev_ser_1",
+                    "ServicePath": "/"
+                },
+            "OpcUaServer":
+                {
+                    "ServiceDiscoverable": false,
+                    "Port": 4840,
+                    "Name": "Reference device simulator",
+                    "Manufacturer": "OpenDAQ",
+                    "Model": "Reference device",
+                    "SerialNumber": "dev_ser_1"
+                }
+        }
 }

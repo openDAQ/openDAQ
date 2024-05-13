@@ -262,7 +262,27 @@ void NativeStreamingServerImpl::prepareServerHandler()
                                                                    createConfigServerCb);
 }
 
-PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
+void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
+{
+    if (!context.assigned())
+        return;
+    if (!config.assigned())
+        return;
+
+    auto options = context.getModuleOptions("NativeStreamingServer");
+    for (const auto& [key, value] : options)
+    {
+        if (config.hasProperty(key))
+            config->setPropertyValue(key, value);
+        else
+        {
+            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
+            config.addProperty(property);
+        }
+    }
+}
+
+PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPtr& context)
 {
     constexpr Int minPortValue = 0;
     constexpr Int maxPortValue = 65535;
@@ -274,6 +294,7 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
     defaultConfig.addProperty(StringProperty("Model", ""));
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
     defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
+    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     const auto portProp = IntPropertyBuilder("Port", 7420)
         .setMinValue(minPortValue)
@@ -291,18 +312,17 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
         .build();
     defaultConfig.addProperty(serviceCapProp);
 
-    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
-
+    populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
 
-ServerTypePtr NativeStreamingServerImpl::createType()
+ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerType(
         "openDAQ Native Streaming",
         "openDAQ Native Streaming server",
         "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
-        NativeStreamingServerImpl::createDefaultConfig());
+        NativeStreamingServerImpl::createDefaultConfig(context));
 }
 
 void NativeStreamingServerImpl::onStopServer()

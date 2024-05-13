@@ -29,11 +29,12 @@ class OpcUaServerImpl : public daq::Server
 public:
     explicit OpcUaServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
     ~OpcUaServerImpl();
-    static PropertyObjectPtr createDefaultConfig();
-    static ServerTypePtr createType();
+    static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
+    static ServerTypePtr createType(const ContextPtr& context);
 
 protected:
     void onStopServer() override;
+    static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     daq::opcua::TmsServer server;
     PropertyObjectPtr config;

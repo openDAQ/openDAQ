@@ -21,7 +21,27 @@ WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice,
     websocketStreamingServer.start();
 }
 
-PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
+void WebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
+{
+    if (!context.assigned())
+        return;
+    if (!config.assigned())
+        return;
+
+    auto options = context.getModuleOptions("WebsocketStreamingServer");
+    for (const auto& [key, value] : options)
+    {
+        if (config.hasProperty(key))
+            config->setPropertyValue(key, value);
+        else
+        {
+            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
+            config.addProperty(property);
+        }
+    }
+}
+
+PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig(const ContextPtr& context)
 {
     constexpr Int minPortValue = 0;
     constexpr Int maxPortValue = 65535;
@@ -54,16 +74,17 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
     defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
+    populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
 
-ServerTypePtr WebsocketStreamingServerImpl::createType()
+ServerTypePtr WebsocketStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerType(
         "openDAQ LT Streaming",
         "openDAQ LT Streaming server",
         "Publishes device signals as a flat list and streams data over WebsocketTcp protocol",
-        WebsocketStreamingServerImpl::createDefaultConfig());
+        WebsocketStreamingServerImpl::createDefaultConfig(context));
 }
 
 void WebsocketStreamingServerImpl::onStopServer()

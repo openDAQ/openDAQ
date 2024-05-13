@@ -28,11 +28,12 @@ class WebsocketStreamingServerImpl : public daq::Server
 {
 public:
     explicit WebsocketStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
-    static PropertyObjectPtr createDefaultConfig();
-    static ServerTypePtr createType();
+    static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
+    static ServerTypePtr createType(const ContextPtr& context);
 
 protected:
     void onStopServer() override;
+    static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     daq::websocket_streaming::WebsocketStreamingServer websocketStreamingServer;
     PropertyObjectPtr config;

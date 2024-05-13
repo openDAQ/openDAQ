@@ -26,7 +26,27 @@ OpcUaServerImpl::~OpcUaServerImpl()
 {
 }
 
-PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
+void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
+{
+    if (!context.assigned())
+        return;
+    if (!config.assigned())
+        return;
+
+    auto options = context.getModuleOptions("OpcUaServer");
+    for (const auto& [key, value] : options)
+    {
+        if (config.hasProperty(key))
+            config->setPropertyValue(key, value);
+        else
+        {
+            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
+            config.addProperty(property);
+        }
+    }
+}
+
+PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context)
 {
     constexpr Int minPortValue = 0;
     constexpr Int maxPortValue = 65535;
@@ -52,15 +72,16 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
         .build();
     defaultConfig.addProperty(serviceCapProp);
 
+    populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
 
-ServerTypePtr OpcUaServerImpl::createType()
+ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 {
     return ServerType("openDAQ OpcUa",
                       "openDAQ OpcUa server",
                       "Publishes device structure over OpcUa protocol",
-                      OpcUaServerImpl::createDefaultConfig());
+                      OpcUaServerImpl::createDefaultConfig(context));
 }
 
 void OpcUaServerImpl::onStopServer()

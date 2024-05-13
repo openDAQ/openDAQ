@@ -273,6 +273,7 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
     defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
     defaultConfig.addProperty(StringProperty("Model", ""));
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
 
     const auto portProp = IntPropertyBuilder("Port", 7420)
         .setMinValue(minPortValue)

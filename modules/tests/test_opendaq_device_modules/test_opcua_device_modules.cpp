@@ -61,11 +61,26 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
-    auto server = CreateServerInstance();
+    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    const auto statistics = server.addFunctionBlock("ref_fb_module_statistics");
+    const auto refDevice = server.addDevice("daqref://device1");
+    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+    statistics.getInputPorts()[0].connect(Signal(server.getContext(), nullptr, "foo"));
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto serialNumber = "OpcuaDeviceModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
+    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    server.addServer("openDAQ OpcUa", serverConfig);
+
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        if (deviceInfo.getSerialNumber() != serialNumber)
+        {
+            continue;
+        }
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")

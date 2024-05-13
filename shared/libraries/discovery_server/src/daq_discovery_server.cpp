@@ -7,6 +7,10 @@ BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
 void DiscoveryServer::registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config)
 {
+    if (!config.hasProperty("ServiceDiscoverable") || config.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>() == false)
+    {
+        return;
+    }
     if (!config.hasProperty("ServiceName"))
     {
         return;

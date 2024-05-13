@@ -51,11 +51,21 @@ TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
 
 TEST_F(NativeStreamingModulesTest, DiscoveringServer)
 {
-    auto server = CreateServerInstance();
+    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    const auto refDevice = server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serialNumber = "NativeStreamingModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
+    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    server.addServer("openDAQ Native Streaming", serverConfig);
+
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        if (deviceInfo.getSerialNumber() != serialNumber)
+            continue;
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ Native Streaming")

@@ -25,6 +25,12 @@
 #include <testutils/testutils.h>
 #include "testutils/memcheck_listener.h"
 
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
+
 // MAC CI issue
 #if !defined(SKIP_TEST_MAC_CI)
 #   if defined(__clang__)
@@ -106,6 +112,26 @@ namespace test_helpers
         boost::system::error_code ec;
         auto it = resolver.resolve(query, ec);
         return ec.failed();
+    }
+
+    [[maybe_unused]]
+    static std::string getHostname() 
+    {
+        char hostname_buffer[256];
+        std::string hostname;
+
+#ifdef _WIN32
+        DWORD hostname_size = sizeof(hostname_buffer);
+        if (GetComputerNameA(hostname_buffer, &hostname_size)) {
+            hostname = hostname_buffer;
+        }
+#else
+        if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0) {
+            hostname = hostname_buffer;
+        }
+#endif
+
+        return hostname;
     }
 }
 

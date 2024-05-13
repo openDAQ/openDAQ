@@ -90,11 +90,19 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
-    auto server = CreateServerInstance();
+    auto server = CreateDefaultServerInstance();
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serialNumber = "NativeDeviceModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
+    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    server.addServer("openDAQ Native Streaming", serverConfig);
+
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        if (deviceInfo.getSerialNumber() != serialNumber)
+            continue;
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ Native Configuration")

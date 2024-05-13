@@ -103,6 +103,42 @@ public class NumberObject : BaseObject
             return value;
         }
     }
+
+    #region operators
+
+    //implicit cast operators
+
+    /// <summary>Performs an implicit conversion from <see cref="double"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
+    /// <param name="value">The managed <c>double</c> value.</param>
+    /// <returns>The SDK <c>NumberObject</c>.</returns>
+    public static implicit operator NumberObject(double value) => CoreTypesFactory.CreateNumberObject(value);
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="double"/>.</summary>
+    /// <param name="value">The SDK <c>NumberObject</c>.</param>
+    /// <returns>The managed <c>double</c> value.</returns>
+    public static implicit operator double(NumberObject value) => value.FloatValue;
+
+    /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
+    /// <param name="value">The managed <c>long</c> value.</param>
+    /// <returns>The SDK <c>NumberObject</c>.</returns>
+    public static implicit operator NumberObject(long value) => CoreTypesFactory.CreateNumberObject(value);
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="long"/>.</summary>
+    /// <param name="value">The SDK <c>NumberObject</c>.</param>
+    /// <returns>The managed <c>long</c> value.</returns>
+    public static implicit operator long(NumberObject value) => value.IntValue;
+
+    /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
+    /// <param name="other">The other <c>double</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(double other) => ((double)this).Equals(other);
+
+    /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
+    /// <param name="other">The other <c>long</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(long other) => ((long)this).Equals(other);
+
+    #endregion operators
 }
 
 

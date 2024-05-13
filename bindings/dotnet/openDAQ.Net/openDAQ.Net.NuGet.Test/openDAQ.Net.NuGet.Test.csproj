@@ -7,6 +7,7 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace(".CI", ""))</RootNamespace>
     <Platforms>x64</Platforms>
   </PropertyGroup>

@@ -115,4 +115,76 @@ public static partial class CoreTypesFactory
             default:                         return $"<{propertyType}>"; //StringObject ;)
         }
     }
+
+    #region NumberObject
+
+    /// <summary>
+    /// Creates the <see cref="NumberObject"/> from the given <c>double</c> value.
+    /// </summary>
+    /// <param name="obj">The <see cref="NumberObject"/> (<c>null</c> on error).</param>
+    /// <param name="value">The value.</param>
+    /// <returns><c>ErrorCode.OPENDAQ_SUCCESS</c> if the creation succeeded; otherwise the <see cref="ErrorCode"/>.</returns>
+    public static ErrorCode CreateNumberObject(out NumberObject obj, double value)
+    {
+        try
+        {
+            //cast the value
+            obj = ((FloatObject)value).Cast<NumberObject>();
+        }
+        catch (OpenDaqException ex)
+        {
+            //initialize output argument
+            obj = default;
+            return ex.ErrorCode;
+        }
+
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    /// <summary>
+    /// Creates the <see cref="NumberObject"/> from the given <c>double</c> value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The <see cref="NumberObject"/>.</returns>
+    public static NumberObject CreateNumberObject(double value)
+    {
+        //cast and return object
+        return ((FloatObject)value).Cast<NumberObject>();
+    }
+
+    /// <summary>
+    /// Creates the <see cref="NumberObject"/> from the given <c>long</c> value.
+    /// </summary>
+    /// <param name="obj">The <see cref="NumberObject"/> (<c>null</c> on error).</param>
+    /// <param name="value">The value.</param>
+    /// <returns><c>ErrorCode.OPENDAQ_SUCCESS</c> if the creation succeeded; otherwise the <see cref="ErrorCode"/>.</returns>
+    public static ErrorCode CreateNumberObject(out NumberObject obj, long value)
+    {
+        try
+        {
+            //cast the value
+            obj = ((IntegerObject)value).Cast<NumberObject>();
+        }
+        catch (OpenDaqException ex)
+        {
+            //initialize output argument
+            obj = default;
+            return ex.ErrorCode;
+        }
+
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    /// <summary>
+    /// Creates the <see cref="NumberObject"/> from the given <c>long</c> value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The <see cref="NumberObject"/>.</returns>
+    public static NumberObject CreateNumberObject(long value)
+    {
+        //cast and return object
+        return ((IntegerObject)value).Cast<NumberObject>();
+    }
+
+    #endregion NumberObject
 }

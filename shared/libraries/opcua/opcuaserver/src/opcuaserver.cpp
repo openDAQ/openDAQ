@@ -56,12 +56,12 @@ void OpcUaServer::setAuthenticationProvider(const AuthenticationProviderPtr& aut
 
 void OpcUaServer::setSecurityConfig(OpcUaServerSecurityConfig* config)
 {
-    throw std::exception("method setSecurityConfig() is deprecated");
+    throw std::runtime_error("method setSecurityConfig() is deprecated");
 }
 
 const OpcUaServerSecurityConfig* OpcUaServer::getSecurityConfig() const
 {
-    throw std::exception("method getSecurityConfig() is deprecated");
+    throw std::runtime_error("method getSecurityConfig() is deprecated");
 }
 
 void OpcUaServer::start()

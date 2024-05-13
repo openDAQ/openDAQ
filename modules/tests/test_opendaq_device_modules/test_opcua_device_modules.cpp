@@ -525,15 +525,15 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
     auto clientInstance = InstanceBuilder().build();
     auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), DaqException);
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "wrongPass");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), DaqException);
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
     config.setPropertyValue("Username", "andrej");
     config.setPropertyValue("Password", "andrej123");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), DaqException);
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
@@ -556,11 +556,11 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
     auto clientInstance = InstanceBuilder().build();
     auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), DaqException);
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), DaqException);
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 }
 
 // TODO: Add all examples of dynamic changes

@@ -27,8 +27,7 @@ TEST_F(OpcUaAuthenticationTest, NoAnonymous)
     server.start();
 
     auto client = OpcUaClient("opc.tcp://127.0.0.1");
-    client.connect();
-    ASSERT_FALSE(client.isConnected());
+    ASSERT_THROW(client.connect(), OpcUaException);
 }
 
 TEST_F(OpcUaAuthenticationTest, AuthenticationProvider)
@@ -46,14 +45,14 @@ TEST_F(OpcUaAuthenticationTest, AuthenticationProvider)
     OpcUaClientPtr client;
 
     client = std::make_shared<OpcUaClient>("opc.tcp://127.0.0.1");
-    ASSERT_TRUE(client->connect());
+    ASSERT_NO_THROW(client->connect());
 
     client = std::make_shared<OpcUaClient>(OpcUaEndpoint("opc.tcp://127.0.0.1", "jure", "wrongPass"));
-    ASSERT_FALSE(client->connect());
+    ASSERT_THROW(client->connect(), OpcUaException);
 
     client = std::make_shared<OpcUaClient>(OpcUaEndpoint("opc.tcp://127.0.0.1", "jure", "jure123"));
-    ASSERT_TRUE(client->connect());
+    ASSERT_NO_THROW(client->connect());
 
     client = std::make_shared<OpcUaClient>(OpcUaEndpoint("opc.tcp://127.0.0.1", "tomaz", "tomaz123"));
-    ASSERT_TRUE(client->connect());
+    ASSERT_NO_THROW(client->connect());
 }

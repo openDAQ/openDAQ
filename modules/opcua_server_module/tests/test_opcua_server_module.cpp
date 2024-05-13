@@ -152,7 +152,7 @@ TEST_F(OpcUaServerModuleTest, TestConnection)
     device.addServer("openDAQ OpcUa", config);
 
     OpcUaClient client("opc.tcp://localhost/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
 }
 
 TEST_F(OpcUaServerModuleTest, TestConnectionDifferentPort)
@@ -166,7 +166,7 @@ TEST_F(OpcUaServerModuleTest, TestConnectionDifferentPort)
     auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost:4841/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
 }
 
 TEST_F(OpcUaServerModuleTest, StopServer)
@@ -178,9 +178,9 @@ TEST_F(OpcUaServerModuleTest, StopServer)
     auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
     client.disconnect();
 
     serverPtr.stop();
-    ASSERT_FALSE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
 }

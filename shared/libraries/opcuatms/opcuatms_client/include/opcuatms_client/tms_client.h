@@ -40,6 +40,7 @@ public:
 
 protected:
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
+    void createAndConectClient();
 
     tms::TmsClientContextPtr tmsClientContext;
     ContextPtr context;

@@ -15,6 +15,8 @@
  */
 
 #pragma once
+#include <coreobjects/property_object.h>
+#include <coretypes/listobject.h>
 #include <opendaq/component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -32,7 +34,23 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief To be filled.
+ * @brief Interface representing a Synchronization Component in a Test & Measurement system.
+ * A SynchronizationComponent ensures synchronization among measurement devices in the system.
+ * It can act as a sync source and/or as a sync output, with each component having one sync input
+ * and 0 to n sync outputs.
+ *
+ * SynchronizationComponents are configured via interfaces, which can include PTP, IRIQ, GPS,
+ * and CLK sync interfaces, among others.
+ *
+ * @note Every SynchronizationComponent has at least one interface. Only one interface can be set
+ * as an input, while others can be used as sync outputs to synchronize other devices.
+ * The configuration of these interfaces and the reading of their status is defined in Part 4.
+ *
+ * @note Depending on the setup, some interfaces may be switched off, and some interfaces may
+ * act as sync sources or outputs.
+ *
+ * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
+ * syncs internally to an internal quartz.
  */
 DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 {
@@ -40,6 +58,31 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
      * @brief Test.
      */
     virtual ErrCode INTERFACE_FUNC test() = 0;
+
+    /*!
+     * @brief Retrieves the synchronization lock status.
+     * @param[out] syncLocked True if synchronization is locked; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* syncLocked) = 0;
+
+    /*!
+     * @brief Retrieves the selected sync source interface.
+     * @param[out] selectedSource The selected sync source interface.
+     */
+    virtual ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) = 0;
+
+    // [elementType(interfaces, IPropertyObject)]
+    /*!
+     * @brief Retrieves the list of interfaces associated with this synchronization component.
+     * @param[out] interface List of interfaces associated with this component.
+     */
+    virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) = 0;
+
+    /*!
+     * @brief Removes an interface from the synchronization component.
+     * @param interfaceName The name of the interface to be removed.
+     */
+    virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) = 0;
 };
 /*!@}*/
 

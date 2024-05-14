@@ -365,70 +365,14 @@ namespace RTGen.CSharp.Generators
                 case "CSOperators":
                     return GenerateOperators(rtClass);
 
-                case "CSCreatorFactory":
-                    return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
-
-                case "CSMappedType":
-                    return GetMappedTypeName(rtClass.Type);
-
-                case "CSValueGetter":
-                    return GetValueGetterName(rtClass);
-
                 case "CSLicenseComment":
                     return GetLicenseHeader();
-
-                case "CSEqualsOptions":
-                    return GetEqualsOptions(rtClass.Type);
             }
 
             return base.GetFileVariable(rtClass, variable);
 
 
             //=== local functions =================================================================
-
-            string GetCreatorName(IRTFactory factory)
-            {
-                if (factory == null)
-                {
-                    if (_manualFactories.TryGetValue(_currentClassType.NonInterfaceName, out string creatorName))
-                        return creatorName;
-
-                    //return $"Create{base.Variables["NonInterfaceType"]}";
-                    return "#no factory found#";
-                }
-                else
-                {
-                    IMethod factoryMethod = factory.ToOverload().Method; //ToDo: check if has only one argument and if argument type fits
-                    return GetMethodVariable(factoryMethod, "Name");
-                }
-            }
-
-            string GetMappedTypeName(ITypeName rtClassType)
-            {
-                if (!_castOperatorTypes.TryGetValue(rtClassType.NonInterfaceName, out string mappedType))
-                {
-                    //ToDo: do we throw exceptions to stop further generation?
-                    return $"#{rtClassType.NonInterfaceName}#"; //not found, return something syntactical illegal
-                }
-
-                return mappedType; //e.g. "double"
-            }
-
-            string GetValueGetterName(IRTInterface rtClassInterface)
-            {
-                string mappedName = GetMappedTypeName(rtClassInterface.Type);
-                var method = rtClassInterface.Methods.FirstOrDefault(m => m.GetLastByRefArgument()?.Type.Name.Equals(mappedName) ?? false);
-                if (method == null)
-                {
-                    //ToDo: do we throw exceptions to stop further generation?
-                    return $"#no getter with return type {mappedName} found#"; //not found, return something syntactical illegal
-                }
-
-                if (HasGetter(method))
-                    return GetPropertyName(method);
-
-                return GetMethodVariable(method, "Name") + "()";
-            }
 
             string GetLicenseHeader()
             {
@@ -462,20 +406,6 @@ namespace RTGen.CSharp.Generators
 
                 return filePath;
             }
-
-            string GetEqualsOptions(ITypeName rtClassType)
-            {
-                switch (rtClassType.Name)
-                {
-                    case "IStringObject":
-                        return ", StringComparison.Ordinal";
-
-                    //default:
-                    //    break;
-                }
-
-                return string.Empty;
-            }
         }
 
         /// <summary>Get the value of the specified variable for the currently generated method.</summary>
@@ -492,6 +422,9 @@ namespace RTGen.CSharp.Generators
 
             switch (variable)
             {
+                case "LibraryName":
+                    return _options.LibraryInfo.Name;
+
                 case "Name":
                     return GetDotNetMethodName();
 
@@ -595,6 +528,21 @@ namespace RTGen.CSharp.Generators
 
                 case "CSFixedArrays":
                     return GetFixedArrayCode();
+
+                case "CSCastToType":
+                    return GenerateOperatorCastToType(method);
+
+                case "CSCastType":
+                    return GetCastTypeName(lastOutParam.Type);
+
+                case "CSValueGetter":
+                    return GetValueGetterName(method);
+
+                case "CSEqualsOptions":
+                    return GetEqualsOptions(lastOutParam.Type);
+
+                case "CSCreatorFactory":
+                    return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
             }
 
             return base.GetMethodVariable(method, variable);
@@ -982,6 +930,64 @@ namespace RTGen.CSharp.Generators
 
                 return string.Join(Environment.NewLine, codeLines).TrimStart();
             }
+
+            string GetCastTypeName(ITypeName lastOutParamType)
+            {
+                bool   isValueType          = lastOutParamType.Flags.IsValueType;
+                string lastOutParamTypeName = isValueType ? lastOutParamType.Name : lastOutParamType.NonInterfaceName;
+
+                if (!isValueType && _castOperatorTypes.ContainsKey(lastOutParamTypeName))
+                {
+                    //cast source type -> get target type name
+                    lastOutParamTypeName = _castOperatorTypes[lastOutParamTypeName];
+                }
+                else if (!_castOperatorTypes.ContainsValue(lastOutParamTypeName))
+                {
+                    //not a cast target type name
+                    return $"#{lastOutParamType.NonInterfaceName}#"; //not found, return something syntactical illegal
+                }
+
+                return lastOutParamTypeName; //e.g. "double"
+            }
+
+            string GetValueGetterName(IMethod getter)
+            {
+                //it is either a .NET property or a getter function
+
+                if (IsGetter(getter))
+                    return GetPropertyName(getter);
+
+                return GetMethodVariable(getter, "Name") + "()";
+            }
+
+            string GetEqualsOptions(ITypeName lastOutParamType)
+            {
+                switch (lastOutParamType.Name)
+                {
+                    case "IStringObject":
+                    case "string":
+                        return ", StringComparison.Ordinal";
+                }
+
+                return string.Empty;
+            }
+
+            string GetCreatorName(IRTFactory factory)
+            {
+                if (factory == null)
+                {
+                    if (_manualFactories.TryGetValue(_currentClassType.NonInterfaceName, out string creatorName))
+                        return creatorName;
+
+                    //return $"Create{base.Variables["NonInterfaceType"]}";
+                    return "#no factory found#";
+                }
+                else
+                {
+                    IMethod factoryMethod = factory.ToOverload().Method; //ToDo: check if has only one argument and if argument type fits
+                    return GetMethodVariable(factoryMethod, "Name");
+                }
+            }
         }
 
         /// <summary>Get the value of the specified variable for the currently generated method argument.</summary>
@@ -1133,6 +1139,12 @@ namespace RTGen.CSharp.Generators
                 Directory.CreateDirectory(outputFilePath);
 
             base.GenerateFile(templatePath);
+        }
+
+
+        private bool TryGetVariable(string key, out string value)
+        {
+            return base.Variables.TryGetValue(key, out value);
         }
 
         private string HandleCSharpKeyword(string argumentName)
@@ -2642,16 +2654,27 @@ namespace RTGen.CSharp.Generators
 
         private string GenerateOperators(IRTInterface rtClass)
         {
-            if (!_castOperatorTypes.TryGetValue(rtClass.Type.NonInterfaceName, out string castType)
-                || IsInterface(castType))
+            string templatePath  = Utility.GetTemplate(Options.Language + ".method.casts.template");
+            string castOperators = string.Empty;
+
+            //get all "XxxValue" getters
+            var valueGetters = rtClass.Methods.Where(m => IsGetter(m) && m.Name.EndsWith("value", StringComparison.InvariantCultureIgnoreCase));
+
+            if ((valueGetters.Count() == 0) && _castOperatorTypes.TryGetValue(rtClass.Type.NonInterfaceName, out string castClassType))
             {
-                return string.Empty;
+                //no getter ending with "value" -> get the first getter that returns the cast type
+                valueGetters = rtClass.Methods.Where(m => IsGetter(m) && (m.GetLastByRefArgument()?.Type.Name == castClassType)).Take(1);
             }
 
             //generate the cast operators -> $CSValueGetter$, $CSCastType$, $CSCreatorFactory$
+            foreach (var getter in valueGetters)
+            {
+                string castType = GetMethodVariable(getter, "CSCastType");
+                if (string.IsNullOrWhiteSpace(castType) || castType.StartsWith("#"))
+                    continue;
 
-            string templatePath = Utility.GetTemplate(Options.Language + ".method.casts.template");
-            string castOperators = RenderFileTemplate(rtClass, templatePath, GetFileVariable);
+                castOperators += RenderFileTemplate(getter, templatePath, GetMethodVariable);
+            }
 
             if (string.IsNullOrEmpty(castOperators))
             {
@@ -2663,12 +2686,27 @@ namespace RTGen.CSharp.Generators
             code.AppendLine();
             code.AppendLine();
             code.AppendLine($"{base.Indentation}#region operators");
-            code.AppendLine();
             code.AppendLine(castOperators);
             code.AppendLine($"{base.Indentation}#endregion operators");
 
             code.TrimTrailingNewLines();
             return code.ToString();
+        }
+
+        private string GenerateOperatorCastToType(IMethod getter)
+        {
+            string templatePath = Utility.GetTemplate(Options.Language + ".method.casts.totype.template");
+
+            IRTFactory factory = this.RtFile.Factories.FirstOrDefault();
+            if (factory != null)
+            {
+                if (factory.ToOverload().Arguments.Count > 2)
+                    return string.Empty;
+            }
+
+            string castOperator = RenderFileTemplate(getter, templatePath, GetMethodVariable);
+
+            return castOperator;
         }
 
         private string GetClassInterfaces(IRTInterface rtClass)

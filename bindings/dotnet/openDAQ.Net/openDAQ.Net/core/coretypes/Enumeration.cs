@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:45:54.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -149,6 +149,34 @@ public class Enumeration : BaseObject
             return value;
         }
     }
+
+    #region operators
+
+    //implicit cast operators 'Daq.Core.Types.Enumeration' to/from 'string'
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="string"/>.</summary>
+    /// <param name="value">The SDK <c>Enumeration</c>.</param>
+    /// <returns>The managed <c>string</c> value.</returns>
+    public static implicit operator string(Enumeration value) => value.Value;
+
+    /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
+    /// <param name="other">The other <c>string</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>string</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(string other) => ((string)this).Equals(other, StringComparison.Ordinal);
+
+    //implicit cast operators 'Daq.Core.Types.Enumeration' to/from 'long'
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="long"/>.</summary>
+    /// <param name="value">The SDK <c>Enumeration</c>.</param>
+    /// <returns>The managed <c>long</c> value.</returns>
+    public static implicit operator long(Enumeration value) => value.IntValue;
+
+    /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
+    /// <param name="other">The other <c>long</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(long other) => ((long)this).Equals(other);
+
+    #endregion operators
 }
 
 

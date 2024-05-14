@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:00.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -106,7 +106,7 @@ public class NumberObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.NumberObject' to/from 'double'
 
     /// <summary>Performs an implicit conversion from <see cref="double"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
     /// <param name="value">The managed <c>double</c> value.</param>
@@ -118,6 +118,13 @@ public class NumberObject : BaseObject
     /// <returns>The managed <c>double</c> value.</returns>
     public static implicit operator double(NumberObject value) => value.FloatValue;
 
+    /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
+    /// <param name="other">The other <c>double</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(double other) => ((double)this).Equals(other);
+
+    //implicit cast operators 'Daq.Core.Types.NumberObject' to/from 'long'
+
     /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
     /// <param name="value">The managed <c>long</c> value.</param>
     /// <returns>The SDK <c>NumberObject</c>.</returns>
@@ -127,11 +134,6 @@ public class NumberObject : BaseObject
     /// <param name="value">The SDK <c>NumberObject</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
     public static implicit operator long(NumberObject value) => value.IntValue;
-
-    /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
-    /// <param name="other">The other <c>double</c> to compare to this instance.</param>
-    /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
-    public bool Equals(double other) => ((double)this).Equals(other);
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>

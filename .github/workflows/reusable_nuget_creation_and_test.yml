@@ -152,7 +152,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-        working-directory: ${{ env.nuget_work_path }}
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
 
     steps:
       - name: Checkout
@@ -165,17 +165,26 @@ jobs:
           path: ${{ env.nuget_work_path_win_x64 }}
 
       - name: Display files in working directory
+        working-directory: ${{ env.nuget_work_path }}
         run: |
           ls -R
 
-      - name: Test NuGet package
-        working-directory: ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
+      - name: Cleanup private NuGet package store
         run: |
-          if (Test-Path ./packages/opendaq.net) { del ./packages/opendaq.net -Recurse -Force }
-          & dotnet restore . --configfile .nuget/NuGet.Config --packages ./packages
-          & dotnet test . --no-restore --configuration Release_Build --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget.xml"
+          if (Test-Path ./packages/opendaq.net)
+          {
+            del ./packages/opendaq.net -Recurse -Force
+          }
+
+      - name: Restore NuGet packages
         # restoring using private config and packages dir to have the NuGet package store local and temporary
+        run: |
+          & dotnet restore . --configfile .nuget/NuGet.Config --ignore-failed-sources --packages ./packages
+
+      - name: Test openDAQ NuGet package
         # testing with building but not restoring (done before)
+        run: |
+          & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget.xml" -p:TestTfmsInParallel=false
 
       - name: Upload NuGet package test results
         if: always()

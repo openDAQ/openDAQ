@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using Daq.Core;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
@@ -20,12 +22,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     private const string ConnectionProtocolDaqRef = "daqref://";
 
 
-    private Device? ConnectFirstDaqRefDevice()
+    private Device? ConnectFirstDaqRefDevice(Instance daqInstance)
     {
-        // Create an Instance, loading modules from default location
-        var instance = OpenDAQFactory.Instance();
+        Console.WriteLine($"  {nameof(ConnectFirstDaqRefDevice)}...");
 
-        var deviceInfos = instance.AvailableDevices;
+        // Get the list of available devices
+        var deviceInfos = daqInstance.AvailableDevices;
+
+        Assert.That(deviceInfos.Count, Is.GreaterThan(0));
 
         foreach (var deviceInfo in deviceInfos)
         {
@@ -43,7 +47,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             try
             {
                 // Connect to device and store it in a list
-                using var device = instance.AddDevice(deviceConnectionString); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
+                using var device = daqInstance.AddDevice(deviceConnectionString); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
 
                 break;
             }
@@ -53,8 +57,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             }
         }
 
-        // Output the names and connection strings of all connected-to devices
-        var devices = instance.GetDevices();
+        // Get the list of connected devices
+        var devices = daqInstance.GetDevices();
 
         return devices?.FirstOrDefault();
     }
@@ -177,7 +181,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         //instruct TearDown function not to collect and finalize managed objects explicitly
         base.DontCollectAndFinalize();
 
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
         Assert.That(daqInstance.IsDisposed, Is.False);
 
@@ -194,7 +198,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0201_AvailableDevicesProperty()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
         Console.WriteLine("> daqInstance.AvailableDevices");
         var availableDevicesInfos = daqInstance.AvailableDevices;
@@ -221,7 +225,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     public void Test_0202_GetAndConnectDaqRefDevice()
     {
         // Create an Instance, loading modules from default location
-        var instance = OpenDAQFactory.Instance();
+        using var instance = OpenDAQFactory.Instance();
 
         Console.WriteLine("instance.AvailableDevices");
         var deviceInfos = instance.AvailableDevices;
@@ -270,9 +274,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0301_GetAvailableChannelsTest()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetChannelsRecursive()");
@@ -300,9 +304,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0302_GetAvailableSignalsTest()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetSignalsRecursive()");
@@ -330,9 +334,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0303_GetAvailableFunctionBlocks()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("daqInstance.GetAvailableFunctionBlocks()");
@@ -363,7 +367,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     {
         using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetSignalsRecursive()");

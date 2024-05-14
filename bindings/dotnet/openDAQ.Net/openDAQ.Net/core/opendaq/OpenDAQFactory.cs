@@ -313,12 +313,14 @@ public static partial class OpenDAQFactory
     /// <param name="logger">The logger the context has access to.</param>
     /// <param name="typeManager">The type manager.</param>
     /// <param name="moduleManager">The module manager.</param>
+    /// <param name="authenticationProvider">The authentication provider.</param>
     /// <param name="options">The options.</param>
     /// <returns>The Context instance.</returns>
     public static Context Context(Scheduler scheduler,
                                   Logger logger,
                                   TypeManager typeManager,
                                   ModuleManager moduleManager,
+                                  AuthenticationProvider authenticationProvider,
                                   IDictObject<StringObject, BaseObject> options = null)
     {
         /*
@@ -338,7 +340,7 @@ public static partial class OpenDAQFactory
             options = CoreTypesFactory.CreateDict<StringObject, BaseObject>();
         }
 
-        return CreateContext(scheduler, logger, typeManager, moduleManager, options);
+        return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options);
     }
 
     /// <summary>
@@ -377,7 +379,7 @@ public static partial class OpenDAQFactory
         using var scheduler     = Scheduler(logger, 0);
         using var moduleManager = ModuleManager(modulePath);
         using var typeManager   = TypeManager();
-        using var context       = Context(scheduler, logger, typeManager, moduleManager);
+        using var context       = Context(scheduler, logger, typeManager, moduleManager, null);
 
         //instantiate default parameters if null
         using StringObject localIdStr = localId ?? string.Empty;

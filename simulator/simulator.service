@@ -1,6 +1,7 @@
 [Unit]
 Description=openDAQ simulator service
-After=network.target
+After=syslog.target network-online.target
+Wants=network-online.target
 StartLimitIntervalSec=0
 
 [Service]

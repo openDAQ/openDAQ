@@ -303,56 +303,36 @@ namespace RTGen
 
             var options = new OptionSet
             {
-                {"v|verbose", "Show verbose warnings and errors",
-                    v =>
-                    {
-                        opts.Verbose = !string.IsNullOrEmpty(v);
-                    }
-                },
-                {"c|continueOnErrors", "Continue when parsing errors occur.",
-                    (bool c) => opts.ContinueOnParseErrors = c
-                },
-                {"l|lang|language=", "The language use for generating.",
+                {"v|verbose",               "Show verbose warnings and errors",                         v => opts.Verbose = true },
+                {"c|continueOnErrors",      "Continue when parsing errors occur.",                      c => opts.ContinueOnParseErrors = true },
+                {"l|lang|language=",        "The language use for generating.",
                     lang =>
                     {
                         opts.TemplatePath = $"{lang}.template";
                         opts.Language = lang;
                     }
                 },
-                {"version", "Print version information for all components.", ver => opts.PrintVersion = true },
-                {"config", "Generate config file only.", config => opts.GenerateConfig = config != null },
-                {"lv|lib-version=", "Library semantic version info.", version => opts.LibraryInfo.Version = Utility.ParseVersionInfo(version) },
-                {"ln|lib|library=", "Library name.", lib => opts.LibraryInfo.Name = lib },
-                {"ns|namespace=", "Library namespace.", ns => opts.LibraryInfo.Namespace = new Namespace(ns) },
-                {"cns|core-namespace=", "Core namespace override.", ns => opts.CoreNamespace = new Namespace(ns) },
-                {"nt|no-timestamp", "Date & time provided to the generators is fixed", nt =>
-                    {
-                        opts.UseDebugTimeStamp = nt != null;
-                    }
-                },
-                {"lo|lib-output=", "Library output filename.", name => opts.LibraryInfo.OutputName = name },
-                {"s|src|source=", "Input file to parse", input => opts.InputFile = input},
-                {"d|dir|outputDir=", "Where to put the generated files", dir => opts.OutputDir = dir},
-                {"f|def|outputSourceDir=", outputDef => opts.OutputSourceDir = outputDef },
-                {"p|impl", "Generate smart pointer implementation", impl => opts.GenerateWrapper = !string.IsNullOrEmpty(impl) },
-                {"i|inlang|inputLanguage=", "The language of the input file.", inLang => opts.InputLanguage = inLang},
-                {"o|out|output=", "Generated output file name", o => opts.Filename = o},
-                {"t|template=", "Template file to use for code generation", template => opts.TemplatePath = template },
-                {"e|ext|extension=", "Generated file extension", ext => opts.GeneratedExtension = ext},
-                {"x|suffix", "Generated filename suffix", suffix => opts.FileNameSuffix = suffix},
-                {"m|macros=", "Json file describing predefined type arguments", m => ParsePredefinedTypes(m, opts) },
-                {"g|guid", "Generate UUID v5 for the specified interface name", g => opts.GenerateGuid = !string.IsNullOrEmpty(g) },
-                {"rt", "Use RT Core namespace for generating the interface UUID.",
-                    g =>
-                    {
-                        opts.RtGuid = !string.IsNullOrEmpty(g);
-                        if (opts.RtGuid)
-                        {
-                            opts.GenerateGuid = true;
-                        }
-                    }
-                },
-                {"h|?|help", "Shows this help message", h => opts.ShowHelp = h != null},
+                {"version",                 "Print version information for all components.",            ver => opts.PrintVersion = true },
+                {"config",                  "Generate config file only.",                               config => opts.GenerateConfig = true },
+                {"lv|lib-version=",         "Library semantic version info.",                           version => opts.LibraryInfo.Version = Utility.ParseVersionInfo(version) },
+                {"ln|lib|library=",         "Library name.",                                            lib => opts.LibraryInfo.Name = lib },
+                {"ns|namespace=",           "Library namespace.",                                       ns => opts.LibraryInfo.Namespace = new Namespace(ns) },
+                {"cns|core-namespace=",     "Core namespace override.",                                 cns => opts.CoreNamespace = new Namespace(cns) },
+                {"nt|no-timestamp",         "Date & time provided to the generators is fixed",          nt => opts.UseDebugTimeStamp = true },
+                {"lo|lib-output=",          "Library output filename.",                                 name => opts.LibraryInfo.OutputName = name },
+                {"s|src|source=",           "Input file to parse",                                      input => opts.InputFile = input },
+                {"d|dir|outputDir=",        "Where to put the generated files",                         dir => opts.OutputDir = dir },
+                {"f|def|outputSourceDir=",                                                              outputDef => opts.OutputSourceDir = outputDef },
+                {"p|impl",                  "Generate smart pointer implementation",                    impl => opts.GenerateWrapper = true },
+                {"i|inlang|inputLanguage=", "The language of the input file.",                          inLang => opts.InputLanguage = inLang },
+                {"o|out|output=",           "Generated output file name",                               o => opts.Filename = o },
+                {"t|template=",             "Template file to use for code generation",                 template => opts.TemplatePath = template },
+                {"e|ext|extension=",        "Generated file extension",                                 ext => opts.GeneratedExtension = ext },
+                {"x|suffix=",               "Generated filename suffix",                                suffix => opts.FileNameSuffix = suffix },
+                {"m|macros=",               "Json file describing predefined type arguments",           m => ParsePredefinedTypes(m, opts) },
+                {"g|guid",                  "Generate UUID v5 for the specified interface name",        g => opts.GenerateGuid = true },
+                {"rt",                      "Use RT Core namespace for generating the interface UUID.", rt => opts.RtGuid = opts.GenerateGuid = true }, //sets 2 options
+                {"h|?|help",                "Shows this help message",                                  h => opts.ShowHelp = true },
             };
 
             try

@@ -50,6 +50,9 @@
     <None Include="Templates\csharp.ilist.impl.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Templates\csharp.method.casts.totype.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Templates\csharp.method.casts.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

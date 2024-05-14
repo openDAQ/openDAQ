@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:45:58.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ public class IntegerObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.IntegerObject' to/from 'long'
 
     /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.IntegerObject"/>.</summary>
     /// <param name="value">The managed <c>long</c> value.</param>
@@ -117,7 +117,6 @@ public class IntegerObject : BaseObject
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(long other) => ((long)this).Equals(other);
-
 
     #endregion operators
 }

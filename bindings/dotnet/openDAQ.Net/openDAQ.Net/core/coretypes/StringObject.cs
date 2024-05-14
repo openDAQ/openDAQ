@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:01.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@ public class StringObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.StringObject' to/from 'string'
 
     /// <summary>Performs an implicit conversion from <see cref="string"/> to <see cref="Daq.Core.Types.StringObject"/>.</summary>
     /// <param name="value">The managed <c>string</c> value.</param>
@@ -125,7 +125,6 @@ public class StringObject : BaseObject
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>string</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(string other) => ((string)this).Equals(other, StringComparison.Ordinal);
-
 
     #endregion operators
 }

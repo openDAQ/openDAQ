@@ -1,3 +1,36 @@
+26.04.2024
+Description:
+    Produce gap packets on request
+
+-m [factory]  InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory]  InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
++  [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
++  [factory]  EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
++  [packet]   IMPLICIT_DOMAIN_GAP_DETECTED
+
+
+26.04.2024
+Description:
+  - Clone property object to create default config from type
+
+-m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
++m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
+-m [factory] FunctionBlockTypePtr FunctionBlockType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
++m [factory] FunctionBlockTypePtr FunctionBlockType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
+-m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
++m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
+
+25.04.2024
+Description:
+  - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
+
++ [interface] IMirroredDevice
++ [function] IMirroredDevice::getStreamingSources(IList** streamingSources)
+
++ [interface] IMirroredDeviceConfig
++ [function] IMirroredDeviceConfig::addStreamingSource(IStreaming* streamingSource)
++ [function] IMirroredDeviceConfig::removeStreamingSource(IString* streamingConnectionString)
+
 23.04.2024
 Description:
   - Adding addresses in ServerCapability

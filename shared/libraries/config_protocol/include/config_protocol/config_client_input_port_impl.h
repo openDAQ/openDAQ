@@ -55,8 +55,8 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const ContextPtr& ctx,
                                                             const ComponentPtr& parent,
                                                             const StringPtr& localId,
-                                                            const StringPtr& className)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
+                                                            const StringPtr&)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, false)
 {
 }
 

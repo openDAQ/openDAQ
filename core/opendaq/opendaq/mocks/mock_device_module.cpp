@@ -45,16 +45,12 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
-    auto createMockConfig = []()
-    {
-        auto config = PropertyObject();
-        config.addProperty(StringProperty("message", ""));
-        return config;
-    };
+    auto mockConfig = PropertyObject();
+    mockConfig.addProperty(StringProperty("message", ""));
 
     auto types = Dict<IString, IDeviceType>();
     types.set("daq_client_device", DeviceType("daq_client_device", "Client", "Client device"));
-    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", createMockConfig));
+    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", mockConfig));
 
     *deviceTypes = types.detach();
     return OPENDAQ_SUCCESS;

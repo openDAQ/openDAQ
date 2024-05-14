@@ -18,6 +18,7 @@
 #include <coretypes/function_ptr.h>
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,22 +29,19 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a ServerTypeConfigPtr pointer, with the id, name, description and
- * optional createDefaultConfigCallback.
+ * @brief Creates a ServerTypeConfigPtr pointer, with the id, name, description and optional defaultConfig.
  * @param id The unique type ID of the server.
  * @param name The name of the server type.
  * @param description A short description of the server type.
- * @param createDefaultConfigCallback The callback, which is called, when user want to create new default
- * configuration object.
- * Function needs to create and return property object. On each call, we need to create new object,
- * because we want that each instance of the server has its own configuration object.
+ * @param defaultConfig The property object, to be cloned and returned, each time user creates default
+ * configuration object. This way each instance of the server has its own configuration object.
  */
 inline ServerTypePtr ServerType(const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const FunctionPtr& createDefaultConfigCallback = nullptr)
+                                      const PropertyObjectPtr& defaultConfig = PropertyObject())
 {
-    ServerTypePtr obj(ServerType_Create(id, name, description, createDefaultConfigCallback));
+    ServerTypePtr obj(ServerType_Create(id, name, description, defaultConfig));
     return obj;
 }
 

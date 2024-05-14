@@ -119,6 +119,7 @@ ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, EventPacket, IString*, id, IDict*, params)
 
 using DataDescriptorChangedEventPacketImpl = EventPacketImpl;
+using ImplicitDomainGapDetectedEventPacketImpl = EventPacketImpl;
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -126,11 +127,22 @@ extern "C" daq::ErrCode PUBLIC_EXPORT createDataDescriptorChangedEventPacket(IEv
                                                                              IDataDescriptor* dataDescriptor,
                                                                              IDataDescriptor* domainDataDescriptor)
 {
-    DictPtr<IString, IDataDescriptor> parameters = Dict<IString, IDataDescriptor>(
+    const DictPtr<IString, IDataDescriptor> parameters = Dict<IString, IDataDescriptor>(
         {{event_packet_param::DATA_DESCRIPTOR, dataDescriptor}, {event_packet_param::DOMAIN_DATA_DESCRIPTOR, domainDataDescriptor}});
 
     return daq::createObject<IEventPacket, DataDescriptorChangedEventPacketImpl>(
         objTmp, event_packet_id::DATA_DESCRIPTOR_CHANGED, parameters);
+}
+
+
+extern "C" daq::ErrCode PUBLIC_EXPORT createImplicitDomainGapDetectedEventPacket(IEventPacket** objTmp,
+                                                                                 INumber* diff)
+{
+    const DictPtr<IString, IDataDescriptor> parameters = Dict<IString, INumber>(
+        {{event_packet_param::GAP_DIFF, diff}});
+
+    return daq::createObject<IEventPacket, ImplicitDomainGapDetectedEventPacketImpl>(
+        objTmp, event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED, parameters);
 }
 
 #endif

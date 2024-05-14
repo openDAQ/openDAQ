@@ -1,5 +1,5 @@
 #include <opcuatms/exceptions.h>
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
 #include <fstream>
 
 #include "opendaq/mock/mock_device_module.h"

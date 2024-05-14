@@ -18,7 +18,6 @@
 #include <opendaq/device_ptr.h>
 #include "opcuatms/opcuatms.h"
 #include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_device_factory.h"
 #include "opcuatms_client/objects/tms_client_context.h"
 #include <opendaq/context_ptr.h>
 
@@ -29,8 +28,7 @@ class TmsClient final
 public:
     TmsClient(const ContextPtr& context,
               const ComponentPtr& parent,
-              const std::string& opcUaUrl,
-              const FunctionPtr& createStreamingCallback);
+              const std::string& opcUaUrl);
 
     daq::DevicePtr connect();
 
@@ -42,7 +40,6 @@ protected:
     ContextPtr context;
     daq::opcua::OpcUaClientPtr client;
     std::string opcUaUrl;
-    FunctionPtr createStreamingCallback;
     ComponentPtr parent;
     LoggerComponentPtr loggerComponent;
 };

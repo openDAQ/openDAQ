@@ -180,7 +180,7 @@ print(f'Read {len(values)} samples:')
 print(values)
 
 to_read = 5
-values,domain = reader.read_with_domain(to_read)
+values, domain = reader.read_with_domain(to_read)
 
 # Should be 3
 to_read = len(values)

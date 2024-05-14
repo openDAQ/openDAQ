@@ -8,29 +8,6 @@ using StreamingConfigTest = testing::Test;
 BEGIN_NAMESPACE_OPENDAQ
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-TEST_F(StreamingConfigTest, ModifyConfiguration)
-{
-    InstancePtr instance = Instance();
-
-    DictPtr<IString, IDeviceType> deviceTypes;
-    deviceTypes = instance.getAvailableDeviceTypes();
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
-
-    PropertyObjectPtr deviceConfig = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
-    ASSERT_TRUE(deviceConfig.assigned());
-
-    ASSERT_TRUE(deviceConfig.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_NO_THROW(
-        deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")));
-
-    ASSERT_TRUE(deviceConfig.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_NO_THROW(deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming"));
-
-    ASSERT_TRUE(deviceConfig.hasProperty("StreamingConnectionHeuristic"));
-    ASSERT_NO_THROW(deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0));
-}
-
-// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, AddPseudoDevice)
 {
     SKIP_TEST_MAC_CI;
@@ -45,25 +22,42 @@ TEST_F(StreamingConfigTest, AddPseudoDevice)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-TEST_F(StreamingConfigTest, AddDeviceWithConfig)
+// Skip the test since the connecting by prefix "daq://" requires device discovery to be done in first place
+TEST_F(StreamingConfigTest, DISABLED_AddDeviceWithConfig)
 {
     SKIP_TEST_MAC_CI;
 
-    InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
-    ASSERT_TRUE(device.assigned());
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    ASSERT_EQ(device.getInfo().getName(), "Device 1");
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
+
+    // Find and connect to a device using device info connection string
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
+        {
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
+        }
+    }
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
+// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
+// as the resulting streaming sources remain the same in this scenario
 TEST_F(StreamingConfigTest, StreamingSources)
 {
     SKIP_TEST_MAC_CI;
@@ -71,19 +65,13 @@ TEST_F(StreamingConfigTest, StreamingSources)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
-
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
     ASSERT_TRUE(signal.getActiveStreamingSource().assigned());
-    ASSERT_TRUE(signal.getActiveStreamingSource().toView().find("daq.lt://") != std::string::npos);
-    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.lt://127.0.0.1:7414");
+    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.ns://127.0.0.1:7420");
 
     ListPtr<IString> streamingSources = signal.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 2u);
@@ -95,6 +83,8 @@ TEST_F(StreamingConfigTest, StreamingSources)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
+// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
+// as the resulting streaming sources remain the same in this scenario
 TEST_F(StreamingConfigTest, WebsocketStreamingRead)
 {
     SKIP_TEST_MAC_CI;
@@ -102,12 +92,7 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
-
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
@@ -127,6 +112,8 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
+// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
+// as the resulting streaming sources remain the same in this scenario
 TEST_F(StreamingConfigTest, NativeStreamingRead)
 {
     SKIP_TEST_MAC_CI;
@@ -134,12 +121,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
-
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     MirroredSignalConfigPtr signal = device.getSignals(search::Recursive(search::Any()))[0];

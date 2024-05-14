@@ -48,7 +48,7 @@ public:
 
         this->internalAddRef();
 
-        port = InputPort(signal.getContext(), nullptr, "readsig");
+        port = InputPort(signal.getContext(), nullptr, "readsig", true);
         port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
         port.connect(signal);

@@ -46,22 +46,19 @@ DECLARE_OPENDAQ_INTERFACE(IServerType, IComponentType)
  */
 
 /*!
- * @brief Creates a Server type object, with the id, name, description and
- * optional createDefaultConfigCallback.
+ * @brief Creates a Server type object, with the id, name, description and optional defaultConfig.
  * @param id The unique type ID of the server.
  * @param name The name of the server type.
  * @param description A short description of the server type.
- * @param createDefaultConfigCallback The callback, which is called, when user want to create new default
- * configuration object.
- * Function needs to create and return property object. On each call, we need to create new object,
- * because we want that each instance of the server has its own configuration object.
+ * @param defaultConfig The property object, to be cloned and returned, each time user creates default
+ * configuration object. This way each instance of the server has its own configuration object.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, ServerType,
     IString*, id,
     IString*, name,
     IString*, description,
-    IFunction*, createDefaultConfigCallback
+    IPropertyObject*, defaultConfig
 )
 
 /*!@}*/

@@ -2,6 +2,8 @@
 #include <opendaq/connection_factory.h>
 #include <coretypes/objectptr.h>
 #include <gtest/gtest.h>
+
+#include "opendaq/context_factory.h"
 #include "opendaq/gmock/context.h"
 #include "opendaq/gmock/input_port.h"
 #include "opendaq/gmock/packet.h"
@@ -11,27 +13,48 @@
 using namespace daq;
 using namespace testing;
 
-class ConnectionTest : public Test
+class ConnectionTest : public TestWithParam<bool>
 {
 protected:
+    ContextPtr context = NullContext();
     MockScheduler::Strict scheduler;
-    MockContext::Strict context;
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
-    ConnectionPtr connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
-    ConnectionTest() { context.mock().scheduler = scheduler; }
 };
 
-TEST_F(ConnectionTest, InitialState)
+TEST_P(ConnectionTest, InitialState)
 {
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(GetParam()));
+    const auto connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
+#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE
+    EXPECT_CALL(inputPort.mock(), getGlobalId(testing::_)).WillOnce(Get(String("id")));
+#endif
     EXPECT_EQ(connection.getPacketCount(), 0u);
     EXPECT_EQ(connection.getSignal(), signal.ptr);
     EXPECT_EQ(connection.getInputPort(), inputPort.ptr);
 }
 
+TEST_P(ConnectionTest, DequeueEmpty)
+{
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(GetParam()));
+    const auto connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
+    ASSERT_FALSE(connection.dequeue().assigned());
+}
+
+TEST_P(ConnectionTest, PeekEmpty)
+{
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(GetParam()));
+    const auto connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
+    ASSERT_FALSE(connection.peek().assigned());
+}
+
+INSTANTIATE_TEST_SUITE_P(GapCheckEnabled, ConnectionTest, testing::Values(true, false));
+
 TEST_F(ConnectionTest, Enqueue)
 {
-    std::array packets {
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(False));
+    const auto connection = Connection(inputPort->asPtr<IInputPort>(), signal, context);
+    const std::array packets{
         createWithImplementation<IPacket, MockPacket>(),
         createWithImplementation<IPacket, MockPacket>(),
         createWithImplementation<IPacket, MockPacket>(),
@@ -55,14 +78,4 @@ TEST_F(ConnectionTest, Enqueue)
     }
 
     ASSERT_FALSE(connection.dequeue().assigned());
-}
-
-TEST_F(ConnectionTest, DequeueEmpty)
-{
-    ASSERT_FALSE(connection.dequeue().assigned());
-}
-
-TEST_F(ConnectionTest, PeekEmpty)
-{
-    ASSERT_FALSE(connection.peek().assigned());
 }

@@ -56,11 +56,11 @@ int main()
 [#streaming_config_per_device]
 == Configure Streaming for structure-enabled Device
 
-Most openDAQ(TM) Devices support structural information transferring. An example of such a Device is an
-openDAQ(TM) OPC UA-compatible Device that is running a compatible OPC UA server. Clients establish
-connections to these Devices using a connection string prefixed with `"daq.opcua://"` recognized by the
-openDAQ(TM) `opcua_client_module`. This module not only manages the Device's structural details but also
-handles the received set of Streaming Server capabilities associated with the Device.
+Most openDAQ(TM) Devices support structural information transferring via the configuration protocol. These are
+openDAQ(TM) OPC UA-compatible Devices running an OPC UA server, as well as Devices that are compatible with
+the openDAQ(TM) Native configuration protocol. Regardless of the protocol type, the configuration protocol
+not only transfers the Device's structural details but also the set of Streaming Server capabilities
+available for the Device.
 
 Each Streaming Server capability is identified by the Streaming protocol ID, that is transformed into
 a prefix within the xref:background_info:streaming.adoc#streaming_connection_string[connection string]
@@ -68,20 +68,23 @@ formed by considering all parameters in the Streaming Server capability along wi
 This connection string enables the delegation of Streaming instantiation to the appropriate
 xref:background_info:streaming.adoc#streaming_and_structure_modules[data Streaming Module]. As a result,
 when connecting an openDAQ(TM) Device, a streaming connection can be established automatically using the
-published streaming connection details.
+published streaming connection details. When establishing a connection to a gateway Devices, which contains
+nested Devices, the default behavior is to ignore direct Streaming connections for these nested Devices,
+and establishing the minimum number of Streaming connections possible.
 
-The xref:background_info:device.adoc[Device] Configuration xref:background_info:property_system.adoc[Property]
-object provides a mechanism for customizing the filtering of available Streaming protocols by enabling or
-disabling specific ones. Additionally, it allows to set the "primary" protocol type of the Streaming
-connection to be initially used as an active Streaming source for all of the
-xref:background_info:streaming.adoc#mirrored_signals[Signals].
+However, when connecting to a Device using the device info connection string `daq://`, users can customize the rules for
+automatically establishing the Streaming connections. This is done by passing the xref:background_info:device.adoc[Device]
+Configuration xref:background_info:property_system.adoc[Property] object as a second parameter to the `addDevice` call.
+The configuration mechanism allows filtering available streaming protocols by enabling or disabling specific ones.
+Protocol listed first as enabled is given higher priority, determining its selection as the active Streaming
+source for all of the Device's xref:background_info:streaming.adoc#mirrored_signals[Signals].
 
 Furthermore, there's an option to specify a Streaming path heuristic, particularly useful for multiple
 nested Devices connected in a tree-structured manner (as illustrated in the xref:background_info:device.adoc#nested_devices[diagram]).
 The allowed heuristics include:
 
 * "Minimize-connections" mode (ID 0) - is used to establish the fewest Streaming connections possible at
-the cost of routing Signals' data through gateway Devices, increasing the hop count.
+the cost of routing Signals' data through gateway Devices, increasing the hop count (default mode).
 * "Minimize-hops" mode (ID 1) - is used to attempt streaming data directly from nested Devices to minimize
 the amount of hops between Devices the data must make.
 * "Fallback" mode (ID 2) - is used to establish all possible Streaming connections.
@@ -108,31 +111,32 @@ int main()
     // Create a new Instance that we will use for all the interactions with the SDK
     InstancePtr instance = Instance();
 
-    // Get the default Configuration Property object for OPC UA enabled Device type
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    // Allow multiple Streaming protocols by Device Configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    // Add property to allow multiple Streaming protocols with native protocol having the first priority
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    // Set websocket Streaming protocol as primary by Device Configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
+    // Set property to disregard direct Streaming connections for nested Devices,
+    // and establish the minimum number of streaming connections possible.
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Disregard direct Streaming connections for nested Devices,
-    // establish the minimum number of streaming connections possible.
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
-
-    // Find and connect to a Device hosting an OPC UA TMS server
+    // Find and connect to a device using device info connection string
     const auto availableDevices = instance.getAvailableDevices();
     DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
-            {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
-                break;
-            }
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
         }
     }
 
@@ -331,27 +335,31 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create a new Instance that we will use for all the interactions with the SDK
     InstancePtr instance = Instance();
 
-    // Get the default Configuration Property object for OPC UA enabled Device type
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    // Allow multiple Streaming protocol by Device Configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    // Add property to allow multiple Streaming protocols with native protocol having the first priority
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    // Set websocket Streaming protocol as primary by Device Configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
+    // Set property to ignore streaming sources of nested Devices
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Find and connect to a Device hosting an OPC UA TMS server
+    // Find and connect to a Device using the device info connection string
     const auto availableDevices = instance.getAvailableDevices();
     DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
-            {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
-                break;
-            }
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
         }
     }
 
@@ -407,7 +415,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cerr << "Wrong active Streaming source of AI signal" << std::endl;
         return 1;
     }
-    // Output samples using Reader with websocket Streaming
+    // Output samples using Reader with Streaming LT
     readSamples(signal);
 
     // Change the active Streaming source of Signal

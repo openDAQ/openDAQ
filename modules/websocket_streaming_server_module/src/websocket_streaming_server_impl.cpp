@@ -41,19 +41,11 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
 ServerTypePtr WebsocketStreamingServerImpl::createType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&WebsocketStreamingServerImpl::createDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return ServerType(
         "openDAQ LT Streaming",
         "openDAQ LT Streaming server",
         "Publishes device signals as a flat list and streams data over WebsocketTcp protocol",
-        configurationCallback);
+        WebsocketStreamingServerImpl::createDefaultConfig());
 }
 
 void WebsocketStreamingServerImpl::onStopServer()

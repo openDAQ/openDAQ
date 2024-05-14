@@ -145,7 +145,7 @@ void StreamReaderImpl::readDescriptorFromPort()
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
 {
-    inputPort = InputPort(signal.getContext(), nullptr, "readsig");
+    inputPort = InputPort(signal.getContext(), nullptr, "readsig", true);
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
 
@@ -431,22 +431,28 @@ ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
+                    
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;
-
-                        if (status)
-                            *status = ReaderStatus(eventPacket, !invalid).detach();
-
                         return this->makeErrorInfo(
                             OPENDAQ_ERR_INVALID_DATA,
                             "Exception occurred while processing a signal descriptor change"
                         );
                     }
 
+                    return errCode;
+                }
+
+                if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+                {
                     if (status)
                         *status = ReaderStatus(eventPacket, !invalid).detach();
-                    return errCode;
+
+                    return OPENDAQ_SUCCESS;
                 }
                 break;
             }

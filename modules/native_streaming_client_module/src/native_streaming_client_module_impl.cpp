@@ -105,7 +105,10 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
+        if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
+            device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
+        else if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
+            device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;
 }
@@ -174,7 +177,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     nativeStreaming.setActive(true);
 
     deviceHelper->addStreaming(nativeStreaming);
-    // TODO check streaming options recursively and add optional streamings
+    // TODO add streaming sources via IMirroredDeviceConfig interface
 
     deviceHelper->subscribeToCoreEvent(context);
 
@@ -341,7 +344,7 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
                                                                    const PropertyObjectPtr& config)
 {
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString != "")
     {
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
@@ -434,7 +437,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     StringPtr path;
     StringPtr streamingConnectionString;
 
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString != "")
     {
         host = getHost(connectionString);
         port = getPort(connectionString);
@@ -482,34 +485,18 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return DeviceType(NativeStreamingDeviceTypeId,
                       "PseudoDevice",
                       "Pseudo device, provides only signals of the remote device as flat list",
-                      configurationCallback);
+                      NativeStreamingClientModule::createDeviceDefaultConfig());
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return DeviceType(NativeConfigurationDeviceTypeId,
                       "Device",
                       "Network device connected over Native configuration protocol",
-                      configurationCallback);
+                      NativeStreamingClientModule::createDeviceDefaultConfig());
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)

@@ -1,5 +1,7 @@
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
+#include "test_helpers/mock_helper_module.h"
 #include <iostream>
+#include <opendaq/device_info_internal_ptr.h>
 
 using namespace daq;
 
@@ -22,9 +24,13 @@ public:
     const uint16_t MIN_CONNECTIONS = 0;
     const uint16_t MIN_HOPS = 1;
 
+    const char* MANUFACTURER = "Manufacturer";
+    const char* SERIAL_NUMBER = "SerialNumber";
+    const char* ADDRESS = "127.0.0.1";
+
     StringPtr createConnectionString(uint16_t port)
     {
-        return String(fmt::format("daq.opcua://127.0.0.1:{}/", port));
+        return String(fmt::format("daq.opcua://{}:{}/", ADDRESS, port));
     }
 
     InstancePtr CreateSubdeviceInstance(uint16_t index)
@@ -70,17 +76,9 @@ public:
 
         auto instance = InstanceCustom(context, "gateway");
 
-        auto subdeviceStreamingType = GetParam().first;
         for (auto index = 1; index <= 2; index++)
         {
-            auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-            config.setPropertyValue("StreamingConnectionHeuristic", MIN_CONNECTIONS);
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-            if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
-                config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-            else if (subdeviceStreamingType == StreamingType::NativeStreaming)
-                config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_native_streaming");
-            const auto subDevice = instance.addDevice(createConnectionString(OPCUA_PORT+index), config);
+            const auto subDevice = instance.addDevice(createConnectionString(OPCUA_PORT+index));
         }
 
         auto gatewayStreamingType = GetParam().second;
@@ -106,6 +104,26 @@ public:
         return instance;
     }
 
+    DeviceInfoPtr CreateDiscoveredDeviceInfo(const DeviceTypePtr& deviceType)
+    {
+        auto deviceConnectionString = createConnectionString(OPCUA_PORT);
+
+        DeviceInfoConfigPtr deviceInfo = DeviceInfo(deviceConnectionString);
+        deviceInfo.setDeviceType(deviceType);
+        deviceInfo.setManufacturer(MANUFACTURER);
+        deviceInfo.setSerialNumber(SERIAL_NUMBER);
+
+        auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+        cap.addConnectionString(deviceConnectionString);
+        cap.setConnectionType("TCP/IP");
+        cap.setPrefix("daq.opcua");
+        cap.addAddress(ADDRESS);
+
+        deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+
+        return deviceInfo;
+    }
+
     InstancePtr CreateClientInstance(const IntegerPtr& heuristicValue)
     {
         auto logger = Logger();
@@ -115,15 +133,37 @@ public:
         auto context = Context(scheduler, logger, typeManager, moduleManager);
         auto instance = InstanceCustom(context, "client");
 
-        auto clientStreamingType = (heuristicValue == MIN_HOPS) ?  GetParam().first : GetParam().second;
-        auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-        config.setPropertyValue("StreamingConnectionHeuristic", heuristicValue);
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-        if (clientStreamingType == StreamingType::WebsocketStreaming)
-            config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
-        else if (clientStreamingType == StreamingType::NativeStreaming)
-            config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_native_streaming");
-        auto refDevice = instance.addDevice(createConnectionString(OPCUA_PORT), config);
+        auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_opcua_config");
+        auto deviceInfo = CreateDiscoveredDeviceInfo(deviceType);
+
+        const ModulePtr helperModule(
+            createWithImplementation<IModule, test_helpers::MockHelperModuleImpl>(
+                context,
+                Function(
+                    [deviceInfo = deviceInfo]() -> ListPtr<IDeviceInfo>
+                    {
+                        ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
+
+                        availableDevices.pushBack(deviceInfo);
+                        return availableDevices;
+                    }
+                )
+            )
+        );
+        moduleManager.addModule(helperModule);
+
+        auto config = PropertyObject();
+
+        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                        List<IString>("MinConnections",
+                                                                                      "MinHops",
+                                                                                      "Fallbacks",
+                                                                                      "NotConnected"),
+                                                                        heuristicValue);
+        config.addProperty(streamingConnectionHeuristicProp);
+
+        auto smartConnectionString = fmt::format("daq://{}_{}", MANUFACTURER, SERIAL_NUMBER);
+        auto gatewayDevice = instance.addDevice(smartConnectionString, config);
 
         return instance;
     }

@@ -218,7 +218,7 @@ Cpp::
 +
 [source,cpp]
 ----
-DeviceInfoConfigPtr defaultRootDeviceInfo = DeviceInfo("daqref://defaultRootDevice");
+DeviceInfoConfigPtr defaultRootDeviceInfo = DeviceInfo("daqref://device1");
 defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
 InstanceBuilderPtr instanceBuilder = InstanceBuilder()
     .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
@@ -229,7 +229,9 @@ Python::
 +
 [source,python]
 ----
-default_root_device_info = opendaq.DeviceInfoConfig(opendaq.String("daqref://defaultRootDevice"), opendaq.String(""))
+import opendaq
+
+default_root_device_info = opendaq.DeviceInfoConfig(opendaq.String("daqref://device1"), opendaq.String(""))
 default_root_device_info.serial_number = "ABCD-0000-0000-0000"
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.default_root_device_info = default_root_device_info

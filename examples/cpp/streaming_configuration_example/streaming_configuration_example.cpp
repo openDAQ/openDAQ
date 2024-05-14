@@ -43,27 +43,32 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create a new Instance that we will use for all the interactions with the SDK
     InstancePtr instance = Instance();
 
-    // Get the default Configuration Property object for OPC UA enabled Device type
-    PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    // Allow multiple Streaming protocol by Device Configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    // Add property to allow multiple Streaming protocols with native protocol having the first priority
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    // Set websocket Streaming protocol as primary by Device Configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
+    // Set property to disregard direct Streaming connections for nested Devices,
+    // and establish the minimum number of streaming connections possible.
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Find and connect to a Device hosting an OPC UA TMS server
+    // Find and connect to a device using device info connection string
     const auto availableDevices = instance.getAvailableDevices();
     DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
-            {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
-                break;
-            }
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
         }
     }
 

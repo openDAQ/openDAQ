@@ -76,4 +76,17 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
                                         IDataDescriptor*,
                                         domainDataDescriptor)
 
+/*!
+ * @brief Creates a ImplicitDomainGapDetected Event packet.
+ * @param diff The size of the gap in ticks or value
+ *
+ * The ID of the packet is "IMPLICIT_DOMAIN_GAP_DETECTED". Its parameters dictionary contains the key "Diff", which holds
+ * the size of the gap. The size can be negative, in which case it is an overlap of samples.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+                                             ImplicitDomainGapDetectedEventPacket,
+                                             IEventPacket,
+                                             INumber*,
+                                             diff)
+
 END_NAMESPACE_OPENDAQ

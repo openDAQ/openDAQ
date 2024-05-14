@@ -16,18 +16,12 @@ class TmsFunctionBlockTypeTest : public TmsObjectIntegrationTest
 public:
     FunctionBlockTypePtr createFunctionBlockType()
     {
-        auto createDefaultConfig = [](IBaseObject* /*params*/, IBaseObject** result)
-        {
-            auto config = PropertyObject();
-            config.addProperty(IntProperty("port", 1000));
-            config.addProperty(StringProperty("name", "vlado"));
-            config.addProperty(ListProperty("scaling", List<IFloat>(1.0, 2.0, 3.0)));
+        auto defaultConfig = PropertyObject();
+        defaultConfig.addProperty(IntProperty("port", 1000));
+        defaultConfig.addProperty(StringProperty("name", "vlado"));
+        defaultConfig.addProperty(ListProperty("scaling", List<IFloat>(1.0, 2.0, 3.0)));
 
-            *result = config.detach();
-            return OPENDAQ_SUCCESS;
-        };
-
-        return FunctionBlockType("ref_fb", "Reference function block", "Description", createDefaultConfig);
+        return FunctionBlockType("ref_fb", "Reference function block", "Description", defaultConfig);
     }
 };
 
@@ -61,9 +55,9 @@ TEST_F(TmsFunctionBlockTypeTest, Values)
     ASSERT_TRUE(TestComparators::FunctionBlockTypeEquals(fbType, clientFbType));
 }
 
-TEST_F(TmsFunctionBlockTypeTest, NullConfig)
+TEST_F(TmsFunctionBlockTypeTest, DefaultConfig)
 {
-    auto fbType = FunctionBlockType("id", "", "", nullptr);
+    auto fbType = FunctionBlockType("id", "", "");
     auto serverFbType = std::make_shared<TmsServerFunctionBlockType>(fbType, server, ctx, serverContext);
     auto nodeId = serverFbType->registerOpcUaNode();
     auto clientFbType = TmsClientFunctionBlockType(ctx, clientContext, nodeId);
@@ -114,20 +108,14 @@ TEST_F(TmsFunctionBlockTypeTest, DISABLED_NonDefaultValues)
 {
     // This should work, but it doesnt, because of an error in client property object.
 
-    auto createDefaultConfig = [](IBaseObject* /*params*/, IBaseObject** result)
-    {
-        auto config = PropertyObject();
-        config.addProperty(IntProperty("port", 0));
-        config.addProperty(StringProperty("name", ""));
+    auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(IntProperty("port", 0));
+    defaultConfig.addProperty(StringProperty("name", ""));
 
-        config.setPropertyValue("port", 1000);
-        config.setPropertyValue("name", "vlado");
+    defaultConfig.setPropertyValue("port", 1000);
+    defaultConfig.setPropertyValue("name", "vlado");
 
-        *result = config.detach();
-        return OPENDAQ_SUCCESS;
-    };
-
-    auto fbType = FunctionBlockType("ref_fb", "Reference function block", "Description", createDefaultConfig);
+    auto fbType = FunctionBlockType("ref_fb", "Reference function block", "Description", defaultConfig);
 
     auto serverFbType = std::make_shared<TmsServerFunctionBlockType>(fbType, server, ctx, serverContext);
     auto nodeId = serverFbType->registerOpcUaNode();

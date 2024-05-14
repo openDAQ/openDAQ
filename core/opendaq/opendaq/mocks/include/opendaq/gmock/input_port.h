@@ -45,6 +45,8 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     MOCK_METHOD(daq::ErrCode, getCustomData, (daq::IBaseObject** customData), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setCustomData, (daq::IBaseObject* customData), (override MOCK_CALL));
 
+    MOCK_METHOD(daq::ErrCode, getGapCheckingEnabled, (daq::Bool* gapCheckingEnabled), (override MOCK_CALL));
+
     daq::Bool active = true;
 
     MockInputPort()

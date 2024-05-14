@@ -10,8 +10,11 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/input_port_factory.h>
 #include <future>
+#include <gmock/gmock.h>
+#include <opendaq/event_packet_params.h>
 
 using namespace daq;
+using namespace testing;
 
 template <typename T>
 using BlockReaderTest = ReaderTest<T>;
@@ -660,6 +663,93 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
     ASSERT_EQ(sampleInt32[1], TypeParam(4));
 }
 
+TYPED_TEST(BlockReaderTest, GapDetected)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    const auto domainSignal = daq::Signal(this->context, nullptr, "domainSig");
+    const auto domainDesc = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+    domainSignal.setDescriptor(domainDesc);
+    this->signal.setDomainSignal(domainSignal);
+
+    constexpr SizeT blockSize = 4;
+    auto reader = daq::BlockReader<TypeParam, int64_t>(this->signal, blockSize);
+
+    constexpr SizeT NUM_SAMPLES = 6;
+
+    auto domainPacket = DataPacket(domainDesc, NUM_SAMPLES, 0);
+    auto dataPacketDouble = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), NUM_SAMPLES);
+    auto dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
+    dataPtrDouble[0] = 1.0;
+    dataPtrDouble[1] = 2.0;
+    dataPtrDouble[2] = 3.0;
+    dataPtrDouble[3] = 4.0;
+    dataPtrDouble[4] = 5.0;
+    dataPtrDouble[5] = 6.0;
+
+    this->sendPacket(dataPacketDouble);
+
+    domainPacket = DataPacket(domainDesc, NUM_SAMPLES, 8);
+    dataPacketDouble = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), NUM_SAMPLES);
+    dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
+    dataPtrDouble[0] = 8.0;
+    dataPtrDouble[1] = 9.0;
+    dataPtrDouble[2] = 10.0;
+    dataPtrDouble[3] = 11.0;
+    dataPtrDouble[4] = 12.0;
+    dataPtrDouble[5] = 13.0;
+
+    this->sendPacket(dataPacketDouble);
+
+    ASSERT_EQ(reader.getAvailableCount(), 3u);
+
+    SizeT count{3};
+    TypeParam samplesDouble[3 * blockSize]{};
+    int64_t domainSamples[3 * blockSize]{};
+
+    BlockReaderStatusPtr status = reader.readWithDomain(reinterpret_cast<TypeParam*>(&samplesDouble), reinterpret_cast<int64_t*>(&domainSamples), &count);
+    ASSERT_EQ(count, 1);
+    ASSERT_THAT(samplesDouble,
+                ElementsAre(static_cast<TypeParam>(1),
+                            static_cast<TypeParam>(2),
+                            static_cast<TypeParam>(3),
+                            static_cast<TypeParam>(4),
+                            _, _, _, _, _, _, _, _));
+    ASSERT_THAT(domainSamples, ElementsAre(0, 1, 2, 3, _, _, _, _, _, _, _, _));
+    ASSERT_EQ(reader.getAvailableCount(), 1u);
+
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getReadSamples(), 2);
+    ASSERT_TRUE(status.getEventPacket().assigned());
+
+    ASSERT_EQ(status.getEventPacket().getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_EQ(status.getEventPacket().getParameters().get(event_packet_param::GAP_DIFF), 2);
+
+    count = 3;
+    status = reader.readWithDomain(reinterpret_cast<TypeParam*>(&samplesDouble), reinterpret_cast<int64_t*>(&domainSamples), &count);
+    ASSERT_EQ(count, 1);
+    ASSERT_THAT(samplesDouble,
+                ElementsAre(static_cast<TypeParam>(8),
+                            static_cast<TypeParam>(9),
+                            static_cast<TypeParam>(10),
+                            static_cast<TypeParam>(11),
+                            _,
+                            _,
+                            _,
+                            _,
+                            _,
+                            _,
+                            _,
+                            _));
+    ASSERT_THAT(domainSamples, ElementsAre(8, 9, 10, 11, _, _, _, _, _, _, _, _));
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_FALSE(status.getEventPacket().assigned());
+}
+
+
 TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
@@ -711,7 +801,7 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
 
     auto status = reader.read((TypeParam*) &samples, &count);
 
-    Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
+    const daq::Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getValid(), convertable);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());

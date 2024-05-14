@@ -8,7 +8,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
-    const ConfigProviderPtr configProvider = JsonConfigProvider();
+    const ConfigProviderPtr configProvider = JsonConfigProvider("C:\\Users\\denis\\projects\\openDAQ-1\\simulator\\opendaq-config.json");
     const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

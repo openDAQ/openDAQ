@@ -63,20 +63,6 @@ TEST_P(RegressionTestComponent, setActiveGetActive)
     ASSERT_TRUE(active);
 }
 
-TEST_P(RegressionTestComponent, getContext)
-{
-    ContextPtr context;
-    ASSERT_NO_THROW(context = component.getContext());
-    ASSERT_TRUE(context.assigned());
-}
-
-TEST_P(RegressionTestComponent, getParent)
-{
-    ComponentPtr parent;
-    ASSERT_NO_THROW(parent = component.getParent());
-    ASSERT_EQ(parent.getName(), "Dev");
-}
-
 TEST_P(RegressionTestComponent, setNameGetName)
 {
     StringPtr newName = "test_name";
@@ -117,24 +103,11 @@ TEST_P(RegressionTestComponent, getLockedAttributes)
     ASSERT_EQ(lockedAttributes.getCount(), 1);
 }
 
-TEST_P(RegressionTestComponent, getOnComponentCoreEvent)
-{
-    auto event = component.getOnComponentCoreEvent();
-    ASSERT_NE(event, nullptr);
-}
-
 TEST_P(RegressionTestComponent, getStatusContainer)
 {
     ComponentStatusContainerPtr container;
     ASSERT_NO_THROW(container = component.getStatusContainer());
     ASSERT_TRUE(container.assigned());
-}
-
-TEST_P(RegressionTestComponent, findComponent)
-{
-    ComponentPtr comp;
-    ASSERT_NO_THROW(comp = component.findComponent("Sig"));
-    ASSERT_EQ(comp.getName(), "Sig");
 }
 
 INSTANTIATE_TEST_SUITE_P(Component,

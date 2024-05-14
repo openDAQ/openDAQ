@@ -87,9 +87,6 @@ private:
     mdns_record_t createARecord(const MdnsDiscoveredDevice& device) const;
     mdns_record_t createAaaaRecord(const MdnsDiscoveredDevice& device) const;
 
-    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort);
-    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort);
-
     std::string hostName;
     sockaddr_in serviceAddressIpv4;
     sockaddr_in6 serviceAddressIpv6;

@@ -160,7 +160,6 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     devices.emplace(id, device);
 
     start();
-    printf("Registering device %s\n", id.c_str());
 }
 
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
@@ -535,9 +534,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
     auto recordName = rtypeToString(mdns_record_type(rtype));
     if (recordName == "UNKNOWN")
         return 0;
-    
-    printf("Query for %s %s\n", name.c_str(), recordName.c_str());
-    
+        
     std::vector<char>sendBuffer(1024);
 
     std::lock_guard lock(mx);
@@ -555,9 +552,6 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 answer.name = {name.c_str(), name.size()}, 
                 answer.type = MDNS_RECORDTYPE_PTR, 
                 answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
-
-                printf("  --> answer %s (%s)\n",serviceName.c_str(),
-			        (unicast ? "unicast" : "multicast"));
 
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, {});
             }
@@ -578,10 +572,6 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
-                printf("  --> answer %s (%s)\n",
-			        device.serviceInstance.c_str(),
-			        (unicast ? "unicast" : "multicast"));
-
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
@@ -600,10 +590,6 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
-                printf("  --> answer %s port %d (%s)\n",
-			        device.serviceQualified.c_str(), device.servicePort,
-			        (unicast ? "unicast" : "multicast"));
-
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
@@ -620,11 +606,6 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(answer);
                 device.populateRecords(records);
 
-                auto addrstr = ipv4AddressToString(&serviceAddressIpv4, sizeof(serviceAddressIpv4), true);
-                printf("  --> answer %s IPv4 %s (%s)\n", 
-                    device.serviceQualified.c_str(),
-			        addrstr.c_str(), (unicast ? "unicast" : "multicast"));
-
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
             else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
@@ -638,44 +619,11 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(answer);
                 device.populateRecords(records);
 
-                auto addrstr = ipv6AddressToString(&serviceAddressIpv6, sizeof(serviceAddressIpv6), true);
-                printf("  --> answer %s IPv6 %s (%s)\n",
-                    device.serviceQualified.c_str(), addrstr.c_str(),
-                    (unicast ? "unicast" : "multicast"));
-
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }
     }
     return 0;
-}
-
-inline std::string MDNSDiscoveryServer::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
-{
-    char host[NI_MAXHOST] = {0};
-    char service[NI_MAXSERV] = {0};
-    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
-                        service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
-    if (ret != 0)
-        return "";
-
-    if (addr->sin_port != 0 && includePort)
-        return std::string(host) + ":" + service;
-    return std::string(host);
-}
-
-inline std::string MDNSDiscoveryServer::ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort)
-{
-    char host[NI_MAXHOST] = {0};
-    char service[NI_MAXSERV] = {0};
-    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
-                          service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
-    if (ret != 0)
-        return "";
-
-    if (addr->sin6_port != 0 && includePort)
-        return "[" + std::string(host) + "]:" + service;
-	return std::string(host);
 }
 
 END_NAMESPACE_DISCOVERY_SERVICE

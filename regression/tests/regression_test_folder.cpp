@@ -49,7 +49,7 @@ TEST_P(RegressionTestFolder, getItem)
 {
     ComponentPtr item;
     ASSERT_NO_THROW(item = folder.getItem("Sig"));
-    ASSERT_NE(item, nullptr);
+    ASSERT_TRUE(item.assigned());
 }
 
 INSTANTIATE_TEST_SUITE_P(Folder,

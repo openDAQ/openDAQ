@@ -67,7 +67,7 @@ TEST_P(RegressionTestComponent, getContext)
 {
     ContextPtr context;
     ASSERT_NO_THROW(context = component.getContext());
-    ASSERT_NE(context, nullptr);
+    ASSERT_TRUE(context.assigned());
 }
 
 TEST_P(RegressionTestComponent, getParent)
@@ -99,7 +99,7 @@ TEST_P(RegressionTestComponent, getTags)
 {
     TagsPtr tags;
     ASSERT_NO_THROW(tags = component.getTags());
-    ASSERT_NE(tags, nullptr);
+    ASSERT_TRUE(tags.assigned());
 }
 
 TEST_P(RegressionTestComponent, setVisibleGetVisible)
@@ -127,7 +127,7 @@ TEST_P(RegressionTestComponent, getStatusContainer)
 {
     ComponentStatusContainerPtr container;
     ASSERT_NO_THROW(container = component.getStatusContainer());
-    ASSERT_NE(container, nullptr);
+    ASSERT_TRUE(container.assigned());
 }
 
 TEST_P(RegressionTestComponent, findComponent)

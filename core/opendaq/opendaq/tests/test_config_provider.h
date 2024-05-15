@@ -23,6 +23,7 @@ namespace test_config_provider_helpers
 {
 using namespace daq;
 
+[[maybe_unused]]
 static DictPtr<IString, IBaseObject> getChildren(const DictPtr<IString, IBaseObject>& dict, const StringPtr& name)
 {
     return dict.get(name);

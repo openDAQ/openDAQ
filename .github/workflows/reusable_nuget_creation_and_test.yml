@@ -109,7 +109,7 @@ jobs:
           $SDK_LINUX64_PATH = '-p:SDK_LINUX64_PATH="${{ env.nuget_work_path_linux_x64 }}"'
           $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
           if (Test-Path '${{ env.nuget_work_path_win_x64 }}/*.nupkg') { del '${{ env.nuget_work_path_win_x64 }}/*.nupkg' -Force }
-          & dotnet restore .
+          & dotnet restore . --ignore-failed-sources
           & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION
         # restoring before packing to create obj\project.assets.json needed for packing
         # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)

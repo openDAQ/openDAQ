@@ -58,6 +58,17 @@ void StatisticsFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("TriggerMode") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { triggerModeChanged(); };
 
+    auto overlapProperty =
+        IntPropertyBuilder("Overlap", 0)
+            .setMinValue(0)
+            .setMaxValue(99)
+            .setUnit(Unit("%"))
+            .build();
+
+    objPtr.addProperty(overlapProperty);
+    objPtr.getOnPropertyValueWrite("Overlap") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+
     readProperties();
 }
 
@@ -144,10 +155,12 @@ void StatisticsFbImpl::readProperties()
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
     triggerMode = objPtr.getPropertyValue("TriggerMode");
-    LOG_D("Properties: BlockSize {}, DomainSignalType {}, TriggerMode {}",
+    overlap = objPtr.getPropertyValue("Overlap");
+    LOG_D("Properties: BlockSize {}, DomainSignalType {}, TriggerMode {}, Overlap {}",
           blockSize,
           objPtr.getPropertySelectionValue("DomainSignalType").toString(),
-          triggerMode);
+          triggerMode,
+          overlap);
 }
 
 void StatisticsFbImpl::configure()
@@ -173,9 +186,12 @@ void StatisticsFbImpl::configure()
     }
     const auto domainRuleParams = domainRule.getParameters();
 
+    overlappedBlockSize = static_cast<size_t>(std::trunc(blockSize * overlap) / 100.0);
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
+
     start = domainRuleParams.get("start");
     inputDeltaTicks = domainRuleParams.get("delta");
-    outputDeltaTicks = inputDeltaTicks * static_cast<Int>(blockSize);
+    outputDeltaTicks = inputDeltaTicks * (static_cast<Int>(blockSize) - overlappedBlockSize);
 
     const auto outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setName("StatisticsDomain");
 
@@ -380,7 +396,10 @@ void StatisticsFbImpl::calculateAndSendPackets(const DataPacketPtr& domainPacket
     const auto packetBuf = static_cast<uint8_t*>(packet.getData());
     copyToCalcBuf(packetBuf, availSamples);
 
-    const auto outSampleCount = calcBufSize / blockSize;
+    if (calcBufSize < blockSize)
+        return;
+
+    const auto outSampleCount = (calcBufSize - blockSize) / overlappedBlockSizeRemainder + 1;
 
     if (outSampleCount == 0)
         return;
@@ -414,7 +433,7 @@ void StatisticsFbImpl::calculateAndSendPackets(const DataPacketPtr& domainPacket
 
     calculate(calcBuf.get(), outputPacketStartDomainValue, outAvgDataPacketBuf, outRmsDataPacketBuf, outDomainPacketBuf, outSampleCount);
 
-    copyRemainingCalcBuf(outSampleCount * blockSize);
+    copyRemainingCalcBuf(outSampleCount * overlappedBlockSizeRemainder);
 
     if (calcAvg)
         avgSignal.sendPacket(avgDataPacket);
@@ -510,7 +529,7 @@ void StatisticsFbImpl::calc(
         AggT sumRms = 0;
         for (size_t j = 0; j < blockSize; ++j)
         {
-            const auto val = *data++;
+            const auto val = data[i * overlappedBlockSizeRemainder + j];
             if (outAvgData != nullptr)
                 sumAvg += val;
             if (outRmsData != nullptr)
@@ -611,7 +630,7 @@ void StatisticsFbImpl::calculate(
                     calcUntyped<SampleType::Int8, SampleType::Int64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 case SampleType::UInt16:
-                    calcUntyped<SampleType::Int16, SampleType::Int64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
+                    calcUntyped<SampleType::UInt16, SampleType::UInt64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 case SampleType::Int16:
                     calcUntyped<SampleType::Int16, SampleType::Int64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
@@ -649,7 +668,8 @@ void StatisticsFbImpl::calculate(
                         data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 case SampleType::Int8:
-                    calcUntyped<SampleType::Int8, SampleType::RangeInt64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
+                    calcUntyped<SampleType::Int8, SampleType::RangeInt64>(
+                        data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 case SampleType::UInt16:
                     calcUntyped<SampleType::UInt16, SampleType::RangeInt64>(

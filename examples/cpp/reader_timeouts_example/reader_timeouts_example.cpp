@@ -161,7 +161,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 SignalConfigPtr setupExampleSignal()
 {
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
 
     auto signal = Signal(context, nullptr, "example signal");
     signal.setDescriptor(setupDescriptor(SampleType::Float64));

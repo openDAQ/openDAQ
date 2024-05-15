@@ -4,6 +4,8 @@
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
 using namespace test_config_provider_helpers;
@@ -11,13 +13,13 @@ using OpcuaDeviceModuleTestConfig = ConfigProviderTest;
 
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -29,6 +31,11 @@ static InstancePtr CreateServerInstance()
     instance.addServer("openDAQ OpcUa", nullptr);
 
     return instance;
+}
+
+static InstancePtr CreateServerInstance()
+{
+    return CreateServerInstance(AuthenticationProvider());
 }
 
 static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
@@ -586,7 +593,8 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -614,6 +622,69 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
     auto client = CreateClientInstance();
     auto info = client.getDevices()[0].getInfo();
     ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
+{
+    auto serverInstance = CreateServerInstance();
+    auto clientInstance = InstanceBuilder().build();
+
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    config.setPropertyValue("Username", "");
+    config.setPropertyValue("Password", "");
+
+    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authenticationProvider = StaticAuthenticationProvider(false, users);
+    auto serverInstance = CreateServerInstance(authenticationProvider);
+
+    auto clientInstance = InstanceBuilder().build();
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "wrongPass");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "andrej");
+    config.setPropertyValue("Password", "andrej123");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "jure123");
+    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+    clientInstance.removeDevice(device);
+
+    config.setPropertyValue("Username", "tomaz");
+    config.setPropertyValue("Password", "tomaz123");
+    device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+    clientInstance.removeDevice(device);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
+{
+    auto authenticationProvider = AuthenticationProvider(false);
+    auto serverInstance = CreateServerInstance(authenticationProvider);
+
+    auto clientInstance = InstanceBuilder().build();
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "jure123");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 }
 
 // TODO: Add all examples of dynamic changes

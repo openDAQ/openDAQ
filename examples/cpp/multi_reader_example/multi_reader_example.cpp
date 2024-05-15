@@ -32,7 +32,7 @@ void exampleSimple()
     constexpr const auto NUM_SIGNALS = 3;
 
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
 
     ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
     ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
@@ -115,7 +115,7 @@ void exampleWithTimeStamps()
     constexpr const auto NUM_SIGNALS = 3;
 
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
 
     ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
     ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");

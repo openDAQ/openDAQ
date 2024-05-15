@@ -229,8 +229,7 @@ void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop, uin
 {
     const auto name = prop.getName();
     OpcUaNodeId parentId = methodParentNodeId.isNull() ? nodeId : methodParentNodeId;
-    OpcUaNodeId newNodeId(0);
-    AddMethodNodeParams params(newNodeId, parentId);
+    AddMethodNodeParams params(name, parentId);
     params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
 
     const auto callableInfo = prop.getCallableInfo();

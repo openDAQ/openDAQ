@@ -65,7 +65,22 @@ void OpcUaTaskProcessor::executeTask(std::promise<void>& promise, const OpcUaTas
 bool OpcUaTaskProcessor::connect()
 {
     bool result = false;
-    executeTask([&result](OpcUaClient& client) { result = client.connect(); });
+
+    auto connectTask = [&result](OpcUaClient& client)
+    {
+        try
+        {
+            client.connect();
+        }
+        catch (const OpcUaException& /*e*/)
+        {
+            // ignored
+        }
+
+        result = client.isConnected();
+    };
+
+    executeTask(connectTask);
     return result;
 }
 

@@ -55,6 +55,9 @@ public:
     ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager) override;
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) override;
 
+    ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) override;
+    ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) override;
+
     ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) override;
     ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) override;
 
@@ -92,6 +95,7 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    AuthenticationProviderPtr authenticationProvider;
     ContextPtr context{nullptr};
 
     Bool useStandardProviders{false};

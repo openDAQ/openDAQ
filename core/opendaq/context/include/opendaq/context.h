@@ -19,6 +19,7 @@
 #include <coretypes/event.h>
 #include <opendaq/logger.h>
 #include <coretypes/dictobject.h>
+#include <coreobjects/authentication_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,6 +46,7 @@ struct IModuleManager;
 /*#
  * [interfaceLibrary(ITypeManager, "coretypes")]
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
+ * [interfaceLibrary(IAuthenticationProvider, "coreobjects")]
  * [interfaceSmartPtr(IComponent, ComponentPtr, "<opendaq/context_ptr.fwd_declare.h>")]
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
@@ -70,6 +72,11 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @param[out] manager The type manager.
      */
     virtual ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** manager) = 0;
+    /*!
+     * @brief Gets the Authentication provider.
+     * @param[out] authenticationProvider The authentication provider.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) = 0;
 
     // [templateType(event, IComponent, ICoreEventArgs)]
     /*!
@@ -115,6 +122,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     ILogger*, Logger,
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
+    IAuthenticationProvider*, authenticationProvider,
     IDict*, options
 )
 

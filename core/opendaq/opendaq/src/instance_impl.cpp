@@ -92,6 +92,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto scheduler = builderPtr.getScheduler();
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
+    auto authenticationProvider = builderPtr.getAuthenticationProvider();
     auto options = builderPtr.getOptions();
 
     // Configure logger
@@ -119,7 +120,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
-    return Context(scheduler, logger, typeManager, moduleManager, options);
+    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options);
 }
 
 void InstanceImpl::stopServers()

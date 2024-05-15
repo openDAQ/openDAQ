@@ -48,7 +48,7 @@ protected:
     void SetUp() override
     {
         logger = getLogger();
-        context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr);
+        context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
         scheduler = context.getScheduler();
         signal = daq::Signal(context, nullptr, "sig");
     }

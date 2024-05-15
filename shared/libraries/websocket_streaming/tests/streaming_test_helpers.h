@@ -28,6 +28,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/sample_type_traits.h>
+#include <coreobjects/authentication_provider_factory.h>
 #include "streaming_protocol/Unit.hpp"
 
 namespace streaming_test_helpers
@@ -35,7 +36,8 @@ namespace streaming_test_helpers
     inline daq::InstancePtr createServerInstance()
     {
         const auto moduleManager = daq::ModuleManager("[[none]]");
-        auto context = Context(nullptr, daq::Logger(), daq::TypeManager(), moduleManager);
+        const auto authenticationProvider = daq::AuthenticationProvider();
+        auto context = Context(nullptr, daq::Logger(), daq::TypeManager(), moduleManager, authenticationProvider);
         const daq::ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
 

@@ -5,6 +5,8 @@
 #include <open62541/server_config_default.h>
 #include <open62541/plugin/log_stdout.h>
 #include <cassert>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
@@ -14,6 +16,7 @@ OpcUaServer::OpcUaServer()
     setPort(OPCUA_DEFAULT_PORT);
     createSessionContextCallback = [this](const OpcUaNodeId& sessionId) { return createSessionContextCallbackImp(sessionId); };
     deleteSessionContextCallback = [this](void* context) { deleteSessionContextCallbackImp(context); };
+    authenticationProvider = AuthenticationProvider();
 }
 
 void* OpcUaServer::createSessionContextCallbackImp(const OpcUaNodeId& sessionId)
@@ -46,17 +49,19 @@ void OpcUaServer::setPort(uint16_t port)
     this->port = port;
 }
 
+void OpcUaServer::setAuthenticationProvider(const AuthenticationProviderPtr& authenticationProvider)
+{
+    this->authenticationProvider = authenticationProvider;
+}
+
 void OpcUaServer::setSecurityConfig(OpcUaServerSecurityConfig* config)
 {
-    if (config == nullptr)
-        this->securityConfig.reset();
-    else
-        this->securityConfig = *config;
+    throw std::runtime_error("method setSecurityConfig() is deprecated");
 }
 
 const OpcUaServerSecurityConfig* OpcUaServer::getSecurityConfig() const
 {
-    return this->securityConfig.has_value() ? &this->securityConfig.value() : nullptr;
+    throw std::runtime_error("method getSecurityConfig() is deprecated");
 }
 
 void OpcUaServer::start()
@@ -90,9 +95,6 @@ void OpcUaServer::prepare()
             shutdownServer();
 
         prepareServer();
-
-        std::lock_guard<std::mutex> guard(serverMappingMutex);
-        serverMapping[server] = this;
     }
     catch (const OpcUaException&)
     {
@@ -120,15 +122,13 @@ void OpcUaServer::prepareServer()
     server = createServer();
     UA_ServerConfig* config = UA_Server_getConfig(server);
 
-    if (!securityConfig.has_value())
-        prepareServerMinimal(config);
-    else
-        prepareServerSecured(config);
+    prepareServerMinimal(config);
+    config->context = this;
+    config->nodeLifecycle.generateChildNodeId = generateChildId;
 
+    prepareAccessControl(config);
     addTmsTypes(server);
-    activateSession_default = config->accessControl.activateSession;
-    config->accessControl.activateSession = activateSession;
-    config->accessControl.closeSession = closeSession;
+
     eventManager->registerEvents();
 }
 
@@ -138,62 +138,18 @@ void OpcUaServer::prepareServerMinimal(UA_ServerConfig* config)
     CheckStatusCodeException(retval, "Failed to configure server minimal.");
 }
 
-void OpcUaServer::prepareServerSecured(UA_ServerConfig* config)
-{
-    securityConfig->validate();
-
-    if (!securityConfig->hasCertificate())
-        prepareServerMinimal(config);
-    else
-        prepareEncryption(config);
-
-    configureAppUri(config);
-    prepareAccessControl(config);
-}
-
-void OpcUaServer::prepareEncryption(UA_ServerConfig* config)
-{
-#ifdef OPCUA_ENABLE_ENCRYPTION
-    UA_StatusCode retval =
-        UA_ServerConfig_setDefaultWithSecurityPolicies(config,
-                                                       portUsed,
-                                                       &securityConfig->certificate.getValue(),
-                                                       &securityConfig->privateKey.getValue(),
-                                                       (securityConfig->trustAll) ? NULL : securityConfig->trustList.data(),
-                                                       (securityConfig->trustAll) ? 0 : securityConfig->trustList.size(),
-                                                       NULL,
-                                                       0,
-                                                       securityConfig->revocationList.data(),
-                                                       securityConfig->revocationList.size());
-
-    if (!securityConfig->trustAll && securityConfig->trustList.size() == 0)
-        config->certificateVerification.verifyCertificate = OpcUaSecurityCommon::verifyCertificateRejectAll;
-
-    if (retval != UA_STATUSCODE_GOOD)
-        throw OpcUaException(retval, "Failed to configure security policies.");
-#else
-    throw OpcUaException(UA_STATUSCODE_BADINTERNALERROR, "Encryption was not enabled when building the project.");
-#endif
-}
-
 void OpcUaServer::prepareAccessControl(UA_ServerConfig* config)
 {
     config->accessControl.clear(&config->accessControl);
-    UA_StatusCode retval =
-        UA_AccessControl_default(config, true, NULL, &config->securityPolicies[config->securityPoliciesSize - 1].policyUri, 0, NULL);
 
-    if (retval != UA_STATUSCODE_GOOD)
-        throw OpcUaException(retval, "Failed to configure server access control.");
-}
+    auto status =
+        UA_AccessControl_default(config, false, NULL, &config->securityPolicies[config->securityPoliciesSize - 1].policyUri, 0, nullptr);
 
-void OpcUaServer::configureAppUri(UA_ServerConfig* config)
-{
-    std::optional<std::string> appUri = securityConfig->getAppUriOrParseFromCertificate();
-    if (appUri.has_value())
-    {
-        UA_String_clear(&config->applicationDescription.applicationUri);
-        config->applicationDescription.applicationUri = UA_STRING_ALLOC(appUri.value().c_str());
-    }
+    CheckStatusCodeException(status, "Failed to configure access control.");
+
+    activateSession_default = config->accessControl.activateSession;
+    config->accessControl.activateSession = activateSession;
+    config->accessControl.closeSession = closeSession;
 }
 
 void OpcUaServer::shutdownServer()
@@ -207,12 +163,64 @@ void OpcUaServer::shutdownServer()
     if (isPrepared())
     {
         UA_Server_delete(server);
-        std::lock_guard<std::mutex> guard(serverMappingMutex);
-        serverMapping.erase(server);
         server = nullptr;
     }
 
     assert(sessionContext.size() == 0);
+}
+
+UA_StatusCode OpcUaServer::validateIdentityToken(const UA_ExtensionObject* token)
+{
+    if (token->content.decoded.type == &UA_TYPES[UA_TYPES_USERNAMEIDENTITYTOKEN])
+    {
+        if (isUsernameIdentityTokenValid((UA_UserNameIdentityToken*) token->content.decoded.data))
+            return UA_STATUSCODE_GOOD;
+    }
+    else if (token->content.decoded.type == &UA_TYPES[UA_TYPES_ANONYMOUSIDENTITYTOKEN])
+    {
+        if (isAnonymousIdentityTokenValid((UA_AnonymousIdentityToken*) token->content.decoded.data))
+            return UA_STATUSCODE_GOOD;
+    }
+    else
+    {
+        return UA_STATUSCODE_BADIDENTITYTOKENINVALID;
+    }
+
+    return UA_STATUSCODE_BADUSERACCESSDENIED;
+}
+
+bool OpcUaServer::isUsernameIdentityTokenValid(const UA_UserNameIdentityToken* token)
+{
+    const auto username = utils::ToStdString(token->userName);
+    const auto password = utils::ToStdString(token->password);
+
+    try
+    {
+        authenticationProvider.authenticate(username, password);
+    }
+    catch (const DaqException&)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool OpcUaServer::isAnonymousIdentityTokenValid(const UA_AnonymousIdentityToken* /*token*/)
+{
+    return authenticationProvider.isAnonymousAllowed();
+}
+
+void OpcUaServer::createSession(const OpcUaNodeId& sessionId, void** sessionContext)
+{
+    bool sessionContextAlreadyCreated = *sessionContext != nullptr;
+
+    if (createSessionContextCallback && !sessionContextAlreadyCreated)
+    {
+        *sessionContext = createSessionContextCallback(sessionId);
+        if (*sessionContext != nullptr)
+            this->sessionContext.insert(*sessionContext);
+    }
 }
 
 void OpcUaServer::execute()
@@ -517,33 +525,11 @@ bool OpcUaServer::referenceExists(const OpcUaNodeId& sourceId, const OpcUaNodeId
     return false;
 }
 
-std::mutex OpcUaServer::serverMappingMutex;
-std::map<UA_Server*, OpcUaServer*> OpcUaServer::serverMapping;
-
 OpcUaServer* OpcUaServer::getServer(UA_Server* server)
 {
-    std::lock_guard<std::mutex> guard(serverMappingMutex);
-    auto it = serverMapping.find(server);
-    if (it != serverMapping.end())
-        return (*it).second;
-    return nullptr;
-}
-
-UA_StatusCode OpcUaServer::authenticateUser(OpcUaServer* serverInstance, const UA_ExtensionObject* userIdentityToken)
-{
-    UA_StatusCode status = UA_STATUSCODE_BADUSERACCESSDENIED;
-
-    if (userIdentityToken->content.decoded.type == &UA_TYPES[UA_TYPES_ANONYMOUSIDENTITYTOKEN])
-        status = serverInstance->securityConfig->authenticateUser(true, "", "");
-    else if (userIdentityToken->content.decoded.type == &UA_TYPES[UA_TYPES_USERNAMEIDENTITYTOKEN])
-    {
-        const UA_UserNameIdentityToken* userToken = (UA_UserNameIdentityToken*) userIdentityToken->content.decoded.data;
-        std::string username = utils::ToStdString(userToken->userName);
-        std::string password = utils::ToStdString(userToken->password);
-        status = serverInstance->securityConfig->authenticateUser(false, username, password);
-    }
-
-    return status;
+    auto config = UA_Server_getConfig(server);
+    assert(config != nullptr && config->context != nullptr);
+    return (OpcUaServer*)  config->context;
 }
 
 UA_StatusCode OpcUaServer::activateSession(UA_Server* server,
@@ -555,31 +541,26 @@ UA_StatusCode OpcUaServer::activateSession(UA_Server* server,
                                            void** sessionContext)
 {
     OpcUaServer* serverInstance = getServer(server);
-    OpcUaSecurityConfig* securityConfig = serverInstance->securityConfig.has_value() ? &serverInstance->securityConfig.value() : nullptr;
 
-    if (securityConfig != nullptr && securityConfig->securityMode != endpointDescription->securityMode)
-        return UA_STATUSCODE_BADSECURITYMODEREJECTED;
-
-    void* unusedSessionContext = nullptr;  // activateSession_default resets sessionContext. Subsequent calls should keep the session
-                                           // context
+    // activateSession_default resets sessionContext. Subsequent calls should keep the context
+    void* unusedSessionContext = nullptr;
     UA_StatusCode status = serverInstance->activateSession_default(
         server, ac, endpointDescription, secureChannelRemoteCertificate, sessionId, userIdentityToken, &unusedSessionContext);
     assert(unusedSessionContext == nullptr);
 
-    if (securityConfig != nullptr && (status == UA_STATUSCODE_GOOD || status == UA_STATUSCODE_BADUSERACCESSDENIED))
-        status = authenticateUser(serverInstance, userIdentityToken);
-
-    if (status != UA_STATUSCODE_GOOD)
-        return status;
-
-    bool sessionContextAlreadyCreated = *sessionContext != nullptr;
-    if (serverInstance->createSessionContextCallback && !sessionContextAlreadyCreated)
+    switch (status)
     {
-        OpcUaNodeId sessionNodeId(*sessionId, true);
-        *sessionContext = serverInstance->createSessionContextCallback(sessionNodeId);
-        if (*sessionContext != nullptr)
-            serverInstance->sessionContext.insert(*sessionContext);
+        case UA_STATUSCODE_GOOD:
+        case UA_STATUSCODE_BADUSERACCESSDENIED:
+        case UA_STATUSCODE_BADIDENTITYTOKENINVALID:
+        {
+            status = serverInstance->validateIdentityToken(userIdentityToken);
+            break;
+        }
     }
+
+    if (status == UA_STATUSCODE_GOOD)
+        serverInstance->createSession(*sessionId, sessionContext);
 
     return status;
 }
@@ -597,6 +578,43 @@ void OpcUaServer::closeSession(UA_Server* server, UA_AccessControl* ac, const UA
     if (serverInstance->deleteSessionContextCallback)
         serverInstance->deleteSessionContextCallback(sessionContext);
 }
+
+
+UA_StatusCode OpcUaServer::generateChildId(UA_Server* server,
+                                           const UA_NodeId*/*sessionId*/,
+                                           void*/*sessionContext*/,
+                                           const UA_NodeId* sourceNodeId,
+                                           const UA_NodeId* targetParentNodeId,
+                                           const UA_NodeId*/*referenceTypeId*/,
+                                           UA_NodeId* targetNodeId)
+{
+    if (targetParentNodeId->identifierType == UA_NODEIDTYPE_STRING) {
+        const std::string parentNodeIdStr = utils::ToStdString(targetParentNodeId->identifier.string);
+        std::string objectTypeIdStr;
+
+        if (sourceNodeId->identifierType == UA_NODEIDTYPE_STRING)
+        {
+            objectTypeIdStr = utils::ToStdString(sourceNodeId->identifier.string);
+        }
+        else if (sourceNodeId->identifierType == UA_NODEIDTYPE_NUMERIC)
+        {
+            UA_QualifiedName* browseName = UA_QualifiedName_new();
+            UA_Server_readBrowseName(server, *sourceNodeId, browseName);
+            objectTypeIdStr = utils::ToStdString(browseName->name);
+            UA_QualifiedName_delete(browseName);
+        }
+        else
+        {
+            return UA_STATUSCODE_GOOD;
+        }
+
+        const auto newNodeIdStr = parentNodeIdStr + "/" + objectTypeIdStr;
+        *targetNodeId = UA_NODEID_STRING_ALLOC(targetParentNodeId->namespaceIndex, newNodeIdStr.c_str());
+    }
+
+    return UA_STATUSCODE_GOOD;
+}
+
 
 bool OpcUaServer::passwordLock(const std::string& password)
 {

@@ -11,6 +11,7 @@
 #include <regex>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -78,16 +79,19 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
     auto deviceType = createDeviceType();
     result.set(deviceType.getId(), deviceType);
-
     return result;
 }
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& config)
+                                            const PropertyObjectPtr& aConfig)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
+
+    PropertyObjectPtr config = aConfig;
+    if (!config.assigned())
+        config = createDefaultConfig();
 
     if (!onAcceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
@@ -104,7 +108,18 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         throw InvalidParameterException("OpcUa does not support connection string with prefix " + prefix);
 
     std::scoped_lock lock(sync);
-    TmsClient client(context, parent, OpcUaScheme + host + ":" + port + path);
+
+    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + ":" + port + path);
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("Username"))
+            endpoint.setUsername(config.getPropertyValue("Username"));
+        if (config.hasProperty("Password"))
+            endpoint.setPassword(config.getPropertyValue("Password"));
+    }
+
+    TmsClient client(context, parent, endpoint);
     auto device = client.connect();
     completeDeviceServerCapabilities(device, host);
     return device;
@@ -161,9 +176,18 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
 {
-    return DeviceType(DaqOpcUaDeviceTypeId,
-                      "OpcUa enabled device",
-                      "Network device connected over OpcUa protocol");
+    const auto config = createDefaultConfig();
+    return DeviceType(DaqOpcUaDeviceTypeId, "OpcUa enabled device", "Network device connected over OpcUa protocol", config);
+}
+
+PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
+{
+    auto config = PropertyObject();
+
+    config.addProperty(StringProperty("Username", ""));
+    config.addProperty(StringProperty("Password", ""));
+
+    return config;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

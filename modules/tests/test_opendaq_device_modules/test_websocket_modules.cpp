@@ -1,5 +1,6 @@
 #include "test_helpers/test_helpers.h"
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 using WebsocketModulesTest = testing::Test;
 using namespace test_config_provider_helpers;
@@ -12,7 +13,8 @@ static InstancePtr CreateServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 

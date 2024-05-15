@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
 #include <chrono>
 #include <thread>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestSignal : public testing::TestWithParam<StringPtr>
+class RegressionTestSignal : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -23,23 +23,23 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        device = instance.addDevice(GetParam());
+        device = instance.addDevice(connectionString);
 
         signal = instance.getSignalsRecursive()[0];
     }
 };
 
-TEST_P(RegressionTestSignal, getPublic)
+TEST_F(RegressionTestSignal, getPublic)
 {
     ASSERT_NO_THROW(signal.getPublic());
 }
 
-TEST_P(RegressionTestSignal, setPublic)
+TEST_F(RegressionTestSignal, setPublic)
 {
     ASSERT_NO_THROW(signal.setPublic(True));
 }
 
-TEST_P(RegressionTestSignal, getDescriptor)
+TEST_F(RegressionTestSignal, getDescriptor)
 {
     DataDescriptorPtr descriptor;
     ASSERT_NO_THROW(descriptor = signal.getDescriptor());
@@ -60,9 +60,8 @@ TEST_P(RegressionTestSignal, getDescriptor)
     ASSERT_EQ(descriptor.getMetadata().getCount(), 0);
 }
 
-TEST_P(RegressionTestSignal, getDomainSignal)
+TEST_F(RegressionTestSignal, getDomainSignal)
 {
-    StringPtr connectionString = GetParam();
     StringPtr name;
     StringPtr localID;
     SampleType sampleType;  // TODO: why different in lt?
@@ -114,42 +113,42 @@ TEST_P(RegressionTestSignal, getDomainSignal)
     ASSERT_EQ(domain.getRelatedSignals().getCount(), 0);
 }
 
-TEST_P(RegressionTestSignal, getRelatedSignals)
+TEST_F(RegressionTestSignal, getRelatedSignals)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = signal.getRelatedSignals());
     ASSERT_EQ(signals.getCount(), 0);
 }
 
-TEST_P(RegressionTestSignal, getConnections)
+TEST_F(RegressionTestSignal, getConnections)
 {
     ListPtr<IConnection> connections;
     ASSERT_NO_THROW(connections = signal.getConnections());
     ASSERT_EQ(connections.getCount(), 0);
 }
 
-TEST_P(RegressionTestSignal, getStreamed)
+TEST_F(RegressionTestSignal, getStreamed)
 {
     Bool streamed;
     ASSERT_NO_THROW(streamed = signal.getStreamed());
     ASSERT_EQ(streamed, true);
 }
 
-TEST_P(RegressionTestSignal, setStreamed)
+TEST_F(RegressionTestSignal, setStreamed)
 {
     ASSERT_NO_THROW(signal.setStreamed(True));
 }
 
-TEST_P(RegressionTestSignal, getLastValue)
+TEST_F(RegressionTestSignal, getLastValue)
 {
     BaseObjectPtr lastValue;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(lastValue = signal.getLastValue());  // TODO: not needed?
-    if (GetParam() == "daq.opcua://127.0.0.1")           // TODO: ???
+    if (connectionString == "daq.opcua://127.0.0.1")     // TODO: ???
         ASSERT_TRUE(lastValue.assigned());
 }
 
-TEST_P(RegressionTestSignal, reader)
+TEST_F(RegressionTestSignal, reader)
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];
@@ -159,7 +158,7 @@ TEST_P(RegressionTestSignal, reader)
     ASSERT_GT(count, 0);
 }
 
-TEST_P(RegressionTestSignal, readerWithDomain)
+TEST_F(RegressionTestSignal, readerWithDomain)
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];
@@ -169,7 +168,3 @@ TEST_P(RegressionTestSignal, readerWithDomain)
     ASSERT_NO_THROW(reader.readWithDomain(samples, domain, &count));
     ASSERT_GT(count, 0);
 }
-
-INSTANTIATE_TEST_SUITE_P(Signal,
-                         RegressionTestSignal,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

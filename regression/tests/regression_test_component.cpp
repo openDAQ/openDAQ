@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <opendaq/mock/mock_device_module.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestComponent : public testing::TestWithParam<StringPtr>
+class RegressionTestComponent : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -16,21 +16,21 @@ protected:
 
     void SetUp() override
     {
+
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
         instance = InstanceCustom(context, "mock_instance");
 
-        component = instance.addDevice(GetParam());
+        component = instance.addDevice(connectionString);
     }
 };
 
-TEST_P(RegressionTestComponent, getLocalId)
+TEST_F(RegressionTestComponent, getLocalId)
 {
     StringPtr id;
     ASSERT_NO_THROW(id = component.getLocalId());
     StringPtr realId;
-    auto connectionString = GetParam();
     if (connectionString == "daq.opcua://127.0.0.1")
         realId = "ref_dev1";
     else if (connectionString == "daq.ns://127.0.0.1")
@@ -40,12 +40,11 @@ TEST_P(RegressionTestComponent, getLocalId)
     ASSERT_EQ(id, realId);
 }
 
-TEST_P(RegressionTestComponent, getGlobalId)
+TEST_F(RegressionTestComponent, getGlobalId)
 {
     StringPtr id;
     ASSERT_NO_THROW(id = component.getGlobalId());
     StringPtr realId;
-    auto connectionString = GetParam();
     if (connectionString == "daq.opcua://127.0.0.1")
         realId = "/mock_instance/Dev/ref_dev1";
     else if (connectionString == "daq.ns://127.0.0.1")
@@ -55,7 +54,7 @@ TEST_P(RegressionTestComponent, getGlobalId)
     ASSERT_EQ(id, realId);
 }
 
-TEST_P(RegressionTestComponent, setActiveGetActive)
+TEST_F(RegressionTestComponent, setActiveGetActive)
 {
     ASSERT_NO_THROW(component.setActive(True));
     Bool active;
@@ -63,7 +62,7 @@ TEST_P(RegressionTestComponent, setActiveGetActive)
     ASSERT_TRUE(active);
 }
 
-TEST_P(RegressionTestComponent, setNameGetName)
+TEST_F(RegressionTestComponent, setNameGetName)
 {
     StringPtr newName = "test_name";
     ASSERT_NO_THROW(component.setName(newName));
@@ -72,7 +71,7 @@ TEST_P(RegressionTestComponent, setNameGetName)
     ASSERT_EQ(name, newName);
 }
 
-TEST_P(RegressionTestComponent, setDescriptionGetDescription)
+TEST_F(RegressionTestComponent, setDescriptionGetDescription)
 {
     StringPtr newDescription = "test_description";
     ASSERT_NO_THROW(component.setDescription(newDescription));
@@ -81,14 +80,14 @@ TEST_P(RegressionTestComponent, setDescriptionGetDescription)
     ASSERT_EQ(description, newDescription);
 }
 
-TEST_P(RegressionTestComponent, getTags)
+TEST_F(RegressionTestComponent, getTags)
 {
     TagsPtr tags;
     ASSERT_NO_THROW(tags = component.getTags());
     ASSERT_TRUE(tags.assigned());
 }
 
-TEST_P(RegressionTestComponent, setVisibleGetVisible)
+TEST_F(RegressionTestComponent, setVisibleGetVisible)
 {
     ASSERT_NO_THROW(component.setVisible(True));  // TODO: does nothing, because the attribute is locked
     Bool visible;
@@ -96,20 +95,16 @@ TEST_P(RegressionTestComponent, setVisibleGetVisible)
     ASSERT_TRUE(visible);
 }
 
-TEST_P(RegressionTestComponent, getLockedAttributes)
+TEST_F(RegressionTestComponent, getLockedAttributes)
 {
     ListPtr<IString> lockedAttributes;
     ASSERT_NO_THROW(lockedAttributes = component.getLockedAttributes());
     ASSERT_EQ(lockedAttributes.getCount(), 1);
 }
 
-TEST_P(RegressionTestComponent, getStatusContainer)
+TEST_F(RegressionTestComponent, getStatusContainer)
 {
     ComponentStatusContainerPtr container;
     ASSERT_NO_THROW(container = component.getStatusContainer());
     ASSERT_TRUE(container.assigned());
 }
-
-INSTANTIATE_TEST_SUITE_P(Component,
-                         RegressionTestComponent,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

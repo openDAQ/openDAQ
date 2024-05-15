@@ -117,7 +117,10 @@ jobs:
           ./quick_start_simulator &
           sleep 5
           cd ../../../current/build
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
+          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
+          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
+          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test
 
       - name: Upload regression test results
         if: always()

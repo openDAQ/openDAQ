@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestInputPort : public testing::TestWithParam<StringPtr>
+class RegressionTestInputPort : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -23,7 +23,7 @@ protected:
         instance = InstanceCustom(context, "mock_instance");
 
         // TODO: to be able to get input port from functin block
-        instance.setRootDevice(GetParam());
+        instance.setRootDevice(connectionString);
         device = instance.getRootDevice();
 
         // TODO: should not rely on "ref_fb_module_trigger" being present
@@ -35,7 +35,7 @@ protected:
     }
 };
 
-TEST_P(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDisconnect)
+TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDisconnect)
 {
     // TODO: fails here for OPC UA
     auto signal = device.getSignals()[0];
@@ -48,12 +48,7 @@ TEST_P(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDiscon
     ASSERT_NO_THROW(port.disconnect());
 }
 
-TEST_P(RegressionTestInputPort, getRequiresSignal)
+TEST_F(RegressionTestInputPort, getRequiresSignal)
 {
     ASSERT_NO_THROW(port.getRequiresSignal());
 }
-
-// TODO: ???
-INSTANTIATE_TEST_SUITE_P(InputPort,
-                         RegressionTestInputPort,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

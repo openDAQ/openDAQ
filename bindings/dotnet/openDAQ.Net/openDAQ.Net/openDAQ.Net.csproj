@@ -14,7 +14,7 @@
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
     <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.0.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>16</_BuildNumber>
+    <_BuildNumber>17</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -141,12 +141,12 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <!-- Linux runtimes -->
-    <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.*" Exclude="$(_SdkOutputPathLinux64)\*.module.*" />
+    <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.so" Exclude="$(_SdkOutputPathLinux64)\*.module.so" />
     <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.*" />
-    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)\modules')">
+    <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.so" />
+    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -184,9 +184,9 @@
   <Target Name="MessageAfterCompile" BeforeTargets="AfterCompile">
     <Message Importance="High" Text="+++++++++++++++++++++++ Compiling of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
   </Target>
-  <Target Name="MessageBeforePack" BeforeTargets="Pack">
-    <!-- strangely these messages appear AFTER the NuGet package creation was reported -->
-    <Message Importance="High" Text="+++++++++++++++++++++++ Packed $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  <Target Name="MessageBeforePack" BeforeTargets="GenerateNuspec">
+    <!-- strangely target "Pack" messages appear AFTER the NuGet package creation was reported so using "GenerateNuspec" instead -->
+    <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
     <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />

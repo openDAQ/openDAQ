@@ -102,7 +102,7 @@ TEST_F(InputPortTest, UnconnectableSignal)
 TEST_F(InputPortTest, SwitchToSameThreadNotification)
 {
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
-    ASSERT_NO_THROW(inputPort.notifyPacketEnqueued());
+    ASSERT_NO_THROW(inputPort.notifyPacketEnqueued(True));
 }
 
 TEST_F(InputPortTest, StandardProperties)

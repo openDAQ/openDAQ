@@ -47,6 +47,14 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
         },
         py::arg("packet"),
         "Places a packet at the back of the queue.");
+    cls.def("enqueue_multiple",
+        [](daq::IConnection *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueMultiple(packets);
+        },
+        py::arg("packets"),
+        "Places multiple packets at the back of the queue.");
     cls.def("enqueue_on_this_thread",
         [](daq::IConnection *object, daq::IPacket* packet)
         {
@@ -62,6 +70,13 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.dequeue().detach();
         },
         "Removes the packet at the front of the queue and returns it.");
+    cls.def("dequeue_all",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.dequeueAll().detach();
+        },
+        "Removes all packets from the queue.");
     cls.def("peek",
         [](daq::IConnection *object)
         {

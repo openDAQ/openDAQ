@@ -31,6 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class DataDescriptorImpl : public GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>
 {
 public:
+    using Super = GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>;
+
     explicit DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder);
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -52,12 +54,12 @@ public:
     // IScalingCalcPrivate
     void* INTERFACE_FUNC scaleData(void* data, SizeT sampleCount) const override;
     void INTERFACE_FUNC scaleData(void* data, SizeT sampleCount, void** output) const override;
-    bool INTERFACE_FUNC hasScalingCalc() const override;
+    Bool INTERFACE_FUNC hasScalingCalc() const override;
 
     // IDataRuleCalcPrivate
     void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const override;
     void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const override;
-    bool INTERFACE_FUNC hasDataRuleCalc() const override;
+    Bool INTERFACE_FUNC hasDataRuleCalc() const override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -65,6 +67,10 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
 protected:
     ListPtr<IDimension> dimensions;

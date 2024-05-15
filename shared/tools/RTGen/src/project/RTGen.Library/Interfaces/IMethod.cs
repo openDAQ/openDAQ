@@ -33,6 +33,9 @@ namespace RTGen.Interfaces
         /// <summary>If the method should not be generated for a certain generator.</summary>
         bool ReturnSelf { get; set; }
 
+        /// <summary>Generate steal reference overload for another function.</summary>
+        string OverloadFor { get; set; }
+
         /// <summary>The calling convention used to call the method.</summary>
         /// <example>__stdcall, __cdecl, __fastcall</example>
         string CallingConvention { get; }

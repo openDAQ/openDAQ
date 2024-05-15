@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/scheduler.h>
 #include <coretypes/intfs.h>
+#include <opendaq/work.h>
 #include <gmock/gmock.h>
 #include <coretypes/gmock/mock_ptr.h>
 
@@ -28,8 +29,9 @@ struct MockScheduler : daq::ImplementationOf<daq::IScheduler>
         MockScheduler
     > Strict;
 
-    MOCK_METHOD(daq::ErrCode, scheduleWork, (daq::IFunction* work, daq::IAwaitable** awaitable), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, scheduleGraph, (daq::ITaskGraph* graph, daq::IAwaitable** awaitable), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, scheduleFunction, (daq::IFunction* work, daq::IAwaitable** awaitable), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, scheduleWork, (daq::IWork* work), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, scheduleGraph, (daq::ITaskGraph * graph, daq::IAwaitable** awaitable), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, stop, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, waitAll, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, isMultiThreaded, (daq::Bool* multiThreaded), (override MOCK_CALL));

@@ -1,6 +1,7 @@
 #include <testutils/testutils.h>
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/scheduler_exceptions.h>
+#include <opendaq/work_factory.h>
 
 #include "test_scheduler.h"
 
@@ -17,11 +18,11 @@ public:
     }
 };
 
-TEST_F(AwaitableTest, WorkWait)
+TEST_F(AwaitableTest, FunctionWait)
 {
     auto returnValue = 1;
 
-    auto awaitable = scheduler.scheduleWork([returnValue]()
+    auto awaitable = scheduler.scheduleFunction([returnValue]()
     {
         return returnValue;
     });
@@ -37,7 +38,8 @@ TEST_F(AwaitableTest, GetResultBlocks)
     auto returnValue = 1;
     std::atomic<bool> executed(false);
 
-    auto awaitable = scheduler.scheduleWork([returnValue, &executed]() {
+    auto awaitable = scheduler.scheduleFunction([returnValue, &executed]()
+    {
         using namespace std::literals;
 
         std::this_thread::sleep_for(2s);
@@ -58,7 +60,7 @@ TEST_F(AwaitableTest, GetResultBlocks)
 
 TEST_F(AwaitableTest, CancelNotYetExecuted)
 {
-    auto blocker = scheduler.scheduleWork([]() {
+    auto blocker = scheduler.scheduleFunction([]() {
         using namespace std::literals;
 
         std::this_thread::sleep_for(2s);
@@ -66,7 +68,8 @@ TEST_F(AwaitableTest, CancelNotYetExecuted)
     });
 
     std::atomic<bool> executed(false);
-    auto awaitable = scheduler.scheduleWork([&executed](bool canceled) {
+    auto awaitable = scheduler.scheduleFunction([&executed](bool canceled)
+    {
         executed = true;
         return 2;
     });
@@ -78,14 +81,32 @@ TEST_F(AwaitableTest, CancelNotYetExecuted)
     blocker.wait();
 }
 
-TEST_F(AwaitableTest, WorkThrows)
+TEST_F(AwaitableTest, FunctionThrows)
 {
     auto scheduler = Scheduler(daq::Logger());
 
-    auto awaitable = scheduler.scheduleWork([]() -> Int {
+    auto awaitable = scheduler.scheduleFunction([]() -> Int {
         throw SchedulerUnknownException("MockException");
     });
 
     ASSERT_NO_THROW(awaitable.wait());
     ASSERT_THROW_MSG(awaitable.getResult(), SchedulerUnknownException, "MockException")
+}
+
+TEST_F(AwaitableTest, Work)
+{
+    std::mutex mut;
+    std::condition_variable cv;
+
+    auto workExecuted = false;
+    scheduler.scheduleWork(Work([&workExecuted, &mut, &cv]()
+        {
+            std::unique_lock lock(mut);
+            workExecuted = true;
+            cv.notify_one();
+        }));
+
+    std::unique_lock lock(mut);
+    while (!workExecuted)
+        cv.wait(lock);
 }

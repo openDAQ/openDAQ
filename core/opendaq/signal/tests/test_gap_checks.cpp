@@ -6,6 +6,7 @@
 #include <opendaq/connection_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/sample_type_traits.h>
+#include <opendaq/event_packet_params.h>
 
 using namespace daq;
 using namespace testing;
@@ -161,7 +162,8 @@ TYPED_TEST(GapCheckTest, Gap)
     connection.enqueue(packet2);
 
     pkt = connection.dequeue();
-    ASSERT_EQ(pkt.asPtrOrNull<IEventPacket>(true).getParameters().get("GapDiff"), 100);
+    ASSERT_EQ(pkt.asPtrOrNull<IEventPacket>(true).getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_EQ(pkt.asPtrOrNull<IEventPacket>(true).getParameters().get(event_packet_param::GAP_DIFF), 100);
 
     pkt = connection.dequeue();
     ASSERT_EQ(pkt, packet2);

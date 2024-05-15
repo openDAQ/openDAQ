@@ -12,7 +12,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , microSecondsFromEpochToDeviceStart(0)
@@ -26,7 +26,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPt
     initIoFolder();
     initSyncComponent();
     initClock();
-    initProperties();
+    initProperties(config);
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
@@ -121,11 +121,21 @@ void RefDeviceImpl::initSyncComponent()
 void RefDeviceImpl::acqLoop()
 {
     using namespace std::chrono_literals;
+    using  milli = std::chrono::milliseconds;
+
+    auto startLoopTime = std::chrono::high_resolution_clock::now();
+    const auto loopTime = milli(acqLoopTime);
 
     std::unique_lock<std::mutex> lock(sync);
+
     while (!stopAcq)
     {
-        cv.wait_for(lock, std::chrono::milliseconds(acqLoopTime));
+        const auto time = std::chrono::high_resolution_clock::now();
+        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
+        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
+        startLoopTime = time;
+
+        cv.wait_for(lock, waitTime);
         if (!stopAcq)
         {
             auto curTime = getMicroSecondsSinceDeviceStart();
@@ -145,9 +155,34 @@ void RefDeviceImpl::acqLoop()
     }
 }
 
-void RefDeviceImpl::initProperties()
+void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
-    objPtr.addProperty(IntProperty("NumberOfChannels", 2));
+    size_t numberOfChannels = 2;
+    bool enableCANChannel = false;
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("NumberOfChannels"))
+            numberOfChannels = config.getPropertyValue("NumberOfChannels");
+
+        if (config.hasProperty("EnableCANChannel"))
+            enableCANChannel = config.getPropertyValue("EnableCANChannel");
+    } 
+
+    auto options = context.getModuleOptions("RefDevice");
+    if (options.getCount() > 0)
+    {
+        if (options.hasKey("NumberOfChannels"))
+            numberOfChannels = options.get("NumberOfChannels");
+
+        if (options.hasKey("EnableCANChannel"))
+            enableCANChannel = options.get("EnableCANChannel");
+    }
+
+    if (numberOfChannels < 1 || numberOfChannels > 4096)
+        throw InvalidParameterException("Invalid number of channels");
+
+    objPtr.addProperty(IntProperty("NumberOfChannels", numberOfChannels));
     objPtr.getOnPropertyValueWrite("NumberOfChannels") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
 		
@@ -166,27 +201,9 @@ void RefDeviceImpl::initProperties()
         updateAcqLoopTime();
     };
 
-    objPtr.addProperty(BoolProperty("EnableCANChannel", False));
+    objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { enableCANChannel(); };
-
-    auto options = context.getModuleOptions("RefDevice");
-    if (options.getCount() == 0)
-        return;
-
-    if (options.hasKey("NumberOfChannels"))
-    {
-        auto value = options.get("NumberOfChannels");
-        if (value.getCoreType() == CoreType::ctInt)
-            objPtr.setPropertyValue("NumberOfChannels", value);
-    }
-
-    if (options.hasKey("EnableCANChannel"))
-    {
-        auto value = options.get("EnableCANChannel");
-        if (value.getCoreType() == CoreType::ctBool)
-            objPtr.setPropertyValue("EnableCANChannel", value);
-    }
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
 }
 
 void RefDeviceImpl::updateNumberOfChannels()

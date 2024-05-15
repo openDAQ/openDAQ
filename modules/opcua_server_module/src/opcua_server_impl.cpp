@@ -58,6 +58,7 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context
     defaultConfig.addProperty(StringProperty("Model", ""));
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
     defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
+    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(portProp);

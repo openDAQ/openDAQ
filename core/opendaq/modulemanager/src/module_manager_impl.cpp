@@ -249,9 +249,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-            if (manufacturer.getLength() == 0 ||
-                serialNumber.getLength() == 0 ||
-                deviceInfo.getServerCapabilities().getCount() == 0)
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -265,10 +263,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                     for (const auto & capability : deviceInfo.getServerCapabilities())
                         if (!value.hasServerCapability(capability.getProtocolId()))
                             value.addServerCapability(capability);
+                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                 }
                 else
                 {
-                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                     groupedDevices.set(id, deviceInfo);
                 }
             }

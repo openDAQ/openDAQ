@@ -28,7 +28,7 @@ void WebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const Conte
     if (!config.assigned())
         return;
 
-    auto options = context.getModuleOptions("WebsocketStreamingServer");
+    auto options = context.getModuleOptions("StreamingLtServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))

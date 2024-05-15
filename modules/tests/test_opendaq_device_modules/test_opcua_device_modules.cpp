@@ -3,8 +3,11 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
+#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 
 using OpcuaDeviceModulesTest = testing::Test;
+using namespace test_config_provider_helpers;
+using OpcuaDeviceModuleTestConfig = ConfigProviderTest;
 
 using namespace daq;
 
@@ -56,7 +59,42 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
     auto client = Instance();
-    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]"));
+    client.addDevice("daq.opcua://[::1]");
+}
+
+TEST_F(OpcuaDeviceModuleTestConfig, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "OpcUaServer":
+                {
+                    "ServiceDiscoverable": true,
+                    "Port": 1234,
+                    "Name": "opcua server",
+                    "Manufacturer": "test",
+                    "Model": "test device",
+                    "SerialNumber": "test_serial_number",
+                    "ServicePath": "/some/path"
+                }
+            }
+        }
+    )";
+    createConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+
+    ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
+    ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Name").asPtr<IString>(), "opcua server");
+    ASSERT_EQ(serverConfig.getPropertyValue("Manufacturer").asPtr<IString>(), "test");
+    ASSERT_EQ(serverConfig.getPropertyValue("Model").asPtr<IString>(), "test device");
+    ASSERT_EQ(serverConfig.getPropertyValue("SerialNumber").asPtr<IString>(), "test_serial_number");
+    ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
@@ -90,6 +128,58 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
             }
         }
     }
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(OpcuaDeviceModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "OpcUaServer":
+                {
+                    "ServiceDiscoverable": true,
+                    "Port": 1234,
+                    "Name": "opcua server",
+                    "Manufacturer": "test",
+                    "Model": "test device",
+                    "SerialNumber": "opcua_test_serial_number",
+                    "ServicePath": "/some/path"
+                }
+            }
+        }
+    )";
+    createConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    instance.addServer("openDAQ OpcUa", serverConfig);
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        if (deviceInfo.getSerialNumber() != "opcua_test_serial_number")
+            continue;
+
+        ASSERT_EQ(deviceInfo.getServerCapabilities().getCount(), 1u);
+
+        device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+
+        ASSERT_EQ(deviceInfo.getName(), "opcua server");
+        ASSERT_EQ(deviceInfo.getManufacturer(), "test");
+        ASSERT_EQ(deviceInfo.getModel(), "test device");
+        ASSERT_EQ(deviceInfo.getSerialNumber(), "opcua_test_serial_number");
+
+        std::string connectionString = deviceInfo.getConnectionString();    
+        std::string servicePath = "/some/path";
+        std::string connectionPath = connectionString.substr(connectionString.size() - servicePath.size());
+        ASSERT_EQ(connectionPath, servicePath);   
+    }
+
     ASSERT_TRUE(device.assigned());
 }
 

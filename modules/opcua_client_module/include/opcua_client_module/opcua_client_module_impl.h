@@ -34,7 +34,7 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
+    static std::tuple<std::string, std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
     static DeviceTypePtr createDeviceType();
     static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
     discovery::DiscoveryClient discoveryClient;

@@ -1,6 +1,9 @@
 #include "test_helpers/test_helpers.h"
+#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 
 using WebsocketModulesTest = testing::Test;
+using namespace test_config_provider_helpers;
+using WebsocketModuleTestConfig = ConfigProviderTest;
 using namespace daq;
 
 static InstancePtr CreateServerInstance()
@@ -57,6 +60,41 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     client.addDevice("daq.lt://[::1]", nullptr);
 }
 
+TEST_F(WebsocketModuleTestConfig, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "ServiceDiscoverable": true,
+                    "Port": 1234,
+                    "Name": "streaming lt server",
+                    "Manufacturer": "test",
+                    "Model": "test device",
+                    "SerialNumber": "test_serial_number",
+                    "ServicePath": "/some/path"
+                }
+            }
+        }
+    )";
+    createConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+
+    ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
+    ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Name").asPtr<IString>(), "streaming lt server");
+    ASSERT_EQ(serverConfig.getPropertyValue("Manufacturer").asPtr<IString>(), "test");
+    ASSERT_EQ(serverConfig.getPropertyValue("Model").asPtr<IString>(), "test device");
+    ASSERT_EQ(serverConfig.getPropertyValue("SerialNumber").asPtr<IString>(), "test_serial_number");
+    ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
+}
+
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
@@ -85,6 +123,58 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             }
         }
     }
+    ASSERT_TRUE(device.assigned());
+}
+
+
+TEST_F(WebsocketModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "ServiceDiscoverable": true,
+                    "Port": 1234,
+                    "Name": "streaming lt server",
+                    "Manufacturer": "test",
+                    "Model": "test device",
+                    "SerialNumber": "streaming_lt_test_serial_number",
+                    "ServicePath": "/some/path"
+                }
+            }
+        }
+    )";
+    createConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    instance.addServer("openDAQ LT Streaming", serverConfig);
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        if (deviceInfo.getSerialNumber() != "streaming_lt_test_serial_number")
+            continue;
+
+        ASSERT_EQ(deviceInfo.getServerCapabilities().getCount(), 1u);
+        device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+
+        ASSERT_EQ(deviceInfo.getName(), "streaming lt server");
+        ASSERT_EQ(deviceInfo.getManufacturer(), "test");
+        ASSERT_EQ(deviceInfo.getModel(), "test device");
+        ASSERT_EQ(deviceInfo.getSerialNumber(), "streaming_lt_test_serial_number");
+
+        std::string connectionString = deviceInfo.getConnectionString();    
+        std::string servicePath = "/some/path";
+        std::string connectionPath = connectionString.substr(connectionString.size() - servicePath.size());
+        ASSERT_EQ(connectionPath, servicePath);
+    }
+
     ASSERT_TRUE(device.assigned());
 }
 

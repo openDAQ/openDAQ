@@ -32,4 +32,15 @@ struct MockPacket : daq::ImplementationOf<daq::IPacket>
     MOCK_METHOD(daq::ErrCode, getType, (daq::PacketType* type), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, subscribeForDestructNotification, (daq::IPacketDestructCallback* packetDestructCallback), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getRefCount, (daq::SizeT* refCount), (override MOCK_CALL));
+
+    MockPacket()
+    {
+        using namespace testing;
+
+        EXPECT_CALL(*this, getRefCount(_)).Times(AnyNumber()).WillRepeatedly([this](daq::SizeT* r)
+                {
+                    *r = this->getReferenceCount();
+                    return OPENDAQ_SUCCESS;
+                });
+    }
 };

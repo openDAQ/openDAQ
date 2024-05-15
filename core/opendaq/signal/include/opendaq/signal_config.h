@@ -96,6 +96,35 @@ DECLARE_OPENDAQ_INTERFACE(ISignalConfig, ISignal)
      * @param packet The packet to be sent.
      */
     virtual ErrCode INTERFACE_FUNC sendPacket(IPacket* packet) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Sends multiple packets through all connections of the signal.
+     * @param packets The packets to be sent.
+     *
+     * Sending multiple packets creates a single notification to input port.
+     */
+    virtual ErrCode INTERFACE_FUNC sendPackets(IList* packets) = 0;
+
+    // [overloadFor(sendPacket), stealRef(packet)]
+    /*!
+     * @brief Sends a packet through all connections of the signal. Ownership of the packet is transfered.
+     * @param packet The packet to be sent.
+     *
+     * After calling the method, the packet should not be touched again. The ownership of the packet
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC sendPacketAndStealRef(IPacket* packet) = 0;
+
+    // [elementType(packets, IPacket), overloadFor(sendPackets), stealRef(packets)]
+    /*!
+     * @brief Sends multiple packets through all connections of the signal. Ownership of the packets is transfered.
+     * @param packet The packets to be sent.
+     *
+     * After calling the method, the packets should not be touched again. The ownership of the packets
+     * is taken by underlying connections and they could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC sendPacketsAndStealRef(IList* packets) = 0;
 };
 /*!@}*/
 

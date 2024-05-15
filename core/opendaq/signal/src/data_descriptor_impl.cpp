@@ -37,7 +37,7 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
 }
 
 DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
-    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, PackBuilder(dataDescriptorBuilder))
+    : Super(detail::dataDescriptorStructType, PackBuilder(dataDescriptorBuilder))
 {
     const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
     this->dimensions = dataDescriptorBuilderPtr.getDimensions();
@@ -333,9 +333,9 @@ void DataDescriptorImpl::scaleData(void* data, SizeT sampleCount, void** output)
         scalingCalc->scaleData(data, sampleCount, output);
 }
 
-bool DataDescriptorImpl::hasScalingCalc() const
+Bool DataDescriptorImpl::hasScalingCalc() const
 {
-    return (scalingCalc != nullptr);
+    return (scalingCalc != nullptr) ? True : False;
 }
 
 // IDataRuleCalcPrivate
@@ -353,9 +353,9 @@ void DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT samp
         dataRuleCalc->calculateRule(packetOffset, sampleCount, input, inputSize, output);
 }
 
-bool DataDescriptorImpl::hasDataRuleCalc() const
+Bool DataDescriptorImpl::hasDataRuleCalc() const
 {
-    return (dataRuleCalc != nullptr);
+    return (dataRuleCalc != nullptr) ? True : False;
 }
 
 void DataDescriptorImpl::initCalcs()
@@ -500,6 +500,65 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     *obj = dataDescriptor.build().as<IBaseObject>();
 
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorImpl::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IScalingCalcPrivate::Id)
+    {
+        *intf = static_cast<IScalingCalcPrivate*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IDataRuleCalcPrivate::Id)
+    {
+        *intf = static_cast<IDataRuleCalcPrivate*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IDataDescriptor::Id)
+    {
+        *intf = static_cast<IDataDescriptor*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IScalingCalcPrivate::Id)
+    {
+        *intf = const_cast<IScalingCalcPrivate*>(static_cast<const IScalingCalcPrivate*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IDataRuleCalcPrivate::Id)
+    {
+        *intf = const_cast<IDataRuleCalcPrivate*>(static_cast<const IDataRuleCalcPrivate*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IDataDescriptor::Id)
+    {
+        *intf = const_cast<IDataDescriptor*>(static_cast<const IDataDescriptor*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

@@ -1,3 +1,18 @@
+16.05.2024
+Description:
+    - Add functions for sending and dequeueing multiple packets
+    - Add functions with steal reference behaviour for sending packets
+
++  [function]  ErrCode ISignalConfig::sendPackets(IList* packets)
++  [function]  ErrCode ISignalConfig::sendPacketAndStealRef(IPacket* packet)
++  [function]  ErrCode ISignalConfig::sendPacketsAndStealRef(IList* packets)
+    
++  [function]  ErrCode IConnection::enqueueAndStealRef(IPacket* packet)
++  [function]  ErrCode IConnection::enqueueMultiple(IList* packets)
++  [function]  ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
++  [function]  ErrCode IConnection::dequeueAll(IList** packets)()
+    
+
 26.04.2024
 Description:
     Produce gap packets on request

@@ -400,7 +400,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 
     auto portConfig = port.asPtr<IInputPortConfig>();
     ASSERT_THROW(portConfig.getCustomData(), opcua::OpcUaClientCallNotAvailableException);
-    ASSERT_THROW(portConfig.notifyPacketEnqueued(), opcua::OpcUaClientCallNotAvailableException);
+    ASSERT_THROW(portConfig.notifyPacketEnqueued(True), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setNotificationMethod(PacketReadyNotification::SameThread), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setCustomData(nullptr), opcua::OpcUaClientCallNotAvailableException);
 }

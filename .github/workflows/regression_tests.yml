@@ -72,6 +72,7 @@ jobs:
           path: target
       
       # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
+      # -> maybe not because we always want to have the latest version?
       - name: Checkout CMakePresets.json to get the regression_tests preset
         uses: Bhacaz/checkout-files@v2
         with:
@@ -79,8 +80,11 @@ jobs:
           branch: ${{ github.head_ref || github.ref_name }}
 
       # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
+      # -> maybe not because we always want to have the latest version?
       - name: Move CMakePresets.json to target folder
         run: mv CMakePresets.json target
+
+      # TODO: regression_simulator checkout and move!
 
       - name: Configure target
         working-directory: target
@@ -109,6 +113,7 @@ jobs:
         working-directory: current/build
         run: cmake --build .
 
+      # TODO: run regression_simulator instead
       - name: Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"

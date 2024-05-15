@@ -28,17 +28,17 @@ TEST_F(RegressionTestDevice, getInfo)
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());
     ASSERT_TRUE(info.assigned());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
         ASSERT_EQ(info.getName(), "Device 1");
         ASSERT_EQ(info.getModel(), "Reference Device");
         ASSERT_EQ(info.getSerialNumber(), "dev_ser_1");
     }
-    else if (connectionString == "daq.ns://127.0.0.1")
+    else if (protocol == "ns")
     {
         ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
     }
-    else if (connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "lt")
     {
         ASSERT_EQ(info.getName(), "WebsocketClientPseudoDevice");
     }
@@ -46,7 +46,7 @@ TEST_F(RegressionTestDevice, getInfo)
 
 TEST_F(RegressionTestDevice, getDomain)
 {
-    if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    if (protocol == "ns" || protocol == "lt")
     {
         return;
     }
@@ -57,11 +57,11 @@ TEST_F(RegressionTestDevice, getDomain)
     ASSERT_EQ(domain.getTickResolution().getDenominator(), 1000000);
     ASSERT_EQ(domain.getOrigin(), "1970-01-01T00:00:00Z");
 
-    if (connectionString == "daq.opcua://127.0.0.1")
+    if (protocol == "opcua")
     {
         ASSERT_EQ(domain.getUnit(), Unit("", -1, "", ""));
     }
-    else if (connectionString == "daq.nd://127.0.0.1")
+    else if (protocol == "nd")
     {
         ASSERT_EQ(domain.getUnit(), Unit("s", -1, "second", "time"));
     }
@@ -71,11 +71,11 @@ TEST_F(RegressionTestDevice, getInputsOutputsFolder)
 {
     FolderPtr folder;
     ASSERT_NO_THROW(folder = device.getInputsOutputsFolder());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
         ASSERT_EQ(folder.getItems().getCount(), 2);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns" || protocol == "lt")
     {
         ASSERT_EQ(folder.getItems().getCount(), 0);
     }
@@ -85,11 +85,11 @@ TEST_F(RegressionTestDevice, getCustomComponents)
 {
     ListPtr<IComponent> components;
     ASSERT_NO_THROW(components = device.getCustomComponents());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_GT(components.getCount(), 0);
+        ASSERT_EQ(components.getCount(), 1);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns" || protocol == "lt")
     {
         ASSERT_EQ(components.getCount(), 0);
     }
@@ -99,13 +99,17 @@ TEST_F(RegressionTestDevice, getSignals)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignals());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
         ASSERT_EQ(signals.getCount(), 0);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns")
     {
-        ASSERT_GT(signals.getCount(), 0);
+        ASSERT_EQ(signals.getCount(), 2);
+    }
+    else if (protocol == "lt")
+    {
+        ASSERT_EQ(signals.getCount(), 4);
     }
 }
 
@@ -113,18 +117,25 @@ TEST_F(RegressionTestDevice, getSignalsRecursive)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignalsRecursive());
-    ASSERT_GT(signals.getCount(), 0);
+    if (protocol == "opcua" || protocol == "nd" || protocol == "ns")
+    {
+        ASSERT_EQ(signals.getCount(), 2);
+    }
+    else if (protocol == "lt")
+    {
+        ASSERT_EQ(signals.getCount(), 4);
+    }
 }
 
 TEST_F(RegressionTestDevice, getChannels)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannels());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_GT(channels.getCount(), 0);
+        ASSERT_EQ(channels.getCount(), 2);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns" || protocol == "lt")
     {
         ASSERT_EQ(channels.getCount(), 0);
     }
@@ -134,11 +145,11 @@ TEST_F(RegressionTestDevice, getChannelsRecursive)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannelsRecursive());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_GT(channels.getCount(), 0);
+        ASSERT_EQ(channels.getCount(), 2);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns" || protocol == "lt")
     {
         ASSERT_EQ(channels.getCount(), 0);
     }
@@ -176,11 +187,11 @@ TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 {
     DictPtr<IString, IFunctionBlockType> types;
     ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
-    if (connectionString == "daq.opcua://127.0.0.1" || connectionString == "daq.nd://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_GT(types.getCount(), 0);
+        ASSERT_EQ(types.getCount(), 8);
     }
-    else if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "ns" || protocol == "lt")
     {
         ASSERT_EQ(types.getCount(), 0);
     }
@@ -188,7 +199,7 @@ TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 
 TEST_F(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
 {
-    if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
+    if (protocol == "ns" || protocol == "lt")
     {
         return;
     }

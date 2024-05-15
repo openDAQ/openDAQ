@@ -28,7 +28,14 @@ TEST_F(RegressionTestFolder, getItems)
 {
     ListPtr<IComponent> items;
     ASSERT_NO_THROW(items = folder.getItems());
-    ASSERT_GT(items.getCount(), 0);
+    if (protocol == "opcua" || protocol == "nd")
+    {
+        ASSERT_EQ(items.getCount(), 5);
+    }
+    else if (protocol == "ns" || protocol == "lt")
+    {
+        ASSERT_EQ(items.getCount(), 4);
+    }
 }
 
 TEST_F(RegressionTestFolder, isEmpty)

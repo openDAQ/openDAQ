@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestProperty : public testing::TestWithParam<StringPtr>
+class RegressionTestProperty : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -21,132 +21,132 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        device = instance.addDevice(GetParam());
+        device = instance.addDevice(connectionString);
 
         property = device.getProperty("UserName");
     }
 };
 
-TEST_P(RegressionTestProperty, getValueType)
+TEST_F(RegressionTestProperty, getValueType)
 {
     CoreType type;
     ASSERT_NO_THROW(type = property.getValueType());
     ASSERT_EQ(type, CoreType::ctString);
 }
 
-TEST_P(RegressionTestProperty, getKeyType)
+TEST_F(RegressionTestProperty, getKeyType)
 {
     CoreType type;
     ASSERT_NO_THROW(type = property.getKeyType());
     ASSERT_EQ(type, CoreType::ctUndefined);
 }
 
-TEST_P(RegressionTestProperty, getItemType)
+TEST_F(RegressionTestProperty, getItemType)
 {
     CoreType type;
     ASSERT_NO_THROW(type = property.getItemType());
     ASSERT_EQ(type, CoreType::ctUndefined);
 }
 
-TEST_P(RegressionTestProperty, getName)
+TEST_F(RegressionTestProperty, getName)
 {
     StringPtr name;
     ASSERT_NO_THROW(name = property.getName());
     ASSERT_EQ(name, "UserName");
 }
 
-TEST_P(RegressionTestProperty, getDescription)
+TEST_F(RegressionTestProperty, getDescription)
 {
     StringPtr description;
     ASSERT_NO_THROW(description = property.getDescription());
     ASSERT_EQ(description, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getUnit)
+TEST_F(RegressionTestProperty, getUnit)
 {
     UnitPtr unit;
     ASSERT_NO_THROW(unit = property.getUnit());
     ASSERT_EQ(unit, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getMinValue)
+TEST_F(RegressionTestProperty, getMinValue)
 {
     NumberPtr value;
     ASSERT_NO_THROW(value = property.getMinValue());
     ASSERT_EQ(value, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getMaxValue)
+TEST_F(RegressionTestProperty, getMaxValue)
 {
     NumberPtr value;
     ASSERT_NO_THROW(value = property.getMaxValue());
     ASSERT_EQ(value, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getDefaultValue)
+TEST_F(RegressionTestProperty, getDefaultValue)
 {
     BaseObjectPtr value;
     ASSERT_NO_THROW(value = property.getDefaultValue());
     ASSERT_EQ(value, "");
 }
 
-TEST_P(RegressionTestProperty, getSuggestedValues)
+TEST_F(RegressionTestProperty, getSuggestedValues)
 {
     ListPtr<IBaseObject> values;
     ASSERT_NO_THROW(values = property.getSuggestedValues());
     ASSERT_EQ(values, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getVisible)
+TEST_F(RegressionTestProperty, getVisible)
 {
     Bool visible;
     ASSERT_NO_THROW(visible = property.getVisible());
     ASSERT_EQ(visible, True);
 }
 
-TEST_P(RegressionTestProperty, getReadOnly)
+TEST_F(RegressionTestProperty, getReadOnly)
 {
     Bool readOnly;
     ASSERT_NO_THROW(readOnly = property.getReadOnly());
     ASSERT_EQ(readOnly, False);
 }
 
-TEST_P(RegressionTestProperty, getSelectionValues)
+TEST_F(RegressionTestProperty, getSelectionValues)
 {
     BaseObjectPtr values;
     ASSERT_NO_THROW(values = property.getSelectionValues());
     ASSERT_EQ(values, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getReferencedProperty)
+TEST_F(RegressionTestProperty, getReferencedProperty)
 {
     PropertyPtr prop;
     ASSERT_NO_THROW(prop = property.getReferencedProperty());
     ASSERT_EQ(prop, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getIsReferenced)
+TEST_F(RegressionTestProperty, getIsReferenced)
 {
     Bool isReferenced;
     ASSERT_NO_THROW(isReferenced = property.getIsReferenced());
     ASSERT_EQ(isReferenced, False);
 }
 
-TEST_P(RegressionTestProperty, getValidator)
+TEST_F(RegressionTestProperty, getValidator)
 {
     ValidatorPtr validator;
     ASSERT_NO_THROW(validator = property.getValidator());
     ASSERT_EQ(validator, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getCoercer)
+TEST_F(RegressionTestProperty, getCoercer)
 {
     CoercerPtr coercer;
     ASSERT_NO_THROW(coercer = property.getCoercer());
     ASSERT_EQ(coercer, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getCallableInfo)
+TEST_F(RegressionTestProperty, getCallableInfo)
 {
     CallableInfoPtr info;
     ASSERT_NO_THROW(info = property.getCallableInfo());
@@ -154,23 +154,19 @@ TEST_P(RegressionTestProperty, getCallableInfo)
 }
 
 // TODO: ???
-TEST_P(RegressionTestProperty, DISABLED_getStructType)
+TEST_F(RegressionTestProperty, DISABLED_getStructType)
 {
     ASSERT_NO_THROW(property.getStructType());
 }
 
-TEST_P(RegressionTestProperty, getOnPropertyValueWrite)
+TEST_F(RegressionTestProperty, getOnPropertyValueWrite)
 {
     auto event = property.getOnPropertyValueWrite();
     ASSERT_NE(event, nullptr);
 }
 
-TEST_P(RegressionTestProperty, getOnPropertyValueRead)
+TEST_F(RegressionTestProperty, getOnPropertyValueRead)
 {
     auto event = property.getOnPropertyValueRead();
     ASSERT_NE(event, nullptr);
 }
-
-INSTANTIATE_TEST_SUITE_P(Property,
-                         RegressionTestProperty,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

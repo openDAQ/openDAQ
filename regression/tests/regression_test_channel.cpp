@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestChannel : public testing::TestWithParam<StringPtr>
+class RegressionTestChannel : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -21,28 +21,23 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        device = instance.addDevice(GetParam());
+        device = instance.addDevice(connectionString);
 
         channel = instance.getChannelsRecursive()[0];
     }
 };
 
-TEST_P(RegressionTestChannel, getVisibleProperties)
+TEST_F(RegressionTestChannel, getVisibleProperties)
 {
     ListPtr<IProperty> properties;
     ASSERT_NO_THROW(properties = channel.getVisibleProperties());
     ASSERT_GT(properties.getCount(), 0);
 }
 
-TEST_P(RegressionTestChannel, setPropertyValueGetPropertyValue)
+TEST_F(RegressionTestChannel, setPropertyValueGetPropertyValue)
 {
     ASSERT_NO_THROW(channel.setPropertyValue("NoiseAmplitude", 0.2));
     FloatPtr property;
     ASSERT_NO_THROW(property = channel.getPropertyValue("NoiseAmplitude"));
     ASSERT_FLOAT_EQ(property, 0.2);
 }
-
-// TODO: ???
-INSTANTIATE_TEST_SUITE_P(Channel,
-                         RegressionTestChannel,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1" /*, "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"*/));

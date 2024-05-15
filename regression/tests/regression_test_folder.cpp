@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestFolder : public testing::TestWithParam<StringPtr>
+class RegressionTestFolder : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -20,38 +20,34 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        folder = instance.addDevice(GetParam());
+        folder = instance.addDevice(connectionString);
     }
 };
 
-TEST_P(RegressionTestFolder, getItems)
+TEST_F(RegressionTestFolder, getItems)
 {
     ListPtr<IComponent> items;
     ASSERT_NO_THROW(items = folder.getItems());
     ASSERT_GT(items.getCount(), 0);
 }
 
-TEST_P(RegressionTestFolder, isEmpty)
+TEST_F(RegressionTestFolder, isEmpty)
 {
     Bool isEmpty;
     ASSERT_NO_THROW(isEmpty = folder.isEmpty());
     ASSERT_FALSE(isEmpty);
 }
 
-TEST_P(RegressionTestFolder, hasItem)
+TEST_F(RegressionTestFolder, hasItem)
 {
     Bool hasItem;
     ASSERT_NO_THROW(hasItem = folder.hasItem("Sig"));
     ASSERT_TRUE(hasItem);
 }
 
-TEST_P(RegressionTestFolder, getItem)
+TEST_F(RegressionTestFolder, getItem)
 {
     ComponentPtr item;
     ASSERT_NO_THROW(item = folder.getItem("Sig"));
     ASSERT_TRUE(item.assigned());
 }
-
-INSTANTIATE_TEST_SUITE_P(Folder,
-                         RegressionTestFolder,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

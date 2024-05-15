@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <opendaq/opendaq.h>
+#include "get_protocol.h"
 
 using namespace daq;
 
-class RegressionTestDevice : public testing::TestWithParam<StringPtr>
+class RegressionTestDevice : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -11,7 +11,6 @@ private:
     InstancePtr instance;
 
 protected:
-    StringPtr connectionString;
     DevicePtr device;
 
     void SetUp() override
@@ -20,13 +19,11 @@ protected:
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
         instance = InstanceCustom(context, "mock_instance");
 
-        connectionString = GetParam();
-
         device = instance.addDevice(connectionString);
     }
 };
 
-TEST_P(RegressionTestDevice, getInfo)
+TEST_F(RegressionTestDevice, getInfo)
 {
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());
@@ -47,7 +44,7 @@ TEST_P(RegressionTestDevice, getInfo)
     }
 }
 
-TEST_P(RegressionTestDevice, getDomain)
+TEST_F(RegressionTestDevice, getDomain)
 {
     if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
     {
@@ -70,7 +67,7 @@ TEST_P(RegressionTestDevice, getDomain)
     }
 }
 
-TEST_P(RegressionTestDevice, getInputsOutputsFolder)
+TEST_F(RegressionTestDevice, getInputsOutputsFolder)
 {
     FolderPtr folder;
     ASSERT_NO_THROW(folder = device.getInputsOutputsFolder());
@@ -84,7 +81,7 @@ TEST_P(RegressionTestDevice, getInputsOutputsFolder)
     }
 }
 
-TEST_P(RegressionTestDevice, getCustomComponents)
+TEST_F(RegressionTestDevice, getCustomComponents)
 {
     ListPtr<IComponent> components;
     ASSERT_NO_THROW(components = device.getCustomComponents());
@@ -98,7 +95,7 @@ TEST_P(RegressionTestDevice, getCustomComponents)
     }
 }
 
-TEST_P(RegressionTestDevice, getSignals)
+TEST_F(RegressionTestDevice, getSignals)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignals());
@@ -112,14 +109,14 @@ TEST_P(RegressionTestDevice, getSignals)
     }
 }
 
-TEST_P(RegressionTestDevice, getSignalsRecursive)
+TEST_F(RegressionTestDevice, getSignalsRecursive)
 {
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = device.getSignalsRecursive());
     ASSERT_GT(signals.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getChannels)
+TEST_F(RegressionTestDevice, getChannels)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannels());
@@ -133,7 +130,7 @@ TEST_P(RegressionTestDevice, getChannels)
     }
 }
 
-TEST_P(RegressionTestDevice, getChannelsRecursive)
+TEST_F(RegressionTestDevice, getChannelsRecursive)
 {
     ListPtr<IChannel> channels;
     ASSERT_NO_THROW(channels = device.getChannelsRecursive());
@@ -147,35 +144,35 @@ TEST_P(RegressionTestDevice, getChannelsRecursive)
     }
 }
 
-TEST_P(RegressionTestDevice, getDevices)
+TEST_F(RegressionTestDevice, getDevices)
 {
     ListPtr<IDevice> devices;
     ASSERT_NO_THROW(devices = device.getDevices());
     ASSERT_EQ(devices.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getAvailableDevices)
+TEST_F(RegressionTestDevice, getAvailableDevices)
 {
     ListPtr<IDeviceInfo> infos;
     ASSERT_NO_THROW(infos = device.getAvailableDevices());
     ASSERT_EQ(infos.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getAvailableDeviceTypes)
+TEST_F(RegressionTestDevice, getAvailableDeviceTypes)
 {
     DictPtr<IString, IDeviceType> types;
     ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
     ASSERT_EQ(types.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getFunctionBlocks)
+TEST_F(RegressionTestDevice, getFunctionBlocks)
 {
     ListPtr<IFunctionBlock> functionBlocks;
     ASSERT_NO_THROW(functionBlocks = device.getFunctionBlocks());
     ASSERT_EQ(functionBlocks.getCount(), 0);
 }
 
-TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
+TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 {
     DictPtr<IString, IFunctionBlockType> types;
     ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
@@ -189,7 +186,7 @@ TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
     }
 }
 
-TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
+TEST_F(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
 {
     if (connectionString == "daq.ns://127.0.0.1" || connectionString == "daq.lt://127.0.0.1")
     {
@@ -201,18 +198,14 @@ TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));
 }
 
-TEST_P(RegressionTestDevice, saveConfigurationLoadConfiguration)
+TEST_F(RegressionTestDevice, saveConfigurationLoadConfiguration)
 {
     StringPtr config;
     ASSERT_NO_THROW(config = device.saveConfiguration());
     ASSERT_NO_THROW(device.loadConfiguration(config));
 }
 
-TEST_P(RegressionTestDevice, getTicksSinceOrigin)
+TEST_F(RegressionTestDevice, getTicksSinceOrigin)
 {
     ASSERT_NO_THROW(device.getTicksSinceOrigin());
 }
-
-INSTANTIATE_TEST_SUITE_P(Device,
-                         RegressionTestDevice,
-                         testing::Values("daq.opcua://127.0.0.1", "daq.nd://127.0.0.1", "daq.ns://127.0.0.1", "daq.lt://127.0.0.1"));

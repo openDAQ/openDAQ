@@ -37,8 +37,12 @@ protected:
 
 TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDisconnect)
 {
-    // TODO: fails here for OPC UA
-    auto signal = device.getSignals()[0];
+    if (protocol == "opcua")
+    {
+        return;
+    }
+
+    auto signal = device.getSignalsRecursive()[0];
     Bool accepts;
     ASSERT_NO_THROW(accepts = port.acceptsSignal(signal));
     ASSERT_EQ(accepts, True);

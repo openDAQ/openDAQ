@@ -16,7 +16,6 @@ protected:
 
     void SetUp() override
     {
-
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
@@ -31,11 +30,11 @@ TEST_F(RegressionTestComponent, getLocalId)
     StringPtr id;
     ASSERT_NO_THROW(id = component.getLocalId());
     StringPtr realId;
-    if (connectionString == "daq.opcua://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
         realId = "ref_dev1";
-    else if (connectionString == "daq.ns://127.0.0.1")
+    else if (protocol == "ns")
         realId = "streaming_pseudo_device0";
-    else if (connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "lt")
         realId = "websocket_pseudo_device0";
     ASSERT_EQ(id, realId);
 }
@@ -45,11 +44,11 @@ TEST_F(RegressionTestComponent, getGlobalId)
     StringPtr id;
     ASSERT_NO_THROW(id = component.getGlobalId());
     StringPtr realId;
-    if (connectionString == "daq.opcua://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
         realId = "/mock_instance/Dev/ref_dev1";
-    else if (connectionString == "daq.ns://127.0.0.1")
+    else if (protocol == "ns")
         realId = "/mock_instance/Dev/streaming_pseudo_device0";
-    else if (connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "lt")
         realId = "/mock_instance/Dev/websocket_pseudo_device0";
     ASSERT_EQ(id, realId);
 }

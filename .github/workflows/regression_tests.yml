@@ -86,6 +86,7 @@ jobs:
 
       # TODO: regression_simulator checkout and move!
 
+      # TODO: OPENDAQ_ENABLE_REGRESSION_TESTS should be ON from preset (it has been set)
       - name: Configure target
         working-directory: target
         run: | #TODO: DCI_GIT_BRANCH?

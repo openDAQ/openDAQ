@@ -170,7 +170,8 @@
             "cacheVariables": {
                 "OPENDAQ_CI_RUNNER": true,
                 "OPENDAQ_DEBUG_WARNINGS_AS_ERRORS": true,
-                "OPENDAQ_ALWAYS_FETCH_BOOST": false
+                "OPENDAQ_ALWAYS_FETCH_BOOST": false,
+                "OPENDAQ_ENABLE_REGRESSION_TESTS": true
             }
         },
         {

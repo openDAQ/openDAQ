@@ -66,17 +66,17 @@ TEST_F(RegressionTestSignal, getDomainSignal)
     StringPtr localID;
     SampleType sampleType;  // TODO: why different in lt?
 
-    if (connectionString == "daq.opcua://127.0.0.1")
+    if (protocol == "opcua" || protocol == "nd")
     {
         name = localID = "ai0_time";
         sampleType = SampleType::Int64;
     }
-    else if (connectionString == "daq.ns://127.0.0.1")
+    else if (protocol == "ns")
     {
         name = localID = "*ref_dev1*IO*ai*refch0*Sig*ai0_time";
         sampleType = SampleType::Int64;
     }
-    else if (connectionString == "daq.lt://127.0.0.1")
+    else if (protocol == "lt")
     {
         name = "ai0_time";
         localID = "#ref_dev1#IO#ai#refch0#Sig#ai0_time";
@@ -144,7 +144,7 @@ TEST_F(RegressionTestSignal, getLastValue)
     BaseObjectPtr lastValue;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(lastValue = signal.getLastValue());  // TODO: not needed?
-    if (connectionString == "daq.opcua://127.0.0.1")     // TODO: ???
+    if (protocol == "opcua")                             // TODO: ???
         ASSERT_TRUE(lastValue.assigned());
 }
 
@@ -155,7 +155,7 @@ TEST_F(RegressionTestSignal, reader)
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.read(samples, &count));
-    ASSERT_GT(count, 0);
+    ASSERT_EQ(count, 100);
 }
 
 TEST_F(RegressionTestSignal, readerWithDomain)
@@ -166,5 +166,5 @@ TEST_F(RegressionTestSignal, readerWithDomain)
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.readWithDomain(samples, domain, &count));
-    ASSERT_GT(count, 0);
+    ASSERT_EQ(count, 100);
 }

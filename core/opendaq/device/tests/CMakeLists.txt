@@ -21,9 +21,6 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
 target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects
                                           daq::opendaq
                                           daq::opendaq_mocks
-                                          daq::component
-                                          daq::function_block
-                                          daq::signal
 )
 
 if (MSVC)

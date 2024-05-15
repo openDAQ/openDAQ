@@ -38,14 +38,6 @@ if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
 endif()
 
-target_link_libraries(${TEST_DLL_TARGET}
-    PRIVATE $<TARGET_OBJECTS:daq::module_manager>
-            daq::icmp_ping
-            daq::discovery_server
-            ${CMAKE_DL_LIBS}
-            ${STDCFS_LIBS}
-)
-
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY bin

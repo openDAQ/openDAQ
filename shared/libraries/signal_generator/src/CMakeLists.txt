@@ -18,7 +18,6 @@ target_include_directories(${MODULE_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRE
                                               $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${MODULE_NAME} PUBLIC daq::signal
-                                            daq::coretypes
+target_link_libraries(${MODULE_NAME} PUBLIC daq::opendaq
 )
 

@@ -1,107 +1,129 @@
-set(BASE_NAME module_manager)
+set(BASE_NAME modulemanager)
 
-set(SDK_HEADERS_DIR ../include/${MAIN_TARGET})
-set(GENERATED_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${SDK_HEADERS_DIR})
+function(rtgen_component_${BASE_NAME})
+    rtgen(SRC_Module module.h)
+    rtgen(SRC_ModuleManager module_manager.h)
+    rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
+    rtgen(SRC_ContextInternal context_internal.h)
+    rtgen(SRC_DiscoveryServer discovery_server.h)
 
-set(RTGEN_HEADERS_DIR ${SDK_HEADERS_DIR})
-set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
-set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
+    set(SRC_PublicHeaders_Component_Generated
+        ${SRC_Module_PublicHeaders}
+        ${SRC_ModuleManager_PublicHeaders}
+        ${SRC_ModuleManagerUtils_PublicHeaders}
+        ${SRC_ContextInternal_PublicHeaders}
+        ${SRC_DiscoveryServer_PublicHeaders}
+        PARENT_SCOPE
+    )
+    
+    set(SRC_PrivateHeaders_Component_Generated
+        ${SRC_Module_PrivateHeaders}
+        ${SRC_ModuleManager_PrivateHeaders}
+        ${SRC_ContextInternal_PrivateHeaders}
+        ${SRC_DiscoveryServer_PrivateHeaders}
+        PARENT_SCOPE
+    )
+    
+    set(SRC_Cpp_Component_Generated
+        ${SRC_Module_Cpp}
+        ${SRC_ModuleManager_Cpp}
+        ${SRC_DiscoveryServer_Cpp}
+        PARENT_SCOPE
+    )
+endfunction()
 
-rtgen(SRC_Module module.h)
-rtgen(SRC_ModuleManager module_manager.h)
-rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
-rtgen(SRC_ContextInternal context_internal.h)
-rtgen(SRC_DiscoveryServer discovery_server.h)
+function(create_component_source_groups_${BASE_NAME})
+    set(SDK_HEADERS_DIR "modulemanager/include/opendaq")
+    set(SDK_SRC_DIR "modulemanager/src")
+    
+    source_group("module_manager//module" FILES 
+        ${SDK_HEADERS_DIR}/module.h
+        ${SDK_HEADERS_DIR}/module_impl.h
+        ${SDK_HEADERS_DIR}/module_exports.h
+        ${SDK_HEADERS_DIR}/module_factory.h
+        ${SDK_HEADERS_DIR}/module_check_dependencies.h
+        ${SDK_SRC_DIR}/module_impl.cpp
+    )
+    
+    source_group("module_manager//manager" FILES 
+        ${SDK_HEADERS_DIR}/module_manager.h
+        ${SDK_HEADERS_DIR}/module_manager_impl.h
+        ${SDK_HEADERS_DIR}/module_manager_init.h
+        ${SDK_HEADERS_DIR}/module_manager_utils.h
+        ${SDK_HEADERS_DIR}/module_manager_factory.h
+        ${SDK_SRC_DIR}/module_manager_impl.cpp
+    )
+    
+    source_group("module_manager//errors" FILES 
+        ${SDK_HEADERS_DIR}/module_manager_errors.h
+        ${SDK_HEADERS_DIR}/module_manager_exceptions.h
+    )
+    
+    source_group("module_manager//context" FILES 
+        ${SDK_HEADERS_DIR}/context_impl.h
+        ${SDK_HEADERS_DIR}/context_factory.h
+        ${SDK_HEADERS_DIR}/context_internal.h
+        ${SDK_SRC_DIR}/context_impl.cpp
+    )
+	
+    source_group("module_manager//ping" FILES 
+        ${SDK_HEADERS_DIR}/format.h
+        ${SDK_HEADERS_DIR}/ipv4_header.h
+        ${SDK_HEADERS_DIR}/icmp_header.h
+        ${SDK_HEADERS_DIR}/icmp_ping.h
+        ${SDK_SRC_DIR}/ipv4_header.cpp
+        ${SDK_SRC_DIR}/icmp_header.cpp
+        ${SDK_SRC_DIR}/icmp_ping.cpp
+    )
+	
+	source_group("discovery_server" FILES  
+        ${SDK_HEADERS_DIR}/discovery_server.h
+        ${SDK_HEADERS_DIR}/discovery_server_factory.h
+        ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
+        ${SDK_SRC_DIR}/mdns_discovery_server_impl.cpp
+    )
+									   
+endfunction()
 
-source_group("module" FILES ${SDK_HEADERS_DIR}/module.h
-                            ${SDK_HEADERS_DIR}/module_impl.h
-                            ${SDK_HEADERS_DIR}/module_exports.h
-                            ${SDK_HEADERS_DIR}/module_factory.h
-                            ${SDK_HEADERS_DIR}/module_check_dependencies.h
-                            module_impl.cpp
+set(SRC_PublicHeaders_Component 
+    module_manager_errors.h
+    module_manager_exceptions.h
+    module_manager_factory.h
+    module_check_dependencies.h
+    module_factory.h
+    module_exports.h
+    module_impl.h
+    context_factory.h
+    format.h
+    ipv4_header.h
+    icmp_header.h
+    icmp_ping.h
+    discovery_server_factory.h
+    PARENT_SCOPE
 )
 
-source_group("manager" FILES ${SDK_HEADERS_DIR}/module_manager.h
-                             ${SDK_HEADERS_DIR}/module_manager_impl.h
-                             ${SDK_HEADERS_DIR}/module_manager_init.h
-                             ${SDK_HEADERS_DIR}/module_manager_utils.h
-                             ${SDK_HEADERS_DIR}/module_manager_factory.h
-                             module_manager_impl.cpp
+set(SRC_PrivateHeaders_Component
+    module_library.h
+    orphaned_modules.h
+    module_manager_impl.h
+    module_manager_init.h
+    boost_dll.h
+    context_impl.h
+    mdns_discovery_server_impl.h
+    PARENT_SCOPE
 )
 
-source_group("context" FILES ${SDK_HEADERS_DIR}/context_impl.h
-                             ${SDK_HEADERS_DIR}/context_factory.h
-                             ${SDK_HEADERS_DIR}/context_internal.h
-                             context_impl.cpp
-)
-
-source_group("errors" FILES ${SDK_HEADERS_DIR}/module_manager_errors.h
-                            ${SDK_HEADERS_DIR}/module_manager_exceptions.h
-)
-
-source_group("discovery_server" FILES  ${SDK_HEADERS_DIR}/discovery_server.h
-                                        ${SDK_HEADERS_DIR}/discovery_server_factory.h
-                                        ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
-                                        mdns_discovery_server_impl.cpp)
-
-set(SRC_Cpp module_manager_impl.cpp
-            module_manager_init.cpp
-
-            context_impl.cpp
-            orphaned_modules.cpp
-
-            mdns_discovery_server_impl.cpp
-)
-
-set(SRC_PublicHeaders module_manager_errors.h
-                      module_manager_exceptions.h
-                      module_manager_factory.h
-
-                      module_check_dependencies.h
-                      module_factory.h
-                      module_exports.h
-                      module_impl.h
-
-                      context_factory.h
-
-                      discovery_server_factory.h
-)
-
-set(SRC_PrivateHeaders module_library.h
-                       orphaned_modules.h
-                       module_manager_impl.h
-                       module_manager_init.h
-                       boost_dll.h
-                       context_impl.h
-                       mdns_discovery_server_impl.h
-)
-
-prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
-prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
-
-list(APPEND SRC_Cpp ${SRC_Module_Cpp}
-                    ${SRC_ModuleManager_Cpp}
-)
-
-list(APPEND SRC_PublicHeaders ${SRC_Module_PublicHeaders}
-                              ${SRC_ModuleManager_PublicHeaders}
-                              ${SRC_ModuleManagerUtils_PublicHeaders}
-                              ${SRC_ContextInternal_PublicHeaders}
-                              ${SRC_DiscoveryServer_PublicHeaders}
-                              module_manager.natvis
-)
-
-list(APPEND SRC_PrivateHeaders ${SRC_Module_PrivateHeaders}
-                               ${SRC_ModuleManager_PrivateHeaders}
-                               ${SRC_ContextInternal_PrivateHeaders}
-                               ${SRC_DiscoveryServer_PrivateHeaders}
-)
-
-opendaq_add_library(${BASE_NAME} STATIC
-    ${SRC_Cpp}
-    ${SRC_PrivateHeaders}
-    ${SRC_PublicHeaders}
-    ${ConfigHeaderSource}
+set(SRC_Cpp_Component 
+    module_manager_impl.cpp
+    module_manager_init.cpp
+    context_impl.cpp
+    orphaned_modules.cpp
+    ipv4_header.cpp
+    icmp_header.cpp
+    icmp_ping.cpp
+    mdns_discovery_server_impl.cpp
+    module_manager.natvis
+    PARENT_SCOPE
 )
 
 if("${Boost_LIBRARIES}")
@@ -112,53 +134,41 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(STDCFS_LIBS "stdc++fs")
 endif()
 
-opendaq_target_link_libraries(${BASE_NAME}
-    PRIVATE
-        ${BOOST_LIBS}
-        ${CMAKE_DL_LIBS}
-        ${STDCFS_LIBS}
-        std::filesystem
-        daq::context
-        daq::logger
-        daq::utility
-        daq::component
-        $<BUILD_INTERFACE:daq::icmp_ping>
-        $<BUILD_INTERFACE:daq::discovery_server>
-    PUBLIC
-        daq::coretypes
+if (WIN32)
+    set(PING_COMPILE_DEFS
+        _WIN32_WINNT=${MIN_WINDOWS_VERSION}
+        WINVER=${MIN_WINDOWS_VERSION}
+        WIN32_LEAN_AND_MEAN
+    )    
+
+    set(PING_LIBS
+        Ws2_32
+        IPHLPAPI
+    )
+endif()
+
+set(SRC_PrivateLinkLibraries_Component
+    ${BOOST_LIBS}
+    ${CMAKE_DL_LIBS}
+    ${STDCFS_LIBS}
+	${PING_LIBS}
+    $<BUILD_INTERFACE:Boost::dll>
+    $<BUILD_INTERFACE:Boost::asio>
+    $<BUILD_INTERFACE:Threads::Threads>
+    $<BUILD_INTERFACE:fmt::fmt>
+    $<BUILD_INTERFACE:daq::discovery_server>
+    PARENT_SCOPE
 )
 
-# we shouldn't link everything, only the necessary bits $<BUILD_INTERFACE:Boost::dll>
-opendaq_target_link_libraries(${BASE_NAME} PRIVATE $<BUILD_INTERFACE:Boost::dll>)
-
-opendaq_target_include_directories(${BASE_NAME}
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include/>
-
-        $<INSTALL_INTERFACE:include>
-
-        $<TARGET_PROPERTY:daq::device,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:daq::server,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:daq::function_block,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:daq::logger,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:daq::scheduler,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:daq::streaming,INTERFACE_INCLUDE_DIRECTORIES>
-    PRIVATE
-        ${Boost_INCLUDE_DIRS}
+set(SRC_PrivateIncludeDirectories_Component
+    ${Boost_INCLUDE_DIRS}
+    PARENT_SCOPE
 )
 
-opendaq_target_compile_definitions(${BASE_NAME}
-    PRIVATE
-        BOOST_DLL_USE_STD_FS
+set(SRC_PrivateCompileDefinitions_Component
+    ${Boost_INCLUDE_DIRS}
+    ${PING_COMPILE_DEFS}
+	BOOST_DLL_USE_STD_FS
+	BOOST_ALL_NO_LIB
+    PARENT_SCOPE
 )
-
-# Make sure these are built before but do not link them directly
-set(DEPENDENT_TARGETS daq::device
-                      daq::server
-                      daq::function_block
-                      daq::scheduler
-                      daq::streaming
-)
-
-opendaq_add_dependencies(${BASE_NAME} ${DEPENDENT_TARGETS})

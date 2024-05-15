@@ -46,10 +46,14 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
     if (NOT DEFINED RTGEN_LIBRARY_NAME)
         set(RTGEN_LIBRARY_NAME ${PROJECT_NAME})
     endif()
+	
+	if (NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
+        set(RTGEN_CURR_BINDINGS_DIR ${CMAKE_CURRENT_BINARY_DIR}/../bindings)
+    endif()
 
     # Expand the bindings dir
     get_filename_component(CURR_BINDINGS_DIR
-                           "${CMAKE_CURRENT_BINARY_DIR}/../bindings"
+                           "${RTGEN_CURR_BINDINGS_DIR}"
                            ABSOLUTE)
 
     # Expand the output dir
@@ -99,7 +103,7 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
             if (LOWERCASE_LANG STREQUAL "csharp")
-                set_output_dir_for_bindings(RTGEN_OUTPUT_DIR)
+                set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
             endif()
@@ -119,7 +123,7 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
         endif()
 
         if (LOWERCASE_LANG STREQUAL "csharp")
-            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE)
+            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE ${RTGEN_RELATIVE_PARENT_DIR})
         endif()
 
         set(_LANG_COMMAND ${MONO_C} ${RTGEN}
@@ -141,7 +145,7 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
     string(LENGTH "${RTGEN_COMMAND}" _COMMAND_LENGTH)
     math(EXPR _COMMAND_LENGTH "${_COMMAND_LENGTH}-2")
     string(SUBSTRING "${RTGEN_COMMAND}" 0 ${_COMMAND_LENGTH} RTGEN_COMMAND)
-
+	
     add_custom_command(
         OUTPUT ${${OUTFILES_VAR}}
         COMMAND ${RTGEN_COMMAND}
@@ -155,7 +159,7 @@ endfunction(_rtgen_interface)
 
 function(opendaq_set_generated FILE TYPE)
     set_source_files_properties(${FILE} PROPERTIES GENERATED TRUE)
-
+	
     if (TYPE STREQUAL "HEADER")
         source_group("Generated\\Header Files" FILES ${FILE})
     elseif(TYPE STREQUAL "SOURCE")
@@ -265,6 +269,10 @@ function(rtgen OUT_VAR_BASE FILENAME)
     set(${OUT_VAR_BASE} ${${OUT_VAR_BASE}_Cpp} ${${OUT_VAR_BASE}_PublicHeaders} ${${OUT_VAR_BASE}_PrivateHeaders})
 
     _rtgen_interface("${RTGEN_LANGS}" ${FILENAME} ${OUT_VAR_BASE})
+	
+    get_filename_component(RTGEN_HEADERS_DIR
+                           "${RTGEN_HEADERS_DIR}"
+                           ABSOLUTE)
 
     list(APPEND ${OUT_VAR_BASE}_PublicHeaders ${RTGEN_HEADERS_DIR}/${FILENAME})
     list(APPEND ${OUT_VAR_BASE} ${RTGEN_HEADERS_DIR}/${FILENAME})
@@ -301,10 +309,14 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
     else()
         set(_NAMESPACE_NAME "${SDK_TARGET_NAMESPACE}")
     endif()
-
+	
+	if (NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
+        set(RTGEN_CURR_BINDINGS_DIR ${CMAKE_CURRENT_BINARY_DIR}/../bindings)
+    endif()
+	
     # Expand the bindings dir
     get_filename_component(CURR_BINDINGS_DIR
-                           "${CMAKE_CURRENT_BINARY_DIR}/../bindings"
+                           "${RTGEN_CURR_BINDINGS_DIR}"
                            ABSOLUTE
     )
 
@@ -329,7 +341,7 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
             if (LOWERCASE_LANG STREQUAL "csharp")
-                set_output_dir_for_bindings(RTGEN_OUTPUT_DIR)
+                set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
             endif()
@@ -347,7 +359,7 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
         endif()
 
         if (LOWERCASE_LANG STREQUAL "csharp")
-            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE)
+            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE ${RTGEN_RELATIVE_PARENT_DIR})
         endif()
 
         list(APPEND RTGEN_OPTIONS -ln ${LIB_NAME} -config -lo ${LIB_OUTPUT_NAME} -lv ${MAJOR_VER}.${MINOR_VER}.${PATCH_VER} -lang ${LOWERCASE_LANG})
@@ -413,42 +425,12 @@ function(rtgen_sample_types HEADER_NAME OUT_FILE)
     )
 endfunction(rtgen_sample_types)
 
-function(get_rel_project_dir OUT_REL_PROJECT_DIR)
-    # Get the relative build project path
-    string(LENGTH "${CMAKE_BINARY_DIR}" _PATH_LENGTH)
-    math(EXPR _PATH_LENGTH "${_PATH_LENGTH}+1") #include trailing forward slash
-    string(SUBSTRING "${CMAKE_CURRENT_BINARY_DIR}" ${_PATH_LENGTH} -1 _REL_PROJECT_DIR)
-
-    # Remove last sub-dir
-    string(FIND "${_REL_PROJECT_DIR}" "/" _PATH_LENGTH REVERSE)
-    string(SUBSTRING "${_REL_PROJECT_DIR}" 0 ${_PATH_LENGTH} _REL_PROJECT_DIR)
-
-    # Set output argument
-    set(${OUT_REL_PROJECT_DIR} ${_REL_PROJECT_DIR} PARENT_SCOPE)
-endfunction(get_rel_project_dir)
-
-function(set_output_dir_for_bindings OUT_OUTPUT_DIR)
-    get_rel_project_dir(_REL_PROJECT_DIR)
-
-    # Expand the new output dir
-    get_filename_component(_OUTPUT_DIR
-                           "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${_REL_PROJECT_DIR}"
-                           ABSOLUTE)
-
-    #flat output
-    #set(_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}")
-
-    # Set output argument
-    set(${OUT_OUTPUT_DIR} ${_OUTPUT_DIR} PARENT_SCOPE)
-endfunction(set_output_dir_for_bindings)
-
-function(modify_or_set_namespace OUT_OPTIONS NAMESPACE_NAME)
-    get_rel_project_dir(_REL_PROJECT_DIR)
+function(modify_or_set_namespace OUT_OPTIONS NAMESPACE_NAME REL_PROJECT_DIR)
 
     set(_OPTIONS ${${OUT_OPTIONS}})
 
     # Modify/add the namespace option to "<base-ns>.<rel-project-structure>"
-    string(REPLACE "/" "." _SUB_NS "${_REL_PROJECT_DIR}")
+    string(REPLACE "/" "." _SUB_NS "${REL_PROJECT_DIR}")
     if (${NAMESPACE_NAME})
         # Modify
         list(FIND _OPTIONS -ns _NS_INDEX)

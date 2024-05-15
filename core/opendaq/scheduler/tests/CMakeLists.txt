@@ -36,9 +36,9 @@ if (MSVC)
     target_compile_options(${TEST_APP_INTERNAL} PRIVATE /wd4324)
 endif()
 
-#target_link_libraries(${TEST_APP_INTERNAL} PRIVATE daq::device
-#                                                   daq::function_block
-#)
+target_link_libraries(${TEST_APP_INTERNAL} PRIVATE 
+    $<BUILD_INTERFACE:Taskflow::Taskflow>
+)
 
 ##############################
 # CTest setup

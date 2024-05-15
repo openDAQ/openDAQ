@@ -32,9 +32,6 @@ target_include_directories(${MODULE_NAME}
 target_link_libraries(${MODULE_NAME} 
     PUBLIC 
         mdns::mdns
-    PRIVATE 
-        daq::coreobjects
-        daq::device
 )
 
 

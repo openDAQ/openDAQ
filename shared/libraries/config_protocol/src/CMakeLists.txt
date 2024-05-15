@@ -9,6 +9,7 @@ set(GENERATED_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_HEADERS_DIR})
 set(RTGEN_HEADERS_DIR ${CONFIG_HEADERS_DIR})
 set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(RTGEN_RELATIVE_PARENT_DIR shared/libraries/${BASE_NAME})
 
 rtgen(SRC_ConfigClientObject config_client_object.h)
 
@@ -74,5 +75,4 @@ target_include_directories(${MODULE_NAME} PUBLIC
 target_link_libraries(${MODULE_NAME} 
     PUBLIC 
         daq::opendaq
-    PRIVATE
-        daq::utility)
+)

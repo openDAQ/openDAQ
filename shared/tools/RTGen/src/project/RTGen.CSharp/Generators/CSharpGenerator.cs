@@ -543,6 +543,9 @@ namespace RTGen.CSharp.Generators
 
                 case "CSCreatorFactory":
                     return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
+
+                case "CSStealRefHandling":
+                    return HandleStealRefAttributes(method.Overloads[0], method.Arguments);
             }
 
             return base.GetMethodVariable(method, variable);
@@ -987,6 +990,34 @@ namespace RTGen.CSharp.Generators
                     IMethod factoryMethod = factory.ToOverload().Method; //ToDo: check if has only one argument and if argument type fits
                     return GetMethodVariable(factoryMethod, "Name");
                 }
+            }
+
+            string HandleStealRefAttributes(IOverload overload, IList<IArgument> arguments)
+            {
+                //check all arguments for "stealRef" attribute and add SetNativePointerToZero() calls for those arguments
+
+                IList<IArgument> stealRefArguments = arguments.Where(arg => arg.IsStealRef).ToList();
+
+                if (stealRefArguments.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                string indentation = base.Indentation + base.Indentation + base.Indentation;
+
+                StringBuilder code = new StringBuilder();
+
+                code.AppendLine();
+                code.AppendLine($"{indentation}//invalidate the objects for the arguments with 'stealRef' attribute (protect from disposing)");
+
+                foreach (var stealRefArgument in stealRefArguments)
+                {
+                    code.AppendLine($"{indentation}{GetArgumentName(overload, stealRefArgument)}.SetNativePointerToZero();");
+                }
+
+                code.AppendLine();
+
+                return code.ToString();
             }
         }
 

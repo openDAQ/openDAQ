@@ -8,23 +8,25 @@ function(opendaq_add_library LIB_BASE_NAME)
     foreach(VARIANT_TYPE ${SDK_LIBRARY_VARIANTS})
         set(LIB_ARGS ${ARGN})
 
-        if ("${VARIANT_TYPE}" STREQUAL "default")
+        if("${VARIANT_TYPE}" STREQUAL "default")
             set(VARIANT_SUFFIX "")
         elseif("${VARIANT_TYPE}" STREQUAL "dev")
            set(VARIANT_SUFFIX "_${VARIANT_TYPE}")
 
-           # convert to object library
+           # convert to static library
            list(POP_FRONT LIB_ARGS)
-           list(INSERT LIB_ARGS 0 OBJECT)
+           list(INSERT LIB_ARGS 0 STATIC)
         else()
             set(VARIANT_SUFFIX "_${VARIANT_TYPE}")
         endif()
 
-        set(VARIANT_TARGET ${SDK_TARGET_NAMESPACE}_${LIB_BASE_NAME}${VARIANT_SUFFIX})
-        set(VARIANT_ALIAS ${SDK_TARGET_NAMESPACE}::${LIB_BASE_NAME}${VARIANT_SUFFIX})
+        set(VARIANT_TARGET ${LIB_BASE_NAME}${VARIANT_SUFFIX})
+        set(VARIANT_ALIAS1 ${SDK_TARGET_NAMESPACE}_${LIB_BASE_NAME}${VARIANT_SUFFIX})
+        set(VARIANT_ALIAS2 ${SDK_TARGET_NAMESPACE}::${LIB_BASE_NAME}${VARIANT_SUFFIX})
 
         add_library(${VARIANT_TARGET} ${LIB_ARGS})
-        add_library(${VARIANT_ALIAS} ALIAS ${VARIANT_TARGET})
+        add_library(${VARIANT_ALIAS1} ALIAS ${VARIANT_TARGET})
+        add_library(${VARIANT_ALIAS2} ALIAS ${VARIANT_TARGET})
 
         set_target_properties(${VARIANT_TARGET}
             PROPERTIES
@@ -54,7 +56,7 @@ function(opendaq_add_library LIB_BASE_NAME)
                     OPENDAQ_SKIP_DLL_IMPORT
             )
 
-            add_dependencies(${VARIANT_TARGET} ${SDK_TARGET_NAMESPACE}::${LIB_BASE_NAME})
+            add_dependencies(${VARIANT_TARGET} ${LIB_BASE_NAME})
         endif()
 
         opendaq_set_output_lib_name(${VARIANT_TARGET} ${PROJECT_VERSION_MAJOR})
@@ -77,7 +79,7 @@ function(opendaq_add_library LIB_BASE_NAME)
         )
     endforeach()
 
-    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../bindings/"
+    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bindings/"
             DESTINATION bindings
     )
 endfunction()
@@ -89,13 +91,10 @@ function(opendaq_component_target_variant COMPONENT_NAME VARIANT_TYPE VARIANT_TA
         set(VARIANT_SUFFIX "_${VARIANT_TYPE}")
     endif()
 
-    set(${VARIANT_TARGET} ${SDK_TARGET_NAMESPACE}_${COMPONENT_NAME}${VARIANT_SUFFIX} PARENT_SCOPE)
+    set(${VARIANT_TARGET} ${COMPONENT_NAME}${VARIANT_SUFFIX} PARENT_SCOPE)
 endfunction()
 
-
 function(opendaq_target_link_libraries)
-    # opendaq_call_command("target_link_libraries" ${ARGV})
-
     set(LIB_BASE_NAME ${ARGV0})
     set(COMMAND_ARGS ${ARGV})
     list(POP_FRONT COMMAND_ARGS)
@@ -117,16 +116,8 @@ function(opendaq_target_link_libraries)
                     list(APPEND VARIANT_ARGS "${COMMAND_ARG}${VARIANT_SUFFIX}")
                     continue()
                 endif()
-
-                #if (TARGET ${COMMAND_ARG})
-                #    get_target_property(IS_TARGET_DAQ_COMPONENT ${COMMAND_ARG} OPENDAQ_COMPONENT)
-                #    if (IS_TARGET_DAQ_COMPONENT)
-                #        list(APPEND VARIANT_ARGS "${COMMAND_ARG}${VARIANT_SUFFIX}")
-                #        continue()
-                #    endif()
-                #endif()
-
-                list(APPEND VARIANT_ARGS ${COMMAND_ARG})
+				
+				list(APPEND VARIANT_ARGS ${COMMAND_ARG})
             endforeach()
 
             target_link_libraries(${VARIANT_TARGET} ${VARIANT_ARGS})
@@ -146,7 +137,7 @@ function(opendaq_call_command COMMAND_NAME)
         endif()
 
         set(LIB_BASE_NAME ${ARGV1})
-        set(VARIANT_TARGET ${SDK_TARGET_NAMESPACE}_${LIB_BASE_NAME}${VARIANT_SUFFIX})
+        set(VARIANT_TARGET ${LIB_BASE_NAME}${VARIANT_SUFFIX})
 
         cmake_language(CALL ${COMMAND_NAME} ${VARIANT_TARGET} ${COMMAND_ARGS})
     endforeach()

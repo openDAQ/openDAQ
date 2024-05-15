@@ -15,6 +15,7 @@ source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
 set(RTGEN_HEADERS_DIR ${SDK_HEADERS_DIR})
 set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
+set(RTGEN_RELATIVE_PARENT_DIR core/${BASE_NAME})
 #set(RTGEN_VERBOSE TRUE)
 
 rtgen(SRC_EvalValue eval_value.h)

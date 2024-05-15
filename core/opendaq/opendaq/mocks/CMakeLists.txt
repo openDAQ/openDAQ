@@ -63,7 +63,6 @@ if (MSVC)
 endif()
 
 target_link_libraries(${MOCK_LIB_NAME} PRIVATE daq::opendaq
-                                               daq::server_dev
                                                daq::test_utils
                                        PUBLIC  daq::objects_mocks
                                                daq::signal_generator

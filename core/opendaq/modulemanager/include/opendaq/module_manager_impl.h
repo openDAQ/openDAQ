@@ -25,7 +25,6 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
-
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>

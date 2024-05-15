@@ -17,7 +17,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/server_capability_config_ptr.h>
-#include <ping/icmp_ping.h>
+#include <opendaq/icmp_ping.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>

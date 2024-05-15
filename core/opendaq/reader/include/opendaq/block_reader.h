@@ -83,6 +83,12 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * @param[out] size The number of samples in a block.
      */
     virtual ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) = 0;
+
+    /*!
+     * @brief The amount of block overlapping.
+     * @param[out] overlap The overlap size in percents.
+     */
+    virtual ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) = 0;
 };
 /*!@}*/
 
@@ -90,6 +96,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, BlockReader,
     ISignal*, signal,
     SizeT, blockSize,
+    SizeT, overlap,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode
@@ -100,13 +107,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
     SampleType, domainReadType,
-    SizeT, blockSize
+    SizeT, blockSize,
+    SizeT, overlap
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, BlockReaderFromPort, IBlockReader,
     IInputPortConfig*, port,
     SizeT, blockSize,
+    SizeT, overlap,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode

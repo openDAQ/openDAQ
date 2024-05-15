@@ -297,61 +297,67 @@ inline BlockReaderPtr BlockReader(SignalPtr signal,
                                   SizeT blockSize,
                                   SampleType valueReadType,
                                   SampleType domainReadType,
-                                  ReadMode mode = ReadMode::Scaled)
+                                  ReadMode mode = ReadMode::Scaled,
+                                  SizeT overlap = 0)
 {
-    return BlockReader_Create(signal, blockSize, valueReadType, domainReadType, mode);
+    return BlockReader_Create(signal, blockSize, overlap, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port,
                                   SizeT blockSize,
                                   SampleType valueReadType,
                                   SampleType domainReadType,
-                                  ReadMode mode = ReadMode::Scaled)
+                                  ReadMode mode = ReadMode::Scaled,
+                                  SizeT overlap = 0)
 {
-    return BlockReaderFromPort_Create(port, blockSize, valueReadType, domainReadType, mode);
+    return BlockReaderFromPort_Create(port, blockSize, overlap, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader,
                                               SizeT blockSize,
                                               SampleType valueReadType,
-                                              SampleType domainReadType)
+                                              SampleType domainReadType,
+                                              SizeT overlap = 0)
 {
-    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType, blockSize);
+    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType, blockSize, overlap);
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReader(SignalPtr signal, SizeT blockSize, ReadMode mode = ReadMode::Scaled)
+BlockReaderPtr BlockReader(SignalPtr signal, SizeT blockSize, ReadMode mode = ReadMode::Scaled, SizeT overlap = 0)
 {
     return BlockReader(
         signal,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
-        mode
+        mode,
+        overlap
     );
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, ReadMode mode = ReadMode::Scaled)
+BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, ReadMode mode = ReadMode::Scaled, SizeT overlap = 0)
 {
     return BlockReaderFromPort(
         port,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
-        mode
+        mode,
+        overlap
     );
 }
 
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT blockSize)
+BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT blockSize, SizeT overlap = 0)
 {
     return BlockReaderFromExisting(
         invalidatedReader,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
-        SampleTypeFromType<TDomainType>::SampleType
+        SampleTypeFromType<TDomainType>::SampleType,
+        overlap
     );
 }
 

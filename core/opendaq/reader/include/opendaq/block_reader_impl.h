@@ -88,12 +88,14 @@ public:
 
     explicit BlockReaderImpl(const SignalPtr& signal,
                              SizeT blockSize,
+                             SizeT overlap,
                              SampleType valueReadType,
                              SampleType domainReadType,
                              ReadMode readMode);
 
     explicit BlockReaderImpl(IInputPortConfig* port,
                              SizeT blockSize,
+                             SizeT overlap,
                              SampleType valueReadType,
                              SampleType domainReadType,
                              ReadMode readMode);
@@ -102,12 +104,14 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType,
                     SizeT blockSize,
+                    SizeT overlap,
                     ReadMode mode);
 
     BlockReaderImpl(BlockReaderImpl* old,
                     SampleType valueReadType,
                     SampleType domainReadType,
-                    SizeT blockSize);
+                    SizeT blockSize,
+                    SizeT overlap);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
@@ -117,6 +121,7 @@ public:
     ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
+    ErrCode INTERFACE_FUNC getOverlap(SizeT* size) override;
 
 private:
     ErrCode readPackets(IReaderStatus** status, SizeT* count);
@@ -125,7 +130,13 @@ private:
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;
 
+    void calculateOverlapSize();
+    void flattenOverlappedBlocks(SizeT count, SizeT evenSamplesCount, SizeT remainingSamplesCount);
+
     SizeT blockSize;
+    SizeT overlap;
+    SizeT overlappedBlockSize;
+    SizeT overlappedBlockSizeRemainder;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
 };

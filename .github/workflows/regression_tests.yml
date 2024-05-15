@@ -113,7 +113,7 @@ jobs:
         working-directory: current/build
         run: cmake --build .
 
-      # TODO: run regression_simulator instead
+      # TODO: run regression_simulator instead + kill/restart simulator between protocols
       - name: Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"

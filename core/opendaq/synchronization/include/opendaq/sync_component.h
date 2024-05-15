@@ -25,6 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: SyncComponentPtr)]
  * [interfaceSmartPtr(ISyncComponent, GenericSyncComponentPtr)]
+ * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  */
 
 /*!

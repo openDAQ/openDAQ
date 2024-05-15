@@ -54,6 +54,7 @@ public:
 
 protected:
     ListPtr<IPropertyObject> interfaces;
+    Bool syncLocked;
 };
 
 template <class... Interfaces>

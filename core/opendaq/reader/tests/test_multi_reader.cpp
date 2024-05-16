@@ -1681,18 +1681,12 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
 
     auto reader = MultiReader(signalsToList());
 
-    bool done = false;    
     reader.setOnDataAvailable([&, promise = &promise] () mutable {
-        if (done)
-            return;
-        
         if (reader.getAvailableCount() < count)
             return;
 
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
-
-        done = true;
         promise->set_value();
     });
 
@@ -1747,15 +1741,10 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
 
     auto reader = MultiReaderFromPort(signalsToPortsList());
 
-    bool done = false;
     reader.setOnDataAvailable([&, promise = &promise] () mutable {
-        if (done)
-            return;
-
         if (reader.getAvailableCount() < count)
             return;
 
-        done = true;
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
         promise->set_value();

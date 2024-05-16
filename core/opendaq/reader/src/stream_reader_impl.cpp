@@ -354,7 +354,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
 
     // Check if value is stil convertible
-    if (newValueDescriptor.assigned())
+    if (newValueDescriptor.assigned() && newValueDescriptor.getSampleType() != SampleType::Invalid)
     {
         dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
@@ -370,7 +370,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     }
 
     // Check if domain is stil convertible
-    if (newDomainDescriptor.assigned())
+    if (newDomainDescriptor.assigned() && newDomainDescriptor.getSampleType() != SampleType::Invalid)
     {
         if (domainReader->isUndefined())
         {

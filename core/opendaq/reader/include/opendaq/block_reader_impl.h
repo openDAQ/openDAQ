@@ -131,7 +131,7 @@ private:
     SizeT getAvailableSamples() const;
 
     void calculateOverlapSize();
-    void flattenOverlappedBlocks(SizeT count, SizeT evenSamplesCount, SizeT remainingSamplesCount);
+    void flattenOverlappedBlocks(SizeT blocksCount, SizeT evenSamplesCount, SizeT remainingSamplesCount);
 
     SizeT blockSize;
     SizeT overlap;

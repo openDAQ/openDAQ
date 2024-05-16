@@ -100,8 +100,11 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 
 SizeT BlockReaderImpl::getAvailable() const
 {
-    // TODO: recalculate in case of overlap
-    return getAvailableSamples() / blockSize;
+    const auto availableSamples = getAvailableSamples();
+    if (availableSamples < blockSize)
+        return 0;
+    else
+        return (availableSamples - blockSize) / overlappedBlockSizeRemainder + 1;
 }
 
 SizeT BlockReaderImpl::getAvailableSamples() const
@@ -125,30 +128,75 @@ void BlockReaderImpl::calculateOverlapSize()
     overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 }
 
-void BlockReaderImpl::flattenOverlappedBlocks(SizeT count, SizeT evenSamplesCount, SizeT remainingSamplesCount)
+void BlockReaderImpl::flattenOverlappedBlocks(SizeT blocksCount, SizeT evenSamplesCount, SizeT remainingSamplesCount)
 {
-    if (overlap == 0) {
+    if (overlap == 0 || blocksCount == 0)
+    {
         return;
     }
 
-    const auto dataSampleSize = dataDescriptor.getRawSampleSize();
-    auto outputBlockCount = count + (remainingSamplesCount != 0 ? 1 : 0);
-    auto outputPtr = static_cast<uint8_t*>(info.values) + (outputBlockCount - 1) * dataSampleSize;
-    auto inputPtr = static_cast<uint8_t*>(info.values) + (evenSamplesCount - blockSize) * dataSampleSize;
+    // flatten data samples
+    {
+        auto valuesPerSample = 1u;
+        auto dimensions = dataDescriptor.getDimensions();
+        if (dimensions.assigned() && dimensions.getCount() == 1)
+        {
+            valuesPerSample = dimensions[0].getSize();
+        }
+        const auto sampleSize = getSampleSize(valueReader->getReadType());
+        const auto blockSizeInBytes = blockSize * sampleSize * valuesPerSample;
 
-    if (remainingSamplesCount) {
-        std::memcpy(outputPtr + blockSize * dataSampleSize,
-                    inputPtr + blockSize * dataSampleSize,
-                    remainingSamplesCount);
-        outputPtr -= blockSize * dataSampleSize;
-        inputPtr -= blockSize * dataSampleSize;
-        --outputBlockCount;
+        auto* valuesStartPtr =
+            static_cast<uint8_t*>(info.values) - (evenSamplesCount + remainingSamplesCount) * sampleSize * valuesPerSample;
+
+        auto* outputPtr = valuesStartPtr + (blocksCount - 1) * blockSize * sampleSize * valuesPerSample;
+        auto* inputPtr = valuesStartPtr + (evenSamplesCount - blockSize) * sampleSize * valuesPerSample;
+
+        if (remainingSamplesCount)
+        {
+            std::memmove(outputPtr + blockSizeInBytes, inputPtr + blockSizeInBytes, remainingSamplesCount * sampleSize * valuesPerSample);
+        }
+
+        for (int i = 0; i < blocksCount; ++i)
+        {
+            std::memcpy(outputPtr, inputPtr, blockSizeInBytes);
+            outputPtr -= blockSizeInBytes;
+            inputPtr -= overlappedBlockSizeRemainder * sampleSize * valuesPerSample;
+        }
     }
 
-    for (int i = 0; i < outputBlockCount; ++i) {
-        std::memcpy(outputPtr, inputPtr, blockSize * dataSampleSize);
-        outputPtr -= blockSize * dataSampleSize;
-        inputPtr -= blockSize * dataSampleSize;
+    // flatten domain samples
+    if (info.domainValues)
+    {
+        auto domainValuesPerSample = 1u;
+        if (domainDescriptor.assigned())
+        {
+            auto dimensions = domainDescriptor.getDimensions();
+            if (dimensions.assigned() && dimensions.getCount() == 1)
+            {
+                domainValuesPerSample = dimensions[0].getSize();
+            }
+        }
+        const auto sampleSize = getSampleSize(domainReader->getReadType());
+        const auto blockSizeInBytes = blockSize * sampleSize * domainValuesPerSample;
+
+        auto* domainValuesStartPtr =
+            static_cast<uint8_t*>(info.domainValues) - (evenSamplesCount + remainingSamplesCount) * sampleSize * domainValuesPerSample;
+
+        auto* outputPtr = domainValuesStartPtr + (blocksCount - 1) * blockSize * sampleSize * domainValuesPerSample;
+        auto* inputPtr = domainValuesStartPtr + (evenSamplesCount - blockSize) * sampleSize * domainValuesPerSample;
+
+        if (remainingSamplesCount)
+        {
+            std::memmove(outputPtr + blockSizeInBytes, inputPtr + blockSizeInBytes, remainingSamplesCount * sampleSize * domainValuesPerSample);
+        }
+
+        for (int i = 0; i < blocksCount; ++i)
+        {
+            std::memcpy(outputPtr, inputPtr, blockSizeInBytes);
+            outputPtr -= blockSizeInBytes;
+            inputPtr -= overlappedBlockSizeRemainder * sampleSize * domainValuesPerSample;
+        }
     }
 }
 
@@ -189,7 +237,8 @@ ErrCode BlockReaderImpl::readPacketData()
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     SizeT toRead = std::min(remainingSampleCount, info.remainingSamplesToRead);
 
-    ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
+    auto* packetData = getValuePacketData(info.dataPacket);
+    ErrCode errCode = valueReader->readData(packetData, info.prevSampleIndex, &info.values, toRead);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -204,7 +253,8 @@ ErrCode BlockReaderImpl::readPacketData()
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
-        errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+        auto* domainData = domainPacket.getData();
+        errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
@@ -260,8 +310,10 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
     info.remainingSamplesToRead = std::min(availableSamples, info.remainingSamplesToRead);
     SizeT samplesToRead = info.remainingSamplesToRead;
 
-
-    *count = (info.remainingSamplesToRead - blockSize) / overlappedBlockSizeRemainder + 1;
+    if (info.remainingSamplesToRead < blockSize)
+        *count = 0;
+    else
+        *count = (info.remainingSamplesToRead - blockSize) / overlappedBlockSizeRemainder + 1;
 
     while (info.remainingSamplesToRead != 0)
     {
@@ -351,7 +403,7 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
     }
 
     if (OPENDAQ_SUCCEEDED(errCode)) {
-        flattenOverlappedBlocks(*count, blockSize * *count, 0);
+        flattenOverlappedBlocks(*count, *count * (blockSize - overlappedBlockSize) + overlappedBlockSize, 0);
     }
 
     return errCode;

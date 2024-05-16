@@ -21,6 +21,8 @@ using SampleTypes = ::testing::Types<OPENDAQ_VALUE_SAMPLE_TYPES>;
 TYPED_TEST_SUITE(BlockReaderTest, SampleTypes);
 
 static constexpr const SizeT BLOCK_SIZE = 2u;
+static constexpr const SizeT OVERLAP = 50; // %
+static constexpr auto DEFAULT_READ_MODE = ReadMode::Scaled;
 
 template <typename DataType, typename DomainType>
 size_t tryRead(const BlockReaderPtr& reader, DataType* data, DomainType* domain, size_t blockCnt = 1u, size_t timeout = 0u)
@@ -63,6 +65,11 @@ TYPED_TEST(BlockReaderTest, Create)
     ASSERT_NO_THROW((BlockReader<TypeParam, ClockRange>)(this->signal, BLOCK_SIZE));
 }
 
+TYPED_TEST(BlockReaderTest, CreateOverlapped)
+{
+    ASSERT_NO_THROW((BlockReader<TypeParam, ClockRange>)(this->signal, BLOCK_SIZE, ReadMode::Scaled, OVERLAP));
+}
+
 TYPED_TEST(BlockReaderTest, CreateNullThrows)
 {
     ASSERT_THROW_MSG((BlockReader<TypeParam, ClockRange>)(nullptr, BLOCK_SIZE), ArgumentNullException, "Signal must not be null.")
@@ -93,13 +100,19 @@ TYPED_TEST(BlockReaderTest, GetDefaultReadType)
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Int64);
 }
 
-TYPED_TEST(BlockReaderTest, GetSamplesAvailableEmpty)
+TYPED_TEST(BlockReaderTest, GetBlocksAvailableEmpty)
 {
     auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
-TYPED_TEST(BlockReaderTest, GetSamplesAvailable)
+TYPED_TEST(BlockReaderTest, GetOverlappedBlocksAvailableEmpty)
+{
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
+TYPED_TEST(BlockReaderTest, GetBlocksAvailable)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
@@ -117,11 +130,68 @@ TYPED_TEST(BlockReaderTest, GetSamplesAvailable)
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 }
 
+TYPED_TEST(BlockReaderTest, GetOverlappedBlocksAvailable)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    this->sendPacket(DataPacket(this->signal.getDescriptor(), 1));
+    this->scheduler.waitAll();
+
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    this->sendPacket(DataPacket(this->signal.getDescriptor(), 1));
+    this->scheduler.waitAll();
+
+    ASSERT_EQ(reader.getAvailableCount(), 1u);
+
+    this->sendPacket(DataPacket(this->signal.getDescriptor(), 1));
+    this->scheduler.waitAll();
+
+    ASSERT_EQ(reader.getAvailableCount(), 2u);
+}
+
 TYPED_TEST(BlockReaderTest, ReadOneBlock)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+
+    // Set the first sample to
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 11.1;
+    dataPtr[1] = 22.2;
+
+    this->sendPacket(dataPacket);
+    this->scheduler.waitAll();
+
+    SizeT count{1};
+    TypeParam samples[1 * BLOCK_SIZE]{};
+    reader.read((TypeParam*) &samples, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[1], TypeParam(typename TypeParam::Type(22.2)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(11.1));
+        ASSERT_EQ(samples[1], TypeParam(22.2));
+    }
+}
+
+TYPED_TEST(BlockReaderTest, ReadOneBlockOverlapped)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1 * BLOCK_SIZE);
 
     // Set the first sample to
@@ -203,6 +273,66 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
     }
 }
 
+TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlappedWithTimeout)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+
+    // Set the first sample to
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 11.1;
+    dataPtr[1] = 22.2;
+
+    this->sendPacket(dataPacket);
+    this->scheduler.waitAll();
+
+    std::thread t([this, &dataPacket]
+                  {
+                      using namespace std::chrono_literals;
+
+                      std::this_thread::sleep_for(30ms);
+                      this->sendPacket(dataPacket);
+                      this->scheduler.waitAll();
+                  });
+
+    SizeT count{3};
+    TypeParam samples[3 * BLOCK_SIZE]{};
+    reader.read((TypeParam*) &samples, &count, 1000u);
+
+    if (t.joinable())
+    {
+        t.join();
+    }
+
+    ASSERT_EQ(count, 3u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[1], TypeParam(typename TypeParam::Type(22.2)));
+
+        ASSERT_EQ(samples[2], TypeParam(typename TypeParam::Type(22.2)));
+        ASSERT_EQ(samples[3], TypeParam(typename TypeParam::Type(11.1)));
+
+        ASSERT_EQ(samples[4], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[5], TypeParam(typename TypeParam::Type(22.2)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(11.1));
+        ASSERT_EQ(samples[1], TypeParam(22.2));
+
+        ASSERT_EQ(samples[2], TypeParam(22.2));
+        ASSERT_EQ(samples[3], TypeParam(11.1));
+
+        ASSERT_EQ(samples[4], TypeParam(11.1));
+        ASSERT_EQ(samples[5], TypeParam(22.2));
+    }
+}
+
 TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -239,6 +369,75 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
     {
         ASSERT_EQ(samples[0], TypeParam(11.1));
         ASSERT_EQ(samples[1], TypeParam(22.2));
+    }
+}
+
+TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlappedWithClockTicks)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockTick>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+    auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
+
+    {
+        auto domainPacket = DataPacket(domainDescriptor, 1 * BLOCK_SIZE, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 11.1;
+        dataPtr[1] = 22.2;
+
+        this->sendPacket(dataPacket);
+        this->scheduler.waitAll();
+    }
+    {
+        auto domainPacket = DataPacket(domainDescriptor, 1 * BLOCK_SIZE, 3);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 11.1;
+        dataPtr[1] = 22.2;
+
+        this->sendPacket(dataPacket);
+        this->scheduler.waitAll();
+    }
+
+    SizeT count{3};
+    TypeParam samples[3 * BLOCK_SIZE]{};
+    ClockTick ticks[3 * BLOCK_SIZE]{};
+    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+
+    ASSERT_EQ(count, 3u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    ASSERT_EQ(ticks[0], 1);
+    ASSERT_EQ(ticks[1], 2);
+
+    ASSERT_EQ(ticks[2], 2);
+    ASSERT_EQ(ticks[3], 3);
+
+    ASSERT_EQ(ticks[4], 3);
+    ASSERT_EQ(ticks[5], 4);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[1], TypeParam(typename TypeParam::Type(22.2)));
+
+        ASSERT_EQ(samples[2], TypeParam(typename TypeParam::Type(22.2)));
+        ASSERT_EQ(samples[3], TypeParam(typename TypeParam::Type(11.1)));
+
+        ASSERT_EQ(samples[4], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[5], TypeParam(typename TypeParam::Type(22.2)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(11.1));
+        ASSERT_EQ(samples[1], TypeParam(22.2));
+
+        ASSERT_EQ(samples[2], TypeParam(22.2));
+        ASSERT_EQ(samples[3], TypeParam(11.1));
+
+        ASSERT_EQ(samples[4], TypeParam(11.1));
+        ASSERT_EQ(samples[5], TypeParam(22.2));
     }
 }
 
@@ -353,6 +552,84 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
     }
 }
 
+TYPED_TEST(BlockReaderTest, ReadThreeBlockOverlappedWithRanges)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+    auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
+
+    {
+        auto domainPacket = DataPacket(domainDescriptor, 1 * BLOCK_SIZE, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 11.1;
+        dataPtr[1] = 22.2;
+
+        this->sendPacket(dataPacket);
+        this->scheduler.waitAll();
+    }
+    {
+        auto domainPacket = DataPacket(domainDescriptor, 1 * BLOCK_SIZE, 3);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 11.1;
+        dataPtr[1] = 22.2;
+
+        this->sendPacket(dataPacket);
+        this->scheduler.waitAll();
+    }
+
+    SizeT count{3};
+    TypeParam samples[3 * BLOCK_SIZE]{};
+    ClockRange stamps[3 * BLOCK_SIZE]{};
+    reader.readWithDomain((TypeParam*) &samples, (ClockRange*) &stamps, &count);
+
+    ASSERT_EQ(count, 3u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    ASSERT_EQ(stamps[0].start, 1);
+    ASSERT_EQ(stamps[0].end, (ClockTick) -1);
+
+    ASSERT_EQ(stamps[1].start, 2);
+    ASSERT_EQ(stamps[1].end, (ClockTick) -1);
+
+    ASSERT_EQ(stamps[2].start, 2);
+    ASSERT_EQ(stamps[2].end, (ClockTick) -1);
+
+    ASSERT_EQ(stamps[3].start, 3);
+    ASSERT_EQ(stamps[3].end, (ClockTick) -1);
+
+    ASSERT_EQ(stamps[4].start, 3);
+    ASSERT_EQ(stamps[4].end, (ClockTick) -1);
+
+    ASSERT_EQ(stamps[5].start, 4);
+    ASSERT_EQ(stamps[5].end, (ClockTick) -1);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[1], TypeParam(typename TypeParam::Type(22.2)));
+
+        ASSERT_EQ(samples[2], TypeParam(typename TypeParam::Type(22.2)));
+        ASSERT_EQ(samples[3], TypeParam(typename TypeParam::Type(11.1)));
+
+        ASSERT_EQ(samples[4], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[5], TypeParam(typename TypeParam::Type(22.2)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(11.1));
+        ASSERT_EQ(samples[1], TypeParam(22.2));
+
+        ASSERT_EQ(samples[2], TypeParam(22.2));
+        ASSERT_EQ(samples[3], TypeParam(11.1));
+
+        ASSERT_EQ(samples[4], TypeParam(11.1));
+        ASSERT_EQ(samples[5], TypeParam(22.2));
+    }
+}
+
 TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -433,6 +710,42 @@ TYPED_TEST(BlockReaderTest, ReadLessThanOnePacket)
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(11.1)));
+        ASSERT_EQ(samples[1], TypeParam(typename TypeParam::Type(22.2)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(11.1));
+        ASSERT_EQ(samples[1], TypeParam(22.2));
+    }
+}
+
+TYPED_TEST(BlockReaderTest, ReadLessThanTwoPacketOverlapped)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE, DEFAULT_READ_MODE, OVERLAP);
+
+    const SizeT NUM_SAMPLES = BLOCK_SIZE + 1;
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
+
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 11.1;
+    dataPtr[1] = 22.2;
+    dataPtr[2] = 33.3;
+
+    this->sendPacket(dataPacket);
+    this->scheduler.waitAll();
+
+    SizeT count{1};
+    TypeParam samples[1 * BLOCK_SIZE]{};
+    reader.read((void*) &samples, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getAvailableCount(), 1u);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {

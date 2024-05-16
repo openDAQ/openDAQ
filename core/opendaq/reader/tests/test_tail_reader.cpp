@@ -279,7 +279,9 @@ TEST_F(TailReaderTest, GetSamplesMoreSamplesThanHistoryEmpty)
 
     SizeT count{HISTORY_SIZE + 1};
     double values[HISTORY_SIZE + 1];
-    ASSERT_THROW_MSG(reader.read(&values, &count), SizeTooLargeException, "The requested sample-count exceeds the reader history size.");
+    auto readerStatus = reader.read(&values, &count);
+    ASSERT_EQ(readerStatus.getReadStatus(), ReadStatus::Fail);
+    ASSERT_EQ(readerStatus.getErrorMesage(), "The requested sample-count exceeds the reader history size.");
 }
 
 TEST_F(TailReaderTest, GetSamplesMoreSamplesThanHistoryFull)
@@ -313,7 +315,9 @@ TEST_F(TailReaderTest, GetSamplesMoreSamplesThanHistoryFull)
 
     SizeT count{HISTORY_SIZE + 1};
     double values[HISTORY_SIZE + 1];
-    ASSERT_THROW_MSG(reader.read(&values, &count), SizeTooLargeException, "The requested sample-count exceeds the reader history size.");
+    auto readerStatus = reader.read(&values, &count);
+    ASSERT_EQ(readerStatus.getReadStatus(), ReadStatus::Fail);
+    ASSERT_EQ(readerStatus.getErrorMesage(), "The requested sample-count exceeds the reader history size.");
 }
 
 TEST_F(TailReaderTest, GetSamplesRolling)

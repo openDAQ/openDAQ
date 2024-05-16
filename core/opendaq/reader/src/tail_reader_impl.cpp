@@ -136,7 +136,8 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 {
     if (info.remainingToRead == 0)
     {
-        *status = ReaderStatus().detach();
+        if (status)
+            *status = ReaderStatus().detach();
         return OPENDAQ_SUCCESS;
     }
 
@@ -144,7 +145,9 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
     {
-        return makeErrorInfo(OPENDAQ_ERR_SIZETOOLARGE, "The requested sample-count exceeds the reader history size.");
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid, "The requested sample-count exceeds the reader history size.").detach();
+        return OPENDAQ_SUCCESS;
     }
 
     if (cachedSamples > info.remainingToRead)

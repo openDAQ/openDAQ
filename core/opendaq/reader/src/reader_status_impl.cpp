@@ -16,7 +16,9 @@ template <class MainInterface, class ... Interfaces>
 ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getReadStatus(ReadStatus* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    if (valid && !eventPacket.assigned())
+    if (errorMessage.assigned())
+        *status = ReadStatus::Fail;
+    else if (valid && !eventPacket.assigned())
         *status = ReadStatus::Ok;
     else if (eventPacket.assigned())
         *status = ReadStatus::Event;

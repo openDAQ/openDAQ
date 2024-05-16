@@ -123,6 +123,9 @@ void ScalingFbImpl::configure()
 
     try
     {
+        if (inputDomainDataDescriptor.getSampleType() == SampleType::Invalid)
+            throw std::runtime_error("No domain");
+
         if (inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Arrays not supported");
 
@@ -173,7 +176,7 @@ void ScalingFbImpl::configure()
     catch (const std::exception& e)
     {
         setInputStatus(InputInvalid);
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        LOG_W("Failed to set descriptor for output signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
 }

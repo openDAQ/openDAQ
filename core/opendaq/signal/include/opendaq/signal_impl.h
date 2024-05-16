@@ -31,6 +31,7 @@
 #include <opendaq/component_impl.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <utility>
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -260,8 +261,12 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
     DataDescriptorPtr domainDataDescriptor;
     if (domainSignalObj.assigned())
         domainDataDescriptor = domainSignalObj.getDescriptor();
+    if (!domainDataDescriptor.assigned())
+        domainDataDescriptor = DataDescriptorBuilder().build();
 
-    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+    DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+    if (!dataDescriptorObj.assigned())
+        dataDescriptorObj = DataDescriptorBuilder().build();
 
     EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
     return packet;
@@ -367,7 +372,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         std::scoped_lock lock(this->sync);
 
         dataDescriptor = descriptor;
-        const auto packet = DataDescriptorChangedEventPacket(descriptor, nullptr);
+        if (!dataDescriptor.assigned())
+            dataDescriptor = DataDescriptorBuilder().build();
+        const auto packet = DataDescriptorChangedEventPacket(dataDescriptor, nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
         success = sendPacketInternal(packet, true);
@@ -401,7 +408,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 
     if (!valueSignalsOfDomainSignal.empty())
     {
-        const EventPacketPtr domainChangedPacket = DataDescriptorChangedEventPacket(nullptr, descriptor);
+        const EventPacketPtr domainChangedPacket = DataDescriptorChangedEventPacket(nullptr, dataDescriptor);
         for (const auto& sig : valueSignalsOfDomainSignal)
         {
             const auto err = sig->sendPacket(domainChangedPacket);

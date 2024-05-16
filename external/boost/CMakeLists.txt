@@ -69,11 +69,13 @@ if (Boost_FETCHED)
         boost_container
         boost_thread
     )
-    foreach(TARGET ${BOOST_TARGETS})
-        if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-            target_compile_options(${TARGET} PRIVATE /WX-)
-        else()
-            target_compile_options(${TARGET} PRIVATE -Wno-error)
+    foreach(BOOST_TARGET ${BOOST_TARGETS})
+        if (TARGET ${BOOST_TARGET})
+            if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+                target_compile_options(${BOOST_TARGET} PRIVATE /WX-)
+            else()
+                target_compile_options(${BOOST_TARGET} PRIVATE -Wno-error)
+            endif()
         endif()
     endforeach()
 

@@ -143,8 +143,8 @@ TEST_F(RegressionTestSignal, getLastValue)
 {
     BaseObjectPtr lastValue;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    ASSERT_NO_THROW(lastValue = signal.getLastValue());  // TODO: not needed?
-    if (protocol == "opcua" || protocol == "nd")         // TODO: ???
+    ASSERT_NO_THROW(lastValue = signal.getLastValue());
+    if (protocol == "opcua" || protocol == "nd")
         ASSERT_TRUE(lastValue.assigned());
 }
 

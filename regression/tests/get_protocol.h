@@ -20,6 +20,6 @@
 namespace
 {
 // TODO! opcua nd ns lt
-daq::StringPtr protocol = "opcua";  // getenv("protocol"); 
+daq::StringPtr protocol = getenv("protocol");
 daq::StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }

@@ -111,7 +111,7 @@ jobs:
         working-directory: current/build
         run: cmake --build .
 
-      - name: OPC UA: Run simulator from target and perform regression tests from current
+      - name: OPC UA - Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}/regression_opcua"
         run: |
@@ -120,7 +120,7 @@ jobs:
           cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
-      - name: ND: Run simulator from target and perform regression tests from current
+      - name: ND - Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}/regression_nd"
         run: |
@@ -129,7 +129,7 @@ jobs:
           cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
-      - name: NS: Run simulator from target and perform regression tests from current
+      - name: NS - Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}/regression_ns"
         run: |
@@ -138,7 +138,7 @@ jobs:
           cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
-      - name: LT: Run simulator from target and perform regression tests from current
+      - name: LT - Run simulator from target and perform regression tests from current
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}/regression_lt"
         run: |

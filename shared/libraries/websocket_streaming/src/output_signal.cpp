@@ -107,7 +107,8 @@ bool OutputSignalBase::isSubscribed()
 
 void OutputSignalBase::submitSignalChanges()
 {
-    stream->writeSignalMetaInformation();
+    if (dataWritingAllowed)
+        stream->writeSignalMetaInformation();
 }
 
 void OutputSignalBase::writeDescriptorChangedEvent(const DataDescriptorPtr& descriptor)
@@ -218,9 +219,11 @@ void OutputValueSignalBase::setSubscribed(bool subscribed)
         {
             outputDomainSignal->subscribeByDataSignal();
             stream->subscribe();
+            dataWritingAllowed = true;
         }
         else
         {
+            dataWritingAllowed = false;
             stream->unsubscribe();
             outputDomainSignal->unsubscribeByDataSignal();
         }
@@ -256,7 +259,8 @@ uint64_t OutputDomainSignalBase::calcStartTimeOffset(uint64_t dataPacketTimeStam
     {
         STREAMING_PROTOCOL_LOG_I("time signal {}: reset start timestamp: {}", daqSignal.getGlobalId(), dataPacketTimeStamp);
 
-        domainStream->setTimeStart(dataPacketTimeStamp);
+        if (dataWritingAllowed)
+            domainStream->setTimeStart(dataPacketTimeStamp);
         doSetStartTime = false;
         return 0;
     }
@@ -289,7 +293,10 @@ void OutputDomainSignalBase::subscribeByDataSignal()
     {
         doSetStartTime = true;
         if (!this->subscribed)
+        {
             stream->subscribe();
+            dataWritingAllowed = true;
+        }
     }
 
     subscribedByDataSignalCount++;
@@ -310,7 +317,10 @@ void OutputDomainSignalBase::unsubscribeByDataSignal()
     if (subscribedByDataSignalCount == 0)
     {
         if (!this->subscribed)
+        {
+            dataWritingAllowed = false;
             stream->unsubscribe();
+        }
     }
 }
 
@@ -324,12 +334,18 @@ void OutputDomainSignalBase::setSubscribed(bool subscribed)
         if (subscribed)
         {
             if (subscribedByDataSignalCount == 0)
+            {
                 stream->subscribe();
+                dataWritingAllowed = true;
+            }
         }
         else
         {
             if (subscribedByDataSignalCount == 0)
+            {
+                dataWritingAllowed = false;
                 stream->unsubscribe();
+            }
         }
     }
 }
@@ -499,7 +515,8 @@ void OutputSyncValueSignal::writeDataPacket(const DataPacketPtr& packet)
         doSetStartTime = false;
     }
 
-    syncStream->addData(packet.getRawData(), packet.getSampleCount());
+    if (dataWritingAllowed)
+        syncStream->addData(packet.getRawData(), packet.getSampleCount());
 }
 
 BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
@@ -622,7 +639,8 @@ void OutputConstValueSignal::writeData(const DataPacketPtr& packet, uint64_t fir
             indices.push_back(values[i].second + firstValueIndex);
         }
 
-        constStream->addData(constants.data(), indices.data(), valuesCount);
+        if (dataWritingAllowed)
+            constStream->addData(constants.data(), indices.data(), valuesCount);
     }
 
     lastConstValue = values.back().first;
@@ -701,9 +719,11 @@ void OutputConstValueSignal::setSubscribed(bool subscribed)
         {
             outputDomainSignal->subscribeByDataSignal();
             stream->subscribe();
+            dataWritingAllowed = true;
         }
         else
         {
+            dataWritingAllowed = false;
             stream->unsubscribe();
             outputDomainSignal->unsubscribeByDataSignal();
         }

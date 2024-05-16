@@ -81,7 +81,7 @@ jobs:
         
       # Because we need regression_simulator in target
       - name: Copy regression folder from current to target
-        run: cp current/regression target/regression
+        run: cp -r current/regression target/regression
 
       - name: Configure target
         working-directory: target
@@ -100,6 +100,12 @@ jobs:
       - name: Build target
         working-directory: target/build
         run: cmake --build .
+        
+      - name: Upload bin.zip
+        uses: actions/upload-artifact@v3
+        with: 
+          name: target bin (${{ matrix.name }})
+          path: target/build/bin
 
       - name: Build current
         working-directory: current/build

@@ -19,7 +19,7 @@ jobs:
     # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }} #TODO: not sure if needed
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
     timeout-minutes: 360
     strategy:
@@ -53,7 +53,6 @@ jobs:
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
 
-      # TODO: probably don't need everything listed here?
       - name: Install build dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
@@ -70,79 +69,69 @@ jobs:
         with:
           ref: ${{ env.target_tag }}
           path: target
-      
-      # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
-      # -> maybe not because we always want to have the latest version?
-      - name: Checkout CMakePresets.json to get the regression_tests preset
-        uses: Bhacaz/checkout-files@v2
+          
+      - name: Checkout current
+        uses: actions/checkout@v3
         with:
-          files: CMakePresets.json
-          branch: ${{ github.head_ref || github.ref_name }}
+          path: current
+      
+      # Because we need the regression_tests preset in target
+      - name: Copy CMakePresets.json from current to target
+        run: cp current/CMakePresets.json target
+        
+      # Because we need regression_simulator in target
+      - name: Copy regression folder from current to target
+        run: cp current/regression target/regression
 
-      # TODO: this this step can be safely deleted if the regression_tests preset exists in target (it doesn't exist in openDAQ version 3.0.0)
-      # -> maybe not because we always want to have the latest version?
-      - name: Move CMakePresets.json to target folder
-        run: mv CMakePresets.json target
-
-      # TODO: regression_simulator checkout and move!
-
-      # TODO: OPENDAQ_ENABLE_REGRESSION_TESTS should be ON from preset (it has been set)
       - name: Configure target
         working-directory: target
-        run: | #TODO: DCI_GIT_BRANCH?
+        run: |
           mkdir build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+
+      - name: Configure current
+        working-directory: current
+        run: |
+          mkdir build
+          cd build
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build target
         working-directory: target/build
         run: cmake --build .
 
-      - name: Checkout current
-        uses: actions/checkout@v3
-        with:
-          path: current
-        
-      - name: Configure current
-        working-directory: current
-        run: | #TODO: DCI_GIT_BRANCH?
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
       - name: Build current
         working-directory: current/build
         run: cmake --build .
 
-      # TODO: run regression_simulator instead
       - name: Run simulator from target and perform regression tests from current for each protocol separately
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}" # TODO: handle multiple output files
         run: |
           echo "PROTOCOL REGRESSION TESTS OPC UA"
-          ./target/build/bin/quick_start_simulator &
+          ./target/build/bin/regression_simulator &
           sleep 5
           cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build
-          pkill quick_start_simulator
+          pkill regression_simulator
           
           echo "PROTOCOL REGRESSION TESTS ND"
-          ./target/build/bin/quick_start_simulator &
+          ./target/build/bin/regression_simulator &
           sleep 5
           cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build
-          pkill quick_start_simulator
+          pkill regression_simulator
           
           echo "PROTOCOL REGRESSION TESTS NS"
-          ./target/build/bin/quick_start_simulator &
+          ./target/build/bin/regression_simulator &
           sleep 5
           cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build
-          pkill quick_start_simulator
+          pkill regression_simulator
           
           echo "PROTOCOL REGRESSION TESTS LT"
-          ./target/build/bin/quick_start_simulator &
+          ./target/build/bin/regression_simulator &
           sleep 5
           cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build
-          pkill quick_start_simulator
-          
+          pkill regression_simulator
           
       - name: Upload regression test results
         if: always()

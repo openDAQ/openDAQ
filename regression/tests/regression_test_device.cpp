@@ -203,7 +203,6 @@ TEST_F(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
     {
         return;
     }
-    // TODO: should not rely on "ref_fb_module_trigger" being present
     FunctionBlockPtr fb;
     ASSERT_NO_THROW(fb = device.addFunctionBlock("ref_fb_module_trigger"));
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));

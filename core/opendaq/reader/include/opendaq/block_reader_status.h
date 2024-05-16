@@ -47,7 +47,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, BlockReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
-    SizeT, readSamples
+    SizeT, readSamples,
+    IString*, errorMessage
 )
 
 END_NAMESPACE_OPENDAQ

@@ -32,14 +32,18 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using UndefinedType = void;
 
-inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const StringPtr& errorMessage = nullptr)
 {
-    return ReaderStatus_Create(packet, valid);
+    return ReaderStatus_Create(packet, valid, errorMessage);
 }
 
-inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+inline BlockReaderStatusPtr BlockReaderStatus(
+    const EventPacketPtr& packet = nullptr, 
+    Bool valid = true,  
+    SizeT readSamples = 0,
+    const StringPtr& errorMessage = nullptr)
 {
-    return BlockReaderStatus_Create(packet, valid, readSamples);
+    return BlockReaderStatus_Create(packet, valid, readSamples, errorMessage);
 }
 
 /*!

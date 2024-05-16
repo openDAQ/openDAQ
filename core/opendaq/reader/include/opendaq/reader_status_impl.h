@@ -25,7 +25,7 @@ template <class MainInterface, class ... Interfaces>
 class GenericReaderStatusImpl : public ImplementationOf<MainInterface, Interfaces...>
 {
 public:
-    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
+    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const StringPtr& errorMessage);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
@@ -33,9 +33,12 @@ public:
 
     ErrCode INTERFACE_FUNC getValid(Bool* valid) override;
 
+    ErrCode INTERFACE_FUNC getErrorMesage(IString** message) override;
+
 private:
     EventPacketPtr eventPacket;
     Bool valid;
+    StringPtr errorMessage;
 };
 
 using ReaderStatusImpl = GenericReaderStatusImpl<IReaderStatus>;
@@ -44,7 +47,7 @@ class BlockReaderStatusImpl final : public GenericReaderStatusImpl<IBlockReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IBlockReaderStatus>;
-    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples);
+    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples, const StringPtr& errorMessage);
 
     ErrCode INTERFACE_FUNC getReadSamples(SizeT* readSamples) override;
 

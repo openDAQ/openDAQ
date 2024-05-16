@@ -5,9 +5,10 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <class MainInterface, class ... Interfaces>
-GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid)
+GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const StringPtr& errorMessage)
     : eventPacket(eventPacket)
     , valid(valid)
+    , errorMessage(errorMessage)
 {
 }
 
@@ -41,8 +42,16 @@ ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getValid(Bool* va
     return OPENDAQ_SUCCESS;
 }
 
-BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples)
-    : Super(eventPacket, valid)
+template <class MainInterface, class ... Interfaces>
+ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getErrorMesage(IString** message)
+{
+    OPENDAQ_PARAM_NOT_NULL(message);
+    *message = errorMessage.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples, const StringPtr& errorMessage)
+    : Super(eventPacket, valid, errorMessage)
     , readSamples(readSamples)
 {
 }
@@ -57,14 +66,16 @@ ErrCode BlockReaderStatusImpl::getReadSamples(SizeT* readSamples)
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, valid
+    Bool, valid,
+    IString*, errorMessage
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, BlockReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
-    SizeT, readSamples
+    SizeT, readSamples,
+    IString*, errorMessage
 )
 
 END_NAMESPACE_OPENDAQ

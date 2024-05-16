@@ -119,11 +119,11 @@ TEST_F(RegressionTestDevice, getSignalsRecursive)
     ASSERT_NO_THROW(signals = device.getSignalsRecursive());
     if (protocol == "opcua" || protocol == "nd" || protocol == "ns")
     {
-        ASSERT_EQ(signals.getCount(), 2);
+        ASSERT_EQ(signals.getCount(), 4);
     }
     else if (protocol == "lt")
     {
-        ASSERT_EQ(signals.getCount(), 4);
+        ASSERT_EQ(signals.getCount(), 6);
     }
 }
 
@@ -180,7 +180,7 @@ TEST_F(RegressionTestDevice, getFunctionBlocks)
 {
     ListPtr<IFunctionBlock> functionBlocks;
     ASSERT_NO_THROW(functionBlocks = device.getFunctionBlocks());
-    ASSERT_EQ(functionBlocks.getCount(), 0);
+    ASSERT_EQ(functionBlocks.getCount(), 1);
 }
 
 TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)

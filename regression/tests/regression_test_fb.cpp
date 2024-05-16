@@ -28,8 +28,7 @@ protected:
 
         device = instance.addDevice(connectionString);
 
-        fb = device.addFunctionBlock("ref_fb_module_trigger");
-        // TODO: add function block once in simulator?
+        fb = device.getFunctionBlocks()[0];
     }
 };
 

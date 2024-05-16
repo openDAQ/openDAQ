@@ -22,11 +22,9 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        // TODO: to be able to get input port from function block
-        device = instance.getRootDevice();
+        device = instance.addDevice(connectionString);
 
-        fb = device.addFunctionBlock("ref_fb_module_trigger");
-        // TODO: add function block once in simulator?
+        fb = device.getFunctionBlocks()[0];
 
         port = fb.getInputPorts()[0];
     }

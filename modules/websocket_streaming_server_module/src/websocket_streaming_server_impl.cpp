@@ -3,6 +3,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
@@ -28,11 +29,20 @@ void WebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const Conte
     if (!config.assigned())
         return;
 
+    LoggerComponentPtr loggerComponent;
+
     auto options = context.getModuleOptions("StreamingLtServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
-            config->setPropertyValue(key, value);
+        {
+            ErrCode err = config->setPropertyValue(key, value);
+            if (err != OPENDAQ_SUCCESS)
+            {
+                loggerComponent = context.getLogger().getOrAddComponent("ConfigProvider/Modules/StreamingLtServer");
+                LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
+            }
+        }
         else
         {
             auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();

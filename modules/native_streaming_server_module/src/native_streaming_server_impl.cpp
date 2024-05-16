@@ -269,11 +269,20 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
     if (!config.assigned())
         return;
 
+    LoggerComponentPtr loggerComponent;
+
     auto options = context.getModuleOptions("NativeStreamingServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
-            config->setPropertyValue(key, value);
+        {
+            ErrCode err = config->setPropertyValue(key, value);
+            if (err != OPENDAQ_SUCCESS)
+            {
+                loggerComponent = context.getLogger().getOrAddComponent("ConfigProvider/Modules/NativeStreamingServer");
+                LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
+            }
+        }
         else
         {
             auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();

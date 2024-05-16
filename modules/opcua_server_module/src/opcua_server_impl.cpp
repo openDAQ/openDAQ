@@ -33,11 +33,20 @@ void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& contex
     if (!config.assigned())
         return;
 
+    LoggerComponentPtr loggerComponent;
+
     auto options = context.getModuleOptions("OpcUaServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
-            config->setPropertyValue(key, value);
+        {
+            ErrCode err = config->setPropertyValue(key, value);
+            if (err != OPENDAQ_SUCCESS)
+            {
+                loggerComponent = context.getLogger().getOrAddComponent("ConfigProvider/Modules/OpcUaServer");
+                LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
+            }
+        }
         else
         {
             auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();

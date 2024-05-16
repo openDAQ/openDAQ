@@ -1112,7 +1112,7 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
         }
     }
     )";
-    auto finaly = CreateConfigFile(configFilename, options);
+    auto finally = CreateConfigFile(configFilename, options);
 
     const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
     const auto device = instance.addDevice("daqref://device1");

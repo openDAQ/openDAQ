@@ -811,16 +811,8 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
     ProcedurePtr callback;
 
-    {
-        std::scoped_lock lock(mutex);
-        callback = readCallback;
-        if (!callback.assigned())
-            return OPENDAQ_SUCCESS;
-    }
-
-    SizeT count;
-    getAvailableCount(&count);
-    if (count)
+    callback = readCallback;
+    if (callback.assigned())
         return wrapHandler(callback);
 
     return OPENDAQ_SUCCESS;

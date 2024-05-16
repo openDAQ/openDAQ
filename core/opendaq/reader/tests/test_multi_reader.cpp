@@ -1680,10 +1680,20 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReader(signalsToList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+
+    bool done = false;    
+    reader.setOnDataAvailable([&, promise = &promise] () mutable {
+        if (done)
+            return;
+        
+        if (reader.getAvailableCount() < count)
+            return;
+
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
-        promise.set_value();
+
+        done = true;
+        promise->set_value();
     });
 
     auto available = reader.getAvailableCount();
@@ -1736,10 +1746,19 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReaderFromPort(signalsToPortsList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+
+    bool done = false;
+    reader.setOnDataAvailable([&, promise = &promise] () mutable {
+        if (done)
+            return;
+
+        if (reader.getAvailableCount() < count)
+            return;
+
+        done = true;
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
-        promise.set_value();
+        promise->set_value();
     });
 
     auto available = reader.getAvailableCount();
@@ -2015,4 +2034,31 @@ TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
     {
         sig0.createAndSendPacket(i);
     }
+}
+
+TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
+{
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    const MultiReaderPtr multiReader = MultiReader(signalsToList(), SampleType::Float64, SampleType::Int64);
+
+    constexpr size_t numberOfSamplesToRead = 8;
+    double dataFirstSignal[numberOfSamplesToRead];
+    double dataSecondSignal[numberOfSamplesToRead];
+    double* data[2] { dataFirstSignal, dataSecondSignal };
+
+    size_t count = numberOfSamplesToRead;
+    auto a1 = std::async (std::launch::async, [&] {
+        multiReader.read(data, &count, 10000);
+    });
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    a1.wait();
+
+    ASSERT_EQ(count, numberOfSamplesToRead);
 }

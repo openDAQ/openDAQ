@@ -187,8 +187,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         break;
         case daq::streaming_protocol::RULETYPE_LINEAR:
         {
-            uint64_t start = subscribedSignal.time();
-            return LinearDataRule(subscribedSignal.linearDelta(), start);
+            return LinearDataRule(subscribedSignal.linearDelta(), 0);
         }
         break;
         default:

@@ -581,11 +581,11 @@ void OpcUaServer::closeSession(UA_Server* server, UA_AccessControl* ac, const UA
 
 
 UA_StatusCode OpcUaServer::generateChildId(UA_Server* server,
-                                           const UA_NodeId*/*sessionId*/,
-                                           void*/*sessionContext*/,
+                                           const UA_NodeId* /*sessionId*/,
+                                           void* /*sessionContext*/,
                                            const UA_NodeId* sourceNodeId,
                                            const UA_NodeId* targetParentNodeId,
-                                           const UA_NodeId*/*referenceTypeId*/,
+                                           const UA_NodeId* /*referenceTypeId*/,
                                            UA_NodeId* targetNodeId)
 {
     if (targetParentNodeId->identifierType == UA_NODEIDTYPE_STRING) {

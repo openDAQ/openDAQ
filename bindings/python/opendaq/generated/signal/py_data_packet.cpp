@@ -38,7 +38,9 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.doc() = "Packet that contains data sent by a signal. The data can be either explicit, or implicit.";
 
     m.def("DataPacket", &daq::DataPacket_Create);
+    m.def("DataPacketWithExternalMemory", &daq::DataPacketWithExternalMemory_Create);
     m.def("DataPacketWithDomain", &daq::DataPacketWithDomain_Create);
+    m.def("ConstantDataPacketWithDomain", &daq::ConstantDataPacketWithDomain_Create);
 
     cls.def_property_readonly("data_descriptor",
         [](daq::IDataPacket *object)

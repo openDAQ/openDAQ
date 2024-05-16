@@ -95,4 +95,12 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         },
         py::arg("packet"),
         "Sends a packet through all connections of the signal.");
+    cls.def("send_packets",
+        [](daq::ISignalConfig *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
+            objectPtr.sendPackets(packets);
+        },
+        py::arg("packets"),
+        "Sends multiple packets through all connections of the signal.");
 }

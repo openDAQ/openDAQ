@@ -126,6 +126,10 @@ private:
     size_t blockSize;
     DomainSignalType domainSignalType;
 
+    int overlap;
+    size_t overlappedBlockSize;
+    size_t overlappedBlockSizeRemainder;
+
     SignalConfigPtr avgSignal;
     SignalConfigPtr rmsSignal;
     SignalConfigPtr domainSignal;

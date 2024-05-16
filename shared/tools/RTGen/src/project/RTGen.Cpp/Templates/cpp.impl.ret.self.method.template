@@ -4,7 +4,7 @@
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->$Name$($ArgumentNames$);
+        auto errCode = this->object->$NameInInterface$($ArgumentNames$);
         daq::checkErrorInfo(errCode);
         return this->addRefAndReturn();
     }

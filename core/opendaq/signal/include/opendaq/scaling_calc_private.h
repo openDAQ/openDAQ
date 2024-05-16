@@ -51,7 +51,7 @@ DECLARE_OPENDAQ_INTERFACE(IScalingCalcPrivate, IBaseObject)
      * @brief Checks whether the Scaling Calculator is available for packet or not.
      * @return True if the Scaling Calculator is initialized within the implementation; false otherwise.
      */
-    virtual bool INTERFACE_FUNC hasScalingCalc() const = 0;
+    virtual Bool INTERFACE_FUNC hasScalingCalc() const = 0;
 };
 /*!@}*/
 

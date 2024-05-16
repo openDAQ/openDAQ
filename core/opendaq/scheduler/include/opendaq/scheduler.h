@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/awaitable.h>
+#include <opendaq/work.h>
 #include <opendaq/task_graph.h>
 #include <opendaq/logger.h>
 #include <coretypes/listobject.h>
@@ -40,11 +41,22 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
      * @brief Schedules the specified @p work function to run on the thread-pool.
      * The call does not block but immediately returns an @p awaitable that represents
      * the asynchronous execution. It can be waited upon and queried for status and result.
-     * @param work The function to schedule for execution.
+     * @param function The function to schedule for execution.
      * @param[out] awaitable The object representing the state and result of the execution.
      * @retval OPENDAQ_ERR_SCHEDULER_STOPPED when the scheduler already stopped and is not accepting any more work.
      */
-    virtual ErrCode INTERFACE_FUNC scheduleWork(IFunction* work, IAwaitable** awaitable) = 0;
+    virtual ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) = 0;
+
+    /*!
+     * @brief Schedules the specified work callback to run on the thread-pool.
+     * The call does not block.
+     * @param work The function to schedule for execution.
+     * @retval OPENDAQ_ERR_SCHEDULER_STOPPED when the scheduler already stopped and is not accepting any more work.
+     *
+     * Work is a lightweight callback that returns no value and accepts no procedure. It has less overhead than
+     * function. The function does not return awaitable object.
+     */
+    virtual ErrCode INTERFACE_FUNC scheduleWork(IWork* work) = 0;
 
     /*!
      * @brief Schedules the specified dependency @p graph to run on the thread-pool.

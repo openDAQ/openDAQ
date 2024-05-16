@@ -14,6 +14,10 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_private_ptr.h>
 #include <opendaq/tags_factory.h>
+#include <opendaq/input_port_notifications.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/scheduler_factory.h>
+#include <thread>
 
 using SignalTest = testing::Test;
 
@@ -22,21 +26,58 @@ using namespace daq;
 class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
 public:
-    bool packetEnqueued{false};
+    bool packetEnqueued{ false };
+    int packetsEnqueued{0};
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override
     {
         packetEnqueued = true;
+        packetsEnqueued++;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) override
+    {
+        packetEnqueued = true;
+        packetsEnqueued += ListPtr<IPacket>::Borrow(packets).getCount();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override
+    {
+        packetsEnqueued++;
+        packetEnqueued = true;
+
+        if (packet != nullptr)
+            packet->releaseRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packets) override
+    {
+        packetsEnqueued += ListPtr<IPacket>::Borrow(packets).getCount();
+        packetEnqueued = true;
+
+        if (packets != nullptr)
+            packets->releaseRef();
+
         return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override
     {
         packetEnqueued = true;
+        packetsEnqueued++;
         return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC dequeueAll(IList** packets) override
     {
         return OPENDAQ_SUCCESS;
     }
@@ -462,6 +503,61 @@ TEST_F(SignalTest, SendPacket)
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
 
+TEST_F(SignalTest, SendPackets)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    auto connImpl = new ConnectionMockImpl();
+    ConnectionPtr conn;
+    checkErrorInfo(connImpl->queryInterface(IConnection::Id, reinterpret_cast<void**>(&conn)));
+
+    signal.asPtr<ISignalEvents>()->listenerConnected(conn);
+
+    auto packet0 = PacketMock();
+    auto packet1 = PacketMock();
+
+    signal.sendPackets(List<IPacket>(packet0, packet1));
+    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+
+    ASSERT_TRUE(connImpl->packetEnqueued);
+}
+
+TEST_F(SignalTest, SendAndReleasePacket)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.setPublic(False);
+
+    auto connImpl = new ConnectionMockImpl();
+    ConnectionPtr conn;
+    checkErrorInfo(connImpl->queryInterface(IConnection::Id, reinterpret_cast<void**>(&conn)));
+
+    signal.asPtr<ISignalEvents>()->listenerConnected(conn);
+
+    auto packet = PacketMock();
+    signal.sendPacket(std::move(packet));
+
+    ASSERT_TRUE(connImpl->packetEnqueued);
+}
+
+TEST_F(SignalTest, SendAndReleasePackets)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.setPublic(False);
+
+    auto connImpl = new ConnectionMockImpl();
+    ConnectionPtr conn;
+    checkErrorInfo(connImpl->queryInterface(IConnection::Id, reinterpret_cast<void**>(&conn)));
+
+    signal.asPtr<ISignalEvents>()->listenerConnected(conn);
+
+    auto packets = List<IPacket>(PacketMock(), PacketMock());
+
+    signal.sendPackets(std::move(packets));
+
+    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+    ASSERT_TRUE(connImpl->packetEnqueued);
+}
+
 TEST_F(SignalTest, SetDescriptorWithConnection)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -723,6 +819,232 @@ TEST_F(SignalTest, GetLastValueDisabled)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
+TEST_F(SignalTest, GetLastValueNonPublicDisabled)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.setPublic(False);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 1;
+        signal.sendPacket(dataPacket);
+    }
+
+    ASSERT_FALSE(signal.getLastValue().assigned());
+}
+
+TEST_F(SignalTest, GetLastValueInvisibleDisabled)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+    signal.setVisible(False);
+    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 1;
+        signal.sendPacket(dataPacket);
+    }
+
+    ASSERT_FALSE(signal.getLastValue().assigned());
+}
+
+class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>
+{
+public:
+    ListenerImpl(const std::function<void(const InputPortPtr& inputPort)>& onPacketRecieved)
+        : onPacketRecieved(onPacketRecieved)
+    {
+    }
+
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override
+    {
+        *accept = True;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC connected(IInputPort* port) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
+    {
+        onPacketRecieved(port);
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    std::function<void(const InputPortPtr& inputPort)> onPacketRecieved;
+};
+
+TEST_F(SignalTest, LastReferenceSameThread)
+{
+    const auto logger = Logger();
+    const auto ctx = Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(False);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    int dataPacketsRecieved = 0;
+    const auto listener = createWithImplementation<IInputPortNotifications, ListenerImpl>(
+        [&dataPacketsRecieved](const InputPortPtr& port)
+        {
+            const auto conn = port.getConnection();
+            if (!conn.assigned())
+                return;
+
+            auto packet = conn.dequeue();
+            while (packet.assigned())
+            {
+                if (packet.getType() == PacketType::Data)
+                {
+                    dataPacketsRecieved++;
+                    ASSERT_EQ(packet.getRefCount(), 1);
+                }
+                packet = conn.dequeue();
+            }
+        });
+
+    const auto ip = InputPort(ctx, nullptr, "ip");
+    ip.setNotificationMethod(PacketReadyNotification::SameThread);
+    ip.setListener(listener);
+
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+    data[0] = 1;
+
+    auto packet = std::move(dataPacket);
+    signal.sendPacket(std::move(packet));
+
+    ASSERT_EQ(dataPacketsRecieved, 1);
+}
+
+TEST_F(SignalTest, LastReferenceScheduler)
+{
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool packetRead = false;
+    std::thread::id threadId;
+
+    const auto logger = Logger();
+    const auto scheduler = Scheduler(logger);
+    const auto ctx = Context(scheduler, logger, TypeManager(), nullptr, nullptr);
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(False);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    int dataPacketsRecieved = 0;
+    const auto listener = createWithImplementation<IInputPortNotifications, ListenerImpl>(
+        [&dataPacketsRecieved, &mtx, &cv, &packetRead, &threadId](const InputPortPtr& port)
+        {
+            const auto conn = port.getConnection();
+            if (!conn.assigned())
+                return;
+
+            auto packet = conn.dequeue();
+            while (packet.assigned())
+            {
+                if (packet.getType() == PacketType::Data)
+                {
+                    dataPacketsRecieved++;
+                    threadId = std::this_thread::get_id();
+                    ASSERT_EQ(packet.getRefCount(), 1);
+
+                    std::unique_lock lock(mtx);
+                    packetRead = true;
+                    cv.notify_one();
+                }
+                packet = conn.dequeue();
+            }
+        });
+
+    const auto ip = InputPort(ctx, nullptr, "ip");
+    ip.setNotificationMethod(PacketReadyNotification::Scheduler);
+    ip.setListener(listener);
+
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+    data[0] = 1;
+
+    auto packet = std::move(dataPacket);
+    signal.sendPacket(std::move(packet));
+
+    {
+        std::unique_lock lock(mtx);
+        while (!packetRead)
+            cv.wait(lock);
+    }
+
+    ASSERT_EQ(dataPacketsRecieved, 1);
+    ASSERT_NE(std::this_thread::get_id(), threadId);
+
+    scheduler.stop();
+}
+
+TEST_F(SignalTest, LastReferenceSameThreadMultiPackets)
+{
+    const auto logger = Logger();
+    const auto ctx = Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(False);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    int dataPacketsRecieved = 0;
+    const auto listener = createWithImplementation<IInputPortNotifications, ListenerImpl>(
+        [&dataPacketsRecieved](const InputPortPtr& port)
+        {
+            const auto conn = port.getConnection();
+            if (!conn.assigned())
+                return;
+
+            auto packet = conn.dequeue();
+            while (packet.assigned())
+            {
+                if (packet.getType() == PacketType::Data)
+                {
+                    dataPacketsRecieved++;
+                    ASSERT_EQ(packet.getRefCount(), 1);
+                }
+                packet = conn.dequeue();
+            }
+        });
+
+    const auto ip = InputPort(ctx, nullptr, "ip");
+    ip.setNotificationMethod(PacketReadyNotification::SameThread);
+    ip.setListener(listener);
+
+    ip.connect(signal);
+
+    auto packets = List<IPacket>(DataPacket(descriptor, 1), DataPacket(descriptor, 1));
+
+    signal.sendPackets(std::move(packets));
+
+    ASSERT_EQ(dataPacketsRecieved, 2);
+}
+
+
 TEST_F(SignalTest, GetLastValueRange)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -809,7 +1131,7 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
     const auto ip = InputPort(context, nullptr, "ip");
     ip.connect(signal);
 
-    auto dataPacket = DataPacket(descriptor, 1);
+    PacketPtr dataPacket = DataPacket(descriptor, 1);
     signal.sendPacket(dataPacket);
     ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
 

@@ -37,6 +37,8 @@ public:
                          const std::vector<Int>& newOutputDomain = {},
                          const std::vector<Int>& triggerModeChangesBeforePackets = {},
                          const std::vector<Bool>& newTriggerMode = {},
+                         const std::vector<Int>& overlapChangesBeforePackets = {},
+                         const std::vector<Int>& newOverlaps = {},
                          const vecvec<TT>& mockTriggerPackets = {},
                          const vecvec<Int>& mockTriggerDomainPackets = {},
                          const SampleType& sampleTypeTrigger = SampleTypeFromType<Float>::SampleType)
@@ -63,6 +65,8 @@ public:
         this->newOutputDomain = newOutputDomain;
         this->triggerModeChangesBeforePackets = triggerModeChangesBeforePackets;
         this->newTriggerMode = newTriggerMode;
+        this->overlapChangesBeforePackets = overlapChangesBeforePackets;
+        this->newOverlaps = newOverlaps;
         this->mockTriggerPackets = mockTriggerPackets;
         this->mockTriggerDomainPackets = mockTriggerDomainPackets;
         this->sampleTypeTrigger = sampleTypeTrigger;
@@ -99,6 +103,8 @@ private:
     std::vector<Int> newOutputDomain;
     std::vector<Int> triggerModeChangesBeforePackets;
     std::vector<Bool> newTriggerMode;
+    std::vector<Int> overlapChangesBeforePackets;
+    std::vector<Int> newOverlaps;
     vecvec<Float> mockTriggerPackets;
     vecvec<Int> mockTriggerDomainPackets;
     SampleType sampleTypeTrigger;
@@ -215,6 +221,14 @@ private:
         // For each packet
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
+            // Check if we should change packet overlap after sending packet
+            auto overlapChangeFoundAt =
+                std::find(overlapChangesBeforePackets.begin(), overlapChangesBeforePackets.end(), static_cast<Int>(i));
+            if (overlapChangeFoundAt != overlapChangesBeforePackets.end())
+            {
+                fb.setPropertyValue("Overlap", newOverlaps[overlapChangeFoundAt - overlapChangesBeforePackets.begin()]);
+            }
+
             // Check if we should change trigger mode before sending packet
             auto triggerModeChangeFoundAt =
                 std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), static_cast<Int>(i));
@@ -308,6 +322,10 @@ private:
                 // Check packet contents
                 auto dataPacket = static_cast<DataPacketPtr>(receivedPacket);
                 auto data = static_cast<Float*>(dataPacket.getData());
+
+                auto domainPacket = dataPacket.getDomainPacket();
+                auto domainDataDescriptor = domainPacket.getDataDescriptor();
+
                 const size_t sampleCount = dataPacket.getSampleCount();
 
                 for (size_t ii = 0; ii < expectedData[i].size(); ii++)
@@ -319,11 +337,8 @@ private:
                     // Assert that data sample equals expected value
                     ASSERT_DOUBLE_EQ(dataSample, expectedData[i][ii]);
 
-                    auto domainPacket = dataPacket.getDomainPacket();
-                    auto domainDataDescroptor = domainPacket.getDataDescriptor();
-
-                    if (domainDataDescroptor.getRule().getType() == DataRuleType::Explicit &&
-                        domainDataDescroptor.getSampleType() == SampleType::RangeInt64)
+                    if (domainDataDescriptor.getRule().getType() == DataRuleType::Explicit &&
+                        domainDataDescriptor.getSampleType() == SampleType::RangeInt64)
                     {
                         // In case of ExplicitRange
                         auto domainData = static_cast<RangeData*>(domainPacket.getData());
@@ -333,10 +348,10 @@ private:
                         ASSERT_EQ(domainSampleCount, expectedDomain[i].size());
 
                         // Assert that domain sample start equals expected value
-                        ASSERT_EQ(domainData->low, expectedDomain[i][ii]);
+                        ASSERT_EQ(domainData[ii].low, expectedDomain[i][ii]);
 
                         // Assert that domain sample end equals expected value
-                        ASSERT_EQ(domainData->high, expectedDomainEnd[i][ii]);
+                        ASSERT_EQ(domainData[ii].high, expectedDomainEnd[i][ii]);
                     }
                     else
                     {
@@ -554,6 +569,8 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
                                        {},
                                        triggerModeChangesBeforePackets,
                                        newTriggerMode,
+                                       {},
+                                       {},
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
@@ -591,6 +608,8 @@ TEST_F(StatisticsTest, StatisticsTestTriggerDropHistory)
                                        {},
                                        triggerModeChangesBeforePackets,
                                        newTriggerMode,
+                                       {},
+                                       {},
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
@@ -628,6 +647,8 @@ TEST_F(StatisticsTest, StatisticsTestTriggerTimely)
                                        {},
                                        triggerModeChangesBeforePackets,
                                        newTriggerMode,
+                                       {},
+                                       {},
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
@@ -668,6 +689,8 @@ TEST_F(StatisticsTest, StatisticsTestTriggerMultipleChanges)
                                        {},
                                        triggerModeChangesBeforePackets,
                                        newTriggerMode,
+                                       {},
+                                       {},
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
@@ -709,6 +732,233 @@ TEST_F(StatisticsTest, StatisticsTestTriggerMultipleChangesAndModeChanges)
                                        {},
                                        triggerModeChangesBeforePackets,
                                        newTriggerMode,
+                                       {},
+                                       {},
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestOverlapImplicitRule)
+{
+    // default block size = 10
+
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0},
+                              {4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0},
+                              {5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0}};
+    vecvec<Float> expectedAvg{{0.55},
+                              {1.05, 1.55},
+                              {2.05, 2.55},
+                              {3.05, 3.55},
+                              {4.05, 4.55},
+                              {5.05, 5.55}};
+    vecvec<Float> expectedRms{{0.6204836822995429},
+                              {1.088577052853862, 1.5763882770434448},
+                              {2.0700241544484452, 2.566125484071268},
+                              {3.063494736408078, 3.561600763701625},
+                              {4.060172410132358, 4.5590569200219475},
+                              {5.058161721416191, 5.557427462414602}};
+    vecvec<Int> expectedDomain{{0},
+                               {5, 10},
+                               {15, 20},
+                               {25, 30},
+                               {35, 40},
+                               {45, 50}};
+    Int initialOutputDomain = 0;  // Implicit
+    std::vector<Int> overlapChangesBeforePackets{0};
+    std::vector<Int> newOverlaps{50}; // overlaps measured in percents (%)
+
+    auto helper = StatisticsTestHelper(LinearDataRule(1, 0),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       overlapChangesBeforePackets,
+                                       newOverlaps);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestOverlapExplicitRule)
+{
+    // default block size = 10
+
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0},
+                              {4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0},
+                              {5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0}};
+    vecvec<Float> expectedAvg{{0.55},
+                              {1.2499999999999998},
+                              {1.95},
+                              {2.65, 3.35},
+                              {4.05},
+                              {4.75, 5.45}};
+    vecvec<Float> expectedRms{{0.6204836822995429},
+                              {1.282575533838066},
+                              {1.9710403344427023},
+                              {2.665520587052368, 3.3622908856908857},
+                              {4.060172410132358},
+                              {4.758676286531791, 5.457563558951925}};
+    vecvec<Int> expectedDomain{{0},
+                               {7},
+                               {14},
+                               {21, 28},
+                               {35},
+                               {42, 49}};
+    Int initialOutputDomain = 1;  // Explicit
+    std::vector<Int> overlapChangesBeforePackets{0};
+    std::vector<Int> newOverlaps{30}; // overlaps measured in percents (%)
+
+    auto helper = StatisticsTestHelper(LinearDataRule(1, 0),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       overlapChangesBeforePackets,
+                                       newOverlaps);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestOverlapExplicitRangeRule)
+{
+    // default block size = 10
+
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0},
+                              {4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0},
+                              {5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0}};
+    vecvec<Float> expectedAvg{{0.55},
+                              {1.2499999999999998},
+                              {1.95},
+                              {2.65, 3.35},
+                              {4.05},
+                              {4.75, 5.45}};
+    vecvec<Float> expectedRms{{0.6204836822995429},
+                              {1.282575533838066},
+                              {1.9710403344427023},
+                              {2.665520587052368, 3.3622908856908857},
+                              {4.060172410132358},
+                              {4.758676286531791, 5.457563558951925}};
+    vecvec<Int> expectedDomain{{0},
+                               {7},
+                               {14},
+                               {21, 28},
+                               {35},
+                               {42, 49}};
+    vecvec<Int> expectedDomainEnd{{9},
+                                  {16},
+                                  {23},
+                                  {30, 37},
+                                  {44},
+                                  {51, 58}};
+    Int initialOutputDomain = 2;  // Explicit range
+    std::vector<Int> overlapChangesBeforePackets{0};
+    std::vector<Int> newOverlaps{30}; // overlaps measured in percents (%)
+
+    auto helper = StatisticsTestHelper(LinearDataRule(1, 0),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       expectedDomainEnd,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       overlapChangesBeforePackets,
+                                       newOverlaps);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestOverlapWithTrigger)
+{
+    // default block size = 10
+    // trigger default threshold = 0.5
+
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0},
+                              {4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0},
+                              {5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0}};
+    vecvec<Float> expectedAvg{{0.55},
+                              {1.2499999999999998},
+                              {},
+                              {3.05},
+                              {3.75},
+                              {5.35}};
+    vecvec<Float> expectedRms{{0.6204836822995429},
+                              {1.282575533838066},
+                              {},
+                              {3.063494736408078},
+                              {3.7609839138182974},
+                              {5.357704732439069}};
+    vecvec<Int> expectedDomain{{0},
+                               {7},
+                               {},
+                               {25},
+                               {32},
+                               {48}};
+    vecvec<Int> expectedDomainEnd{{9},
+                                  {16},
+                                  {},
+                                  {34},
+                                  {41},
+                                  {57}};
+    Int initialOutputDomain = 2;  // Explicit
+    std::vector<Int> overlapChangesBeforePackets{0};
+    std::vector<Int> newOverlaps{30}; // overlaps measured in percents (%)
+
+    std::vector<Int> triggerModeChangesBeforePackets{0};
+    std::vector<Bool> newTriggerMode{true};
+
+    vecvec<Float> mockTriggerPackets{{1.0}, {0.1}, {1.0}, {0.1}, {1.0}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{0}, {22}, {25}, {46}, {48}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(1, 0),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       expectedDomainEnd,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesBeforePackets,
+                                       newTriggerMode,
+                                       overlapChangesBeforePackets,
+                                       newOverlaps,
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();

@@ -83,10 +83,11 @@ jobs:
           mv current/CMakePresets.json .
 
       - name: Configure target (with regression simulator)
+        working-directory: target
         run: |
           mkdir build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ../..
 
       - name: Configure current (with regression tests)
         working-directory: current

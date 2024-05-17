@@ -65,6 +65,15 @@
     <None Include="Templates\csharp.ienumerator.impl.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Templates\csharp.property.impl.set.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Templates\csharp.property.impl.get.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Templates\csharp.property.impl.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Templates\csharp.method.impl.samplereader.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

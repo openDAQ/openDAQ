@@ -12,10 +12,10 @@
     #region IDictionary<$CSGenericClassParameters$> implementation
 
     /// <inheritdoc/>
-    ICollection<$CSGenericClassParameter1$> IDictionary<$CSGenericClassParameters$>.Keys => this.GetKeyList();
+    ICollection<$CSGenericClassParameter1$> IDictionary<$CSGenericClassParameters$>.Keys => this.KeyList;
 
     /// <inheritdoc/>
-    ICollection<$CSGenericClassParameter2$> IDictionary<$CSGenericClassParameters$>.Values => this.GetValueList();
+    ICollection<$CSGenericClassParameter2$> IDictionary<$CSGenericClassParameters$>.Values => this.ValueList;
 
     /// <inheritdoc/>
     $CSGenericClassParameter2$ IDictionary<$CSGenericClassParameters$>.this[$CSGenericClassParameter1$ key]
@@ -74,7 +74,7 @@
     #region ICollection<T> implementation
 
     /// <inheritdoc/>
-    int ICollection<KeyValuePair<$CSGenericClassParameters$>>.Count => (int)this.GetCount();
+    int ICollection<KeyValuePair<$CSGenericClassParameters$>>.Count => (int)this.Count;
 
     /// <inheritdoc/>
     bool ICollection<KeyValuePair<$CSGenericClassParameters$>>.IsReadOnly => false;
@@ -116,14 +116,14 @@
             throw new IndexOutOfRangeException(nameof(arrayIndex));
         }
 
-        int count = (int)this.GetCount();
+        int count = (int)this.Count;
 
         if (array.Length - arrayIndex < count)
         {
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
         }
 
-        foreach ($CSGenericClassParameter1$ key in this.GetKeyList())
+        foreach ($CSGenericClassParameter1$ key in this.KeyList)
         {
             $CSGenericClassParameter2$ value = this.Get(key);
             array[arrayIndex++] = new KeyValuePair<$CSGenericClassParameters$>(key, value);

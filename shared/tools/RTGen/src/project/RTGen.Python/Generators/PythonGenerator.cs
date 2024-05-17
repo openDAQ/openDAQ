@@ -317,7 +317,7 @@ namespace RTGen.Python.Generators
         {
             foreach (IArgument argument in method.Overloads[0].Arguments)
             {
-                if (argument.StealRef)
+                if (argument.IsStealRef)
                     return true;
             }
 

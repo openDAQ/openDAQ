@@ -1,4 +1,4 @@
-name: openDAQ regression tests
+name: Run openDAQ regression tests
 
 on:
   workflow_dispatch:
@@ -8,7 +8,6 @@ on:
   
 env:
   target_tag: v3.0.0
-  cmake_preset: regression_tests
   test_path: ${{ github.workspace }}/junit_reports/
 
 jobs:
@@ -30,7 +29,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
+            cmake_defines_target: -DDAQMODULES_EMPTY_MODULE=OFF -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF -DAPP_ENABLE_WEBPAGE_EXAMPLES=OFF -DOPENDAQ_DOCUMENTATION_TESTS=OFF -DOPENDAQ_CI_RUNNER=ON -DOPENDAQ_DEBUG_WARNINGS_AS_ERRORS=ON -DOPENDAQ_ALWAYS_FETCH_BOOST=OFF
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -75,39 +74,47 @@ jobs:
         with:
           path: current
       
-      # Because we need the regression_tests preset in target
-      - name: Copy CMakePresets.json from current to target
-        run: cp current/CMakePresets.json target
-        
-      # Because we need regression_simulator in target
-      - name: Copy regression folder from current to target
-        run: cp -r current/regression target/regression
+      - name: Move and rename CMakeListsTop.txt (to build simulator with target version)
+        run: mv current/CMakeListsTop.txt CMakeLists.txt
+          
+      - name: Copy regression simulator to top folder
+        run: cp -r current/regression/simulator .
 
-      - name: Configure target
-        working-directory: target
+      - name: Configure target (with regression simulator)
         run: |
           mkdir build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake -G ${{ matrix.cmake_generator }} --preset full ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: Configure current
+      - name: Configure current (with regression tests)
         working-directory: current
         run: |
           mkdir build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake -G ${{ matrix.cmake_generator }} --preset regression_tests -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: Build target
+      - name: Build target (with regression simulator)
         working-directory: target/build
         run: cmake --build .
         
-      - name: Upload target bin.zip
+      - name: Upload target bin .zip
         uses: actions/upload-artifact@v3
         with: 
-          name: regression full target bin ${{ env.target_tag }} (${{ matrix.name }})
-          path: target/build/bin
+          name: regression target bin ${{ env.target_tag }} (${{ matrix.name }})
+          path: |
+            target/build/bin/*daqcoreobjects*
+            target/build/bin/*daqcoretypes*
+            target/build/bin/*native_stream_srv_module*
+            target/build/bin/*opcua_server_module*
+            target/build/bin/libopendaq-*
+            target/build/bin/*ref_device_module*
+            target/build/bin/*ref_fb_module*
+            target/build/bin/regression_simulator
+            target/build/bin/*ws_stream_srv_module*
 
-      - name: Build current
+      # TODO: upload target bin.zip artifact to AWS automagically
+
+      - name: Build current (with regression tests)
         working-directory: current/build
         run: cmake --build .
 

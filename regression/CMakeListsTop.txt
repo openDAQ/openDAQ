@@ -1,2 +1,4 @@
+cmake_minimum_required(VERSION 3.24)
+project(top)
 add_subdirectory(target)
 add_subdirectory(simulator)

@@ -37,7 +37,6 @@ protected:
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     daq::opcua::TmsServer server;
-    PropertyObjectPtr config;
     ContextPtr context;
 };
 

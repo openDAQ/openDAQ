@@ -1,4 +1,4 @@
-16.05.2024
+17.05.2024
 Description:
   mDNS discovery service
 
@@ -7,6 +7,19 @@ Description:
 
 + [function] IModuleManagerUtils::registerDiscoveryDevice(IString* serverId, IPropertyObject* config);
 + [function] IModuleManagerUtils::removeDiscoveryDevice(IString* serverId);
+
+17.05.2024
+Description:
+  - Add ability to manually connect to streaming for device after device added
+  - Create connection string from ServerCapability via modules
+
++ [function] IDevice::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
++ [function] IModuleManagerUtils::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
+
+-m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
++m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
+
++ [function] IModule::createConnectionString(IString** connectionString, IServerCapability* serverCapability)
 
 16.05.2024
 Description:
@@ -21,7 +34,7 @@ Description:
 +  [function]  ErrCode IConnection::enqueueMultiple(IList* packets)
 +  [function]  ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
 +  [function]  ErrCode IConnection::dequeueAll(IList** packets)()
-
+    
 26.04.2024
 Description:
     Produce gap packets on request
@@ -31,7 +44,6 @@ Description:
 +  [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
 +  [factory]  EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
 +  [packet]   IMPLICIT_DOMAIN_GAP_DETECTED
-
 
 26.04.2024
 Description:

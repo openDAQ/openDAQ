@@ -523,6 +523,11 @@ ErrCode InstanceImpl::getDevices(IList** devices, ISearchFilter* searchFilter)
     return rootDevice->getDevices(devices, searchFilter);
 }
 
+ErrCode InstanceImpl::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+{
+    return rootDevice->addStreaming(streaming, connectionString, config);
+}
+
 ErrCode InstanceImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
     return rootDevice->getAvailableFunctionBlockTypes(functionBlockTypes);

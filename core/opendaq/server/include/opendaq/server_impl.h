@@ -23,6 +23,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/validation.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,12 +41,13 @@ public:
                         DevicePtr rootDevice,
                         ContextPtr context,
                         ModuleManagerPtr moduleManager)
-        : serverConfig(std::move(serverConfig))
+        : config(std::move(serverConfig))
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
-        , serverId(std::move(createServerId(this->serverConfig)))
     {
+        populateServerConfig();
+        serverId = createServerId(this->config);
     }
 
     ErrCode INTERFACE_FUNC stop() override
@@ -67,7 +69,7 @@ public:
         if (config == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *config = this->serverConfig.addRefAndReturn();
+        *config = this->config.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -77,26 +79,47 @@ protected:
 
     }
 
-    PropertyObjectPtr serverConfig;
+    PropertyObjectPtr config;
     DevicePtr rootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;
 
 private: 
-    StringPtr createServerId(const PropertyObjectPtr& serverConfig)
+
+    void populateServerConfig()
     {
-        if (serverConfig == nullptr)
+        if (config == nullptr)
+            return;
+
+        config.addProperty(StringProperty("Name", ""));
+        config.addProperty(StringProperty("Manufacturer", ""));
+        config.addProperty(StringProperty("Model", ""));
+        config.addProperty(StringProperty("SerialNumber", ""));
+
+        if (rootDevice != nullptr)
+        {
+            const auto info = this->rootDevice.getInfo();
+            config.setPropertyValue("Name", info.getName());
+            config.setPropertyValue("Manufacturer", info.getManufacturer());
+            config.setPropertyValue("Model", info.getModel());
+            config.setPropertyValue("SerialNumber", info.getSerialNumber());
+        }
+    }
+
+    StringPtr createServerId(const PropertyObjectPtr& config)
+    {
+        if (config == nullptr)
             return nullptr;
 
         std::string result;
-        if (serverConfig.hasProperty("Name"))
-            result += std::string(serverConfig.getPropertyValue("Name"));
+        if (config.hasProperty("Name"))
+            result += std::string(config.getPropertyValue("Name"));
         result += "_";
-        if (serverConfig.hasProperty("ServiceCap"))
-            result += std::string(serverConfig.getPropertyValue("ServiceCap"));
+        if (config.hasProperty("ServiceCap"))
+            result += std::string(config.getPropertyValue("ServiceCap"));
         result += "_";
-        if (serverConfig.hasProperty("Port"))
-            result += std::string(serverConfig.getPropertyValue("Port"));
+        if (config.hasProperty("Port"))
+            result += std::string(config.getPropertyValue("Port"));
         return result;
     }
 

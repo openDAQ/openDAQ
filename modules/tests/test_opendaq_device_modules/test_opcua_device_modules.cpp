@@ -3,13 +3,10 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
-#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
-using namespace test_config_provider_helpers;
-using OpcuaDeviceModuleTestConfig = ConfigProviderTest;
 
 using namespace daq;
 
@@ -42,7 +39,18 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1");
+    // FIXME - use default config mega-object
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    if (!config.assigned())
+        config = PropertyObject();
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    2);
+    config.addProperty(streamingConnectionHeuristicProp);
+
+    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
 }
 
@@ -69,7 +77,7 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
     client.addDevice("daq.opcua://[::1]");
 }
 
-TEST_F(OpcuaDeviceModuleTestConfig, PopulateDefaultConfigFromProvider)
+TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -80,16 +88,12 @@ TEST_F(OpcuaDeviceModuleTestConfig, PopulateDefaultConfigFromProvider)
                 {
                     "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "Name": "opcua server",
-                    "Manufacturer": "test",
-                    "Model": "test device",
-                    "SerialNumber": "test_serial_number",
                     "ServicePath": "/some/path"
                 }
             }
         }
     )";
-    createConfigFile(filename, json);
+    auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
@@ -97,48 +101,41 @@ TEST_F(OpcuaDeviceModuleTestConfig, PopulateDefaultConfigFromProvider)
 
     ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
     ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
-    ASSERT_EQ(serverConfig.getPropertyValue("Name").asPtr<IString>(), "opcua server");
-    ASSERT_EQ(serverConfig.getPropertyValue("Manufacturer").asPtr<IString>(), "test");
-    ASSERT_EQ(serverConfig.getPropertyValue("Model").asPtr<IString>(), "test device");
-    ASSERT_EQ(serverConfig.getPropertyValue("SerialNumber").asPtr<IString>(), "test_serial_number");
     ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
-    const auto statistics = server.addFunctionBlock("ref_fb_module_statistics");
-    const auto refDevice = server.addDevice("daqref://device1");
-    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
-    statistics.getInputPorts()[0].connect(Signal(server.getContext(), nullptr, "foo"));
+    server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
-    auto serialNumber = "OpcuaDeviceModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
-    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    auto servicePath = "/test/native_opcua/discovery/";
     serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    serverConfig.setPropertyValue("ServicePath", servicePath);
     server.addServer("openDAQ OpcUa", serverConfig);
 
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != serialNumber)
-        {
-            continue;
-        }
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            {
+                break;
+            }
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
                 device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-                break;
+                return;
             }
         }
     }
-    ASSERT_TRUE(device.assigned());
+    ASSERT_TRUE(false);
 }
 
-TEST_F(OpcuaDeviceModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
+TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -149,45 +146,50 @@ TEST_F(OpcuaDeviceModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
                 {
                     "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "Name": "opcua server",
-                    "Manufacturer": "test",
-                    "Model": "test device",
-                    "SerialNumber": "opcua_test_serial_number",
-                    "ServicePath": "/some/path"
+                    "ServicePath": "/test/opcua/checkDeviceInfoPopulated/"
                 }
             }
         }
     )";
-    createConfigFile(filename, json);
+    auto servicePath = "/test/opcua/checkDeviceInfoPopulated/";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("OpcuaDeviceModulesTest::checkDeviceInfoPopulatedWithProvider");
+    rootInfo.setManufacturer("Manufacturer");
+    rootInfo.setModel("Model");
+    rootInfo.setSerialNumber("SerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     instance.addServer("openDAQ OpcUa", serverConfig);
 
     auto client = Instance();
-    DevicePtr device;
+    
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != "opcua_test_serial_number")
+        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
             continue;
 
-        ASSERT_EQ(deviceInfo.getServerCapabilities().getCount(), 1u);
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                client.addDevice(deviceInfo.getConnectionString(), nullptr);
 
-        device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-
-        ASSERT_EQ(deviceInfo.getName(), "opcua server");
-        ASSERT_EQ(deviceInfo.getManufacturer(), "test");
-        ASSERT_EQ(deviceInfo.getModel(), "test device");
-        ASSERT_EQ(deviceInfo.getSerialNumber(), "opcua_test_serial_number");
-
-        std::string connectionString = deviceInfo.getConnectionString();    
-        std::string servicePath = "/some/path";
-        std::string connectionPath = connectionString.substr(connectionString.size() - servicePath.size());
-        ASSERT_EQ(connectionPath, servicePath);   
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                return;
+            }
+        }      
     }
 
-    ASSERT_TRUE(device.assigned());
+    ASSERT_TRUE(false);
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
@@ -685,6 +687,38 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientMirroredDevice = client.getDevices()[0].template asPtrOrNull<IMirroredDevice>();
+    ASSERT_TRUE(clientMirroredDevice.assigned());
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 0u);
+
+    const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 0u);
+    }
+
+    server.addServer("openDAQ LT Streaming", nullptr);
+    StreamingPtr streaming;
+    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 1u);
+    ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[0]);
+
+    streaming.addSignals(clientSignals);
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 1u);
+        ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
+    }
 }
 
 // TODO: Add all examples of dynamic changes

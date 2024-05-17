@@ -1,23 +1,29 @@
 #include "test_helpers/test_helpers.h"
-#include "test_helpers/mock_helper_module.h"
 #include <iostream>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 
-enum class StreamingType
+enum class StreamingProtocolType
 {
     WebsocketStreaming = 0,
     NativeStreaming
 };
 
-// first param: leaf device streaming type
-// second param: gateway device streaming type
-class SubDevicesTest : public testing::TestWithParam<std::pair<StreamingType, StreamingType>>
+enum class StructureProtocolType
+{
+    OpcUa = 0,
+    Native
+};
+
+// 1-st param: device configuration/structure protocol type
+// 2-nd param: leaf device streaming type
+// 3-rd param: gateway device streaming type
+class SubDevicesTest : public testing::TestWithParam<std::tuple<StructureProtocolType, StreamingProtocolType, StreamingProtocolType>>
 {
 public:
-    const uint16_t NATIVE_STREAMING_PORT = 7420;
+    const uint16_t NATIVE_PORT = 7420;
     const uint16_t WEBSOCKET_STREAMING_PORT = 7414;
     const uint16_t OPCUA_PORT = 4840;
     const uint16_t WEBSOCKET_CONTROL_PORT = 7438;
@@ -25,13 +31,44 @@ public:
     const uint16_t MIN_CONNECTIONS = 0;
     const uint16_t MIN_HOPS = 1;
 
-    const char* MANUFACTURER = "Manufacturer";
-    const char* SERIAL_NUMBER = "SerialNumber";
     const char* ADDRESS = "127.0.0.1";
 
-    StringPtr createConnectionString(uint16_t port)
+    PropertyObjectPtr createDeviceConfig(const InstancePtr& instance,
+                                         StructureProtocolType structureProtocol,
+                                         ListPtr<IString> prioritizedStreamingProtocols,
+                                         const IntegerPtr& heuristicValue)
     {
-        return String(fmt::format("daq.opcua://{}:{}/", ADDRESS, port));
+        // FIXME - use default config mega-object
+
+        auto deviceTypeKey = (structureProtocol == StructureProtocolType::Native)
+                                 ? "opendaq_native_config" : "opendaq_opcua_config";
+        auto deviceType = instance.getAvailableDeviceTypes().get(deviceTypeKey);
+        auto config = deviceType.createDefaultConfig();
+
+        if (!config.assigned())
+            config = PropertyObject();
+
+        config.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                        List<IString>("MinConnections",
+                                                                                      "MinHops",
+                                                                                      "NotConnected"),
+                                                                        heuristicValue);
+        config.addProperty(streamingConnectionHeuristicProp);
+
+        return config;
+    }
+
+    StringPtr createStructureDeviceConnectionString(uint16_t portOffset)
+    {
+        auto structureProtocolType = std::get<0>(GetParam());
+        uint16_t port =
+            (structureProtocolType == StructureProtocolType::Native ? NATIVE_PORT : OPCUA_PORT) + portOffset;
+        std::string prefix =
+            structureProtocolType == StructureProtocolType::Native ? "daq.nd://" : "daq.opcua://";
+
+        return String(fmt::format("{}{}:{}/", prefix, ADDRESS, port));
     }
 
     InstancePtr CreateSubdeviceInstance(uint16_t index)
@@ -45,25 +82,26 @@ public:
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", index));
         const auto refDevice = instance.addDevice("daqref://device0");
 
-        auto subdeviceStreamingType = GetParam().first;
+        auto structureProtocolType = std::get<0>(GetParam());
 
-        if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("Port", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
-        else if (subdeviceStreamingType == StreamingType::NativeStreaming)
         {
             auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-            ns_config.setPropertyValue("Port", NATIVE_STREAMING_PORT + index);
+            ns_config.setPropertyValue("Port", NATIVE_PORT + index);
             instance.addServer("openDAQ Native Streaming", ns_config);
         }
 
-        auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
-        ua_config.setPropertyValue("Port", OPCUA_PORT + index);
-        instance.addServer("openDAQ OpcUa", ua_config);
+        if (structureProtocolType == StructureProtocolType::OpcUa)
+        {
+            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            ua_config.setPropertyValue("Port", OPCUA_PORT + index);
+            instance.addServer("openDAQ OpcUa", ua_config);
+        }
 
         return instance;
     }
@@ -79,52 +117,38 @@ public:
 
         auto instance = InstanceCustom(context, "gateway");
 
+        auto structureProtocolType = std::get<0>(GetParam());
+        auto subdeviceStreamingType = std::get<1>(GetParam());
+
         for (auto index = 1; index <= 2; index++)
         {
-            const auto subDevice = instance.addDevice(createConnectionString(OPCUA_PORT+index));
+            auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
+                                            ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
+                                            : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+            const auto config = createDeviceConfig(instance, structureProtocolType, streamingProtocolIds, MIN_CONNECTIONS);
+            const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
 
-        auto gatewayStreamingType = GetParam().second;
-
-        if (gatewayStreamingType == StreamingType::WebsocketStreaming)
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("Port", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
-        else if (gatewayStreamingType == StreamingType::NativeStreaming)
         {
             auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-            ns_config.setPropertyValue("Port", NATIVE_STREAMING_PORT);
+            ns_config.setPropertyValue("Port", NATIVE_PORT);
             instance.addServer("openDAQ Native Streaming", ns_config);
         }
 
-        auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
-        ua_config.setPropertyValue("Port", OPCUA_PORT);
-        instance.addServer("openDAQ OpcUa", ua_config);
+        if (structureProtocolType == StructureProtocolType::OpcUa)
+        {
+            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            ua_config.setPropertyValue("Port", OPCUA_PORT);
+            instance.addServer("openDAQ OpcUa", ua_config);
+        }
 
         return instance;
-    }
-
-    DeviceInfoPtr CreateDiscoveredDeviceInfo(const DeviceTypePtr& deviceType)
-    {
-        auto deviceConnectionString = createConnectionString(OPCUA_PORT);
-
-        DeviceInfoConfigPtr deviceInfo = DeviceInfo(deviceConnectionString);
-        deviceInfo.setDeviceType(deviceType);
-        deviceInfo.setManufacturer(MANUFACTURER);
-        deviceInfo.setSerialNumber(SERIAL_NUMBER);
-
-        auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-        cap.addConnectionString(deviceConnectionString);
-        cap.setConnectionType("TCP/IP");
-        cap.setPrefix("daq.opcua");
-        cap.addAddress(ADDRESS);
-
-        deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-
-        return deviceInfo;
     }
 
     InstancePtr CreateClientInstance(const IntegerPtr& heuristicValue)
@@ -137,37 +161,14 @@ public:
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
 
-        auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_opcua_config");
-        auto deviceInfo = CreateDiscoveredDeviceInfo(deviceType);
+        auto structureProtocolType = std::get<0>(GetParam());
+        auto gatewayStreamingType = std::get<2>(GetParam());
 
-        const ModulePtr helperModule(
-            createWithImplementation<IModule, test_helpers::MockHelperModuleImpl>(
-                context,
-                Function(
-                    [deviceInfo = deviceInfo]() -> ListPtr<IDeviceInfo>
-                    {
-                        ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
-
-                        availableDevices.pushBack(deviceInfo);
-                        return availableDevices;
-                    }
-                )
-            )
-        );
-        moduleManager.addModule(helperModule);
-
-        auto config = PropertyObject();
-
-        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                        List<IString>("MinConnections",
-                                                                                      "MinHops",
-                                                                                      "Fallbacks",
-                                                                                      "NotConnected"),
-                                                                        heuristicValue);
-        config.addProperty(streamingConnectionHeuristicProp);
-
-        auto smartConnectionString = fmt::format("daq://{}_{}", MANUFACTURER, SERIAL_NUMBER);
-        auto gatewayDevice = instance.addDevice(smartConnectionString, config);
+        auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
+                                        ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
+                                        : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+        auto config = createDeviceConfig(instance, structureProtocolType, streamingProtocolIds, heuristicValue);
+        auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
 
         return instance;
     }
@@ -187,11 +188,13 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
     {
-        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 1u);
-        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
-        ASSERT_NE(mirroredSignalConfigPtr.getActiveStreamingSource(),
-                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
+        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u);
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0]);
+        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1]);
     }
 
     auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
@@ -237,12 +240,13 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
     {
-        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 2u);
-        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
-
-        ASSERT_EQ(mirroredSignalConfigPtr.getActiveStreamingSource(),
-                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
+        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
     }
 
     auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
@@ -270,7 +274,7 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
 
-    if (GetParam().second == StreamingType::WebsocketStreaming)
+    if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
     {
         // skip test
         return;
@@ -287,12 +291,13 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
     {
-        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 2u);
-        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
-
-        ASSERT_EQ(mirroredSignalConfigPtr.getActiveStreamingSource(),
-                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
+        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
     }
 
     auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
@@ -332,34 +337,17 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     }
 }
 
-#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 INSTANTIATE_TEST_SUITE_P(
     SubDevicesTestGroup,
     SubDevicesTest,
     testing::Values(
-        std::pair(StreamingType::NativeStreaming, StreamingType::NativeStreaming)
+        std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::NativeStreaming, StreamingProtocolType::NativeStreaming),
+        std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::WebsocketStreaming),
+        std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::NativeStreaming, StreamingProtocolType::WebsocketStreaming),
+        std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::NativeStreaming),
+        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::NativeStreaming),
+        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::WebsocketStreaming),
+        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::WebsocketStreaming),
+        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::NativeStreaming)
     )
 );
-#elif !defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-INSTANTIATE_TEST_SUITE_P(
-    SubDevicesTestGroup,
-    SubDevicesTest,
-    testing::Values(
-        std::pair(StreamingType::WebsocketStreaming, StreamingType::WebsocketStreaming)
-    )
-);
-#elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-INSTANTIATE_TEST_SUITE_P(
-    SubDevicesTestGroup,
-    SubDevicesTest,
-    testing::Values(
-        std::pair(StreamingType::NativeStreaming, StreamingType::NativeStreaming),
-        //std::pair(StreamingType::WebsocketStreaming, StreamingType::WebsocketStreaming),
-        std::pair(StreamingType::NativeStreaming, StreamingType::WebsocketStreaming)
-        /// note: next one does not work because websocket streaming does not stream domain signal packets
-        /// if subdevice has enabled websocket streaming - the gateway device will not be able to stream-forward
-        /// signals thru native streaming which requires domain packets to be streamed explicitly
-        // std::pair(StreamingType::WebsocketStreaming, StreamingType::NativeStreaming)
-    )
-);
-#endif

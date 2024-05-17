@@ -12,7 +12,6 @@ using namespace daq;
 WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
     : Server(config, rootDevice, nullptr, nullptr)
     , websocketStreamingServer(rootDevice, context)
-    , config(config)
 {
     const uint16_t streamingPort = config.getPropertyValue("Port");
     const uint16_t controlPort = config.getPropertyValue("WebsocketControlPort");
@@ -43,11 +42,6 @@ void WebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const Conte
                 LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
             }
         }
-        else
-        {
-            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
-            config.addProperty(property);
-        }
     }
 }
 
@@ -58,12 +52,6 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig(const Contex
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_Server"));
-    defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
-    defaultConfig.addProperty(StringProperty("Model", ""));
-    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
-    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
-
     const auto websocketPortProp =
         IntPropertyBuilder("Port", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketPortProp);
@@ -71,6 +59,9 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig(const Contex
     const auto websocketControlPortProp =
         IntPropertyBuilder("WebsocketControlPort", 7438).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketControlPortProp);
+
+    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
+    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     const auto websocketServiceProp = StringPropertyBuilder("ServiceName", "_streaming-lt._tcp.local.")
         .setReadOnly(true)
@@ -81,8 +72,6 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig(const Contex
         .setReadOnly(true)
         .build();
     defaultConfig.addProperty(serviceCapProp);
-
-    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;

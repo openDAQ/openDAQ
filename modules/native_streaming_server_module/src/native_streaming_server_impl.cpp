@@ -39,11 +39,13 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 
     ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
     serverCapabilityStreaming.setPrefix("daq.ns");
+    serverCapabilityStreaming.setConnectionType("TCP/IP");
     serverCapabilityStreaming.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
-    ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Streaming", ProtocolType::ConfigurationAndStreaming);
+    ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
     serverCapabilityConfig.setPrefix("daq.nd");
+    serverCapabilityConfig.setConnectionType("TCP/IP");
     serverCapabilityConfig.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
@@ -283,11 +285,6 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
                 LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
             }
         }
-        else
-        {
-            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
-            config.addProperty(property);
-        }
     }
 }
 
@@ -298,18 +295,14 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_Server"));
-    defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
-    defaultConfig.addProperty(StringProperty("Model", ""));
-    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
-    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
-    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
-
     const auto portProp = IntPropertyBuilder("Port", 7420)
         .setMinValue(minPortValue)
         .setMaxValue(maxPortValue)
         .build();
     defaultConfig.addProperty(portProp);
+
+    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
+    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
 
     const auto serviceProp = StringPropertyBuilder("ServiceName", "_opendaq-streaming-native._tcp.local.")
         .setReadOnly(true)

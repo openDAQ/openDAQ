@@ -182,25 +182,33 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
     ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ws://device8"));
 }
 
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsServerCapability)
+TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
 {
     auto context = NullContext();
     ModulePtr module;
     createModule(&module, context);
 
+    StringPtr connectionString;
+
+    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
+    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
+    ASSERT_FALSE(connectionString.assigned());
+
     ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
-    serverCapability.setPrefix("daq.lt");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters("", serverCapability));
+    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters("", serverCapability));
+    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addProperty(IntProperty("Port", 1234));
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("", serverCapability));
+    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+    ASSERT_EQ(connectionString, "daq.lt://123.123.123.123:1234");
+
+    serverCapability.addProperty(StringProperty("Path", "/path"));
+    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+    ASSERT_EQ(connectionString, "daq.lt://123.123.123.123:1234/path");
 }
+
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingWithNullArguments)
 {

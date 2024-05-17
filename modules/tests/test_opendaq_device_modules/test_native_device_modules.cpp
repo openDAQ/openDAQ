@@ -3,6 +3,7 @@
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
 #include "opendaq/mock/mock_device_module.h"
+#include <opendaq/device_info_internal_ptr.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -59,7 +60,13 @@ static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
 
-    auto refDevice = instance.addDevice("daq.nd://127.0.0.1", nullptr);
+    // FIXME - use default config mega-object
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
+    if (!config.assigned())
+        config = PropertyObject();
+    config.addProperty(ListProperty("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming")));
+
+    auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
 }
 
@@ -92,36 +99,88 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
-    auto server = CreateDefaultServerInstance();
+    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    auto serialNumber = "NativeDeviceModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
-    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    auto servicePath = "/test/native_configuration/discovery/";
     serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    serverConfig.setPropertyValue("ServicePath", servicePath);
     server.addServer("openDAQ Native Streaming", serverConfig);
 
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != serialNumber)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+                break;
+            
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "NativeStreamingServer":
+                {
+                    "ServiceDiscoverable": true,
+                    "Port": 1234,
+                    "ServicePath": "/test/native_congifurator/checkDeviceInfoPopulated/"
+                }
+            }
+        }
+    )";
+    auto servicePath = "/test/native_congifurator/checkDeviceInfoPopulated/";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("NativeDeviceModulesTest::checkDeviceInfoPopulatedWithProvider");
+    rootInfo.setManufacturer("Manufacturer");
+    rootInfo.setModel("Model");
+    rootInfo.setSerialNumber("SerialNumber");
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    instance.addServer("openDAQ Native Streaming", serverConfig);
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
             continue;
+
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
-                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-                break;
-            }
-        }
-    }
-    ASSERT_TRUE(device.assigned());
+                client.addDevice(deviceInfo.getConnectionString(), nullptr);
 
-    device->releaseRef();
-    client->releaseRef();
-    server->releaseRef();
-    device.detach();
-    client.detach();
-    server.detach();
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                return;
+            }
+        }      
+    }
+
+    ASSERT_TRUE(false);
 }
 
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
@@ -199,10 +258,13 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     auto client = CreateClientInstance();
 
     auto info = client.getDevices()[0].getInfo();
-    auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
-
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 2u);
+    ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), "opendaq_native_streaming");
+    ASSERT_EQ(info.getServerCapabilities()[1].getProtocolId(), "opendaq_native_config");
+
+    auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
     ASSERT_EQ(subDeviceInfo.getName(), "Device 0");
     ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
     ASSERT_EQ(subDeviceInfo.getModel(), "Reference Device");
@@ -378,11 +440,115 @@ TEST_F(NativeDeviceModulesTest, NotPublicSignals)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, AddFunctionBlock)
+TEST_F(NativeDeviceModulesTest, AddStreamingPostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
+
+    auto clientMirroredDevice = client.getDevices()[0].template asPtrOrNull<IMirroredDevice>();
+    ASSERT_TRUE(clientMirroredDevice.assigned());
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 1u);
+
+    const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 1u);
+    }
+
+    server.addServer("openDAQ LT Streaming", nullptr);
+    StreamingPtr streaming;
+    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 2u);
+    ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[1]);
+
+    streaming.addSignals(clientSignals);
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 2u);
+        ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
+    }
+}
+
+class AddComponentsTest : public NativeDeviceModulesTest, public testing::WithParamInterface<std::vector<std::string>>
+{
+public:
+    InstancePtr createServerInstance()
+    {
+        InstancePtr instance = CreateDefaultServerInstance();
+
+        instance.addServer("openDAQ LT Streaming", nullptr);
+        instance.addServer("openDAQ Native Streaming", nullptr);
+
+        return instance;
+    }
+
+    InstancePtr createClientInstance()
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto typeManager = TypeManager();
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto instance = InstanceCustom(context, "client");
+
+        // FIXME - use default config mega-object
+        auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_native_config");
+        auto config = deviceType.createDefaultConfig();
+        if (!config.assigned())
+            config = PropertyObject();
+        auto prioritizedStreamingProtocols = List<IString>();
+        for (const auto& protocolId : GetParam())
+            prioritizedStreamingProtocols.pushBack(protocolId);
+        config.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+        instance.addDevice("daq.nd://127.0.0.1", config);
+        return instance;
+    }
+
+    size_t getStreamingSourcesCount()
+    {
+        return GetParam().size();
+    }
+
+    std::string getActiveStreamingSource()
+    {
+        auto streamingProtocolIDs = GetParam();
+        if (streamingProtocolIDs.empty())
+            return "unknown";
+        if (streamingProtocolIDs[0] == "opendaq_lt_streaming")
+            return "daq.lt://127.0.0.1:7414";
+        else if (streamingProtocolIDs[0] == "opendaq_native_streaming")
+            return "daq.ns://127.0.0.1:7420";
+        else
+            return "unknown";
+    }
+};
+
+TEST_P(AddComponentsTest, ConnectOnly)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), getStreamingSourcesCount()) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), getActiveStreamingSource()) << signal.getGlobalId();
+    }
+}
+
+TEST_P(AddComponentsTest, AddFunctionBlock)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = createServerInstance();
+    auto client = createClientInstance();
 
     std::promise<void> addFbPromise;
     std::future<void> addFbFuture = addFbPromise.get_future();
@@ -413,8 +579,9 @@ TEST_F(NativeDeviceModulesTest, AddFunctionBlock)
     for (const auto& signal : clientAddedFbSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), getStreamingSourcesCount()) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), getActiveStreamingSource()) << signal.getGlobalId();
     }
 }
 
@@ -456,11 +623,11 @@ TEST_F(NativeDeviceModulesTest, RemoveFunctionBlock)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, AddChannel)
+TEST_P(AddComponentsTest, AddChannel)
 {
     SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto server = createServerInstance();
+    auto client = createClientInstance();
 
     std::promise<void> addChPromise;
     std::future<void> addChFuture = addChPromise.get_future();
@@ -492,8 +659,9 @@ TEST_F(NativeDeviceModulesTest, AddChannel)
     for (const auto& signal : clientAddedChSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), getStreamingSourcesCount()) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), getActiveStreamingSource()) << signal.getGlobalId();
     }
 }
 
@@ -535,11 +703,11 @@ TEST_F(NativeDeviceModulesTest, RemoveChannel)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, AddDevice)
+TEST_P(AddComponentsTest, AddDevice)
 {
     SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto server = createServerInstance();
+    auto client = createClientInstance();
 
     std::promise<void> addDevPromise;
     std::future<void> addDevFuture = addDevPromise.get_future();
@@ -570,8 +738,9 @@ TEST_F(NativeDeviceModulesTest, AddDevice)
     for (const auto& signal : clientAddedDevSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), getStreamingSourcesCount()) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), getActiveStreamingSource()) << signal.getGlobalId();
     }
 }
 
@@ -613,6 +782,17 @@ TEST_F(NativeDeviceModulesTest, RemoveDevice)
         ASSERT_TRUE(signal.isRemoved());
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    DynamicComponentsTestGroup,
+    AddComponentsTest,
+    testing::Values(
+        std::vector<std::string>({"opendaq_native_streaming"}),
+        std::vector<std::string>({"opendaq_lt_streaming"}),
+        std::vector<std::string>({"opendaq_lt_streaming", "opendaq_native_streaming"}),
+        std::vector<std::string>({"opendaq_native_streaming", "opendaq_lt_streaming"})
+    )
+);
 
 TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
 {

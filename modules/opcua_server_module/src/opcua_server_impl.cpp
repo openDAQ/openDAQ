@@ -13,7 +13,6 @@ using namespace daq::opcua;
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
     : Server(config, rootDevice, nullptr, nullptr)
     , server(rootDevice, context)
-    , config(config)
     , context(context)
 {
     const uint16_t port = config.getPropertyValue("Port");
@@ -47,11 +46,6 @@ void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& contex
                 LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
             }
         }
-        else
-        {
-            auto property = ObjectPropertyBuilder(key, value).setValueType(value.getCoreType()).build();
-            config.addProperty(property);
-        }
     }
 }
 
@@ -62,15 +56,14 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context
 
     auto defaultConfig = PropertyObject();
 
-    defaultConfig.addProperty(StringProperty("Name", "OpenDAQ_Server"));
-    defaultConfig.addProperty(StringProperty("Manufacturer", "openDAQ"));
-    defaultConfig.addProperty(StringProperty("Model", ""));
-    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+    const auto portProp = IntPropertyBuilder("Port", 4840)
+        .setMinValue(minPortValue)
+        .setMaxValue(maxPortValue)
+        .build();
+    defaultConfig.addProperty(portProp);
+
     defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
     defaultConfig.addProperty(StringProperty("ServicePath", "/"));
-
-    const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
-    defaultConfig.addProperty(portProp);
 
     const auto serviceProp = StringPropertyBuilder("ServiceName", "_opcua-tcp._tcp.local.")
         .setReadOnly(true)

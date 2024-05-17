@@ -18,6 +18,7 @@
 
 #include <thread>
 #include <future>
+#include <fstream>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 
@@ -115,23 +116,23 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static std::string getHostname() 
+    static bool isSufix(const std::string & str, const std::string & suffix)
     {
-        char hostname_buffer[256];
-        std::string hostname;
+        return str.size() >= suffix.size() && 
+                str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
 
-#ifdef _WIN32
-        DWORD hostname_size = sizeof(hostname_buffer);
-        if (GetComputerNameA(hostname_buffer, &hostname_size)) {
-            hostname = hostname_buffer;
-        }
-#else
-        if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0) {
-            hostname = hostname_buffer;
-        }
-#endif
+    [[maybe_unused]]
+    static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
+    {
+        std::ofstream file;
+        file.open(configFilename);
+        if (!file.is_open())
+            throw std::runtime_error("can not open file for writing");
 
-        return hostname;
+        file << data;
+        file.close();
+        return Finally([&configFilename] { remove(configFilename.c_str()); });
     }
 }
 

@@ -90,6 +90,16 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
     virtual ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) = 0;
 
     /*!
+     * @brief Creates a streaming object using the specified connection string and config object.
+     * @param[out] streaming The created streaming object.
+     * @param connectionString Describes the connection parameters of the streaming.
+     * @param config A configuration object that contains parameters used to configure a streaming connection in the form of key-value pairs.
+     *
+     * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the provided connection string.
+     */
+    virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
+
+    /*!
      * @brief Registers a device in the discovery service.
      * @param serverId The unique identifier of the server.
      * @param config The server configuration.

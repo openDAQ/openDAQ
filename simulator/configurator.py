@@ -11,11 +11,6 @@ def configure_opendaq_config(filename, manufacturer):
     # localId = manufacturer + _ + serial number
     data.setdefault("ReferenceDevice", {})["LocalId"] = manufacturer + "_" + serial
 
-    modules = data.setdefault("Modules", {})
-    modules.setdefault("NativeStreamingServer", {})["SerialNumber"] = serial
-    modules.setdefault("OpcUaServer", {})["SerialNumber"] = serial
-    modules.setdefault("StreamingLtServer", {})["SerialNumber"] = serial
-
     with open(filename, "w") as json_file:
         json.dump(data, json_file, indent = 4)
 

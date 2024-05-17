@@ -1,10 +1,7 @@
 #include "test_helpers/test_helpers.h"
-#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 #include <coreobjects/authentication_provider_factory.h>
 
 using WebsocketModulesTest = testing::Test;
-using namespace test_config_provider_helpers;
-using WebsocketModuleTestConfig = ConfigProviderTest;
 using namespace daq;
 
 static InstancePtr CreateServerInstance()
@@ -62,7 +59,7 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     client.addDevice("daq.lt://[::1]", nullptr);
 }
 
-TEST_F(WebsocketModuleTestConfig, PopulateDefaultConfigFromProvider)
+TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -73,16 +70,12 @@ TEST_F(WebsocketModuleTestConfig, PopulateDefaultConfigFromProvider)
                 {
                     "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "Name": "streaming lt server",
-                    "Manufacturer": "test",
-                    "Model": "test device",
-                    "SerialNumber": "test_serial_number",
                     "ServicePath": "/some/path"
                 }
             }
         }
     )";
-    createConfigFile(filename, json);
+    auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
@@ -90,46 +83,42 @@ TEST_F(WebsocketModuleTestConfig, PopulateDefaultConfigFromProvider)
 
     ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
     ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
-    ASSERT_EQ(serverConfig.getPropertyValue("Name").asPtr<IString>(), "streaming lt server");
-    ASSERT_EQ(serverConfig.getPropertyValue("Manufacturer").asPtr<IString>(), "test");
-    ASSERT_EQ(serverConfig.getPropertyValue("Model").asPtr<IString>(), "test device");
-    ASSERT_EQ(serverConfig.getPropertyValue("SerialNumber").asPtr<IString>(), "test_serial_number");
     ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
-    const auto statistics = server.addFunctionBlock("ref_fb_module_statistics");
-    const auto refDevice = server.addDevice("daqref://device1");
-    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+    server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-    auto serialNumber = "WebsocketModulesTest_DiscoveringServer_" + test_helpers::getHostname() + "_" + serverConfig.getPropertyValue("Port").toString();
-    serverConfig.setPropertyValue("SerialNumber", serialNumber);
+    auto servicePath = "/test/streaming_lt/discovery/";
     serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    serverConfig.setPropertyValue("ServicePath", servicePath);
     server.addServer("openDAQ LT Streaming", serverConfig);
 
     auto client = Instance();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != serialNumber)
-            continue;
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            {
+                break;
+            }
             if (capability.getProtocolName() == "openDAQ LT Streaming")
             {
                 device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-                break;
+                return;
             }
         }
     }
-    ASSERT_TRUE(device.assigned());
+    ASSERT_TRUE(false);
 }
 
 
-TEST_F(WebsocketModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
+TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -140,44 +129,50 @@ TEST_F(WebsocketModuleTestConfig, checkDeviceInfoPopulatedWithProvider)
                 {
                     "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "Name": "streaming lt server",
-                    "Manufacturer": "test",
-                    "Model": "test device",
-                    "SerialNumber": "streaming_lt_test_serial_number",
-                    "ServicePath": "/some/path"
+                    "ServicePath": "/test/streaming_lt/checkDeviceInfoPopulated"
                 }
             }
         }
     )";
-    createConfigFile(filename, json);
+    auto servicePath = "/test/streaming_lt/checkDeviceInfoPopulated";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("WebsocketModulesTest::checkDeviceInfoPopulatedWithProvider");
+    rootInfo.setManufacturer("Manufacturer");
+    rootInfo.setModel("Model");
+    rootInfo.setSerialNumber("SerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
     instance.addServer("openDAQ LT Streaming", serverConfig);
 
     auto client = Instance();
-    DevicePtr device;
+
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != "streaming_lt_test_serial_number")
+        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
             continue;
 
-        ASSERT_EQ(deviceInfo.getServerCapabilities().getCount(), 1u);
-        device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                client.addDevice(deviceInfo.getConnectionString(), nullptr);
 
-        ASSERT_EQ(deviceInfo.getName(), "streaming lt server");
-        ASSERT_EQ(deviceInfo.getManufacturer(), "test");
-        ASSERT_EQ(deviceInfo.getModel(), "test device");
-        ASSERT_EQ(deviceInfo.getSerialNumber(), "streaming_lt_test_serial_number");
-
-        std::string connectionString = deviceInfo.getConnectionString();    
-        std::string servicePath = "/some/path";
-        std::string connectionPath = connectionString.substr(connectionString.size() - servicePath.size());
-        ASSERT_EQ(connectionPath, servicePath);
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                return;
+            }
+        }      
     }
 
-    ASSERT_TRUE(device.assigned());
+    ASSERT_TRUE(false);
 }
 
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)

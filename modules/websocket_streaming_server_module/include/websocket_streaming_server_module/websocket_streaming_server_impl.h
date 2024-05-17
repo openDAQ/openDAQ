@@ -36,7 +36,6 @@ protected:
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     daq::websocket_streaming::WebsocketStreamingServer websocketStreamingServer;
-    PropertyObjectPtr config;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

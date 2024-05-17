@@ -153,4 +153,9 @@ ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+ErrCode MockDeviceModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockDeviceModule, IModule, IContext*, ctx)

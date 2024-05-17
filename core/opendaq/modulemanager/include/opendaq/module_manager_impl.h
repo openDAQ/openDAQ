@@ -50,6 +50,7 @@ public:
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) override;
 
@@ -63,10 +64,10 @@ private:
     void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
 
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const ListPtr<IString>& allowedStreamingProtocols,
-                                  bool overrideActiveSourceForSignal);
+                                  const ListPtr<IString>& allowedStreamingProtocols);
 
-    StreamingPtr createStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability);
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

@@ -9,7 +9,7 @@
             {
                 return false;
             }
-            else if (Result.Failed(errorCode))
+            else if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

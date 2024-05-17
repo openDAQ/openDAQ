@@ -8,7 +8,7 @@
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.$NonInterfaceType$"/> to <see cref="$CSMappedType$"/>.</summary>
     /// <param name="value">The SDK <c>$NonInterfaceType$</c>.</param>
     /// <returns>The managed <c>$CSMappedType$</c> value.</returns>
-    public static implicit operator $CSMappedType$($NonInterfaceType$ value) => value.$CSValueGetter$();
+    public static implicit operator $CSMappedType$($NonInterfaceType$ value) => value.$CSValueGetter$;
 
     /// <summary>Determines whether this instance and a specified <c>$CSMappedType$</c>, have the same value.</summary>
     /// <param name="other">The other <c>$CSMappedType$</c> to compare to this instance.</param>

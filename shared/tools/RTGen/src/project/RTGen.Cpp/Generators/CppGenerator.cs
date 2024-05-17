@@ -760,7 +760,7 @@ namespace RTGen.Cpp.Generators
                 }
 
                 var argName = GetArgumentName(overload, argument);
-                if (argument.StealRef)
+                if (argument.IsStealRef)
                     names.Append(argName + ".detach()");
                 else
                     names.Append(argName);
@@ -817,7 +817,7 @@ namespace RTGen.Cpp.Generators
                             return arg.Type.Modifiers;
                         }
 
-                        if (arg.StealRef)
+                        if (arg.IsStealRef)
                         {
                             return "&&";
                         }
@@ -832,7 +832,7 @@ namespace RTGen.Cpp.Generators
                 case "ArgTypeQualifiers":
                     if (options.GenerateWrapper &&
                         !arg.IsOutParam &&
-                        !arg.StealRef &&
+                        !arg.IsStealRef &&
                         !arg.Type.Flags.IsValueType &&
                         arg.Type.Name != "void")
                     {

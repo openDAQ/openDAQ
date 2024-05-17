@@ -471,7 +471,7 @@ namespace RTGen.Types
             if (argumentLength != 1)
             {
                 throw new RTAttributeException(
-                    $"RtAttribute \"{attribute.Name}\" must have at one argument (arg name).");
+                    $"RtAttribute \"{attribute.Name}\" must have one argument (arg name).");
             }
 
             IArgumentInfo argInfo;
@@ -481,7 +481,7 @@ namespace RTGen.Types
                 Next.Method.Arguments.Add(attribute.Arguments[0].Value, argInfo);
             }
 
-            argInfo.StealRef = true;
+            argInfo.IsStealRef = true;
         }
 
         private void PolymorphicAttribute(IRTAttribute attribute)

@@ -33,6 +33,6 @@ namespace RTGen.Types
         public IList<ITypeName> ElementTypes { get; set; }
 
         /// <summary>True if method steals the reference to the argument.</summary>
-        public bool StealRef { get; set; }
+        public bool IsStealRef { get; set; }
     }
 }

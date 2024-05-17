@@ -678,7 +678,7 @@ namespace RTGen.Cpp.Parser {
                     isConst,
                     argInfo?.ArrayInfo,
                     false,
-                    argInfo?.StealRef ?? false
+                    argInfo?.IsStealRef ?? false
                 );
 
                 if (argInfo?.ElementTypes != null)

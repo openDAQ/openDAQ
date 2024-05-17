@@ -12,6 +12,6 @@ namespace RTGen.Interfaces
         IArray ArrayInfo { get; set; }
 
         /// <summary>True if method steals the reference to the argument.</summary>
-        bool StealRef { get; set; }
+        bool IsStealRef { get; set; }
     }
 }

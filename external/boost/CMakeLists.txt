@@ -92,9 +92,9 @@ if (Boost_FOUND)
         Boost::asio
     )
 
-    foreach(TARGET ${BOOST_TARGETS})
-        if (NOT TARGET ${TARGET})
-            add_library(${TARGET} ALIAS Boost::headers)
+    foreach(BOOST_TARGET ${BOOST_INCLUDE_LIBRARIES})
+        if (NOT TARGET Boost::${BOOST_TARGET} AND NOT TARGET boost_${BOOST_TARGET})
+            add_library(Boost::${BOOST_TARGET} ALIAS Boost::headers)
         endif()
     endforeach()
 endif()

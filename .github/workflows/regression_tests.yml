@@ -104,7 +104,7 @@ jobs:
       - name: Upload target bin.zip
         uses: actions/upload-artifact@v3
         with: 
-          name: target bin (${{ matrix.name }})
+          name: regression full target bin ${{ env.target_tag }} (${{ matrix.name }})
           path: target/build/bin
 
       - name: Build current

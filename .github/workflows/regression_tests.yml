@@ -75,7 +75,7 @@ jobs:
           path: current
       
       - name: Move and rename CMakeListsTop.txt (to build simulator with target version)
-        run: mv current/CMakeListsTop.txt CMakeLists.txt
+        run: mv current/regression/CMakeListsTop.txt CMakeLists.txt
           
       - name: Copy regression simulator to top folder
         run: cp -r current/regression/simulator .

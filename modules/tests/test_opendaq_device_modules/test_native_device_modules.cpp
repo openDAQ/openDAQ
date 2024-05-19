@@ -127,6 +127,85 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     ASSERT_TRUE(false);
 }
 
+TEST_F(NativeDeviceModulesTest, RemoveServer)
+{
+    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto servicePath = "/test/native_configuration/removeServer/";
+    serverConfig.setPropertyValue("ServiceDiscoverable", true);
+    serverConfig.setPropertyValue("ServicePath", servicePath);
+    auto server1 = server.addServer("openDAQ Native Streaming", serverConfig);
+
+    // check that server is discoverable
+    {
+        auto client = Instance();
+        size_t deviceFound = 0;
+        for (const auto & deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto & capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+                    break;
+            
+                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                {
+                   deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1);
+    }
+
+    // remove device and check that server now is not discoverable
+    server.removeServer(server1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    {
+        auto client = Instance();
+        size_t deviceFound = 0;
+        for (const auto & deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto & capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+                    break;
+            
+                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                {
+                   deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 0);
+    }
+
+    // add server again and check that server is discoverable
+    auto servicePath2 = "/test/native_configuration/removeServer2/";
+    serverConfig.setPropertyValue("ServicePath", servicePath2);
+    auto server2 = server.addServer("openDAQ Native Streaming", serverConfig);
+    {
+        auto client = Instance();
+        size_t deviceFound = 0;
+        for (const auto & deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto & capability : deviceInfo.getServerCapabilities())
+            {
+                bool isRemovedServer = test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath);
+                bool isNewServer = test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath2);
+                if (!isRemovedServer && !isNewServer)
+                    break;
+
+                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                {
+                   deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1);
+    }
+}
+
 TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";

@@ -91,10 +91,14 @@ private:
         if (config == nullptr)
             return;
 
-        config.addProperty(StringProperty("Name", ""));
-        config.addProperty(StringProperty("Manufacturer", ""));
-        config.addProperty(StringProperty("Model", ""));
-        config.addProperty(StringProperty("SerialNumber", ""));
+        if (!config.hasProperty("Name"))
+            config.addProperty(StringProperty("Name", ""));
+        if (!config.hasProperty("Manufacturer"))
+            config.addProperty(StringProperty("Manufacturer", ""));
+        if (!config.hasProperty("Model"))
+            config.addProperty(StringProperty("Model", ""));
+        if (!config.hasProperty("SerialNumber"))
+            config.addProperty(StringProperty("SerialNumber", ""));
 
         if (rootDevice != nullptr)
         {

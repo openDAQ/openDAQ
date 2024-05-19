@@ -26,24 +26,26 @@
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/reader_status_ptr.h>
 #include <opendaq/block_reader_status_ptr.h>
+#include <opendaq/tail_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 using UndefinedType = void;
 
-inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const StringPtr& errorMessage = nullptr)
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
 {
-    return ReaderStatus_Create(packet, valid, errorMessage);
+    return ReaderStatus_Create(packet, valid);
 }
 
-inline BlockReaderStatusPtr BlockReaderStatus(
-    const EventPacketPtr& packet = nullptr, 
-    Bool valid = true,  
-    SizeT readSamples = 0,
-    const StringPtr& errorMessage = nullptr)
+inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
 {
-    return BlockReaderStatus_Create(packet, valid, readSamples, errorMessage);
+    return BlockReaderStatus_Create(packet, valid, readSamples);
+}
+
+inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
+{
+    return TailReaderStatus_Create(packet, valid, sufficientHistory);
 }
 
 /*!

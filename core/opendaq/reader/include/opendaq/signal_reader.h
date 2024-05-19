@@ -19,6 +19,7 @@
 #include <opendaq/multi_typed_reader.h>
 #include <opendaq/read_info.h>
 #include <opendaq/reader_domain_info.h>
+#include <opendaq/reader_status.h>
 
 #include <chrono>
 
@@ -34,7 +35,6 @@ enum class SyncStatus
 struct SignalInfo
 {
     InputPortConfigPtr port;
-    FunctionPtr changeCallback;
     FunctionPtr valueTransformFunction;
     FunctionPtr domainTransformFunction;
     ReadMode readMode;
@@ -88,7 +88,6 @@ struct SignalReader
 
     InputPortConfigPtr port;
     ConnectionPtr connection;
-    FunctionPtr changeCallback;
 
     ReadInfo info{};
     ReadMode readMode;

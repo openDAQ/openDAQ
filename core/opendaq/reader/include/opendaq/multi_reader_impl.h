@@ -47,7 +47,6 @@ public:
 
     ~MultiReaderImpl() override;
 
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
@@ -67,7 +66,6 @@ public:
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* inputPort) override;
 
     // IReaderConfig
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override;
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getDomainTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
@@ -99,7 +97,7 @@ private:
 
     SyncStatus getSyncStatus() const;
 
-    ErrCode readPackets();
+    ErrCode readPackets(IReaderStatus** status);
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);

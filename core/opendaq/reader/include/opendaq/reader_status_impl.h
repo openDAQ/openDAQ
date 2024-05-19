@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/reader_status.h>
 #include <opendaq/block_reader_status.h>
+#include <opendaq/tail_reader_status.h>
 #include <opendaq/event_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -25,7 +26,7 @@ template <class MainInterface, class ... Interfaces>
 class GenericReaderStatusImpl : public ImplementationOf<MainInterface, Interfaces...>
 {
 public:
-    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const StringPtr& errorMessage);
+    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
@@ -33,12 +34,9 @@ public:
 
     ErrCode INTERFACE_FUNC getValid(Bool* valid) override;
 
-    ErrCode INTERFACE_FUNC getErrorMesage(IString** message) override;
-
 private:
     EventPacketPtr eventPacket;
     Bool valid;
-    StringPtr errorMessage;
 };
 
 using ReaderStatusImpl = GenericReaderStatusImpl<IReaderStatus>;
@@ -47,12 +45,25 @@ class BlockReaderStatusImpl final : public GenericReaderStatusImpl<IBlockReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IBlockReaderStatus>;
-    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples, const StringPtr& errorMessage);
+    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples);
 
     ErrCode INTERFACE_FUNC getReadSamples(SizeT* readSamples) override;
 
 private:
     SizeT readSamples;
+};
+
+class TailReaderStatusImpl final : public GenericReaderStatusImpl<ITailReaderStatus>
+{
+public:
+    using Super = GenericReaderStatusImpl<ITailReaderStatus>;
+    explicit TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, Bool sufficientHistory);
+
+    ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
+
+    ErrCode INTERFACE_FUNC getSufficientHistory(Bool* status) override;
+private:
+    Bool sufficientHistory;
 };
 
 END_NAMESPACE_OPENDAQ

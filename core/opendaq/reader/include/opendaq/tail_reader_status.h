@@ -20,7 +20,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_readers
- * @addtogroup opendaq_reader Block reader status
+ * @addtogroup opendaq_reader Tail reader status
  * @{
  */
 
@@ -29,25 +29,20 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief IBlockReaderStatus inherits from IReaderStatus to expand information returned read function
+ * @brief ITailReaderStatus inherits from IReaderStatus to expand information returned read function
  */
-DECLARE_OPENDAQ_INTERFACE(IBlockReaderStatus, IReaderStatus)
+DECLARE_OPENDAQ_INTERFACE(ITailReaderStatus, IReaderStatus)
 {
-    /*!
-     * @brief Returns the number of samples that were read. 
-     * Sometimes, during the process of reading, an event packet may occur that stops the reading of remaining samples. 
-     * Developers can use this function to determine how many samples were actually read.
-     * @param[out] samplesCount the amount of samples that were read.
-     */
-    virtual ErrCode INTERFACE_FUNC getReadSamples(SizeT* readSamples) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getSufficientHistory(Bool* status) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
-    LIBRARY_FACTORY, BlockReaderStatus,
+    LIBRARY_FACTORY, TailReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
-    SizeT, readSamples
+    Bool, sufficientHistory
 )
 
 END_NAMESPACE_OPENDAQ

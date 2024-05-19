@@ -1276,7 +1276,8 @@ TEST_F(MultiReaderTest, Signal2Invalidated)
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     ASSERT_EQ(count, SIG2_PACKET_SIZE);
 
-    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count), InvalidDataException);
+    auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_FALSE(status.getValid());
 
     printData(SAMPLES, time, values);
     roundData<std::chrono::microseconds>(SAMPLES, time);
@@ -1408,10 +1409,8 @@ TEST_F(MultiReaderTest, SampleRateChanged)
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     ASSERT_EQ(count, 632u);
 
-    ASSERT_THROW_MSG(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count),
-                     InvalidDataException,
-                     "Signal no longer compatible with the reader or other signals"
-    );
+    auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_FALSE(status.getValid());
 
     printData(SAMPLES, time, values);
     roundData<std::chrono::microseconds>(SAMPLES, time);
@@ -1474,7 +1473,8 @@ TEST_F(MultiReaderTest, ReuseReader)
         multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         ASSERT_EQ(count, SIG2_PACKET_SIZE);
 
-        ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count), InvalidDataException);
+        auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+        ASSERT_FALSE(status.getValid());
 
         roundData<std::chrono::microseconds>(SAMPLES, time);
         ASSERT_THAT(time[1], ElementsAreArray(time[0]));

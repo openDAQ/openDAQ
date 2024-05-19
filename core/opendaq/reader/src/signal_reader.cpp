@@ -4,6 +4,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,7 +35,6 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainReader(createReaderForType(domainReadType, old.domainReader->getTransformFunction()))
     , port(old.port)
     , connection(port.getConnection())
-    , changeCallback(old.changeCallback)
     , readMode(old.readMode)
     , domainInfo(loggerComponent)
     , sampleRate(-1)
@@ -55,7 +55,6 @@ SignalReader::SignalReader(const SignalInfo& old,
     , domainReader(createReaderForType(domainReadType, old.domainTransformFunction))
     , port(old.port)
     , connection(port.getConnection())
-    , changeCallback(old.changeCallback)
     , readMode(old.readMode)
     , domainInfo(loggerComponent)
     , sampleRate(-1)
@@ -199,18 +198,6 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     }
 
     invalid = invalid || !validDomain;
-
-    // If both value and domain are still convertible
-    // check with the user if new state is valid for them
-    if (!invalid && changeCallback.assigned())
-    {
-        bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-        invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
-    }
 
     LOG_T("[Signal Descriptor Changed: {} | {} | {}]",
         port.getSignal().getLocalId(),

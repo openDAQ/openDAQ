@@ -5,10 +5,9 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <class MainInterface, class ... Interfaces>
-GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const StringPtr& errorMessage)
+GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid)
     : eventPacket(eventPacket)
     , valid(valid)
-    , errorMessage(errorMessage)
 {
 }
 
@@ -16,9 +15,7 @@ template <class MainInterface, class ... Interfaces>
 ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getReadStatus(ReadStatus* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    if (errorMessage.assigned())
-        *status = ReadStatus::Fail;
-    else if (valid && !eventPacket.assigned())
+    if (valid && !eventPacket.assigned())
         *status = ReadStatus::Ok;
     else if (eventPacket.assigned())
         *status = ReadStatus::Event;
@@ -44,16 +41,8 @@ ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getValid(Bool* va
     return OPENDAQ_SUCCESS;
 }
 
-template <class MainInterface, class ... Interfaces>
-ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getErrorMesage(IString** message)
-{
-    OPENDAQ_PARAM_NOT_NULL(message);
-    *message = errorMessage.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples, const StringPtr& errorMessage)
-    : Super(eventPacket, valid, errorMessage)
+BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples)
+    : Super(eventPacket, valid)
     , readSamples(readSamples)
 {
 }
@@ -65,19 +54,48 @@ ErrCode BlockReaderStatusImpl::getReadSamples(SizeT* readSamples)
     return OPENDAQ_SUCCESS;
 }
 
+TailReaderStatusImpl::TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, Bool sufficientHistory)
+    : Super(eventPacket, valid)
+    , sufficientHistory(sufficientHistory)
+{
+}
+
+ErrCode TailReaderStatusImpl::getReadStatus(ReadStatus* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    if (!sufficientHistory)
+    {
+        *status = ReadStatus::Fail;
+        return OPENDAQ_SUCCESS;
+    }
+    return Super::getReadStatus(status);
+}
+
+ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    *status = sufficientHistory;
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, valid,
-    IString*, errorMessage
+    Bool, valid
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, BlockReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
-    SizeT, readSamples,
-    IString*, errorMessage
+    SizeT, readSamples
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY (
+    LIBRARY_FACTORY, TailReaderStatus,
+    IEventPacket*, eventPacket,
+    Bool, valid,
+    Bool, sufficientHistory
 )
 
 END_NAMESPACE_OPENDAQ

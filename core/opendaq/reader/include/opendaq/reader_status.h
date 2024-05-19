@@ -64,20 +64,13 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
      * @param[out] status Boolean value indicating the validity of the reader
      */
     virtual ErrCode INTERFACE_FUNC getValid(Bool* valid) = 0;
-
-    /*!
-     * @brief Retrieves the error message from the reading process.
-     * @param[out] message The error message from the reading process.
-     */
-    virtual ErrCode INTERFACE_FUNC getErrorMesage(IString** message) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, valid,
-    IString*, errorMessage
+    Bool, valid
 )
 
 END_NAMESPACE_OPENDAQ

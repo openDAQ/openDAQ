@@ -51,12 +51,4 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject
             return objectPtr.getServerId().toStdString();
         },
         "Gets the server id which will be the key for the server in the module manager.");
-    cls.def_property_readonly("server_config",
-        [](daq::IServer *object)
-        {
-            const auto objectPtr = daq::ServerPtr::Borrow(object);
-            return objectPtr.getServerConfig().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Gets the server configuration properties");
 }

@@ -54,12 +54,6 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @param[out] serverId The unique server id.
     */
     virtual ErrCode INTERFACE_FUNC getServerId(IString** serverId) = 0;
-
-    /*!
-    * @brief Gets the server configuration properties
-    * @param[out] config The server configuration properties.
-    */
-    virtual ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/
 

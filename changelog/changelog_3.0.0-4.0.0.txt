@@ -3,7 +3,6 @@ Description:
   mDNS discovery service
 
 + [function] IServer::getServerId(IString** serverId) = 0;
-+ [function] IServer::getServerConfig(IPropertyObject** config) = 0;
 
 + [function] IModuleManagerUtils::registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info);
 + [function] IModuleManagerUtils::removeDiscoveryDevice(IString* serverId);

@@ -21,9 +21,4 @@ ErrCode MockServerImpl::getServerId(IString** serverId)
     return OPENDAQ_SUCCESS;
 }
 
-daq::ErrCode MockServerImpl::getServerConfig(daq::IPropertyObject** config)
-{
-    return OPENDAQ_SUCCESS;
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)

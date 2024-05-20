@@ -45,8 +45,8 @@ public:
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
+        , serverId(std::move(createServerId(config)))
     {
-        serverId = createServerId(this->config);
     }
 
     ErrCode INTERFACE_FUNC stop() override
@@ -60,15 +60,6 @@ public:
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
         *serverId = this->serverId.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC getServerConfig(IPropertyObject** config) override
-    {
-        if (config == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        *config = this->config.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 

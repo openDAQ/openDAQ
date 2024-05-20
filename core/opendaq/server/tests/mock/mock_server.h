@@ -26,7 +26,6 @@ public:
 
     daq::ErrCode INTERFACE_FUNC stop() override;
     daq::ErrCode INTERFACE_FUNC getServerId(daq::IString** serverId) override;
-    daq::ErrCode INTERFACE_FUNC getServerConfig(daq::IPropertyObject** config) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)

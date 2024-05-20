@@ -28,20 +28,32 @@ struct BlockReadInfo
 {
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
+    using DataPacketsQueueType = std::list<DataPacketPtr>;
 
     DataPacketPtr dataPacket;
+
     SizeT prevSampleIndex{};
+    SizeT writtenSampleCount{};
+    SizeT overlappedSamplesToRead{};
 
     SizeT remainingSamplesToRead{};
-
     void* values{};
-    void* domainValues{};
 
+    void* domainValues{};
     Clock::duration timeout;
+
     Clock::time_point startTime;
 
-    void prepare(void* outValues, SizeT sampleCount, std::chrono::milliseconds timeoutTime)
+    // Data packets queue implementation
+    DataPacketsQueueType dataPacketsQueue;
+    DataPacketsQueueType::iterator currentDataPacketIter{dataPacketsQueue.end()};
+    SizeT actualSampleRead{};
+    SizeT remainingSamplesToReadNew;
+    // ---------------------------------
+
+    void prepare(void* outValues, SizeT sampleCount, SizeT blockSize, std::chrono::milliseconds timeoutTime)
     {
+        remainingSamplesToReadNew = sampleCount;
         remainingSamplesToRead = sampleCount;
         values = outValues;
 
@@ -51,8 +63,9 @@ struct BlockReadInfo
         startTime = std::chrono::steady_clock::now();
     }
 
-    void prepareWithDomain(void* outValues, void* domain, SizeT sampleCount, std::chrono::milliseconds timeoutTime)
+    void prepareWithDomain(void* outValues, void* domain, SizeT sampleCount, SizeT blockSize, std::chrono::milliseconds timeoutTime)
     {
+        remainingSamplesToReadNew = sampleCount;
         remainingSamplesToRead = sampleCount;
         values = outValues;
 
@@ -65,6 +78,7 @@ struct BlockReadInfo
     void reset()
     {
         dataPacket = nullptr;
+        currentDataPacketIter = dataPacketsQueue.end();
         prevSampleIndex = 0;
     }
 
@@ -126,12 +140,12 @@ public:
 private:
     ErrCode readPackets(IReaderStatus** status, SizeT* count);
     ErrCode readPacketData();
+    ErrCode readPacketDataNew();
 
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;
 
-    void calculateOverlapSize();
-    void flattenOverlappedBlocks(SizeT blocksCount, SizeT evenSamplesCount, SizeT remainingSamplesCount);
+    SizeT calculateBlockCount(SizeT sampleCount) const;
 
     SizeT blockSize;
     SizeT overlap;

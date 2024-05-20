@@ -18,7 +18,11 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     : Super(signal, mode, valueReadType, domainReadType)
     , blockSize(blockSize), overlap(overlap)
 {
-    calculateOverlapSize();
+    if (this->overlap >= 100)
+        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+
+    overlappedBlockSize = (blockSize * overlap) / 100;
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
     port.setNotificationMethod(PacketReadyNotification::SameThread);
     readDescriptorFromPort();
@@ -33,7 +37,11 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
     , blockSize(blockSize), overlap(overlap)
 {
-    calculateOverlapSize();
+    if (this->overlap >= 100)
+        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+
+    overlappedBlockSize = (blockSize * overlap) / 100;
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
@@ -47,7 +55,11 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
     : Super(readerConfig, mode, valueReadType, domainReadType)
     , blockSize(blockSize), overlap(overlap)
 {
-    calculateOverlapSize();
+    if (this->overlap >= 100)
+        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+
+    overlappedBlockSize = (blockSize * overlap) / 100;
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
     readDescriptorFromPort();
 }
@@ -61,7 +73,11 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , blockSize(blockSize), overlap(overlap)
     , info(old->info)
 {
-    calculateOverlapSize();
+    if (this->overlap >= 100)
+        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+
+    overlappedBlockSize = (blockSize * overlap) / 100;
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
     this->internalAddRef();
     if (portBinder.assigned())
@@ -101,103 +117,26 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 SizeT BlockReaderImpl::getAvailable() const
 {
     const auto availableSamples = getAvailableSamples();
-    if (availableSamples < blockSize)
-        return 0;
-    else
-        return (availableSamples - blockSize) / overlappedBlockSizeRemainder + 1;
+    return availableSamples < blockSize ? 0 : calculateBlockCount(availableSamples);
+//    if (availableSamples < blockSize)
+//        return 0;
+//    else
+//        return (availableSamples - blockSize) / overlappedBlockSizeRemainder + 1;
 }
 
 SizeT BlockReaderImpl::getAvailableSamples() const
 {
     SizeT count{};
-    if (info.dataPacket.assigned())
-    {
-        count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
-    }
-
+//    if (info.dataPacket.assigned())
+//    {
+//        count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
+//    }
+    if (info.currentDataPacketIter != info.dataPacketsQueue.end())
+        count = info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    count += info.overlappedSamplesToRead;
+//    count += info.getCachedSampleCount() > 0 ? overlappedBlockSize : 0;
     count += connection.getAvailableSamples();
     return count;
-}
-
-void BlockReaderImpl::calculateOverlapSize()
-{
-    if (this->overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
-
-    overlappedBlockSize = (blockSize * overlap) / 100;
-    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
-}
-
-void BlockReaderImpl::flattenOverlappedBlocks(SizeT blocksCount, SizeT evenSamplesCount, SizeT remainingSamplesCount)
-{
-    if (overlap == 0 || blocksCount == 0)
-    {
-        return;
-    }
-
-    // flatten data samples
-    {
-        auto valuesPerSample = 1u;
-        auto dimensions = dataDescriptor.getDimensions();
-        if (dimensions.assigned() && dimensions.getCount() == 1)
-        {
-            valuesPerSample = dimensions[0].getSize();
-        }
-        const auto sampleSize = getSampleSize(valueReader->getReadType());
-        const auto blockSizeInBytes = blockSize * sampleSize * valuesPerSample;
-
-        auto* valuesStartPtr =
-            static_cast<uint8_t*>(info.values) - (evenSamplesCount + remainingSamplesCount) * sampleSize * valuesPerSample;
-
-        auto* outputPtr = valuesStartPtr + (blocksCount - 1) * blockSize * sampleSize * valuesPerSample;
-        auto* inputPtr = valuesStartPtr + (evenSamplesCount - blockSize) * sampleSize * valuesPerSample;
-
-        if (remainingSamplesCount)
-        {
-            std::memmove(outputPtr + blockSizeInBytes, inputPtr + blockSizeInBytes, remainingSamplesCount * sampleSize * valuesPerSample);
-        }
-
-        for (int i = 0; i < blocksCount; ++i)
-        {
-            std::memcpy(outputPtr, inputPtr, blockSizeInBytes);
-            outputPtr -= blockSizeInBytes;
-            inputPtr -= overlappedBlockSizeRemainder * sampleSize * valuesPerSample;
-        }
-    }
-
-    // flatten domain samples
-    if (info.domainValues)
-    {
-        auto domainValuesPerSample = 1u;
-        if (domainDescriptor.assigned())
-        {
-            auto dimensions = domainDescriptor.getDimensions();
-            if (dimensions.assigned() && dimensions.getCount() == 1)
-            {
-                domainValuesPerSample = dimensions[0].getSize();
-            }
-        }
-        const auto sampleSize = getSampleSize(domainReader->getReadType());
-        const auto blockSizeInBytes = blockSize * sampleSize * domainValuesPerSample;
-
-        auto* domainValuesStartPtr =
-            static_cast<uint8_t*>(info.domainValues) - (evenSamplesCount + remainingSamplesCount) * sampleSize * domainValuesPerSample;
-
-        auto* outputPtr = domainValuesStartPtr + (blocksCount - 1) * blockSize * sampleSize * domainValuesPerSample;
-        auto* inputPtr = domainValuesStartPtr + (evenSamplesCount - blockSize) * sampleSize * domainValuesPerSample;
-
-        if (remainingSamplesCount)
-        {
-            std::memmove(outputPtr + blockSizeInBytes, inputPtr + blockSizeInBytes, remainingSamplesCount * sampleSize * domainValuesPerSample);
-        }
-
-        for (int i = 0; i < blocksCount; ++i)
-        {
-            std::memcpy(outputPtr, inputPtr, blockSizeInBytes);
-            outputPtr -= blockSizeInBytes;
-            inputPtr -= overlappedBlockSizeRemainder * sampleSize * domainValuesPerSample;
-        }
-    }
 }
 
 ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
@@ -232,6 +171,95 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     return errCode;
 }
 
+ErrCode BlockReaderImpl::readPacketDataNew()
+{
+    auto packetSampleCount = info.currentDataPacketIter->getSampleCount();
+    auto packetRemainingSampleCount = packetSampleCount - info.prevSampleIndex;
+    auto blockRemainingSampleCount = info.writtenSampleCount % blockSize == 0 ? blockSize : info.writtenSampleCount % blockSize;
+    SizeT sampleCountToRead = std::min(blockRemainingSampleCount, packetRemainingSampleCount);
+
+    auto* packetData = getValuePacketData(*info.currentDataPacketIter);
+    ErrCode errCode = valueReader->readData(packetData,info.prevSampleIndex,&info.values,sampleCountToRead);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+    if (info.domainValues != nullptr)
+    {
+        auto dataPacket = info.dataPacket;
+        if (!dataPacket.getDomainPacket().assigned())
+        {
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
+        }
+
+        auto domainPacket = dataPacket.getDomainPacket();
+        auto* domainData = domainPacket.getData();
+        errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
+        if (errCode == OPENDAQ_ERR_INVALIDSTATE)
+        {
+            if (!trySetDomainSampleType(domainPacket))
+            {
+                return errCode;
+            }
+            errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, sampleCountToRead);
+        }
+
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
+    }
+
+    info.writtenSampleCount += sampleCountToRead;
+    info.prevSampleIndex += sampleCountToRead;
+    info.remainingSamplesToRead -= sampleCountToRead;
+
+    info.actualSampleRead += sampleCountToRead;
+    info.remainingSamplesToReadNew -= sampleCountToRead;
+
+    if (info.writtenSampleCount % blockSize == 0)
+    {
+        // how many data packet need to be stepped back
+        const auto rewindSamples = overlappedBlockSize;
+        auto rewindBlocks = rewindSamples / blockSize;
+        auto rewindRemainder = rewindSamples % blockSize;
+
+        if (info.prevSampleIndex < rewindRemainder)
+        {
+            rewindBlocks += 1;
+            info.prevSampleIndex = blockSize - rewindRemainder;
+        }
+        else
+        {
+            info.prevSampleIndex -= rewindRemainder;
+        }
+
+        using IterDiff = BlockReadInfo::DataPacketsQueueType::difference_type;
+
+        info.currentDataPacketIter = std::next(
+            info.currentDataPacketIter,
+            -static_cast<IterDiff>(rewindBlocks));
+
+        if (info.remainingSamplesToRead)
+        {
+            info.actualSampleRead -= overlappedBlockSize;
+            info.remainingSamplesToReadNew += overlappedBlockSize;
+        }
+    }
+    else
+    {
+        if (info.prevSampleIndex == packetSampleCount) {
+            std::unique_lock lock(notify.mutex);
+            notify.dataReady = false;
+            info.currentDataPacketIter = info.dataPacketsQueue.end();
+            info.reset();
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+[[deprecated]]
 ErrCode BlockReaderImpl::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
@@ -283,6 +311,7 @@ ErrCode BlockReaderImpl::readPacketData()
     }
 
     info.remainingSamplesToRead -= toRead;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -309,19 +338,22 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 
     info.remainingSamplesToRead = std::min(availableSamples, info.remainingSamplesToRead);
     SizeT samplesToRead = info.remainingSamplesToRead;
+    *count = calculateBlockCount(info.remainingSamplesToRead);
 
-    if (info.remainingSamplesToRead < blockSize)
-        *count = 0;
-    else
-        *count = (info.remainingSamplesToRead - blockSize) / overlappedBlockSizeRemainder + 1;
+    // output samples count with overlaps. will be greater, than input non-overlapped samples count.
+    info.remainingSamplesToRead = *count * blockSize;
 
-    while (info.remainingSamplesToRead != 0)
+    while (info.remainingSamplesToReadNew != 0)
     {
-        PacketPtr packet = info.dataPacket;
+        PacketPtr packet = nullptr;
 
-        // if no partially-read packet and there are more blocks left in the connection
-        if (!packet.assigned())
+        if (info.currentDataPacketIter != info.dataPacketsQueue.end())
         {
+            packet = *info.currentDataPacketIter;
+        }
+        else
+        {
+            // if no partially-read packet and there are more blocks left in the connection
             std::unique_lock notifyLock(notify.mutex);
 
             packet = connection.dequeue();
@@ -332,67 +364,38 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
         {
             case PacketType::Data:
             {
-                info.dataPacket = packet;
-                errCode = readPacketData();
+//                info.dataPacket = packet;
+
+                if (info.currentDataPacketIter == info.dataPacketsQueue.end()) {
+                    info.dataPacketsQueue.push_back(packet);
+                    info.currentDataPacketIter = std::next(info.dataPacketsQueue.end(), -1);
+                }
+                errCode = readPacketDataNew();
 
                 if (OPENDAQ_FAILED(errCode))
                 {
-                    const auto samplesHasBeenRead = samplesToRead - info.remainingSamplesToRead;
-                    SizeT evenSamplesCount;
-                    SizeT remainingSamplesCount;
-
-                    if (samplesHasBeenRead < blockSize)
-                    {
-                        *count = 0;
-                        evenSamplesCount = 0;
-                    }
-                    else
-                    {
-                        *count = (samplesHasBeenRead - blockSize) / overlappedBlockSizeRemainder + 1;
-                        evenSamplesCount = *count * (blockSize - overlappedBlockSize) + overlappedBlockSize;
-                    }
-
-                    remainingSamplesCount = samplesHasBeenRead - evenSamplesCount;
-                    flattenOverlappedBlocks(*count, evenSamplesCount, remainingSamplesCount);
-
                     if (status)
-                        *status = BlockReaderStatus(nullptr, true, evenSamplesCount + remainingSamplesCount).detach();
-
+                        *status = BlockReaderStatus(nullptr, true, samplesToRead - info.remainingSamplesToRead).detach();
+//                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
+                    *count = calculateBlockCount(samplesToRead - info.remainingSamplesToRead);
                     return errCode;
                 }
-
                 break;
             }
             case PacketType::Event:
             {
                 // Handle events
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
-
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    const auto samplesHasBeenRead = samplesToRead - info.remainingSamplesToRead;
-                    SizeT evenSamplesCount;
-                    SizeT remainingSamplesCount;
-
-                    if (samplesHasBeenRead < blockSize)
+                    if (status)
                     {
-                        *count = 0;
-                        evenSamplesCount = 0;
+                        *status = BlockReaderStatus(eventPacket, !invalid, samplesToRead - info.remainingSamplesToRead).detach();
                     }
-                    else
-                    {
-                        *count = (samplesHasBeenRead - blockSize) / overlappedBlockSizeRemainder + 1;
-                        evenSamplesCount = *count * (blockSize - overlappedBlockSize) + overlappedBlockSize;
-                    }
-
-                    remainingSamplesCount = samplesHasBeenRead - evenSamplesCount;
-                    flattenOverlappedBlocks(*count, evenSamplesCount, remainingSamplesCount);
+//                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
+                    *count = calculateBlockCount(samplesToRead - info.remainingSamplesToRead);
 
                     handleDescriptorChanged(eventPacket);
-
-                    if (status)
-                        *status = BlockReaderStatus(eventPacket, !invalid, evenSamplesCount + remainingSamplesCount).detach();
-
                     return errCode;
                 }
                 break;
@@ -400,10 +403,6 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
             case PacketType::None:
                 break;
         }
-    }
-
-    if (OPENDAQ_SUCCEEDED(errCode)) {
-        flattenOverlappedBlocks(*count, *count * (blockSize - overlappedBlockSize) + overlappedBlockSize, 0);
     }
 
     return errCode;
@@ -426,8 +425,8 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     if (status)
         *status = nullptr;
 
-    const SizeT samplesToRead = *count * (blockSize - overlappedBlockSize) + overlappedBlockSize;
-    info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
+    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    info.prepare(blocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     const ErrCode errCode = readPackets(status, count);
     
@@ -455,8 +454,8 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     if (status)
         *status = nullptr;
 
-    const SizeT samplesToRead = *count * (blockSize - overlappedBlockSize) + overlappedBlockSize;
-    info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, milliseconds(timeoutMs));
+    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     const ErrCode errCode = readPackets(status, count);
 
@@ -464,6 +463,14 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
         *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
 
     return errCode;
+}
+
+SizeT BlockReaderImpl::calculateBlockCount(SizeT sampleCount) const
+{
+    if (sampleCount < blockSize)
+        return 0;
+    else
+        return (sampleCount - blockSize) / overlappedBlockSizeRemainder + 1;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

@@ -19,6 +19,9 @@ protected:
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
         instance = InstanceCustom(context, "mock_instance");
 
+        // TODO: DEBUG ONLY
+        std::cout << "CONNECTION STRING IS: " << connectionString << std::endl;
+
         device = instance.addDevice(connectionString);
     }
 };

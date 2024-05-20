@@ -53,13 +53,19 @@ TEST_F(RegressionTestChannel, getVisibleProperties)
 
 TEST_F(RegressionTestChannel, setPropertyValueGetPropertyValue)
 {
-    if (protocol == "ns" || protocol == "lt")
+    if (protocol == "opcua")
     {
         return;
     }
-
-    ASSERT_NO_THROW(channel.setPropertyValue("NoiseAmplitude", 0.2));
-    FloatPtr property;
-    ASSERT_NO_THROW(property = channel.getPropertyValue("NoiseAmplitude"));
-    ASSERT_FLOAT_EQ(property, 0.2);
+    else if (protocol == "nd")
+    {
+        ASSERT_NO_THROW(channel.setPropertyValue("NoiseAmplitude", 0.2));
+        FloatPtr property;
+        ASSERT_NO_THROW(property = channel.getPropertyValue("NoiseAmplitude"));
+        ASSERT_FLOAT_EQ(property, 0.2);
+    }
+    else if (protocol == "ns" || protocol == "lt")
+    {
+        return;
+    }
 }

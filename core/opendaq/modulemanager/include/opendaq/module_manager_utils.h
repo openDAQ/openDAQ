@@ -106,7 +106,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      *
      * Registers a device with the discovery service. The device is then discoverable by other devices on the network.
      */
-    virtual ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) = 0;
+    virtual ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info) = 0;
 
     /*!
      * @brief Removes a device from the discovery service.

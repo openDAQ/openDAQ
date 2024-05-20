@@ -62,8 +62,8 @@ public:
 	explicit MDNSDiscoveryServer();
     ~MDNSDiscoveryServer();
 
-    void addDevice(const std::string& id, MdnsDiscoveredDevice& device);
-    void removeDevice(const std::string& id);
+    bool addDevice(const std::string& id, MdnsDiscoveredDevice& device);
+    bool removeDevice(const std::string& id);
     
 private:
     void start();

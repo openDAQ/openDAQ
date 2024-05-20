@@ -46,7 +46,6 @@ public:
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
     {
-        populateServerConfig();
         serverId = createServerId(this->config);
     }
 
@@ -86,39 +85,12 @@ protected:
 
 private: 
 
-    void populateServerConfig()
-    {
-        if (config == nullptr)
-            return;
-
-        if (!config.hasProperty("Name"))
-            config.addProperty(StringProperty("Name", ""));
-        if (!config.hasProperty("Manufacturer"))
-            config.addProperty(StringProperty("Manufacturer", ""));
-        if (!config.hasProperty("Model"))
-            config.addProperty(StringProperty("Model", ""));
-        if (!config.hasProperty("SerialNumber"))
-            config.addProperty(StringProperty("SerialNumber", ""));
-
-        if (rootDevice != nullptr)
-        {
-            const auto info = this->rootDevice.getInfo();
-            config.setPropertyValue("Name", info.getName());
-            config.setPropertyValue("Manufacturer", info.getManufacturer());
-            config.setPropertyValue("Model", info.getModel());
-            config.setPropertyValue("SerialNumber", info.getSerialNumber());
-        }
-    }
-
     StringPtr createServerId(const PropertyObjectPtr& config)
     {
         if (config == nullptr)
             return nullptr;
 
         std::string result;
-        if (config.hasProperty("Name"))
-            result += std::string(config.getPropertyValue("Name"));
-        result += "_";
         if (config.hasProperty("ServiceCap"))
             result += std::string(config.getPropertyValue("ServiceCap"));
         result += "_";

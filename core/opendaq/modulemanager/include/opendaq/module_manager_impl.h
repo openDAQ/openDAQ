@@ -51,7 +51,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
-    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info) override;
     ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) override;
 
 private:

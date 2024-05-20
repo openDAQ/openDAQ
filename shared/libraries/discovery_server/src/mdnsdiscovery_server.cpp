@@ -136,7 +136,7 @@ mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& 
     return recordAAA;
 }
 
-void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
+bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
 {
     device.serviceInstance = hostName + "." + device.serviceName;
     device.serviceQualified = hostName + ".local.";
@@ -157,9 +157,10 @@ void MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     }
 
     std::lock_guard<std::mutex> lock(mx);
-    devices.emplace(id, device);
+    bool success = devices.emplace(id, device).second;
 
     start();
+    return success;
 }
 
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
@@ -180,18 +181,21 @@ void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
         }
 }
 
-void MDNSDiscoveryServer::removeDevice(const std::string& id)
+bool MDNSDiscoveryServer::removeDevice(const std::string& id)
 {
+    bool success = false;
     std::lock_guard<std::mutex> lock(mx);
     auto it = devices.find(id);
     if (it != devices.end())
     {
+        success = false;
         goodbyeMulticast(it->second);
         devices.erase(it);
     }
 
     if (devices.empty())
         stop();
+    return success;
 }
 
 void MDNSDiscoveryServer::stop()

@@ -638,15 +638,17 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-ErrCode ModuleManagerImpl::registerDiscoveryDevice(IString* serverId, IPropertyObject* config)
+ErrCode ModuleManagerImpl::registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info)
 {
     if (serverId == nullptr || config == nullptr)
         return OPENDAQ_IGNORED;
 
-    OPENDAQ_PARAM_NOT_NULL(serverId);
-    OPENDAQ_PARAM_NOT_NULL(config);
-    discoveryServer.registerDevice(serverId, config);
-    return OPENDAQ_SUCCESS;
+    if (discoveryServer.registerDevice(serverId, config, info))
+    {
+        LOG_I("Server \"{}\" registered in the discovery service", StringPtr::Borrow(serverId));
+        return OPENDAQ_SUCCESS;
+    }
+    return OPENDAQ_IGNORED;
 }
 
 ErrCode ModuleManagerImpl::removeDiscoveryDevice(IString* serverId)
@@ -654,8 +656,12 @@ ErrCode ModuleManagerImpl::removeDiscoveryDevice(IString* serverId)
     if (serverId == nullptr)
         return OPENDAQ_IGNORED;
 
-    discoveryServer.removeDevice(serverId);
-    return OPENDAQ_SUCCESS;
+    if (discoveryServer.removeDevice(serverId))
+    {
+        LOG_I("Server \"{}\" removed from the discovery service", StringPtr::Borrow(serverId));
+        return OPENDAQ_SUCCESS;
+    }
+    return OPENDAQ_IGNORED;
 }
 
 PropertyObjectPtr ModuleManagerImpl::populateStreamingConfig(const PropertyObjectPtr& streamingConfig)

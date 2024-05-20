@@ -205,7 +205,9 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
                 if (createdServer.assigned())
                 {
-                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getServerId(), createdServer.getServerConfig());
+                    DeviceInfoPtr rootDeviceInfo;
+                    getInfo(&rootDeviceInfo);
+                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getServerId(), createdServer.getServerConfig(), rootDeviceInfo);
                 }
 
                 std::scoped_lock lock(configSync);

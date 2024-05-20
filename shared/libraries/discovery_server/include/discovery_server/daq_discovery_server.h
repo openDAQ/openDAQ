@@ -18,6 +18,7 @@
 #include <coretypes/listobject_factory.h>
 #include <discovery_server/mdnsdiscovery_server.h>
 #include <coreobjects/property_object_ptr.h>
+#include <opendaq/device_info_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
@@ -27,8 +28,8 @@ class DiscoveryServer final
 public:
     explicit DiscoveryServer() = default;
 
-    void registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config);
-    void removeDevice(const StringPtr& serverId);
+    bool registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config, const DeviceInfoPtr& deviceInfo);
+    bool removeDevice(const StringPtr& serverId);
     
 private:
     MDNSDiscoveryServer server;

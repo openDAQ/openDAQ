@@ -11,8 +11,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance("");
     instance.setRootDevice("daqref://device1");
     instance.addFunctionBlock("ref_fb_module_trigger");
+    instance.addServer("openDAQ OpcUa", nullptr);
+    instance.addServer("openDAQ Native Streaming", nullptr);
     instance.addServer("openDAQ LT Streaming", nullptr);
-    instance.addStandardServers();
 
     while (true)
         std::this_thread::sleep_for(100ms);

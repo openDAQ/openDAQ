@@ -127,19 +127,33 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 60
+          while [ ! -f ready ]; do sleep 1; done
           cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
-          
+          rm ready
+
+      # TODO: delete this: DEBUG ONLY STEP WITH quick_start_simulator
+      - name: OPC UA - Run simulator from target and perform regression tests from current
+        if: always()
+        env:
+          GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
+        run: |
+          ./target/build/bin/quick_start_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          pkill quick_start_simulator
+          rm ready
+
       - name: ND - Run simulator from target and perform regression tests from current
         if: always()
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_nd"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 60
+          while [ ! -f ready ]; do sleep 1; done
           cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
+          rm ready
           
       - name: NS - Run simulator from target and perform regression tests from current
         if: always()
@@ -147,9 +161,10 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_ns"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 60
+          while [ ! -f ready ]; do sleep 1; done
           cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
+          rm ready
           
       - name: LT - Run simulator from target and perform regression tests from current
         if: always()
@@ -157,27 +172,10 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_lt"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 60
+          while [ ! -f ready ]; do sleep 1; done
           cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
-
-      # TODO: delete this
-      - name: test1 (don't pkill)
-        if: always()
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}regression_test1"
-        run: |
-          ./target/build/bin/regression_simulator &
-          sleep 60
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-
-      # TODO: delete this
-      - name: test2 (does it persist?)
-        if: always()
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}regression_test2"
-        run: |
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          rm ready
 
       - name: Upload regression test results
         if: always()

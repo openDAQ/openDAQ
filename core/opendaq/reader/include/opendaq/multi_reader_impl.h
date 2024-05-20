@@ -20,6 +20,7 @@
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/multi_reader_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -97,7 +98,7 @@ private:
 
     SyncStatus getSyncStatus() const;
 
-    ErrCode readPackets(IReaderStatus** status);
+    ErrCode readPackets(IMultiReaderStatus** status);
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);

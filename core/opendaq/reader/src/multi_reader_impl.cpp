@@ -475,11 +475,11 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
     if (invalid)
     {
         if(status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
-    ReaderStatusPtr statusPtr;
+    MultiReaderStatusPtr statusPtr;
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
@@ -494,7 +494,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
         if (statusPtr.assigned())
             *status = statusPtr.detach();
         else
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
     }
     return OPENDAQ_SUCCESS;
 }
@@ -510,11 +510,11 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     if (invalid)
     {
         if(status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
-    ReaderStatusPtr statusPtr;
+    MultiReaderStatusPtr statusPtr;
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
@@ -529,7 +529,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         if (statusPtr.assigned())
             *status = statusPtr.detach();
         else
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
     }
     return OPENDAQ_SUCCESS;
 }
@@ -546,7 +546,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count)
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
-    ReaderStatusPtr status;
+    MultiReaderStatusPtr status;
     const ErrCode errCode = readPackets(&status);
 
     const SizeT samplesRead = samplesToRead - remainingSamplesToRead;
@@ -658,7 +658,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::readPackets(IReaderStatus** status)
+ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -681,7 +681,7 @@ ErrCode MultiReaderImpl::readPackets(IReaderStatus** status)
 
                 clearErrorInfo();
             }
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
             return OPENDAQ_SUCCESS;
         }
 
@@ -701,7 +701,7 @@ ErrCode MultiReaderImpl::readPackets(IReaderStatus** status)
         errCode = synchronize(min, syncStatus);
         if (OPENDAQ_FAILED(errCode))
         {
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
             return OPENDAQ_SUCCESS;
         }
 

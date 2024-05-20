@@ -61,6 +61,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classITailReader = declareITailReader(m);
     auto classIReaderStatus = declareIReaderStatus(m);
     auto classIBlockReaderStatus = declareIBlockReaderStatus(m);
+    auto classITailReaderStatus = declareITailReaderStatus(m);
+    auto class IMultiReaderStatus = declareIMultiReaderStatus(m);
     auto classIAwaitable = declareIAwaitable(m);
     auto classIGraphVisualization = declareIGraphVisualization(m);
     auto classIScheduler = declareIScheduler(m);
@@ -140,6 +142,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineITailReader(m, classITailReader);
     defineIReaderStatus(m, classIReaderStatus);
     defineIBlockReaderStatus(m, classIBlockReaderStatus);
+    defineITailReaderStatus(m, classITailReaderStatus);
+    defineIMultiReaderStatus(m, classIMultiReaderStatus);
     defineIAwaitable(m, classIAwaitable);
     defineIGraphVisualization(m, classIGraphVisualization);
     defineIScheduler(m, classIScheduler);

@@ -18,6 +18,7 @@
 #include <opendaq/reader_status.h>
 #include <opendaq/block_reader_status.h>
 #include <opendaq/tail_reader_status.h>
+#include <opendaq/multi_reader_status.h>
 #include <opendaq/event_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -28,7 +29,7 @@ class GenericReaderStatusImpl : public ImplementationOf<MainInterface, Interface
 public:
     explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
 
-    ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
+    virtual ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
     ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
 
@@ -64,6 +65,20 @@ public:
     ErrCode INTERFACE_FUNC getSufficientHistory(Bool* status) override;
 private:
     Bool sufficientHistory;
+};
+
+class MultiReaderStatusImpl final : public GenericReaderStatusImpl<IMultiReaderStatus>
+{
+public:
+    using Super = GenericReaderStatusImpl<IMultiReaderStatus>;
+    explicit MultiReaderStatusImpl(const ListPtr<IEventPacket>& eventPackets, Bool valid);
+
+    ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
+
+    ErrCode INTERFACE_FUNC getEventPackets(IList** events) override;
+
+private:
+    ListPtr<IEventPacket> eventPackets;
 };
 
 END_NAMESPACE_OPENDAQ

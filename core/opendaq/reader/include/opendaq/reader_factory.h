@@ -27,6 +27,7 @@
 #include <opendaq/reader_status_ptr.h>
 #include <opendaq/block_reader_status_ptr.h>
 #include <opendaq/tail_reader_status_ptr.h>
+#include <opendaq/multi_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -46,6 +47,11 @@ inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nul
 inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
 {
     return TailReaderStatus_Create(packet, valid, sufficientHistory);
+}
+
+inline MultiReaderStatusPtr MultiReaderStatus(const ListPtr<IEventPacket>& eventPackets = nullptr, Bool valid = true)
+{
+    return MultiReaderStatus_Create(eventPackets, valid);
 }
 
 /*!

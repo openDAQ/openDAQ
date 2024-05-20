@@ -78,6 +78,48 @@ ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
     return OPENDAQ_SUCCESS;
 }
 
+MultiReaderStatusImpl::MultiReaderStatusImpl(const ListPtr<IEventPacket>& eventPackets, Bool valid)
+    : Super(nullptr, valid)
+    , eventPackets(eventPackets)
+{
+}
+
+ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    bool eventEncountered = false;
+    if (eventPackets.assigned())
+    {
+       for (const auto & eventPacket : eventPackets)
+       {
+           if (eventPacket.assigned())
+           {
+               eventEncountered = true;
+               break;
+           }
+       }
+    }
+
+    Bool valid;
+    Super::getValid(&valid);
+
+    if (valid && !eventEncountered)
+        *status = ReadStatus::Ok;
+    else if (eventEncountered)
+        *status = ReadStatus::Event;
+    else
+        *status = ReadStatus::Fail;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderStatusImpl::getEventPackets(IList** events)
+{
+    OPENDAQ_PARAM_NOT_NULL(events);
+    *events = eventPackets.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
@@ -96,6 +138,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY (
     IEventPacket*, eventPacket,
     Bool, valid,
     Bool, sufficientHistory
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY (
+    LIBRARY_FACTORY, MultiReaderStatus,
+    IList*, eventPackets,
+    Bool, valid
 )
 
 END_NAMESPACE_OPENDAQ

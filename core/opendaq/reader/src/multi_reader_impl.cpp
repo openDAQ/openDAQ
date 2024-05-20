@@ -519,7 +519,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets(&statusPtr);
+    readPackets(&statusPtr);
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;

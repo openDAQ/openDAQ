@@ -44,6 +44,8 @@ set(SRC_Cpp
     generated/reader/py_time_reader.cpp
     generated/reader/py_reader_status.cpp
     generated/reader/py_block_reader_status.cpp
+    generated/reader/py_tail_reader_status.cpp
+    generated/reader/py_multi_reader_status.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp

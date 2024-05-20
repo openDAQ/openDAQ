@@ -127,7 +127,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 5
+          sleep 60
           cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
@@ -137,7 +137,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_nd"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 5
+          sleep 60
           cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
@@ -147,7 +147,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_ns"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 5
+          sleep 60
           cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
           
@@ -157,7 +157,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_lt"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 5
+          sleep 60
           cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
           pkill regression_simulator
 
@@ -168,7 +168,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_test1"
         run: |
           ./target/build/bin/regression_simulator &
-          sleep 5
+          sleep 60
           cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
 
       # TODO: delete this

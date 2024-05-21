@@ -126,7 +126,7 @@ jobs:
         run: mv target/build/simulator/regression_simulator target/build/bin
 
       - name: OPC UA - Run simulator from target and perform regression tests from current
-        #if: always() # TODO: enable
+        if: always()
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
         run: |
@@ -137,7 +137,7 @@ jobs:
           rm ready
 
       - name: ND - Run simulator from target and perform regression tests from current
-        #if: always() # TODO: enable
+        if: always()
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_nd"
         run: |
@@ -148,7 +148,7 @@ jobs:
           rm ready
           
       - name: NS - Run simulator from target and perform regression tests from current
-        #if: always() # TODO: enable
+        if: always()
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_ns"
         run: |
@@ -159,7 +159,7 @@ jobs:
           rm ready
           
       - name: LT - Run simulator from target and perform regression tests from current
-        #if: always() # TODO: enable
+        if: always()
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_lt"
         run: |

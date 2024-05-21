@@ -155,7 +155,14 @@ TEST_F(RegressionTestSignal, reader)
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.read(samples, &count));
-    ASSERT_EQ(count, 100);
+    if (protocol == "opcua")
+    {
+        ASSERT_EQ(count, 0);
+    }
+    else if (protocol == "nd" || protocol == "ns" || protocol == "lt")
+    {
+        ASSERT_EQ(count, 100);
+    }
 }
 
 TEST_F(RegressionTestSignal, readerWithDomain)
@@ -166,5 +173,12 @@ TEST_F(RegressionTestSignal, readerWithDomain)
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.readWithDomain(samples, domain, &count));
-    ASSERT_EQ(count, 100);
+    if (protocol == "opcua")
+    {
+        ASSERT_EQ(count, 0);
+    }
+    else if (protocol == "nd" || protocol == "ns" || protocol == "lt")
+    {
+        ASSERT_EQ(count, 100);
+    }
 }

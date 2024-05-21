@@ -21,6 +21,8 @@
 
 #include "coretypes/exceptions.h"
 #include "opendaq/block_reader_ptr.h"
+#include "opendaq/multi_reader_ptr.h"
+#include "opendaq/reader_config_ptr.h"
 #include "opendaq/time_reader.h"
 #include "py_core_types/py_converter.h"
 
@@ -179,30 +181,61 @@ private:
     template <typename ValueType, typename ReaderType>
     static inline py::array_t<ValueType> read(const ReaderType& reader, size_t count, [[maybe_unused]] size_t timeoutMs)
     {
-        size_t blockSize = 1;
+        size_t blockSize = 1, initialCount = count;
+        constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
+
         if constexpr (std::is_same_v<ReaderType, daq::BlockReaderPtr>)
         {
             reader->getBlockSize(&blockSize);
+        }
+        if constexpr (isMultiReader)
+        {
+            daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            blockSize = readerConfig.getInputPorts().getCount();
         }
 
         std::vector<ValueType> values(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
         {
-            reader->read(values.data(), &count, timeoutMs, nullptr);
+            if constexpr (isMultiReader)
+            {
+                void* ptrs[blockSize];
+                for (size_t i = 0; i < blockSize; i++)
+                {
+                    ptrs[i] = values.data() + i * count;
+                }
+                reader->read(ptrs, &count, timeoutMs);
+            }
+            else
+            {
+                reader->read(values.data(), &count, timeoutMs, nullptr);
+            }
         }
         else
         {
             reader->read(values.data(), &count, nullptr);
         }
 
-        values.resize(count * blockSize);
-
         py::array::ShapeContainer shape;
         if (blockSize > 1)
-            shape = {count, blockSize};
+        {
+            if (!isMultiReader)
+            {
+                shape = {count, blockSize};
+            }
+            else
+            {
+                shape = {blockSize, count};
+            }
+        }
         else
             shape = {count};
-        return toPyArray(std::move(values), shape);
+
+        py::array::StridesContainer strides;
+        if (blockSize > 1 && isMultiReader)
+            strides = {sizeof(ValueType) * initialCount, sizeof(ValueType)};
+
+        return toPyArray(std::move(values), shape, strides);
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
@@ -210,51 +243,67 @@ private:
                                                                         size_t count,
                                                                         [[maybe_unused]] size_t timeoutMs)
     {
+        static_assert(sizeof(std::chrono::system_clock::time_point::rep) == sizeof(int64_t));
         using DomainVectorType = typename std::conditional<std::is_same<DomainType, std::chrono::system_clock::time_point>::value,
                                                            std::vector<int64_t>,
                                                            std::vector<DomainType>>::type;
 
-        size_t blockSize = 1;
+        size_t blockSize = 1, initialCount = count;
+        constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         if constexpr (std::is_base_of_v<daq::BlockReaderPtr, ReaderType>)
         {
-            daq::BlockReaderPtr blockReader = static_cast<daq::BlockReaderPtr>(reader);
-            blockReader->getBlockSize(&blockSize);
+            reader->getBlockSize(&blockSize);
+        }
+        if constexpr (isMultiReader)
+        {
+            daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            blockSize = readerConfig.getInputPorts().getCount();
         }
 
         std::vector<ValueType> values(count * blockSize);
         DomainVectorType domain(count * blockSize);
-
-        if constexpr (std::is_same_v<DomainType, std::chrono::system_clock::time_point>)
+        if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
         {
-            static_assert(sizeof(std::chrono::system_clock::time_point::rep) == sizeof(int64_t));
-            if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
+            if constexpr (isMultiReader)
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
+                void *valuesPtrs[blockSize], *domainPtrs[blockSize];
+                for (size_t i = 0; i < blockSize; i++)
+                {
+                    valuesPtrs[i] = values.data() + i * count;
+                    domainPtrs[i] = domain.data() + i * count;
+                }
+                reader->readWithDomain(valuesPtrs, domainPtrs, &count, timeoutMs);
             }
             else
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
+                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
             }
         }
         else
         {
-            if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
+            reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
+        }
+
+        py::array::ShapeContainer shape;
+        if (blockSize > 1)
+        {
+            if (!isMultiReader)
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
+                shape = {count, blockSize};
             }
             else
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
+                shape = {blockSize, count};
             }
         }
+        else
+            shape = {count};
 
-        domain.resize(count * blockSize);
-        values.resize(count * blockSize);
-
-        py::array::ShapeContainer shape;
-        shape->emplace_back(count);
-        if (blockSize > 1)
-            shape->emplace_back(blockSize);
+        py::array::StridesContainer strides;
+        if (blockSize > 1 && isMultiReader)
+        {
+            strides = {sizeof(ValueType) * initialCount, sizeof(ValueType)};
+        }
 
         std::string domainDtype;
         if constexpr (std::is_same_v<DomainType, std::chrono::system_clock::time_point>)
@@ -270,8 +319,8 @@ private:
                            });
         }
 
-        auto valuesArray = toPyArray(std::move(values), shape);
-        auto domainArray = toPyArray(std::move(domain), shape, domainDtype);
+        auto valuesArray = toPyArray(std::move(values), shape, strides);
+        auto domainArray = toPyArray(std::move(domain), shape, strides, domainDtype);
 
         // WA for datetime64
         if (!domainDtype.empty())

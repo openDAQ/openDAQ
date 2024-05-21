@@ -17,16 +17,17 @@
 #pragma once
 
 // <string> is needed by many other files that include this header
-#include <string>
 #include <pybind11/numpy.h>
 #include "py_opendaq_daq.h"
-
 
 // helper function to avoid making a copy when returning a py::array_t
 // https://pybind11-numpy-example.readthedocs.io/en/latest/index.html
 // source: https://github.com/pybind/pybind11/issues/1042#issuecomment-642215028
 template <typename Sequence>
-inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq, const py::array::ShapeContainer& shape = {}, const std::string& dtype = {})
+inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq,
+                                                            const py::array::ShapeContainer& shape = {},
+                                                            const py::array::StridesContainer& strides = {},
+                                                            const std::string& dtype = {})
 {
     const auto size = seq.size();
     const auto data = seq.data();
@@ -35,14 +36,21 @@ inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq, cons
     seq_ptr.release();
 
     py::dtype dt = py::dtype::of<typename Sequence::value_type>();
-    if(!dtype.empty()) {
-        //it looks like datetime64 is ignored by pybind11 now, so we need to use WA
-        //this is for future use
+    if (!dtype.empty())
+    {
+        // it looks like datetime64 is ignored by pybind11 now, so we need to use WA
+        // this is for future use
         dt = py::dtype(dtype);
     }
 
     py::array::ShapeContainer arrayShape = {size};
-    if(!shape->empty()) arrayShape = std::move(shape);
+    if (!shape->empty())
+        arrayShape = std::move(shape);
 
-    return py::array(dt, arrayShape, data, capsule);
+    if (strides->empty())
+    {
+        return py::array(dt, arrayShape, data, capsule);
+    }
+
+    return py::array(dt, arrayShape, strides, data, capsule);
 }

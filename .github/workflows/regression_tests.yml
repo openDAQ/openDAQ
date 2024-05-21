@@ -100,13 +100,6 @@ jobs:
         working-directory: target/build
         run: cmake --build .
         
-      # TODO: DEBUG ONLY
-      - name: Display tree
-        run: |
-          apt-get install tree
-          tree
-        
-        #TODO: too many files! + missing regression_simulator
       - name: Upload target bin .zip
         uses: actions/upload-artifact@v3
         with: 
@@ -120,21 +113,7 @@ jobs:
             target/build/bin/*ref_device_module-*
             target/build/bin/*ref_fb_module-*
             target/build/bin/*ws_stream_srv_module-*
-            target/build/bin/regression_simulator
-
-      #TODO: DEBUG ONLY DELETE THIS!
-      - name: Upload WHOLE target bin .zip
-        uses: actions/upload-artifact@v3
-        with: 
-          name: WHOLE regression target bin ${{ env.target_tag }} (${{ matrix.name }})
-          path: target/build/bin
-
-      #TODO: DEBUG ONLY DELETE THIS!
-      - name: Upload WHOLE PROJECT TARGET .zip
-        uses: actions/upload-artifact@v3
-        with: 
-          name: WHOLE PROJECT REGRESSION TARGET ${{ env.target_tag }} (${{ matrix.name }})
-          path: .
+            target/build/simulator/regression_simulator
 
       # TODO: upload target bin .zip artifact to AWS automagically
 
@@ -142,16 +121,9 @@ jobs:
         working-directory: current/build
         run: cmake --build .
 
-      # TODO: delete this: DEBUG ONLY STEP WITH quick_start_simulator
-      - name: OPC UA - Run simulator from target and perform regression tests from current
-        #if: always() # TODO: enable
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
-        run: |
-          ./target/build/bin/quick_start_simulator &
-          sleep 200
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-          pkill quick_start_simulator
+      # TODO: not needed when using binaries from .zip later
+      - name: Move simulator binary to bin
+        run: mv target/build/simulator/regression_simulator target/build/bin
 
       - name: OPC UA - Run simulator from target and perform regression tests from current
         #if: always() # TODO: enable

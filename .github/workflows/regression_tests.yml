@@ -112,15 +112,15 @@ jobs:
         with: 
           name: regression target bin ${{ env.target_tag }} (${{ matrix.name }})
           path: |
-            target/build/bin/*daqcoreobjects*
-            target/build/bin/*daqcoretypes*
-            target/build/bin/*native_stream_srv_module*
-            target/build/bin/*opcua_server_module*
+            target/build/bin/*daqcoreobjects-*
+            target/build/bin/*daqcoretypes-*
+            target/build/bin/*native_stream_srv_module-*
+            target/build/bin/*opcua_server_module-*
             target/build/bin/libopendaq-*
-            target/build/bin/*ref_device_module*
-            target/build/bin/*ref_fb_module*
+            target/build/bin/*ref_device_module-*
+            target/build/bin/*ref_fb_module-*
+            target/build/bin/*ws_stream_srv_module-*
             target/build/bin/regression_simulator
-            target/build/bin/*ws_stream_srv_module*
 
       #TODO: DEBUG ONLY DELETE THIS!
       - name: Upload WHOLE target bin .zip

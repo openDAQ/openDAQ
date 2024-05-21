@@ -1,3 +1,4 @@
+# This file is used in GitHub Actions, where it is considered a top level CMakeLists.txt file
 cmake_minimum_required(VERSION 3.24)
 project(top)
 add_subdirectory(target)

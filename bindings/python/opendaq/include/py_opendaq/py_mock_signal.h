@@ -26,11 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
 class MockSignal
 {
 public:
-    static std::string makeEpoch(const std::chrono::system_clock::time_point& timePoint);
+    static std::string currentEpoch();
+    static std::string makeEpoch(const std::chrono::system_clock::time_point& timePoint = std::chrono::system_clock::now());
 
-    MockSignal();
-    MockSignal(const MockSignal&) = delete;
-    MockSignal& operator=(const MockSignal&) = delete;
+    MockSignal(const std::string& id = "mock", const std::string& epoch = {});
 
     daq::SignalConfigPtr getSignal() const;
 
@@ -45,6 +44,8 @@ private:
 
     daq::SignalConfigPtr signal;
     daq::SignalConfigPtr domainSignal;
+
+    int64_t offset{0};
 };
 
 END_NAMESPACE_OPENDAQ

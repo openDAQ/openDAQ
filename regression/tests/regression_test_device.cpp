@@ -197,7 +197,7 @@ TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
     ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
     if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_EQ(types.getCount(), 8);
+        ASSERT_EQ(types.getCount(), 7);
     }
     else if (protocol == "ns" || protocol == "lt")
     {

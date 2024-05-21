@@ -199,12 +199,12 @@ private:
         {
             if constexpr (isMultiReader)
             {
-                void* ptrs[blockSize];
+                std::vector<void*> ptrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
                     ptrs[i] = values.data() + i * count;
                 }
-                reader->read(ptrs, &count, timeoutMs);
+                reader->read(ptrs.data(), &count, timeoutMs);
             }
             else
             {
@@ -266,13 +266,13 @@ private:
         {
             if constexpr (isMultiReader)
             {
-                void *valuesPtrs[blockSize], *domainPtrs[blockSize];
+                std::vector<void*> valuesPtrs(blockSize), domainPtrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
                     valuesPtrs[i] = values.data() + i * count;
                     domainPtrs[i] = domain.data() + i * count;
                 }
-                reader->readWithDomain(valuesPtrs, domainPtrs, &count, timeoutMs);
+                reader->readWithDomain(valuesPtrs.data(), domainPtrs.data(), &count, timeoutMs);
             }
             else
             {

@@ -100,6 +100,12 @@ jobs:
         working-directory: target/build
         run: cmake --build .
         
+      # TODO: DEBUG ONLY
+      - name: Display tree
+        run: |
+          apt-get install tree
+          tree
+        
         #TODO: too many files! + missing regression_simulator
       - name: Upload target bin .zip
         uses: actions/upload-artifact@v3
@@ -123,7 +129,14 @@ jobs:
           name: WHOLE regression target bin ${{ env.target_tag }} (${{ matrix.name }})
           path: target/build/bin
 
-      # TODO: upload target bin.zip artifact to AWS automagically
+      #TODO: DEBUG ONLY DELETE THIS!
+      - name: Upload WHOLE PROJECT TARGET .zip
+        uses: actions/upload-artifact@v3
+        with: 
+          name: WHOLE PROJECT REGRESSION TARGET ${{ env.target_tag }} (${{ matrix.name }})
+          path: .
+
+      # TODO: upload target bin .zip artifact to AWS automagically
 
       - name: Build current (with regression tests)
         working-directory: current/build
@@ -131,7 +144,7 @@ jobs:
 
       # TODO: delete this: DEBUG ONLY STEP WITH quick_start_simulator
       - name: OPC UA - Run simulator from target and perform regression tests from current
-        if: always()
+        #if: always() # TODO: enable
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
         run: |
@@ -141,7 +154,7 @@ jobs:
           pkill quick_start_simulator
 
       - name: OPC UA - Run simulator from target and perform regression tests from current
-        if: always()
+        #if: always() # TODO: enable
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_opcua"
         run: |
@@ -152,7 +165,7 @@ jobs:
           rm ready
 
       - name: ND - Run simulator from target and perform regression tests from current
-        if: always()
+        #if: always() # TODO: enable
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_nd"
         run: |
@@ -163,7 +176,7 @@ jobs:
           rm ready
           
       - name: NS - Run simulator from target and perform regression tests from current
-        if: always()
+        #if: always() # TODO: enable
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_ns"
         run: |
@@ -174,7 +187,7 @@ jobs:
           rm ready
           
       - name: LT - Run simulator from target and perform regression tests from current
-        if: always()
+        #if: always() # TODO: enable
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}regression_lt"
         run: |

@@ -72,7 +72,8 @@ struct SignalReader
     void setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution);
 
     std::unique_ptr<Comparable> readStartDomain();
-    void readUntilNextDataPacket();
+    bool isFirstPacketEvent() const;
+    EventPacketPtr readUntilNextDataPacket();
     bool sync(const Comparable& commonStart);
 
     ErrCode readPackets();

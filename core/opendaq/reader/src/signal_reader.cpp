@@ -239,24 +239,54 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
     return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
 }
 
-void SignalReader::readUntilNextDataPacket()
+bool SignalReader::isFirstPacketEvent() const
+{
+    auto packet = connection.peek();
+    return packet.assigned() && packet.getType() == PacketType::Event;
+}
+
+EventPacketPtr SignalReader::readUntilNextDataPacket()
 {
     if (info.dataPacket.assigned())
     {
-        return;
+        return nullptr;
     }
 
-    PacketPtr packet = connection.dequeue();
-    while (packet.assigned() && packet.getType() != PacketType::Data)
-    {
-        bool firstData{false};
-        ErrCode errCode = handlePacket(packet, firstData);
-        checkErrorInfo(errCode);
+    DataDescriptorPtr dataDescriptor;
+    DataDescriptorPtr domainDescriptor;
 
+    PacketPtr packet = connection.dequeue();
+    while (packet.assigned() && (packet.getType() != PacketType::Data))
+    {
+        if (packet.getType() == PacketType::Event)
+        {
+            auto params = packet.asPtr<IEventPacket>().getParameters();
+            DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+            DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+            if (newValueDescriptor.assigned())
+            {
+                dataDescriptor = newValueDescriptor;
+            }
+            if (newDomainDescriptor.assigned())
+            {
+                domainDescriptor = newDomainDescriptor;
+            }
+        }
         packet = connection.dequeue();
-    }        
-    
-    info.dataPacket = packet;
+    }
+
+    if (packet.assigned() && packet.getType() == PacketType::Data)
+    {
+        info.dataPacket = packet;
+    }
+
+    if (dataDescriptor.assigned() || domainDescriptor.assigned())
+    {
+        return DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+    }
+
+    return nullptr;
 }
 
 bool SignalReader::sync(const Comparable& commonStart)

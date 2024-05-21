@@ -434,23 +434,25 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 
     std::lock_guard lock(mutex);
 
-    ErrCode errCode = readUntilFirstDataPacket();
-    if (OPENDAQ_FAILED(errCode))
+    bool eventEncountered = false;
+    for (const auto& signal : signals)
     {
-        if (errCode == OPENDAQ_ERR_INVALID_DATA)
+        if (signal.isFirstPacketEvent())
         {
-            *count = 0;
-            invalid = true;
-
-            clearErrorInfo();
-            return OPENDAQ_SUCCESS;
+            eventEncountered = true;
+            break;
         }
-        return errCode;
+    }
+
+    if (eventEncountered)
+    {
+        *count = 0;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT min{};
     SyncStatus syncStatus{};
-    errCode = synchronize(min, syncStatus);
+    ErrCode errCode = synchronize(min, syncStatus);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -590,13 +592,17 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-ErrCode MultiReaderImpl::readUntilFirstDataPacket()
+ErrCode MultiReaderImpl::readUntilFirstDataPacket(IList** eventPackets)
 {
+    auto packets = List<EventPacketPtr>();
+    bool eventEncountered = false;
     try
     {
         for (auto& signal : signals)
         {
-            signal.readUntilNextDataPacket();
+            auto packet = signal.readUntilNextDataPacket();
+            eventEncountered |= packet.assigned();
+            packets.pushBack(packet);
         }
     }
     catch (const DaqException& e)
@@ -612,6 +618,13 @@ ErrCode MultiReaderImpl::readUntilFirstDataPacket()
         return OPENDAQ_ERR_GENERALERROR;
     }
 
+    if (eventPackets)
+    {
+        if (eventEncountered)
+            *eventPackets = packets.detach();
+        else
+            *eventPackets = nullptr;
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -671,7 +684,9 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
 
     while (remainingSamplesToRead > 0 && remainingTime >= 1ms)
     {
-        errCode = readUntilFirstDataPacket();
+
+        ListPtr<IEventPacket> eventPackets;
+        errCode = readUntilFirstDataPacket(&eventPackets);
         if (OPENDAQ_FAILED(errCode))
         {
             if (errCode == OPENDAQ_ERR_INVALID_DATA)
@@ -683,6 +698,10 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
             }
             *status = MultiReaderStatus(nullptr, !invalid).detach();
             return OPENDAQ_SUCCESS;
+        }
+        if (eventPackets.assigned())
+        {
+            *status = MultiReaderStatus(eventPackets, !invalid).detach();
         }
 
         if (timeout.count() != 0)
@@ -828,9 +847,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    ProcedurePtr callback;
-
-    callback = readCallback;
+    ProcedurePtr callback = readCallback;
     if (callback.assigned())
         return wrapHandler(callback);
 

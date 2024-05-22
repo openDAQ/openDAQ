@@ -130,4 +130,9 @@ ErrCode MockFunctionBlockModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+ErrCode MockFunctionBlockModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockFunctionBlockModule, IModule, IContext*, ctx)

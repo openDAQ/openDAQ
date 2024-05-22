@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -95,24 +95,26 @@ public class CoreTypeObject : BaseObject
     }
 
     /// <summary>Gets the object&apos;s CoreType.</summary>
-    /// <returns>The object&apos;s CoreType.</returns>
-    public CoreType GetCoreType()
+    public CoreType CoreType
     {
-        //native output argument
-        CoreType coreType;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawCoreTypeObject.GetCoreType(base.NativePointer, out coreType);
+            //native output argument
+            CoreType coreType;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawCoreTypeObject.GetCoreType(base.NativePointer, out coreType);
 
-        return coreType;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return coreType;
+        }
     }
 }
 

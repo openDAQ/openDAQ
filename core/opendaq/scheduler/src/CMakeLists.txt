@@ -11,6 +11,7 @@ rtgen(SRC_Scheduler scheduler.h)
 rtgen(SRC_Awaitable awaitable.h)
 rtgen(SRC_TaskGraph task_graph.h)
 rtgen(SRC_Task task.h)
+rtgen(SRC_Work work.h)
 
 rtgen(SRC_GraphVisualization graph_visualization.h)
 
@@ -34,6 +35,11 @@ source_group("awaitable" FILES ${SDK_HEADERS_DIR}/awaitable.h
                                awaitable_impl.cpp
 )
 
+source_group("work" FILES ${SDK_HEADERS_DIR}/work.h
+                          ${SDK_HEADERS_DIR}/work_impl.h
+                          ${SDK_HEADERS_DIR}/work_factory.h
+)
+
 set(SRC_Cpp scheduler_impl.cpp
             awaitable_impl.cpp
             task_graph_impl.cpp
@@ -45,6 +51,7 @@ set(SRC_PublicHeaders scheduler_factory.h
                       scheduler_errors.h
                       scheduler_exceptions.h
                       task_ptr.custom.h
+                      work_factory.h
 )
 
 set(SRC_PrivateHeaders scheduler_impl.h
@@ -53,6 +60,8 @@ set(SRC_PrivateHeaders scheduler_impl.h
                        task_impl.h
                        task_internal.h
                        task_flow.h
+
+                       work_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -64,6 +73,7 @@ list(APPEND SRC_Cpp ${SRC_Scheduler_Cpp}
                     ${SRC_Task_Cpp}
                     ${SRC_TaskGraph_Cpp}
                     ${SRC_GraphVisualization_Cpp}
+                    ${SRC_Work_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Scheduler_PublicHeaders}
@@ -72,6 +82,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Scheduler_PublicHeaders}
                               ${SRC_Task_PublicHeaders}
                               ${SRC_TaskGraph_PublicHeaders}
                               ${SRC_GraphVisualization_PublicHeaders}
+                              ${SRC_Work_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Scheduler_PrivateHeaders}
@@ -80,6 +91,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_Scheduler_PrivateHeaders}
                                ${SRC_Task_PrivateHeaders}
                                ${SRC_TaskGraph_PrivateHeaders}
                                ${SRC_GraphVisualization_PrivateHeaders}
+                               ${SRC_Work_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

@@ -538,3 +538,24 @@ TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
     ASSERT_NO_THROW(integerPtr2 = lastValue2.asPtr<IInteger>());
     ASSERT_EQ(integerPtr2, 7);
 }
+
+TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
+{
+    const auto serverDeviceInfo = serverDevice.getInfo();
+    const auto clientDeviceInfo = clientDevice.getInfo();
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+
+    const auto info1 = serverDeviceInfo.getLocation();
+    const auto info2 = clientDeviceInfo.getLocation();
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+
+    clientDevice.setName("new_name");
+    clientDevice.setPropertyValue("location", "new_location");
+    
+    ASSERT_EQ("new_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+}

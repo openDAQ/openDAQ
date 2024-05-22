@@ -39,7 +39,18 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1");
+    // FIXME - use default config mega-object
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    if (!config.assigned())
+        config = PropertyObject();
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    2);
+    config.addProperty(streamingConnectionHeuristicProp);
+
+    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
 }
 
@@ -400,7 +411,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 
     auto portConfig = port.asPtr<IInputPortConfig>();
     ASSERT_THROW(portConfig.getCustomData(), opcua::OpcUaClientCallNotAvailableException);
-    ASSERT_THROW(portConfig.notifyPacketEnqueued(), opcua::OpcUaClientCallNotAvailableException);
+    ASSERT_THROW(portConfig.notifyPacketEnqueued(True), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setNotificationMethod(PacketReadyNotification::SameThread), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setCustomData(nullptr), opcua::OpcUaClientCallNotAvailableException);
 }
@@ -561,6 +572,38 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientMirroredDevice = client.getDevices()[0].template asPtrOrNull<IMirroredDevice>();
+    ASSERT_TRUE(clientMirroredDevice.assigned());
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 0u);
+
+    const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 0u);
+    }
+
+    server.addServer("openDAQ LT Streaming", nullptr);
+    StreamingPtr streaming;
+    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 1u);
+    ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[0]);
+
+    streaming.addSignals(clientSignals);
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 1u);
+        ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
+    }
 }
 
 // TODO: Add all examples of dynamic changes

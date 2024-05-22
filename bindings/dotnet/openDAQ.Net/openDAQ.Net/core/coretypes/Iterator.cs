@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -51,10 +51,10 @@ internal unsafe class RawIterator : RawBaseObject
 /// while (it-&gt;moveNext() != OPENDAQ_NO_MORE_ITEMS)
 /// {
 ///      IBaseObject* obj;
-///      it-&gt;getCurrent(&obj);
+///      it-&gt;getCurrent(&amp;obj);
 ///      // do something with obj
 /// }
-/// </code>
+  /// </code>
 /// </remarks>
 [Guid("f3b87158-f4cd-5890-9476-3c0e315c56d9")]
 public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
@@ -71,6 +71,28 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
             _rawIterator = Marshal.PtrToStructure<RawIterator>(objVirtualTable);
     }
 
+    /// <summary>Gets the object at current iterator position.</summary>
+    public TValue Current
+    {
+        get
+        {
+            //native output argument
+            IntPtr objPtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawIterator.GetCurrent(base.NativePointer, out objPtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return BaseObject.CreateInstance<TValue>(objPtr, incrementReference: false);
+        }
+    }
     /// <summary>Moves iterator to next position.</summary>
     public bool MoveNext()
     {
@@ -83,7 +105,7 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
             {
                 return false;
             }
-            else if (Result.Failed(errorCode))
+            else if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -92,42 +114,17 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
         }
     }
 
-    /// <summary>Gets the object at current iterator position.</summary>
-    /// <returns>Object at current iterator position.</returns>
-    /// <exception cref="OpenDaqException">
-    /// <c>OpenDaqException(ErrorCode.OPENDAQ_NO_MORE_ITEMS)</c>
-    /// Iterator is over the last item position.
-    /// </exception>
-    public TValue GetCurrent()
-    {
-        //native output argument
-        IntPtr objPtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawIterator.GetCurrent(base.NativePointer, out objPtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return BaseObject.CreateInstance<TValue>(objPtr, incrementReference: false);
-    }
-
     #region IEnumerator<TValue> implementation
 
     /// <inheritdoc/>
-    TValue IEnumerator<TValue>.Current => this.GetCurrent();
+    TValue IEnumerator<TValue>.Current => this.Current;
 
     #endregion IEnumerator<TValue> implementation
 
     #region IEnumerator implementation
 
     /// <inheritdoc/>
-    object IEnumerator.Current => this.GetCurrent();
+    object IEnumerator.Current => this.Current;
 
     /// <inheritdoc/>
     bool IEnumerator.MoveNext() => this.MoveNext();

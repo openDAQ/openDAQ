@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -63,66 +63,72 @@ public class VersionInfo : BaseObject
     }
 
     /// <summary>The major version incremented at breaking changes.</summary>
-    /// <returns>The major version component.</returns>
-    public nuint GetMajor()
+    public nuint Major
     {
-        //native output argument
-        nuint major;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetMajor(base.NativePointer, out major);
+            //native output argument
+            nuint major;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetMajor(base.NativePointer, out major);
 
-        return major;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return major;
+        }
     }
 
     /// <summary>The minor version incremented at new features with full backwards compatibility.</summary>
-    /// <returns>The minor version component.</returns>
-    public nuint GetMinor()
+    public nuint Minor
     {
-        //native output argument
-        nuint minor;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetMinor(base.NativePointer, out minor);
+            //native output argument
+            nuint minor;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetMinor(base.NativePointer, out minor);
 
-        return minor;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return minor;
+        }
     }
 
     /// <summary>The patch version incremented when only bug-fixes are added.</summary>
-    /// <returns>The patch version component.</returns>
-    public nuint GetPatch()
+    public nuint Patch
     {
-        //native output argument
-        nuint patch;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetPatch(base.NativePointer, out patch);
+            //native output argument
+            nuint patch;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawVersionInfo.GetPatch(base.NativePointer, out patch);
 
-        return patch;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return patch;
+        }
     }
 }
 
@@ -147,7 +153,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createVersionInfo(out objPtr, major, minor, patch);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new VersionInfo(objPtr, incrementReference: false);
@@ -164,7 +170,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createVersionInfo(out objPtr, major, minor, patch);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

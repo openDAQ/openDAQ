@@ -50,8 +50,6 @@ public:
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
 
-    void addStreaming(const StreamingPtr& streaming);
-
 private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void setupProtocolClients(const ContextPtr& context);
@@ -61,7 +59,8 @@ private:
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void enableStreamingForComponent(const ComponentPtr& component);
-    void tryAddSignalToStreaming(const SignalPtr& signal);
+    void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
+    void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;
@@ -73,7 +72,6 @@ private:
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
-    StreamingPtr streaming;
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 };

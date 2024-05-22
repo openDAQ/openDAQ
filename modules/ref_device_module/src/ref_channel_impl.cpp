@@ -259,22 +259,36 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
             if (valueSignal.getActive())
             {
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+                auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+
+                valueSignal.sendPacket(std::move(dataPacket));
+                timeSignal.sendPacket(std::move(domainPacket));
             }
+
             samplesGenerated = samplesSinceStart;
         }
         else
         {
+            auto packets = List<IPacket>();
+            auto domainPackets = List<IPacket>();
             while (newSamples >= packetSize)
             {
                 if (valueSignal.getActive())
                 {
                     const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                    generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                    auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                    packets.pushBack(std::move(dataPacket));
+                    domainPackets.pushBack(std::move(domainPacket));
                 }
 
                 samplesGenerated += packetSize;
                 newSamples -= packetSize;
+            }
+
+			if (!packets.empty())
+            {           
+                valueSignal.sendPackets(std::move(packets));
+                timeSignal.sendPackets(std::move(domainPackets));
             }
         }
     }
@@ -282,9 +296,9 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
-void RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
+std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
-    const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
+    auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     DataPacketPtr dataPacket;
     if (waveformType == WaveformType::ConstantValue)
     {
@@ -349,8 +363,7 @@ void RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated,
 
     }
 
-    valueSignal.sendPacket(dataPacket);
-    timeSignal.sendPacket(domainPacket);
+    return {dataPacket, domainPacket};
 }
 
 Int RefChannelImpl::getDeltaT(const double sr) const

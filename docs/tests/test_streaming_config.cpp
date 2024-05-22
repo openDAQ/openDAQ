@@ -22,42 +22,30 @@ TEST_F(StreamingConfigTest, AddPseudoDevice)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-// Skip the test since the connecting by prefix "daq://" requires device discovery to be done in first place
-TEST_F(StreamingConfigTest, DISABLED_AddDeviceWithConfig)
+TEST_F(StreamingConfigTest, AddDeviceWithConfig)
 {
     SKIP_TEST_MAC_CI;
 
+    InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
     PropertyObjectPtr deviceConfig = PropertyObject();
-
     auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-
     const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
                                                                     List<IString>("MinConnections",
                                                                                   "MinHops",
-                                                                                  "Fallbacks",
                                                                                   "NotConnected"),
                                                                     0);
     deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Find and connect to a device using device info connection string
-    const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
-    for (const auto& deviceInfo : availableDevices)
-    {
-        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
-        {
-            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
-            break;
-        }
-    }
+    DevicePtr device;
+    ASSERT_NO_THROW(device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig));
+
+    ASSERT_TRUE(device.assigned());
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
-// as the resulting streaming sources remain the same in this scenario
 TEST_F(StreamingConfigTest, StreamingSources)
 {
     SKIP_TEST_MAC_CI;
@@ -65,13 +53,23 @@ TEST_F(StreamingConfigTest, StreamingSources)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
+    PropertyObjectPtr deviceConfig = PropertyObject();
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
+
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
     MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
     ASSERT_TRUE(signal.getActiveStreamingSource().assigned());
-    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.ns://127.0.0.1:7420");
+    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.lt://127.0.0.1:7414");
 
     ListPtr<IString> streamingSources = signal.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 2u);
@@ -83,8 +81,38 @@ TEST_F(StreamingConfigTest, StreamingSources)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
-// as the resulting streaming sources remain the same in this scenario
+TEST_F(StreamingConfigTest, AddStreamingToDevice)
+{
+    SKIP_TEST_MAC_CI;
+
+    InstancePtr server = docs_test_helpers::setupSimulatorServers();
+    InstancePtr instance = Instance();
+
+    PropertyObjectPtr deviceConfig = PropertyObject();
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    2);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig));
+    ASSERT_TRUE(device.assigned());
+
+    const auto deviceSignals = device.getSignals(search::Recursive(search::Any()));
+    MirroredSignalConfigPtr signal = deviceSignals[0];
+    ASSERT_FALSE(signal.getActiveStreamingSource().assigned());
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 0u);
+
+    StreamingPtr streaming;
+    ASSERT_NO_THROW(streaming = device.addStreaming("daq.ns://127.0.0.1"));
+
+    streaming.addSignals(deviceSignals);
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 1u);
+}
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, WebsocketStreamingRead)
 {
     SKIP_TEST_MAC_CI;
@@ -112,8 +140,6 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
-// Replace the prefix from 'daq://' to 'daq.opcua://' for the test,
-// as the resulting streaming sources remain the same in this scenario
 TEST_F(StreamingConfigTest, NativeStreamingRead)
 {
     SKIP_TEST_MAC_CI;

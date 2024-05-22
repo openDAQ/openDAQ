@@ -1,3 +1,30 @@
+14.05.2024
+Description:
+  - Add ability to manually connect to streaming for device after device added
+  - Create connection string from ServerCapability via modules
+
++ [function] IDevice::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
++ [function] IModuleManagerUtils::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
+
+-m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
++m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
+
++ [function] IModule::createConnectionString(IString** connectionString, IServerCapability* serverCapability)
+
+16.05.2024
+Description:
+    - Add functions for sending and dequeueing multiple packets
+    - Add functions with steal reference behaviour for sending packets
+
++  [function]  ErrCode ISignalConfig::sendPackets(IList* packets)
++  [function]  ErrCode ISignalConfig::sendPacketAndStealRef(IPacket* packet)
++  [function]  ErrCode ISignalConfig::sendPacketsAndStealRef(IList* packets)
+    
++  [function]  ErrCode IConnection::enqueueAndStealRef(IPacket* packet)
++  [function]  ErrCode IConnection::enqueueMultiple(IList* packets)
++  [function]  ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
++  [function]  ErrCode IConnection::dequeueAll(IList** packets)()
+    
 26.04.2024
 Description:
     Produce gap packets on request
@@ -7,7 +34,6 @@ Description:
 +  [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
 +  [factory]  EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
 +  [packet]   IMPLICIT_DOMAIN_GAP_DETECTED
-
 
 26.04.2024
 Description:

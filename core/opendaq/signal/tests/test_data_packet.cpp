@@ -5,6 +5,7 @@
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/dimension_factory.h>
+#include <opendaq/reusable_data_packet_ptr.h>
 #include <gtest/gtest.h>
 
 using DataPacketTest = testing::Test;
@@ -458,6 +459,95 @@ TEST_F(DataPacketTest, PacketWithStructSampleType)
         .build();
 
     const DataPacketPtr packet = DataPacket(canMsgDescriptor, 100, 0);
+}
+
+TEST_F(DataPacketTest, QueryInterface)
+{
+    auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), LinearScaling(4, 15, SampleType::UInt16, ScaledSampleType::Float64));
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    auto packet1 = packet.asPtr<IPacket>();
+    auto packet2 = packet1.asPtr<IDataPacket>();
+
+    ASSERT_EQ(packet2.getSampleCount(), packet.getSampleCount());
+
+    auto packet3 = packet.asPtr<IPacket>(true);
+    auto packet4 = packet3.asPtr<IDataPacket>(true);
+
+    ASSERT_EQ(packet4.getSampleCount(), packet.getSampleCount());
+}
+
+TEST_F(DataPacketTest, Reuse)
+{
+    auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    const auto dataPtr = packet.getRawData();
+
+    auto newDescriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(newDescriptor, 100, 1000, nullptr, false);
+    ASSERT_TRUE(success);
+
+    ASSERT_EQ(packet.getRawData(), dataPtr);
+    ASSERT_EQ(packet.getOffset(), 1000u);
+    ASSERT_EQ(packet.getSampleCount(), 100);
+    ASSERT_EQ(packet.getDataDescriptor(), newDescriptor);
+}
+
+TEST_F(DataPacketTest, ReuseSameDescriptorOffsetAndSampleCount)
+{
+    auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    const auto dataPtr = packet.getRawData();
+
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(nullptr, std::numeric_limits<SizeT>::max(), nullptr, nullptr, false);
+    ASSERT_TRUE(success);
+
+    ASSERT_EQ(packet.getRawData(), dataPtr);
+    ASSERT_EQ(packet.getOffset(), nullptr);
+    ASSERT_EQ(packet.getSampleCount(), 100);
+    ASSERT_EQ(packet.getDataDescriptor(), descriptor);
+}
+
+TEST_F(DataPacketTest, ReuseDenyBiggerSampleType)
+{
+    auto descriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    auto newDescriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(newDescriptor, 100, nullptr, nullptr, false);
+    ASSERT_FALSE(success);
+}
+
+TEST_F(DataPacketTest, ReuseDenyMoreSamples)
+{
+    auto descriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    auto newDescriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(newDescriptor, 200, nullptr, nullptr, false);
+    ASSERT_FALSE(success);
+}
+
+TEST_F(DataPacketTest, ReuseAllowBiggerSampleTypeLessSamples)
+{
+    auto descriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    auto newDescriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(newDescriptor, 50, nullptr, nullptr, false);
+    ASSERT_TRUE(success);
+}
+
+TEST_F(DataPacketTest, ReuseAllowBiggerSampleTypeWithRealloc)
+{
+    auto descriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+
+    auto newDescriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    bool success = packet.asPtr<IReusableDataPacket>(true).reuse(newDescriptor, 100, nullptr, nullptr, true);
+    ASSERT_TRUE(success);
 }
 
 TEST_F(DataPacketTest, GetLastValue)

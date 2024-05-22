@@ -7,6 +7,8 @@
 #include <opendaq/dimension_rule_factory.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/scaling_factory.h>
+#include <opendaq/scaling_calc_private.h>
+#include <opendaq/data_rule_calc_private.h>
 
 using DataDescriptorTest = testing::Test;
 
@@ -353,6 +355,29 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
 
     ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
     ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 68u);
+}
+
+TEST_F(DataDescriptorTest, QueryInterface)
+{
+    auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(LinearDataRule(10, 10)).build();
+
+    auto desc1 = desc.asPtr<IDataDescriptor>();
+    ASSERT_EQ(desc1.getSampleType(), SampleType::Float64);
+
+    auto desc2 = desc.asPtr<IScalingCalcPrivate>();
+    ASSERT_FALSE(desc2->hasScalingCalc());
+
+    auto desc3 = desc.asPtr<IDataRuleCalcPrivate>();
+    ASSERT_TRUE(desc3->hasDataRuleCalc());
+
+    auto desc11 = desc.asPtr<IDataDescriptor>(true);
+    ASSERT_EQ(desc11.getSampleType(), SampleType::Float64);
+
+    auto desc12 = desc.asPtr<IScalingCalcPrivate>(true);
+    ASSERT_FALSE(desc12->hasScalingCalc());
+
+    auto desc13 = desc.asPtr<IDataRuleCalcPrivate>(true);
+    ASSERT_TRUE(desc13->hasDataRuleCalc());
 }
 
 END_NAMESPACE_OPENDAQ

@@ -251,7 +251,7 @@ public static partial class OpenDAQFactory
         if (consoleSinkLogLevel != LogLevel.Off)
         {
             var consoleSink = StdOutLoggerSink();
-            consoleSink.SetLevel(consoleSinkLogLevel);
+            consoleSink.Level = consoleSinkLogLevel;
             sinks.Add(consoleSink);
         }
 
@@ -260,7 +260,7 @@ public static partial class OpenDAQFactory
         if (winDebugSinkLogLevel != LogLevel.Off)
         {
             var winDebugSink = WinDebugLoggerSink();
-            winDebugSink.SetLevel(winDebugSinkLogLevel);
+            winDebugSink.Level = winDebugSinkLogLevel;
             sinks.Add(winDebugSink);
         }
 #endif
@@ -274,7 +274,7 @@ public static partial class OpenDAQFactory
         if (!string.IsNullOrEmpty(fileSinkFileName))
         {
             var fileSink = RotatingFileLoggerSink(fileSinkFileName, 1048576, 5);
-            fileSink.SetLevel(fileSinkLogLevel);
+            fileSink.Level = fileSinkLogLevel;
             sinks.Add(fileSink);
         }
 

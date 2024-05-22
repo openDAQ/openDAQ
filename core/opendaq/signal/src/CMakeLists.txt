@@ -17,6 +17,7 @@ rtgen(SRC_Range range.h)
 rtgen(SRC_DataDescriptor data_descriptor.h)
 rtgen(SRC_DataDescriptorBuilder data_descriptor_builder.h)
 rtgen(SRC_DataPacket data_packet.h)
+rtgen(SRC_ReusableDataPacket reusable_data_packet.h)
 rtgen(SRC_Signal signal.h)
 rtgen(SRC_SignalEvents signal_events.h)
 rtgen(SRC_SignalPrivate signal_private.h)
@@ -80,6 +81,7 @@ source_group("packet" FILES ${SDK_HEADERS_DIR}/packet.h
                             ${SDK_HEADERS_DIR}/packet_impl.h
                             ${SDK_HEADERS_DIR}/packet_factory.h
                             ${SDK_HEADERS_DIR}/data_packet.h
+                            ${SDK_HEADERS_DIR}/reusable_data_packet.h
                             ${SDK_HEADERS_DIR}/generic_data_packet_impl.h
                             ${SDK_HEADERS_DIR}/data_packet_impl.h
                             ${SDK_HEADERS_DIR}/event_packet.h
@@ -263,6 +265,7 @@ list(APPEND SRC_Cpp ${SRC_Connection_Cpp}
                     ${SRC_DataDescriptor_Cpp}
                     ${SRC_DataDescriptorBuilder_Cpp}
                     ${SRC_DataPacket_Cpp}
+                    ${SRC_ReusableDataPacket_Cpp}
                     ${SRC_Signal_Cpp}
                     ${SRC_SignalEvents_Cpp}
                     ${SRC_SignalConfig_Cpp}
@@ -287,6 +290,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Connection_PublicHeaders}
                               ${SRC_DataDescriptor_PublicHeaders}
                               ${SRC_DataDescriptorBuilder_PublicHeaders}
                               ${SRC_DataPacket_PublicHeaders}
+                              ${SRC_ReusableDataPacket_PublicHeaders}
                               ${SRC_Signal_PublicHeaders}
                               ${SRC_SignalConfig_PublicHeaders}
                               ${SRC_InputPort_PublicHeaders}
@@ -314,7 +318,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_Connection_PrivateHeaders}
                                ${SRC_Range_PrivateHeaders}
                                ${SRC_DataDescriptor_PrivateHeaders}
                                ${SRC_DataDescriptorBuilder_PrivateHeaders}
-                               ${SRC_DataPacket_PrivateHeaders}
+                               ${SRC_ReusableDataPacket_PrivateHeaders}
                                ${SRC_Signal_PrivateHeaders}
                                ${SRC_SignalEvents_PrivateHeaders}
                                ${SRC_SignalPrivate_PrivateHeaders}

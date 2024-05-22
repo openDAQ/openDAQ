@@ -149,20 +149,20 @@ public partial class Form1 : Form
 
     private List<DeviceDataSource> GetAvailableDevices()
     {
-        var deviceInfos = _instance!.GetAvailableDevices();
+        var deviceInfos = _instance!.AvailableDevices;
 
         var dataSource = new List<DeviceDataSource>();
 
         foreach (var deviceInfo in deviceInfos)
         {
-            string connectionString = deviceInfo.GetConnectionString();
+            string connectionString = deviceInfo.ConnectionString;
 
             if (!connectionString.StartsWith("daq"))
                 continue;
 
-            var deviceType = deviceInfo.GetDeviceType();
+            var deviceType = deviceInfo.DeviceType;
 
-            dataSource.Add(new DeviceDataSource($"{deviceInfo.GetName()} ({deviceType.GetName()}) {deviceType.GetDescription()}", connectionString));
+            dataSource.Add(new DeviceDataSource($"{deviceInfo.Name} ({deviceType.Name}) {deviceType.Description}", connectionString));
         }
 
         return dataSource;
@@ -177,7 +177,7 @@ public partial class Form1 : Form
 
     private void FillTreeView(Device device)
     {
-        var node = this.treeView1.Nodes.Add(device.GetName());
+        var node = this.treeView1.Nodes.Add(device.Name);
         node.Tag = device;
 
         ListSignals(node.Nodes, device.GetSignals());
@@ -190,7 +190,7 @@ public partial class Form1 : Form
     {
         foreach (var signal in signals)
         {
-            var node = nodes.Add(signal.GetName());
+            var node = nodes.Add(signal.Name);
             node.Tag = signal;
         }
     }
@@ -199,7 +199,7 @@ public partial class Form1 : Form
     {
         foreach (var channel in channels)
         {
-            var node = nodes.Add(channel.GetName());
+            var node = nodes.Add(channel.Name);
             node.Tag = channel;
 
             ListSignals(node.Nodes, channel.GetSignals());
@@ -208,12 +208,12 @@ public partial class Form1 : Form
 
     private void ListProperties(PropertyObject propertyObject)
     {
-        var properties = propertyObject.GetAllProperties();
+        var properties = propertyObject.AllProperties;
 
         foreach (var property in properties)
         {
-            string     propertyName        = property.GetName();
-            CoreType   propertyType        = property.GetValueType();
+            string     propertyName        = property.Name;
+            CoreType   propertyType        = property.ValueType;
             BaseObject propertyValueObject = propertyObject.GetPropertyValue(propertyName);
             BaseObject propertyValue       = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, propertyType);
 

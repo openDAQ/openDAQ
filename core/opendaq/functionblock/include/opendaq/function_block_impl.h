@@ -67,6 +67,10 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
+
     virtual SignalPtr onGetStatusSignal();
 
     virtual bool onAcceptsSignal(const InputPortPtr& port, const SignalPtr& signal);
@@ -505,7 +509,8 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::packetReceived(IInputPort* port)
 {
-    return wrapHandler(this, &Self::onPacketReceived, port);
+    const auto portPtr = InputPortPtr::Borrow(port);
+    return wrapHandler(this, &Self::onPacketReceived, portPtr);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -528,6 +533,37 @@ template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode INTERFACE_FUNC FunctionBlockImpl<TInterface, Interfaces...>::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPortNotifications::Id)
+    {
+        *intf = static_cast<IInputPortNotifications*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode INTERFACE_FUNC FunctionBlockImpl<TInterface, Interfaces...>::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPortNotifications::Id)
+    {
+        *intf = const_cast<IInputPortNotifications*>(static_cast<const IInputPortNotifications*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 template <typename TInterface, typename... Interfaces>

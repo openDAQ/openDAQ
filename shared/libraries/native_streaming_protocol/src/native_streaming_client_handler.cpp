@@ -236,20 +236,9 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     {
         LOG_W("Closing connection caused by: {}", errorMessage);
         sessionHandler.reset();
-        if (session->isOpen())
-        {
-            session->close(
-                [this](const boost::system::error_code&)
-                {
-                    connectionStatusChanged(ClientConnectionStatus::Reconnecting);
-                    tryReconnect();
-                });
-        }
-        else
-        {
-            connectionStatusChanged(ClientConnectionStatus::Reconnecting);
-            tryReconnect();
-        }
+
+        connectionStatusChanged(ClientConnectionStatus::Reconnecting);
+        tryReconnect();
     };
     // read/write failure indicates that connection is closed, and it should be handled properly
     // client constantly and continuously perform read operation

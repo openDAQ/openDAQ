@@ -33,7 +33,7 @@ $CSClassGenericParamConstraints${
         base._virtualTable =
             _raw$NonInterfaceType$ = Marshal.PtrToStructure<Raw$NonInterfaceType$>(objVirtualTable);
     }
-$CSImplementationMethods$$CSInterfaceImplementation$$CSOperators$
+$CSImplementationProperties$$CSImplementationMethods$$CSInterfaceImplementation$$CSOperators$
 }
 
 

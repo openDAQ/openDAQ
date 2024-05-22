@@ -11,13 +11,18 @@ RefDeviceModule::RefDeviceModule(ContextPtr context)
              daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
              "ReferenceDevice")
+    , maxNumberOfDevices(2)
 {
+    auto options = this->context.getModuleOptions("RefDevice");
+    if (options.hasKey("MaxNumberOfDevices"))
+        maxNumberOfDevices = options.get("MaxNumberOfDevices");
+    devices.resize(maxNumberOfDevices);
 }
 
 ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 {
     auto availableDevices = List<IDeviceInfo>();
-    for (size_t i = 0; i < devices.size(); i++)
+    for (size_t i = 0; i < 2; i++)
     {
         auto info = RefDeviceImpl::CreateDeviceInfo(i);
         availableDevices.pushBack(info);
@@ -37,7 +42,7 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
-                                          const PropertyObjectPtr& /*config*/)
+                                          const PropertyObjectPtr& config)
 {
     const auto id = getIdFromConnectionString(connectionString);
 
@@ -57,7 +62,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     const auto options = context.getOptions();
     StringPtr localId;
-    StringPtr name;
+    StringPtr name = fmt::format("Device {}", id);
 
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
@@ -71,7 +76,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (!localId.assigned())
         localId = fmt::format("ref_dev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, context, parent, localId, name);
+    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
 }

@@ -379,7 +379,7 @@ template <typename T>
 class ShowType;
 
 template <class F>
-ErrCode daqTry(const IBaseObject* context, const F& func)
+ErrCode daqTry(const IBaseObject* context, F&& func)
 {
     try
     {
@@ -424,6 +424,12 @@ template <class F>
 ErrCode daqTry(const F& func)
 {
     return daqTry(nullptr, func);
+}
+
+template <class F>
+ErrCode daqTry(F&& func)
+{
+    return daqTry(nullptr, std::move(func));
 }
 
 template <typename TPtr, typename TFunc>

@@ -28,6 +28,9 @@ namespace RTGen.Types
         /// <summary>If a method should return the object instead of null.</summary>
         public bool ReturnSelf { get; set; }
 
+        /// <summary>Generate overload for another function.</summary>
+        public string OverloadFor { get; set; }
+
         /// <summary>A set of arguments that could be represented by multiple types.</summary>
         public IOptions<string> Polymorphics { get; set; }
 
@@ -45,6 +48,7 @@ namespace RTGen.Types
             Documentation = null;
             IsIgnored = GeneratorType.None;
             ReturnSelf = false;
+            OverloadFor = null;
             Polymorphics.Clear();
             Arguments.Clear();
 

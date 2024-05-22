@@ -1,14 +1,15 @@
 #include <opendaq/opendaq.h>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <thread>
 
 using namespace daq;
+using namespace std::chrono_literals;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    using namespace std::chrono_literals;
-
+    // Set up the simulator
     const InstancePtr instance = Instance("");
     instance.setRootDevice("daqref://device1");
     instance.addFunctionBlock("ref_fb_module_trigger");
@@ -17,15 +18,18 @@ int main(int /*argc*/, const char* /*argv*/[])
     instance.addServer("openDAQ LT Streaming", nullptr);
 
     // Create an empty file named "ready" to let regression test suite know
-    // the Simulator is up and running and ready for tests
-    std::fstream fs;
-    fs.open("ready", std::ios::out);
-    fs.close();
-    // Github Action will wait until "ready" file exists,
-    // then start the regression tests
-    // This file is later deleted in GitHub Action via shell
-    // so we can test another prococol
+    // the simulator is up and running and ready for tests
+    std::ofstream out;
+    out.open("ready", std::ios::out);
+    out.close();
 
-    while (true)
+    // Github Action will delete the "ready" file after
+    // the tests for one protocol are done, which means
+    // we can then gracefully shut down the simulator
+    while (std::filesystem::exists("ready"))
+    {
         std::this_thread::sleep_for(100ms);
+    }
+
+    return 0;
 }

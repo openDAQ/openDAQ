@@ -100,6 +100,9 @@ jobs:
         working-directory: target/build
         run: cmake --build .
         
+      - name: Move simulator binary to bin
+        run: mv target/build/simulator/regression_simulator target/build/bin
+        
       - name: Upload target bin .zip
         uses: actions/upload-artifact@v3
         with: 
@@ -113,7 +116,7 @@ jobs:
             target/build/bin/*ref_device_module-*
             target/build/bin/*ref_fb_module-*
             target/build/bin/*ws_stream_srv_module-*
-            target/build/simulator/regression_simulator
+            target/build/bin/regression_simulator
 
       # TODO: upload target bin .zip artifact to AWS automagically
 
@@ -121,49 +124,66 @@ jobs:
         working-directory: current/build
         run: cmake --build .
 
-      # TODO: not needed when using binaries from .zip later
-      - name: Move simulator binary to bin
-        run: mv target/build/simulator/regression_simulator target/build/bin
-
-      # TODO: test
-      - name: Set trap to avoid processes completing with non-zero exit codes on pkill
-        run: trap "exit 0" SIGKILL
-
       - name: OPC UA - Run simulator from target and perform regression tests from current
         if: always()
         run: |
+          # Run simulator and wait for it to to be ready
           ./target/build/bin/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}regression_opcua"
-          pkill regression_simulator
+          
+          # Run regression tests
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          
+          # Kill simulator gracefully and wait for exit
+          pid=$(pgrep -f regression_simulator)
           rm ready
+          while ps $pid > /dev/null; do sleep 1; done
+          
 
       - name: ND - Run simulator from target and perform regression tests from current
         if: always()
         run: |
+          # Run simulator and wait for it to to be ready
           ./target/build/bin/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}regression_nd"
-          pkill regression_simulator
+          
+          # Run regression tests
+          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          
+          # Kill simulator gracefully and wait for exit
+          pid=$(pgrep -f regression_simulator)
           rm ready
+          while ps $pid > /dev/null; do sleep 1; done
           
       - name: NS - Run simulator from target and perform regression tests from current
         if: always()
         run: |
+          # Run simulator and wait for it to to be ready
           ./target/build/bin/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}regression_ns"
-          pkill regression_simulator
+          
+          # Run regression tests
+          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          
+          # Kill simulator gracefully and wait for exit
+          pid=$(pgrep -f regression_simulator)
           rm ready
+          while ps $pid > /dev/null; do sleep 1; done
           
       - name: LT - Run simulator from target and perform regression tests from current
         if: always()
         run: |
+          # Run simulator and wait for it to to be ready
           ./target/build/bin/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}regression_lt"
-          pkill regression_simulator
+          
+          # Run regression tests
+          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
+          
+          # Kill simulator gracefully and wait for exit
+          pid=$(pgrep -f regression_simulator)
           rm ready
+          while ps $pid > /dev/null; do sleep 1; done
 
       - name: Upload regression test results
         if: always()

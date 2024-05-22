@@ -1,14 +1,14 @@
-name: Run openDAQ regression tests
+name: Generate openDAQ regression test simulator binaries
 
 on:
   workflow_dispatch:
-  schedule: [{cron: "0 0 * * *"}] # Run every day at midnight
-  push: # TODO: delete this before merge
-    branches: [regression-tests]
+  push: 
+    branches:
+      - regression-tests # TODO: delete this before merge
+      - release/**
   
 env:
   target_tag: v3.0.0
-  test_path: ${{ github.workspace }}/junit_reports/
 
 jobs:
   regression_tests:
@@ -89,13 +89,6 @@ jobs:
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ../..
 
-      - name: Configure current (with regression tests)
-        working-directory: current
-        run: |
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset regression_tests -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
       - name: Build target (with regression simulator)
         working-directory: target/build
         run: cmake --build .
@@ -118,76 +111,5 @@ jobs:
             target/build/bin/*ws_stream_srv_module-*
             target/build/bin/regression_simulator
 
-      # TODO: upload target bin .zip artifact to AWS automagically
-
-      - name: Build current (with regression tests)
-        working-directory: current/build
-        run: cmake --build .
-
-      - name: OPC UA - Run simulator from target and perform regression tests from current
-        if: always()
-        run: |
-          # Run simulator and wait for it to to be ready
-          ./target/build/bin/regression_simulator &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-          
-          # Kill simulator gracefully and wait for exit
-          pid=$(pgrep -f regression_simulator)
-          rm ready
-          while ps $pid > /dev/null; do sleep 1; done
-          
-
-      - name: ND - Run simulator from target and perform regression tests from current
-        if: always()
-        run: |
-          # Run simulator and wait for it to to be ready
-          ./target/build/bin/regression_simulator &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-          
-          # Kill simulator gracefully and wait for exit
-          pid=$(pgrep -f regression_simulator)
-          rm ready
-          while ps $pid > /dev/null; do sleep 1; done
-          
-      - name: NS - Run simulator from target and perform regression tests from current
-        if: always()
-        run: |
-          # Run simulator and wait for it to to be ready
-          ./target/build/bin/regression_simulator &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-          
-          # Kill simulator gracefully and wait for exit
-          pid=$(pgrep -f regression_simulator)
-          rm ready
-          while ps $pid > /dev/null; do sleep 1; done
-          
-      - name: LT - Run simulator from target and perform regression tests from current
-        if: always()
-        run: |
-          # Run simulator and wait for it to to be ready
-          ./target/build/bin/regression_simulator &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}"
-          
-          # Kill simulator gracefully and wait for exit
-          pid=$(pgrep -f regression_simulator)
-          rm ready
-          while ps $pid > /dev/null; do sleep 1; done
-
-      - name: Upload regression test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Regression Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+      # TODO: upload regression target bin .zip artifact to AWS automagically
+      # Currently, this has to be done manually

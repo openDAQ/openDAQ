@@ -1357,7 +1357,7 @@ TYPED_TEST(BlockReaderTest, GapDetected)
 
     ASSERT_TRUE(status.getValid());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getReadSamples(), 2);
+    ASSERT_EQ(status.getReadSamples(), 6);
     ASSERT_TRUE(status.getEventPacket().assigned());
 
     ASSERT_EQ(status.getEventPacket().getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
@@ -1495,7 +1495,7 @@ TYPED_TEST(BlockReaderTest, ReuseReaderOverlapped)
 
     auto status = reader.read((TypeParam*) &samples, &count);
 
-    Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
+    const daq::Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getValid(), convertable);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize(), reader.getOverlap());

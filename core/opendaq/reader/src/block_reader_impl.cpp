@@ -312,9 +312,8 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                     handleDescriptorChanged(eventPacket);
                     auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
                     if (status)
-                    {
                         *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
-                    }
+
                     *count = writtenSamplesCount / blockSize;
                     info.clean();
                     return errCode;
@@ -322,9 +321,12 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 
                 if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
                 {
+                    auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
                     if (status)
-                        *status = BlockReaderStatus(eventPacket, !invalid, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
-                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
+                        *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
+
+                    *count = writtenSamplesCount / blockSize;
+                    info.clean();
                     return errCode;
                 }
 
@@ -391,10 +393,6 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     const ErrCode errCode = readPackets(status, count);
-
-    if (status && *status == nullptr)
-        *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
-
     return errCode;
 }
 

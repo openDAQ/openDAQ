@@ -7,6 +7,7 @@ on:
 ### TODO: Enable Python binding tests on all distributions
 
 env:
+  regression_tests_target_tag: v3.0.0
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -19,7 +20,6 @@ env:
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
-  regression_tests_target_tag: v3.0.0
 
 jobs:
   build_windows:

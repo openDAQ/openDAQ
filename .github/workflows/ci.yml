@@ -7,7 +7,7 @@ on:
 ### TODO: Enable Python binding tests on all distributions
 
 env:
-  regression_tests_target_tag: v3.0.0
+  regression_tests_target_tag: v3.0.0 #TODO: use this when downloading regression simulator artifact
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build

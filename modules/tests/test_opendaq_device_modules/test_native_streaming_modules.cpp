@@ -1,4 +1,5 @@
 #include "test_helpers/test_helpers.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -9,7 +10,8 @@ static InstancePtr CreateServerInstance()
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
-    auto context = Context(scheduler, logger, TypeManager(), moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, TypeManager(), moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 

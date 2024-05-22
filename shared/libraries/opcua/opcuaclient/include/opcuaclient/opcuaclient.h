@@ -101,14 +101,13 @@ public:
     static constexpr size_t CONNECTION_TIMEOUT_SECONDS = 10;
 
     void initialize();
-    bool connect();
+    void connect();
     void disconnect();
     void clear();
     bool isConnected();
     UA_Client* getUaClient();
     ClientLockGuard getLockedUaClient();
     const OpcUaEndpoint& getEndpoint() const;
-    void setUrl(const std::string& url);
     void setTimeout(uint32_t timoutMs);
     uint32_t getTimeout() const;
     void setConnectivityCheckInterval(uint32_t connectivityCheckInterval);

@@ -23,7 +23,7 @@ public:
     {
         const auto moduleManager = ModuleManager("[[none]]");
         auto logger = Logger();
-        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager);
+        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager, nullptr);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

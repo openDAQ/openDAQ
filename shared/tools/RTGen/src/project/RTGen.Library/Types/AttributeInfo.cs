@@ -151,7 +151,9 @@ namespace RTGen.Types
                 {"factory", FactorySettings},
                 {"isCoreConfig", IsCoreConfigAttribute},
                 {"returnSelf", ReturnSelfAttribute},
-                {"polymorphic", PolymorphicAttribute}
+                {"polymorphic", PolymorphicAttribute},
+                {"stealRef", ArgumentStealRef},
+                {"overloadFor", OverloadForAttribute},
             };
 
             DefaultBasePtr = "ObjectPtr";
@@ -449,6 +451,37 @@ namespace RTGen.Types
             }
 
             Next.Method.ReturnSelf = true;
+        }
+
+        private void OverloadForAttribute(IRTAttribute attribute)
+        {
+            if (attribute.Arguments.Length != 1)
+            {
+                throw new RTAttributeException("RtAttribute \"OverloadFor\" must have exactly one argument.");
+            }
+
+            Next.Method.OverloadFor = attribute.Arguments[0].Value;
+        }
+
+
+        private void ArgumentStealRef(IRTAttribute attribute)
+        {
+            int argumentLength = attribute.Arguments.Length;
+
+            if (argumentLength != 1)
+            {
+                throw new RTAttributeException(
+                    $"RtAttribute \"{attribute.Name}\" must have at one argument (arg name).");
+            }
+
+            IArgumentInfo argInfo;
+            if (!Next.Method.Arguments.TryGet(attribute.Arguments[0].Value, out argInfo))
+            {
+                argInfo = new ArgumentInfo();
+                Next.Method.Arguments.Add(attribute.Arguments[0].Value, argInfo);
+            }
+
+            argInfo.StealRef = true;
         }
 
         private void PolymorphicAttribute(IRTAttribute attribute)

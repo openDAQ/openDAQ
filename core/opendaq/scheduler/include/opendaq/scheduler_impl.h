@@ -32,7 +32,8 @@ public:
     explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers);
     ~SchedulerImpl() override;
 
-    ErrCode INTERFACE_FUNC scheduleWork(IFunction* task, IAwaitable** awaitable) override;
+    ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) override;
+    ErrCode INTERFACE_FUNC scheduleWork(IWork* work) override;
     ErrCode INTERFACE_FUNC scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable) override;
     ErrCode INTERFACE_FUNC isMultiThreaded(Bool* multiThreaded) override;
 

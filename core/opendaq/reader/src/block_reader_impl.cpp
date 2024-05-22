@@ -319,6 +319,15 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                     info.clean();
                     return errCode;
                 }
+
+                if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+                {
+                    if (status)
+                        *status = BlockReaderStatus(eventPacket, !invalid, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
+                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
+                    return errCode;
+                }
+
                 break;
             }
             case PacketType::None:

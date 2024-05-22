@@ -55,14 +55,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
                                                                     List<IString>("MinConnections",
                                                                                   "MinHops",
-                                                                                  "Fallbacks",
                                                                                   "NotConnected"),
                                                                     0);
     deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
     // Find and connect to a device using device info connection string
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
         if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)

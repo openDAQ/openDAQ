@@ -131,7 +131,7 @@ void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
 
 DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo("", "OpcUa Client");
+    auto deviceInfo = DeviceInfo("", this->client->readDisplayName(this->nodeId));
 
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
@@ -179,6 +179,14 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     }
     
     findAndCreateServerCapabilities(deviceInfo);
+
+    for (const auto & cap : deviceInfo.getServerCapabilities())
+    {
+        if (cap.getProtocolId() == "opendaq_opcua_config")
+        {
+            deviceInfo.setConnectionString(cap.getConnectionString());
+        }
+    }
 
     deviceInfo.freeze();
     return deviceInfo;

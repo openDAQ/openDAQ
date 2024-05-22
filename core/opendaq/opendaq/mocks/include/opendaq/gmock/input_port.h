@@ -38,12 +38,14 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     MOCK_METHOD(daq::ErrCode, setRequiresSignal, (daq::Bool value), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, setNotificationMethod, (daq::PacketReadyNotification method), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, notifyPacketEnqueued, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, notifyPacketEnqueued, (daq::Bool value), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, notifyPacketEnqueuedOnThisThread, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setListener, (daq::IInputPortNotifications * port), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, getCustomData, (daq::IBaseObject** customData), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setCustomData, (daq::IBaseObject* customData), (override MOCK_CALL));
+
+    MOCK_METHOD(daq::ErrCode, getGapCheckingEnabled, (daq::Bool* gapCheckingEnabled), (override MOCK_CALL));
 
     daq::Bool active = true;
 

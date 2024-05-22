@@ -239,7 +239,7 @@ namespace RTGen.Generation
                 {
                 }
 
-                if (method.ReturnSelf && methodImplRetTemplate != "")
+                if (method.ReturnSelf && methodImplRetSelfTemplate != "")
                 {
                     WriteMethodWrapper(method, methodImplRetSelfTemplate, methods);
                 }

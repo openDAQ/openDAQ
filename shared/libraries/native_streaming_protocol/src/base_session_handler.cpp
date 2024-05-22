@@ -34,12 +34,15 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
     {
         connectionInactivityTimer->cancel();
         connectionInactivityTimer->expires_from_now(inactivityTimeoutMs);
+
+        std::weak_ptr<Session> session_weak = session;
         connectionInactivityTimer->async_wait(
-            [this](const boost::system::error_code& ec)
+            [errorHandler = errorHandler, session_weak](const boost::system::error_code& ec)
             {
                 if (ec)
                     return;
-                this->errorHandler("Connection activity timeout error", session);
+                if (auto session = session_weak.lock())
+                    errorHandler("Connection activity timeout error", session);
             }
         );
     };

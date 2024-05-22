@@ -48,6 +48,8 @@ public:
     ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* /*config*/) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* /*config*/) override;
 
+    ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override;
+
 private:
     ContextPtr ctx;
     FunctionPtr availableDevicesCb;

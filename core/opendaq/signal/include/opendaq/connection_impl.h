@@ -20,6 +20,8 @@
 #include <opendaq/context_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/data_packet_ptr.h>
 
 #ifdef OPENDAQ_THREAD_SAFE
     #include <mutex>
@@ -28,19 +30,24 @@
 #include <queue>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ConnectionImpl : public ImplementationOfWeak<IConnection>
 {
 public:
+    using Super = ImplementationOfWeak<IConnection>;
+
     explicit ConnectionImpl(
         const InputPortPtr& port,
         const SignalPtr& signal,
         ContextPtr context
     );
-
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) override;
+    ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packets) override;
+
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
+    ErrCode INTERFACE_FUNC dequeueAll(IList** packets) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;
     ErrCode INTERFACE_FUNC getPacketCount(SizeT* packetCount) override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -50,6 +57,10 @@ public:
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
     [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
 
@@ -69,12 +80,45 @@ public:
 #endif
 
 private:
+    union DomainValue
+    {
+        int64_t valueInt64_t;
+        double valueDouble;
+    };
+
+    enum class GapCheckState { disabled, uninitialized, not_available, initialized, running };
+
     InputPortConfigPtr port;
     WeakRefPtr<ISignal> signalRef;
     ContextPtr context;
+    bool queueEmpty;
+    GapCheckState gapCheckState;
+    DomainValue nextExpectedPacketOffset;
+    DomainValue delta;
+    SampleType domainSampleType;
+    LoggerComponentPtr loggerComponent;
 
 #ifdef OPENDAQ_THREAD_SAFE
     mutable std::mutex mutex;
+#endif
+
+    void checkForGaps(const PacketPtr& packet);
+    void enqueueGapPacket(const DomainValue& diff);
+    void beginGapCheck(const DataPacketPtr& domainPacket);
+    bool doGapCheck(const DataPacketPtr& domainPacket, DomainValue& diff);
+    void initGapCheck(const EventPacketPtr& packet);
+
+    DomainValue numberToDomainValue(const NumberPtr& number);
+
+    template <class P, class F>
+    ErrCode enqueueInternal(P&& packet, const F& f);
+
+#if _MSC_VER < 1920
+    ErrCode enqueueMultipleInternal(const ListPtr<IPacket>& packets);
+    ErrCode enqueueMultipleInternal(ListPtr<IPacket>&& packets);
+#else
+    template <class P>
+    ErrCode enqueueMultipleInternal(P&& packets);
 #endif
 
 protected:

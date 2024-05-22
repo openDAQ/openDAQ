@@ -53,7 +53,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleCalcPrivate, IBaseObject)
      * @brief Checks whether the Data Rule Calculator is available for packet or not.
      * @returns True if the Data Rule Calculator is initialized within the implementation; false otherwise.
      */
-    virtual bool INTERFACE_FUNC hasDataRuleCalc() const = 0;
+    virtual Bool INTERFACE_FUNC hasDataRuleCalc() const = 0;
 };
 /*!@}*/
 

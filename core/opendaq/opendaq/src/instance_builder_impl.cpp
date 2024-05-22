@@ -4,6 +4,7 @@
 #include <opendaq/instance_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/config_provider_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,6 +31,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
+    , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
 {
@@ -240,6 +242,24 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
     *moduleManager = this->moduleManager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC InstanceBuilderImpl::setAuthenticationProvider(IAuthenticationProvider* authenticationProvider)
+{
+    if (authenticationProvider == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    this->authenticationProvider = authenticationProvider;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC InstanceBuilderImpl::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
+{
+    if (authenticationProvider == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *authenticationProvider = this->authenticationProvider.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

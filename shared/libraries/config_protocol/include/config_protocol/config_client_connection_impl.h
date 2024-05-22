@@ -29,8 +29,12 @@ public:
     explicit ConfigClientConnectionImpl(const InputPortPtr& port, const SignalPtr& signal, const ContextPtr& context);
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueMultiple(IList* packet) override;
+    ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packet) override;
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
+    ErrCode INTERFACE_FUNC dequeueAll(IList** packet) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;
     ErrCode INTERFACE_FUNC getPacketCount(SizeT* packetCount) override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -59,6 +63,29 @@ inline ErrCode ConfigClientConnectionImpl::enqueue(IPacket* packet)
     return OPENDAQ_IGNORED;
 }
 
+inline ErrCode ConfigClientConnectionImpl::enqueueMultiple(IList* packet)
+{
+    return OPENDAQ_IGNORED;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientConnectionImpl::enqueueAndStealRef(IPacket* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    packets->releaseRef();
+
+    return OPENDAQ_IGNORED;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientConnectionImpl::enqueueMultipleAndStealRef(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    packets->releaseRef();
+
+    return OPENDAQ_IGNORED;
+}
+
 inline ErrCode ConfigClientConnectionImpl::enqueueOnThisThread(IPacket* packet)
 {
     return OPENDAQ_IGNORED;
@@ -69,6 +96,14 @@ inline ErrCode ConfigClientConnectionImpl::dequeue(IPacket** packet)
     OPENDAQ_PARAM_NOT_NULL(packet);
 
     *packet = nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientConnectionImpl::dequeueAll(IList** packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    *packets = List<IPacket>().detach();
     return OPENDAQ_SUCCESS;
 }
 

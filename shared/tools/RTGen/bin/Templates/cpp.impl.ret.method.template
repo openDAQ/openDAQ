@@ -5,7 +5,7 @@
             throw daq::InvalidParameterException();
 
         $ReturnTypeIntf$ $ReturnArgName$;
-        auto errCode = this->object->$Name$($ArgumentNames$);
+        auto errCode = this->object->$NameInInterface$($ArgumentNames$);
         daq::checkErrorInfo(errCode);
 
         return $ExitReturnArgName$;

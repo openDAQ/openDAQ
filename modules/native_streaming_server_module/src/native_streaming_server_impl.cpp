@@ -39,11 +39,13 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 
     ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
     serverCapabilityStreaming.setPrefix("daq.ns");
+    serverCapabilityStreaming.setConnectionType("TCP/IP");
     serverCapabilityStreaming.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Streaming", ProtocolType::ConfigurationAndStreaming);
     serverCapabilityConfig.setPrefix("daq.nd");
+    serverCapabilityConfig.setConnectionType("TCP/IP");
     serverCapabilityConfig.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
@@ -280,19 +282,11 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
 
 ServerTypePtr NativeStreamingServerImpl::createType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingServerImpl::createDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return ServerType(
         "openDAQ Native Streaming",
         "openDAQ Native Streaming server",
         "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
-        configurationCallback);
+        NativeStreamingServerImpl::createDefaultConfig());
 }
 
 void NativeStreamingServerImpl::onStopServer()

@@ -21,6 +21,7 @@
 #include <opendaq/scheduler_ptr.h>
 #include <opendaq/module_manager_ptr.h>
 #include <coretypes/type_manager_ptr.h>
+#include <coreobjects/authentication_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +32,7 @@ public:
                          LoggerPtr logger,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager,
+                         AuthenticationProviderPtr authenticationProvider,
                          DictPtr<IString, IBaseObject> options);
     ~ContextImpl();
 
@@ -38,6 +40,7 @@ public:
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
     ErrCode INTERFACE_FUNC getModuleManager(IBaseObject** manager) override;
     ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** manager) override;
+    ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) override;
     ErrCode INTERFACE_FUNC getOnCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
     ErrCode INTERFACE_FUNC getOptions(IDict** options) override;
@@ -51,6 +54,7 @@ private:
     WeakRefPtr<IModuleManager> moduleManagerWeakRef;
     ModuleManagerPtr moduleManager;
     TypeManagerPtr typeManager;
+    AuthenticationProviderPtr authenticationProvider;
     EventEmitter<ComponentPtr, CoreEventArgsPtr> coreEvent;
     DictPtr<IString, IBaseObject> options;
 };

@@ -290,19 +290,7 @@ public:
      */
     std::vector<TValuePtr> toVector()
     {
-        std::vector<TValuePtr> vector;
-
-        SizeT size;
-        IBaseObject* obj;
-        this->object->getCount(&size);
-
-        for (SizeT i = 0; i < size; i++)
-        {
-            this->object->getItemAt(i, &obj);
-            vector.push_back(obj);
-        }
-
-        return vector;
+        return std::vector<TValuePtr>(begin(), end());
     }
 };
 

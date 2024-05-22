@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,49 +53,55 @@ public class DaqEventArgs : BaseObject
             _rawDaqEventArgs = Marshal.PtrToStructure<RawDaqEventArgs>(objVirtualTable);
     }
 
-    public long GetEventId()
+    public long EventId
     {
-        //native output argument
-        long id;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventId(base.NativePointer, out id);
+            //native output argument
+            long id;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventId(base.NativePointer, out id);
 
-        return id;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return id;
+        }
     }
 
-    public string GetEventName()
+    public string EventName
     {
-        //native output argument
-        IntPtr namePtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventName(base.NativePointer, out namePtr);
+            //native output argument
+            IntPtr namePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventName(base.NativePointer, out namePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
-        }
 
-        // validate pointer
-        if (namePtr == IntPtr.Zero)
-        {
-            return null;
-        }
+            // validate pointer
+            if (namePtr == IntPtr.Zero)
+            {
+                return null;
+            }
 
-        using var name = new StringObject(namePtr, incrementReference: false);
-        return name;
+            using var name = new StringObject(namePtr, incrementReference: false);
+            return name;
+        }
     }
 }
 
@@ -123,7 +129,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new DaqEventArgs(objPtr, incrementReference: false);
@@ -143,7 +149,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

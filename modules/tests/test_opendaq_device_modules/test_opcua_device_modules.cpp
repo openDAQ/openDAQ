@@ -3,18 +3,20 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -28,11 +30,27 @@ static InstancePtr CreateServerInstance()
     return instance;
 }
 
+static InstancePtr CreateServerInstance()
+{
+    return CreateServerInstance(AuthenticationProvider());
+}
+
 static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
 {
     auto instance = builder.build();
 
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1");
+    // FIXME - use default config mega-object
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    if (!config.assigned())
+        config = PropertyObject();
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    2);
+    config.addProperty(streamingConnectionHeuristicProp);
+
+    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
 }
 
@@ -393,7 +411,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 
     auto portConfig = port.asPtr<IInputPortConfig>();
     ASSERT_THROW(portConfig.getCustomData(), opcua::OpcUaClientCallNotAvailableException);
-    ASSERT_THROW(portConfig.notifyPacketEnqueued(), opcua::OpcUaClientCallNotAvailableException);
+    ASSERT_THROW(portConfig.notifyPacketEnqueued(True), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setNotificationMethod(PacketReadyNotification::SameThread), opcua::OpcUaClientCallNotAvailableException);
     ASSERT_THROW(portConfig.setCustomData(nullptr), opcua::OpcUaClientCallNotAvailableException);
 }
@@ -462,7 +480,8 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -490,6 +509,101 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
     auto client = CreateClientInstance();
     auto info = client.getDevices()[0].getInfo();
     ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
+{
+    auto serverInstance = CreateServerInstance();
+    auto clientInstance = InstanceBuilder().build();
+
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    config.setPropertyValue("Username", "");
+    config.setPropertyValue("Password", "");
+
+    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authenticationProvider = StaticAuthenticationProvider(false, users);
+    auto serverInstance = CreateServerInstance(authenticationProvider);
+
+    auto clientInstance = InstanceBuilder().build();
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "wrongPass");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "andrej");
+    config.setPropertyValue("Password", "andrej123");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "jure123");
+    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+    clientInstance.removeDevice(device);
+
+    config.setPropertyValue("Username", "tomaz");
+    config.setPropertyValue("Password", "tomaz123");
+    device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+    clientInstance.removeDevice(device);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
+{
+    auto authenticationProvider = AuthenticationProvider(false);
+    auto serverInstance = CreateServerInstance(authenticationProvider);
+
+    auto clientInstance = InstanceBuilder().build();
+    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+
+    config.setPropertyValue("Username", "jure");
+    config.setPropertyValue("Password", "jure123");
+    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+}
+
+TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientMirroredDevice = client.getDevices()[0].template asPtrOrNull<IMirroredDevice>();
+    ASSERT_TRUE(clientMirroredDevice.assigned());
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 0u);
+
+    const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 0u);
+    }
+
+    server.addServer("openDAQ LT Streaming", nullptr);
+    StreamingPtr streaming;
+    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
+    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 1u);
+    ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[0]);
+
+    streaming.addSignals(clientSignals);
+    for (const auto& signal : clientSignals)
+    {
+        auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 1u);
+        ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
+    }
 }
 
 // TODO: Add all examples of dynamic changes

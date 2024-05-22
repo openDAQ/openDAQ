@@ -9,6 +9,7 @@ set(TEST_SOURCES test_awaitable.cpp
                  test_scheduler_st.cpp
                  test_scheduler_mt.cpp
                  test_task.cpp
+                 test_work.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

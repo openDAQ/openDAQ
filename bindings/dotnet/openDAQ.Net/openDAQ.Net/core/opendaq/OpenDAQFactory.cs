@@ -251,7 +251,7 @@ public static partial class OpenDAQFactory
         if (consoleSinkLogLevel != LogLevel.Off)
         {
             var consoleSink = StdOutLoggerSink();
-            consoleSink.SetLevel(consoleSinkLogLevel);
+            consoleSink.Level = consoleSinkLogLevel;
             sinks.Add(consoleSink);
         }
 
@@ -260,7 +260,7 @@ public static partial class OpenDAQFactory
         if (winDebugSinkLogLevel != LogLevel.Off)
         {
             var winDebugSink = WinDebugLoggerSink();
-            winDebugSink.SetLevel(winDebugSinkLogLevel);
+            winDebugSink.Level = winDebugSinkLogLevel;
             sinks.Add(winDebugSink);
         }
 #endif
@@ -274,7 +274,7 @@ public static partial class OpenDAQFactory
         if (!string.IsNullOrEmpty(fileSinkFileName))
         {
             var fileSink = RotatingFileLoggerSink(fileSinkFileName, 1048576, 5);
-            fileSink.SetLevel(fileSinkLogLevel);
+            fileSink.Level = fileSinkLogLevel;
             sinks.Add(fileSink);
         }
 
@@ -313,12 +313,14 @@ public static partial class OpenDAQFactory
     /// <param name="logger">The logger the context has access to.</param>
     /// <param name="typeManager">The type manager.</param>
     /// <param name="moduleManager">The module manager.</param>
+    /// <param name="authenticationProvider">The authentication provider.</param>
     /// <param name="options">The options.</param>
     /// <returns>The Context instance.</returns>
     public static Context Context(Scheduler scheduler,
                                   Logger logger,
                                   TypeManager typeManager,
                                   ModuleManager moduleManager,
+                                  AuthenticationProvider authenticationProvider,
                                   IDictObject<StringObject, BaseObject> options = null)
     {
         /*
@@ -338,7 +340,7 @@ public static partial class OpenDAQFactory
             options = CoreTypesFactory.CreateDict<StringObject, BaseObject>();
         }
 
-        return CreateContext(scheduler, logger, typeManager, moduleManager, options);
+        return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options);
     }
 
     /// <summary>
@@ -377,7 +379,8 @@ public static partial class OpenDAQFactory
         using var scheduler     = Scheduler(logger, 0);
         using var moduleManager = ModuleManager(modulePath);
         using var typeManager   = TypeManager();
-        using var context       = Context(scheduler, logger, typeManager, moduleManager);
+        using var authenticationProvider = AuthenticationProvider();
+        using var context       = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         //instantiate default parameters if null
         using StringObject localIdStr = localId ?? string.Empty;
@@ -460,4 +463,46 @@ public static partial class OpenDAQFactory
 
         return CreateScheduler(logger, numWorkers);
     }
+
+    /// <summary>Creates a default authentication provider with only anonymous authentication allowed.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    public static AuthenticationProvider AuthenticationProvider()
+    {
+        return AuthenticationProvider(true);
+    }
+
+    /// <summary>Creates an empty authentication provider without any user.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="allowAnonymous">True if anonymous authentication is allowed.</param>
+    public static AuthenticationProvider AuthenticationProvider(bool allowAnonymous)
+    {
+        using var userList = CoreTypesFactory.CreateList<BaseObject>();
+        return CoreObjectsFactory.CreateStaticAuthenticationProvider(allowAnonymous, userList);
+    }
+
+    /// <summary>Creates an authentication provider out of static list of users.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="allowAnonymous">True if anonymous authentication is allowed.</param>
+    /// <param name="userList">List of User objects.</param>
+    public static AuthenticationProvider StaticAuthenticationProvider(bool allowAnonymous, IListObject<BaseObject> userList)
+    {
+        return CoreObjectsFactory.CreateStaticAuthenticationProvider(allowAnonymous, userList);
+    }
+
+    /// <summary>Creates an authentication provider out of json file.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="filename">File path to a json file containing a list of serialized User objects.</param>
+    public static AuthenticationProvider JsonFileAuthenticationProvider(string filename)
+    {
+        return CoreObjectsFactory.CreateJsonFileAuthenticationProvider(filename);
+    }
+
+    /// <summary>Creates an authentication provider out of json string.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="jsonString">Json string containg a list of serialized User objects.</param>
+    public static AuthenticationProvider JsonStringAuthenticationProvider(string jsonString)
+    {
+        return CoreObjectsFactory.CreateJsonStringAuthenticationProvider(jsonString);
+    }
+
 }

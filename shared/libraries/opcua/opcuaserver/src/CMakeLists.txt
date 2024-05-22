@@ -46,6 +46,7 @@ target_include_directories(${MODULE_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOU
 target_link_libraries(${MODULE_NAME} PUBLIC  daq::opcuashared
                                              daq::opendaq_utils
                                      PRIVATE daq::opcua_daq_types
+                                             daq::coreobjects
 )
 
 set_target_properties(${MODULE_NAME} PROPERTIES PUBLIC_HEADER "${SOURCE_HEADERS}")

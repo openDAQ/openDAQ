@@ -12,6 +12,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 
 using namespace daq;
@@ -23,7 +24,8 @@ public:
     {
         const auto moduleManager = ModuleManager("[[none]]");
         auto logger = Logger();
-        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

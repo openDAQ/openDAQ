@@ -27,6 +27,7 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/work_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -44,7 +45,7 @@ public:
     explicit GenericInputPortImpl(const ContextPtr& context,
                                   const ComponentPtr& parent,
                                   const StringPtr& localId,
-                                  const StringPtr& className = nullptr);
+                                  bool gapChecking = false);
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
@@ -54,13 +55,15 @@ public:
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* requiresSignal) override;
 
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
-    ErrCode INTERFACE_FUNC notifyPacketEnqueued() override;
+    ErrCode INTERFACE_FUNC notifyPacketEnqueued(Bool queueWasEmpty) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedOnThisThread() override;
     ErrCode INTERFACE_FUNC setListener(IInputPortNotifications* port) override;
 
     ErrCode INTERFACE_FUNC getCustomData(IBaseObject** data) override;
     ErrCode INTERFACE_FUNC setCustomData(IBaseObject* data) override;
     ErrCode INTERFACE_FUNC setRequiresSignal(Bool requiresSignal) override;
+
+    ErrCode INTERFACE_FUNC getGapCheckingEnabled(Bool* gapCheckingEnabled) override;
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
@@ -74,6 +77,10 @@ public:
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -99,13 +106,14 @@ protected:
 
 private:
     Bool requiresSignal;
+    bool gapCheckingEnabled;
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
 
     WeakRefPtr<IInputPortNotifications> listenerRef;
     WeakRefPtr<IConnection> connectionRef{};
     bool isInputPortRemoved;
-    FunctionPtr notifySchedulerCallback;
+    WorkPtr notifySchedulerCallback;
 
     LoggerComponentPtr loggerComponent;
     SchedulerPtr scheduler;
@@ -127,9 +135,10 @@ template <class... Interfaces>
 GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& context,
                              const ComponentPtr& parent,
                              const StringPtr& localId,
-                             const StringPtr& className)
-    : Super(context, parent, localId, className)
+                             bool gapCheckingEnabled)
+    : Super(context, parent, localId)
     , requiresSignal(true)
+    , gapCheckingEnabled(gapCheckingEnabled)
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)
     , connectionRef(nullptr)
@@ -156,7 +165,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool
     {
         const auto listener = listenerRef.getRef();
         if (listener.assigned())
-            return listener->acceptsSignal(this->template borrowInterface<IInputPort>(), signal, accepts);
+            return listener->acceptsSignal(Super::template borrowInterface<IInputPort>(), signal, accepts);
     }
 
     *accepts = true;
@@ -210,7 +219,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 
         if (inputPortListener.assigned())
         {
-            err = inputPortListener->connected(this->template borrowInterface<IInputPort>());
+            err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
             if (OPENDAQ_FAILED(err))
             {
                 connectionRef.release();
@@ -300,7 +309,7 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(bool notifyLi
         {
             const auto listener = listenerRef.getRef();
             if (listener.assigned())
-                listener->disconnected(this->template borrowInterface<IInputPort>());
+                listener->disconnected(Super::template borrowInterface<IInputPort>());
         }
     }
 
@@ -363,7 +372,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
 {
     std::scoped_lock lock(this->sync);
 
-    if (method == PacketReadyNotification::Scheduler && !scheduler.assigned())
+    if ((method == PacketReadyNotification::Scheduler || method == PacketReadyNotification::SchedulerQueueWasEmpty) && !scheduler.assigned())
     {
         LOG_W("Scheduler based notification not available");
         notifyMethod = PacketReadyNotification::SameThread;
@@ -401,10 +410,10 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 }
 
 template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued()
+ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
 {
     return wrapHandler(
-        [this]
+        [this, &queueWasEmpty]
         {
             switch (notifyMethod)
             {
@@ -415,6 +424,14 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued()
                 }
                 case PacketReadyNotification::Scheduler:
                 {
+                    notifyPacketEnqueuedScheduler();
+                    break;
+                }
+                case PacketReadyNotification::SchedulerQueueWasEmpty:
+                {
+                    if (!queueWasEmpty)
+                        break;
+
                     notifyPacketEnqueuedScheduler();
                     break;
                 }
@@ -434,6 +451,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
             {
                 case PacketReadyNotification::SameThread:
                 case PacketReadyNotification::Scheduler:
+                case PacketReadyNotification::SchedulerQueueWasEmpty:
                     notifyPacketEnqueuedSameThread();
 
                 case PacketReadyNotification::None:
@@ -452,7 +470,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
     if (listenerRef.assigned())
     {
         auto portRef = this->template getWeakRefInternal<IInputPort>();
-        notifySchedulerCallback = [notifyRef = listenerRef, portRef = portRef, loggerComponent = loggerComponent]
+        notifySchedulerCallback = Work([notifyRef = listenerRef, portRef = portRef, loggerComponent = loggerComponent]
         {
             auto notify = notifyRef.getRef();
             auto port = portRef.getRef();
@@ -466,10 +484,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
                 {
                     LOG_E("Input port notification failed: {}", e.what());
                 }
-                return true;
             }
-            return false;
-        };
+        });
     }
     else
         notifySchedulerCallback.release();
@@ -580,6 +596,37 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(Const
 }
 
 template <class... Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPort::Id)
+    {
+        *intf = static_cast<IInputPort*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+template <class... Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPort::Id)
+    {
+        *intf = const_cast<IInputPort*>(static_cast<const IInputPort*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
+}
+
+template <class... Interfaces>
 ConstCharPtr GenericInputPortImpl<Interfaces...>::SerializeId()
 {
     return "InputPort";
@@ -600,12 +647,12 @@ ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* seri
                        serialized,
                        context,
                        factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
+                       [](const SerializedObjectPtr&,
                           const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
+                          const StringPtr&)
                        {
                            return createWithImplementation<IInputPort, InputPortImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
                        })
                        .detach();
         });
@@ -736,6 +783,15 @@ ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSign
     std::scoped_lock lock(this->sync);
 
     this->requiresSignal = requiresSignal;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
+{
+    OPENDAQ_PARAM_NOT_NULL(gapCheckingEnabled);
+
+    *gapCheckingEnabled = this->gapCheckingEnabled;
     return OPENDAQ_SUCCESS;
 }
 

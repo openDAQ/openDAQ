@@ -2,6 +2,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/custom_log.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -38,7 +39,7 @@ public:
 
         for (const auto& device : devices)
         {
-            auto name = device.getInfo().getName();
+            auto name = device.getName();
             if (name == "MockPhysicalDevice")
                 device.setPropertyValue("GeneratePackets", packetCount);
         }
@@ -172,7 +173,8 @@ protected:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -481,7 +483,8 @@ protected:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -547,7 +550,8 @@ protected:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -55,26 +55,27 @@ public class IntegerObject : BaseObject
 
     /// <summary>Gets an int value stored in the object.</summary>
     /// <remarks>Call this method to extract the int value that is stored in the object.</remarks>
-    /// <returns>Stored int value.</returns>
-    public long GetValue()
+    public long Value
     {
-        //native output argument
-        long value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawIntegerObject.GetValue(base.NativePointer, out value);
+            //native output argument
+            long value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawIntegerObject.GetValue(base.NativePointer, out value);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
+
+            return value;
         }
-
-        return value;
     }
-
     /// <summary>Compares stored int value to the int parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the value parameter.</remarks>
     /// <param name="value">Value for comparison.</param>
@@ -89,7 +90,7 @@ public class IntegerObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawIntegerObject.EqualsValue(base.NativePointer, value, out equals);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -100,7 +101,7 @@ public class IntegerObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.IntegerObject' to/from 'long'
 
     /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.IntegerObject"/>.</summary>
     /// <param name="value">The managed <c>long</c> value.</param>
@@ -110,13 +111,12 @@ public class IntegerObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.IntegerObject"/> to <see cref="long"/>.</summary>
     /// <param name="value">The SDK <c>IntegerObject</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
-    public static implicit operator long(IntegerObject value) => value.GetValue();
+    public static implicit operator long(IntegerObject value) => value.Value;
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(long other) => ((long)this).Equals(other);
-
 
     #endregion operators
 }
@@ -142,7 +142,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createInteger(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new IntegerObject(objPtr, incrementReference: false);
@@ -159,7 +159,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createInteger(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

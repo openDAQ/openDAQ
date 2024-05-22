@@ -11,6 +11,7 @@
 #include <regex>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -30,15 +31,22 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
-                auto connectionStringIpv4 = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                auto connectionStringIpv6 = fmt::format("{}[{}]/",
-                                    DaqOpcUaDevicePrefix,
-                                    discoveredDevice.ipv6Address);
                 auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-                cap.addConnectionString(connectionStringIpv4);
-                cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString(connectionStringIpv6);
-                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                
+                if (!discoveredDevice.ipv4Address.empty())
+                {
+                    auto connectionStringIpv4 = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                    cap.addConnectionString(connectionStringIpv4);
+                    cap.addAddress(discoveredDevice.ipv4Address);
+                }
+
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    auto connectionStringIpv6 = fmt::format("{}[{}]/", DaqOpcUaDevicePrefix, discoveredDevice.ipv6Address);
+                    cap.addConnectionString(connectionStringIpv6);
+                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                }
+
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;
@@ -66,16 +74,19 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
     auto deviceType = createDeviceType();
     result.set(deviceType.getId(), deviceType);
-
     return result;
 }
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& config)
+                                            const PropertyObjectPtr& aConfig)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
+
+    PropertyObjectPtr config = aConfig;
+    if (!config.assigned())
+        config = createDefaultConfig();
 
     if (!onAcceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
@@ -91,7 +102,18 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         throw InvalidParameterException("OpcUa does not support connection string with prefix");
 
     std::scoped_lock lock(sync);
-    TmsClient client(context, parent, OpcUaScheme + host + path);
+
+    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + path);
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("Username"))
+            endpoint.setUsername(config.getPropertyValue("Username"));
+        if (config.hasProperty("Password"))
+            endpoint.setPassword(config.getPropertyValue("Password"));
+    }
+
+    TmsClient client(context, parent, endpoint);
     auto device = client.connect();
     completeDeviceServerCapabilities(device, host);
     return device;
@@ -137,9 +159,42 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
 {
-    return DeviceType(DaqOpcUaDeviceTypeId,
-                      "OpcUa enabled device",
-                      "Network device connected over OpcUa protocol");
+    const auto config = createDefaultConfig();
+    return DeviceType(DaqOpcUaDeviceTypeId, "OpcUa enabled device", "Network device connected over OpcUa protocol", config);
+}
+
+PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
+{
+    auto config = PropertyObject();
+
+    config.addProperty(StringProperty("Username", ""));
+    config.addProperty(StringProperty("Password", ""));
+
+    return config;
+}
+
+StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+{
+    if (serverCapability.getProtocolId() != "opendaq_opcua_config")
+        return nullptr;
+
+    StringPtr connectionString = serverCapability.getConnectionString();
+    if (connectionString.getLength() != 0)
+        return connectionString;
+
+    StringPtr address;
+    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
+    {
+        address = addresses[0];
+    }
+    if (!address.assigned() || address.toStdString().empty())
+        throw InvalidParameterException("Address is not set");
+
+    if (!serverCapability.hasProperty("Port"))
+        throw InvalidParameterException("Port is not set");
+    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
+
+    return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

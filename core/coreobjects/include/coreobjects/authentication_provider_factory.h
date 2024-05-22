@@ -26,21 +26,32 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates an empty authentication provider without any user.
+ * @brief Creates a default authentication provider with only anonymous authentication allowed.
  */
 inline AuthenticationProviderPtr AuthenticationProvider()
 {
-    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(nullptr));
+    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(true, nullptr));
+    return obj;
+}
+
+/*!
+ * @brief Creates an empty authentication provider without any user.
+ * @param allowAnonymous True if anonymous authentication is allowed.
+ */
+inline AuthenticationProviderPtr AuthenticationProvider(Bool allowAnonymous)
+{
+    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(allowAnonymous, nullptr));
     return obj;
 }
 
 /*!
  * @brief Creates an authentication provider out of static list of users.
+ * @param allowAnonymous True if anonymous authentication is allowed.
  * @param users List of user objects.
  */
-inline AuthenticationProviderPtr StaticAuthenticationProvider(const ListPtr<IUser>& users)
+inline AuthenticationProviderPtr StaticAuthenticationProvider(Bool allowAnonymous, const ListPtr<IUser>& users)
 {
-    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(users));
+    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(allowAnonymous, users));
     return obj;
 }
 

@@ -30,6 +30,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 {
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
+    this->name = "NativeStreamingClientPseudoDevice";
 
     initStatuses(ctx);
     createNativeStreaming(transportProtocolClient, processingIOContextPtr, initTimeout);

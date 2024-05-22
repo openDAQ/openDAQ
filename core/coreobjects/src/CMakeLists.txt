@@ -348,6 +348,7 @@ target_link_libraries(${LIB_NAME}
         tsl::ordered_map
     PRIVATE
         daq::core_containers
+        rapidjson
         $<BUILD_INTERFACE:Boost::algorithm>
         $<BUILD_INTERFACE:std::filesystem>
 )

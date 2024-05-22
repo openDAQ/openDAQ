@@ -2,7 +2,7 @@
 
 Streaming in the openDAQ(TM) architecture refers to the transport layer mechanism for continuous and real-time
 receiving of data from a data acquisition xref:background_info:device.adoc[Device], often facilitated by
-the use of protocols like xref:glossary:glossary.adoc#websocket_streaming_protocol[Websocket streaming], or
+the use of protocols like xref:glossary:glossary.adoc#streaming_lt_protocol[Streaming LT], or
 xref:glossary:glossary.adoc#native_streaming_protocol[openDAQ(TM) native streaming]. The data transmission
 follows a subscription-based model, where the client subscribes to xref:background_info:signals.adoc[Signals]'
 data produced by the Device. Streaming mechanism involves the receiving data in binary format over a
@@ -26,9 +26,9 @@ information can gain awareness of Streaming Servers added to the
 xref:opendaq_architecture.adoc#instance[openDAQ(TM) instance]. This enables the publication of
 information about available Streaming connections alongside the device's structural details. Simultaneously,
 the Client Module handling structural information transfer receives the information about Streaming
-connections propagated by the remote Device. It then delegates Streaming connections establishment to the
-appropriate Streaming Client Modules based on
-xref:howto_guides:howto_configure_streaming.adoc#streaming_config_per_device[user-defined configuration].
+connections propagated by the remote Device. Then, the establishment of Streaming connections is delegated
+to the appropriate Streaming Client Modules based on
+xref:howto_guides:howto_configure_streaming.adoc#streaming_autoconfig_per_device[user-defined configuration].
 
 * *How-to:* xref:howto_guides:howto_configure_streaming.adoc#server_config[Server side configuration]
 
@@ -47,11 +47,11 @@ xref:glossary:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) N
 initiating a connection with the openDAQ(TM) Native Streaming Server on the local machine, utilizing
 the default values: port number `7420` and path `"/"` . Similarly, the connection string
 `"daq.lt://192.168.1.3:7413/streaming"` will be accepted by the
-xref:glossary:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module], and this
-module will initiate a connection with the Websocket Streaming Server hosted on a remote machine with the
+xref:glossary:glossary.adoc#opendaq_streaming_lt_client_module[Streaming LT Client Module], and this
+module will initiate a connection with the Streaming LT Server hosted on a remote machine with the
 address `"192.168.1.3"`, employing the specified values for the port number (`7413`) and path (`"/streaming"`) .
 
-== Instantiating Streaming upon Device connection
+== Instantiating Streaming
 
 The openDAQ(TM) SDK supports two categories of xref:background_info:device.adoc[Device]s characterized by
 their approach to Streaming utilization:
@@ -66,13 +66,12 @@ transfer Modules. For those, Streaming is integrated with <<mirrored_signals,Mir
 only used for data transfer purposes.
 
 Regardless of the Device type, upon connection, it should be able to immediately start the data streaming.
-To accomplish this, the client Module responsible for creating the Device object also instantiates
-a Streaming object. It is achieved in two ways:
+To accomplish this, the openDAQ(TM) instantiates a Streaming object automatically. It is achieved in two ways:
 
-* for pseudo-devices with a flat list of signals the Module creates a Streaming object on its own using
-the connection parameters specified in the device connection string.
-* for devices supporting a complete tree structure, the Module delegates the creation of the Streaming
-object to another Module using the information about supported Streaming protocols published by the Device.
+* for pseudo-devices with a flat list of signals the client Module responsible for creating the Device object also
+creates a Streaming object on its own using the connection parameters specified in the device connection string.
+* for devices supporting a complete tree structure, the creation of the Streaming object is delegated to
+another Module using the information about supported Streaming protocols published by the Device.
 
 The above also implies that, when connecting to a structure-enabled Device, all its streaming capabilities
 are discovered, including those of its sub-devices, making it possible to establish connections with all
@@ -82,8 +81,15 @@ The configuration mechanism enables the filtering of Streaming capabilities avai
 protocol type. Additionally, it provides control over the number of hops the streamed data must make
 between nested devices.
 
+In addition to automatic Streaming connections, users can manually instantiate additional Streaming connections
+for the Device at any time after the Device is connected. This is done by using the __addStreaming__ call
+call, which accepts the appropriate <<streaming_connection_string, Streaming connection string>> along with
+a set of properties specific to the streaming protocol type. This call returns the instantiated Streaming object.
+The Device's <<mirrored_signals,Mirrored Signal>>s can then be associated with this Streaming object.
+
 * *How-to:* xref:howto_guides:howto_configure_streaming.adoc#connecting_pseudo_devices[Connecting to Streaming protocol based pseudo-devices]
-* *How-to:* xref:howto_guides:howto_configure_streaming.adoc#streaming_config_per_device[Configure Streaming for structure-enabled Device]
+* *How-to:* xref:howto_guides:howto_configure_streaming.adoc#streaming_autoconfig_per_device[Configure Streaming for structure-enabled Device automatically]
+* *How-to:* xref:howto_guides:howto_configure_streaming.adoc#streaming_add_per_device[Add Streaming for structure-enabled Device manually]
 
 [#mirrored_signals]
 == Mirrored signals

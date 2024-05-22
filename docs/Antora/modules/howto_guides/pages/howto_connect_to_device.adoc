@@ -9,12 +9,28 @@ The procedure of querying Modules for available Devices, as well as selecting th
 
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
-== Connecting to openDAQ(TM) OPC UA Devices
+== Discovering Devices
+openDAQ(TM) provides three client and three server modules. They make possible to connect to openDAQ(TM) devices, as well as transfer their signal data. 
+To discover available devices, we can use the `getAvailableDevices` method of the openDAQ(TM) instance which returns the list of devices info of all available devices.
+Device info contains information about device such as name, serial number, connection string, server capabilities, etc.
+Connection string is used to connect to the device. Prefix of connection string indentifies the protocol used to connect to the device or a type of device.
+
+* `daqref://` indentifies the reference device module that simulates sine wave signals;
+* `daq.opcua://` is a prefix of OPC UA device;
+* `daq.ns://` indentifies the devices which supports native streaming protocol;
+* `daq.lt://` is a prefix of device that supports streaming Lt protocol;
+* `daq://` is a prefix of the device that supports multiple protocols and alows to connect with optimal protocol. The host will represent the device manufacturer and serial number and will have a list of server capabilities which represent the protocols that device supports and connection strings for each protocol.
+
+== Connecting to Devices
+To connect to device developer can use either connection string from the device Info or if there is a need to connect with required protocol, use conenction string from server capability. Some server capabilities may contain multiple connection strings for the same protocol. The primary connection string can be view with the method `getConnectionString` and all possible addresses with the method `getConnectionStrings`.
+
+NOTE: Device info may contatin server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
+
+== Connecting to openDAQ(TM) OPC UA devices
 
 openDAQ(TM) provides three client and three server Modules. They enable us to connect to openDAQ(TM) Devices,
 as well as transfer their signal data. The openDAQ(TM) `opcua_client_module` uses an OPC UA client to connect to
-openDAQ(TM) OPC UA-compatible Devices that are running a compatible OPC UA server. openDAQ(TM) OPC UA Devices are discovered at
-an address prefixed with `"daq.opcua://"`.
+openDAQ(TM) OPC UA-compatible devices that are running a compatible OPC UA server. Discovered devices which supports OPC UA protocol has server capabilities with protocol name `openDAQ OpcUa` in device info.
 
 [tabs]
 ====
@@ -61,7 +77,7 @@ instance = opendaq.Instance()
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
-            print("Name: ", device_info.name,  ", Address: ",  capability.connection_string)
+            print('Name:', device_info.name, 'Address:', capability.connection_string)
 ----
 C#::
 +
@@ -165,9 +181,11 @@ is the openDAQ(TM) reference Device Module, which allows for the creation of ref
 
 Depending on the Modules loaded we can connect to different types of Devices. When a Device is
 integrated into openDAQ(TM), it is added/connected to in the same manner as a openDAQ(TM) OPC UA Device, but using its
-own discovery mechanism and connection string format. For example, the openDAQ(TM) reference Device Module
-uses addresses prefixed with `"daqref://"`, the openDAQ(TM) `native_stream_cl_module` uses addresses prefixed with `"daq.ns://"` and
-the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with `"daq.lt://"`.
+own discovery mechanism and connection string format. For example:
+
+* the openDAQ(TM) reference device module uses addresses prefixed with "daqref://" and does not have server capability;
+* the openDAQ(TM) `native_stream_cl_module` has server capability with name `openDAQ Native Configuration` and uses addresses prefixed with "daq.ns://";
+* the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.lt://" and have server capability with name `openDAQ LT Streaming`.
 
 [tabs]
 ====

@@ -11,6 +11,7 @@ namespace RTGen.Delphi.Types
             ArrayInfo = null;
             DefaultValue = null;
             IsPolymorphic = false;
+            StealRef = false;
         }
 
         public ITypeName Type { get; set; }
@@ -27,7 +28,9 @@ namespace RTGen.Delphi.Types
 
         public string DefaultValue { get; }
 
-        public bool IsPolymorphic { get; set; } 
+        public bool IsPolymorphic { get; set; }
+
+        public bool StealRef { get; set; }
 
         public IArgument Clone()
         {

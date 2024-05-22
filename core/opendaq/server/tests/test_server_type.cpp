@@ -18,21 +18,15 @@ TEST_F(ServerTypeTest, ServerTypeFactory)
     ASSERT_EQ(config.getAllProperties().getCount(), 0u);
 }
 
-TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfigCallback)
+TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfig)
 {
     ServerTypePtr serverType;
 
-    auto defaultConfigCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        auto defaultConfig = PropertyObject();
-        auto info = PropertyBuilder("Timeout").setDefaultValue(2).setValueType(ctFloat).build();
-        defaultConfig.addProperty(info);
-        
-        *output = defaultConfig.detach();
-        return OPENDAQ_SUCCESS;
-    };
+    auto defaultConfig = PropertyObject();
+    auto info = PropertyBuilder("Timeout").setDefaultValue(2).setValueType(ctFloat).build();
+    defaultConfig.addProperty(info);
 
-    ASSERT_NO_THROW(serverType = ServerType("test_uid", "", "", defaultConfigCallback));
+    ASSERT_NO_THROW(serverType = ServerType("test_uid", "", "", defaultConfig));
 
     auto defaultConfigClone = serverType.createDefaultConfig();
     ASSERT_TRUE(defaultConfigClone.assigned());
@@ -43,37 +37,8 @@ TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfigCallback)
 
 TEST_F(ServerTypeTest, DefaultConfigNullValue)
 {
-    auto defaultConfigCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        return OPENDAQ_SUCCESS;
-    };
-
-    ServerTypePtr serverType = ServerType("test_uid", "", "", defaultConfigCallback);
+    ServerTypePtr serverType = ServerType("test_uid", "", "", nullptr);
     ASSERT_FALSE(serverType.createDefaultConfig().assigned());
-}
-
-TEST_F(ServerTypeTest, DefaultConfigWrongType)
-{
-    auto defaultConfigCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        auto defaultConfig = StringPtr("");
-        *output = defaultConfig.detach();
-        return OPENDAQ_SUCCESS;
-    };
-
-    ServerTypePtr serverType = ServerType("test_uid", "", "", defaultConfigCallback);
-    ASSERT_THROW(serverType.createDefaultConfig(), ConversionFailedException);
-}
-
-TEST_F(ServerTypeTest, DefaultConfigErrorCode)
-{
-    auto defaultConfigCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
-    };
-
-    ServerTypePtr serverType = ServerType("test_uid", "", "", defaultConfigCallback);
-    ASSERT_THROW(serverType.createDefaultConfig(), NotImplementedException);
 }
 
 TEST_F(ServerTypeTest, ServerTypeStructType)

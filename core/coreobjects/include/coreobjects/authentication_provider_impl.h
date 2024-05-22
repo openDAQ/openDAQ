@@ -19,6 +19,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coreobjects/user_ptr.h>
+#include <rapidjson/document.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,15 +28,17 @@ BEGIN_NAMESPACE_OPENDAQ
 class AuthenticationProviderImpl : public ImplementationOf<IAuthenticationProvider>
 {
 public:
-    explicit AuthenticationProviderImpl();
+    explicit AuthenticationProviderImpl(bool allowAnonymous);
 
     ErrCode INTERFACE_FUNC authenticate(IString* username, IString* password, IUser** userOut) override;
+    ErrCode INTERFACE_FUNC isAnonymousAllowed(Bool* allowedOut) override;
 
 protected:
     void loadUserList(const ListPtr<IUser>& userList);
     virtual UserPtr findUser(const StringPtr& username);
     bool isPasswordValid(const StringPtr& hash, const StringPtr& password);
 
+    bool allowAnonymous;
     DictPtr<IString, IUser> users;
 };
 
@@ -44,7 +47,7 @@ protected:
 class StaticAuthenticationProviderImpl : public AuthenticationProviderImpl
 {
 public:
-    StaticAuthenticationProviderImpl(const ListPtr<IUser>& users);
+    StaticAuthenticationProviderImpl(bool allowAnonymous, const ListPtr<IUser>& users);
 };
 
 // JsonStringAuthenticationProviderImpl
@@ -56,6 +59,10 @@ public:
 
 protected:
     void loadJsonString(const StringPtr& jsonString);
+    bool parseAllowAnonymous(rapidjson::Document& document);
+    DictPtr<IString, IUser> parseUsers(rapidjson::Document& document);
+    UserPtr parseUser(const rapidjson::Value& userObject);
+    ListPtr<IString> parseUserGroups(const rapidjson::Value& userObject);
 };
 
 // JsonFileAuthenticationProviderImpl

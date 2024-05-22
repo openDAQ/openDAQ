@@ -357,6 +357,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     const auto scheduler = Scheduler(logger);
     const auto moduleManager = ModuleManager("./modulePath1");
     const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
+    const auto authenticationProvider = AuthenticationProvider();
 
     const auto instanceBuilder = InstanceBuilder()
                                 .setLogger(logger)
@@ -369,7 +370,8 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setScheduler(scheduler)
                                 .setDefaultRootDeviceLocalId("openDAQ Client")
                                 .setRootDevice("test")
-                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
+                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+                                .setAuthenticationProvider(authenticationProvider);
 
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
@@ -389,6 +391,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "openDAQ Client");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
+    ASSERT_EQ(instanceBuilder.getAuthenticationProvider(), authenticationProvider);
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetContext)
@@ -396,7 +399,8 @@ TEST_F(InstanceTest, InstanceBuilderSetContext)
     const auto logger = Logger();
     const auto moduleManager = ModuleManager("[[none]]");
     const auto typeManager = TypeManager();
-    const auto context = Context(nullptr, logger, typeManager, moduleManager);
+    const auto authenticationProvider = AuthenticationProvider();
+    const auto context = Context(nullptr, logger, typeManager, moduleManager, authenticationProvider);
 
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);
@@ -409,6 +413,7 @@ TEST_F(InstanceTest, InstanceBuilderSetContext)
     ASSERT_EQ(instance.getContext().getTypeManager(), typeManager);
     ASSERT_EQ(instance.getContext().getLogger(), logger);
     ASSERT_EQ(instance.getContext().getScheduler(), context.getScheduler());
+    ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
     ASSERT_NO_THROW(instance.addDevice("mock_phys_device"));
 }
 
@@ -418,7 +423,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
     config.addProperty(StringProperty("message", "Hello from config."));
 
     const auto moduleManager = ModuleManager("[[none]]");
-    const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+    const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr);
 
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);
@@ -435,23 +440,26 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger, 2);
     const auto moduleManager = ModuleManager("");
+    const auto authenticationProvider = AuthenticationProvider();
     const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
 
     auto instance = InstanceBuilder()
-                                .setLogger(logger)
-                                .setGlobalLogLevel(LogLevel::Debug)
-                                .setModuleManager(moduleManager)
-                                .setScheduler(scheduler)
-                                .setDefaultRootDeviceLocalId("openDAQ Client")
-                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
-                                .setSchedulerWorkerNum(1)
-                                .build();
+                        .setLogger(logger)
+                        .setGlobalLogLevel(LogLevel::Debug)
+                        .setModuleManager(moduleManager)
+                        .setScheduler(scheduler)
+                        .setDefaultRootDeviceLocalId("openDAQ Client")
+                        .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+                        .setSchedulerWorkerNum(1)
+                        .setAuthenticationProvider(authenticationProvider)
+                        .build();
 
     ASSERT_EQ(instance.getContext().getLogger(), logger);
     ASSERT_EQ(instance.getContext().getLogger().getLevel(), LogLevel::Debug);
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
+    ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
     ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client"));
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
@@ -493,7 +501,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 
     instance.setRootDevice("mock_phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
-    ASSERT_EQ(instance.getRootDevice().getName(), "mockdev");
+    ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
 }
 
 END_NAMESPACE_OPENDAQ

@@ -45,16 +45,12 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
-    auto createMockConfig = []()
-    {
-        auto config = PropertyObject();
-        config.addProperty(StringProperty("message", ""));
-        return config;
-    };
+    auto mockConfig = PropertyObject();
+    mockConfig.addProperty(StringProperty("message", ""));
 
     auto types = Dict<IString, IDeviceType>();
     types.set("daq_client_device", DeviceType("daq_client_device", "Client", "Client device"));
-    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", createMockConfig));
+    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", mockConfig));
 
     *deviceTypes = types.detach();
     return OPENDAQ_SUCCESS;
@@ -153,6 +149,11 @@ ErrCode MockDeviceModuleImpl::acceptsStreamingConnectionParameters(Bool* accepte
 ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+ErrCode MockDeviceModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

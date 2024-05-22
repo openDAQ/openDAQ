@@ -216,24 +216,6 @@
             ]
         },
         {
-            "name": "x64/msvc-22/full/release",
-            "displayName": "[MSVC 22] Full - x64",
-            "inherits": [
-                "full/release",
-                "msvc-22",
-                "msvc-x64"
-            ]
-        },
-        {
-            "name": "x64/msvc-22/full/debug",
-            "displayName": "[MSVC 22] Full - x64",
-            "inherits": [
-                "full/debug",
-                "msvc-22",
-                "msvc-x64"
-            ]
-        },
-        {
             "name": "x64/gcc/full/debug",
             "displayName": "[GCC] Full - Debug",
             "inherits": [

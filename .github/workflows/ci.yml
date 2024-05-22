@@ -7,6 +7,7 @@ on:
 ### TODO: Enable Python binding tests on all distributions
 
 env:
+  regression_tests_target_tag: v3.0.0
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -16,7 +17,6 @@ env:
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
-  regression_tests_target_tag: v3.0.0
 
 jobs:
   build_windows:

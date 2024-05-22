@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:36.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,6 +73,8 @@ public class Enumeration : BaseObject
         base._virtualTable =
             _rawEnumeration = Marshal.PtrToStructure<RawEnumeration>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets the Enumeration&apos;s type.</summary>
     public EnumerationType EnumerationType
@@ -149,6 +151,8 @@ public class Enumeration : BaseObject
             return value;
         }
     }
+
+    #endregion properties
 
     #region operators
 

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:45.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,6 +73,8 @@ public class StructType : DaqType
         base._virtualTable =
             _rawStructType = Marshal.PtrToStructure<RawStructType>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets the list of field names.</summary>
     public IListObject<StringObject> FieldNames
@@ -142,6 +144,8 @@ public class StructType : DaqType
             return new ListObject<DaqType>(typesPtr, incrementReference: false);
         }
     }
+
+    #endregion properties
 }
 
 

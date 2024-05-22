@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:47.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,6 +73,8 @@ public class TypeManager : BaseObject
             _rawTypeManager = Marshal.PtrToStructure<RawTypeManager>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a list of all added Types.</summary>
     public IListObject<StringObject> Types
     {
@@ -95,6 +97,9 @@ public class TypeManager : BaseObject
             return new ListObject<StringObject>(typesPtr, incrementReference: false);
         }
     }
+
+    #endregion properties
+
     /// <summary>Adds a type to the manager.</summary>
     /// <remarks>
     /// The type name must be unique and. If a Property object class specifies a parent class,

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:36.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -94,6 +94,8 @@ public class CoreTypeObject : BaseObject
             _rawCoreTypeObject = Marshal.PtrToStructure<RawCoreTypeObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets the object&apos;s CoreType.</summary>
     public CoreType CoreType
     {
@@ -116,6 +118,8 @@ public class CoreTypeObject : BaseObject
             return coreType;
         }
     }
+
+    #endregion properties
 }
 
 

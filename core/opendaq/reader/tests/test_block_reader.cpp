@@ -1927,7 +1927,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
     auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
-    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr1[0]);
 }
 
@@ -1967,7 +1967,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
     auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
-    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr1[0]);
 }
 

@@ -30,30 +30,69 @@ struct BlockReadInfo
     using Duration = Clock::duration;
     using DataPacketsQueueType = std::list<DataPacketPtr>;
 
-    DataPacketPtr dataPacket;
+    DataPacketsQueueType dataPacketsQueue;
+    DataPacketsQueueType::iterator currentDataPacketIter{dataPacketsQueue.end()};
 
     SizeT prevSampleIndex{};
     SizeT writtenSampleCount{};
-    SizeT overlappedSamplesToRead{};
 
     SizeT remainingSamplesToRead{};
-    void* values{};
 
+    void* values{};
     void* domainValues{};
+
     Clock::duration timeout;
 
     Clock::time_point startTime;
 
-    // Data packets queue implementation
-    DataPacketsQueueType dataPacketsQueue;
-    DataPacketsQueueType::iterator currentDataPacketIter{dataPacketsQueue.end()};
-    SizeT actualSampleRead{};
-    SizeT remainingSamplesToReadNew;
-    // ---------------------------------
+    BlockReadInfo() = default;
+
+    BlockReadInfo(const BlockReadInfo& other)
+        : dataPacketsQueue(other.dataPacketsQueue)
+        , prevSampleIndex(other.prevSampleIndex)
+        , writtenSampleCount(other.writtenSampleCount)
+        , remainingSamplesToRead(other.remainingSamplesToRead)
+        , values(other.values)
+        , domainValues(other.domainValues)
+        , timeout(other.timeout)
+        , startTime(other.startTime)
+    {
+        using ConstIterType = DataPacketsQueueType::const_iterator;
+        auto dataPacketIterPos = std::distance<ConstIterType>(other.dataPacketsQueue.begin(), other.currentDataPacketIter);
+        currentDataPacketIter = std::next(dataPacketsQueue.begin(), dataPacketIterPos);
+    }
+
+    BlockReadInfo& operator=(const BlockReadInfo& other)
+    {
+        if (this == &other)
+            return *this;
+
+        dataPacketsQueue = other.dataPacketsQueue;
+        prevSampleIndex = other.prevSampleIndex;
+        writtenSampleCount = other.writtenSampleCount;
+        remainingSamplesToRead = other.remainingSamplesToRead;
+        values = other.values;
+        domainValues = other.domainValues;
+        timeout = other.timeout;
+        startTime = other.startTime;
+
+        using ConstIterType = DataPacketsQueueType::const_iterator;
+        auto dataPacketIterPos = std::distance<ConstIterType>(other.dataPacketsQueue.begin(), other.currentDataPacketIter);
+        currentDataPacketIter = std::next(dataPacketsQueue.begin(), dataPacketIterPos);
+
+        return *this;
+    }
+
+    void trimQueue(SizeT packetSize, SizeT overlapSize)
+    {
+        auto packetCount = overlapSize / packetSize;
+        packetCount += overlapSize % packetSize ? 1 : 0;
+        while (dataPacketsQueue.size() > packetCount)
+            dataPacketsQueue.pop_front();
+    }
 
     void prepare(void* outValues, SizeT sampleCount, SizeT blockSize, std::chrono::milliseconds timeoutTime)
     {
-        remainingSamplesToReadNew = sampleCount;
         remainingSamplesToRead = sampleCount;
         values = outValues;
 
@@ -65,7 +104,6 @@ struct BlockReadInfo
 
     void prepareWithDomain(void* outValues, void* domain, SizeT sampleCount, SizeT blockSize, std::chrono::milliseconds timeoutTime)
     {
-        remainingSamplesToReadNew = sampleCount;
         remainingSamplesToRead = sampleCount;
         values = outValues;
 
@@ -77,9 +115,14 @@ struct BlockReadInfo
 
     void reset()
     {
-        dataPacket = nullptr;
-        currentDataPacketIter = dataPacketsQueue.end();
         prevSampleIndex = 0;
+    }
+
+    void clean() {
+        writtenSampleCount = 0;
+        currentDataPacketIter = dataPacketsQueue.end();
+        dataPacketsQueue.clear();
+        reset();
     }
 
     [[nodiscard]] Duration durationFromStart() const { return std::chrono::duration_cast<Duration>(Clock::now() - startTime); }
@@ -140,7 +183,6 @@ public:
 private:
     ErrCode readPackets(IReaderStatus** status, SizeT* count);
     ErrCode readPacketData();
-    ErrCode readPacketDataNew();
 
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;

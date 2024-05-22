@@ -1149,7 +1149,7 @@ TEST_F(MultiReaderTest, EpochChanged)
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 632u);
 
-    // Read over the signal-descriptor change
+    // Read over the signal-descriptor change (it will stop on event so maximim read samples will be still 632)
     constexpr const SizeT SAMPLES = SIG1_PACKET_SIZE + 1;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1160,12 +1160,10 @@ TEST_F(MultiReaderTest, EpochChanged)
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(count, available);
 
-    available = multi.getAvailableCount();
-
-    printData(SAMPLES, time, values);
-    roundData<std::chrono::microseconds>(SAMPLES, time);
+    printData(count, time, values);
+    roundData<std::chrono::microseconds>(count, time);
 
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
@@ -1201,9 +1199,6 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
 
-    available = multi.getAvailableCount();
-    ASSERT_EQ(available, 458u);
-
     constexpr const SizeT SAMPLES = 5u;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1212,7 +1207,20 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count{SAMPLES};
+    SizeT count{1};
+    MultiReaderStatusPtr status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_TRUE(status.getEventPackets().assigned());
+    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
+    ASSERT_EQ(status.getEventPackets()[0], nullptr); 
+    ASSERT_NE(status.getEventPackets()[1], nullptr); 
+    ASSERT_EQ(status.getEventPackets()[2], nullptr); 
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 458u);
+
+
+    count = SAMPLES;
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
 
     ASSERT_EQ(count, SAMPLES);
@@ -1334,7 +1342,7 @@ TEST_F(MultiReaderTest, ResolutionChanged)
     // 732 - 100 needed to sync before descriptor changed
     ASSERT_EQ(available, 632u);
 
-    // Read over the signal-descriptor change
+    // Read over the signal-descriptor change. it will stops on event. so it will read 632 as getAvailableCount return synced samples until event
     constexpr const SizeT SAMPLES = SIG1_PACKET_SIZE + 1;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1345,10 +1353,10 @@ TEST_F(MultiReaderTest, ResolutionChanged)
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(count, available);
 
-    printData(SAMPLES, time, values);
-    roundData<std::chrono::microseconds>(SAMPLES, time);
+    printData(available, time, values);
+    roundData<std::chrono::microseconds>(available, time);
 
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));

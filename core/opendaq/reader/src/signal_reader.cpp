@@ -228,8 +228,6 @@ void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, 
 
 std::unique_ptr<Comparable> SignalReader::readStartDomain()
 {
-    readUntilNextDataPacket();
-
     DataPacketPtr domainPacket = info.dataPacket.getDomainPacket();
     if (!domainPacket.assigned())
     {
@@ -239,18 +237,36 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
     return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
 }
 
-bool SignalReader::isFirstPacketEvent() const
+bool SignalReader::isFirstPacketEvent()
 {
+    if (info.dataPacket.assigned())
+    {
+        return false;
+    }
+
     auto packet = connection.peek();
-    return packet.assigned() && packet.getType() == PacketType::Event;
+    while (packet.assigned())
+    {
+        if (packet.getType() == PacketType::Data)
+        {
+            connection.dequeue();
+            info.dataPacket = packet;
+            info.prevSampleIndex = 0;
+            return false;
+        }
+        else if (packet.getType() == PacketType::Event)
+        {
+            return true;
+        }
+        connection.dequeue();
+    }
+    return false;
 }
 
 EventPacketPtr SignalReader::readUntilNextDataPacket()
 {
-    if (info.dataPacket.assigned())
-    {
+    if (!isFirstPacketEvent())
         return nullptr;
-    }
 
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
@@ -260,17 +276,21 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     {
         if (packet.getType() == PacketType::Event)
         {
-            auto params = packet.asPtr<IEventPacket>().getParameters();
-            DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-            DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                auto params = eventPacket.getParameters();
+                DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+                DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
 
-            if (newValueDescriptor.assigned())
-            {
-                dataDescriptor = newValueDescriptor;
-            }
-            if (newDomainDescriptor.assigned())
-            {
-                domainDescriptor = newDomainDescriptor;
+                if (newValueDescriptor.assigned())
+                {
+                    dataDescriptor = newValueDescriptor;
+                }
+                if (newDomainDescriptor.assigned())
+                {
+                    domainDescriptor = newDomainDescriptor;
+                }
             }
         }
         packet = connection.dequeue();
@@ -279,11 +299,15 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     if (packet.assigned() && packet.getType() == PacketType::Data)
     {
         info.dataPacket = packet;
+        info.prevSampleIndex = 0;
     }
 
     if (dataDescriptor.assigned() || domainDescriptor.assigned())
     {
-        return DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+        bool firstData {false};
+        handlePacket(eventPacket, firstData);
+        return eventPacket;
     }
 
     return nullptr;
@@ -294,7 +318,8 @@ bool SignalReader::sync(const Comparable& commonStart)
     if (synced == SyncStatus::Synchronized)
         return true;
 
-    readUntilNextDataPacket();
+    if (isFirstPacketEvent())
+       return false;
 
     SizeT startPackets = info.prevSampleIndex;
     Int droppedPackets = 0;
@@ -315,7 +340,9 @@ bool SignalReader::sync(const Comparable& commonStart)
             droppedPackets += static_cast<Int>(domainPacket.getSampleCount() - startPackets);
 
             info.dataPacket = nullptr;
-            readUntilNextDataPacket();
+
+            if (isFirstPacketEvent())
+                return false;
 
             startPackets = 0;
         }

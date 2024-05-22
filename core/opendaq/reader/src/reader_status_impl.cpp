@@ -87,25 +87,12 @@ MultiReaderStatusImpl::MultiReaderStatusImpl(const ListPtr<IEventPacket>& eventP
 ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    bool eventEncountered = false;
-    if (eventPackets.assigned())
-    {
-       for (const auto & eventPacket : eventPackets)
-       {
-           if (eventPacket.assigned())
-           {
-               eventEncountered = true;
-               break;
-           }
-       }
-    }
-
     Bool valid;
     Super::getValid(&valid);
 
-    if (valid && !eventEncountered)
+    if (valid && !eventPackets.assigned())
         *status = ReadStatus::Ok;
-    else if (eventEncountered)
+    else if (eventPackets.assigned())
         *status = ReadStatus::Event;
     else
         *status = ReadStatus::Fail;

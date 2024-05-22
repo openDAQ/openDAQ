@@ -434,17 +434,7 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 
     std::lock_guard lock(mutex);
 
-    bool eventEncountered = false;
-    for (const auto& signal : signals)
-    {
-        if (signal.isFirstPacketEvent())
-        {
-            eventEncountered = true;
-            break;
-        }
-    }
-
-    if (eventEncountered)
+    if (getMinSamplesAvailable() == 0)
     {
         *count = 0;
         return OPENDAQ_SUCCESS;
@@ -592,40 +582,19 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-ErrCode MultiReaderImpl::readUntilFirstDataPacket(IList** eventPackets)
+ListPtr<IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
     auto packets = List<EventPacketPtr>();
     bool eventEncountered = false;
-    try
-    {
-        for (auto& signal : signals)
-        {
-            auto packet = signal.readUntilNextDataPacket();
-            eventEncountered |= packet.assigned();
-            packets.pushBack(packet);
-        }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, nullptr);
-    }
-    catch (const std::exception& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return OPENDAQ_ERR_GENERALERROR;
-    }
 
-    if (eventPackets)
+    for (auto& signal : signals)
     {
-        if (eventEncountered)
-            *eventPackets = packets.detach();
-        else
-            *eventPackets = nullptr;
+        auto packet = signal.readUntilNextDataPacket();
+        eventEncountered |= packet.assigned();
+        invalid |= signal.invalid;
+        packets.pushBack(packet);
     }
-    return OPENDAQ_SUCCESS;
+    return eventEncountered ? packets.detach() : nullptr;
 }
 
 ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
@@ -633,20 +602,22 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     min = getMinSamplesAvailable();
     syncStatus = getSyncStatus();
 
-    if (syncStatus != SyncStatus::Synchronized)
+    if ((min != 0) && (syncStatus != SyncStatus::Synchronized))
     {
         try
         {
-            if (min > 1 && syncStatus != SyncStatus::Synchronizing)
+            // set info data packet
+            for (auto& signal : signals)
+            {
+                signal.isFirstPacketEvent();
+            }
+
+            if (syncStatus != SyncStatus::Synchronizing)
             {
                 setStartInfo();
                 readDomainStart();
-                sync();
             }
-            else if (syncStatus == SyncStatus::Synchronizing)
-            {
-                sync();
-            }
+            sync();
 
             // Re-check samples available after dropping them to sync
             syncStatus = getSyncStatus();
@@ -685,23 +656,11 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
     while (remainingSamplesToRead > 0 && remainingTime >= 1ms)
     {
 
-        ListPtr<IEventPacket> eventPackets;
-        errCode = readUntilFirstDataPacket(&eventPackets);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            if (errCode == OPENDAQ_ERR_INVALID_DATA)
-            {
-                invalid = true;
-                errorMessage = reader::getErrorMessage();
-
-                clearErrorInfo();
-            }
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
-            return OPENDAQ_SUCCESS;
-        }
+        auto eventPackets = readUntilFirstDataPacket();
         if (eventPackets.assigned())
         {
             *status = MultiReaderStatus(eventPackets, !invalid).detach();
+            return OPENDAQ_SUCCESS;
         }
 
         if (timeout.count() != 0)
@@ -925,12 +884,9 @@ void MultiReaderImpl::readDomainStart()
         {
             commonStart = std::move(sigStart);
         }
-        else
+        else if (*commonStart < *sigStart) 
         {
-            if (*commonStart < *sigStart)
-            {
-                commonStart = std::move(sigStart);
-            }
+            commonStart = std::move(sigStart);
         }
     }
 

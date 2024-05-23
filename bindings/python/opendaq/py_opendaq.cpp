@@ -61,6 +61,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classTimeTailReader = declareTimeTailReader(m);
     auto classTimeBlockReader = declareTimeBlockReader(m);
     auto classTimeMultiReader = declareTimeMultiReader(m);
+    auto classIMultiReaderBuilder = declareIMultiReaderBuilder(m);
     auto classIReaderStatus = declareIReaderStatus(m);
     auto classIBlockReaderStatus = declareIBlockReaderStatus(m);
     auto classIAwaitable = declareIAwaitable(m);
@@ -142,6 +143,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineTimeTailReader(m, classTimeTailReader);
     defineTimeBlockReader(m, classTimeBlockReader);
     defineTimeMultiReader(m, classTimeMultiReader);
+    defineIMultiReaderBuilder(m, classIMultiReaderBuilder);
     defineIReaderStatus(m, classIReaderStatus);
     defineIBlockReaderStatus(m, classIBlockReaderStatus);
     defineIAwaitable(m, classIAwaitable);

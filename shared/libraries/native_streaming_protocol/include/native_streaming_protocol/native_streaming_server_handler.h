@@ -17,7 +17,7 @@
 #pragma once
 
 #include <native_streaming_protocol/server_session_handler.h>
-#include <native_streaming_protocol/subscribers_registry.h>
+#include <native_streaming_protocol/streaming_manager.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
@@ -57,36 +57,33 @@ protected:
     void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
-    void handleStreamingInit(SessionPtr session);
+    void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
 
-    void removeSignalInternal(const SignalPtr& signal);
+    void removeSignalInternal(SignalNumericIdType signalNumericId, const SignalPtr& signal);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
                                   const std::string& signalStringId,
                                   bool subscribe,
-                                  SessionPtr session);
-
-    SignalNumericIdType registerSignal(const SignalPtr& signal);
-    void unregisterSignal(const SignalPtr& signal);
-    SignalPtr findRegisteredSignal(const std::string &signalKey);
-    SignalNumericIdType findSignalNumericId(const SignalPtr& signal);
+                                  const std::string& clientId);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
-    SignalNumericIdType signalNumericIdCounter;
 
     std::shared_ptr<daq::native_streaming::Server> server;
-    SubscribersRegistry subscribersRegistry;
+    StreamingManager streamingManager;
 
-    std::unordered_map<std::string, std::tuple<SignalPtr, SignalNumericIdType>> signalRegistry;
+    using Clients = std::unordered_map<std::string, std::shared_ptr<ServerSessionHandler>>;
+    Clients sessionHandlers;
 
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 
     std::mutex sync;
+    size_t connectedClientIndex;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

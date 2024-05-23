@@ -13,6 +13,10 @@
 #include <regex>
 #include <string>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <config_protocol/config_protocol_client.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -29,6 +33,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             std::move(context),
             "NativeStreamingClient")
     , pseudoDeviceIndex(0)
+    , transportClientIndex(0)
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
@@ -102,6 +107,11 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     )
 {
     loggerComponent = this->context.getLogger().getOrAddComponent("NativeClient");
+
+    boost::uuids::random_generator gen;
+    const auto uuidBoost = gen();
+    transportClientUuidBase = boost::uuids::to_string(uuidBoost);
+
     discoveryClient.initMdnsClient(List<IString>("_opendaq-streaming-native._tcp.local."));
 }
 
@@ -342,9 +352,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     ProtocolType protocolType = ProtocolType::Unknown;
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
-        std::scoped_lock lock(sync);
-
-        std::string localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
+        std::string localId;
+        {
+            std::scoped_lock lock(sync);
+            localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
+        }
 
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
@@ -478,6 +490,12 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     {
         modifiedHost = modifiedHost.toStdString().substr(1, modifiedHost.getLength() - 2);
     }
+
+    {
+        std::scoped_lock lock(sync);
+        transportLayerConfig.addProperty(StringProperty("ClientId", fmt::format("{}/{}", transportClientUuidBase, transportClientIndex++)));
+    }
+
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
     if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
     {

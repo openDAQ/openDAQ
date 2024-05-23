@@ -31,7 +31,7 @@ public:
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
-                         OnPacketReceivedCallback packetReceivedHandler,
+                         OnPacketBufferReceivedCallback packetBufferReceivedHandler,
                          OnStreamingInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
@@ -50,13 +50,9 @@ private:
     daq::native_streaming::ReadTask readSignalSubscribedAck(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnsubscribedAck(const void* data, size_t size);
 
-    void processReceivedPackets();
-
     OnSignalCallback signalReceivedHandler;
-    OnPacketReceivedCallback packetReceivedHandler;
+    OnPacketBufferReceivedCallback packetBufferReceivedHandler;
     OnStreamingInitDoneCallback streamingInitDoneHandler;
     OnSubscriptionAckCallback subscriptionAckHandler;
-
-    packet_streaming::PacketStreamingClient packetStreamingClient;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

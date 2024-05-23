@@ -48,9 +48,7 @@ inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq,
         arrayShape = std::move(shape);
 
     if (strides->empty())
-    {
         return py::array(dt, arrayShape, data, capsule);
-    }
 
     return py::array(dt, arrayShape, strides, data, capsule);
 }

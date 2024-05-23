@@ -1,0 +1,13 @@
+﻿        set
+        {$CSCastArgumentObjects$
+            unsafe //use native method pointer
+            {
+                //call native method
+                $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+                if (Daq.Core.Types.Result.Failed($CSReturnVariable$))
+                {
+                    throw new OpenDaqException($CSReturnVariable$);
+                }
+            }
+        }

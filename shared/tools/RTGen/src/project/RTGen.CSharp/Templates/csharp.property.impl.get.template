@@ -1,0 +1,17 @@
+﻿        get
+        {
+            //native output argument
+            $CSRawReturnTypePtrDeclaration$$CSCastArgumentObjects$
+            unsafe //use native function pointer
+            {
+                //call native function
+                $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+                if (Daq.Core.Types.Result.Failed($CSReturnVariable$))
+                {
+                    throw new OpenDaqException($CSReturnVariable$);
+                }
+            }
+$CSReturnPointerValidation$$CSTemporaryReturnValueObject$
+            return $CSReturnValue$;
+        }

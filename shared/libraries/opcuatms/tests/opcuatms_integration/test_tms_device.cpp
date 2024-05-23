@@ -103,7 +103,7 @@ TEST_F(TmsDeviceTest, GetSignals)
     {
         auto name = subDevice.getName();
         ASSERT_NO_THROW(signals = subDevice.getSignals());
-        if (name == "mockdev")
+        if (name == "MockPhysicalDevice")
             ASSERT_EQ(signals.getCount(), 1u);
         else
             ASSERT_EQ(signals.getCount(), 0u);
@@ -504,4 +504,30 @@ TEST_F(TmsDeviceTest, SdkPackageVersion)
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId);
 
     ASSERT_EQ(clientDevice.getInfo().getSdkVersion(), OPENDAQ_PACKAGE_VERSION);
+}
+
+TEST_F(TmsDeviceTest, DeviceInfoChanges)
+{
+    const auto ctx = NullContext();
+    const DevicePtr serverDevice = createDevice();
+     
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    const auto nodeId = serverTmsDevice.registerOpcUaNode();
+    const auto serverDeviceInfo = serverDevice.getDevices()[1].getInfo();
+     
+    const auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+
+    clientSubDevice.setName("new_name");
+    clientSubDevice.setPropertyValue("location", "new_location");
+    
+    ASSERT_EQ("new_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 }

@@ -9,10 +9,10 @@ Console.WriteLine("create instance...");
 var instance = OpenDAQFactory.Instance();
 
 Console.WriteLine("scan for devices...");
-var availableDevices = instance.GetAvailableDevices();
+var availableDevices = instance.AvailableDevices;
 
 Console.WriteLine($"> found {availableDevices.Count} devices:");
 foreach (var device in availableDevices)
-    Console.WriteLine($"  - {device.GetName()} ({device.GetConnectionString()})");
+    Console.WriteLine($"  - {device.Name} ({device.ConnectionString})");
 
 //ToDo: your code goes here

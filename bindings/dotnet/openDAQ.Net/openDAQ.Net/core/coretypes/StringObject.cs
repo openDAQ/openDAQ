@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -58,24 +58,26 @@ public class StringObject : BaseObject
     /// Call this method to extract the string value that is stored in the object. Method extracts the
     /// value as a pointer to 8-bit char type.
     /// </remarks>
-    /// <returns>Stored string value.</returns>
-    public string GetCharPtr()
+    public string CharPtr
     {
-        //native output argument
-        IntPtr value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStringObject.GetCharPtr(base.NativePointer, out value);
+            //native output argument
+            IntPtr value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawStringObject.GetCharPtr(base.NativePointer, out value);
 
-        return Marshal.PtrToStringAnsi(value);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return Marshal.PtrToStringAnsi(value);
+        }
     }
 
     /// <summary>Gets length of string.</summary>
@@ -83,29 +85,31 @@ public class StringObject : BaseObject
     /// Call this method to get the length of the string. Null char terminator is not included in
     /// the size of the string.
     /// </remarks>
-    /// <returns>The size of the string.</returns>
-    public nuint GetLength()
+    public nuint Length
     {
-        //native output argument
-        nuint size;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStringObject.GetLength(base.NativePointer, out size);
+            //native output argument
+            nuint size;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawStringObject.GetLength(base.NativePointer, out size);
 
-        return size;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return size;
+        }
     }
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.StringObject' to/from 'string'
 
     /// <summary>Performs an implicit conversion from <see cref="string"/> to <see cref="Daq.Core.Types.StringObject"/>.</summary>
     /// <param name="value">The managed <c>string</c> value.</param>
@@ -115,13 +119,12 @@ public class StringObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.StringObject"/> to <see cref="string"/>.</summary>
     /// <param name="value">The SDK <c>StringObject</c>.</param>
     /// <returns>The managed <c>string</c> value.</returns>
-    public static implicit operator string(StringObject value) => value.GetCharPtr();
+    public static implicit operator string(StringObject value) => value.CharPtr;
 
     /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>string</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(string other) => ((string)this).Equals(other, StringComparison.Ordinal);
-
 
     #endregion operators
 }
@@ -147,7 +150,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -164,7 +167,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -189,7 +192,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -206,7 +209,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

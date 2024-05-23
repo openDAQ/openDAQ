@@ -1,0 +1,5 @@
+﻿
+    /// <summary>Performs an implicit conversion from <see cref="$CSCastType$"/> to <see cref="Daq.Core.Types.$NonInterfaceType$"/>.</summary>
+    /// <param name="value">The managed <c>$CSCastType$</c> value.</param>
+    /// <returns>The SDK <c>$NonInterfaceType$</c>.</returns>
+    public static implicit operator $NonInterfaceType$($CSCastType$ value) => $LibraryName$Factory.$CSCreatorFactory$(value);

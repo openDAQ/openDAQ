@@ -187,6 +187,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
      * @param uuid The unique ID of a system.
      */
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
+    
+    /*!
+     * @brief Sets the device's location.
+     * @param location The device's location.
+     */
+    virtual ErrCode INTERFACE_FUNC setLocation(IString* location) = 0;
 };
 /*!@}*/
 

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ internal unsafe class RawEnumerationType : RawDaqType
 /// <para/>
 /// The enumerator values are represented as a list of Integer objects. These values can be explicitly specified
 /// during Enumeration type creation, or only the first enumerator value can be specified, with the rest
-/// automatically assigned in ascending order, starting from that value (or from the default <c>0</c> value if not
+/// automatically assigned in ascending order, starting from that value (or from the default &apos;0&apos; value if not
 /// specified).
 /// </remarks>
 [Guid("9c90d219-2a56-50d6-8767-dc866826ed56")]
@@ -75,50 +75,73 @@ public class EnumerationType : DaqType
     }
 
     /// <summary>Gets the list of enumerator names.</summary>
-    /// <returns>The list of enumerator names (String objects)</returns>
-    public IListObject<StringObject> GetEnumeratorNames()
+    public IListObject<StringObject> EnumeratorNames
     {
-        //native output argument
-        IntPtr namesPtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetEnumeratorNames(base.NativePointer, out namesPtr);
+            //native output argument
+            IntPtr namesPtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetEnumeratorNames(base.NativePointer, out namesPtr);
 
-        return new ListObject<StringObject>(namesPtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<StringObject>(namesPtr, incrementReference: false);
+        }
     }
 
     /// <summary>Gets the enumerator names and values as a Dictionary.</summary>
-    /// <returns>
-    /// The Dictionary object with enumerator names as keys, and enumerator values
-    /// as its values.
-    /// </returns>
-    public IDictObject<StringObject, IntegerObject> GetAsDictionary()
+    public IDictObject<StringObject, IntegerObject> AsDictionary
     {
-        //native output argument
-        IntPtr dictionaryPtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetAsDictionary(base.NativePointer, out dictionaryPtr);
+            //native output argument
+            IntPtr dictionaryPtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetAsDictionary(base.NativePointer, out dictionaryPtr);
 
-        return new DictObject<StringObject, IntegerObject>(dictionaryPtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new DictObject<StringObject, IntegerObject>(dictionaryPtr, incrementReference: false);
+        }
     }
 
+    /// <summary>Gets the number of enumerators within the Enumeration Type.</summary>
+    public nuint Count
+    {
+        get
+        {
+            //native output argument
+            nuint count;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetCount(base.NativePointer, out count);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return count;
+        }
+    }
     /// <summary>Gets the value of enumerator with the specified name.</summary>
     /// <param name="name">The name of the enumerator (String object).</param>
     /// <returns>The integer value of the enumerator with the specified name.</returns>
@@ -135,34 +158,13 @@ public class EnumerationType : DaqType
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetEnumeratorIntValue(base.NativePointer, namePtr.NativePointer, out value);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
         }
 
         return value;
-    }
-
-    /// <summary>Gets the number of enumerators within the Enumeration Type.</summary>
-    /// <returns>The number of enumerators within the Enumeration Type.</returns>
-    public nuint GetCount()
-    {
-        //native output argument
-        nuint count;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetCount(base.NativePointer, out count);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        return count;
     }
 }
 
@@ -191,7 +193,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr.NativePointer, enumeratorNamesPtr.NativePointer, firstEnumeratorIntValue);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new EnumerationType(objPtr, incrementReference: false);
@@ -212,7 +214,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr.NativePointer, enumeratorNamesPtr.NativePointer, firstEnumeratorIntValue);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -241,7 +243,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr.NativePointer, enumeratorsPtr.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new EnumerationType(objPtr, incrementReference: false);
@@ -262,7 +264,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr.NativePointer, enumeratorsPtr.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

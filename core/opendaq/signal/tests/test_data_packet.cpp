@@ -490,7 +490,7 @@ TEST_F(DataPacketTest, Reuse)
 
     ASSERT_EQ(packet.getRawData(), dataPtr);
     ASSERT_EQ(packet.getOffset(), 1000u);
-    ASSERT_EQ(packet.getSampleCount(), 100);
+    ASSERT_EQ(packet.getSampleCount(), 100u);
     ASSERT_EQ(packet.getDataDescriptor(), newDescriptor);
 }
 
@@ -506,7 +506,7 @@ TEST_F(DataPacketTest, ReuseSameDescriptorOffsetAndSampleCount)
 
     ASSERT_EQ(packet.getRawData(), dataPtr);
     ASSERT_EQ(packet.getOffset(), nullptr);
-    ASSERT_EQ(packet.getSampleCount(), 100);
+    ASSERT_EQ(packet.getSampleCount(), 100u);
     ASSERT_EQ(packet.getDataDescriptor(), descriptor);
 }
 
@@ -584,7 +584,7 @@ TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
 
     ASSERT_NO_THROW(lastValue = packet.getLastValue());
 
-    ASSERT_EQ(lastValue, 15);
+    ASSERT_EQ(lastValue, 15u);
 }
 
 TEST_F(DataPacketTest, GetLastValueNested)

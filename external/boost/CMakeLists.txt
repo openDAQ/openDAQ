@@ -83,15 +83,6 @@ if (Boost_FETCHED)
 endif()
 
 if (Boost_FOUND)
-    set(BOOST_TARGETS
-        Boost::dll
-        Boost::algorithm
-        Boost::uuid
-        Boost::locale
-        Boost::beast
-        Boost::align
-        Boost::asio
-    )
 
     foreach(BOOST_TARGET ${BOOST_INCLUDE_LIBRARIES})
         if (NOT TARGET Boost::${BOOST_TARGET} AND NOT TARGET boost_${BOOST_TARGET})

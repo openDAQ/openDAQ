@@ -913,7 +913,7 @@ TEST_F(SignalTest, LastReferenceSameThread)
                 if (packet.getType() == PacketType::Data)
                 {
                     dataPacketsRecieved++;
-                    ASSERT_EQ(packet.getRefCount(), 1);
+                    ASSERT_EQ(packet.getRefCount(), 1u);
                 }
                 packet = conn.dequeue();
             }
@@ -966,7 +966,7 @@ TEST_F(SignalTest, LastReferenceScheduler)
                 {
                     dataPacketsRecieved++;
                     threadId = std::this_thread::get_id();
-                    ASSERT_EQ(packet.getRefCount(), 1);
+                    ASSERT_EQ(packet.getRefCount(), 1u);
 
                     std::unique_lock lock(mtx);
                     packetRead = true;
@@ -1025,7 +1025,7 @@ TEST_F(SignalTest, LastReferenceSameThreadMultiPackets)
                 if (packet.getType() == PacketType::Data)
                 {
                     dataPacketsRecieved++;
-                    ASSERT_EQ(packet.getRefCount(), 1);
+                    ASSERT_EQ(packet.getRefCount(), 1u);
                 }
                 packet = conn.dequeue();
             }

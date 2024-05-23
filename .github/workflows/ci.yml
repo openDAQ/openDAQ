@@ -294,6 +294,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
+            awscli \
             lld ninja-build curl \
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \

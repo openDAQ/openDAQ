@@ -289,10 +289,18 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
 
-      # TODO: DOES THIS WORK???
+
       - name: Add execute permissions to regression simulator
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
+
+      # TODO: REMOVE THIS DEBUG STEP
+      - name: ls
+        run: ls -R ${{ github.workspace }}/{{ env.regression_simulator_folder }}/
+      
+      # TODO: DOES THIS WORK???  
+      - name: Set LD_LIBRARY_PATH
+        run: LD_LIBRARY_PATH=${{ github.workspace }}/{{ env.regression_simulator_folder }}/
 
       - name: Protocol regression test - OPC UA
         continue-on-error: true #TODO: perhaps not the best solution: figure out a way to notify programmers about potential failure of regression tests!

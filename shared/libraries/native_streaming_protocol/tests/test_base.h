@@ -53,6 +53,7 @@ public:
         config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
         config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
         config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+        config.addProperty(daq::StringProperty("ClientId", "123456"));
 
         return config;
     }

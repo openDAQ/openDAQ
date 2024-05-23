@@ -95,13 +95,12 @@ public:
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
-    void readTransportLayerProps();
+    void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
     void initClient(std::string host,
                     std::string port,
                     std::string path);
 
-    void handlePacket(const SignalNumericIdType& signalNumericId, const PacketPtr& packet);
     void handleSignal(const SignalNumericIdType& signalNumericId,
                       const StringPtr& signalStringId,
                       const StringPtr& serializedSignal,
@@ -144,6 +143,7 @@ protected:
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;
+    std::shared_ptr<packet_streaming::PacketStreamingClient> packetStreamingClientPtr;
     std::promise<ConnectionResult> connectedPromise;
     std::future<ConnectionResult> connectedFuture;
 

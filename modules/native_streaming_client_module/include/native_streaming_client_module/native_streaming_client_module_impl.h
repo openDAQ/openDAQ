@@ -89,6 +89,8 @@ private:
 
     std::mutex sync;
     size_t pseudoDeviceIndex;
+    size_t transportClientIndex;
+    std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;

@@ -13,13 +13,13 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
                                            const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
-                                           OnPacketReceivedCallback packetReceivedHandler,
+                                           OnPacketBufferReceivedCallback packetBufferReceivedHandler,
                                            OnStreamingInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
-    , packetReceivedHandler(packetReceivedHandler)
+    , packetBufferReceivedHandler(packetBufferReceivedHandler)
     , streamingInitDoneHandler(protocolInitDoneHandler)
     , subscriptionAckHandler(subscriptionAckHandler)
 {
@@ -144,21 +144,9 @@ ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)
                                                std::free(packetBufferPayload);
                                        });
 
-    packetStreamingClient.addPacketBuffer(recvPacketBuffer);
-
-    processReceivedPackets();
+    packetBufferReceivedHandler(recvPacketBuffer);
 
     return createReadHeaderTask();
-}
-
-void ClientSessionHandler::processReceivedPackets()
-{
-    auto [signalId, packet] = packetStreamingClient.getNextDaqPacket();
-    while (packet.assigned())
-    {
-        packetReceivedHandler(signalId, packet);
-        std::tie(signalId, packet) = packetStreamingClient.getNextDaqPacket();
-    }
 }
 
 ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size)

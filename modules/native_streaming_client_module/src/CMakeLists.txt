@@ -54,15 +54,22 @@ if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()
 
+if (WIN32)
+    set(BCRYPT_LIB bcrypt.dll)
+endif()
+
 target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
                                   PRIVATE daq::discovery
                                           daq::native_streaming_protocol
                                           daq::config_protocol
+                                          ${BCRYPT_LIB}
+                                          $<BUILD_INTERFACE:Boost::uuid>
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
                                               $<INSTALL_INTERFACE:include>
+                                              ${Boost_INCLUDE_DIRS}
 )
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})

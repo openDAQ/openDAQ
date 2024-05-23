@@ -334,9 +334,9 @@ jobs:
       
       # TODO: Download and unzip regression test simulator binaries (to regression_simulator folder)
 
-      - name: OPC UA - Run simulator from target and perform regression tests from current
-        continue-on-error: true
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} #TODO: test here and there
+      - name: Protocol regression test - OPC UA
+        continue-on-error: true #TODO: perhaps not the best solution: figure out a way to notify programmers!
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -367,7 +367,7 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
 
-      - name: ND - Run simulator from target and perform regression tests from current
+      - name: Protocol regression test - ND
         continue-on-error: true
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
@@ -383,7 +383,7 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
           
-      - name: NS - Run simulator from target and perform regression tests from current
+      - name: Protocol regression test - NS
         continue-on-error: true
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
@@ -399,7 +399,7 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
           
-      - name: LT - Run simulator from target and perform regression tests from current
+      - name: Protocol regression test - LT
         continue-on-error: true
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |

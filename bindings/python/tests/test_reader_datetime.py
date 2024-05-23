@@ -317,6 +317,30 @@ class TestReaderDateTime(opendaq_test.TestCase):
         for t in domain[0]:
             self.assertIsInstance(t, numpy.datetime64)
 
+    def test_multireader_builder(self):
+        epoch = opendaq.MockSignal.current_epoch()
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        builder = opendaq.MultiReaderBuilder()
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        builder.value_read_type = opendaq.SampleType.Int64
+
+        reader = builder.build()
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for v in values[0]:
+            self.assertIsInstance(v, numpy.int64)
+
 
 if __name__ == '__main__':
     unittest.main()

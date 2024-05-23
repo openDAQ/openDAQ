@@ -1,13 +1,18 @@
 name: Build and Test openDAQ
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
-### TODO: Enable Python binding tests on all distributions
+# TODO: Enable Python binding tests on all distributions
 
 env:
-  regression_tests_target_tag: v3.0.0 #TODO: use this when downloading regression simulator artifact
+  regression_tests_target_tag: v3.0.0
+  regression_simulator_zip_filename: "regression target bin ${{ env.regression_tests_target_tag }}"
+  regression_simulator_folder: regression_test_simulator
+  s3_bucket: bb-blueberry-sdk-releases
+  s3_sdk_regression_test_simulator_path: releases/release/3.0/SDK/regression_test/${{ env.regression_tests_target_tag }} #TODO: more elegant path on AWS and here (tag is referenced twice when appeding filename etc.)
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -122,6 +127,12 @@ jobs:
           # for .NET Bindings build
           $env:SHORT_SHA = "${{ env.short_sha }}"
           cmake --build . --config ${{ matrix.cmake_build_type }}
+          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
+            if (! (Test-Path -Path "${{ env.package_path }}")) { mkdir "${{ env.package_path }}" }
+            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
+          }
 
       - name: Test
         shell: pwsh
@@ -248,6 +259,22 @@ jobs:
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
+      # TODO: move the following X steps down appropriately
+      - uses: aws-actions/configure-aws-credentials@v2
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} # TODO: test here and there
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          
+      - name: Download regression simulator from S3
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 cp s3://${{ env.s3_bucket }}/${{ s3_sdk_regression_test_simulator_path }}/${{ regression_simulator_zip_filename }} .
+    
+      - name: Unzip regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: unzip ${{ regression_simulator_zip_filename }} -d ${{ env.regression_simulator_folder }}
+    
       - name: Install basic dependencies
         run: |
           apt-get update
@@ -299,10 +326,10 @@ jobs:
 
       - name: OPC UA - Run simulator from target and perform regression tests from current
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} #TODO: test here and there
         run: |
           # Run simulator and wait for it to to be ready
-          ./regression_simulator/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -319,7 +346,7 @@ jobs:
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
-          ./regression_simulator/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -335,7 +362,7 @@ jobs:
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
-          ./regression_simulator/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -351,7 +378,7 @@ jobs:
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
-          ./regression_simulator/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -367,7 +394,7 @@ jobs:
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
-          ./regression_simulator/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests

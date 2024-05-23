@@ -51,8 +51,6 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
-    ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info) override;
-    ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) override;
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
@@ -81,8 +79,6 @@ private:
 
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
-
-    discovery_service::DiscoveryServer discoveryServer;
 };
 
 END_NAMESPACE_OPENDAQ

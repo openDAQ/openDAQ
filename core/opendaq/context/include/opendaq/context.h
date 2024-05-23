@@ -105,6 +105,14 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @param[out] options A dictionary containing the options associated with the specified module ID.
      */
     virtual ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) = 0;
+
+    
+    // [templateType(services, IString, IBaseObject)]
+    /*!
+     * @brief Gets the dictionary of available discovery services.
+     * @param[out] services The dictionary of available discovery services.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableDiscoveryServices(IDict** services) = 0;
 };
 /*!@}*/
 
@@ -123,7 +131,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
     IAuthenticationProvider*, authenticationProvider,
-    IDict*, options
+    IDict*, options,
+    IDict*, discoveryServices
 )
 
 /*!@}*/

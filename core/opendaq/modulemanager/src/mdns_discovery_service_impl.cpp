@@ -19,12 +19,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MdnsDiscoveryService::MdnsDiscoveryService(const LoggerPtr& logger)
-    : loggerComponent(logger.getOrAddComponent("MdnsDiscoveryService"))
+MdnsDiscoveryServiceImpl::MdnsDiscoveryServiceImpl(const LoggerPtr& logger)
+    : loggerComponent(logger.getOrAddComponent("MdnsDiscoveryServiceImpl"))
 {
 }
 
-ErrCode MdnsDiscoveryService::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
+ErrCode MdnsDiscoveryServiceImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
     if (id == nullptr || config == nullptr)
         return OPENDAQ_IGNORED;
@@ -37,7 +37,7 @@ ErrCode MdnsDiscoveryService::registerService(IString* id, IPropertyObject* conf
     return OPENDAQ_IGNORED;
 }
 
-ErrCode MdnsDiscoveryService::unregisterService(IString* id)
+ErrCode MdnsDiscoveryServiceImpl::unregisterService(IString* id)
 {
     if (id == nullptr)
         return OPENDAQ_IGNORED;
@@ -48,6 +48,20 @@ ErrCode MdnsDiscoveryService::unregisterService(IString* id)
         return OPENDAQ_SUCCESS;
     }
     return OPENDAQ_IGNORED;
+}
+
+ErrCode MdnsDiscoveryServiceImpl::getName(IString** name)
+{
+    if (name == nullptr)
+        return OPENDAQ_IGNORED;
+
+    *name = String("mdns").detach();
+    return OPENDAQ_SUCCESS;
+}
+
+extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryService(IDiscoveryService** objTmp, ILogger* logger)
+{
+    return daq::createObject<IDiscoveryService, MdnsDiscoveryServiceImpl>(objTmp, logger);
 }
 
 END_NAMESPACE_OPENDAQ

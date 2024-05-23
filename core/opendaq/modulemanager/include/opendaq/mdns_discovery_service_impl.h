@@ -21,13 +21,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class MdnsDiscoveryService : public ImplementationOf<IDiscoveryService>
+class MdnsDiscoveryServiceImpl : public ImplementationOf<IDiscoveryService>
 {
 public:
-    MdnsDiscoveryService(const LoggerPtr& logger);
+    MdnsDiscoveryServiceImpl(const LoggerPtr& logger);
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+
 private:
     discovery_service::DiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;

@@ -13,6 +13,7 @@
 #include <opendaq/device_private.h>
 
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/discovery_service_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -80,6 +81,13 @@ static std::string defineLocalId(const std::string& localId)
     return boost::uuids::to_string(uuidBoost);
 }
 
+static DiscoveryServicePtr createDiscoveryService(const StringPtr& serviceName, const LoggerPtr& logger)
+{
+    if (serviceName == "mdns")
+        return MdnsDiscoveryService(logger);
+    return nullptr;
+}
+
 static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
@@ -120,7 +128,15 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
-    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options);
+    auto discoveryServices = Dict<IString, IDiscoveryService>();
+    for (const auto& serviceName : builderPtr.getDiscoveryServices())
+    {
+        auto service = createDiscoveryService(serviceName, logger);
+        if (service.assigned())
+            discoveryServices.set(serviceName, service);
+    }
+
+    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices);
 }
 
 void InstanceImpl::stopServers()
@@ -203,12 +219,6 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
             {
                 // Use the root device instead of Instance(this) to prevent cycling reference.
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
-                if (createdServer.assigned())
-                {
-                    DeviceInfoPtr rootDeviceInfo;
-                    getInfo(&rootDeviceInfo);
-                    moduleManager.asPtr<IModuleManagerUtils>().registerDiscoveryDevice(createdServer.getServerId(), serverConfig, rootDeviceInfo);
-                }
 
                 std::scoped_lock lock(configSync);
                 servers.push_back(createdServer);
@@ -298,8 +308,6 @@ ErrCode InstanceImpl::removeServer(IServer* server)
     auto it = std::find(servers.begin(), servers.end(), server);
     if (it == servers.end())
         return OPENDAQ_ERR_NOTFOUND;
-
-    moduleManager.asPtr<IModuleManagerUtils>().removeDiscoveryDevice(it->getServerId());
 
     auto errCode = it->getObject()->stop();
 

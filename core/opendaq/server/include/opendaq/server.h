@@ -48,12 +48,6 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @brief Stops the server. This is called when we remove the server from the Instance or Instance is closing.
     */
     virtual ErrCode INTERFACE_FUNC stop() = 0;
-
-    /*!
-    * @brief Gets the server id which will be the key for the server in the module manager.
-    * @param[out] serverId The unique server id.
-    */
-    virtual ErrCode INTERFACE_FUNC getServerId(IString** serverId) = 0;
 };
 /*!@}*/
 

@@ -34,6 +34,7 @@ InstanceBuilderImpl::InstanceBuilderImpl()
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
+    , discoveryServices(List<IString>())
 {
 }
 
@@ -409,6 +410,24 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
 ErrCode InstanceBuilderImpl::enableStandardProviders(Bool flag)
 {
     useStandardProviders = flag;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getDiscoveryServices(IList** services)
+{
+    if (services == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *services = discoveryServices.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::addDiscoveryService(IString* serviceName)
+{
+    if ((serviceName == nullptr))
+        return OPENDAQ_IGNORED;
+
+    discoveryServices.pushBack(serviceName);
     return OPENDAQ_SUCCESS;
 }
 

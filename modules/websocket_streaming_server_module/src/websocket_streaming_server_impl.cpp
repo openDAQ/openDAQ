@@ -10,7 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 using namespace daq;
 
 WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(config, rootDevice, nullptr, nullptr)
+    : Server(config, rootDevice, context, nullptr)
     , websocketStreamingServer(rootDevice, context)
 {
     const uint16_t streamingPort = config.getPropertyValue("Port");

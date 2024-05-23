@@ -98,23 +98,6 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the provided connection string.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
-
-    /*!
-     * @brief Registers a device in the discovery service.
-     * @param serverId The unique identifier of the server.
-     * @param config The server configuration.
-     *
-     * Registers a device with the discovery service. The device is then discoverable by other devices on the network.
-     */
-    virtual ErrCode INTERFACE_FUNC registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info) = 0;
-
-    /*!
-     * @brief Removes a device from the discovery service.
-     * @param serverId The unique identifier of the server.
-     *
-     * Removes a device from the discovery service. The device is no longer discoverable by other devices on the network.
-     */
-    virtual ErrCode INTERFACE_FUNC removeDiscoveryDevice(IString* serverId) = 0;
 };
 /*!@}*/
 

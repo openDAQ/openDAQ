@@ -12,13 +12,4 @@ ErrCode MockServerImpl::stop()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockServerImpl::getServerId(IString** serverId)
-{
-    if (serverId != nullptr)
-    {
-        *serverId = String("MockServer").detach();
-    }
-    return OPENDAQ_SUCCESS;
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)

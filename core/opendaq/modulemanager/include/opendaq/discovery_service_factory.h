@@ -15,16 +15,16 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/server.h>
-#include <coretypes/stringobject.h>
+#include <opendaq/discovery_service_ptr.h>
 
-class MockServerImpl : public daq::ImplementationOf<daq::IServer>
+BEGIN_NAMESPACE_OPENDAQ
+
+
+
+inline DiscoveryServicePtr MdnsDiscoveryService(const LoggerPtr& logger)
 {
-public:
-    explicit MockServerImpl();
+    DiscoveryServicePtr obj(MdnsDiscoveryService_Create(logger));
+    return obj;
+}
 
-    daq::ErrCode INTERFACE_FUNC stop() override;
-};
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)
+END_NAMESPACE_OPENDAQ

@@ -80,7 +80,9 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(NativeStreamingModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryService("mdns")
+                                   .setDefaultRootDeviceLocalId("local")
+                                   .build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
@@ -135,7 +137,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("SerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
     instance.addServer("openDAQ Native Streaming", serverConfig);
 

@@ -11,7 +11,7 @@ rtgen(SRC_Module module.h)
 rtgen(SRC_ModuleManager module_manager.h)
 rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
 rtgen(SRC_ContextInternal context_internal.h)
-rtgen(SRC_DiscoveryServer discovery_service.h)
+rtgen(SRC_DiscoveryService discovery_service.h)
 
 source_group("module" FILES ${SDK_HEADERS_DIR}/module.h
                             ${SDK_HEADERS_DIR}/module_impl.h
@@ -40,6 +40,7 @@ source_group("errors" FILES ${SDK_HEADERS_DIR}/module_manager_errors.h
 )
 
 source_group("discovery_service" FILES  ${SDK_HEADERS_DIR}/discovery_service.h
+                                        ${SDK_HEADERS_DIR}/discovery_service_factory.h
                                         ${SDK_HEADERS_DIR}/mdns_discovery_service_impl.h
                                         mdns_discovery_service_impl.cpp)
 
@@ -62,6 +63,8 @@ set(SRC_PublicHeaders module_manager_errors.h
                       module_impl.h
 
                       context_factory.h
+
+                      discovery_service_factory.h
 )
 
 set(SRC_PrivateHeaders module_library.h
@@ -84,14 +87,14 @@ list(APPEND SRC_PublicHeaders ${SRC_Module_PublicHeaders}
                               ${SRC_ModuleManager_PublicHeaders}
                               ${SRC_ModuleManagerUtils_PublicHeaders}
                               ${SRC_ContextInternal_PublicHeaders}
-                              ${SRC_DiscoveryServer_PublicHeaders}
+                              ${SRC_DiscoveryService_PublicHeaders}
                               module_manager.natvis
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Module_PrivateHeaders}
                                ${SRC_ModuleManager_PrivateHeaders}
                                ${SRC_ContextInternal_PrivateHeaders}
-                               ${SRC_DiscoveryServer_PrivateHeaders}
+                               ${SRC_DiscoveryService_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

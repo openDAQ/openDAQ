@@ -173,6 +173,19 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the custom ModuleManager of Instance / Sets The custom ModuleManager for the Instance.");
+    cls.def_property("authentication_provider",
+        [](daq::IInstanceBuilder *object)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getAuthenticationProvider().detach();
+        },
+        [](daq::IInstanceBuilder *object, daq::IAuthenticationProvider* authenticationProvider)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setAuthenticationProvider(authenticationProvider);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the AuthenticationProvider of Instance / Sets the AuthenticationProvider for the Instance.");
     cls.def_property("scheduler_worker_num",
         [](daq::IInstanceBuilder *object)
         {
@@ -262,4 +275,20 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::arg("flag"),
         "Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.");
+    cls.def_property_readonly("discovery_services",
+        [](daq::IInstanceBuilder *object)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getDiscoveryServices().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictionary of discovery services");
+    cls.def("add_discovery_service",
+        [](daq::IInstanceBuilder *object, const std::string& serviceName)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.addDiscoveryService(serviceName);
+        },
+        py::arg("service_name"),
+        "Adds a discovery service to the context");
 }

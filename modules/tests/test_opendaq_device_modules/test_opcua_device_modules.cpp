@@ -106,7 +106,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
@@ -161,7 +161,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("SerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     instance.addServer("openDAQ OpcUa", serverConfig);

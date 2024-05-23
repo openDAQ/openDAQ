@@ -24,6 +24,7 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/validation.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/discovery_service_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -47,20 +48,28 @@ public:
         , moduleManager(std::move(moduleManager))
         , serverId(std::move(createServerId(config)))
     {
+        if (this->context != nullptr)
+        {
+            DeviceInfoPtr rootDeviceInfo;
+            if (this->rootDevice != nullptr)
+                rootDeviceInfo = this->rootDevice.getInfo();
+            for (const auto& [_, service] : this->context.getAvailableDiscoveryServices())
+            {
+                service.asPtr<IDiscoveryService>().registerService(serverId, config, rootDeviceInfo);
+            }
+        }
     }
 
     ErrCode INTERFACE_FUNC stop() override
     {
+        if (context != nullptr)
+        {
+            for (const auto& [_, service] : context.getAvailableDiscoveryServices())
+            {
+                service.asPtr<IDiscoveryService>().unregisterService(serverId);
+            }
+        }
         return wrapHandler(this, &Self::onStopServer);
-    }
-
-    ErrCode INTERFACE_FUNC getServerId(IString** serverId) override
-    {
-        if (serverId == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        *serverId = this->serverId.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
     }
 
 protected:

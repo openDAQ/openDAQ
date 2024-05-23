@@ -31,18 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a new Instance with the provided Context.
- * @param context The Context.
- * @param localId The instance local id.
- */
-inline InstancePtr InstanceCustom(const ContextPtr& context,
-                                  const StringPtr& localId)
-{
-    InstancePtr obj(Instance_Create(context, localId));
-    return obj;
-}
-
-/*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
 inline InstanceBuilderPtr InstanceBuilder()
@@ -66,13 +54,29 @@ inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
  * searches for module shared libraries at the given module path, using the executable directory if left empty.
  * @param modulePath The module search path to be used by the Module manager.
  * @param localId The local id of the instance.
+ * @param enableStandardProviders If true, the standard providers will be enabled.
  *
  * If localId is empty, the local id will be set to the OPENDAQ_INSTANCE_ID environment variable if available. Otherwise
  * a random UUID will be generated for the local id.
  */
-inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
+inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "", bool enableStandardProviders = false)
 {
-    auto builder = InstanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId);
+    auto builder = InstanceBuilder().setModulePath(modulePath)
+                                    .setDefaultRootDeviceLocalId(localId)
+                                    .enableStandardProviders(enableStandardProviders);
+    return InstanceFromBuilder(builder);
+}
+
+/*!
+ * @brief Creates a new Instance with the provided Context.
+ * @param context The Context.
+ * @param localId The instance local id.
+ */
+inline InstancePtr InstanceCustom(const ContextPtr& context,
+                                  const StringPtr& localId)
+{
+    auto builder = InstanceBuilder().setContext(context)
+                                    .setDefaultRootDeviceLocalId(localId);
     return InstanceFromBuilder(builder);
 }
 

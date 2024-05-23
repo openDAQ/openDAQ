@@ -88,7 +88,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();

@@ -1,14 +1,5 @@
 17.05.2024
 Description:
-  mDNS discovery service
-
-+ [function] IServer::getServerId(IString** serverId) = 0;
-
-+ [function] IModuleManagerUtils::registerDiscoveryDevice(IString* serverId, IPropertyObject* config, IDeviceInfo* info);
-+ [function] IModuleManagerUtils::removeDiscoveryDevice(IString* serverId);
-
-17.05.2024
-Description:
   - Add ability to manually connect to streaming for device after device added
   - Create connection string from ServerCapability via modules
 

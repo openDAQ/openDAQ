@@ -19,6 +19,7 @@
 #include <opendaq/instance.h>
 #include <opendaq/config_provider.h>
 #include <coreobjects/authentication_provider.h>
+#include <opendaq/discovery_service.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -324,6 +325,20 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param flag Boolean flag indicating whether to enable (true) or disable (false) standard config providers.
      */
     virtual ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) = 0;
+
+    // [elementType(services, IString)]
+    /*!
+     * @brief Gets the dictionary of discovery services
+     * @param[out] services The dictionary of discovery services
+     */
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServices(IList** services) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds a discovery service to the context
+     * @param service The discovery service to add
+     */
+    virtual ErrCode INTERFACE_FUNC addDiscoveryService(IString* serviceName) = 0;
 };
 /*!@}*/
 

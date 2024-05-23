@@ -14,7 +14,6 @@ env:
   regression_tests_target_tag: v3.0.0
   regression_simulator_folder: regression_test_simulator
   s3_bucket: bb-blueberry-sdk-releases
-  s3_sdk_regression_test_simulator_path: releases/release/3.0/SDK/regression_test/v3.0.0 #TODO: more elegant path on AWS and here (tag is referenced twice when appeding filename etc.)
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -268,23 +267,23 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          
+
       - name: Download regression simulator from S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/${{ env.s3_sdk_regression_test_simulator_path }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
-    
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
       - name: Unzip regression simulator
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
-    
+
       - name: Install basic dependencies
         run: |
           apt-get update
           apt-get install -y git openssh-client
-          
+
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
+
       - name: Checkout
         uses: actions/checkout@v3
 

@@ -271,7 +271,7 @@ jobs:
           
       - name: Download regression simulator from S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/${{ s3_sdk_regression_test_simulator_path }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/${{ env.s3_sdk_regression_test_simulator_path }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
     
       - name: Unzip regression simulator
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

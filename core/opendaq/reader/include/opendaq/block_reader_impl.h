@@ -15,9 +15,9 @@
  */
 #pragma once
 #include <opendaq/block_reader.h>
+#include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_impl.h>
 #include <opendaq/signal_ptr.h>
-#include <opendaq/data_packet_ptr.h>
 
 #include <condition_variable>
 #include <deque>
@@ -83,6 +83,49 @@ struct BlockReadInfo
         return *this;
     }
 
+    void rewindQueue(SizeT blockSize, SizeT overlappedBlockSize)
+    {
+        if (writtenSampleCount % blockSize == 0)
+        {
+            const auto beginDataPacketIter = dataPacketsQueue.begin();
+            const auto initialRewindSamples = overlappedBlockSize;
+            auto rewindSamples = initialRewindSamples;
+            do
+            {
+                auto packetSampleCount = currentDataPacketIter->getSampleCount();
+
+                if (rewindSamples > packetSampleCount)
+                {
+                    if (currentDataPacketIter == beginDataPacketIter)
+                        break;
+
+                    --currentDataPacketIter;
+                    rewindSamples -= packetSampleCount;
+                }
+                else
+                {
+                    if (prevSampleIndex < rewindSamples)
+                    {
+                        if (currentDataPacketIter == beginDataPacketIter)
+                            break;
+
+                        --currentDataPacketIter;
+                        rewindSamples -= prevSampleIndex;
+                        prevSampleIndex = currentDataPacketIter->getSampleCount();
+                    }
+                    else
+                    {
+                        prevSampleIndex -= rewindSamples;
+                        rewindSamples = 0;
+                    }
+                }
+            } while (rewindSamples != 0);
+
+            if (remainingSamplesToRead)
+                remainingSamplesToRead += initialRewindSamples;
+        }
+    }
+
     void trimQueue(SizeT packetSize, SizeT overlapSize)
     {
         auto packetCount = overlapSize / packetSize;
@@ -113,19 +156,23 @@ struct BlockReadInfo
         startTime = std::chrono::steady_clock::now();
     }
 
-    void reset()
+    void resetSampleIndex()
     {
         prevSampleIndex = 0;
     }
 
-    void clean() {
+    void clean()
+    {
         writtenSampleCount = 0;
         currentDataPacketIter = dataPacketsQueue.end();
         dataPacketsQueue.clear();
-        reset();
+        resetSampleIndex();
     }
 
-    [[nodiscard]] Duration durationFromStart() const { return std::chrono::duration_cast<Duration>(Clock::now() - startTime); }
+    [[nodiscard]] Duration durationFromStart() const
+    {
+        return std::chrono::duration_cast<Duration>(Clock::now() - startTime);
+    }
 };
 
 struct BlockNotifyInfo
@@ -143,19 +190,11 @@ class BlockReaderImpl final : public ReaderImpl<IBlockReader>
 public:
     using Super = ReaderImpl<IBlockReader>;
 
-    explicit BlockReaderImpl(const SignalPtr& signal,
-                             SizeT blockSize,
-                             SizeT overlap,
-                             SampleType valueReadType,
-                             SampleType domainReadType,
-                             ReadMode readMode);
+    explicit BlockReaderImpl(
+        const SignalPtr& signal, SizeT blockSize, SizeT overlap, SampleType valueReadType, SampleType domainReadType, ReadMode readMode);
 
-    explicit BlockReaderImpl(IInputPortConfig* port,
-                             SizeT blockSize,
-                             SizeT overlap,
-                             SampleType valueReadType,
-                             SampleType domainReadType,
-                             ReadMode readMode);
+    explicit BlockReaderImpl(
+        IInputPortConfig* port, SizeT blockSize, SizeT overlap, SampleType valueReadType, SampleType domainReadType, ReadMode readMode);
 
     BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                     SampleType valueReadType,
@@ -164,11 +203,7 @@ public:
                     SizeT overlap,
                     ReadMode mode);
 
-    BlockReaderImpl(BlockReaderImpl* old,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    SizeT blockSize,
-                    SizeT overlap);
+    BlockReaderImpl(BlockReaderImpl* old, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, SizeT overlap);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
@@ -178,7 +213,7 @@ public:
     ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
-    ErrCode INTERFACE_FUNC getOverlap(SizeT* size) override;
+    ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
 private:
     ErrCode readPackets(IReaderStatus** status, SizeT* count);
@@ -187,6 +222,7 @@ private:
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;
 
+    void initOverlap();
     SizeT calculateBlockCount(SizeT sampleCount) const;
 
     SizeT blockSize;

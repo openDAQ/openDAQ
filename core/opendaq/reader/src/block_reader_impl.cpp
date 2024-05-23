@@ -23,12 +23,7 @@ BlockReaderImpl::BlockReaderImpl(
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    if (this->overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
-
-    overlappedBlockSize = (blockSize * overlap) / 100;
-    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
-
+    initOverlap();
     port.setNotificationMethod(PacketReadyNotification::SameThread);
     readDescriptorFromPort();
 }
@@ -39,12 +34,7 @@ BlockReaderImpl::BlockReaderImpl(
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    if (this->overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
-
-    overlappedBlockSize = (blockSize * overlap) / 100;
-    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
-
+    initOverlap();
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
@@ -54,12 +44,7 @@ BlockReaderImpl::BlockReaderImpl(
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    if (this->overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
-
-    overlappedBlockSize = (blockSize * overlap) / 100;
-    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
-
+    initOverlap();
     readDescriptorFromPort();
 }
 
@@ -69,12 +54,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old, SampleType valueReadType,
     , overlap(overlap)
     , info(old->info)
 {
-    if (this->overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
-
-    overlappedBlockSize = (blockSize * overlap) / 100;
-    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
-
+    initOverlap();
     this->internalAddRef();
     if (portBinder.assigned())
         handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
@@ -92,11 +72,11 @@ ErrCode BlockReaderImpl::getBlockSize(SizeT* size)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::getOverlap(daq::SizeT* size)
+ErrCode BlockReaderImpl::getOverlap(daq::SizeT* overlap)
 {
-    OPENDAQ_PARAM_NOT_NULL(size);
+    OPENDAQ_PARAM_NOT_NULL(overlap);
 
-    *size = overlap;
+    *overlap = this->overlap;
     return OPENDAQ_SUCCESS;
 }
 
@@ -187,7 +167,7 @@ ErrCode BlockReaderImpl::readPacketData()
             {
                 return errCode;
             }
-            errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, sampleCountToRead);
+                errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 
         if (OPENDAQ_FAILED(errCode))
@@ -200,30 +180,8 @@ ErrCode BlockReaderImpl::readPacketData()
     info.prevSampleIndex += sampleCountToRead;
     info.remainingSamplesToRead -= sampleCountToRead;
 
-    if (info.writtenSampleCount % blockSize == 0)
-    {
-        // how many data packet need to be stepped back
-        const auto rewindSamples = overlappedBlockSize;
-        auto rewindPackets = rewindSamples / packetSampleCount;
-        auto rewindPacketRemainder = rewindSamples % packetSampleCount;
-
-        if (info.prevSampleIndex < rewindPacketRemainder)
-        {
-            rewindPackets += 1;
-            info.prevSampleIndex = packetSampleCount - rewindPacketRemainder;
-        }
-        else
-        {
-            info.prevSampleIndex -= rewindPacketRemainder;
-        }
-
-        using IterDiff = BlockReadInfo::DataPacketsQueueType::difference_type;
-
-        info.currentDataPacketIter = std::next(info.currentDataPacketIter, -static_cast<IterDiff>(rewindPackets));
-
-        if (info.remainingSamplesToRead)
-            info.remainingSamplesToRead += overlappedBlockSize;
-    }
+    if (overlap)
+        info.rewindQueue(blockSize, overlappedBlockSize);
 
     if (info.prevSampleIndex == packetSampleCount)
     {
@@ -232,7 +190,7 @@ ErrCode BlockReaderImpl::readPacketData()
             std::unique_lock lock(notify.mutex);
             notify.dataReady = false;
         }
-        info.reset();
+        info.resetSampleIndex();
         info.trimQueue(packetSampleCount, overlappedBlockSize);
     }
 
@@ -295,10 +253,10 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 
                 if (OPENDAQ_FAILED(errCode))
                 {
-                    auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
+                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                     if (status)
                         *status = BlockReaderStatus(nullptr, true, writtenSamplesCount).detach();
-                    *count = writtenSamplesCount % blockSize;
+                    *count = writtenSamplesCount / blockSize;
                     return errCode;
                 }
                 break;
@@ -310,10 +268,9 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     handleDescriptorChanged(eventPacket);
-                    auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
+                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                     if (status)
                         *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
-
                     *count = writtenSamplesCount / blockSize;
                     info.clean();
                     return errCode;
@@ -321,10 +278,9 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 
                 if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
                 {
-                    auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
+                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                     if (status)
                         *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
-
                     *count = writtenSamplesCount / blockSize;
                     info.clean();
                     return errCode;
@@ -337,11 +293,11 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
         }
     }
 
-    if (status && *status == nullptr)
+    if (status)
     {
-        auto writtenSamplesCount = calculateWrittenSamplesCount(initialWrittenSamplesCount, info.writtenSampleCount);
-        *count = writtenSamplesCount / blockSize;
+        auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
         *status = BlockReaderStatus(nullptr, !invalid, writtenSamplesCount).detach();
+        *count = writtenSamplesCount / blockSize;
     }
 
     return errCode;
@@ -394,6 +350,15 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
 
     const ErrCode errCode = readPackets(status, count);
     return errCode;
+}
+
+void BlockReaderImpl::initOverlap()
+{
+    if (overlap >= 100)
+        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+
+    overlappedBlockSize = (blockSize * overlap) / 100;
+    overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 }
 
 SizeT BlockReaderImpl::calculateBlockCount(SizeT sampleCount) const

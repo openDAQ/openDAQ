@@ -1615,8 +1615,7 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainOverlapped)
     this->sendPacket(dataPacket);
 
     SizeT count{3};
-    double samples[BLOCK_SIZE]{};
-
+    double samples[3 * BLOCK_SIZE]{};
     {
         // read event packet
         size_t tmpCount = 1;

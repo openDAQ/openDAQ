@@ -268,6 +268,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # TODO: remove debugging code
+      - name: aws s3 ls
+        run: aws s3 ls s3://${{ env.s3_bucket }} --recursive
+
       - name: Download regression simulator from S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
@@ -327,7 +331,7 @@ jobs:
 
       - name: OPC UA - Run simulator from target and perform regression tests from current
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} #TODO: test here and there
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} #TODO: test here and there
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -344,7 +348,7 @@ jobs:
       # TODO: DEBUG ONLY CHECK IF CONTINUES NEXT STEP ON FAIL
       - name: DEBUG FAIL
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -360,7 +364,7 @@ jobs:
 
       - name: ND - Run simulator from target and perform regression tests from current
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -376,7 +380,7 @@ jobs:
           
       - name: NS - Run simulator from target and perform regression tests from current
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -392,7 +396,7 @@ jobs:
           
       - name: LT - Run simulator from target and perform regression tests from current
         continue-on-error: true
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &

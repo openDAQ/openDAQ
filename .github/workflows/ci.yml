@@ -246,25 +246,6 @@ jobs:
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
             libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
-      # TODO: START CUT: move the following X steps down appropriately
-      
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} # TODO: test here and there
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Download regression simulator from S3
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
-
-      - name: Unzip regression simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
-        
-        #TODO: END CUT
-
       - name: Install latest CMake
         run: pip install cmake
 
@@ -292,8 +273,26 @@ jobs:
           path: ${{ env.test_path }}
 
       # REGRESSION TESTS BEGIN
-      
-      # TODO: Download and unzip regression test simulator binaries (to regression_simulator folder)
+
+      - uses: aws-actions/configure-aws-credentials@v2
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download regression simulator binaries .zip from S3
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
+      - name: Unzip regression simulator binaries
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+
+      # TODO: DOES THIS WORK???
+      - name: Add execute permissions to regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
       - name: Protocol regression test - OPC UA
         continue-on-error: true #TODO: perhaps not the best solution: figure out a way to notify programmers about potential failure of regression tests!
@@ -311,7 +310,7 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
 
-      # TODO: DEBUG ONLY CHECK IF CONTINUES NEXT STEP ON FAIL
+      # TODO: DEBUG ONLY: CHECK IF CONTINUES NEXT STEP ON FAIL AND WHAT HAPPENS IN GENERAL (HOW IS THE PROGRAMMER NOTIFIED ABOUT FAILURE?)
       - name: DEBUG FAIL
         continue-on-error: true
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

@@ -15,8 +15,6 @@ jobs:
   regression_tests:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
-    # ${{ }} expression syntax because of leading '!'
-    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -70,6 +68,7 @@ jobs:
           ref: ${{ env.regression_tests_target_tag }}
           path: target
 
+      # TODO: only checkout the necessary files and test if it still works
       - name: Checkout current
         uses: actions/checkout@v3
         with:
@@ -94,10 +93,10 @@ jobs:
         working-directory: target/build
         run: cmake --build .
         
-      - name: Move simulator binary to bin
+      - name: Move simulator binary to bin folder
         run: mv target/build/simulator/regression_simulator target/build/bin
         
-      - name: Upload target bin .zip
+      - name: Upload target bin folder .zip
         uses: actions/upload-artifact@v3
         with: 
           name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }})

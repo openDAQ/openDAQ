@@ -45,6 +45,7 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          program_options
                          uuid
                          locale
+                         align
     )
 
     set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"

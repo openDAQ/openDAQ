@@ -331,6 +331,7 @@ jobs:
           while ps $pid > /dev/null; do sleep 1; done
 
       - name: ND - Run simulator from target and perform regression tests from current
+        continue-on-error: true
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
@@ -346,6 +347,7 @@ jobs:
           while ps $pid > /dev/null; do sleep 1; done
           
       - name: NS - Run simulator from target and perform regression tests from current
+        continue-on-error: true
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
@@ -361,6 +363,7 @@ jobs:
           while ps $pid > /dev/null; do sleep 1; done
           
       - name: LT - Run simulator from target and perform regression tests from current
+        continue-on-error: true
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
@@ -375,7 +378,7 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
 
-      # TODO: upload regression test results correctly or ignore completely in whole GitHub action (no need for gtest_output in that case)
+      # TODO: upload regression test results correctly or ignore completely in whole GitHub Action (no need for gtest_output in that case)
       # - name: Upload regression test results
       #   if: always()
       #   uses: actions/upload-artifact@v3

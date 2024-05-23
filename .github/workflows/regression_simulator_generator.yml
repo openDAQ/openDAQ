@@ -6,9 +6,9 @@ on:
     branches:
       - regression-tests # TODO: delete this before merge
       - release/**
-  
+
 env:
-  target_tag: v3.0.0
+  regression_tests_target_tag: v3.0.0
 
 jobs:
   regression_tests:
@@ -66,14 +66,14 @@ jobs:
       - name: Checkout target
         uses: actions/checkout@v3
         with:
-          ref: ${{ env.target_tag }}
+          ref: ${{ env.regression_tests_target_tag }}
           path: target
-          
+
       - name: Checkout current
         uses: actions/checkout@v3
         with:
           path: current
-          
+
       - name: Copy regression simulator to top folder
         run: cp -r current/regression/simulator .
         
@@ -99,7 +99,7 @@ jobs:
       - name: Upload target bin .zip
         uses: actions/upload-artifact@v3
         with: 
-          name: regression target bin ${{ env.target_tag }} (${{ matrix.name }})
+          name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }})
           path: |
             target/build/bin/*daqcoreobjects-*
             target/build/bin/*daqcoretypes-*

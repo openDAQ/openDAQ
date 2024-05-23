@@ -112,29 +112,6 @@ SignalPtr createSineSignalWithPostScaling(const ContextPtr& ctx)
     return signal;
 }
 
-SignalPtr createStepSignal(const ContextPtr& ctx)
-{
-    auto dataDescriptor = DataDescriptorBuilder()
-                              .setSampleType(SampleType::UInt8)
-                              .setName("ByteStepValue")
-                              .setUnit(Unit("V", 1, "voltage", "quantity"))
-                              .setValueRange(Range(0, 10))
-                              .setRule(ExplicitDataRule())
-                              .setOrigin("1970-01-01T00:00:00")
-                              .build();
-
-    auto meta = Dict<IString, IString>();
-    meta["color"] = "red";
-    meta["used"] = "1";
-
-    auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setName("ByteStep").setMetadata(meta).build();
-
-    auto timeSignal = createTimeSignal(ctx);
-    auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, "time");
-    signal.setDomainSignal(timeSignal);
-    return signal;
-}
-
 TEST(SignalConverter, synchronousSignal)
 {
     auto signal = createSineSignal(NullContext());
@@ -242,7 +219,7 @@ TEST(SignalConverter, subscribedDataSignal)
     method = bsp::META_METHOD_SIGNAL;
     signalParams[bsp::META_TABLEID] = tableId;
     signalParams[bsp::META_DEFINITION][bsp::META_NAME] = memberName;
-    signalParams[bsp::META_DEFINITION][bsp::META_DATATYPE] = bsp::DATA_TYPE_REAL64;
+    signalParams[bsp::META_DEFINITION][bsp::META_DATATYPE] = bsp::DATA_TYPE_INT32;
     signalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_EXPLICIT;
 
     signalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_UNIT_ID] = unitId;
@@ -256,7 +233,7 @@ TEST(SignalConverter, subscribedDataSignal)
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
-    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Int32);
 
     auto unit = dataDescriptor.getUnit();
     ASSERT_TRUE(unit.assigned());
@@ -266,6 +243,40 @@ TEST(SignalConverter, subscribedDataSignal)
     auto rule = dataDescriptor.getRule();
     ASSERT_TRUE(rule.assigned());
     ASSERT_EQ(daq::DataRuleType::Explicit, rule.getType());
+
+    // test default post scaling
+    auto postScaling = dataDescriptor.getPostScaling();
+    ASSERT_FALSE(postScaling.assigned());
+
+    // test default range
+    auto range = dataDescriptor.getValueRange();
+    ASSERT_TRUE(range.assigned());
+    ASSERT_EQ(range.getLowValue(), std::numeric_limits<int32_t>::lowest());
+    ASSERT_EQ(range.getHighValue(), std::numeric_limits<int32_t>::max());
+
+    // test custom range and post scaling
+    signalParams[bsp::META_DEFINITION][bsp::META_RANGE][bsp::META_LOW] = -100;
+    signalParams[bsp::META_DEFINITION][bsp::META_RANGE][bsp::META_HIGH] = 100;
+
+    signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_SCALE] = 2.0;
+    signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_POFFSET] = 3.0;
+
+    result = subscribedSignal.processSignalMetaInformation(method, signalParams);
+    ASSERT_EQ(result, 0);
+
+    subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    dataDescriptor = subscribedSignalInfo.dataDescriptor;
+
+    range = dataDescriptor.getValueRange();
+    ASSERT_TRUE(range.assigned());
+    ASSERT_EQ(range.getLowValue(), -100);
+    ASSERT_EQ(range.getHighValue(), 100);
+
+    postScaling = dataDescriptor.getPostScaling();
+    ASSERT_TRUE(postScaling.assigned());
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
+    ASSERT_EQ(postScaling.getParameters().get("scale"), 2.0);
+    ASSERT_EQ(postScaling.getParameters().get("offset"), 3.0);
 }
 
 TEST(SignalConverter, subscribedBitfieldSignal)

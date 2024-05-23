@@ -9,14 +9,6 @@ BEGIN_NAMESPACE_OPENDAQ
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
-static SizeT calculateWrittenSamplesCount(SizeT initialWrittenSamplesCount, SizeT finalWrittenSamplesCount)
-{
-    auto writtenSamplesCount = finalWrittenSamplesCount > initialWrittenSamplesCount
-                                   ? finalWrittenSamplesCount - initialWrittenSamplesCount
-                                   : initialWrittenSamplesCount - finalWrittenSamplesCount;  // in case of counter wrapped
-    return writtenSamplesCount;
-};
-
 BlockReaderImpl::BlockReaderImpl(
     const SignalPtr& signal, SizeT blockSize, SizeT overlap, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
     : Super(signal, mode, valueReadType, domainReadType)

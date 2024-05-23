@@ -260,26 +260,6 @@ jobs:
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
-      # TODO: move the following X steps down appropriately
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} # TODO: test here and there
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      # TODO: remove debugging code
-      - name: aws s3 ls
-        run: aws s3 ls s3://${{ env.s3_bucket }} --recursive
-
-      - name: Download regression simulator from S3
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
-
-      - name: Unzip regression simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
-
       - name: Install basic dependencies
         run: |
           apt-get update
@@ -299,6 +279,30 @@ jobs:
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
             libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+
+      # TODO: START CUT: move the following X steps down appropriately
+      
+      - uses: aws-actions/configure-aws-credentials@v2
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }} # TODO: test here and there
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # TODO: remove debugging code
+      - name: aws s3 ls
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 ls s3://${{ env.s3_bucket }} --recursive
+
+      - name: Download regression simulator from S3
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
+      - name: Unzip regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+        
+        #TODO: END CUT
 
       - name: Install latest CMake
         run: pip install cmake

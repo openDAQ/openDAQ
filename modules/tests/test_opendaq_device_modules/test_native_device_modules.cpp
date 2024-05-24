@@ -4,7 +4,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include "opendaq/mock/mock_device_module.h"
 #include <opendaq/device_info_internal_ptr.h>
-#include <opendaq/discovery_service_factory.h>
+#include <opendaq/discovery_server_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -106,10 +106,9 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    auto servicePath = "/test/native_configuration/discovery/";
-    serverConfig.setPropertyValue("ServiceDiscoverable", true);
-    serverConfig.setPropertyValue("ServicePath", servicePath);
-    server.addServer("openDAQ Native Streaming", serverConfig);
+    auto path = "/test/native_configuration/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -117,7 +116,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
                 break;
             
             if (capability.getProtocolName() == "openDAQ Native Configuration")
@@ -138,10 +137,10 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    auto servicePath = "/test/native_configuration/removeServer/";
-    serverConfig.setPropertyValue("ServiceDiscoverable", true);
-    serverConfig.setPropertyValue("ServicePath", servicePath);
+    auto path = "/test/native_configuration/removeServer/";
+    serverConfig.setPropertyValue("Path", path);
     auto server1 = server.addServer("openDAQ Native Streaming", serverConfig);
+    server1.enableDiscovery();
 
     // check that server is discoverable
     {
@@ -151,7 +150,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
                     break;
             
                 if (capability.getProtocolName() == "openDAQ Native Configuration")
@@ -173,7 +172,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
                     break;
             
                 if (capability.getProtocolName() == "openDAQ Native Configuration")
@@ -186,9 +185,10 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     }
 
     // add server again and check that server is discoverable
-    auto servicePath2 = "/test/native_configuration/removeServer2/";
-    serverConfig.setPropertyValue("ServicePath", servicePath2);
+    auto path2 = "/test/native_configuration/removeServer2/";
+    serverConfig.setPropertyValue("Path", path2);
     auto server2 = server.addServer("openDAQ Native Streaming", serverConfig);
+    server2.enableDiscovery();
     {
         auto client = Instance();
         size_t deviceFound = 0;
@@ -196,8 +196,8 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                bool isRemovedServer = test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath);
-                bool isNewServer = test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath2);
+                bool isRemovedServer = test_helpers::isSufix(deviceInfo.getConnectionString(), path);
+                bool isNewServer = test_helpers::isSufix(deviceInfo.getConnectionString(), path2);
                 if (!isRemovedServer && !isNewServer)
                     break;
 
@@ -220,14 +220,13 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "NativeStreamingServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "ServicePath": "/test/native_congifurator/checkDeviceInfoPopulated/"
+                    "Path": "/test/native_congifurator/checkDeviceInfoPopulated/"
                 }
             }
         }
     )";
-    auto servicePath = "/test/native_congifurator/checkDeviceInfoPopulated/";
+    auto path = "/test/native_congifurator/checkDeviceInfoPopulated/";
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
@@ -239,7 +238,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    instance.addServer("openDAQ Native Streaming", serverConfig);
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -258,7 +257,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

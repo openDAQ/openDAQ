@@ -16,7 +16,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
                          ModuleManagerPtr moduleManager,
                          AuthenticationProviderPtr authenticationProvider,
                          DictPtr<IString, IBaseObject> options,
-                         DictPtr<IString, IDiscoveryService> discoveryServices)
+                         DictPtr<IString, IDiscoveryServer> discoveryServices)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
@@ -199,7 +199,7 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 }
 
-ErrCode ContextImpl::getAvailableDiscoveryServices(IDict** services)
+ErrCode ContextImpl::getDiscoveryServers(IDict** services)
 {
     OPENDAQ_PARAM_NOT_NULL(services);
     *services = this->discoveryServices.addRefAndReturn();

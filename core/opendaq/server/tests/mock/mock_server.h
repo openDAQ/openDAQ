@@ -24,6 +24,7 @@ class MockServerImpl : public daq::ImplementationOf<daq::IServer>
 public:
     explicit MockServerImpl();
 
+    daq::ErrCode INTERFACE_FUNC enableDiscovery() override;
     daq::ErrCode INTERFACE_FUNC stop() override;
 };
 

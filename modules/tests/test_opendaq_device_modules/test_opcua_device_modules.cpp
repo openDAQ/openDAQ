@@ -86,9 +86,8 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
             {
                 "OpcUaServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "ServicePath": "/some/path"
+                    "Path": "/some/path"
                 }
             }
         }
@@ -99,9 +98,8 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
 
-    ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
     ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
-    ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
@@ -110,10 +108,9 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
-    auto servicePath = "/test/native_opcua/discovery/";
-    serverConfig.setPropertyValue("ServiceDiscoverable", true);
-    serverConfig.setPropertyValue("ServicePath", servicePath);
-    server.addServer("openDAQ OpcUa", serverConfig);
+    auto path = "/test/native_opcua/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -121,7 +118,7 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
             {
                 break;
             }
@@ -144,14 +141,13 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "OpcUaServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "ServicePath": "/test/opcua/checkDeviceInfoPopulated/"
+                    "Path": "/test/opcua/checkDeviceInfoPopulated/"
                 }
             }
         }
     )";
-    auto servicePath = "/test/opcua/checkDeviceInfoPopulated/";
+    auto path = "/test/opcua/checkDeviceInfoPopulated/";
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
@@ -164,7 +160,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
-    instance.addServer("openDAQ OpcUa", serverConfig);
+    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
 
     auto client = Instance();
     
@@ -183,7 +179,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

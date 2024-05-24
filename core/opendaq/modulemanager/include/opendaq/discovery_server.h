@@ -30,16 +30,15 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
-DECLARE_OPENDAQ_INTERFACE(IDiscoveryService, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) = 0;
     virtual ErrCode INTERFACE_FUNC unregisterService(IString* id) = 0;
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
-    MdnsDiscoveryService, IDiscoveryService, 
+    MdnsDiscoveryServer, IDiscoveryServer, 
     ILogger*, logger)
 
 END_NAMESPACE_OPENDAQ

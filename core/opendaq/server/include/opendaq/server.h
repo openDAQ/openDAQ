@@ -48,6 +48,11 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @brief Stops the server. This is called when we remove the server from the Instance or Instance is closing.
     */
     virtual ErrCode INTERFACE_FUNC stop() = 0;
+
+    /*!
+    * @brief Enables the server to be discovered by the client.
+    */
+    virtual ErrCode INTERFACE_FUNC enableDiscovery() = 0;
 };
 /*!@}*/
 

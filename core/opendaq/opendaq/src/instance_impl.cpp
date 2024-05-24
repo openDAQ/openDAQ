@@ -13,7 +13,7 @@
 #include <opendaq/device_private.h>
 
 #include <opendaq/module_manager_utils_ptr.h>
-#include <opendaq/discovery_service_factory.h>
+#include <opendaq/discovery_server_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -81,10 +81,10 @@ static std::string defineLocalId(const std::string& localId)
     return boost::uuids::to_string(uuidBoost);
 }
 
-static DiscoveryServicePtr createDiscoveryService(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryService(const StringPtr& serviceName, const LoggerPtr& logger)
 {
     if (serviceName == "mdns")
-        return MdnsDiscoveryService(logger);
+        return MdnsDiscoveryServer(logger);
     return nullptr;
 }
 
@@ -128,7 +128,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
-    auto discoveryServices = Dict<IString, IDiscoveryService>();
+    auto discoveryServices = Dict<IString, IDiscoveryServer>();
     for (const auto& serviceName : builderPtr.getDiscoveryServices())
     {
         auto service = createDiscoveryService(serviceName, logger);

@@ -22,31 +22,31 @@ using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(config, rootDevice, context, nullptr)
+    : Server("NativeStreamingServer", config, rootDevice, context, nullptr)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
     , processingStrand(processingIOContext)
     , logger(context.getLogger())
-    , loggerComponent(logger.getOrAddComponent("NativeStreamingServerImpl"))
+    , loggerComponent(logger.getOrAddComponent(id))
 {
     startProcessingOperations();
     startTransportOperations();
 
     prepareServerHandler();
-    const uint16_t port = config.getPropertyValue("Port");
+    const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
     ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
     serverCapabilityStreaming.setPrefix("daq.ns");
     serverCapabilityStreaming.setConnectionType("TCP/IP");
-    serverCapabilityStreaming.addProperty(IntProperty("Port", port));
+    serverCapabilityStreaming.addProperty(IntProperty("NativeStreamingPort", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
     serverCapabilityConfig.setPrefix("daq.nd");
     serverCapabilityConfig.setConnectionType("TCP/IP");
-    serverCapabilityConfig.addProperty(IntProperty("Port", port));
+    serverCapabilityConfig.addProperty(IntProperty("NativeStreamingPort", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
@@ -271,19 +271,12 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
     if (!config.assigned())
         return;
 
-    LoggerComponentPtr loggerComponent;
-
     auto options = context.getModuleOptions("NativeStreamingServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
         {
-            ErrCode err = config->setPropertyValue(key, value);
-            if (err != OPENDAQ_SUCCESS)
-            {
-                loggerComponent = context.getLogger().getOrAddComponent("ConfigProvider/Modules/NativeStreamingServer");
-                LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
-            }
+            config->setPropertyValue(key, value);
         }
     }
 }
@@ -295,27 +288,25 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
 
     auto defaultConfig = PropertyObject();
 
-    const auto portProp = IntPropertyBuilder("Port", 7420)
+    const auto portProp = IntPropertyBuilder("NativeStreamingPort", 7420)
         .setMinValue(minPortValue)
         .setMaxValue(maxPortValue)
         .build();
     defaultConfig.addProperty(portProp);
-
-    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
-    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
-
-    const auto serviceProp = StringPropertyBuilder("ServiceName", "_opendaq-streaming-native._tcp.local.")
-        .setReadOnly(true)
-        .build();
-    defaultConfig.addProperty(serviceProp);
-
-    const auto serviceCapProp = StringPropertyBuilder("ServiceCap", "OPENDAQ_NS")
-        .setReadOnly(true)
-        .build();
-    defaultConfig.addProperty(serviceCapProp);
+    defaultConfig.addProperty(StringProperty("Path", "/"));
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
+}
+
+PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
+{
+    auto discoveryConfig = PropertyObject();
+    discoveryConfig.addProperty(StringProperty("ServiceName", "_opendaq-streaming-native._tcp.local."));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ_NS"));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
+    return discoveryConfig;
 }
 
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)

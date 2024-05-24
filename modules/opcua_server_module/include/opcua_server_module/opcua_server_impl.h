@@ -33,6 +33,7 @@ public:
     static ServerTypePtr createType(const ContextPtr& context);
 
 protected:
+    PropertyObjectPtr getDiscoveryConfig() override;
     void onStopServer() override;
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 

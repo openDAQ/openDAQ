@@ -15,15 +15,15 @@
  */
 
 #pragma once
-#include <opendaq/discovery_service_ptr.h>
+#include <opendaq/discovery_server_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 
 
-inline DiscoveryServicePtr MdnsDiscoveryService(const LoggerPtr& logger)
+inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
 {
-    DiscoveryServicePtr obj(MdnsDiscoveryService_Create(logger));
+    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));
     return obj;
 }
 

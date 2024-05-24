@@ -13,5 +13,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define BEGIN_NAMESPACE_DISCOVERY_SERVICE namespace daq { namespace discovery_service {
+#define BEGIN_NAMESPACE_DISCOVERY_SERVICE namespace daq { namespace discovery_server {
 #define END_NAMESPACE_DISCOVERY_SERVICE } }

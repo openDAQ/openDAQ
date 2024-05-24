@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include <opendaq/mdns_discovery_service_impl.h>
+#include <opendaq/mdns_discovery_server_impl.h>
 #include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MdnsDiscoveryServiceImpl::MdnsDiscoveryServiceImpl(const LoggerPtr& logger)
-    : loggerComponent(logger.getOrAddComponent("MdnsDiscoveryServiceImpl"))
+MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
+    : loggerComponent(logger.getOrAddComponent("MdnsDiscoveryServerImpl"))
 {
 }
 
-ErrCode MdnsDiscoveryServiceImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
+ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
     if (id == nullptr || config == nullptr)
         return OPENDAQ_IGNORED;
@@ -37,7 +37,7 @@ ErrCode MdnsDiscoveryServiceImpl::registerService(IString* id, IPropertyObject* 
     return OPENDAQ_IGNORED;
 }
 
-ErrCode MdnsDiscoveryServiceImpl::unregisterService(IString* id)
+ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
 {
     if (id == nullptr)
         return OPENDAQ_IGNORED;
@@ -50,18 +50,9 @@ ErrCode MdnsDiscoveryServiceImpl::unregisterService(IString* id)
     return OPENDAQ_IGNORED;
 }
 
-ErrCode MdnsDiscoveryServiceImpl::getName(IString** name)
+extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger)
 {
-    if (name == nullptr)
-        return OPENDAQ_IGNORED;
-
-    *name = String("mdns").detach();
-    return OPENDAQ_SUCCESS;
-}
-
-extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryService(IDiscoveryService** objTmp, ILogger* logger)
-{
-    return daq::createObject<IDiscoveryService, MdnsDiscoveryServiceImpl>(objTmp, logger);
+    return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger);
 }
 
 END_NAMESPACE_OPENDAQ

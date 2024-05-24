@@ -105,11 +105,11 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::arg("module_id"),
         "Retrieves the options associated with the specified module ID.");
-    cls.def_property_readonly("available_discovery_services",
+    cls.def_property_readonly("discovery_servers",
         [](daq::IContext *object)
         {
             const auto objectPtr = daq::ContextPtr::Borrow(object);
-            return objectPtr.getAvailableDiscoveryServices().detach();
+            return objectPtr.getDiscoveryServers().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the dictionary of available discovery services.");

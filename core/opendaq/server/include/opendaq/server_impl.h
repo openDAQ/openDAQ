@@ -24,7 +24,8 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/validation.h>
 #include <coreobjects/property_factory.h>
-#include <opendaq/discovery_service_ptr.h>
+#include <opendaq/discovery_server_ptr.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -38,68 +39,62 @@ public:
     using Super = ImplementationOf<IServer>;
     using Self = ServerImpl;
 
-    explicit ServerImpl(PropertyObjectPtr serverConfig,
+    explicit ServerImpl(StringPtr id,
+                        PropertyObjectPtr serverConfig,
                         DevicePtr rootDevice,
                         ContextPtr context,
                         ModuleManagerPtr moduleManager)
-        : config(std::move(serverConfig))
+        : id(std::move(id))
+        , config(std::move(serverConfig))
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
         , moduleManager(std::move(moduleManager))
-        , serverId(std::move(createServerId(config)))
     {
-        if (this->context != nullptr)
+    }
+
+    ErrCode INTERFACE_FUNC enableDiscovery() override
+    {
+        if (context != nullptr)
         {
             DeviceInfoPtr rootDeviceInfo;
             if (this->rootDevice != nullptr)
                 rootDeviceInfo = this->rootDevice.getInfo();
-            for (const auto& [_, service] : this->context.getAvailableDiscoveryServices())
+            for (const auto& [_, service] : context.getDiscoveryServers())
             {
-                service.asPtr<IDiscoveryService>().registerService(serverId, config, rootDeviceInfo);
+                service.asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
             }
         }
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC stop() override
     {
         if (context != nullptr)
         {
-            for (const auto& [_, service] : context.getAvailableDiscoveryServices())
+            for (const auto& [_, service] : context.getDiscoveryServers())
             {
-                service.asPtr<IDiscoveryService>().unregisterService(serverId);
+                service.asPtr<IDiscoveryServer>().unregisterService(id);
             }
         }
         return wrapHandler(this, &Self::onStopServer);
     }
 
 protected:
-    virtual void onStopServer()
-    {
 
+    virtual PropertyObjectPtr getDiscoveryConfig()
+    {
+        return PropertyObject();
     }
 
+    virtual void onStopServer()
+    {
+    }
+
+    StringPtr id;
     PropertyObjectPtr config;
     DevicePtr rootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;
-
-private: 
-
-    StringPtr createServerId(const PropertyObjectPtr& config)
-    {
-        if (config == nullptr)
-            return nullptr;
-
-        std::string result;
-        if (config.hasProperty("ServiceCap"))
-            result += std::string(config.getPropertyValue("ServiceCap"));
-        result += "_";
-        if (config.hasProperty("Port"))
-            result += std::string(config.getPropertyValue("Port"));
-        return result;
-    }
-
-    StringPtr serverId;
 };
 
 END_NAMESPACE_OPENDAQ

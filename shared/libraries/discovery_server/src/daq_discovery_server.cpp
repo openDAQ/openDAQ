@@ -7,7 +7,11 @@ BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
 bool DiscoveryServer::registerDevice(const StringPtr& serverId, const PropertyObjectPtr& config, const DeviceInfoPtr& deviceInfo)
 {
-    if (!config.hasProperty("ServiceDiscoverable") || config.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>() == false)
+    if (serverId == nullptr)
+    {
+        return false;
+    }
+    if (config == nullptr)
     {
         return false;
     }
@@ -30,8 +34,8 @@ bool DiscoveryServer::registerDevice(const StringPtr& serverId, const PropertyOb
 
     std::unordered_map<std::string, std::string> properties;
     properties["caps"] = serviceCap.asPtr<IString>().toStdString();
-    if (config.hasProperty("ServicePath"))
-        properties["path"] = config.getPropertyValue("ServicePath").asPtr<IString>().toStdString();
+    if (config.hasProperty("Path"))
+        properties["path"] = config.getPropertyValue("Path").asPtr<IString>().toStdString();
 
     properties["name"] = "";
     properties["manufacturer"] = "";

@@ -1,3 +1,32 @@
+24.05.2024
+Description
+  - Supporing servers to be discovered with mDNS
+
++  [interface] IServer::enableDiscovery();
+
++  [interface] IDiscoveryServer
++  [function]  IDiscoveryServer::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo);
++  [function]  IDiscoveryServer::unregisterService(IString* id)
++  [factory]   DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
+
++  [function]  IInstanceBuilder::getDiscoveryServices(IList** services)
++  [function]  IInstanceBuilder::addDiscoveryService(IString* serviceName)
+
++  [function] Context::getDiscoveryServers(IDict** services);
+-m [factory] ContextPtr Context(const SchedulerPtr& scheduler,
+                           const LoggerPtr& logger,
+                           const TypeManagerPtr& typeManager,
+                           const ModuleManagerPtr& moduleManager,
+                           const AuthenticationProviderPtr& authenticationProvider,
+                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
++m [factory] ContextPtr Context(const SchedulerPtr& scheduler,
+                           const LoggerPtr& logger,
+                           const TypeManagerPtr& typeManager,
+                           const ModuleManagerPtr& moduleManager,
+                           const AuthenticationProviderPtr& authenticationProvider,
+                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
+                           const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
+
 17.05.2024
 Description:
   - Add ability to manually connect to streaming for device after device added

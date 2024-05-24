@@ -7,6 +7,11 @@ MockServerImpl::MockServerImpl()
 {
 }
 
+ErrCode MockServerImpl::enableDiscovery()
+{
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MockServerImpl::stop()
 {
     return OPENDAQ_SUCCESS;

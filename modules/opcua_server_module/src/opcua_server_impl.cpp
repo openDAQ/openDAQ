@@ -11,7 +11,7 @@ using namespace daq;
 using namespace daq::opcua;
 
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(config, rootDevice, context, nullptr)
+    : Server("OpcUaServer", config, rootDevice, context, nullptr)
     , server(rootDevice, context)
     , context(context)
 {
@@ -32,19 +32,12 @@ void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& contex
     if (!config.assigned())
         return;
 
-    LoggerComponentPtr loggerComponent;
-
     auto options = context.getModuleOptions("OpcUaServer");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
         {
-            ErrCode err = config->setPropertyValue(key, value);
-            if (err != OPENDAQ_SUCCESS)
-            {
-                loggerComponent = context.getLogger().getOrAddComponent("ConfigProvider/Modules/OpcUaServer");
-                LOG_W("Ignoring property \"{}\". Using default value \"{}\"", key, config.getPropertyValue(key));
-            }
+            config->setPropertyValue(key, value);
         }
     }
 }
@@ -62,21 +55,20 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context
         .build();
     defaultConfig.addProperty(portProp);
 
-    defaultConfig.addProperty(BoolProperty("ServiceDiscoverable", false));
-    defaultConfig.addProperty(StringProperty("ServicePath", "/"));
-
-    const auto serviceProp = StringPropertyBuilder("ServiceName", "_opcua-tcp._tcp.local.")
-        .setReadOnly(true)
-        .build();
-    defaultConfig.addProperty(serviceProp);
-
-    const auto serviceCapProp = StringPropertyBuilder("ServiceCap", "OPENDAQ")
-        .setReadOnly(true)
-        .build();
-    defaultConfig.addProperty(serviceCapProp);
+    defaultConfig.addProperty(StringProperty("Path", "/"));
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
+}
+
+PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
+{
+    auto discoveryConfig = PropertyObject();
+    discoveryConfig.addProperty(StringProperty("ServiceName", "_opcua-tcp._tcp.local."));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ"));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("Port")));
+    return discoveryConfig;
 }
 
 ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)

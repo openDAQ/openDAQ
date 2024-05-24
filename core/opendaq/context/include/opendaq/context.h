@@ -112,7 +112,7 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @brief Gets the dictionary of available discovery services.
      * @param[out] services The dictionary of available discovery services.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableDiscoveryServices(IDict** services) = 0;
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** services) = 0;
 };
 /*!@}*/
 

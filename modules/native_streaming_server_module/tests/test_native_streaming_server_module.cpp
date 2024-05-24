@@ -51,7 +51,7 @@ static InstancePtr CreateTestInstance()
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
     auto config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    config.setPropertyValue("Port", 0);
+    config.setPropertyValue("NativeStreamingPort", 0);
     return config;
 }
 
@@ -115,8 +115,8 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
     auto config = serverTypes.get("openDAQ Native Streaming").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
-    ASSERT_TRUE(config.hasProperty("Port"));
-    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
+    ASSERT_TRUE(config.hasProperty("NativeStreamingPort"));
+    ASSERT_EQ(config.getPropertyValue("NativeStreamingPort"), 7420);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

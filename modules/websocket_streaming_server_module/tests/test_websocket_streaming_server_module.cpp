@@ -58,7 +58,7 @@ static InstancePtr CreateTestInstance()
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
     auto config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-    config.setPropertyValue("Port", 0);
+    config.setPropertyValue("WebsocketStreamingPort", 0);
     config.setPropertyValue("WebsocketControlPort", 0);
     return config;
 }
@@ -123,8 +123,8 @@ TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
     auto config = serverTypes.get("openDAQ LT Streaming").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
-    ASSERT_TRUE(config.hasProperty("Port"));
-    ASSERT_EQ(config.getPropertyValue("Port"), 7414);
+    ASSERT_TRUE(config.hasProperty("WebsocketStreamingPort"));
+    ASSERT_EQ(config.getPropertyValue("WebsocketStreamingPort"), 7414);
 
     ASSERT_TRUE(config.hasProperty("WebsocketControlPort"));
     ASSERT_EQ(config.getPropertyValue("WebsocketControlPort"), 7438);

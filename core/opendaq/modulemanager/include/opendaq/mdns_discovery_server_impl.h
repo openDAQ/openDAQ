@@ -15,23 +15,22 @@
  */
 
 #pragma once
-#include <opendaq/discovery_service.h>
+#include <opendaq/discovery_server.h>
 #include <discovery_server/daq_discovery_server.h>
 #include <opendaq/logger_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class MdnsDiscoveryServiceImpl : public ImplementationOf<IDiscoveryService>
+class MdnsDiscoveryServerImpl : public ImplementationOf<IDiscoveryServer>
 {
 public:
-    MdnsDiscoveryServiceImpl(const LoggerPtr& logger);
+    MdnsDiscoveryServerImpl(const LoggerPtr& logger);
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
 
 private:
-    discovery_service::DiscoveryServer discoveryServer;
+    discovery_server::DiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;
 
 };

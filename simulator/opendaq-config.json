@@ -24,15 +24,13 @@
         {
             "NativeStreamingServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 7420,
-                    "ServicePath": "/"
+                    "Path": "/"
                 },
             "OpcUaServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 4840,
-                    "ServicePath": "/"
+                    "Path": "/"
                 }
         }
 }

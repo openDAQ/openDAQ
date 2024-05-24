@@ -83,8 +83,6 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
     
     providers.pushBack(configProvider);
     return OPENDAQ_SUCCESS;
-    
-    
 
     auto configProviderPtr = ConfigProviderPtr::Borrow(configProvider);
     
@@ -201,9 +199,12 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     auto paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>();
-    if (paths.empty()) {
+    if (paths.empty()) 
+    {
         *path = String("").detach();
-    } else {
+    } 
+    else 
+    {
         *path = paths[0].asPtr<IString>().addRefAndReturn();
     }
 
@@ -300,10 +301,9 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
 {
     if (localId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-
-    getRootDevice().set("DefaultLocalId", localId);
+        getRootDevice().set("DefaultLocalId", "");
+    else
+        getRootDevice().set("DefaultLocalId", localId);
     return OPENDAQ_SUCCESS;
 }
 

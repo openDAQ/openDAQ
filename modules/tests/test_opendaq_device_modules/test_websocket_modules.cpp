@@ -68,9 +68,8 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
             {
                 "StreamingLtServer":
                 {
-                    "ServiceDiscoverable": true,
-                    "Port": 1234,
-                    "ServicePath": "/some/path"
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/some/path"
                 }
             }
         }
@@ -81,9 +80,8 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
 
-    ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
-    ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
-    ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
+    ASSERT_EQ(serverConfig.getPropertyValue("WebsocketStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
@@ -92,10 +90,9 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-    auto servicePath = "/test/streaming_lt/discovery/";
-    serverConfig.setPropertyValue("ServiceDiscoverable", true);
-    serverConfig.setPropertyValue("ServicePath", servicePath);
-    server.addServer("openDAQ LT Streaming", serverConfig);
+    auto path = "/test/streaming_lt/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -103,7 +100,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
             {
                 break;
             }
@@ -127,14 +124,13 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "StreamingLtServer":
                 {
-                    "ServiceDiscoverable": true,
-                    "Port": 1234,
-                    "ServicePath": "/test/streaming_lt/checkDeviceInfoPopulated"
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/test/streaming_lt/checkDeviceInfoPopulated"
                 }
             }
         }
     )";
-    auto servicePath = "/test/streaming_lt/checkDeviceInfoPopulated";
+    auto path = "/test/streaming_lt/checkDeviceInfoPopulated";
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
@@ -150,7 +146,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
                                      .build();
     instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-    instance.addServer("openDAQ LT Streaming", serverConfig);
+    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -169,7 +165,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

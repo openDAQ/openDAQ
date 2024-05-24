@@ -60,9 +60,8 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
             {
                 "NativeStreamingServer":
                 {
-                    "ServiceDiscoverable": true,
-                    "Port": 1234,
-                    "ServicePath": "/some/path"
+                    "NativeStreamingPort": 1234,
+                    "Path": "/some/path"
                 }
             }
         }
@@ -73,9 +72,8 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
 
-    ASSERT_TRUE(serverConfig.getPropertyValue("ServiceDiscoverable").asPtr<IBoolean>());
-    ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
-    ASSERT_EQ(serverConfig.getPropertyValue("ServicePath").asPtr<IString>(), "/some/path");
+    ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
 }
 
 TEST_F(NativeStreamingModulesTest, DiscoveringServer)
@@ -86,10 +84,9 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    auto servicePath = "/test/native_streaming/discovery/";
-    serverConfig.setPropertyValue("ServiceDiscoverable", true);
-    serverConfig.setPropertyValue("ServicePath", servicePath);
-    server.addServer("openDAQ Native Streaming", serverConfig);
+    auto path = "/test/native_streaming/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -97,7 +94,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), servicePath))
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
             {
                 break;
             }
@@ -120,14 +117,13 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "NativeStreamingServer":
                 {
-                    "ServiceDiscoverable": true,
                     "Port": 1234,
-                    "ServicePath": "/test/native/checkDeviceInfoPopulated/"
+                    "Path": "/test/native/checkDeviceInfoPopulated/"
                 }
             }
         }
     )";
-    auto servicePath = "/test/native/checkDeviceInfoPopulated/";
+    auto path = "/test/native/checkDeviceInfoPopulated/";
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
@@ -139,7 +135,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    instance.addServer("openDAQ Native Streaming", serverConfig);
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -158,7 +154,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), servicePath));
+                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

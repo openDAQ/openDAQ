@@ -197,7 +197,7 @@ TEST_F(ModulesTest, CreateServer)
     daq::PropertyObjectPtr nativeStreamingConfig = nativeStreamingServerType.createDefaultConfig();
     daq::ListPtr<IProperty> nativeStreamingConfigFields = nativeStreamingConfig.getVisibleProperties();
     ASSERT_NO_THROW(nativeStreamingConfigFields[0].getName());
-    nativeStreamingConfig.setPropertyValue("Port", 7420);
+    nativeStreamingConfig.setPropertyValue("NativeStreamingPort", 7420);
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nativeStreamingConfig));
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -205,7 +205,7 @@ TEST_F(ModulesTest, CreateServer)
     daq::PropertyObjectPtr webSocketConfig = webSocketServerType.createDefaultConfig();
     daq::ListPtr<IProperty> webSocketConfigFields = webSocketConfig.getVisibleProperties();
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());
-    webSocketConfig.setPropertyValue("Port", 7414);
+    webSocketConfig.setPropertyValue("WebsocketStreamingPort", 7414);
     webSocketConfig.setPropertyValue("WebsocketControlPort", 7438);
     ASSERT_NO_THROW(websocketStreamingServerModule.createServer(webSocketServerType.getId(), device, webSocketConfig));
 #endif

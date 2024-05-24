@@ -114,12 +114,6 @@ jobs:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           cmake --build . --config ${{ matrix.cmake_build_type }}
-          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
-            if (! (Test-Path -Path "${{ env.package_path }}")) { mkdir "${{ env.package_path }}" }
-            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
-          } else {
-            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
-          }
 
       - name: Test
         shell: pwsh

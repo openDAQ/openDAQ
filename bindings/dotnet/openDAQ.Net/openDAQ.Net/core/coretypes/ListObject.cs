@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:35.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -81,6 +81,8 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             _rawListObject = Marshal.PtrToStructure<RawListObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets the number of elements contained in the list.</summary>
     public nuint Count
     {
@@ -103,6 +105,9 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
             return size;
         }
     }
+
+    #endregion properties
+
     /// <summary>Gets the element at a specific position.</summary>
     /// <remarks>
     /// The reference count of the element that is retrieved is incremented. The client is

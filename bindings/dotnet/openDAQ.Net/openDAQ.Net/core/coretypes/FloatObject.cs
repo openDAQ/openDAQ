@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:39.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,6 +53,8 @@ public class FloatObject : BaseObject
             _rawFloatObject = Marshal.PtrToStructure<RawFloatObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a float value stored in the object.</summary>
     /// <remarks>Call this method to extract the float value that is stored in the object.</remarks>
     public double Value
@@ -76,6 +78,9 @@ public class FloatObject : BaseObject
             return value;
         }
     }
+
+    #endregion properties
+
     /// <summary>Compares stored float value to the float parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the value parameter.</remarks>
     /// <param name="value">Value for comparison.</param>

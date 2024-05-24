@@ -32,6 +32,6 @@ namespace RTGen.Interfaces
         bool IsPolymorphic { get; set; }
 
         /// <summary>True if method steals the reference to the argument.</summary>
-        bool StealRef { get; set; }
+        bool IsStealRef { get; set; }
     }
 }

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:37.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,6 +73,8 @@ public class EnumerationType : DaqType
         base._virtualTable =
             _rawEnumerationType = Marshal.PtrToStructure<RawEnumerationType>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets the list of enumerator names.</summary>
     public IListObject<StringObject> EnumeratorNames
@@ -142,6 +144,9 @@ public class EnumerationType : DaqType
             return count;
         }
     }
+
+    #endregion properties
+
     /// <summary>Gets the value of enumerator with the specified name.</summary>
     /// <param name="name">The name of the enumerator (String object).</param>
     /// <returns>The integer value of the enumerator with the specified name.</returns>

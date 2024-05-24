@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:40.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,6 +53,8 @@ public class IntegerObject : BaseObject
             _rawIntegerObject = Marshal.PtrToStructure<RawIntegerObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets an int value stored in the object.</summary>
     /// <remarks>Call this method to extract the int value that is stored in the object.</remarks>
     public long Value
@@ -76,6 +78,9 @@ public class IntegerObject : BaseObject
             return value;
         }
     }
+
+    #endregion properties
+
     /// <summary>Compares stored int value to the int parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the value parameter.</remarks>
     /// <param name="value">Value for comparison.</param>

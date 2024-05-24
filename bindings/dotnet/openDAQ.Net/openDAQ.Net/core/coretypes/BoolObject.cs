@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:35.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,6 +53,8 @@ public class BoolObject : BaseObject
             _rawBoolObject = Marshal.PtrToStructure<RawBoolObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a boolean value stored in the object.</summary>
     /// <remarks>Call this method to extract the boolean value that is stored in the object.</remarks>
     public bool Value
@@ -76,6 +78,9 @@ public class BoolObject : BaseObject
             return value;
         }
     }
+
+    #endregion properties
+
     /// <summary>Compares stored boolean value to the boolean parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the boolean parameter.</remarks>
     /// <param name="value">Value for comparison.</param>

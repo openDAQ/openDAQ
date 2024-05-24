@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:34.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,6 +73,8 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         base._virtualTable =
             _rawDictObject = Marshal.PtrToStructure<RawDictObject>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets the number of elements contained in the dictionary.</summary>
     public nuint Count
@@ -208,6 +210,9 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             return new Iterable<TValue>(iterablePtr, incrementReference: false);
         }
     }
+
+    #endregion properties
+
     /// <summary>Gets the element with the specified key.</summary>
     /// <remarks>
     /// The reference count of the element that is retrieved is incremented. The client is

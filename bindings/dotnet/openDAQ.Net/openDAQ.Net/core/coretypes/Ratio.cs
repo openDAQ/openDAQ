@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:43.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -54,6 +54,8 @@ public class Ratio : BaseObject
         base._virtualTable =
             _rawRatio = Marshal.PtrToStructure<RawRatio>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets numerator part.</summary>
     public long Numerator
@@ -100,6 +102,9 @@ public class Ratio : BaseObject
             return denominator;
         }
     }
+
+    #endregion properties
+
     /// <summary>Simplifies rational number if possible and returns the simplified ratio as a new object.</summary>
     /// <remarks>
     /// Call this method to reduce stored rational number to the lowest terms possible.

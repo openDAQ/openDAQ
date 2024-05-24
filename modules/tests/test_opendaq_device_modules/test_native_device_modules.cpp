@@ -220,7 +220,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "NativeStreamingServer":
                 {
-                    "Port": 1234,
+                    "NativeStreamingPort": 1234,
                     "Path": "/test/native_congifurator/checkDeviceInfoPopulated/"
                 }
             }

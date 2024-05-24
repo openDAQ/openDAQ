@@ -24,7 +24,7 @@
         {
             "NativeStreamingServer":
                 {
-                    "Port": 7420,
+                    "NativeStreamingPort": 7420,
                     "Path": "/"
                 },
             "OpcUaServer":

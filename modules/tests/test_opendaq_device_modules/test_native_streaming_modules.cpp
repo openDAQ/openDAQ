@@ -117,7 +117,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 "NativeStreamingServer":
                 {
-                    "Port": 1234,
+                    "NativeStreamingPort": 1234,
                     "Path": "/test/native/checkDeviceInfoPopulated/"
                 }
             }

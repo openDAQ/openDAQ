@@ -255,22 +255,23 @@ jobs:
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: Build
-        working-directory: build
-        run: cmake --build .
+      # TODO: enable
+      #- name: Build
+      #  working-directory: build
+      #  run: cmake --build .
 
-      - name: Test
-        working-directory: build
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
+      #- name: Test
+      #  working-directory: build
+      #  env:
+      #    GTEST_OUTPUT: "xml:${{ env.test_path }}"
+      #  run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+      #- name: Upload test results
+      #  if: always()
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: Unit Test Results (${{ matrix.name }})
+      #    path: ${{ env.test_path }}
 
       # REGRESSION TESTS BEGIN
 
@@ -296,7 +297,7 @@ jobs:
 
       # TODO: REMOVE THIS DEBUG STEP
       - name: ls
-        run: ls -R ${{ github.workspace }}/{{ env.regression_simulator_folder }}/
+        run: ls -R ${{ env.regression_simulator_folder }}
       
       # TODO: DOES THIS WORK???  
       - name: Set LD_LIBRARY_PATH

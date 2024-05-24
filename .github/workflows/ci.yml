@@ -11,12 +11,12 @@ on:
 # TODO: Enable Python binding tests on all distributions
 
 env:
+  s3_bucket: bb-blueberry-sdk-releases
   regression_tests_target_tag: v3.0.0
   regression_simulator_folder: regression_test_simulator
-  s3_bucket: bb-blueberry-sdk-releases
-  LD_LIBRARY_PATH: ${{ github.workspace }}/regression_test_simulator # TODO: ?
+  LD_LIBRARY_PATH: ${{ github.workspace }}/regression_test_simulator
   cmake_preset: ci
-  test_path: ${{ github.workspace }}/junit_reports/
+  test_path: ${{ github.workspace }}/junit_reports/ # TODO: FIX ERROR "No files were found with the provided path"
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
@@ -284,29 +284,28 @@ jobs:
       - name: Install latest CMake
         run: pip install cmake
 
-      # TODO: enable
-      #- name: Configure
-      #  run: |
-      #    mkdir build
-      #    cd build
-      #    cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-      
-      #- name: Build
-      #  working-directory: build
-      #  run: cmake --build .
+      - name: Configure
+        run: |
+          mkdir build
+          cd build
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      #- name: Test
-      #  working-directory: build
-      #  env:
-      #    GTEST_OUTPUT: "xml:${{ env.test_path }}"
-      #  run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
+      - name: Build
+        working-directory: build
+        run: cmake --build .
 
-      #- name: Upload test results
-      #  if: always()
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: Unit Test Results (${{ matrix.name }})
-      #    path: ${{ env.test_path }}
+      - name: Test
+        working-directory: build
+        env:
+          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+        run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: ${{ env.test_path }}
 
       # REGRESSION TESTS BEGIN
 
@@ -329,7 +328,6 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
-      # TODO: LD_LIBRARY_PATH
       - name: Protocol regression test - OPC UA
         continue-on-error: true #TODO: perhaps not the best solution: figure out a way to notify programmers about potential failure of regression tests!
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

@@ -14,6 +14,7 @@ env:
   regression_tests_target_tag: v3.0.0
   regression_simulator_folder: regression_test_simulator
   s3_bucket: bb-blueberry-sdk-releases
+  LD_LIBRARY_PATH: ${{ github.workspace }}/regression_test_simulator # TODO: ?
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -249,13 +250,13 @@ jobs:
       - name: Install latest CMake
         run: pip install cmake
 
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
       # TODO: enable
+      #- name: Configure
+      #  run: |
+      #    mkdir build
+      #    cd build
+      #    cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+      
       #- name: Build
       #  working-directory: build
       #  run: cmake --build .
@@ -300,7 +301,7 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           # Run simulator and wait for it to to be ready
-          LD_LIBRARY_PATH=${{ github.workspace }}/${{ env.regression_simulator_folder }}/ ./${{ env.regression_simulator_folder }}/regression_simulator &
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests

@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IBlockReaderBuilder;
+
 /*#
  * [include(ISampleType)]
  * [interfaceSmartPtr(ISampleReader, GenericSampleReaderPtr)]
@@ -96,7 +98,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, BlockReader,
     ISignal*, signal,
     SizeT, blockSize,
-    SizeT, overlap,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode
@@ -107,18 +108,26 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
     SampleType, domainReadType,
-    SizeT, blockSize,
-    SizeT, overlap
+    SizeT, blockSize
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, BlockReaderFromPort, IBlockReader,
     IInputPortConfig*, port,
     SizeT, blockSize,
-    SizeT, overlap,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode
+)
+
+/*!
+ * @brief Creates a BlockReader with Builder
+ * @param builder BlockReader Builder
+ */
+//[factory(Hide)]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, BlockReaderFromBuilder, IBlockReader,
+    IBlockReaderBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

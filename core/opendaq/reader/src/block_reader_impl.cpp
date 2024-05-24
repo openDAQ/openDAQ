@@ -10,48 +10,77 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 
 BlockReaderImpl::BlockReaderImpl(
-    const SignalPtr& signal, SizeT blockSize, SizeT overlap, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
+    const SignalPtr& signal,
+    SizeT blockSize,
+    SampleType valueReadType,
+    SampleType domainReadType,
+    ReadMode mode,
+    SizeT overlap)
     : Super(signal, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
+
     port.setNotificationMethod(PacketReadyNotification::SameThread);
     readDescriptorFromPort();
 }
 
 BlockReaderImpl::BlockReaderImpl(
-    IInputPortConfig* port, SizeT blockSize, SizeT overlap, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
+    IInputPortConfig* port,
+    SizeT blockSize,
+    SampleType valueReadType,
+    SampleType domainReadType,
+    ReadMode mode,
+    SizeT overlap)
     : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
+
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
 BlockReaderImpl::BlockReaderImpl(
-    const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, SizeT overlap, ReadMode mode)
+    const ReaderConfigPtr& readerConfig,
+    SampleType valueReadType,
+    SampleType domainReadType,
+    SizeT blockSize,
+    ReadMode mode,
+    SizeT overlap)
     : Super(readerConfig, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
+
     readDescriptorFromPort();
 }
 
-BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(
+    BlockReaderImpl* old,
+    SampleType valueReadType,
+    SampleType domainReadType,
+    SizeT blockSize,
+    SizeT overlap)
     : Super(old, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
     , info(old->info)
 {
     initOverlap();
+
     this->internalAddRef();
     if (portBinder.assigned())
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    {
+        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+        handleDescriptorChanged(eventPacket);
+    }
     else
+    {
         readDescriptorFromPort();
+    }
 
     notify.dataReady = false;
 }
@@ -159,7 +188,7 @@ ErrCode BlockReaderImpl::readPacketData()
             {
                 return errCode;
             }
-                errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
+            errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 
         if (OPENDAQ_FAILED(errCode))
@@ -361,30 +390,25 @@ SizeT BlockReaderImpl::calculateBlockCount(SizeT sampleCount) const
         return (sampleCount - blockSize) / overlappedBlockSizeRemainder + 1;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY,
-                             BlockReader,
-                             ISignal*,
-                             signal,
-                             SizeT,
-                             blockSize,
-                             SizeT,
-                             overlap,
-                             SampleType,
-                             valueReadType,
-                             SampleType,
-                             domainReadType,
-                             ReadMode,
-                             mode)
+OPENDAQ_DEFINE_CLASS_FACTORY(
+    LIBRARY_FACTORY, BlockReader,
+    ISignal*, signal,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
 
 template <>
 struct ObjectCreator<IBlockReader>
 {
+    using Self = ObjectCreator<IBlockReader>;
+
     static ErrCode Create(IBlockReader** out,
                           IBlockReader* toCopy,
                           SampleType valueReadType,
                           SampleType domainReadType,
-                          SizeT blockSize,
-                          SizeT overlap) noexcept
+                          SizeT blockSize) noexcept
     {
         OPENDAQ_PARAM_NOT_NULL(out);
 
@@ -393,47 +417,124 @@ struct ObjectCreator<IBlockReader>
             return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
         }
 
-        ReadMode mode;
-        toCopy->getReadMode(&mode);
+        ReadMode readMode;
+        toCopy->getReadMode(&readMode);
+
+        SizeT overlap;
+        toCopy->getOverlap(&overlap);
+
+        return Self::CreateImpl(out, toCopy, readMode, valueReadType, domainReadType, blockSize, overlap);
+    }
+
+    static ErrCode Create(IBlockReader** out,
+                          IBlockReaderBuilder* builder) noexcept
+    {
+        OPENDAQ_PARAM_NOT_NULL(out);
+
+        if (builder == nullptr)
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Builder must not be null", nullptr);
+
+        auto builderPtr = BlockReaderBuilderPtr::Borrow(builder);
+        auto signal = builderPtr.getSignal();
+        auto inputPort = builderPtr.getInputPort();
+        auto oldBlockReader = builderPtr.getOldBlockReader();
+
+        auto assignedCount = signal.assigned() + inputPort.assigned() + oldBlockReader.assigned();
+        if (assignedCount > 1)
+            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Only old block reader instance or signal or input port should be used in builder to construct new instance", nullptr);
+
+        if (builderPtr.getBlockSize() == 0)
+            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Block size cannot be 0", nullptr);
+
+        ErrCode errCode;
+
+        if (oldBlockReader.assigned())
+        {
+            auto oldObject = oldBlockReader.getObject();
+            errCode = Self::CreateImpl(
+                out,
+                oldObject,
+                builderPtr.getReadMode(),
+                builderPtr.getValueReadType(),
+                builderPtr.getDomainReadType(),
+                builderPtr.getBlockSize(),
+                builderPtr.getOverlapSize());
+        }
+        else if (signal.assigned())
+        {
+            errCode = createObject<IBlockReader, BlockReaderImpl>(
+                out,
+                signal,
+                builderPtr.getBlockSize(),
+                builderPtr.getValueReadType(),
+                builderPtr.getDomainReadType(),
+                builderPtr.getReadMode(),
+                builderPtr.getOverlapSize());
+        }
+        else if (inputPort.assigned())
+        {
+            errCode = createObject<IBlockReader, BlockReaderImpl>(
+                out,
+                inputPort.as<IInputPortConfig>(true),
+                builderPtr.getBlockSize(),
+                builderPtr.getValueReadType(),
+                builderPtr.getDomainReadType(),
+                builderPtr.getReadMode(),
+                builderPtr.getOverlapSize());
+        }
+        else
+        {
+            errCode = makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Signal, input port or old Block reader must be assigned to builder", nullptr);
+        }
+
+        return errCode;
+    }
+
+private:
+    static ErrCode CreateImpl(IBlockReader** out,
+                              IBlockReader* toCopy,
+                              ReadMode readMode,
+                              SampleType valueReadType,
+                              SampleType domainReadType,
+                              SizeT blockSize,
+                              SizeT overlap) noexcept
+    {
+        OPENDAQ_PARAM_NOT_NULL(out);
+
+        if (toCopy == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+        }
 
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<BlockReaderImpl*>(old.getObject());
 
         return impl != nullptr
                    ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType, blockSize, overlap)
-                   : createObject<IBlockReader, BlockReaderImpl>(out, old, valueReadType, domainReadType, blockSize, overlap, mode);
+                   : createObject<IBlockReader, BlockReaderImpl>(out, old, valueReadType, domainReadType, blockSize, readMode, overlap);
     }
 };
 
-OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
-                                                                      IBlockReader,
-                                                                      createBlockReaderFromExisting,
-                                                                      IBlockReader*,
-                                                                      invalidatedReader,
-                                                                      SampleType,
-                                                                      valueReadType,
-                                                                      SampleType,
-                                                                      domainReadType,
-                                                                      SizeT,
-                                                                      blockSize,
-                                                                      SizeT,
-                                                                      overlap)
+OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, IBlockReader, createBlockReaderFromExisting,
+    IBlockReader*, invalidatedReader,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    SizeT, blockSize
+)
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
-                                                           BlockReader,
-                                                           IBlockReader,
-                                                           createBlockReaderFromPort,
-                                                           IInputPortConfig*,
-                                                           port,
-                                                           SizeT,
-                                                           blockSize,
-                                                           SizeT,
-                                                           overlap,
-                                                           SampleType,
-                                                           valueReadType,
-                                                           SampleType,
-                                                           domainReadType,
-                                                           ReadMode,
-                                                           mode)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, BlockReader, IBlockReader, createBlockReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
+
+OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, IBlockReader, createBlockReaderFromBuilder,
+    IBlockReaderBuilder*, builder
+)
 
 END_NAMESPACE_OPENDAQ

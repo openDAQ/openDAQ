@@ -27,6 +27,7 @@
 #include <opendaq/reader_status_ptr.h>
 #include <opendaq/block_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/block_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -293,72 +294,76 @@ StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT hi
     );
 }
 
+inline BlockReaderBuilderPtr BlockReaderBuilder()
+{
+    return BlockReaderBuilder_Create();
+}
+
 inline BlockReaderPtr BlockReader(SignalPtr signal,
                                   SizeT blockSize,
                                   SampleType valueReadType,
                                   SampleType domainReadType,
-                                  ReadMode mode = ReadMode::Scaled,
-                                  SizeT overlap = 0)
+                                  ReadMode mode = ReadMode::Scaled)
 {
-    return BlockReader_Create(signal, blockSize, overlap, valueReadType, domainReadType, mode);
+    return BlockReader_Create(signal, blockSize, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port,
                                   SizeT blockSize,
                                   SampleType valueReadType,
                                   SampleType domainReadType,
-                                  ReadMode mode = ReadMode::Scaled,
-                                  SizeT overlap = 0)
+                                  ReadMode mode = ReadMode::Scaled)
 {
-    return BlockReaderFromPort_Create(port, blockSize, overlap, valueReadType, domainReadType, mode);
+    return BlockReaderFromPort_Create(port, blockSize, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader,
                                               SizeT blockSize,
                                               SampleType valueReadType,
-                                              SampleType domainReadType,
-                                              SizeT overlap = 0)
+                                              SampleType domainReadType)
 {
-    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType, blockSize, overlap);
+    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType, blockSize);
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReader(SignalPtr signal, SizeT blockSize, ReadMode mode = ReadMode::Scaled, SizeT overlap = 0)
+BlockReaderPtr BlockReader(SignalPtr signal, SizeT blockSize, ReadMode mode = ReadMode::Scaled)
 {
     return BlockReader(
         signal,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
-        mode,
-        overlap
+        mode
     );
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, ReadMode mode = ReadMode::Scaled, SizeT overlap = 0)
+BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, ReadMode mode = ReadMode::Scaled)
 {
     return BlockReaderFromPort(
         port,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
-        mode,
-        overlap
+        mode
     );
 }
 
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT blockSize, SizeT overlap = 0)
+BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT blockSize)
 {
     return BlockReaderFromExisting(
         invalidatedReader,
         blockSize,
         SampleTypeFromType<TValueType>::SampleType,
-        SampleTypeFromType<TDomainType>::SampleType,
-        overlap
+        SampleTypeFromType<TDomainType>::SampleType
     );
+}
+
+inline BlockReaderPtr BlockReaderFromBuilder(const BlockReaderBuilderPtr& builder)
+{
+    return BlockReaderFromBuilder_Create(builder);
 }
 
 inline MultiReaderBuilderPtr MultiReaderBuilder()

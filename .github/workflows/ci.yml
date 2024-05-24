@@ -303,7 +303,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}opcua"
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}opcua"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -320,7 +320,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=fail ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}fail"
+          cmake -E env protocol=fail ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}fail"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -336,7 +336,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}nd"
+          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}nd"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -352,7 +352,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}ns"
+          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}ns"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -368,7 +368,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir current/build --gtest_output="xml:${{ env.test_path }}lt"
+          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}lt"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)

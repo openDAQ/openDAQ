@@ -424,7 +424,7 @@ ErrCode InstanceBuilderImpl::getDiscoveryServices(IList** services)
 
 ErrCode InstanceBuilderImpl::addDiscoveryService(IString* serviceName)
 {
-    if ((serviceName == nullptr))
+    if (serviceName == nullptr)
         return OPENDAQ_IGNORED;
 
     discoveryServices.pushBack(serviceName);

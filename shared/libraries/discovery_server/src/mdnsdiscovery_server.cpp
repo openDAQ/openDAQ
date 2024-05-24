@@ -83,8 +83,17 @@ void MDNSDiscoveryServer::start()
 {
     if (!running)
     {
-        running = true;
-        serviceThread = std::thread(&MDNSDiscoveryServer::serviceLoop, this);
+        if (serviceThread.joinable())
+        {
+            serviceThread.join();
+        }
+
+        std::lock_guard<std::mutex> lock(mx);
+        if (!running)
+        {
+            running = true;
+            serviceThread = std::thread(&MDNSDiscoveryServer::serviceLoop, this);
+        }
     }
 }
 
@@ -156,8 +165,11 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
         mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
     }
 
-    std::lock_guard<std::mutex> lock(mx);
-    bool success = devices.emplace(id, device).second;
+    bool success = false;
+    {
+        std::lock_guard<std::mutex> lock(mx);
+        success = devices.emplace(id, device).second;
+    }
 
     start();
     return success;
@@ -193,16 +205,11 @@ bool MDNSDiscoveryServer::removeDevice(const std::string& id)
         devices.erase(it);
     }
 
-    if (devices.empty())
-        stop();
     return success;
 }
 
 void MDNSDiscoveryServer::stop()
 {
-    if (running == false)
-        return;
-
     running = false;
     if (serviceThread.joinable())
         serviceThread.join();
@@ -542,6 +549,11 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
     std::vector<char>sendBuffer(1024);
 
     std::lock_guard lock(mx);
+    if (devices.empty())
+    {
+        running = false;
+        return 0;
+    }
 
     uint16_t unicast = (rclass & MDNS_UNICAST_RESPONSE);
 

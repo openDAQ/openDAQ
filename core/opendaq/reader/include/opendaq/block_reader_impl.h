@@ -89,7 +89,6 @@ struct BlockReadInfo
     {
         if (writtenSampleCount % blockSize == 0)
         {
-            const auto beginDataPacketIter = dataPacketsQueue.begin();
             const auto initialRewindSamples = overlappedBlockSize;
             auto rewindSamples = initialRewindSamples;
             do

@@ -50,7 +50,13 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     virtual ErrCode INTERFACE_FUNC stop() = 0;
 
     /*!
-    * @brief Enables the server to be discovered by the client.
+    * @brief Gets the server id.
+    * @param[out] serverId The server id.
+    */
+    virtual ErrCode INTERFACE_FUNC getId(IString** serverId) = 0;
+
+    /*!
+    * @brief Enables the server to be discovered by the clients.
     */
     virtual ErrCode INTERFACE_FUNC enableDiscovery() = 0;
 };

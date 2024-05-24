@@ -9,10 +9,15 @@ int main(int /*argc*/, const char* /*argv*/[])
     using namespace std::chrono_literals;
 
     const ConfigProviderPtr configProvider = JsonConfigProvider();
-    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider)
+                                                                .addDiscoveryService("mdns");
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
-    instance.addStandardServers();
+    auto servers = instance.addStandardServers();
+    for (const auto& server : servers)
+    {
+        server.enableDiscovery();
+    }
 
     while (true)
     {

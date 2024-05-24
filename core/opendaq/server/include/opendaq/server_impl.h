@@ -52,6 +52,14 @@ public:
     {
     }
 
+    ErrCode INTERFACE_FUNC getId(IString** serverId) override
+    {
+        if (serverId == nullptr)
+            return OPENDAQ_ERR_INVALIDPARAMETER;
+        *serverId = id.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC enableDiscovery() override
     {
         if (context != nullptr)

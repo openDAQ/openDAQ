@@ -21,7 +21,8 @@
 #include <opendaq/signal_ptr.h>
 
 #include <condition_variable>
-#include <deque>
+#include <chrono>
+#include <list>
 
 BEGIN_NAMESPACE_OPENDAQ
 

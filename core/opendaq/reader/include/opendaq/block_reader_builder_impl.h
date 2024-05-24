@@ -13,6 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
 #pragma once
 #include <opendaq/block_reader_builder.h>
 #include <opendaq/block_reader_ptr.h>

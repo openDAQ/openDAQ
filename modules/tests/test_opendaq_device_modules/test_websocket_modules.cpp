@@ -144,7 +144,10 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("SerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryService("mdns")
+                                     .addConfigProvider(provider)
+                                     .setDefaultRootDeviceInfo(rootInfo)
+                                     .build();
     instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
     instance.addServer("openDAQ LT Streaming", serverConfig);

@@ -41,11 +41,12 @@ set(SRC_Cpp
     generated/reader/py_sample_reader.cpp
     generated/reader/py_stream_reader.cpp
     generated/reader/py_tail_reader.cpp
+    generated/reader/py_tail_reader_status.cpp
     generated/reader/py_time_reader.cpp
     generated/reader/py_reader_status.cpp
     generated/reader/py_block_reader_status.cpp
-    generated/reader/py_tail_reader_status.cpp
-    generated/reader/py_multi_reader_status.cpp
+    generated/reader/py_multi_reader.cpp
+    generated/reader/py_multi_reader_builder.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp

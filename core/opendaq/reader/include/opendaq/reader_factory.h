@@ -29,6 +29,7 @@
 #include <opendaq/tail_reader_status_ptr.h>
 #include <opendaq/multi_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/block_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -305,6 +306,11 @@ StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT hi
     );
 }
 
+inline BlockReaderBuilderPtr BlockReaderBuilder()
+{
+    return BlockReaderBuilder_Create();
+}
+
 inline BlockReaderPtr BlockReader(SignalPtr signal,
                                   SizeT blockSize,
                                   SampleType valueReadType,
@@ -365,6 +371,11 @@ BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT b
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );
+}
+
+inline BlockReaderPtr BlockReaderFromBuilder(const BlockReaderBuilderPtr& builder)
+{
+    return BlockReaderFromBuilder_Create(builder);
 }
 
 inline MultiReaderBuilderPtr MultiReaderBuilder()

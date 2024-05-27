@@ -267,6 +267,19 @@ jobs:
           name: Unit Test Results (${{ matrix.name }})
           path: junit_reports/unit
 
+      - name: Package
+        if: matrix.cpack != ''
+        working-directory: build
+        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+
+      - name: Upload package
+        if: matrix.cpack != ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: Packages (${{ matrix.name }})
+          path: ${{ env.package_path }}
+          retention-days: 7
+
       # REGRESSION TESTS BEGIN
 
       - uses: aws-actions/configure-aws-credentials@v2
@@ -356,19 +369,6 @@ jobs:
           path: junit_reports/regression
 
       # REGRESSION TESTS END
-
-      - name: Package
-        if: matrix.cpack != ''
-        working-directory: build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Upload package
-        if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3
-        with:
-          name: Packages (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
 
   build_linux_centos:
     runs-on: ubuntu-latest

@@ -1,7 +1,8 @@
-24.05.2024
+27.05.2024
 Description
-  - Supporing servers to be discovered with mDNS
+  - Supporing servers to be discovered by mDNS
 
++  [interface] IServer::getId(IString** serverId)
 +  [interface] IServer::enableDiscovery();
 
 +  [interface] IDiscoveryServer

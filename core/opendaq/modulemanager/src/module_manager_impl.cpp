@@ -263,7 +263,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                     for (const auto & capability : deviceInfo.getServerCapabilities())
                         if (!value.hasServerCapability(capability.getProtocolId()))
                             value.addServerCapability(capability);
-                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                    value.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                 }
                 else
                 {

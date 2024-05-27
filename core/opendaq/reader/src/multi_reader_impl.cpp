@@ -475,23 +475,13 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
         return OPENDAQ_IGNORED;
     }
 
-    MultiReaderStatusPtr statusPtr;
-
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
 
-    readPackets(&statusPtr);
+    *status = readPackets().detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
-
-    if (status)
-    {
-        if (statusPtr.assigned())
-            *status = statusPtr.detach();
-        else
-            *status = defaultStatus.addRefAndReturn();
-    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -510,44 +500,39 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         return OPENDAQ_IGNORED;
     }
 
-    MultiReaderStatusPtr statusPtr;
-
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
 
-    readPackets(&statusPtr);
+    *status = readPackets().detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
 
-    if (status)
-    {
-        if (statusPtr.assigned())
-            *status = statusPtr.detach();
-        else
-            *status = defaultStatus.addRefAndReturn();
-    }
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::skipSamples(SizeT* count)
+ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
+    {
+        if(status)
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
-    MultiReaderStatusPtr status;
-    const ErrCode errCode = readPackets(&status);
+    *status = readPackets().detach();
 
     const SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
-    return errCode;
+
+    return OPENDAQ_SUCCESS;
 }
 
 SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) const
@@ -648,10 +633,8 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
+MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
     [[maybe_unused]]
     auto count = remainingSamplesToRead;
 
@@ -664,8 +647,7 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
 
         if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
         {
-            *status = MultiReaderStatus(eventPackets, !invalid).detach();
-            return OPENDAQ_SUCCESS;
+            return MultiReaderStatus(eventPackets, !invalid);
         }
 
         if (timeout.count() != 0)
@@ -681,11 +663,10 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
         SizeT min{};
         SyncStatus syncStatus{};
 
-        errCode = synchronize(min, syncStatus);
+        ErrCode errCode = synchronize(min, syncStatus);
         if (OPENDAQ_FAILED(errCode))
         {
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
-            return OPENDAQ_SUCCESS;
+            return MultiReaderStatus(nullptr, !invalid);
         }
 
         if (syncStatus == SyncStatus::Synchronized && min > 0u)
@@ -736,7 +717,7 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
          )
     }
 
-    return OPENDAQ_SUCCESS;
+    return defaultStatus;
 }
 
 // Listener
@@ -811,9 +792,36 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
+    // if there is a callback
+    // and all signals have a packet
+    // or any of signals has a first packet as an event
+    // trigger the callback
     ProcedurePtr callback = readCallback;
+    bool triggerCallback = false;
+    bool isDataPacketFirst = true;
     if (callback.assigned())
-        return wrapHandler(callback);
+    {
+        for (const auto& signal : signals)
+        {
+            auto packet = signal.connection.peek();
+            if (packet.assigned())
+            {
+                if (packet.getType() == PacketType::Event)
+                {
+                    triggerCallback = true; 
+                    break;
+                }
+            }
+            else
+            {
+                isDataPacketFirst = false;
+            }
+        }
+        if (triggerCallback || isDataPacketFirst)
+        {
+            return wrapHandler(callback);
+        }
+    }
 
     return OPENDAQ_SUCCESS;
 }

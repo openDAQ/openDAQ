@@ -99,7 +99,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
-     * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
@@ -110,8 +110,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[in,out] count The maximum amount of samples to be skipped. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are skipped. The rest of the buffer is not modified or cleared.
+     * @param[out] status: Represents the status of the reader.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) = 0;
 
     /*!
      * @brief Gets the resolution the reader aligned all the signals to.

@@ -58,7 +58,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC skipSamples(SizeT* count) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
 
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -98,7 +98,7 @@ private:
 
     SyncStatus getSyncStatus() const;
 
-    ErrCode readPackets(IMultiReaderStatus** status);
+    MultiReaderStatusPtr readPackets();
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);

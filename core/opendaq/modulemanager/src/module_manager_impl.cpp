@@ -134,10 +134,27 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
-    return daqTry([&](){
-        for(const auto& path: paths) {
-            auto localLibraries = enumerateModules(loggerComponent, path, context);
-            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());
+    return daqTry([&]()
+    {
+        for (const auto& path: paths)
+        {
+            try
+            {
+                auto localLibraries = enumerateModules(loggerComponent, path, context);
+                libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
+            }
+            catch (const daq::DaqException& e)
+            {
+                LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+            }
+            catch (const std::exception& e)
+            {
+                LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
+            }
+            catch (...)
+            {
+                LOG_W(R"(Unknown error occured scanning directory "{}")", path)
+            }
         }
         modulesLoaded = true;
         return OPENDAQ_SUCCESS;
@@ -1079,17 +1096,20 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
         throw InvalidParameterException("The specified path is not a folder.");
     }
 
+    auto loadPath = fs::absolute(searchFolder).string();
     LOG_I("Loading modules from '{}'", fs::absolute(searchFolder).string())
+
+    std::vector<ModuleLibrary> moduleDrivers;
+    fs::recursive_directory_iterator dirIterator(searchFolder);
 
     [[maybe_unused]]
     Finally onExit([workingDir = fs::current_path()]()
     {
         fs::current_path(workingDir);
     });
-    fs::current_path(searchFolder);
 
-    std::vector<ModuleLibrary> moduleDrivers;
-    fs::recursive_directory_iterator dirIterator(searchFolder);
+    fs::current_path(searchFolder);
+    auto currPath = fs::current_path().string();
 
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)
@@ -1162,7 +1182,8 @@ static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPt
 
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
-    auto relativePath = fs::relative(path).string();
+    auto currDir = fs::current_path();
+    auto relativePath = fs::proximate(path).string();
     LOG_T("Loading module \"{}\".", relativePath);
 
     std::error_code libraryErrCode;

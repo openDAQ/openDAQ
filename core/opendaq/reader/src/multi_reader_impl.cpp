@@ -32,6 +32,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  Bool startOnFullUnitOfDomain)
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     this->internalAddRef();
     try
@@ -65,6 +66,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
                                  SampleType valueReadType,
                                  SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
@@ -91,6 +93,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode)
+    : defaultStatus(MultiReaderStatus(nullptr, true))
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -125,6 +128,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     bool fromInputPorts;
     auto ports = CheckPreconditions(builder.getSourceComponents(), false, fromInputPorts);
@@ -486,7 +490,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
         if (statusPtr.assigned())
             *status = statusPtr.detach();
         else
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
+            *status = defaultStatus.addRefAndReturn();
     }
     return OPENDAQ_SUCCESS;
 }
@@ -521,7 +525,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         if (statusPtr.assigned())
             *status = statusPtr.detach();
         else
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
+            *status = defaultStatus.addRefAndReturn();
     }
     return OPENDAQ_SUCCESS;
 }
@@ -582,19 +586,21 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-ListPtr<IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
+DictPtr<IInteger, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
-    auto packets = List<EventPacketPtr>();
-    bool eventEncountered = false;
+    auto packets = Dict<IInteger, EventPacketPtr>();
 
-    for (auto& signal : signals)
+    for (size_t i = 0; i < signals.size(); ++i)
     {
+        auto & signal = signals[i];
         auto packet = signal.readUntilNextDataPacket();
-        eventEncountered |= packet.assigned();
         invalid |= signal.invalid;
-        packets.pushBack(packet);
+        if (packet.assigned())
+        {
+            packets.set(i, packet);
+        }
     }
-    return eventEncountered ? packets.detach() : nullptr;
+    return packets.detach();
 }
 
 ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
@@ -656,8 +662,7 @@ ErrCode MultiReaderImpl::readPackets(IMultiReaderStatus** status)
     while (remainingSamplesToRead > 0 && remainingTime >= 1ms)
     {
 
-        auto eventPackets = readUntilFirstDataPacket();
-        if (eventPackets.assigned())
+        if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
         {
             *status = MultiReaderStatus(eventPackets, !invalid).detach();
             return OPENDAQ_SUCCESS;

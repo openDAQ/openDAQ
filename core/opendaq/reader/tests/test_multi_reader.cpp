@@ -1211,10 +1211,8 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     MultiReaderStatusPtr status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
-    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
-    ASSERT_EQ(status.getEventPackets()[0], nullptr); 
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_NE(status.getEventPackets()[1], nullptr); 
-    ASSERT_EQ(status.getEventPackets()[2], nullptr); 
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 458u);

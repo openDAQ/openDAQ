@@ -71,14 +71,14 @@ class MultiReaderStatusImpl final : public GenericReaderStatusImpl<IMultiReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IMultiReaderStatus>;
-    explicit MultiReaderStatusImpl(const ListPtr<IEventPacket>& eventPackets, Bool valid);
+    explicit MultiReaderStatusImpl(const DictPtr<IInteger, IEventPacket>& eventPackets, Bool valid);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
-    ErrCode INTERFACE_FUNC getEventPackets(IList** events) override;
+    ErrCode INTERFACE_FUNC getEventPackets(IDict** events) override;
 
 private:
-    ListPtr<IEventPacket> eventPackets;
+    DictPtr<IInteger, IEventPacket> eventPackets;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -20,7 +20,7 @@
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
-#include <opendaq/multi_reader_status.h>
+#include <opendaq/multi_reader_status_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -93,7 +93,7 @@ private:
     void setStartInfo();
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    ListPtr<IEventPacket> readUntilFirstDataPacket();
+    DictPtr<IInteger, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
 
     SyncStatus getSyncStatus() const;
@@ -136,6 +136,8 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool startOnFullUnitOfDomain;
+
+    MultiReaderStatusPtr defaultStatus;
 };
 
 END_NAMESPACE_OPENDAQ

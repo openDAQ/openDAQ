@@ -46,5 +46,5 @@ void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderSt
             return objectPtr.getEventPackets().detach();
         },
         py::return_value_policy::take_ownership,
-        "Retrieves the event packets from the reading process ordered by signals (Have to used instead of IReaderStatus::getEventPacket()).");
+        "Retrieves the dictionary of event packets from the reading process, ordered by signals.");
 }

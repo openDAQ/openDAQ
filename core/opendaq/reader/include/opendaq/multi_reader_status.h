@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <opendaq/reader_status.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,6 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IReaderStatus, GenericReaderStatusPtr)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -33,18 +35,18 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
 {
-    // [elementType(eventPackets, IEventPacket)]
+    // [elementType(eventPackets, IInteger, IEventPacket)]
     /*!
-     * @brief Retrieves the event packets from the reading process ordered by signals (Have to used instead of IReaderStatus::getEventPacket()).
-     * @param[out] eventPackets The event packet from the reading process ordered by signals.
+     * @brief Retrieves the dictionary of event packets from the reading process, ordered by signals.
+     * @param[out] eventPackets The dictionary where the key is the signal index and the value is the corresponding event packet.
      */
-    virtual ErrCode INTERFACE_FUNC getEventPackets(IList** eventPackets) = 0;
+    virtual ErrCode INTERFACE_FUNC getEventPackets(IDict** eventPackets) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
-    IList*, eventPackets,
+    IDict*, eventPackets,
     Bool, valid
 )
 

@@ -147,4 +147,12 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         },
         py::arg("server_capability"),
         "Creates and returns a connection string from the specified server capability object.");
+    cls.def_property_readonly("available_streaming_types",
+        [](daq::IModule *object)
+        {
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.getAvailableStreamingTypes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

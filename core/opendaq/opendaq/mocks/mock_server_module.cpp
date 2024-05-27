@@ -133,7 +133,7 @@ ErrCode MockServerModuleImpl::createConnectionString(IString** /*connectionStrin
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
+ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

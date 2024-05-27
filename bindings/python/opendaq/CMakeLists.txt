@@ -76,6 +76,7 @@ set(SRC_Cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
     generated/streaming/py_streaming.cpp
+    generated/streaming/py_streaming_type.cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp

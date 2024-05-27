@@ -150,6 +150,12 @@ ErrCode ContextImpl::getOptions(IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
 
+    if (!this->options.assigned())
+    {
+        *options = Dict<IString, IBaseObject>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
     *options = this->options.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -202,6 +208,11 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 ErrCode ContextImpl::getDiscoveryServers(IDict** services)
 {
     OPENDAQ_PARAM_NOT_NULL(services);
+    if (!this->discoveryServices.assigned())
+    {
+        *services = Dict<IString, IDiscoveryServer>().detach();
+        return OPENDAQ_SUCCESS;
+    }
     *services = this->discoveryServices.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }

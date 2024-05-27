@@ -16,7 +16,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto servers = instance.addStandardServers();
     for (const auto& server : servers)
     {
-        server.enableDiscovery();
+        // OpcUa server uses Avahi service for discovery for example purposes
+        if (server.getId() != "OpcUaServer")
+            server.enableDiscovery();
     }
 
     while (true)

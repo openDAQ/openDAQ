@@ -98,6 +98,7 @@ run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_thread_pool
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module_manager
+run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager discovery_server
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        sample_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        block_reader
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        packet_reader

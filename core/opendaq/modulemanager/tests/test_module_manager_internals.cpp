@@ -18,12 +18,18 @@ protected:
     {
         logger = Logger();
         loggerComponent = this->logger.addComponent("ModuleManagerInternalsTest");
-        // fs::current_path(MODULE_TEST_DIR);
+
+        workingDir = fs::current_path();
+
+        auto exePath = boost::dll::program_location().remove_filename();
+        fs::current_path(exePath);
     }
 
     void TearDown() override
     {
         using namespace std::chrono_literals;
+
+        fs::current_path(workingDir);
 
         // Wait for Async logger to flush
         std::this_thread::sleep_for(100ms);
@@ -36,6 +42,7 @@ protected:
         return fs::path(MODULE_TEST_DIR) / moduleFileName;
     }
 
+    fs::path workingDir;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     IModuleManager* manager{};

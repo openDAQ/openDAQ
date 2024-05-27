@@ -28,12 +28,6 @@ set_target_properties(${TEST_APP}
         VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
-#add_custom_command(TARGET ${TEST_APP} POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy -t "$<TARGET_FILE_DIR:${TEST_APP}>" "${CMAKE_CURRENT_SOURCE_DIR}/test"
-#    COMMENT "Copying ModuleManager mock modules to output-dir"
-#    VERBATIM
-#)
-
 ##############################
 # LIB test
 

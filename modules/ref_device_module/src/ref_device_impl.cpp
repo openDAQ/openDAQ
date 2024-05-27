@@ -48,7 +48,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id)
 {
     auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
-    devInfo.setManufacturer("OpenDAQ");
+    devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(fmt::format("dev_ser_{}", id));
     devInfo.setDeviceType(CreateType());

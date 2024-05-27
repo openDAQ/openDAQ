@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:38.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:30.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -52,6 +52,8 @@ public class DaqEventArgs : BaseObject
         base._virtualTable =
             _rawDaqEventArgs = Marshal.PtrToStructure<RawDaqEventArgs>(objVirtualTable);
     }
+
+    #region properties
 
     public long EventId
     {
@@ -103,6 +105,8 @@ public class DaqEventArgs : BaseObject
             return name;
         }
     }
+
+    #endregion properties
 }
 
 

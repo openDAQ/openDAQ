@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:44.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -87,6 +87,8 @@ public class Struct : BaseObject
         base._virtualTable =
             _rawStruct = Marshal.PtrToStructure<RawStruct>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets the Struct&apos;s type.</summary>
     public StructType StructType
@@ -187,6 +189,9 @@ public class Struct : BaseObject
             return new DictObject<StringObject, BaseObject>(dictionaryPtr, incrementReference: false);
         }
     }
+
+    #endregion properties
+
     /// <summary>Gets the value of a field with the given name.</summary>
     /// <param name="name">The name of the queried field.</param>
     /// <returns>The value of the field.</returns>

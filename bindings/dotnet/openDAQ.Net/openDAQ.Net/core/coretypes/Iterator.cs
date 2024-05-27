@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:42.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -71,6 +71,8 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
             _rawIterator = Marshal.PtrToStructure<RawIterator>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets the object at current iterator position.</summary>
     public TValue Current
     {
@@ -93,6 +95,9 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
             return BaseObject.CreateInstance<TValue>(objPtr, incrementReference: false);
         }
     }
+
+    #endregion properties
+
     /// <summary>Moves iterator to next position.</summary>
     public bool MoveNext()
     {

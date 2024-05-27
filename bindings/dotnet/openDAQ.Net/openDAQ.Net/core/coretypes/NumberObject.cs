@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:42.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -57,6 +57,8 @@ public class NumberObject : BaseObject
         base._virtualTable =
             _rawNumberObject = Marshal.PtrToStructure<RawNumberObject>(objVirtualTable);
     }
+
+    #region properties
 
     /// <summary>Gets a value stored in the object as a floating point value.</summary>
     public double FloatValue
@@ -103,6 +105,8 @@ public class NumberObject : BaseObject
             return value;
         }
     }
+
+    #endregion properties
 
     #region operators
 

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 14.05.2024 09:39:46.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -60,6 +60,8 @@ public class DaqType : BaseObject
             _rawDaqType = Marshal.PtrToStructure<RawDaqType>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets the name of the Type</summary>
     public string Name
     {
@@ -89,6 +91,8 @@ public class DaqType : BaseObject
             return typeName;
         }
     }
+
+    #endregion properties
 }
 
 

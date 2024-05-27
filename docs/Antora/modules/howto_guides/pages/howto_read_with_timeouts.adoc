@@ -37,7 +37,6 @@ reader.read(values, &count);  // count = 2
 count = 5;
 double newValues[5]{};
 reader.read(newValues, &count, 200);  // count = 4
-
 ----
 Python::
 +
@@ -55,7 +54,25 @@ len(values) # 2
 
 values = reader.read(5, 200)
 len(values) # 4
+----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
 
+// Signal produces 2 samples
+
+// Normal call will only return existing 2 samples immediately
+nuint count = 5;
+double[] values = new double[5];
+reader.Read(values, ref count);  // count = 2
+
+// Signal produces 2 samples, then in 100 ms after the read call another 2
+
+count = 5;
+double[] newValues = new double[5];
+reader.Read(newValues, ref count, 200);  // count = 4
 ----
 ====
 
@@ -95,12 +112,12 @@ double values[5]{};
 reader.read(values, &count, 200);  // count = 3, values = { 1, 2, 3 }
 
 // There are no samples left in the Reader
-auto available = reader.getAvailableCount();  // available = 0
+available = reader.getAvailableCount();  // available = 0
 
 // 50 ms after the read call the Signal produces a Packet with 2 samples { 4, 5 }
 // then, after another 20 ms, produces the next 3 samples { 6, 7, 8 }
 
-count = {5};
+count = 5;
 double newValues[5]{};
 reader.read(newValues, &count, 200);  // count = 2, newValues = { 4, 5 }
 ----
@@ -126,7 +143,33 @@ available = reader.available_count # 0
 # then after another 20ms produces the next 3 samples [ 6, 7, 8 ]
 
 values = reader.read(5, 200) # [4, 5]
+----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
 
+// Signal produces 2 Packets with 3 samples
+// [Packet 1]: { 1 }
+// [Packet 2]: { 2, 3 }
+
+var available = reader.AvailableCount;  // available = 3
+
+// Returns immediately with the currently available samples
+nuint count = 5;
+double[] values = new double[5];
+reader.Read(values, ref count, 200);  // count = 3, values = { 1, 2, 3 }
+
+// There are no samples left in the Reader
+ available = reader.AvailableCount;  // available = 0
+
+// 50 ms after the read call the Signal produces a Packet with 2 samples { 4, 5 }
+// then, after another 20 ms, produces the next 3 samples { 6, 7, 8 }
+
+count = 5;
+double[] newValues = new double[5];
+reader.Read(newValues, ref count, 200);  // count = 2, newValues = { 4, 5 }
 ----
 ====
 

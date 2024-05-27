@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -38,22 +39,22 @@ namespace RTGen.CSharp.Generators
         private string            _lastOutParamForDocComment;
         private List<string>      _alreadyProcessedProperties = new List<string>();
 
-        private readonly Dictionary<string, string> _fileNameMappings  = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _specialReMappings = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _fileNameMappings            = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _specialReMappings           = new Dictionary<string, string>();
 
-        private readonly Dictionary<string, string> _dotNetClassInterfaces    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _defaultArgumentValues    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _genericTypeParameters    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _castOperatorTypes        = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _manualFactories          = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _enumTypes                = new Dictionary<string, string>();
-        private readonly List<string>               _keyWords                 = new List<string>();
-        private readonly Dictionary<string, string> _renamedParameters        = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _callingConventions       = new Dictionary<string, string>();
-        private readonly List<string>               _factoryEnumTypesToIgnore = new List<string>();
-        private readonly Dictionary<string, string> _factoryArgumentDefaults  = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _dotNetClassInterfaces       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _defaultArgumentValues       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _genericTypeParameters       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _castOperatorTypes           = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _manualFactories             = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _enumTypes                   = new Dictionary<string, string>();
+        private readonly List<string>                                   _keyWords                    = new List<string>();
+        private readonly Dictionary<string, Dictionary<string, string>> _renamedParameters           = new Dictionary<string, Dictionary<string, string>>();
+        private readonly Dictionary<string, string>                     _callingConventions          = new Dictionary<string, string>();
+        private readonly List<string>                                   _factoryEnumTypesToIgnore    = new List<string>();
+        private readonly Dictionary<string, string>                     _factoryArgumentDefaults     = new Dictionary<string, string>();
 
-        private readonly List<string> _defaultMethodsToHideWithNew = new List<string>();
+        private readonly List<string>                                   _defaultMethodsToHideWithNew = new List<string>();
 
         private readonly Dictionary<IMethod, string> _rawMethodNames = new Dictionary<IMethod, string>();
 
@@ -228,7 +229,7 @@ namespace RTGen.CSharp.Generators
                 _castOperatorTypes.Add("Integer", "long");
                 _castOperatorTypes.Add("String",  "string");
 
-                _manualFactories.Add("Number", "CreateNumber");
+                _manualFactories.Add("Number", "CreateNumberObject");
 
                 _enumTypes.Add("CoreType", "CoreType");
 
@@ -543,6 +544,9 @@ namespace RTGen.CSharp.Generators
 
                 case "CSCreatorFactory":
                     return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
+
+                case "CSStealRefHandling":
+                    return HandleStealRefAttributes(method.Overloads[0], method.Arguments);
             }
 
             return base.GetMethodVariable(method, variable);
@@ -988,6 +992,35 @@ namespace RTGen.CSharp.Generators
                     return GetMethodVariable(factoryMethod, "Name");
                 }
             }
+
+            string HandleStealRefAttributes(IOverload overload, IList<IArgument> arguments)
+            {
+                //check all arguments for "stealRef" attribute and add SetNativePointerToZero() calls for those arguments
+
+                IList<IArgument> stealRefArguments = arguments.Where(arg => arg.IsStealRef).ToList();
+
+                if (stealRefArguments.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                string indentation = base.Indentation + base.Indentation + base.Indentation;
+
+                StringBuilder code = new StringBuilder();
+
+                code.AppendLine();
+                code.AppendLine($"{indentation}//invalidate the objects for the arguments with 'stealRef' attribute (protect from disposing)");
+
+                foreach (var stealRefArgument in stealRefArguments)
+                {
+                    string argumentName = GetArgumentName(overload, stealRefArgument);
+                    argumentName = GetRenamedParameterName(GetMethodVariable(overload.Method, "Name"), argumentName);
+
+                    code.AppendLine($"{indentation}{argumentName}.SetNativePointerToZero();");
+                }
+
+                return code.ToString();
+            }
         }
 
         /// <summary>Get the value of the specified variable for the currently generated method argument.</summary>
@@ -1085,21 +1118,6 @@ namespace RTGen.CSharp.Generators
             }
 
             return argumentName;
-
-
-            //=== local functions =================================================================
-
-            void AddRenamedParameter(string methodName, string orgName, string newName)
-            {
-                if (_renamedParameters.ContainsKey(methodName))
-                {
-                    _renamedParameters[methodName] += $",{orgName};{newName}";
-                }
-                else
-                {
-                    _renamedParameters.Add(methodName, $"{orgName};{newName}");
-                }
-            }
         }
 
         protected override StringBuilder WriteMethods(IRTInterface rtClass, string baseTemplatePath)
@@ -1274,17 +1292,41 @@ namespace RTGen.CSharp.Generators
             return docTagList.Where(findTag).ToList();
         }
 
+        /// <summary>
+        /// Adds the renamed parameter for the given method name.
+        /// </summary>
+        /// <param name="methodName">Name of the method (use <see cref="GetMethodVariable(IMethod, string)"/> for internal cast arguments).</param>
+        /// <param name="orgName">Original parameter name.</param>
+        /// <param name="newName">The new parameter name.</param>
+        private void AddRenamedParameter(string methodName, string orgName, string newName)
+        {
+            if (!_renamedParameters.TryGetValue(methodName, out Dictionary<string, string> renamedArguments))
+            {
+                renamedArguments = new Dictionary<string, string>();
+                _renamedParameters.Add(methodName, renamedArguments);
+            }
+
+            if (renamedArguments.ContainsKey(orgName))
+            {
+                return;
+            }
+
+            renamedArguments.Add(orgName, newName);
+        }
+
+        /// <summary>
+        /// Gets the name of the renamed parameter for the specified method name.
+        /// </summary>
+        /// <param name="methodName">Name of the method (use <see cref="GetMethodVariable(IMethod, string)"/> for internal cast arguments).</param>
+        /// <param name="paramName">Name of the parameter.</param>
+        /// <returns>The new parameter name (or original when not available).</returns>
         private string GetRenamedParameterName(string methodName, string paramName)
         {
-            if (_renamedParameters.TryGetValue(methodName, out string renamedParameters))
+            if (_renamedParameters.TryGetValue(methodName, out Dictionary<string, string> renamedParameters))
             {
-                //old-name;new-name pairs separated by ','
-                string[] paramNames = renamedParameters.Split(',');
-                string   pair       = paramNames.FirstOrDefault(entry => entry.StartsWith(paramName + ";"));
-
-                if (!string.IsNullOrEmpty(pair))
+                if (renamedParameters.TryGetValue(paramName, out string newName))
                 {
-                    paramName = pair.Split(';')[1];
+                    return newName;
                 }
             }
 
@@ -2456,8 +2498,11 @@ namespace RTGen.CSharp.Generators
 
                 if (!isFactoryIgnoredArgument)
                 {
+                    //-> var packetsPtr = (ListObject<Packet>)packets;
                     string castName       = argumentName + "Ptr";
                     string usingStatement = isDotNetInterface ? string.Empty : "using ";
+
+                    AddRenamedParameter(GetMethodVariable(overload.Method, "Name"), argumentName, castName);
 
                     if (isProperty)
                     {
@@ -2469,7 +2514,7 @@ namespace RTGen.CSharp.Generators
                 }
                 else
                 {
-                    //SampleType genericSampleType = OpenDAQFactory.GetSampleType<TElementType>();
+                    //-> SampleType genericSampleType = OpenDAQFactory.GetSampleType<TElementType>();
                     string[] genericParams = default;
                     string[] _ = default;
 
@@ -2490,8 +2535,6 @@ namespace RTGen.CSharp.Generators
         private string GenerateImplementationProperties(IRTInterface rtClass)
         {
             StringBuilder implementationProperties = new StringBuilder();
-
-            implementationProperties.AppendLine();
 
             //set flag to use the last "ByRef argument" (argument.IsOutParam) as return value
             bool backup = Options.GenerateWrapper;
@@ -2519,8 +2562,25 @@ namespace RTGen.CSharp.Generators
 
             Options.GenerateWrapper = backup;
 
+            if (implementationProperties.Length <= 0)
+            {
+                return string.Empty;
+            }
+
             implementationProperties.TrimTrailingNewLines();
-            return implementationProperties.ToString();
+
+            StringBuilder code = new StringBuilder();
+
+            code.AppendLine();
+            code.AppendLine();
+            code.AppendLine($"{base.Indentation}#region properties");
+            code.AppendLine();
+            code.AppendLine(implementationProperties.ToString());
+            code.AppendLine();
+            code.AppendLine($"{base.Indentation}#endregion properties");
+
+            code.TrimTrailingNewLines();
+            return code.ToString();
         }
 
         private string GenerateImplementationPropertyGetter(IMethod method)
@@ -2571,6 +2631,7 @@ namespace RTGen.CSharp.Generators
         {
             StringBuilder implementationMethods = new StringBuilder();
 
+            implementationMethods.AppendLine();
             implementationMethods.AppendLine();
 
             //set flag to use the last "ByRef argument" (argument.IsOutParam) as return value
@@ -2655,7 +2716,7 @@ namespace RTGen.CSharp.Generators
         private string GenerateOperators(IRTInterface rtClass)
         {
             string templatePath  = Utility.GetTemplate(Options.Language + ".method.casts.template");
-            string castOperators = string.Empty;
+            StringBuilder castOperators = new StringBuilder();
 
             //get all "XxxValue" getters
             var valueGetters = rtClass.Methods.Where(m => IsGetter(m) && m.Name.EndsWith("value", StringComparison.InvariantCultureIgnoreCase));
@@ -2673,10 +2734,10 @@ namespace RTGen.CSharp.Generators
                 if (string.IsNullOrWhiteSpace(castType) || castType.StartsWith("#"))
                     continue;
 
-                castOperators += RenderFileTemplate(getter, templatePath, GetMethodVariable);
+                castOperators.Append(RenderFileTemplate(getter, templatePath, GetMethodVariable));
             }
 
-            if (string.IsNullOrEmpty(castOperators))
+            if (castOperators.Length <= 0)
             {
                 return string.Empty;
             }
@@ -2686,7 +2747,7 @@ namespace RTGen.CSharp.Generators
             code.AppendLine();
             code.AppendLine();
             code.AppendLine($"{base.Indentation}#region operators");
-            code.AppendLine(castOperators);
+            code.AppendLine(castOperators.ToString());
             code.AppendLine($"{base.Indentation}#endregion operators");
 
             code.TrimTrailingNewLines();

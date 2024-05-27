@@ -37,5 +37,6 @@ public enum SampleType : int
     ComplexFloat64,
     Binary,
     String,
+    Struct,
     _count
 }

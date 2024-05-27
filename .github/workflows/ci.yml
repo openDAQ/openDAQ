@@ -361,6 +361,10 @@ jobs:
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
 
+      # TODO: delete
+      - name: DEBUG
+        run: ls -R junit_reports
+
       - name: Upload regression test results
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         uses: actions/upload-artifact@v3

@@ -16,7 +16,7 @@ env:
   regression_simulator_folder: regression_test_simulator
   LD_LIBRARY_PATH: ${{ github.workspace }}/regression_test_simulator
   cmake_preset: ci
-  test_path: ${{ github.workspace }}/junit_reports/ # TODO: FIX ERROR "No files were found with the provided path"
+  test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
@@ -257,7 +257,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+          GTEST_OUTPUT: "xml:../junit_reports/unit"
         run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
@@ -265,7 +265,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+          path: junit_reports/unit
 
       # REGRESSION TESTS BEGIN
 
@@ -296,7 +296,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}opcua"
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/opcua"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -311,7 +311,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}nd"
+          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/nd"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -326,7 +326,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}ns"
+          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/ns"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -341,21 +341,20 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:${{ env.test_path }}lt"
+          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/lt"
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
 
-      # TODO: upload regression test results correctly or ignore completely in whole GitHub Action (no need for gtest_output in that case)
-      # - name: Upload regression test results
-      #   if: always()
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: Regression Test Results (${{ matrix.name }})
-      #     path: ${{ env.test_path }}
-          
+      - name: Upload regression test results
+        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Regression Test Results (${{ matrix.name }})
+          path: junit_reports/regression
+
       # REGRESSION TESTS END
 
       - name: Package
@@ -445,7 +444,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+          GTEST_OUTPUT: "xml:../junit_reports"
         run: |
           python$last_version -m venv venv
           . venv/bin/activate
@@ -458,7 +457,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+          path: junit_reports
 
       - name: Package
         if: matrix.cpack != ''

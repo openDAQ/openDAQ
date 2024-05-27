@@ -350,7 +350,7 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
     ASSERT_EQ(subDeviceInfo.getName(), "Device 0");
     ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
-    ASSERT_EQ(subDeviceInfo.getModel(), "Reference Device");
+    ASSERT_EQ(subDeviceInfo.getModel(), "Reference device");
     ASSERT_EQ(subDeviceInfo.getSerialNumber(), "dev_ser_0");
 }
 

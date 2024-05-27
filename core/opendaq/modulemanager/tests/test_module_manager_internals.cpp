@@ -18,7 +18,7 @@ protected:
     {
         logger = Logger();
         loggerComponent = this->logger.addComponent("ModuleManagerInternalsTest");
-        fs::current_path(MODULE_TEST_DIR);
+        // fs::current_path(MODULE_TEST_DIR);
     }
 
     void TearDown() override
@@ -31,6 +31,11 @@ protected:
         logger.removeComponent("ModuleManagerInternalsTest");
     }
 
+    static fs::path GetMockModulePath(const std::string& moduleFileName)
+    {
+        return fs::path(MODULE_TEST_DIR) / moduleFileName;
+    }
+
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     IModuleManager* manager{};
@@ -39,7 +44,7 @@ protected:
 
 TEST_F(ModuleManagerInternalsTest, LoadEmptyDll)
 {
-    fs::path modulePath = EMPTY_MODULE_FILE_NAME;
+    fs::path modulePath = GetMockModulePath(EMPTY_MODULE_FILE_NAME);
 
     ASSERT_THROW_MSG(
         auto lib = loadModule(loggerComponent, modulePath, context),
@@ -50,7 +55,7 @@ TEST_F(ModuleManagerInternalsTest, LoadEmptyDll)
 
 TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
 {
-    fs::path modulePath = CRASHING_MODULE_FILE_NAME;
+    fs::path modulePath = GetMockModulePath(CRASHING_MODULE_FILE_NAME);
 
     ASSERT_THROW_MSG(auto lib = loadModule(loggerComponent, modulePath, context),
                      ModuleEntryPointFailedException,
@@ -59,7 +64,7 @@ TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
 
 TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
 {
-    fs::path modulePath = DEPENDENCIES_FAILED_MODULE_NAME;
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_FAILED_MODULE_NAME);
 
     ASSERT_THROW_MSG(auto lib = loadModule(loggerComponent, modulePath, context),
                      ModuleIncompatibleDependenciesException,
@@ -73,7 +78,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
 
 TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
 {
-    fs::path modulePath = DEPENDENCIES_SUCCEEDED_MODULE_NAME;
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
 
     ModuleLibrary lib;
     ASSERT_NO_THROW(lib = loadModule(loggerComponent, modulePath, context));

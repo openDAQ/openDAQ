@@ -257,7 +257,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:../junit_reports/unit"
+          GTEST_OUTPUT: "xml:junit_reports/unit"
         run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
@@ -363,7 +363,7 @@ jobs:
 
       # TODO: delete
       - name: DEBUG
-        run: ls -R junit_reports
+        run: ls -R build/junit_reports
 
       - name: Upload regression test results
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

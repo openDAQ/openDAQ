@@ -2,14 +2,12 @@ set(MODULE_NAME discovery_server)
 
 set(SRC_Headers
     common.h
-    daq_discovery_server.h
     mdnsdiscovery_server.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
 
 set(SRC_Cpp
-    daq_discovery_server.cpp 
     mdnsdiscovery_server.cpp
 )
 

@@ -22,7 +22,6 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
-#include <discovery_server/daq_discovery_server.h>
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>

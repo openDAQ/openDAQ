@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/discovery_server.h>
-#include <discovery_server/daq_discovery_server.h>
+#include <discovery_server/mdnsdiscovery_server.h>
 #include <opendaq/logger_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -30,7 +30,7 @@ public:
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
 
 private:
-    discovery_server::DiscoveryServer discoveryServer;
+    discovery_server::MDNSDiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;
 
 };

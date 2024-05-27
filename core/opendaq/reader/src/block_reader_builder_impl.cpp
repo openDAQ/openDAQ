@@ -123,7 +123,7 @@ ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::setOverlap(SizeT overlap)
     this->overlap = overlap;
     return OPENDAQ_SUCCESS;
 }
-ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::getOverlapSize(SizeT* overlap)
+ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::getOverlap(SizeT* overlap)
 {
     OPENDAQ_PARAM_NOT_NULL(overlap);
     *overlap = this->overlap;

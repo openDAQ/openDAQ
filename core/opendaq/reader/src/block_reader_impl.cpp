@@ -458,7 +458,7 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getBlockSize(),
-                builderPtr.getOverlapSize());
+                builderPtr.getOverlap());
         }
         else if (signal.assigned())
         {
@@ -469,7 +469,7 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlapSize());
+                builderPtr.getOverlap());
         }
         else if (inputPort.assigned())
         {
@@ -480,7 +480,7 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlapSize());
+                builderPtr.getOverlap());
         }
         else
         {

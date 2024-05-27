@@ -50,7 +50,7 @@ public:
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
 
     ErrCode INTERFACE_FUNC setOverlap(SizeT overlap) override;
-    ErrCode INTERFACE_FUNC getOverlapSize(SizeT* overlap) override;
+    ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
 private:
     SampleType valueReadType;

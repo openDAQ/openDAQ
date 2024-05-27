@@ -142,7 +142,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReaderBuilder, IBaseObject)
      * @brief Gets the overlap
      * @param[out] mode The overlap[
      */
-    virtual ErrCode INTERFACE_FUNC getOverlapSize(SizeT* overlap) = 0;
+    virtual ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, BlockReaderBuilder, IBlockReaderBuilder)

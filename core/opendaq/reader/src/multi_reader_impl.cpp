@@ -478,7 +478,9 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
 
-    *status = readPackets().detach();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
@@ -503,7 +505,9 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
 
-    *status = readPackets().detach();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
@@ -527,7 +531,9 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
-    *status = readPackets().detach();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     const SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;

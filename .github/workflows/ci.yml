@@ -280,6 +280,21 @@ jobs:
           path: ${{ env.package_path }}
           retention-days: 7
 
+      - name: Upload binaries for .NET Bindings NuGet package
+        # "There can be only one."
+        if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.linux_x64_artifact }}
+          path: |
+            ${{ env.build_path }}/bin/*.so
+            !${{ env.build_path }}/**/opendaq.cpython*
+            !${{ env.build_path }}/**/*_test_dll.so
+          # the exclusion filter does not work and the online-help does not explain
+          # most probably a pattern *xxx.yy does not work, only x*
+          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          retention-days: 1
+
       # REGRESSION TESTS BEGIN
 
       - uses: aws-actions/configure-aws-credentials@v2

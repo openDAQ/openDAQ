@@ -801,18 +801,15 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     bool isDataPacketFirst = true;
     if (callback.assigned())
     {
-        for (const auto& signal : signals)
+        for (auto& signal : signals)
         {
-            auto packet = signal.connection.peek();
-            if (packet.assigned())
+            if (signal.isFirstPacketEvent())
             {
-                if (packet.getType() == PacketType::Event)
-                {
-                    triggerCallback = true; 
-                    break;
-                }
+                triggerCallback = true;
+                break;
             }
-            else
+            
+            if ((isDataPacketFirst) && (signal.getAvailable(false) == 0))
             {
                 isDataPacketFirst = false;
             }

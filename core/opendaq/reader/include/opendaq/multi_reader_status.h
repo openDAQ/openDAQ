@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <opendaq/reader_status.h>
-#include <coretypes/integer.h>
+#include <opendaq/signal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,7 +27,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IReaderStatus, GenericReaderStatusPtr)]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -35,7 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
 {
-    // [elementType(eventPackets, IInteger, IEventPacket)]
+    // [elementType(eventPackets, ISignal, IEventPacket)]
     /*!
      * @brief Retrieves the dictionary of event packets from the reading process, ordered by signals.
      * @param[out] eventPackets The dictionary where the key is the signal index and the value is the corresponding event packet.

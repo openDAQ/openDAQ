@@ -1212,7 +1212,8 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_NE(status.getEventPackets()[1], nullptr); 
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig1.signal));
+    ASSERT_NE(status.getEventPackets().get(sig1.signal), nullptr);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 458u);

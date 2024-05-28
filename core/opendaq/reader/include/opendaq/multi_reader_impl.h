@@ -93,7 +93,7 @@ private:
     void setStartInfo();
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    DictPtr<IInteger, IEventPacket> readUntilFirstDataPacket();
+    DictPtr<ISignal, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
 
     SyncStatus getSyncStatus() const;

@@ -78,7 +78,7 @@ ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
     return OPENDAQ_SUCCESS;
 }
 
-MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<IInteger, IEventPacket>& eventPackets, Bool valid)
+MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<ISignal, IEventPacket>& eventPackets, Bool valid)
     : Super(nullptr, valid)
     , eventPackets(eventPackets)
 {
@@ -106,7 +106,7 @@ ErrCode MultiReaderStatusImpl::getEventPackets(IDict** events)
     if (eventPackets.assigned())
         *events = eventPackets.addRefAndReturn();
     else 
-        *events = Dict<IInteger, IEventPacket>().detach();
+        *events = Dict<ISignal, IEventPacket>().detach();
     return OPENDAQ_SUCCESS;
 }
 

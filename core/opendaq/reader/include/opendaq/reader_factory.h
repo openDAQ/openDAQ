@@ -50,7 +50,7 @@ inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullp
     return TailReaderStatus_Create(packet, valid, sufficientHistory);
 }
 
-inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<IInteger, IEventPacket>& eventPackets = nullptr, Bool valid = true)
+inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<ISignal, IEventPacket>& eventPackets = nullptr, Bool valid = true)
 {
     return MultiReaderStatus_Create(eventPackets, valid);
 }

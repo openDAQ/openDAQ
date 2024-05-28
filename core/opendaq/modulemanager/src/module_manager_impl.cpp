@@ -415,7 +415,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     
     const auto configPtr = PropertyObjectPtr::Borrow(config);
-    PropertyObjectPtr devConfig = isDefaultAddDeviceConfig(configPtr) ? configPtr.getPropertyValue("Device") : configPtr;
+    PropertyObjectPtr devConfig = isDefaultAddDeviceConfig(configPtr) ? configPtr.getPropertyValue("device") : configPtr;
 
     for (const auto& library : libraries)
     {
@@ -708,7 +708,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto config = PropertyObject();
+    auto config = PropertyObject();
     
     auto deviceConfig = PropertyObject();
     auto streamingConfig = PropertyObject();
@@ -720,10 +720,11 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     for (auto const& [key, typeObj] : streamingTypes)
         streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
 
-    config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
-    config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", createGeneralSettingsConfig().detach()));
+    config.addProperty(ObjectProperty("device", deviceConfig.detach()));
+    config.addProperty(ObjectProperty("streaming", streamingConfig.detach()));
+    config.addProperty(ObjectProperty("general", createGeneralSettingsConfig().detach()));
 
+    *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -868,7 +869,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 {
     PropertyObjectPtr generalConfig;
     if (isDefaultAddDeviceConfig(config))
-        generalConfig = config.getPropertyValue("Streaming");
+        generalConfig = config.getPropertyValue("streaming");
     else
         generalConfig = populateStreamingConfig(config);
 
@@ -895,7 +896,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StreamingPtr streaming = nullptr;
-    PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("Streaming") : config;
+    PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("streaming") : config;
 
     for (const auto& library : libraries)
     {
@@ -1006,7 +1007,7 @@ bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config
 {
     if (!config.assigned())
         return false;
-    return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
+    return config.hasProperty("general") && config.hasProperty("streaming") && config.hasProperty("device");
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

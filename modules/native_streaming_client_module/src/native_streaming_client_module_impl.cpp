@@ -262,6 +262,27 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
+PropertyObjectPtr NativeStreamingClientModule::populateMissingConfigFields(const PropertyObjectPtr& config)
+{
+    PropertyObjectPtr newConfig = createConnectionDefaultConfig();
+
+    if (config.hasProperty("Port"))
+        newConfig.setPropertyValue("Port", config.getPropertyValue("Port"));
+
+    if (config.hasProperty("TransportLayerConfig"))
+    {
+        const PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+        for (const auto& prop : transportLayerConfig.getAllProperties())
+        {
+            const auto name = prop.getName();
+            if (newConfig.hasProperty(name))
+                newConfig.setPropertyValue(name, config.getPropertyValue(name));
+        }
+    }
+
+    return newConfig;
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
@@ -269,9 +290,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    PropertyObjectPtr deviceConfig = config;
+    PropertyObjectPtr deviceConfig;
     if (!deviceConfig.assigned())
         deviceConfig = createConnectionDefaultConfig();
+    else
+        deviceConfig = populateMissingConfigFields(config);
 
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
@@ -280,7 +303,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         throw InvalidParameterException("Context is not available.");
 
     auto host = getHost(connectionString);
-    auto port = getPort(connectionString);
+    auto port = getPort(connectionString, deviceConfig);
     auto path = getPath(connectionString);
 
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
@@ -333,6 +356,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     auto defaultConfig = PropertyObject();
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
+    defaultConfig.addProperty(IntProperty("Port", 7420));
 
     return defaultConfig;
 }
@@ -343,13 +367,12 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
     auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
 
-    if ((!devicePrefixFound && !pseudoDevicePrefixFound) ||
-        !validateConnectionString(connectionString))
+    if ((!devicePrefixFound && !pseudoDevicePrefixFound) || !validateConnectionString(connectionString))
     {
         return false;
     }
 
-    if ( config.assigned() && !validateConnectionConfig(config))
+    if (config.assigned() && !validateConnectionConfig(config))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;
@@ -366,8 +389,6 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
     if (connectionString.assigned() && connectionString != "")
     {
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) && validateConnectionString(connectionString);
-       
-        /*(config.assigned() ? validateConnectionConfig(config) : true);*/
     }
     return false;
 }
@@ -434,16 +455,20 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
-
-    StringPtr host = getHost(connectionString);
-    StringPtr port = getPort(connectionString);
-    StringPtr path = getPath(connectionString);
-
     PropertyObjectPtr transportLayerConfig;
-    if (config.assigned() && config.hasProperty("TransportLayerConfig"))
-        transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+
+    PropertyObjectPtr parsedConfig;
+    if (config.assigned())
+    {
+        parsedConfig = populateMissingConfigFields(config);
+        transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
+    }
     else
         transportLayerConfig = createTransportLayerDefaultConfig();
+
+    StringPtr host = getHost(connectionString);
+    StringPtr port = getPort(connectionString, parsedConfig);
+    StringPtr path = getPath(connectionString);
 
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
@@ -536,8 +561,9 @@ StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
     throw InvalidParameterException("Host name not found in url: {}", url);
 }
 
-StringPtr NativeStreamingClientModule::getPort(const StringPtr& url)
+StringPtr NativeStreamingClientModule::getPort(const StringPtr& url, const PropertyObjectPtr& config)
 {
+    std::string outPort;
     std::string urlString = url.toStdString();
 
     auto regexPort = std::regex(":(\\d+)");
@@ -547,13 +573,18 @@ StringPtr NativeStreamingClientModule::getPort(const StringPtr& url)
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
     if (std::regex_search(suffix, match, regexPort))
-    {
-        return String(match[1]);
-    }
+        outPort = match[1];
     else
+        outPort = "7420";
+
+    if (config.assigned())
     {
-        return "7420";
+        std::string ctxPort = config.getPropertyValue("Port");
+        if (ctxPort != "7420")
+            outPort = ctxPort;
     }
+
+    return outPort;
 }
 
 StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)

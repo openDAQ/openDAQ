@@ -47,7 +47,7 @@ private:
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
     static StringPtr getHost(const StringPtr& url);
-    static StringPtr getPort(const StringPtr& url);
+    static StringPtr getPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
     static StringPtr getPath(const StringPtr& url);
     static bool validateConnectionString(const StringPtr& connectionString);
 
@@ -82,6 +82,7 @@ private:
                                  const StringPtr& path);
     PropertyObjectPtr createConnectionDefaultConfig();
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
+    PropertyObjectPtr populateMissingConfigFields(const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);

@@ -1,9 +1,6 @@
-#include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
-#include "get_protocol.h"
-
-using namespace daq;
+#include "setup_regression.h"
 
 class RegressionTestSignal : public testing::Test
 {

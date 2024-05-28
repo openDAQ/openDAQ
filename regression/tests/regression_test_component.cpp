@@ -1,8 +1,4 @@
-#include <gtest/gtest.h>
-#include <opendaq/mock/mock_device_module.h>
-#include "get_protocol.h"
-
-using namespace daq;
+#include "setup_regression.h"
 
 class RegressionTestComponent : public testing::Test
 {

@@ -1,6 +1,6 @@
 set(TEST_APP regression_tests)
 
-set(TEST_SOURCES get_protocol.h
+set(TEST_SOURCES setup_regression.h
                  test_app.cpp
                  regression_test_device.cpp
                  regression_test_signal.cpp

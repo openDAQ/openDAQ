@@ -1,7 +1,4 @@
-#include <gtest/gtest.h>
-#include "get_protocol.h"
-
-using namespace daq;
+#include "setup_regression.h"
 
 class RegressionTestDevice : public testing::Test
 {
@@ -17,6 +14,7 @@ protected:
     {
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+
         instance = InstanceCustom(context, "mock_instance");
 
         device = instance.addDevice(connectionString);

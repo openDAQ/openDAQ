@@ -1,7 +1,4 @@
-#include <gtest/gtest.h>
-#include "get_protocol.h"
-
-using namespace daq;
+#include "setup_regression.h"
 
 class RegressionTestProperty : public testing::Test
 {

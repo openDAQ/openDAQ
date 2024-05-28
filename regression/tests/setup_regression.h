@@ -15,11 +15,15 @@
  */
 
 #pragma once
+#include <gtest/gtest.h>
 #include <opendaq/opendaq.h>
+
+using namespace daq;
 
 namespace
 {
-// TODO! opcua nd ns lt
+// TODO: opcua nd ns lt
+// daq::StringPtr protocol = "nd";
 daq::StringPtr protocol = getenv("protocol");
 daq::StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }

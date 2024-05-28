@@ -118,13 +118,13 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
             {
                 break;
             }
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                device = client.addDevice(capability.getConnectionString(), nullptr);
                 return;
             }
         }
@@ -151,10 +151,10 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
-    rootInfo.setName("OpcuaDeviceModulesTest::checkDeviceInfoPopulatedWithProvider");
-    rootInfo.setManufacturer("Manufacturer");
-    rootInfo.setModel("Model");
-    rootInfo.setSerialNumber("SerialNumber");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
@@ -166,20 +166,20 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
-            continue;
-
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                client.addDevice(capability.getConnectionString(), nullptr);
 
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

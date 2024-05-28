@@ -134,10 +134,10 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
-    rootInfo.setName("WebsocketModulesTest::checkDeviceInfoPopulatedWithProvider");
-    rootInfo.setManufacturer("Manufacturer");
-    rootInfo.setModel("Model");
-    rootInfo.setSerialNumber("SerialNumber");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryService("mdns")
@@ -152,20 +152,20 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
 
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
-            continue;
-
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ LT Streaming")
             {
-                client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                {
+                    break;
+                }
 
+                client.addDevice(capability.getConnectionString(), nullptr);
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

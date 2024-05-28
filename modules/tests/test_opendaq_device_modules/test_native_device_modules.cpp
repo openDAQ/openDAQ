@@ -116,12 +116,12 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
             
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
-                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                device = client.addDevice(capability.getConnectionString(), nullptr);
                 return;
             }
         }
@@ -150,7 +150,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
             
                 if (capability.getProtocolName() == "openDAQ Native Configuration")
@@ -172,7 +172,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
             
                 if (capability.getProtocolName() == "openDAQ Native Configuration")
@@ -196,8 +196,8 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto & capability : deviceInfo.getServerCapabilities())
             {
-                bool isRemovedServer = test_helpers::isSufix(deviceInfo.getConnectionString(), path);
-                bool isNewServer = test_helpers::isSufix(deviceInfo.getConnectionString(), path2);
+                bool isRemovedServer = test_helpers::isSufix(capability.getConnectionString(), path);
+                bool isNewServer = test_helpers::isSufix(capability.getConnectionString(), path2);
                 if (!isRemovedServer && !isNewServer)
                     break;
 
@@ -230,10 +230,10 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto rootInfo = DeviceInfo("");
-    rootInfo.setName("NativeDeviceModulesTest::checkDeviceInfoPopulatedWithProvider");
-    rootInfo.setManufacturer("Manufacturer");
-    rootInfo.setModel("Model");
-    rootInfo.setSerialNumber("SerialNumber");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
@@ -244,20 +244,19 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        if (deviceInfo.getSerialNumber() != rootInfo.getSerialNumber())
-            continue;
-
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
-                client.addDevice(deviceInfo.getConnectionString(), nullptr);
-
+                client.addDevice(capability.getConnectionString(), nullptr);
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                ASSERT_TRUE(test_helpers::isSufix(capability.getConnectionString(), path));
                 return;
             }
         }      

@@ -27,3 +27,51 @@ namespace
 daq::StringPtr protocol = getenv("protocol");
 daq::StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
+
+// TODO: properly use the following classes
+
+class Version
+{
+private:
+    int major;
+    int minor;
+    int patch;
+
+public:
+    Version(int maj, int min, int pat)
+    {
+        major = maj;
+        minor = min;
+        patch = pat;
+    }
+    Version()
+    {
+        major = 3;
+        minor = 0;
+        patch = 0;
+    }
+};
+
+class RegressionTest : public testing::Test
+{
+protected:
+    std::vector<StringPtr> protocols;
+    Version minVersion;
+
+    RegressionTest(std::vector<StringPtr> protos, Version min)
+    {
+        protocols = protos;
+        minVersion = min;
+    }
+
+    RegressionTest()
+    {
+        protocols = {"opcua", "nd", "ns", " lt"};
+        minVersion = Version();
+    }
+
+    bool hasProtocol(StringPtr protocol)
+    {
+        return std::count(protocols.begin(), protocols.end(), protocol) > 0;
+    }
+};

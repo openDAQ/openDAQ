@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestComponent : public testing::Test
+class RegressionTestComponent : public RegressionTest
 {
 private:
     ModuleManagerPtr moduleManager;

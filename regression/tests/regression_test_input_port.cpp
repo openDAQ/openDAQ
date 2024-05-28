@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestInputPort : public testing::Test
+class RegressionTestInputPort : public RegressionTest
 {
 private:
     ModuleManagerPtr moduleManager;

@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestChannel : public testing::Test
+class RegressionTestChannel : public RegressionTest
 {
 private:
     ModuleManagerPtr moduleManager;

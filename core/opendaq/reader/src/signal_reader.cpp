@@ -268,12 +268,17 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     if (!isFirstPacketEvent())
         return nullptr;
 
+    EventPacketPtr gapPacket;
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
 
-    PacketPtr packet = connection.dequeue();
-    while (packet.assigned() && (packet.getType() != PacketType::Data))
+    PacketPtr packet;
+    while (true)
     {
+        packet = connection.peek();
+        if (!packet.assigned() || (packet.getType() == PacketType::Data))
+            break;
+        
         if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
@@ -292,8 +297,18 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                     domainDescriptor = newDomainDescriptor;
                 }
             }
+            else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                {
+                    gapPacket = packet;
+                    connection.dequeue();
+                }
+                break;
+            }
         }
-        packet = connection.dequeue();
+        
+        connection.dequeue();
     }
 
     if (packet.assigned() && packet.getType() == PacketType::Data)
@@ -308,6 +323,12 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         bool firstData {false};
         handlePacket(eventPacket, firstData);
         return eventPacket;
+    }
+    if (gapPacket.assigned())
+    {
+        bool firstData {false};
+        handlePacket(gapPacket, firstData);
+        return gapPacket;
     }
 
     return nullptr;

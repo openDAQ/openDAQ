@@ -322,7 +322,7 @@ public static partial class OpenDAQFactory
                                   ModuleManager moduleManager,
                                   AuthenticationProvider authenticationProvider,
                                   IDictObject<StringObject, BaseObject> options = null,
-                                  IDictObject<BaseObject, BaseObject> discoveryServices = null)
+                                  IDictObject<StringObject, DiscoveryServer> discoveryServices = null)
     {
         /*
             inline ContextPtr Context(const SchedulerPtr& scheduler,
@@ -343,7 +343,7 @@ public static partial class OpenDAQFactory
 
         if (discoveryServices == null)
         {
-            discoveryServices = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+            discoveryServices = CoreTypesFactory.CreateDict<StringObject, DiscoveryServer>();
         }
 
         return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices);

@@ -175,15 +175,34 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 
     for (auto deviceInfo : list)
     {
-        if (!deviceInfo.hasProperty("ipv4Address"))
+        std::string deviceIp;
+        if (deviceInfo.hasProperty("ipv4Address"))
         {
-            continue;
+            deviceIp = static_cast<std::string>(deviceInfo.getPropertyValue("ipv4Address"));
+        }
+        else
+        {
+            for (auto cap : deviceInfo.getServerCapabilities())
+            {
+                if (cap.getProtocolType() != ProtocolType::ConfigurationAndStreaming
+                    && cap.getConnectionType() != "TCP/IP")
+                    continue;
+
+                // ReSharper disable once CppTooWideScopeInitStatement
+                auto addresses = cap.getAddresses();
+                if (addresses.assigned() && addresses.getCount() > 0)
+                {
+                    deviceIp = static_cast<std::string>(addresses[0]);
+                    deviceInfo.addProperty(StringProperty("ipv4Address", deviceIp));
+                }
+            }
+
+            if (deviceIp.empty())
+                continue;
         }
 
         auto icmp = IcmpPing::Create(ioContext, logger);
         IcmpPing& ping = *icmp;
-
-        std::string deviceIp = deviceInfo.getPropertyValue("ipv4Address");
 
         ping.setMaxHops(1);
         ping.start(boost::asio::ip::make_address_v4(deviceIp));

@@ -222,6 +222,8 @@ class App(tk.Tk):
         if component is None:
             return
 
+        self.context.nodes[component.global_id] = component
+
         folder = daq.IFolder.cast_from(
             component) if component and daq.IFolder.can_cast_from(component) else None
 
@@ -257,7 +259,7 @@ class App(tk.Tk):
     def tree_add_component(self, parent_node_id, component):
         component_node_id = component.global_id
         component_name = component.name
-        icon = icon = self.context.icons['circle']
+        icon = self.context.icons['circle']
         skip = not self.context.view_hidden_components and not component.visible
 
         if daq.IChannel.can_cast_from(component):
@@ -298,7 +300,6 @@ class App(tk.Tk):
         if not skip:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=component_name, open=True, values=(component_node_id))
-        self.context.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''
@@ -455,23 +456,20 @@ class App(tk.Tk):
 
             upper_nodes = list()
 
-            if daq.IChannel.can_cast_from(found):  # traversing up IO folders
+            if daq.IFunctionBlock.can_cast_from(found):  # traversing up
                 current = found.parent
                 while current is not None:
-                    next_parent = current.parent
+                    if daq.IDevice.can_cast_from(current):
+                        break  # stop at device
                     if daq.IFolder.can_cast_from(current):
-                        if next_parent is not None and daq.IFolder.can_cast_from(next_parent):
-                            if not daq.IDevice.can_cast_from(next_parent) and current.local_id != 'IO':
-                                upper_nodes.append(
-                                    daq.IFolder.cast_from(current))
-                            else:
-                                break
-                    current = current.parent
-            # traversing function blocks
-            elif daq.IFunctionBlock.can_cast_from(found):
-                current = found.parent
-                while current is not None:
-                    if daq.IFunctionBlock.can_cast_from(current):
+                        if current.local_id == 'IO':
+                            break  # stop at IO folder
+                        elif current.local_id == 'FB':
+                            pass  # skip FB folder
+                        else:
+                            upper_nodes.append(
+                                daq.IFolder.cast_from(current))
+                    elif daq.IFunctionBlock.can_cast_from(current):
                         upper_nodes.append(
                             daq.IFunctionBlock.cast_from(current))
                     current = current.parent
@@ -513,8 +511,8 @@ class App(tk.Tk):
             self.context.selected_node = None
             return
         item = self.tree.item(selected_item)
-
-        node_unique_id = item['values'][0]
+        # WA for IDs with spaces
+        node_unique_id = ' '.join(str(val) for val in item['values'])
         if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]

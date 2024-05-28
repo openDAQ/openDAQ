@@ -303,7 +303,8 @@ jobs:
 
       - name: Protocol regression test - OPC UA
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
+        env:
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -319,7 +320,8 @@ jobs:
 
       - name: Protocol regression test - ND
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
+        env:
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -335,7 +337,8 @@ jobs:
           
       - name: Protocol regression test - NS
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
+        env:
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
@@ -351,7 +354,8 @@ jobs:
           
       - name: Protocol regression test - LT
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
+        env:
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &

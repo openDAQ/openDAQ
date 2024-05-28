@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/streaming_type.h>
 #include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_builder_ptr.h>
 #include <opendaq/streaming_type_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -28,110 +29,14 @@ public:
     using Super = GenericComponentTypeImpl<IStreamingType>;
 
     explicit StreamingTypeImpl(const StringPtr& id,
-                                   const StringPtr& name,
-                                   const StringPtr& description,
-                                   const PropertyObjectPtr& defaultConfig);
+                               const StringPtr& name,
+                               const StringPtr& description,
+                               const StringPtr& prefix,
+                               const PropertyObjectPtr& defaultConfig);
 
-    // ISerializable
-    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
-
-    static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    explicit StreamingTypeImpl(const ComponentTypeBuilderPtr& builder);
+    
+    ErrCode getConnectionStringPrefix(IString** prefix) override;
 };
-
-
-inline StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
-                                                    const StringPtr& name,
-                                                    const StringPtr& description,
-                                                    const PropertyObjectPtr& defaultConfig)
-    : Super(StreamingTypeStructType(), id, name, description, defaultConfig)
-{
-}
-
-inline ErrCode StreamingTypeImpl::serialize(ISerializer* serializer)
-{
-    OPENDAQ_PARAM_NOT_NULL(serializer);
-
-    const auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-    return daqTry(
-        [this, &serializerPtr]
-        {
-            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
-            {
-                serializerPtr.key("id");
-                serializerPtr.writeString(id);
-
-                if (name.assigned())
-                {
-                    serializerPtr.key("name");
-                    serializerPtr.writeString(name);
-                }
-
-                if (description.assigned())
-                {
-                    serializerPtr.key("description");
-                    serializerPtr.writeString(description);
-                }
-
-                if (defaultConfig.assigned())
-                {
-                    serializerPtr.key("defaultConfig");
-                    defaultConfig.serialize(serializerPtr);
-                }
-            }
-
-            serializerPtr.endObject();
-        });
-}
-
-inline ErrCode StreamingTypeImpl::getSerializeId(ConstCharPtr* id) const
-{
-    OPENDAQ_PARAM_NOT_NULL(id);
-
-    *id = SerializeId();
-    return OPENDAQ_SUCCESS;
-}
-
-inline ConstCharPtr StreamingTypeImpl::SerializeId()
-{
-    return "StreamingType";
-}
-
-inline ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized,
-                                              IBaseObject* context,
-                                              IFunction* factoryCallback,
-                                              IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(serialized);
-    OPENDAQ_PARAM_NOT_NULL(obj);
-
-    const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
-    const auto contextPtr = BaseObjectPtr::Borrow(context);
-    const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
-
-    return daqTry(
-        [&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
-        {
-            const auto id = serializedObj.readString("id");
-
-            StringPtr name;
-            if (serializedObj.hasKey("name"))
-                name = serializedObj.readString("name");
-
-            StringPtr description;
-            if (serializedObj.hasKey("description"))
-                description = serializedObj.readString("description");
-
-            PropertyObjectPtr defaultConfig;
-            if (serializedObj.hasKey("defaultConfig"))
-                defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
-
-            *obj = createWithImplementation<IStreamingType, StreamingTypeImpl>(id, name, description, defaultConfig).detach();
-        });
-}
-
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StreamingTypeImpl)
 
 END_NAMESPACE_OPENDAQ

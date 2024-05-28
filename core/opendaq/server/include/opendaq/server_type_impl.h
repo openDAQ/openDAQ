@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/server_type.h>
 #include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,6 +31,8 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig);
+
+    explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
 };
 
 END_NAMESPACE_OPENDAQ

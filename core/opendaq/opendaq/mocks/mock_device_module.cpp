@@ -158,7 +158,7 @@ ErrCode MockDeviceModuleImpl::createConnectionString(IString** /*connectionStrin
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
+ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

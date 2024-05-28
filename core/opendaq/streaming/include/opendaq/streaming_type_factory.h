@@ -18,6 +18,7 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,15 +33,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The unique type ID of the function block.
  * @param name The name of the function block. Eg. FFT.
  * @param description A short description of the function block and its behaviour.
+ * @param prefix The prefix of the connection string used to add this streaming connection to a device.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the function block has its own configuration object.
  */
 inline StreamingTypePtr StreamingType(const StringPtr& id,
                                               const StringPtr& name,
                                               const StringPtr& description,
+                                              const StringPtr& prefix,
                                               const PropertyObjectPtr& defaultConfig = PropertyObject())
 {
-    StreamingTypePtr obj(StreamingType_Create(id, name, description, defaultConfig));
+    StreamingTypePtr obj(StreamingType_Create(id, name, description, prefix, defaultConfig));
     return obj;
 }
 
@@ -50,9 +53,9 @@ inline StreamingTypePtr StreamingType(const StringPtr& id,
 inline StructTypePtr StreamingTypeStructType()
 {
     return StructType("streamingType",
-                      List<IString>("id", "name", "description"),
-                      List<IString>("", "", ""),
-                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+                      List<IString>("id", "name", "description", "prefix"),
+                      List<IString>("", "", "", ""),
+                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }
 
 /*!@}*/

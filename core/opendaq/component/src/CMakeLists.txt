@@ -21,6 +21,7 @@ rtgen(SRC_TagsPrivate tags_private.h)
 rtgen(SRC_ComponentStatusContainer component_status_container.h)
 rtgen(SRC_ComponentStatusContainerPrivate component_status_container_private.h)
 rtgen(SRC_ComponentHolder component_holder.h)
+rtgen(SRC_ComponentTypeBuilder component_type_builder.h)
 
 source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/component_impl.h
@@ -64,6 +65,10 @@ source_group("component_status_container" FILES ${SDK_HEADERS_DIR}/component_sta
                                                 component_status_container_impl.cpp
 )
 
+source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type_builder.h
+                                    ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+)
+
 set(SRC_Cpp 
     component_impl.cpp
     folder_impl.cpp
@@ -92,6 +97,7 @@ set(SRC_PublicHeaders
     component_status_container_factory.h
     component_status_container_impl.h
     component_holder_factory.h
+    component_type_builder_factory.h
 )
 
 set(SRC_PrivateHeaders
@@ -132,6 +138,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
                               ${SRC_ComponentStatusContainer_PublicHeaders}
                               ${SRC_ComponentStatusContainerPrivate_PublicHeaders}
                               ${SRC_ComponentHolder_PublicHeaders}
+                              ${SRC_ComponentTypeBuilder_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_ComponentHolder_PrivateHeaders})

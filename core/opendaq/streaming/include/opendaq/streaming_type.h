@@ -35,6 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IStreamingType, IComponentType)
 {
+    virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/
 
@@ -57,6 +58,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
+    IString*, prefix,
     IPropertyObject*, defaultConfig
 )
 

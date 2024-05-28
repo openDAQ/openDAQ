@@ -135,7 +135,7 @@ ErrCode MockFunctionBlockModuleImpl::createConnectionString(IString** /*connecti
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-daq::ErrCode MockFunctionBlockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
+daq::ErrCode MockFunctionBlockModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

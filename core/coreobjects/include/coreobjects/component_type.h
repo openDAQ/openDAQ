@@ -17,7 +17,6 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <coretypes/stringobject.h>
-#include <coretypes/function.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

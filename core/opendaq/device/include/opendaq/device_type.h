@@ -38,6 +38,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
 {
+    virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/
 

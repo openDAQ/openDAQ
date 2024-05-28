@@ -43,6 +43,10 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               
 )
 
+source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type_builder_impl.h
+                                    component_type_builder_impl.cpp
+)
+
 set(SRC_Cpp version.cpp
             instance_impl.cpp
             client_impl.cpp
@@ -53,6 +57,7 @@ set(SRC_Cpp version.cpp
             base_config_provider_impl.cpp
             env_config_provider_impl.cpp
             cmd_line_args_config_provider_impl.cpp
+            component_type_builder_impl.cpp
 )
 
 set(SRC_PublicHeaders version.h
@@ -72,6 +77,7 @@ set(SRC_PrivateHeaders instance_impl.h
                        base_config_provider_impl.h
                        env_config_provider_impl.h
                        cmd_line_args_config_provider_impl.h
+                       component_type_builder_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -90,6 +96,7 @@ list(APPEND SRC_PublicHeaders ${ConfigHeader}
 list(APPEND SRC_PrivateHeaders ${SRC_Instance_PrivateHeaders}
                                ${SRC_InstanceBuilder_PrivateHeaders}
                                ${SRC_ConfigProvider_PrivateHeaders}
+                               ${SRC_ComponentTypeBuilder_PrivateHeaders}
 )
 
 add_library(${LIB_NAME} SHARED ${SRC_Cpp}

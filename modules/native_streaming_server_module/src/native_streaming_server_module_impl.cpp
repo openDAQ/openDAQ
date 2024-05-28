@@ -21,7 +21,7 @@ DictPtr<IString, IServerType> NativeStreamingServerModule::onGetAvailableServerT
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = NativeStreamingServerImpl::createType();
+    auto serverType = NativeStreamingServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;
@@ -35,7 +35,7 @@ ServerPtr NativeStreamingServerModule::onCreateServer(StringPtr serverType,
         throw InvalidParameterException{"Context parameter cannot be null."};
 
     if (!serverConfig.assigned())
-        serverConfig = NativeStreamingServerImpl::createDefaultConfig();
+        serverConfig = NativeStreamingServerImpl::createDefaultConfig(context);
 
     ServerPtr server(NativeStreamingServer_Create(rootDevice, serverConfig, context));
     return server;

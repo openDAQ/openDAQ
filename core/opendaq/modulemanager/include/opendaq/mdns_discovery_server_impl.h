@@ -15,32 +15,24 @@
  */
 
 #pragma once
-#include <opendaq/module_manager.h>
 #include <opendaq/discovery_server.h>
+#include <discovery_server/mdnsdiscovery_server.h>
+#include <opendaq/logger_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_context Context
- * @{
- */
-
-/*!
- * @brief Internal Context interface used for transferring the Module Manager reference to a new owner.
- */
-
-DECLARE_OPENDAQ_INTERFACE(IContextInternal, IBaseObject)
+class MdnsDiscoveryServerImpl : public ImplementationOf<IDiscoveryServer>
 {
-    /*!
-     * @brief Gets the Module Manager. Moves the strong reference to the manager to the first
-     * caller and retains a weak reference internally.
-     * @param[out] manager The module manager.
-     *
-     * Returns a nullptr on subsequent invocations, and if the manager is not assigned.
-     */
-    virtual ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) = 0;
+public:
+    MdnsDiscoveryServerImpl(const LoggerPtr& logger);
+
+    ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
+    ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
+
+private:
+    discovery_server::MDNSDiscoveryServer discoveryServer;
+    LoggerComponentPtr loggerComponent;
+
 };
-/*!@}*/
 
 END_NAMESPACE_OPENDAQ

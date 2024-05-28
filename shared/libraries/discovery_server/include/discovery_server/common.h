@@ -13,20 +13,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/server.h>
-#include <coretypes/stringobject.h>
-
-class MockServerImpl : public daq::ImplementationOf<daq::IServer>
-{
-public:
-    explicit MockServerImpl();
-
-    daq::ErrCode INTERFACE_FUNC enableDiscovery() override;
-    daq::ErrCode INTERFACE_FUNC stop() override;
-    daq::ErrCode INTERFACE_FUNC getId(daq::IString** serverId) override;
-};
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)
+#define BEGIN_NAMESPACE_DISCOVERY_SERVICE namespace daq { namespace discovery_server {
+#define END_NAMESPACE_DISCOVERY_SERVICE } }

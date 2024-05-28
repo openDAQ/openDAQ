@@ -15,32 +15,30 @@
  */
 
 #pragma once
-#include <opendaq/module_manager.h>
-#include <opendaq/discovery_server.h>
+#include <coretypes/stringobject.h>
+#include <opendaq/device_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_utility
- * @addtogroup opendaq_context Context
+ * @addtogroup opendaq_discovery_service Discovery service
  * @{
  */
 
-/*!
- * @brief Internal Context interface used for transferring the Module Manager reference to a new owner.
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
-DECLARE_OPENDAQ_INTERFACE(IContextInternal, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
 {
-    /*!
-     * @brief Gets the Module Manager. Moves the strong reference to the manager to the first
-     * caller and retains a weak reference internally.
-     * @param[out] manager The module manager.
-     *
-     * Returns a nullptr on subsequent invocations, and if the manager is not assigned.
-     */
-    virtual ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) = 0;
+    virtual ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) = 0;
+    virtual ErrCode INTERFACE_FUNC unregisterService(IString* id) = 0;
 };
 /*!@}*/
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
+    MdnsDiscoveryServer, IDiscoveryServer, 
+    ILogger*, logger)
 
 END_NAMESPACE_OPENDAQ

@@ -18,12 +18,19 @@
 
 #include <thread>
 #include <future>
+#include <fstream>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 
 #include <opendaq/opendaq.h>
 #include <testutils/testutils.h>
 #include "testutils/memcheck_listener.h"
+
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
 
 // MAC CI issue
 #if !defined(SKIP_TEST_MAC_CI)
@@ -106,6 +113,26 @@ namespace test_helpers
         boost::system::error_code ec;
         auto it = resolver.resolve(query, ec);
         return ec.failed();
+    }
+
+    [[maybe_unused]]
+    static bool isSufix(const std::string & str, const std::string & suffix)
+    {
+        return str.size() >= suffix.size() && 
+                str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    [[maybe_unused]]
+    static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
+    {
+        std::ofstream file;
+        file.open(configFilename);
+        if (!file.is_open())
+            throw std::runtime_error("can not open file for writing");
+
+        file << data;
+        file.close();
+        return Finally([&configFilename] { remove(configFilename.c_str()); });
     }
 }
 

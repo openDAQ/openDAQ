@@ -47,6 +47,7 @@ PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::modul
 PyDaqIntf<daq::ILoggerThreadPool, daq::IBaseObject> declareILoggerThreadPool(pybind11::module_ m);
 PyDaqIntf<daq::IModule, daq::IBaseObject> declareIModule(pybind11::module_ m);
 PyDaqIntf<daq::IModuleManager, daq::IBaseObject> declareIModuleManager(pybind11::module_ m);
+PyDaqIntf<daq::IDiscoveryServer, daq::IBaseObject> declareIDiscoveryServer(pybind11::module_ m);
 PyDaqIntf<daq::IReader, daq::IBaseObject> declareIReader(pybind11::module_ m);
 PyDaqIntf<daq::IPacketReader, daq::IReader> declareIPacketReader(pybind11::module_ m);
 PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::module_ m);
@@ -130,6 +131,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 void defineILoggerThreadPool(pybind11::module_ m, PyDaqIntf<daq::ILoggerThreadPool, daq::IBaseObject> cls);
 void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject> cls);
 void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, daq::IBaseObject> cls);
+void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer, daq::IBaseObject> cls);
 void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject> cls);
 void defineIPacketReader(pybind11::module_ m, PyDaqIntf<daq::IPacketReader, daq::IReader> cls);
 void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq::IReader> cls);

@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/server_type.h>
 #include <opendaq/device.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,6 +25,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup structure_servers
  * @addtogroup structure_server Server
  * @{
+ */
+
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
 /*!
@@ -43,6 +48,17 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @brief Stops the server. This is called when we remove the server from the Instance or Instance is closing.
     */
     virtual ErrCode INTERFACE_FUNC stop() = 0;
+
+    /*!
+    * @brief Gets the server id.
+    * @param[out] serverId The server id.
+    */
+    virtual ErrCode INTERFACE_FUNC getId(IString** serverId) = 0;
+
+    /*!
+    * @brief Enables the server to be discovered by the clients.
+    */
+    virtual ErrCode INTERFACE_FUNC enableDiscovery() = 0;
 };
 /*!@}*/
 

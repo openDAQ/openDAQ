@@ -257,7 +257,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:junit_reports/unit"
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/unit/"
         run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
@@ -265,7 +265,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: junit_reports/unit
+          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''
@@ -303,13 +303,14 @@ jobs:
 
       - name: Protocol regression test - OPC UA
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/opcua"
+          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -318,13 +319,14 @@ jobs:
 
       - name: Protocol regression test - ND
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/nd"
+          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -333,13 +335,14 @@ jobs:
           
       - name: Protocol regression test - NS
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/ns"
+          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -348,13 +351,14 @@ jobs:
           
       - name: Protocol regression test - LT
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
         run: |
           # Run simulator and wait for it to to be ready
           ./${{ env.regression_simulator_folder }}/regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --gtest_output="xml:junit_reports/regression/lt"
+          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
           pid=$(pgrep -f regression_simulator)
@@ -362,15 +366,15 @@ jobs:
           while ps $pid > /dev/null; do sleep 1; done
 
       # TODO: delete
-      - name: DEBUG
-        run: ls -R build/junit_reports
+      - name: DEBUG ls
+        run: ls -R ${{ env.GITHUB_WORKSPACE }}/junit_reports
 
       - name: Upload regression test results
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         uses: actions/upload-artifact@v3
         with:
           name: Regression Test Results (${{ matrix.name }})
-          path: junit_reports/regression
+          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/regression
 
       # REGRESSION TESTS END
 
@@ -448,7 +452,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:../junit_reports"
+          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/unit/"
         run: |
           python$last_version -m venv venv
           . venv/bin/activate
@@ -461,7 +465,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: junit_reports
+          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''

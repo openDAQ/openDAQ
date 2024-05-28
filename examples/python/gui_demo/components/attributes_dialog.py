@@ -170,7 +170,7 @@ class AttributesDialog(Dialog):
             self.attributes['Streamed'] = {'Value': bool(
                 signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
             self.attributes['Last Value'] = {
-                'Value': signal.last_value, 'Locked': True, 'Attribute': 'last_value'}
+                'Value': get_last_value_for_signal(signal), 'Locked': True, 'Attribute': 'last_value'}
 
         if daq.IInputPort.can_cast_from(node):
             input_port = daq.IInputPort.cast_from(node)

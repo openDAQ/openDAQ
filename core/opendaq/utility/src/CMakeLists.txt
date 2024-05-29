@@ -19,7 +19,6 @@ set(SRC_Cpp ids_parser.cpp
 
 set(SRC_PublicHeaders utility_errors.h
                       utility_exceptions.h
-                      utility_sync.h
 					  ids_parser.h
 )
 

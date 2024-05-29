@@ -152,8 +152,13 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
 {
-    const auto config = createDefaultConfig();
-    return DeviceType(DaqOpcUaDeviceTypeId, "OpcUa enabled device", "Network device connected over OpcUa protocol", config);
+    return DeviceTypeBuilder()
+        .setId(DaqOpcUaDeviceTypeId)
+        .setName("OpcUa enabled device")
+        .setDescription("Network device connected over OpcUa protocol")
+        .setConnectionStringPrefix("daq.opcua")
+        .setDefaultConfig(createDefaultConfig())
+        .build();
 }
 
 PropertyObjectPtr OpcUaClientModule::createDefaultConfig()

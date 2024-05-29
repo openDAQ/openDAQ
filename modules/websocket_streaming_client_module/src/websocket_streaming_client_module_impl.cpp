@@ -171,16 +171,22 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
 
 DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
 {
-    return DeviceType(WebsocketDeviceTypeId,
-                      "Streaming LT enabled pseudo-device",
-                      "Pseudo device, provides only signals of the remote device as flat list");
+    return DeviceTypeBuilder()
+        .setId(WebsocketDeviceTypeId)
+        .setName("Streaming LT enabled pseudo-device")
+        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+        .setConnectionStringPrefix("daq.lt")
+        .build();
 }
 
 StreamingTypePtr WebsocketStreamingClientModule::createWebsocketStreamingType()
 {
-    return StreamingType(WebsocketDeviceTypeId,
-                      "Streaming LT",
-                      "openDAQ native streaming protocol client");
+    return StreamingTypeBuilder()
+        .setId(WebsocketDeviceTypeId)
+        .setName("Streaming LT")
+        .setDescription("openDAQ native streaming protocol client")
+        .setConnectionStringPrefix("daq.lt")
+        .build();
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

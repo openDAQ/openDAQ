@@ -424,37 +424,44 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         bool accepted{false};
         if (isDefaultAddDeviceConfig(configPtr))
         {
+            const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
             DictPtr<IString, IDeviceType> types;
             module->getAvailableDeviceTypes(&types);
             if (!types.assigned())
                 continue;
-            
-            for (const auto& type : types)
+            StringPtr id;
+            for (auto const& [typeId, type] : types)
             {
-                PropertyObjectPtr typeConfig;
-                if (devConfig.hasProperty(type.first))
-                    typeConfig = devConfig.getPropertyValue(type.first);
-
-                try
+                if (type.getConnectionStringPrefix()== prefix)
                 {
-                    accepted = module.acceptsConnectionParameters(connectionStringPtr, typeConfig);
-                }
-                catch (NotImplementedException&)
-                {
-                    LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-                    accepted = false;
-                }
-                catch ([[maybe_unused]] const std::exception& e)
-                {
-                    LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-                    accepted = false;
-                }
-
-                if (accepted)
-                {
-                    devConfig = typeConfig;
+                    id = typeId;
                     break;
                 }
+            }
+
+            if (!id.assigned())
+                continue;
+
+            PropertyObjectPtr typeConfig = devConfig.getPropertyValue(id);
+
+            try
+            {
+                accepted = module.acceptsConnectionParameters(connectionStringPtr, typeConfig);
+            }
+            catch (NotImplementedException&)
+            {
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+                accepted = false;
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+                accepted = false;
+            }
+
+            if (accepted)
+            {
+                devConfig = typeConfig;
             }
         }
         else
@@ -749,7 +756,7 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-PropertyObjectPtr ModuleManagerImpl::populateStreamingConfig(const PropertyObjectPtr& streamingConfig)
+PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(const PropertyObjectPtr& streamingConfig)
 {
     PropertyObjectPtr resultConfig = streamingConfig.assigned() ? streamingConfig : PropertyObject();
 
@@ -869,9 +876,9 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 {
     PropertyObjectPtr generalConfig;
     if (isDefaultAddDeviceConfig(config))
-        generalConfig = config.getPropertyValue("streaming");
+        generalConfig = config.getPropertyValue("general");
     else
-        generalConfig = populateStreamingConfig(config);
+        generalConfig = populateGeneralConfig(config);
 
     const StringPtr streamingHeuristic = generalConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
     const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
@@ -904,37 +911,45 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         bool accepted{false};
         if (isDefaultAddDeviceConfig(config))
         {
+            const std::string prefix = getPrefixFromConnectionString(connectionString);
             DictPtr<IString, IStreamingType> types;
             module->getAvailableStreamingTypes(&types);
             if (!types.assigned())
                 continue;
-            
-            for (const auto& type : types)
+
+            StringPtr id;
+            for (auto const& [typeId, type] : types)
             {
-                PropertyObjectPtr typeConfig;
-                if (streamingConfig.hasProperty(type.first))
-                    typeConfig = streamingConfig.getPropertyValue(type.first);
-
-                try
+                if (type.getConnectionStringPrefix()== prefix)
                 {
-                    accepted = module.acceptsConnectionParameters(connectionString, typeConfig);
-                }
-                catch (NotImplementedException&)
-                {
-                    LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-                    accepted = false;
-                }
-                catch ([[maybe_unused]] const std::exception& e)
-                {
-                    LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-                    accepted = false;
-                }
-
-                if (accepted)
-                {
-                    streamingConfig = typeConfig;
+                    id = typeId;
                     break;
                 }
+            }
+
+            if (!id.assigned())
+                continue;
+
+            PropertyObjectPtr typeConfig = streamingConfig.getPropertyValue(id);
+
+            try
+            {
+                accepted = module.acceptsConnectionParameters(connectionString, typeConfig);
+            }
+            catch (NotImplementedException&)
+            {
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+                accepted = false;
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+                accepted = false;
+            }
+
+            if (accepted)
+            {
+                streamingConfig = typeConfig;
             }
         }
         else
@@ -975,8 +990,22 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 PropertyObjectPtr ModuleManagerImpl::createGeneralSettingsConfig()
 {
     auto obj = PropertyObject();
-    populateStreamingConfig(obj);
+    populateGeneralConfig(obj);
     return obj.detach();
+}
+
+std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const
+{
+    try
+    {
+        return connectionString.substr(0, connectionString.find("://"));
+    }
+    catch(...)
+    {
+        LOG_W("Connection string has no prefix denoted by the \"://\" delimiter")
+    }
+
+    return "";
 }
 
 StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& serverCapability)

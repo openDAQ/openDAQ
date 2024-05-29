@@ -291,7 +291,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         throw ArgumentNullException();
 
     PropertyObjectPtr deviceConfig;
-    if (!deviceConfig.assigned())
+    if (!config.assigned())
         deviceConfig = createConnectionDefaultConfig();
     else
         deviceConfig = populateMissingConfigFields(config);
@@ -524,26 +524,35 @@ StringPtr NativeStreamingClientModule::createUrlConnectionString(const char* pre
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    return DeviceType(NativeStreamingDeviceTypeId,
-                      "PseudoDevice",
-                      "Pseudo device, provides only signals of the remote device as flat list",
-                      NativeStreamingClientModule::createConnectionDefaultConfig());
+    return DeviceTypeBuilder()
+        .setId(NativeStreamingDeviceTypeId)
+        .setName("PseudoDevice")
+        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+        .setConnectionStringPrefix("daq.ns")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    return DeviceType(NativeConfigurationDeviceTypeId,
-                      "Device",
-                      "Network device connected over Native configuration protocol",
-                      NativeStreamingClientModule::createConnectionDefaultConfig());
+    return DeviceTypeBuilder()
+        .setId(NativeConfigurationDeviceTypeId)
+        .setName("Device")
+        .setDescription("Network device connected over Native configuration protocol")
+        .setConnectionStringPrefix("daq.nd")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
 }
 
 StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 {
-    return StreamingType(NativeStreamingDeviceTypeId,
-                  "NativeStreaming",
-                  "openDAQ native streaming protocol client",
-                  NativeStreamingClientModule::createConnectionDefaultConfig());
+    return StreamingTypeBuilder()
+        .setId(NativeConfigurationDeviceTypeId)
+        .setName("NativeStreaming")
+        .setDescription("openDAQ native streaming protocol client")
+        .setConnectionStringPrefix("daq.ns")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)

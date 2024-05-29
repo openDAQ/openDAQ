@@ -280,6 +280,19 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
     return defaultConfig;
 }
 
+PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config)
+{
+    const auto defConfig = createDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 ServerTypePtr NativeStreamingServerImpl::createType()
 {
     return ServerType(

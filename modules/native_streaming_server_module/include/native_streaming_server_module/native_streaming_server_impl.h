@@ -32,6 +32,7 @@ public:
     explicit NativeStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig();
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     static ServerTypePtr createType();
 
 protected:

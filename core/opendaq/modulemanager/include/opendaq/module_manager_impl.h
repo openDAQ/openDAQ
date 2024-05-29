@@ -63,7 +63,7 @@ private:
     void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
 
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const ListPtr<IString>& allowedStreamingProtocols,
+                                  const PropertyObjectPtr& generalConfig,
                                   const PropertyObjectPtr& config);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);

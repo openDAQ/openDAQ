@@ -547,7 +547,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 {
     return StreamingTypeBuilder()
-        .setId(NativeConfigurationDeviceTypeId)
+        .setId(NativeStreamingTypeId)
         .setName("NativeStreaming")
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix("daq.ns")

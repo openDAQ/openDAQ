@@ -776,6 +776,16 @@ PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(const PropertyObjectP
         resultConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
     }
 
+    if (!resultConfig.hasProperty("AllowedStreamingProtocols"))
+    {
+        resultConfig.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
+    }
+
+    if (!resultConfig.hasProperty("AutomaticallyConnectStreaming"))
+    {
+        resultConfig.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+    }
+
     return resultConfig;
 }
 
@@ -799,11 +809,21 @@ ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const
 }
 
 void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                                 const ListPtr<IString>& prioritizedStreamingProtocols,
+                                                 const PropertyObjectPtr& generalConfig,
                                                  const PropertyObjectPtr& config)
 {
     auto deviceInfo = device.getInfo();
     auto signals = device.getSignals(search::Recursive(search::Any()));
+    
+    const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+    const ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
+
+     // protocol Id as a key, protocol priority as a value
+    std::unordered_set<std::string> allowedProtocolsSet;
+    for (SizeT index = 0; index < allowedStreamingProtocols.getCount(); ++index)
+    {
+        allowedProtocolsSet.insert(allowedStreamingProtocols[index]);
+    }
 
     // protocol Id as a key, protocol priority as a value
     std::map<StringPtr, SizeT> prioritizedProtocolsMap;
@@ -827,6 +847,9 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
 
         const StringPtr protocolId = cap.getPropertyValue("protocolId");
         if (cap.getProtocolType() != ProtocolType::Streaming)
+            continue;
+
+        if (!allowedProtocolsSet.empty() && !allowedProtocolsSet.count(protocolId))
             continue;
 
         const auto protocolIt = prioritizedProtocolsMap.find(protocolId);
@@ -881,11 +904,13 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
         generalConfig = populateGeneralConfig(config);
 
     const StringPtr streamingHeuristic = generalConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
-    const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+    const bool automaticallyConnectStreaming = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
+    if (!automaticallyConnectStreaming)
+        return;
 
     if (streamingHeuristic == "MinConnections")
     {
-        attachStreamingsToDevice(topDevice, prioritizedStreamingProtocols, config);
+        attachStreamingsToDevice(topDevice, generalConfig, config);
     }
     else if (streamingHeuristic == "MinHops")
     {
@@ -895,7 +920,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
         auto allDevicesInTree = getAllDevicesRecursively(topDevice);
         for (const auto& device : allDevicesInTree)
         {
-            attachStreamingsToDevice(device, prioritizedStreamingProtocols, config);
+            attachStreamingsToDevice(device, generalConfig, config);
         }
     }
 }

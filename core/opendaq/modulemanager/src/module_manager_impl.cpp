@@ -411,16 +411,17 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             }
         }
     }
-    
+
     const auto configPtr = PropertyObjectPtr::Borrow(config);
-    PropertyObjectPtr devConfig = isDefaultAddDeviceConfig(configPtr) ? configPtr.getPropertyValue("device") : configPtr;
+    const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configPtr);
+    PropertyObjectPtr devConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("device").asPtr<IPropertyObject>() : configPtr;
 
     for (const auto& library : libraries)
     {
         const auto module = library.module;
         
         bool accepted{false};
-        if (isDefaultAddDeviceConfig(configPtr))
+        if (isDefaultAddDeviceConfigRes)
         {
             const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
             DictPtr<IString, IDeviceType> types;
@@ -727,7 +728,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     config.addProperty(ObjectProperty("device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("general", createGeneralSettingsConfig().detach()));
+    config.addProperty(ObjectProperty("general", createGeneralConfig().detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -754,37 +755,20 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(const PropertyObjectPtr& streamingConfig)
+PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(const PropertyObjectPtr& config)
 {
-    PropertyObjectPtr resultConfig = streamingConfig.assigned() ? streamingConfig : PropertyObject();
+    const auto defConfig = createGeneralConfig();
+    if (!config.assigned())
+        return defConfig;
 
-    if (!resultConfig.hasProperty("StreamingConnectionHeuristic"))
+    for (const auto& prop : defConfig.getAllProperties())
     {
-        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                        List<IString>("MinConnections",
-                                                                                      "MinHops",
-                                                                                      "NotConnected"),
-                                                                        0);
-        resultConfig.addProperty(streamingConnectionHeuristicProp);
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
     }
 
-    if (!resultConfig.hasProperty("PrioritizedStreamingProtocols"))
-    {
-        auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
-        resultConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-    }
-
-    if (!resultConfig.hasProperty("AllowedStreamingProtocols"))
-    {
-        resultConfig.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
-    }
-
-    if (!resultConfig.hasProperty("AutomaticallyConnectStreaming"))
-    {
-        resultConfig.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
-    }
-
-    return resultConfig;
+    return defConfig;
 }
 
 ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const MirroredDeviceConfigPtr& device)
@@ -896,8 +880,13 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
 void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& config)
 {
     PropertyObjectPtr generalConfig;
+    PropertyObjectPtr addDeviceConfig;
+    
     if (isDefaultAddDeviceConfig(config))
+    {
+        addDeviceConfig = config;
         generalConfig = config.getPropertyValue("general");
+    }
     else
         generalConfig = populateGeneralConfig(config);
 
@@ -908,7 +897,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 
     if (streamingHeuristic == "MinConnections")
     {
-        attachStreamingsToDevice(topDevice, generalConfig, config);
+        attachStreamingsToDevice(topDevice, generalConfig, addDeviceConfig);
     }
     else if (streamingHeuristic == "MinHops")
     {
@@ -918,7 +907,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
         auto allDevicesInTree = getAllDevicesRecursively(topDevice);
         for (const auto& device : allDevicesInTree)
         {
-            attachStreamingsToDevice(device, generalConfig, config);
+            attachStreamingsToDevice(device, generalConfig, addDeviceConfig);
         }
     }
 }
@@ -926,7 +915,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StreamingPtr streaming = nullptr;
-    PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("streaming") : config;
+    PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("streaming").asPtr<IPropertyObject>() : config;
 
     for (const auto& library : libraries)
     {
@@ -1010,10 +999,24 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     return streaming;
 }
 
-PropertyObjectPtr ModuleManagerImpl::createGeneralSettingsConfig()
+PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 {
     auto obj = PropertyObject();
-    populateGeneralConfig(obj);
+
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    0);
+    obj.addProperty(streamingConnectionHeuristicProp);
+
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+    obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
+
+    obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
     return obj.detach();
 }
 

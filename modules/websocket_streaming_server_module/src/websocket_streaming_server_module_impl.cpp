@@ -36,7 +36,7 @@ ServerPtr WebsocketStreamingServerModule::onCreateServer(StringPtr serverType,
     if (!wsConfig.assigned())
         wsConfig = WebsocketStreamingServerImpl::createDefaultConfig(context);
     else
-        wsConfig = WebsocketStreamingServerImpl::populateDefaultConfig(wsConfig);
+        wsConfig = WebsocketStreamingServerImpl::populateDefaultConfig(wsConfig, context);
 
     ServerPtr server(WebsocketStreamingServer_Create(rootDevice, wsConfig, context));
     return server;

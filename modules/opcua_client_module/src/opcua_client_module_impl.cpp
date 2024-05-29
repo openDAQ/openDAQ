@@ -163,14 +163,21 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     std::string path = "";
 
     bool parsed = false;
+    bool ipv6 = true;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
     if (!parsed)
+    {
+        ipv6 = false;
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+    }
 
     if (parsed)
     {
         prefix = match[1];
         host = match[2];
+        if (ipv6)
+            host = "[" + host + "]";
+        
 
         if (match[3].matched && port == 4840)
             port = std::stoi(match[3]);
@@ -180,6 +187,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     }
     else
         throw InvalidParameterException("Host name not found in url: {}", connectionString);
+
     if (prefix != DaqOpcUaDevicePrefix)
         throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
 

@@ -38,7 +38,7 @@ ServerPtr NativeStreamingServerModule::onCreateServer(StringPtr serverType,
     if (!config.assigned())
         config = NativeStreamingServerImpl::createDefaultConfig(context);
     else
-        config = NativeStreamingServerImpl::populateDefaultConfig(config);
+        config = NativeStreamingServerImpl::populateDefaultConfig(config, context);
 
     ServerPtr server(NativeStreamingServer_Create(rootDevice, config, context));
     return server;

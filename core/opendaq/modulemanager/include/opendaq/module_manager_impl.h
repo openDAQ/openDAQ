@@ -57,7 +57,7 @@ private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
-    static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& streamingConfig);
+    static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
     void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
@@ -70,7 +70,7 @@ private:
     StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
 
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
-    PropertyObjectPtr createGeneralSettingsConfig();
+    static PropertyObjectPtr createGeneralConfig();
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
 

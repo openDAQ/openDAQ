@@ -84,9 +84,9 @@ void WebsocketStreamingServerImpl::onStopServer()
     websocketStreamingServer.stop();
 }
 
-PropertyObjectPtr WebsocketStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config)
+PropertyObjectPtr WebsocketStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context)
 {
-    const auto defConfig = createDefaultConfig();
+    const auto defConfig = createDefaultConfig(context);
     for (const auto& prop : defConfig.getAllProperties())
     {
         const auto name = prop.getName();

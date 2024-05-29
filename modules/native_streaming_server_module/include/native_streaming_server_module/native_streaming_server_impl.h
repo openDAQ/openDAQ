@@ -33,7 +33,7 @@ public:
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
-    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
     PropertyObjectPtr getDiscoveryConfig() override;

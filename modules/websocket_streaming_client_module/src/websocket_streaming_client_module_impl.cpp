@@ -231,19 +231,25 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     std::string path = "";
 
     bool parsed = false;
+    bool ipv6 = true;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
     if (!parsed)
+    {
+        ipv6 = false;
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+    }
 
     if (parsed)
     {
         prefix = match[1];
         host = match[2];
+        if (ipv6)
+            host = "[" + host + "]";
         
         if (match[4].matched)
             path = match[4];
 
-        return prefix + "://" + host + ":" + std::to_string(port) + "/" + path;
+        return prefix + host + ":" + std::to_string(port) + "/" + path;
     }
 
     return connectionString;

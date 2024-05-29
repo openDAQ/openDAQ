@@ -23,12 +23,12 @@ using namespace daq;
 namespace
 {
 // TODO: opcua nd ns lt
-// daq::StringPtr protocol = "nd";
-daq::StringPtr protocol = getenv("protocol");
-daq::StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
+// StringPtr protocol = "nd";
+StringPtr protocol = getenv("protocol");
+StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
 
-// TODO: properly use the following classes
+// TODO: properly use the following classes and macros (until end of file)
 
 class Version
 {
@@ -38,11 +38,11 @@ private:
     int patch;
 
 public:
-    Version(int maj, int min, int pat)
+    Version(int MAJOR, int MINOR, int PATCH)
     {
-        major = maj;
-        minor = min;
-        patch = pat;
+        major = MAJOR;
+        minor = MINOR;
+        patch = PATCH;
     }
     Version()
     {
@@ -52,13 +52,38 @@ public:
     }
 };
 
+class Protocols
+{
+private:
+    bool opcua;
+    bool nd;
+    bool ns;
+    bool lt;
+
+public:
+    Protocols(bool OPCUA, bool ND, bool NS, bool LT)
+    {
+        opcua = OPCUA;
+        nd = ND;
+        ns = NS;
+        lt = LT;
+    }
+    Protocols()
+    {
+        opcua = true;
+        nd = true;
+        ns = true;
+        lt = true;
+    }
+};
+
 class RegressionTest : public testing::Test
 {
 protected:
-    std::vector<StringPtr> protocols;
+    Protocols protocols;
     Version minVersion;
 
-    RegressionTest(std::vector<StringPtr> protos, Version min)
+    RegressionTest(Protocols protos, Version min)
     {
         protocols = protos;
         minVersion = min;
@@ -66,12 +91,21 @@ protected:
 
     RegressionTest()
     {
-        protocols = {"opcua", "nd", "ns", " lt"};
+        protocols = Protocols();
         minVersion = Version();
     }
-
-    bool hasProtocol(StringPtr protocol)
-    {
-        return std::count(protocols.begin(), protocols.end(), protocol) > 0;
-    }
 };
+
+/*
+namespace
+{
+Version version;
+Protocols protocols;
+}
+
+#define TEST_R(test_fixture, test_name, ver, protos) \
+    version = ver;                                   \
+    protocols = protos;                              \
+    TEST_F(test_fixture, test_name)
+
+ */

@@ -216,4 +216,12 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
             objectPtr.setSystemUuid(uuid);
         },
         "Sets the system UUID that represents a unique ID of a system. All devices in a system share this UUID.");
+    cls.def_property("location",
+        nullptr,
+        [](daq::IDeviceInfoConfig *object, const std::string& location)
+        {
+            const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
+            objectPtr.setLocation(location);
+        },
+        "Sets the device's location.");
 }

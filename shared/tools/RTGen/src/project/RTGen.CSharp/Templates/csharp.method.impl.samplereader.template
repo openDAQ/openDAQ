@@ -58,7 +58,7 @@
                 //call native method
                 $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
 
-                if (Result.Failed($CSReturnVariable$))
+                if (Daq.Core.Types.Result.Failed($CSReturnVariable$))
                 {
                     throw new OpenDaqException($CSReturnVariable$);
                 }

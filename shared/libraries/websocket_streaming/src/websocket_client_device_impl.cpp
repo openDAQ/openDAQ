@@ -17,6 +17,7 @@ WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
 {
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
+    this->name = "WebsocketClientPseudoDevice";
     createWebsocketStreaming();
     activateStreaming();
 }

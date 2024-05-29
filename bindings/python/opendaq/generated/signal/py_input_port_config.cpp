@@ -97,4 +97,11 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
             objectPtr.setRequiresSignal(requiresSignal);
         },
         "Sets requires signal flag of the input port.");
+    cls.def_property_readonly("gap_checking_enabled",
+        [](daq::IInputPortConfig *object)
+        {
+            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
+            return objectPtr.getGapCheckingEnabled();
+        },
+        "Returns the state of gap checking requested by the input port.");
 }

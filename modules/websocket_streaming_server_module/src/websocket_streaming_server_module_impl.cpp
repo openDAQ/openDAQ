@@ -19,7 +19,7 @@ DictPtr<IString, IServerType> WebsocketStreamingServerModule::onGetAvailableServ
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = WebsocketStreamingServerImpl::createType();
+    auto serverType = WebsocketStreamingServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;
@@ -34,7 +34,7 @@ ServerPtr WebsocketStreamingServerModule::onCreateServer(StringPtr serverType,
 
     auto wsConfig = serverConfig;
     if (!wsConfig.assigned())
-        wsConfig = WebsocketStreamingServerImpl::createDefaultConfig();
+        wsConfig = WebsocketStreamingServerImpl::createDefaultConfig(context);
     else
         wsConfig = WebsocketStreamingServerImpl::populateDefaultConfig(wsConfig);
 

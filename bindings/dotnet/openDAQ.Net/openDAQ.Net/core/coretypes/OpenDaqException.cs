@@ -30,7 +30,7 @@ namespace Daq.Core.Types;
 /// catch (OpenDaqException ex)
 /// {
 ///     Debug.Print("An {0} error occurred - {1}", ex.ErrorCode, ex.ToString());
-///     Debug.Print("Message: {0}", ex.ErrorInfo?.GetMessage() ?? ex.Message ?? "not specified");
+///     Debug.Print("Message: {0}", ex.ErrorInfo?.Message ?? ex.Message ?? "not specified");
 /// }
 /// </code>
 /// </remarks>
@@ -79,7 +79,7 @@ public class OpenDaqException : Exception
 
         if (_errorInfo != null)
         {
-            return $"{_errorCode}: {_errorInfo.GetMessage()}";
+            return $"{_errorCode}: {_errorInfo.Message}";
         }
 
         return _errorCode.ToString();

@@ -206,6 +206,141 @@ class TestReaderDateTime(opendaq_test.TestCase):
             for tt in t:
                 self.assertIsInstance(tt, numpy.datetime64)
 
+    def test_multireader_read(self):
+        epoch = opendaq.MockSignal.current_epoch()
+
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        sigs = opendaq.List()
+        sigs.append(sig1.signal)
+        sigs.append(sig2.signal)
+
+        reader = opendaq.MultiReader(sigs)
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for v in values[0]:
+            self.assertIsInstance(v, numpy.float64)
+
+    def test_multireader_read_override_value_type(self):
+
+        epoch = opendaq.MockSignal.current_epoch()
+
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        sigs = opendaq.List()
+        sigs.append(sig1.signal)
+        sigs.append(sig2.signal)
+
+        reader = opendaq.MultiReader(sigs, value_type=opendaq.SampleType.Int64)
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for v in values[0]:
+            self.assertIsInstance(v, numpy.int64)
+
+    def test_multireader_unsupported_value_type(self):
+        epoch = opendaq.MockSignal.current_epoch()
+
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        sigs = opendaq.List()
+        sigs.append(sig1.signal)
+        sigs.append(sig2.signal)
+
+        with self.assertRaises(RuntimeError):
+            opendaq.MultiReader(sigs, value_type=opendaq.SampleType.RangeInt64)
+
+    def test_multireader_read_with_domain(self):
+        epoch = opendaq.MockSignal.current_epoch()
+
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        sigs = opendaq.List()
+        sigs.append(sig1.signal)
+        sigs.append(sig2.signal)
+
+        reader = opendaq.MultiReader(sigs)
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        (values, domain) = reader.read_with_domain(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for t in domain[0]:
+            self.assertIsInstance(t, numpy.int64)
+
+    def test_multireader_read_with_timestamps(self):
+        epoch = opendaq.MockSignal.current_epoch()
+
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        sigs = opendaq.List()
+        sigs.append(sig1.signal)
+        sigs.append(sig2.signal)
+
+        reader = opendaq.MultiReader(sigs)
+        timed = opendaq.TimeMultiReader(reader)
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        (values, domain) = timed.read_with_timestamps(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for t in domain[0]:
+            self.assertIsInstance(t, numpy.datetime64)
+
+    def test_multireader_builder(self):
+        epoch = opendaq.MockSignal.current_epoch()
+        sig1 = opendaq.MockSignal('sig1', epoch)
+        sig2 = opendaq.MockSignal('sig2', epoch)
+
+        builder = opendaq.MultiReaderBuilder()
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        builder.value_read_type = opendaq.SampleType.Int64
+
+        reader = builder.build()
+
+        nparray = numpy.arange(10)
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
+
+        for v in values[0]:
+            self.assertIsInstance(v, numpy.int64)
+
 
 if __name__ == '__main__':
     unittest.main()

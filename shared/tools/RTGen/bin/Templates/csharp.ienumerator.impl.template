@@ -2,14 +2,14 @@
     #region IEnumerator<$CSGenericClassParameters$> implementation
 
     /// <inheritdoc/>
-    $CSGenericClassParameters$ IEnumerator<$CSGenericClassParameters$>.Current => this.GetCurrent();
+    $CSGenericClassParameters$ IEnumerator<$CSGenericClassParameters$>.Current => this.Current;
 
     #endregion IEnumerator<TValue> implementation
 
     #region IEnumerator implementation
 
     /// <inheritdoc/>
-    object IEnumerator.Current => this.GetCurrent();
+    object IEnumerator.Current => this.Current;
 
     /// <inheritdoc/>
     bool IEnumerator.MoveNext() => this.MoveNext();

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -55,47 +55,55 @@ public class Ratio : BaseObject
             _rawRatio = Marshal.PtrToStructure<RawRatio>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets numerator part.</summary>
-    /// <returns>Numerator value.</returns>
-    public long GetNumerator()
+    public long Numerator
     {
-        //native output argument
-        long numerator;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawRatio.GetNumerator(base.NativePointer, out numerator);
+            //native output argument
+            long numerator;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawRatio.GetNumerator(base.NativePointer, out numerator);
 
-        return numerator;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return numerator;
+        }
     }
 
     /// <summary>Gets denominator part.</summary>
-    /// <returns>Denominator value.</returns>
-    public long GetDenominator()
+    public long Denominator
     {
-        //native output argument
-        long denominator;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawRatio.GetDenominator(base.NativePointer, out denominator);
+            //native output argument
+            long denominator;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawRatio.GetDenominator(base.NativePointer, out denominator);
 
-        return denominator;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return denominator;
+        }
     }
+
+    #endregion properties
 
     /// <summary>Simplifies rational number if possible and returns the simplified ratio as a new object.</summary>
     /// <remarks>
@@ -113,7 +121,7 @@ public class Ratio : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawRatio.Simplify(base.NativePointer, out simplifiedRatioPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -144,7 +152,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createRatio(out objPtr, numerator, denominator);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new Ratio(objPtr, incrementReference: false);
@@ -161,7 +169,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createRatio(out objPtr, numerator, denominator);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

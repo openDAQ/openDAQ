@@ -27,21 +27,30 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
-                    discoveredDevice.ipv4Address,
-                    discoveredDevice.servicePort,
-                    discoveredDevice.getPropertyOrDefault("path", "/")
-                );
-                auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
-                    "[" + discoveredDevice.ipv6Address + "]",
-                    discoveredDevice.servicePort,
-                    discoveredDevice.getPropertyOrDefault("path", "/")
-                );
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
-                cap.addConnectionString(connectionStringIpv4);
-                cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString(connectionStringIpv6);
-                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+
+                if (!discoveredDevice.ipv4Address.empty())
+                {
+                    auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
+                        discoveredDevice.ipv4Address,
+                        discoveredDevice.servicePort,
+                        discoveredDevice.getPropertyOrDefault("path", "/")
+                    );
+                    cap.addConnectionString(connectionStringIpv4);
+                    cap.addAddress(discoveredDevice.ipv4Address);
+                }
+
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
+                        "[" + discoveredDevice.ipv6Address + "]",
+                        discoveredDevice.servicePort,
+                        discoveredDevice.getPropertyOrDefault("path", "/")
+                    );
+                    cap.addConnectionString(connectionStringIpv6);
+                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                }
+
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
                 return cap;

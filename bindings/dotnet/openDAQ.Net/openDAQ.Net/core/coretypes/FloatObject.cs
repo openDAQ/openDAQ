@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,27 +53,33 @@ public class FloatObject : BaseObject
             _rawFloatObject = Marshal.PtrToStructure<RawFloatObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a float value stored in the object.</summary>
     /// <remarks>Call this method to extract the float value that is stored in the object.</remarks>
-    /// <returns>Stored float value.</returns>
-    public double GetValue()
+    public double Value
     {
-        //native output argument
-        double value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawFloatObject.GetValue(base.NativePointer, out value);
+            //native output argument
+            double value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawFloatObject.GetValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
+
+    #endregion properties
 
     /// <summary>Compares stored float value to the float parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the value parameter.</remarks>
@@ -89,7 +95,7 @@ public class FloatObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawFloatObject.EqualsValue(base.NativePointer, value, out equals);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -100,7 +106,7 @@ public class FloatObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.FloatObject' to/from 'double'
 
     /// <summary>Performs an implicit conversion from <see cref="double"/> to <see cref="Daq.Core.Types.FloatObject"/>.</summary>
     /// <param name="value">The managed <c>double</c> value.</param>
@@ -110,13 +116,12 @@ public class FloatObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.FloatObject"/> to <see cref="double"/>.</summary>
     /// <param name="value">The SDK <c>FloatObject</c>.</param>
     /// <returns>The managed <c>double</c> value.</returns>
-    public static implicit operator double(FloatObject value) => value.GetValue();
+    public static implicit operator double(FloatObject value) => value.Value;
 
     /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
     /// <param name="other">The other <c>double</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(double other) => ((double)this).Equals(other);
-
 
     #endregion operators
 }
@@ -142,7 +147,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloat(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new FloatObject(objPtr, incrementReference: false);
@@ -159,7 +164,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloat(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -184,7 +189,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloatObject(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new FloatObject(objPtr, incrementReference: false);
@@ -201,7 +206,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloatObject(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

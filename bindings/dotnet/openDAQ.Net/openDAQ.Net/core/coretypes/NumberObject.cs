@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -58,47 +58,93 @@ public class NumberObject : BaseObject
             _rawNumberObject = Marshal.PtrToStructure<RawNumberObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a value stored in the object as a floating point value.</summary>
-    /// <returns>Stored value as a floating point.</returns>
-    public double GetFloatValue()
+    public double FloatValue
     {
-        //native output argument
-        double value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetFloatValue(base.NativePointer, out value);
+            //native output argument
+            double value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetFloatValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
 
     /// <summary>Gets a value stored in the object as an integer value.</summary>
-    /// <returns>Stored value as an integer.</returns>
-    public long GetIntValue()
+    public long IntValue
     {
-        //native output argument
-        long value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetIntValue(base.NativePointer, out value);
+            //native output argument
+            long value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetIntValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
+
+    #endregion properties
+
+    #region operators
+
+    //implicit cast operators 'Daq.Core.Types.NumberObject' to/from 'double'
+
+    /// <summary>Performs an implicit conversion from <see cref="double"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
+    /// <param name="value">The managed <c>double</c> value.</param>
+    /// <returns>The SDK <c>NumberObject</c>.</returns>
+    public static implicit operator NumberObject(double value) => CoreTypesFactory.CreateNumberObject(value);
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="double"/>.</summary>
+    /// <param name="value">The SDK <c>NumberObject</c>.</param>
+    /// <returns>The managed <c>double</c> value.</returns>
+    public static implicit operator double(NumberObject value) => value.FloatValue;
+
+    /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
+    /// <param name="other">The other <c>double</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(double other) => ((double)this).Equals(other);
+
+    //implicit cast operators 'Daq.Core.Types.NumberObject' to/from 'long'
+
+    /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.NumberObject"/>.</summary>
+    /// <param name="value">The managed <c>long</c> value.</param>
+    /// <returns>The SDK <c>NumberObject</c>.</returns>
+    public static implicit operator NumberObject(long value) => CoreTypesFactory.CreateNumberObject(value);
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="long"/>.</summary>
+    /// <param name="value">The SDK <c>NumberObject</c>.</param>
+    /// <returns>The managed <c>long</c> value.</returns>
+    public static implicit operator long(NumberObject value) => value.IntValue;
+
+    /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
+    /// <param name="other">The other <c>long</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(long other) => ((long)this).Equals(other);
+
+    #endregion operators
 }
 
 

@@ -215,4 +215,11 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         },
         py::return_value_policy::take_ownership,
         "Gets the list of server capabilities stored in device info.");
+    cls.def_property_readonly("location",
+        [](daq::IDeviceInfo *object)
+        {
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getLocation().toStdString();
+        },
+        "Gets the location of the device.");
 }

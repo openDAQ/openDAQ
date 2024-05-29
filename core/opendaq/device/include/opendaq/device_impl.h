@@ -194,8 +194,8 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 
-    this->addProperty(StringProperty("UserName", ""));
-    this->addProperty(StringProperty("Location", ""));
+    this->addProperty(StringProperty("userName", ""));
+    this->addProperty(StringProperty("location", ""));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -215,6 +215,13 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
         this->deviceInfo = devInfo.detach();
+
+        if (this->deviceInfo.assigned())
+        {
+            this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
+            if (!this->deviceInfo.isFrozen())
+                this->deviceInfo.freeze();
+        }
     }
 
     *info = this->deviceInfo.addRefAndReturn();
@@ -1067,6 +1074,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
+        deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
     }
 

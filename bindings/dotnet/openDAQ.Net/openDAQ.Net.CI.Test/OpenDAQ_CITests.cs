@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using Daq.Core;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
@@ -20,16 +22,18 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     private const string ConnectionProtocolDaqRef = "daqref://";
 
 
-    private Device? ConnectFirstDaqRefDevice()
+    private Device? ConnectFirstDaqRefDevice(Instance daqInstance)
     {
-        // Create an Instance, loading modules from default location
-        var instance = OpenDAQFactory.Instance();
+        Console.WriteLine($"  {nameof(ConnectFirstDaqRefDevice)}...");
 
-        var deviceInfos = instance.GetAvailableDevices();
+        // Get the list of available devices
+        var deviceInfos = daqInstance.AvailableDevices;
+
+        Assert.That(deviceInfos.Count, Is.GreaterThan(0));
 
         foreach (var deviceInfo in deviceInfos)
         {
-            var deviceConnectionString = deviceInfo.GetConnectionString();
+            var deviceConnectionString = deviceInfo.ConnectionString;
 
             //connectible device?
             if (!deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))
@@ -43,7 +47,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             try
             {
                 // Connect to device and store it in a list
-                using var device = instance.AddDevice(deviceConnectionString); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
+                using var device = daqInstance.AddDevice(deviceConnectionString); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
 
                 break;
             }
@@ -53,8 +57,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             }
         }
 
-        // Output the names and connection strings of all connected-to devices
-        var devices = instance.GetDevices();
+        // Get the list of connected devices
+        var devices = daqInstance.GetDevices();
 
         return devices?.FirstOrDefault();
     }
@@ -139,9 +143,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //finally free managed resources (release reference)
@@ -162,9 +166,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Assert.That(daqInstance.IsDisposed, Is.False);
 
             //can do something with 'daqInstance' here
-            using var info = daqInstance.GetInfo();
+            using var info = daqInstance.Info;
 
-            var name = info.GetName();
+            var name = info.Name;
             Console.WriteLine($"daqInstance name = '{name}'");
         } //losing scope here, automatically calling Dispose() and thus freeing managed resources (release reference)
 
@@ -177,14 +181,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         //instruct TearDown function not to collect and finalize managed objects explicitly
         base.DontCollectAndFinalize();
 
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //losing scope at the end of this method, automatically calling Dispose() and thus freeing managed resources (release reference)
@@ -192,20 +196,20 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
 
     [Test]
-    public void Test_0201_GetAvailableDevices()
+    public void Test_0201_AvailableDevicesProperty()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        Console.WriteLine("> daqInstance.GetAvailableDevices()");
-        var availableDevicesInfos = daqInstance.GetAvailableDevices();
+        Console.WriteLine("> daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
 
         Console.WriteLine($"  {availableDevicesInfos.Count} devices available");
 
         //list all devices
         foreach (var deviceInfo in availableDevicesInfos)
         {
-            var deviceName = deviceInfo.GetName();
-            var connectionString = deviceInfo.GetConnectionString();
+            var deviceName = deviceInfo.Name;
+            var connectionString = deviceInfo.ConnectionString;
             string model = deviceInfo.GetPropertyValue("model");
             string deviceClass = deviceInfo.GetPropertyValue("deviceClass");
             string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
@@ -221,14 +225,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     public void Test_0202_GetAndConnectDaqRefDevice()
     {
         // Create an Instance, loading modules from default location
-        var instance = OpenDAQFactory.Instance();
+        using var instance = OpenDAQFactory.Instance();
 
-        Console.WriteLine("instance.GetAvailableDevices()");
-        var deviceInfos = instance.GetAvailableDevices();
+        Console.WriteLine("instance.AvailableDevices");
+        var deviceInfos = instance.AvailableDevices;
 
         foreach (var deviceInfo in deviceInfos)
         {
-            var deviceConnectionString = deviceInfo.GetConnectionString();
+            var deviceConnectionString = deviceInfo.ConnectionString;
 
             //connectible device?
             if (!deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))
@@ -258,8 +262,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         foreach (var device in devices)
         {
-            var info = device.GetInfo();
-            Console.WriteLine($"  Name: '{info.GetName()}', Connection string: '{info.GetConnectionString()}'");
+            var info = device.Info;
+            Console.WriteLine($"  Name: '{info.Name}', Connection string: '{info.ConnectionString}'");
 
             device.PrintReferenceCount();
             //device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
@@ -270,9 +274,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0301_GetAvailableChannelsTest()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetChannelsRecursive()");
@@ -288,9 +292,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (channelIterator.MoveNext() && (i++ < 50))
             {
                 using var channel = channelIterator.Current;
-                var channelName   = channel.GetName();
-                var localId       = channel.GetLocalId();
-                var globalId      = channel.GetGlobalId();
+                var channelName   = channel.Name;
+                var localId       = channel.LocalId;
+                var globalId      = channel.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {channelName} ({localId}) ({globalId})");
             }
@@ -300,9 +304,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0302_GetAvailableSignalsTest()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetSignalsRecursive()");
@@ -318,9 +322,9 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var signal = signalIterator.Current;
-                var signalName   = signal.GetName();
-                var localId      = signal.GetLocalId();
-                var globalId     = signal.GetGlobalId();
+                var signalName   = signal.Name;
+                var localId      = signal.LocalId;
+                var globalId     = signal.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {signalName} ({localId}) ({globalId})");
             }
@@ -330,13 +334,13 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0303_GetAvailableFunctionBlocks()
     {
-        using Instance daqInstance = OpenDAQFactory.Instance(".");
+        using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("daqInstance.GetAvailableFunctionBlocks()");
-        var availableFunctionBlockInfos = daqInstance.GetAvailableFunctionBlockTypes();
+        var availableFunctionBlockInfos = daqInstance.AvailableFunctionBlockTypes;
         Assert.Multiple(() =>
         {
             Assert.That(availableFunctionBlockInfos, Is.Not.Null);
@@ -348,7 +352,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         foreach (var key in availableFunctionBlockInfos.Keys)
         {
             using var functionBlockInfo = availableFunctionBlockInfos[key];
-            var functionBlockId         = functionBlockInfo.GetId();
+            var functionBlockId         = functionBlockInfo.Id;
 
             Console.WriteLine($"  - '{key}' ({functionBlockId})");
         }
@@ -363,7 +367,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     {
         using var daqInstance = OpenDAQFactory.Instance(".");
 
-        using var device = ConnectFirstDaqRefDevice();
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetSignalsRecursive()");
@@ -381,7 +385,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var sig = signalIterator.Current;
-                var sigName = sig.GetName();
+                var sigName = sig.Name;
 
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
@@ -396,7 +400,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         //take the first available signal
         using var signal = signals[analogSignalNo - 1];
-        var signalName = signal.GetName();
+        var signalName = signal.Name;
         Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
 
         Console.WriteLine("OpenDAQFactory.CreateStreamReader()");
@@ -408,7 +412,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         nuint samplesCount = 0;
         using (var reader = OpenDAQFactory.CreateStreamReader<TValue>(signal))
         {
-            Console.WriteLine($"  ValueReadType = {reader.GetValueReadType()}, DomainReadType = {reader.GetDomainReadType()}");
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
 
             for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
             {

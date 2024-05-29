@@ -58,7 +58,7 @@
     #region ICollection<$CSGenericClassParameters$> implementation
 
     /// <inheritdoc/>
-    int ICollection<$CSGenericClassParameters$>.Count => (int)this.GetCount();
+    int ICollection<$CSGenericClassParameters$>.Count => (int)this.Count;
 
     /// <inheritdoc/>
     bool ICollection<$CSGenericClassParameters$>.IsReadOnly => false;
@@ -77,7 +77,7 @@
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.Clear(base.NativePointer);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

@@ -8,7 +8,7 @@ $CSClassGenericParamConstraints$    {
         //call native function
         ErrorCode errorCode = $CSRawName$($ArgumentNames$);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             $CSReturnArgName$ = $CSReturnValue$;
@@ -24,7 +24,7 @@ $CSClassGenericParamConstraints$    {
         //call native function
         ErrorCode errorCode = $CSRawName$($ArgumentNames$);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException($CSReturnVariable$);
         }

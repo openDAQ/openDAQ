@@ -34,7 +34,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    StringPtr lastProccessDescription = "";
+    StringPtr lastProcessDescription = "";
     ErrCode errCode = daqTry(
         [&]()
         {
@@ -44,7 +44,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
                 checkErrorInfo(getProperty(propertyName, &prop));
                 if (protectedWrite)
                 {
-                    lastProccessDescription = "Checking exisiting property is read-only";
+                    lastProcessDescription = "Checking existing property is read-only";
                     const bool readOnly = prop.getReadOnly();
                     if (readOnly)
                         return OPENDAQ_SUCCESS;
@@ -56,7 +56,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
                 if (ct != valueCt)
                     valuePtr = valuePtr.convertTo(ct);
 
-                lastProccessDescription = "Writing property value";
+                lastProcessDescription = "Writing property value";
                 const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
                 client->writeValue(it->second, variant);
                 return OPENDAQ_SUCCESS;
@@ -64,21 +64,21 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
 
             if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
             {
-                lastProccessDescription = "Setting property value";
+                lastProcessDescription = "Setting property value";
                 const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
                 return setPropertyValue(refProp.getName(), value);
             }
 
             if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
             {
-                lastProccessDescription = "Object type properties cannot be set over OpcUA";
+                lastProcessDescription = "Object type properties cannot be set over OpcUA";
                 return OPENDAQ_ERR_NOTIMPLEMENTED;
             }
-            lastProccessDescription = "Property not found";
+            lastProcessDescription = "Property not found";
             return OPENDAQ_ERR_NOTFOUND;
         });
     if (OPENDAQ_FAILED(errCode))
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProccessDescription);
+        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
         return errCode;

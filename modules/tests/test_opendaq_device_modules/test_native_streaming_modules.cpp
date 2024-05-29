@@ -51,6 +51,119 @@ TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
     ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
 }
 
+TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "NativeStreamingServer":
+                {
+                    "NativeStreamingPort": 1234,
+                    "Path": "/some/path"
+                }
+            }
+        }
+    )";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
+}
+
+TEST_F(NativeStreamingModulesTest, DiscoveringServer)
+{
+    auto server = InstanceBuilder().addDiscoveryService("mdns")
+                                   .setDefaultRootDeviceLocalId("local")
+                                   .build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_streaming/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                device = client.addDevice(capability.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "NativeStreamingServer":
+                {
+                    "NativeStreamingPort": 1234,
+                    "Path": "/test/native/checkDeviceInfoPopulated/"
+                }
+            }
+        }
+    )";
+    auto path = "/test/native/checkDeviceInfoPopulated/";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                client.addDevice(capability.getConnectionString(), nullptr);
+
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                return;
+            }
+        }      
+    }
+
+    ASSERT_TRUE(false);
+}
+
+
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

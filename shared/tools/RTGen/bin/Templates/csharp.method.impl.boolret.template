@@ -4,12 +4,12 @@
         {
             //call native function
             ErrorCode errorCode = (ErrorCode)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
-
+$CSStealRefHandling$
             if (errorCode == ErrorCode.OPENDAQ_ERR_NOMOREITEMS)
             {
                 return false;
             }
-            else if (Result.Failed(errorCode))
+            else if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

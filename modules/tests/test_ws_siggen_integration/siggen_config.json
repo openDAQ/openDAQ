@@ -2,12 +2,33 @@
 	"signals" : {
 		"Signal1_Sync" : {
 			"dataType" : "real64",
-			"function" : "sine",
-			"amplitude" : 10,
+			"function" : "impulse",
+			"amplitude" : 5,
 			"offset" : 0,
 			"frequency" : 2,
 			"samplePeriod" : "10ms",
-			"explicitTime": false
+			"explicitTime": false,
+			"range" : {
+				"low" : -15,
+				"high" : 15
+			}
+		},
+		"Signal2_Sync_PostScaling" : {
+			"dataType" : "int32",
+			"function" : "impulse",
+			"amplitude" : 5,
+			"offset" : 0,
+			"frequency" : 2,
+			"samplePeriod" : "10ms",
+			"explicitTime": false,
+			"range" : {
+				"low" : -15,
+				"high" : 15
+			},
+			"postScaling" : {
+				"scale" : 2,
+				"offset" : 5
+			}
 		}
 	 },
 	 "executionTime": "100s",

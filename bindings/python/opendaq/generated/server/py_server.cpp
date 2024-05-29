@@ -44,4 +44,18 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject
             objectPtr.stop();
         },
         "Stops the server. This is called when we remove the server from the Instance or Instance is closing.");
+    cls.def_property_readonly("id",
+        [](daq::IServer *object)
+        {
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getId().toStdString();
+        },
+        "Gets the server id.");
+    cls.def("enable_discovery",
+        [](daq::IServer *object)
+        {
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            objectPtr.enableDiscovery();
+        },
+        "Enables the server to be discovered by the clients.");
 }

@@ -36,6 +36,15 @@ reader = opendaq.StreamReader(signal)
 reader = opendaq.StreamReader(
     signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
 ----
+C#::
++
+[source,csharp]
+----
+// These calls all create the same Reader
+var reader = OpenDAQFactory.CreateStreamReader(signal);
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+// right now there exists no factory function using `SampleType` as parameters
+----
 ====
 
 [NOTE]
@@ -98,6 +107,12 @@ reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, d
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Int64)
 # Or only for Domain
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Undefined)
+----
+C#::
++
+[source,csharp]
+----
+// This feature is currently not possible in .NET
 ----
 ====
 
@@ -187,6 +202,44 @@ to_read = len(values)
 print(f'Read another {to_read} samples with domain:')
 for value, domain in zip(values, domain):
     print(domain, value)
+----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+
+// Should return 0
+var available = reader.AvailableCount;
+
+//
+// Signal produces 8 samples
+//
+
+// Should return 8
+available = reader.AvailableCount;
+
+nuint readCount = 5;
+double[] values = new double[5];
+reader.Read(values, ref readCount);
+
+Console.WriteLine($"Read {readCount} values");
+foreach (double value in values)
+{
+    Console.WriteLine(value);
+}
+
+readCount = 5;
+double[] newValues = new double[5];
+long[] newDomain = new long[5];
+reader.ReadWithDomain(newValues, newDomain, ref readCount);
+
+// `readCount` should now be 3
+Console.WriteLine($"Read another {readCount} value and Domain samples");
+for (nuint i = 0; i < readCount; ++i)
+{
+    Console.WriteLine($"{newValues[i]}, {newDomain[i]}");
+}
 ----
 ====
 

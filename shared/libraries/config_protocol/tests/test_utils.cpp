@@ -217,6 +217,7 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     , ticksSinceOrigin(0)
 {
     const auto sig = createAndAddSignal("sig_device");
+    this->name = "MockDevice1";
 
     auto aiIoFolder = this->addIoFolder("ai", ioFolder);
     createAndAddChannel<MockChannel1Impl>(aiIoFolder, "ch");

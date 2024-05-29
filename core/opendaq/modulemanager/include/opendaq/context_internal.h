@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/module_manager.h>
+#include <opendaq/discovery_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

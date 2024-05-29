@@ -36,6 +36,13 @@ Python::
 instance_builder = opendaq.InstanceBuilder()
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 == Configuring openDAQ(TM) Instance from external Providers
@@ -64,6 +71,14 @@ instance_builder = opendaq.InstanceBuilder()
 instance_builder.global_log_level = opendaq.LogLevel.Warn
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.GlobalLogLevel = LogLevel.Warn;
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
@@ -76,7 +91,7 @@ Cpp::
 ----
 InstanceBuilderPtr instanceBuilder = InstanceBuilder()
     .addLoggerSink(StdOutLoggerSink())
-    .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  LogLevel::Error)
+    .setSinkLogLevel(BasicFileLoggerSink("logfile.log"), LogLevel::Error)
     .setComponentLogLevel("Instance", LogLevel::Warn)
     .setComponentLogLevel("Some Module", LogLevel::Off);
 InstancePtr instance = instanceBuilder.build();
@@ -92,6 +107,17 @@ instance_builder.set_component_log_level("Instance", opendaq.LogLevel.Warn)
 instance_builder.set_component_log_level("Some Module", opendaq.LogLevel.Off)
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.AddLoggerSink(OpenDAQFactory.StdOutLoggerSink());
+instanceBuilder.SetSinkLogLevel(OpenDAQFactory.BasicFileLoggerSink("logfile.log"), LogLevel.Error);
+instanceBuilder.SetComponentLogLevel("Instance", LogLevel.Warn);
+instanceBuilder.SetComponentLogLevel("Some Module", LogLevel.Off);
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 An advanced method for configuring the Instance Logger involves setting up the Logger object and applying the desired configurations using the Logger configuration method.
@@ -106,6 +132,17 @@ ListPtr<ILoggerSink> sinks = List<ILoggerSink>(StdOutLoggerSink());
 LoggerPtr logger = LoggerWithSinks(sinks, LogLevel::Warn);
 InstanceBuilderPtr instanceBuilder = InstanceBuilder().setLogger(logger);
 InstancePtr instance = instanceBuilder.build();
+----
+C#::
++
+[source,csharp]
+----
+var sinks = CoreTypesFactory.CreateList<LoggerSink>();
+sinks.Add(OpenDAQFactory.StdOutLoggerSink());
+Logger logger = OpenDAQFactory.LoggerWithSinks(sinks, LogLevel.Warn);
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.Logger = logger;
+Instance instance = instanceBuilder.Build();
 ----
 ====
 
@@ -136,6 +173,14 @@ instance_builder = opendaq.InstanceBuilder()
 instance_builder.module_path = "/path/to/modules"
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.ModulePath = "/path/to/modules";
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 .Setting module manager
@@ -157,6 +202,15 @@ module_manager = opendaq.ModuleManager(opendaq.String("/path/to/modules"))
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.module_manager = module_manager
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+ModuleManager moduleManager = OpenDAQFactory.ModuleManager("/path/to/modules");
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.ModuleManager = moduleManager;
+Instance instance = instanceBuilder.Build();
 ----
 ====
 
@@ -180,6 +234,14 @@ Python::
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.scheduler_worker_num = 2
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.SchedulerWorkerNum = 2;
+Instance instance = instanceBuilder.Build();
 ----
 ====
 
@@ -205,6 +267,16 @@ scheduler = opendaq.Scheduler(logger, 4)
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.scheduler = scheduler
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+Logger logger = OpenDAQFactory.Logger();
+Scheduler scheduler = OpenDAQFactory.Scheduler(logger, 4);
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.Scheduler = scheduler;
+Instance instance = instanceBuilder.Build();
 ----
 ====
 
@@ -238,6 +310,17 @@ instance_builder.default_root_device_info = default_root_device_info
 instance_builder.default_root_device_local_id = "defaultRootDeviceLocalId"
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+DeviceInfoConfig defaultRootDeviceInfo = OpenDAQFactory.DeviceInfo("daqref://device1");
+defaultRootDeviceInfo.SetSerialNumber("ABCD-0000-0000-0000");
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.DefaultRootDeviceInfo = defaultRootDeviceInfo;
+instanceBuilder.DefaultRootDeviceLocalId = "defaultRootDeviceLocalId";
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 == Configure openDAQ(TM) Root Device
@@ -260,5 +343,13 @@ Python::
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.root_device = "daqref://device0"
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.SetRootDevice("daqref://device0");
+Instance instance = instanceBuilder.Build();
 ----
 ====

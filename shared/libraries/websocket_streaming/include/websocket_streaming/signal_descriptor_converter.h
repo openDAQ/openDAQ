@@ -52,8 +52,9 @@ private:
     static void SetLinearTimeRule(const daq::DataRulePtr& rule, daq::streaming_protocol::LinearTimeSignalPtr linearStream);
     static daq::SampleType Convert(daq::streaming_protocol::SampleType dataType);
     static daq::streaming_protocol::SampleType Convert(daq::SampleType sampleType);
-    static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor);
-    static void DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptor);
+    static daq::RangePtr CreateDefaultRange(daq::SampleType sampleType);
+    static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder);
+    static void DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptorBuilder);
     static nlohmann::json DictToJson(const DictPtr<IString, IBaseObject>& dict);
     static DictPtr<IString, IBaseObject> JsonToDict(const nlohmann::json& json);
 };

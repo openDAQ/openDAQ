@@ -131,7 +131,7 @@ void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
 
 DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo("", "OpcUa Client");
+    auto deviceInfo = DeviceInfo("", this->client->readDisplayName(this->nodeId));
 
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;

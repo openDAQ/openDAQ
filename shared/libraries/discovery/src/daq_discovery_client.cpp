@@ -1,4 +1,4 @@
-#include "daq_discovery/daq_discovery_client.h"
+#include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
@@ -95,7 +95,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
 
 DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
-    if (discoveredDevice.ipv4Address.empty())
+    if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())
         return nullptr;
 
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;
@@ -120,12 +120,6 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
         return nullptr;
 
     DeviceInfoConfigPtr deviceInfo = DeviceInfo("");
-
-    addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
-    addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
-    addInfoProperty(deviceInfo, "servicePort", discoveredDevice.servicePort);
-    addInfoProperty(deviceInfo, "ipv4Address", discoveredDevice.ipv4Address);
-    addInfoProperty(deviceInfo, "ipv6Address", discoveredDevice.ipv6Address);
 
     for (const auto& prop : discoveredDevice.properties)
     {

@@ -71,6 +71,19 @@ instance_builder = opendaq.InstanceBuilder()
 instance_builder.add_config_provider(config_provider)
 instance = instance_builder.build()
 ----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.OpenDAQ;
+
+StringObject configPath = "opendaq-config.json";
+ConfigProvider configProvider = OpenDAQFactory.JsonConfigProvider(configPath);
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.AddConfigProvider(configProvider);
+Instance instance = instanceBuilder.Build();
+----
 ====
 
 == Instance Configuration with Environment Variable
@@ -123,6 +136,17 @@ config_provider = opendaq.EnvConfigProvider()
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.add_config_provider(config_provider)
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+ConfigProvider configProvider = OpenDAQFactory.EnvConfigProvider();
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.AddConfigProvider(configProvider);
+Instance instance = instanceBuilder.Build();
 ----
 ====
 
@@ -194,5 +218,16 @@ config_provider = create_cmd_line_args_config_provider()
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.add_config_provider(config_provider)
 instance = instance_builder.build()
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+ConfigProvider configProvider = OpenDAQFactory.CmdLineArgsConfigProvider(args.ToList());
+InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
+instanceBuilder.AddConfigProvider(configProvider);
+Instance instance = instanceBuilder.Build();
 ----
 ====

@@ -80,6 +80,8 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     PropertyObjectPtr config = aConfig;
     if (!config.assigned())
         config = createDefaultConfig();
+    else
+        config = populateDefaultConfig(config);
 
     if (!onAcceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
@@ -87,16 +89,11 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
 
-    auto parsedConnection = ParseConnectionString(connectionString);
-    auto prefix = std::get<0>(parsedConnection);
-    auto host = std::get<1>(parsedConnection);
-    auto path = std::get<2>(parsedConnection);
-    if (prefix != DaqOpcUaDevicePrefix)
-        throw InvalidParameterException("OpcUa does not support connection string with prefix");
+    auto formedConnectionString = formConnectionString(connectionString, config);
 
     std::scoped_lock lock(sync);
 
-    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + path);
+    auto endpoint = OpcUaEndpoint(formedConnectionString);
 
     if (config.assigned())
     {
@@ -124,20 +121,58 @@ void OpcUaClientModule::completeDeviceServerCapabilities(const DevicePtr& device
     }
 }
 
-std::tuple<std::string, std::string, std::string> OpcUaClientModule::ParseConnectionString(const StringPtr& connectionString)
+PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
 {
+    const auto defConfig = createDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
+StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    int port = 4840;
+    if (config.assigned() && config.hasProperty("Port"))
+        port = config.getPropertyValue("Port");
+
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex("^(.*:\\/\\/)(\\[[a-fA-F0-9:]+\\])(.*)");
-    auto regexIpv4Hostname = std::regex("^(.*:\\/\\/)([^:\\/\\s]+)(.*)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+)\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
-    if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return {match[1],match[2],match[3]};
-    if (std::regex_search(urlString, match, regexIpv4Hostname))
-        return {match[1],match[2],match[3]};
+    std::string target = "/";
+    std::string prefix = "";
+    std::string path = "";
+
+    bool parsed = false;
+    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    if (!parsed)
+        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+
+    if (parsed)
+    {
+        prefix = match[1];
+        host = match[2];
+
+        if (match[3].matched && port == 4840)
+            port = std::stoi(match[3]);
+
+        if (match[4].matched)
+            path = match[4];
+    }
+    else
+        throw InvalidParameterException("Host name not found in url: {}", connectionString);
     
-    throw InvalidParameterException("Host name not found in url: {}", connectionString);
+    if (prefix != DaqOpcUaDevicePrefix)
+        throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
+
+    return OpcUaScheme + host + ":" + std::to_string(port) + "/" + path;
 }
 
 bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
@@ -167,6 +202,7 @@ PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
 
     config.addProperty(StringProperty("Username", ""));
     config.addProperty(StringProperty("Password", ""));
+    config.addProperty(IntProperty("Port", 4840));
 
     return config;
 }

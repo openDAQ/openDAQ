@@ -35,13 +35,15 @@ public:
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
+    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
     static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;
+    std::string host;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

@@ -53,11 +53,29 @@ void WebsocketStreamingServerImpl::onStopServer()
     websocketStreamingServer.stop();
 }
 
+PropertyObjectPtr WebsocketStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config)
+{
+    const auto defConfig = createDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, WebsocketStreamingServer, daq::IServer,
-    daq::DevicePtr, rootDevice,
-    PropertyObjectPtr, config,
-    const ContextPtr&, context
-)
+    INTERNAL_FACTORY,
+    WebsocketStreamingServer,
+    daq::IServer,
+    daq::DevicePtr,
+    rootDevice,
+    PropertyObjectPtr,
+    config,
+    const ContextPtr&,
+    context
+    )
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE

@@ -30,6 +30,7 @@ public:
     explicit WebsocketStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
     static PropertyObjectPtr createDefaultConfig();
     static ServerTypePtr createType();
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
 
 protected:
     void onStopServer() override;

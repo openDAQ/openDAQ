@@ -43,6 +43,8 @@ private:
                                                const IntegerPtr& port,
                                                const StringPtr& path);
     static StreamingTypePtr createWebsocketStreamingType();
+    static PropertyObjectPtr createDefaultConfig();
+    static StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
     std::mutex sync;
     size_t deviceIndex;

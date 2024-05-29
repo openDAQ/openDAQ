@@ -22,7 +22,7 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
     ASSERT_TRUE(general.hasProperty("StreamingConnectionHeuristic"));
 }
 
-TEST_F(ModulesDefaultConfigTest, NativeConfig)
+TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
 {
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -31,7 +31,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfig)
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
 }
 
-TEST_F(ModulesDefaultConfigTest, NativeConfigConnect)
+TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
 {
     const auto serverInstance = Instance();
     const auto serverConfig = PropertyObject();
@@ -47,43 +47,82 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigConnect)
     ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
 }
 
-TEST_F(ModulesDefaultConfigTest, NativeStreaming)
+TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
 {
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_streaming");
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
 }
 
-TEST_F(ModulesDefaultConfigTest, NativeStreamingConnect)
+TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
+{
+    const auto serverInstance = Instance();
+    const auto serverConfig = PropertyObject();
+    serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+    serverInstance.addServer("openDAQ Native Streaming", serverConfig);
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    nativeDeviceConfig.setPropertyValue("Port", 7415);
+
+    ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
+}
+
+TEST_F(ModulesDefaultConfigTest, LTStreamingDevice)
 {
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_lt_streaming");
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
 }
 
-TEST_F(ModulesDefaultConfigTest, LTStreaming)
+TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
+{
+    const auto serverInstance = Instance();
+    const auto serverConfig = PropertyObject();
+    serverConfig.addProperty(IntProperty("WebsocketStreamingPort", 7415));
+    serverInstance.addServer("openDAQ LT Streaming", serverConfig);
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_lt_streaming");
+    nativeDeviceConfig.setPropertyValue("Port", 7415);
+
+    ASSERT_TRUE(instance.addDevice("daq.lt://127.0.0.1", config).assigned());
+}
+
+TEST_F(ModulesDefaultConfigTest, OPCUAConfigDevice)
 {
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_opcua_config");
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
 }
 
-TEST_F(ModulesDefaultConfigTest, LTStreamingConnect)
+TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
 {
+    const auto serverInstance = Instance();
+    const auto serverConfig = PropertyObject();
+    serverConfig.addProperty(IntProperty("Port", 4841));
+    serverInstance.addServer("openDAQ OpcUa", serverConfig);
+
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_opcua_config");
+    nativeDeviceConfig.setPropertyValue("Port", 4841);
+
+    ASSERT_TRUE(instance.addDevice("daq.opcua://127.0.0.1", config).assigned());
 }
 
-TEST_F(ModulesDefaultConfigTest, OPCUAConfig)
-{
-    const auto instance = Instance();
-    const auto config = instance.createDefaultAddDeviceConfig();
-}
-
-TEST_F(ModulesDefaultConfigTest, OPCUAConfigConnect)
-{
-    const auto instance = Instance();
-    const auto config = instance.createDefaultAddDeviceConfig();
-}
-
-TEST_F(ModulesDefaultConfigTest, NativeConfigNativeStreamingConnect)
+TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 {
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();

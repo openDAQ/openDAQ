@@ -22,7 +22,6 @@
 #include <opendaq/input_port_private.h>
 #include <opendaq/input_port_notifications_ptr.h>
 #include <opendaq/input_port_ptr.h>
-#include <opendaq/utility_sync.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/signal_errors.h>
 #include <opendaq/signal_events_ptr.h>

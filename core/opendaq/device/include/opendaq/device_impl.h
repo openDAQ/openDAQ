@@ -24,7 +24,7 @@
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/unit_ptr.h>
-#include <opendaq/utility_sync.h>
+#include <coretypes/utility_sync.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>

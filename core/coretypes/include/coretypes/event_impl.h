@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/coretypes.h>
 #include <coretypes/event_handler_ptr.h>
+#include <coretypes/utility_sync.h>
 #include <vector>
 
 namespace std
@@ -93,6 +94,8 @@ private:
     std::atomic<bool> muted{};
     std::atomic<bool> frozen{};
     std::vector<Handler> handlers;
+
+    mutable daq::mutex sync;
 };
 
 END_NAMESPACE_OPENDAQ

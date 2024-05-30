@@ -226,3 +226,20 @@ TEST_F(ComponentTest, NonPropertyObjectObjectTypeProperty)
 
     ASSERT_THROW(obj.addProperty(prop), InvalidTypeException);
 }
+
+TEST_F(ComponentTest, Remove)
+{
+    auto component = Component(NullContext(), nullptr, "temp");
+
+    ASSERT_NO_THROW(component.remove());
+    ASSERT_TRUE(component.isRemoved());
+
+    ASSERT_THROW(component.getLockedAttributes().getCount(), ComponentRemovedException);
+    ASSERT_THROW(component.asPtr<IComponentPrivate>().unlockAllAttributes(), ComponentRemovedException);
+    ASSERT_THROW(component.asPtr<IComponentPrivate>().lockAllAttributes(), ComponentRemovedException);
+
+    ASSERT_THROW(component.setName("ignored"), ComponentRemovedException);
+    ASSERT_THROW(component.setDescription("ignored"), ComponentRemovedException);
+    ASSERT_THROW(component.setVisible(false), ComponentRemovedException);
+    ASSERT_THROW(component.setActive(true), ComponentRemovedException);
+}

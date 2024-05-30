@@ -215,7 +215,7 @@ void OpcUaClient::connect()
         throw OpcUaException(status, "Failed to connect to OpcUa server");
 }
 
-void OpcUaClient::disconnect()
+void OpcUaClient::disconnect(bool doClear)
 {
     std::lock_guard guard(getLock());
     if (!uaclient)
@@ -225,7 +225,8 @@ void OpcUaClient::disconnect()
 
     UA_Client_disconnect(uaclient);
 
-    clear();  // to clear all internal states
+    if (doClear)
+        clear();  // to clear all internal states
 }
 
 void OpcUaClient::clear()

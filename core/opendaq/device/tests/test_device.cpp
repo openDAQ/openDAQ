@@ -144,6 +144,36 @@ TEST_F(DeviceTest, StandardProperties)
     ASSERT_EQ(device.getDescription(), desc);
 }
 
+TEST_F(DeviceTest, Remove)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+
+    ASSERT_NO_THROW(device.remove());
+    ASSERT_TRUE(device.isRemoved());
+
+    ASSERT_THROW(device.addDevice("DeviceConnectionString"), daq::ComponentRemovedException);
+    ASSERT_THROW(device.addFunctionBlock("FbTypeId"), daq::ComponentRemovedException);
+    ASSERT_THROW(device.addStreaming("StreamingConnectionString"), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getAvailableFunctionBlockTypes(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getAvailableDeviceTypes(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getAvailableDevices(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getDevices(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getFunctionBlocks(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getChannels(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getChannelsRecursive(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getSignals(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getSignalsRecursive(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getCustomComponents(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getInfo(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getDomain(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getInputsOutputsFolder(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
+}
+
 class MockFbImpl final : public daq::FunctionBlock
 {
 public:

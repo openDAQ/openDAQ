@@ -83,8 +83,11 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
 {
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     fetchTimeDomain();
-    return TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>::getDomain(deviceDomain);
+    return Super::getDomain(deviceDomain);
 }
 
 void TmsClientDeviceImpl::findAndCreateSubdevices()
@@ -233,6 +236,7 @@ void TmsClientDeviceImpl::fetchTicksSinceOrigin()
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
     ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
 }
+
 uint64_t TmsClientDeviceImpl::onGetTicksSinceOrigin()
 {
     fetchTicksSinceOrigin();
@@ -241,7 +245,6 @@ uint64_t TmsClientDeviceImpl::onGetTicksSinceOrigin()
 
 void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
 {
-
     std::map<uint32_t, FunctionBlockPtr> orderedFunctionBlocks;
     std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
 
@@ -403,6 +406,16 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         deviceInfoInternal.addServerCapability(val);
     for (const auto& val : unorderedCaps)
         deviceInfoInternal.addServerCapability(val);
+}
+
+void TmsClientDeviceImpl::removed()
+{
+    if (this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>())
+    {
+        this->client->disconnect(false);
+    }
+
+    Super::removed();
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()

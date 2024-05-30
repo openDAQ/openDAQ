@@ -65,8 +65,9 @@ class AppContext(object):
         for subdevice in subdevices:
             del self.enabled_devices[subdevice.info.connection_string]
 
+        conn_string = device.info.connection_string
         parent_device.remove_device(device)
-        del self.enabled_devices[device.info.connection_string]
+        del self.enabled_devices[conn_string]
 
     def scan_devices(self, parent_device=None):
         parent_device = parent_device or self.instance

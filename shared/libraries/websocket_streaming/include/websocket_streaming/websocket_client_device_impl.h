@@ -31,6 +31,8 @@ public:
                                        const StringPtr& connectionString);
 
 protected:
+    void removed() override;
+
     DeviceInfoPtr onGetInfo() override;
     void createWebsocketStreaming();
     void activateStreaming();

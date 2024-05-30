@@ -184,6 +184,16 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(signals.getCount(), 7u);
 }
 
+TEST_F(WebsocketModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto device = client.addDevice("daq.lt://127.0.0.1/");
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
 TEST_F(WebsocketModulesTest, SignalConfig_Server)
 {
     const std::string newSignalName{"some new name"};

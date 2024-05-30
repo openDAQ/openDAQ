@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
                                  const StringPtr& localId,
@@ -48,6 +49,8 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
+
+    void removed() override;
 
 private:
     void fetchTimeDomain();

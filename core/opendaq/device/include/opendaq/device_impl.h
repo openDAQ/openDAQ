@@ -205,6 +205,10 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     ErrCode errCode = OPENDAQ_SUCCESS;
 
     if (!this->deviceInfo.assigned())
@@ -230,6 +234,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
 {
     OPENDAQ_PARAM_NOT_NULL(deviceDomain);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     *deviceDomain = this->deviceDomain.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -237,6 +244,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
 {
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     std::scoped_lock lock(this->sync);
 
     this->isRootDevice = true;
@@ -248,6 +258,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInputsOutputsFolder(IFolder
 {
     OPENDAQ_PARAM_NOT_NULL(inputsOutputsFolder);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     *inputsOutputsFolder = ioFolder.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -256,6 +269,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getCustomComponents(IList** customComponents)
 {
     OPENDAQ_PARAM_NOT_NULL(customComponents);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     auto componentsList = List<IComponent>();
     for (const auto& component : this->components)
@@ -272,6 +288,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     if (!searchFilter)
         return this->signals->getItems(signals);
@@ -293,6 +312,10 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     return daqTry([&]
     {
         SearchFilterPtr filter;
@@ -385,6 +408,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 {
     OPENDAQ_PARAM_NOT_NULL(ticks);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     ErrCode errCode = wrapHandlerReturn(this, &Self::onGetTicksSinceOrigin, *ticks);
 
     return errCode;
@@ -444,6 +470,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes, dict);
 
@@ -469,6 +498,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addFunctionBlock(IFunctionBloc
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     FunctionBlockPtr functionBlockPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
@@ -497,6 +529,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeFunctionBlock(IFunctionB
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
 
@@ -516,6 +551,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlocks);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     if (!searchFilter)
         return this->functionBlocks->getItems(functionBlocks);
@@ -559,6 +597,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels, 
 {
     OPENDAQ_PARAM_NOT_NULL(channels);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     if (!searchFilter)
     {
         ListPtr<IChannel> chList = List<IChannel>();
@@ -587,6 +628,10 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getChannelsRecursive(IList** channels, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(channels);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     return daqTry([&]
     {
         SearchFilterPtr filter;
@@ -644,6 +689,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDevices(IList** av
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     ListPtr<IDeviceInfo> availableDevicesPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableDevices, availableDevicesPtr);
 
@@ -668,6 +716,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDeviceTypes(IDict*
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     DictPtr<IString, IDeviceType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableDeviceTypes, dict);
 
@@ -691,6 +742,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addDevice(IDevice** device, IS
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(device);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     DevicePtr devicePtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddDevice, devicePtr, connectionString, config);
@@ -721,6 +775,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** stre
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     StreamingPtr streamingPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddStreaming, streamingPtr, connectionString, config);
 
@@ -740,6 +797,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 {
     OPENDAQ_PARAM_NOT_NULL(device);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     const auto devicePtr = DevicePtr::Borrow(device);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveDevice, devicePtr);
 
@@ -756,6 +816,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(subDevices);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     if (!searchFilter)
         return devices->getItems(subDevices);
@@ -799,6 +862,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     return daqTry(
         [this, &configuration]() {
             auto serializer = JsonSerializer(True);
@@ -817,6 +883,9 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     return daqTry(
         [this, &configuration]()

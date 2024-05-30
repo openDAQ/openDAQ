@@ -86,13 +86,13 @@ public:
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
+    ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC lockAllAttributes() override;
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
-    ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
 
     // IRemovable
@@ -279,6 +279,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
     if (this->frozen)
         return OPENDAQ_ERR_FROZEN;
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     {
         std::scoped_lock lock(sync);
     
@@ -360,6 +363,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
     if (this->frozen)
         return OPENDAQ_ERR_FROZEN;
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     {
         std::scoped_lock lock(sync);
 
@@ -407,6 +413,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
     if (this->frozen)
         return OPENDAQ_ERR_FROZEN;
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     {
         std::scoped_lock lock(sync);
@@ -466,6 +475,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
     if (this->frozen)
         return OPENDAQ_ERR_FROZEN;
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     {
         std::scoped_lock lock(sync);
 
@@ -512,6 +524,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     std::scoped_lock lock(sync);
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
@@ -529,6 +544,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     std::scoped_lock lock(sync);
     return lockAllAttributesInternal();
 }
@@ -538,6 +556,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
 {
     if (!attributes)
         return OPENDAQ_SUCCESS;
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     std::scoped_lock lock(sync);
 
@@ -556,6 +577,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
 {
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     std::scoped_lock lock(sync);
     lockedAttributes.clear();
     return OPENDAQ_SUCCESS;
@@ -565,6 +589,9 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
 {
     OPENDAQ_PARAM_NOT_NULL(attributes);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
     
     std::scoped_lock lock(sync);
 

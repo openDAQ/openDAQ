@@ -172,6 +172,26 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2);
 }
 
+TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
+{
+    const auto serverInstance = Instance();
+    const auto serverConfig = PropertyObject();
+    serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+    serverInstance.addServer("openDAQ Native Streaming", serverConfig);
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    nativeDeviceConfig.setPropertyValue("Port", 7415);
+
+    const PropertyObjectPtr generalConfig = config.getPropertyValue("general");
+    generalConfig.setPropertyValue("AutomaticallyConnectStreaming", false);
+
+    const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0);
+}
+
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
 {
     const auto serverInstance = Instance();

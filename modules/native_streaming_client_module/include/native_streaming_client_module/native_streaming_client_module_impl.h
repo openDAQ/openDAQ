@@ -82,7 +82,7 @@ private:
                                  const StringPtr& path);
     PropertyObjectPtr createConnectionDefaultConfig();
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
-    PropertyObjectPtr populateMissingConfigFields(const PropertyObjectPtr& config);
+    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);

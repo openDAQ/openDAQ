@@ -271,25 +271,33 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-PropertyObjectPtr NativeStreamingClientModule::populateMissingConfigFields(const PropertyObjectPtr& config)
+PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
 {
-    PropertyObjectPtr newConfig = createConnectionDefaultConfig();
-
-    if (config.hasProperty("Port"))
-        newConfig.setPropertyValue("Port", config.getPropertyValue("Port"));
-
-    if (config.hasProperty("TransportLayerConfig"))
+    auto defConfig = createConnectionDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
     {
-        const PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-        for (const auto& prop : transportLayerConfig.getAllProperties())
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
         {
-            const auto name = prop.getName();
-            if (newConfig.hasProperty(name))
-                newConfig.setPropertyValue(name, config.getPropertyValue(name));
+            if (name == "TransportLayerConfig")
+            {
+                const PropertyObjectPtr transportLayerConfig = config.getPropertyValue(name);
+                const PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
+                for (const auto& transportLayerProp : defTransportLayerConfig.getAllProperties())
+                {
+                    const auto transportLayerName = transportLayerProp.getName();
+                    if (transportLayerConfig.hasProperty(name))
+                        defTransportLayerConfig.setPropertyValue(name, config.getPropertyValue(name));
+                }
+            }
+            else
+            {
+                defConfig.setPropertyValue(name, config.getPropertyValue(name));
+            }
         }
     }
 
-    return newConfig;
+    return defConfig;
 }
 
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
@@ -303,7 +311,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!config.assigned())
         deviceConfig = createConnectionDefaultConfig();
     else
-        deviceConfig = populateMissingConfigFields(config);
+        deviceConfig = populateDefaultConfig(config);
 
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
@@ -469,7 +477,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     PropertyObjectPtr parsedConfig;
     if (config.assigned())
     {
-        parsedConfig = populateMissingConfigFields(config);
+        parsedConfig = populateDefaultConfig(config);
         transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     }
     else

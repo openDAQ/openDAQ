@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestDevice : public RegressionTest
+class RegressionTestDevice : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -44,10 +44,7 @@ TEST_F(RegressionTestDevice, getInfo)
 
 TEST_F(RegressionTestDevice, getDomain)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     DeviceDomainPtr domain;
     ASSERT_NO_THROW(domain = device.getDomain());
@@ -205,10 +202,8 @@ TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 
 TEST_F(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
+
     FunctionBlockPtr fb;
     ASSERT_NO_THROW(fb = device.addFunctionBlock("ref_fb_module_trigger"));
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));

@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestInputPort : public RegressionTest
+class RegressionTestInputPort : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -14,10 +14,7 @@ protected:
 
     void SetUp() override
     {
-        if (protocol == "ns" || protocol == "lt")
-        {
-            return;
-        }
+        PROTOCOLS("opcua", "nd")
 
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
@@ -34,33 +31,21 @@ protected:
 
 TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDisconnect)
 {
-    if (protocol == "opcua")
-    {
-        return;
-    }
-    else if (protocol == "nd")
-    {
-        auto signal = device.getSignalsRecursive()[0];
-        Bool accepts;
-        ASSERT_NO_THROW(accepts = port.acceptsSignal(signal));
-        ASSERT_EQ(accepts, True);
-        ASSERT_NO_THROW(port.connect(signal));
-        ASSERT_NO_THROW(port.getSignal());
-        ASSERT_NO_THROW(port.getConnection());
-        ASSERT_NO_THROW(port.disconnect());
-    }
-    else if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("nd")
+
+    auto signal = device.getSignalsRecursive()[0];
+    Bool accepts;
+    ASSERT_NO_THROW(accepts = port.acceptsSignal(signal));
+    ASSERT_EQ(accepts, True);
+    ASSERT_NO_THROW(port.connect(signal));
+    ASSERT_NO_THROW(port.getSignal());
+    ASSERT_NO_THROW(port.getConnection());
+    ASSERT_NO_THROW(port.disconnect());
 }
 
 TEST_F(RegressionTestInputPort, getRequiresSignal)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     ASSERT_NO_THROW(port.getRequiresSignal());
 }

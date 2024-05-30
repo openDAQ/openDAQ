@@ -2,7 +2,7 @@
 #include <thread>
 #include "setup_regression.h"
 
-class RegressionTestSignal : public RegressionTest
+class RegressionTestSignal : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;

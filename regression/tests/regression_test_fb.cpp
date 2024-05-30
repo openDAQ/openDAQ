@@ -1,6 +1,6 @@
 #include "setup_regression.h"
 
-class RegressionTestFunctionBlock : public RegressionTest
+class RegressionTestFunctionBlock : public testing::Test
 {
 private:
     ModuleManagerPtr moduleManager;
@@ -13,10 +13,7 @@ protected:
 
     void SetUp() override
     {
-        if (protocol == "ns" || protocol == "lt")
-        {
-            return;
-        }
+        PROTOCOLS("opcua", "nd")
 
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
@@ -31,10 +28,7 @@ protected:
 
 TEST_F(RegressionTestFunctionBlock, getFunctionBlockType)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     FunctionBlockTypePtr type;
     ASSERT_NO_THROW(type = fb.getFunctionBlockType());
@@ -53,10 +47,7 @@ TEST_F(RegressionTestFunctionBlock, getFunctionBlockType)
 
 TEST_F(RegressionTestFunctionBlock, getInputPorts)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     ListPtr<IInputPort> ports;
     ASSERT_NO_THROW(ports = fb.getInputPorts());
@@ -65,10 +56,7 @@ TEST_F(RegressionTestFunctionBlock, getInputPorts)
 
 TEST_F(RegressionTestFunctionBlock, getSignals)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = fb.getSignals());
@@ -77,10 +65,7 @@ TEST_F(RegressionTestFunctionBlock, getSignals)
 
 TEST_F(RegressionTestFunctionBlock, getSignalsRecursive)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = fb.getSignalsRecursive());
@@ -89,10 +74,7 @@ TEST_F(RegressionTestFunctionBlock, getSignalsRecursive)
 
 TEST_F(RegressionTestFunctionBlock, getStatusSignal)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     SignalPtr status;
     ASSERT_NO_THROW(status = fb.getStatusSignal());
@@ -101,10 +83,7 @@ TEST_F(RegressionTestFunctionBlock, getStatusSignal)
 
 TEST_F(RegressionTestFunctionBlock, getFunctionBlocks)
 {
-    if (protocol == "ns" || protocol == "lt")
-    {
-        return;
-    }
+    PROTOCOLS("opcua", "nd")
 
     ListPtr<IFunctionBlock> fbs;
     ASSERT_NO_THROW(fbs = fb.getFunctionBlocks());

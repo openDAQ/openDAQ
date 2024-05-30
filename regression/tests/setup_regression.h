@@ -23,89 +23,19 @@ using namespace daq;
 namespace
 {
 // TODO: opcua nd ns lt
-// StringPtr protocol = "nd";
-StringPtr protocol = getenv("protocol");
+StringPtr protocol = "ns";
+// StringPtr protocol = getenv("protocol");
 StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
 
-// TODO: properly use the following classes and macros (until end of file)
-
-class Version
-{
-private:
-    int major;
-    int minor;
-    int patch;
-
-public:
-    Version(int MAJOR, int MINOR, int PATCH)
-    {
-        major = MAJOR;
-        minor = MINOR;
-        patch = PATCH;
-    }
-    Version()
-    {
-        major = 3;
-        minor = 0;
-        patch = 0;
-    }
-};
-
-class Protocols
-{
-private:
-    bool opcua;
-    bool nd;
-    bool ns;
-    bool lt;
-
-public:
-    Protocols(bool OPCUA, bool ND, bool NS, bool LT)
-    {
-        opcua = OPCUA;
-        nd = ND;
-        ns = NS;
-        lt = LT;
-    }
-    Protocols()
-    {
-        opcua = true;
-        nd = true;
-        ns = true;
-        lt = true;
-    }
-};
-
-class RegressionTest : public testing::Test
-{
-protected:
-    Protocols protocols;
-    Version minVersion;
-
-    RegressionTest(Protocols protos, Version min)
-    {
-        protocols = protos;
-        minVersion = min;
-    }
-
-    RegressionTest()
-    {
-        protocols = Protocols();
-        minVersion = Version();
-    }
-};
-
-/*
-namespace
-{
-Version version;
-Protocols protocols;
-}
-
-#define TEST_R(test_fixture, test_name, ver, protos) \
-    version = ver;                                   \
-    protocols = protos;                              \
-    TEST_F(test_fixture, test_name)
-
- */
+// Macro that ensures that we only continue for listed protocols
+#define PROTOCOLS(...)                                               \
+    std::set<std::string> protos = {__VA_ARGS__};                    \
+    if (protocol == "opcua" && protos.find("opcua") == protos.end()) \
+        return;                                                      \
+    if (protocol == "nd" && protos.find("nd") == protos.end())       \
+        return;                                                      \
+    if (protocol == "ns" && protos.find("ns") == protos.end())       \
+        return;                                                      \
+    if (protocol == "lt" && protos.find("lt") == protos.end())       \
+        return;

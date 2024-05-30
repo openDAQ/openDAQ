@@ -104,6 +104,8 @@ public:
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
     ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
 
+    ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IPropertyObject** connectionInfo) override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -111,6 +113,8 @@ private:
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
     StringPtr getStringProperty(const StringPtr& name);
     Int getIntProperty(const StringPtr& name);
+
+    static PropertyObjectPtr CreateDefaultConfigurationConnectionInfo();
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;

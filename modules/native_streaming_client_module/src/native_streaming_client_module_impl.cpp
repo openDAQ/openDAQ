@@ -32,7 +32,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
+                auto cap = ServerCapability(NativeStreamingDeviceTypeId, "openDAQ Native Streaming", ProtocolType::Streaming);
 
                 if (!discoveredDevice.ipv4Address.empty())
                 {
@@ -76,7 +76,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                     discoveredDevice.servicePort,
                     discoveredDevice.getPropertyOrDefault("path", "/")
                 );
-                auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
+                auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
                 cap.addConnectionString(connectionStringIpv6);
@@ -281,6 +281,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     auto port = getPort(connectionString);
     auto path = getPath(connectionString);
 
+    DevicePtr device;
+    StringPtr protocolId;
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::scoped_lock lock(sync);
@@ -290,7 +292,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
-        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
+        device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
             localId,
@@ -299,15 +301,25 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             addStreamingProcessingContext(connectionString),
             initTimeout
         );
+        protocolId = NativeStreamingDeviceTypeId;
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        return createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
+        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
+        protocolId = NativeConfigurationDeviceTypeId;
     }
-    else
+    
+    if (!device.assigned())
     {
         throw InvalidParameterException();
     }
+
+    // Set the connection info for the device
+    auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setPropertyValue("protocolId", protocolId);
+    connectionInfo.setPropertyValue("address", host);
+    connectionInfo.setPropertyValue("connectionString", connectionString);
+    return device;
 }
 
 PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig()

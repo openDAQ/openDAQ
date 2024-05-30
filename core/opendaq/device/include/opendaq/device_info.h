@@ -256,6 +256,17 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * the location string value matches that of the device's "location" property.
      */
     virtual ErrCode INTERFACE_FUNC getLocation(IString** location) = 0;
+
+    // [templateType(connectionInfo, IPropertyObject)]
+    /*!
+     * @brief Retrieves the connection information for the configuration.
+     * @param[out] connectionInfo Pointer to the IPropertyObject pointer that will receive the connection information.
+     *
+     * This method returns a property object with fields protocolId, address, 
+     * and connection string of the server to which the client is connected.
+     * If the connection to the server is not established, the fields of connection info are empty string.
+     */
+    virtual ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IPropertyObject** connectionInfo) = 0;
 };
 /*!@}*/
 

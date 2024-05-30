@@ -717,6 +717,22 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPropertyValue("protocolId"), "opendaq_opcua_config");
+    ASSERT_EQ(connectionInfo.getPropertyValue("address"), "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPropertyValue("connectionString"), "daq.opcua://127.0.0.1");
+}
+
+
 // TODO: Add all examples of dynamic changes
 // TODO: Add examples of all possible property object changes once rework is done
 // TODO: Add examples of device topology, as well as signal/channel node trees in devices/fbs

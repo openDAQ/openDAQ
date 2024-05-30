@@ -31,7 +31,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
                 if (!discoveredDevice.ipv4Address.empty())
                 {
                     auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
@@ -122,6 +122,13 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
     completeDeviceServerCapabilities(device, host);
+
+    // Set the connection info for the device
+    auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setPropertyValue("protocolId", DaqOpcUaDeviceTypeId);
+    connectionInfo.setPropertyValue("address", host);
+    connectionInfo.setPropertyValue("connectionString", connectionString);
+
     return device;
 }
 

@@ -40,6 +40,9 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
     defaultPropertyNames.insert("serverCapabilities");
 
+    Super::addProperty(ObjectProperty("configurationConnectionInfo", CreateDefaultConfigurationConnectionInfo()));
+    defaultPropertyNames.insert("configurationConnectionInfo");
+
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
     else
@@ -676,6 +679,28 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
 
     *serverCapabilities = caps.detach();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IPropertyObject** connectionInfo)
+{
+    BaseObjectPtr obj;
+    StringPtr str = "configurationConnectionInfo";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    *connectionInfo = obj.asPtr<IPropertyObject>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::CreateDefaultConfigurationConnectionInfo()
+{
+    auto info = PropertyObject();
+    info.addProperty(StringProperty("protocolId", ""));
+    info.addProperty(StringProperty("address", ""));
+    info.addProperty(StringProperty("connectionString", ""));
+    return info;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

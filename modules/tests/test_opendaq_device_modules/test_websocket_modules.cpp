@@ -273,3 +273,18 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPropertyValue("protocolId"), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getPropertyValue("address"), "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPropertyValue("connectionString"), "daq.lt://127.0.0.1/");
+}

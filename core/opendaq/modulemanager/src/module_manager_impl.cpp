@@ -192,8 +192,15 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
                 auto addresses = cap.getAddresses();
                 if (addresses.assigned() && addresses.getCount() > 0)
                 {
-                    deviceIp = static_cast<std::string>(addresses[0]);
+                    auto ip = static_cast<std::string>(addresses[0]);
+                    if (ip.find('[') == 0)
+                    {
+                        continue;
+                    }
+
+                    deviceIp = ip;
                     deviceInfo.addProperty(StringProperty("ipv4Address", deviceIp));
+                    break;
                 }
             }
 

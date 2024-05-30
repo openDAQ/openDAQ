@@ -37,6 +37,7 @@ public:
                                        Int initTimeout);
 
 protected:
+    void removed() override;
     DeviceInfoPtr onGetInfo() override;
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);

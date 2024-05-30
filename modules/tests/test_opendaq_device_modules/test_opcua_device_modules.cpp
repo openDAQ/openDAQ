@@ -207,6 +207,45 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
 }
 
+TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
+TEST_F(OpcuaDeviceModulesTest, ChangePropAfterRemove)
+{
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
+
+    auto device = client.getDevices()[0];
+    auto mirroredRefDevice = client.getDevices()[0].getDevices()[0];
+
+    client.removeDevice(device);
+
+    ASSERT_TRUE(mirroredRefDevice.isRemoved());
+
+    // reset messages
+    debugSink.waitForMessage(0);
+
+    ASSERT_NO_THROW(mirroredRefDevice.setPropertyValue("NumberOfChannels", 1));
+    logger.flush();
+    ASSERT_TRUE(debugSink.waitForMessage(2000));
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"NumberOfChannels\" on OpcUA client property object: Writing property value");
+}
+
 TEST_F(OpcuaDeviceModulesTest, RemoteGlobalIds)
 {
     SKIP_TEST_MAC_CI;

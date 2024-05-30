@@ -48,6 +48,8 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
 
 protected:
+    void removed() override;
+
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
@@ -147,6 +149,15 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::removed()
+{
+    // disconnects all streaming connections
+    streamingSources.clear();
+
+    Super::removed();
 }
 
 template <typename... Interfaces>

@@ -37,6 +37,12 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
 }
 
+void NativeStreamingDeviceImpl::removed()
+{
+    nativeStreaming.release();
+    Device::removed();
+}
+
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
 {
     const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable"));

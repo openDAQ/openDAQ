@@ -213,7 +213,10 @@ TEST_F(RegressionTestDevice, saveConfigurationLoadConfiguration)
 {
     StringPtr config;
     ASSERT_NO_THROW(config = device.saveConfiguration());
-    // ASSERT_NO_THROW(device.loadConfiguration(config));  // TODO: UNCOMMENT
+
+    PROTOCOLS("nd", "ns", "lt") // Why opcua doesn't work?
+
+    ASSERT_NO_THROW(device.loadConfiguration(config));
 }
 
 TEST_F(RegressionTestDevice, getTicksSinceOrigin)

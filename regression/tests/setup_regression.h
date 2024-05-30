@@ -23,8 +23,8 @@ using namespace daq;
 namespace
 {
 // TODO: opcua nd ns lt
-StringPtr protocol = "ns";
-// StringPtr protocol = getenv("protocol");
+// StringPtr protocol = "nd";
+StringPtr protocol = getenv("protocol");
 StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
 

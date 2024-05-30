@@ -18,11 +18,11 @@
 #include <coreobjects/property_object.h>
 #include <coretypes/listobject.h>
 #include <opendaq/component.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: SyncComponentPtr)]
  * [interfaceSmartPtr(ISyncComponent, GenericSyncComponentPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
@@ -54,7 +54,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
+DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
 {
     /*!
      * @brief Test.

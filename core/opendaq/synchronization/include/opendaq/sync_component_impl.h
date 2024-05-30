@@ -28,21 +28,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <class... Interfaces>
-class GenericSyncComponentImpl;
-
-using SyncComponentImpl = GenericSyncComponentImpl<>;
-
-template <class ... Interfaces>
-class GenericSyncComponentImpl : public ComponentImpl<ISyncComponent, Interfaces...>
+class GenericSyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 {
 public:
-    using Super = ComponentImpl<ISyncComponent, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<ISyncComponent>;
 
-    explicit GenericSyncComponentImpl(const ContextPtr& context,
-                                  const ComponentPtr& parent,
-                                  const StringPtr& localId,
-                                  const StringPtr& className = nullptr);
+    explicit GenericSyncComponentImpl();
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC test() override;
@@ -57,48 +48,39 @@ protected:
     Bool syncLocked;
 };
 
-template <class... Interfaces>
-GenericSyncComponentImpl<Interfaces ...>::GenericSyncComponentImpl(const ContextPtr& context,
-                             const ComponentPtr& parent,
-                             const StringPtr& localId,
-                             const StringPtr& className)
-    : Super(context, parent, localId, className)
+GenericSyncComponentImpl::GenericSyncComponentImpl()
+    : Super()
 {
 }
 
-template <class... Interfaces>
-ErrCode GenericSyncComponentImpl<Interfaces...>::test()
+ErrCode GenericSyncComponentImpl::test()
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericSyncComponentImpl<Interfaces...>::getSyncLocked(Bool* syncLocked)
+ErrCode GenericSyncComponentImpl::getSyncLocked(Bool* syncLocked)
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericSyncComponentImpl<Interfaces...>::getSelectedSource(IString** selectedSource)
+ErrCode GenericSyncComponentImpl::getSelectedSource(IString** selectedSource)
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericSyncComponentImpl<Interfaces...>::getInterfaces(IList** interfaces)
+ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)
 {
     return OPENDAQ_SUCCESS;
 }
 
-//template <class... Interfaces>
-//ErrCode GenericSyncComponentImpl<Interfaces...>::addInterface(IPropertyObject* interface)
+//
+//ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
 //{
 //    return OPENDAQ_SUCCESS;
 //}
 //
 
-template <class... Interfaces>
-ErrCode GenericSyncComponentImpl<Interfaces...>::removeInterface(IString* interfaceName)
+ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
 {
     return OPENDAQ_SUCCESS;
 }

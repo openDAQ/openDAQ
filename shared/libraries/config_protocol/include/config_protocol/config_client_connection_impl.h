@@ -42,6 +42,7 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
 
@@ -155,6 +156,14 @@ inline ErrCode ConfigClientConnectionImpl::getSamplesUntilNextDescriptor(SizeT* 
     OPENDAQ_PARAM_NOT_NULL(samples);
 
     *samples = 0;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ConfigClientConnectionImpl::hasEventPacket(Bool* hasEventPacket)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasEventPacket);
+
+    *hasEventPacket = false;
     return OPENDAQ_SUCCESS;
 }
 

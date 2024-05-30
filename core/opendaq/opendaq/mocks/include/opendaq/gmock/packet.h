@@ -29,7 +29,17 @@ struct MockPacket : daq::ImplementationOf<daq::IPacket>
         testing::StrictMock<MockPacket>
     > Strict;
 
-    MOCK_METHOD(daq::ErrCode, getType, (daq::PacketType* type), (override MOCK_CALL));
+    daq::ErrCode getType(daq::PacketType* type) override
+    {
+        if (!type)
+        {
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+        *type = daq::PacketType::None;
+        return OPENDAQ_SUCCESS;
+    }
+
+    // MOCK_METHOD(daq::ErrCode, getType, (daq::PacketType* type), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, subscribeForDestructNotification, (daq::IPacketDestructCallback* packetDestructCallback), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getRefCount, (daq::SizeT* refCount), (override MOCK_CALL));
 
@@ -42,5 +52,11 @@ struct MockPacket : daq::ImplementationOf<daq::IPacket>
                     *r = this->getReferenceCount();
                     return OPENDAQ_SUCCESS;
                 });
+        
+        // ON_CALL(*this, getType(::testing::_)).WillByDefault([](daq::PacketType* type) 
+        //         {
+        //             *type = daq::PacketType::None;
+        //             return OPENDAQ_SUCCESS;
+        //         });
     }
 };

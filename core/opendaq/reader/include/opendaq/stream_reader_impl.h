@@ -25,6 +25,7 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/reader_status_ptr.h>
 
 #include <condition_variable>
 
@@ -105,7 +106,7 @@ private:
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
-    ErrCode readPackets(IReaderStatus** status);
+    ReaderStatusPtr readPackets();
     ErrCode readPacketData();
 
     ReadInfo info{};

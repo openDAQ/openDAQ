@@ -16,6 +16,7 @@
 #pragma once
 #include <opendaq/block_reader.h>
 #include <opendaq/block_reader_builder_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -208,7 +209,7 @@ public:
     ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
 private:
-    ErrCode readPackets(IReaderStatus** status, SizeT* count);
+    BlockReaderStatusPtr readPackets();
     ErrCode readPacketData();
 
     SizeT getAvailable() const;

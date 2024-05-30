@@ -587,15 +587,17 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 
     this->sendPacket(dataPacketInt32);
 
+    {
+        size_t tempCnt = 1;
+        auto status = reader.read((TypeParam*) &samplesDouble, &tempCnt);
+        ASSERT_EQ(tempCnt, 0u);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     ASSERT_EQ(reader.getAvailableCount(), 2u);
 
     count = 2;
     TypeParam sampleInt32[2]{};
-    {
-        size_t tempCnt = 1;
-        auto status = reader.read((TypeParam*) &sampleInt32, &tempCnt);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     reader.read((TypeParam*) &sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);

@@ -484,8 +484,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeEventOverlapped)
     SizeT count{1};
     TypeParam samples[BIG_BLOCK_SIZE]{};
 
-    auto status = reader.read((TypeParam*) &samples, &count, 1000u).template asPtrOrNull<IBlockReaderStatus>();
-
+    BlockReaderStatusPtr status = reader.read((TypeParam*) &samples, &count, 1000u);
+    ASSERT_EQ(count, 0u);
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getReadSamples(), 2);
@@ -535,10 +535,10 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeTimeoutOverlapped)
     SizeT count{1};
     TypeParam samples[BIG_BLOCK_SIZE]{};
 
-    auto status = reader.read((TypeParam*) &samples, &count, 100u).template asPtrOrNull<IBlockReaderStatus>();
+    BlockReaderStatusPtr status = reader.read((TypeParam*) &samples, &count, 100u);
 
     ASSERT_TRUE(status.assigned());
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getReadSamples(), 2);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
@@ -1420,12 +1420,12 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
     this->sendPacket(dataPacketInt32);
     this->scheduler.waitAll();
 
-    ASSERT_EQ(reader.getAvailableCount(), 1u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     {
         // read event packet
         size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &samplesDouble, &tmpCount).template asPtrOrNull<IBlockReaderStatus>();
+        BlockReaderStatusPtr status = reader.read((TypeParam*) &samplesDouble, &tmpCount);
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
         ASSERT_EQ(status.getReadSamples(), 0);
@@ -1482,12 +1482,12 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
     this->sendPacket(dataPacketInt32);
     this->scheduler.waitAll();
 
-    ASSERT_EQ(reader.getAvailableCount(), 2u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     {
         // read event packet
         size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &samplesDouble, &tmpCount).template asPtrOrNull<IBlockReaderStatus>();
+        BlockReaderStatusPtr status = reader.read((TypeParam*) &samplesDouble, &tmpCount);
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
         ASSERT_EQ(status.getReadSamples(), 1);
@@ -2333,6 +2333,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
 {
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
+    SizeT samplesRead {0};
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -2349,7 +2350,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
     reader.setOnDataAvailable(
         [&, promise = std::move(promise)]() mutable
         {
-            count = tryRead(reader, samples, count);
+            BlockReaderStatusPtr status = reader.read(&samples[samplesRead], &count);
+            samplesRead = status.getReadSamples();
             promise.set_value();
         });
 
@@ -2363,17 +2365,11 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
     // change descriptor in the middle of packet
     this->signal.setDescriptor(setupDescriptor(SampleType::Float32));
 
-    auto domainPacket2 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
-    auto dataPacket2 = DataPacketWithDomain(domainPacket2, this->signal.getDescriptor(), 1);
-    auto dataPtr2 = static_cast<float*>(dataPacket2.getData());
-    dataPtr2[0] = 222.2f;
-
-    this->sendPacket(dataPacket2);
-
     auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
-    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(samplesRead, 1u);
     ASSERT_EQ(samples[0], dataPtr1[0]);
 }
 
@@ -2381,6 +2377,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
 {
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
+    SizeT samplesRead {0};
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -2398,7 +2395,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
     reader.setOnDataAvailable(
         [&, promise = std::move(promise)]() mutable
         {
-            count = tryRead(reader, samples, count);
+            BlockReaderStatusPtr status = reader.read(&samples[samplesRead], &count);
+            samplesRead = status.getReadSamples();
             promise.set_value();
         });
 
@@ -2412,17 +2410,11 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
     // change descriptor in the middle of packet
     this->signal.setDescriptor(setupDescriptor(SampleType::Float32));
 
-    auto domainPacket2 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
-    auto dataPacket2 = DataPacketWithDomain(domainPacket2, this->signal.getDescriptor(), 1);
-    auto dataPtr2 = static_cast<float*>(dataPacket2.getData());
-    dataPtr2[0] = 222.2f;
-
-    this->sendPacket(dataPacket2);
-
     auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
-    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(samplesRead, 1u);
     ASSERT_EQ(samples[0], dataPtr1[0]);
 }
 
@@ -2488,7 +2480,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     BlockReaderPtr newReader;
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&, promise = &promise]() mutable
         {
             if (!newReader.assigned())
             {
@@ -2507,7 +2499,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
             else
             {
                 newReader.read(&samples, &count);
-                promise.set_value();
+                promise->set_value();
             }
         });
 

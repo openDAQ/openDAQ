@@ -46,7 +46,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getLocation(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 24u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 25u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)

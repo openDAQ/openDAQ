@@ -13,6 +13,8 @@ ErrCode EventImpl::addHandler(IEventHandler* eventHandler)
     if (eventHandler == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    std::scoped_lock lock(sync);
+
     if (frozen)
     {
         return OPENDAQ_ERR_FROZEN;
@@ -26,6 +28,8 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 {
     if (eventHandler == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    std::scoped_lock lock(sync);
 
     if (frozen)
     {
@@ -56,6 +60,8 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 
 ErrCode EventImpl::clear()
 {
+    std::scoped_lock lock(sync);
+
     if (frozen)
     {
         return OPENDAQ_ERR_FROZEN;
@@ -68,6 +74,8 @@ ErrCode EventImpl::clear()
 
 ErrCode EventImpl::getSubscriberCount(SizeT* count)
 {
+    std::scoped_lock lock(sync);
+
     *count = handlers.size();
 
     return OPENDAQ_SUCCESS;
@@ -75,6 +83,8 @@ ErrCode EventImpl::getSubscriberCount(SizeT* count)
 
 ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
 {
+    std::scoped_lock lock(sync);
+
     if (muted)
     {
         return OPENDAQ_SUCCESS;
@@ -97,6 +107,8 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
 
 ErrCode EventImpl::freeze()
 {
+    std::scoped_lock lock(sync);
+
     if (frozen)
         return  OPENDAQ_IGNORED;
 
@@ -106,6 +118,8 @@ ErrCode EventImpl::freeze()
 
 ErrCode EventImpl::isFrozen(Bool* isFrozen) const
 {
+    std::scoped_lock lock(sync);
+
     *isFrozen = frozen;
 
     return OPENDAQ_SUCCESS;
@@ -118,23 +132,31 @@ ErrCode EventImpl::toString(CharPtr* str)
 
 ErrCode EventImpl::mute()
 {
+    std::scoped_lock lock(sync);
+
     muted = true;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode EventImpl::unmute()
 {
+    std::scoped_lock lock(sync);
+
     muted = false;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode EventImpl::muteListener(IEventHandler* eventHandler)
 {
+    std::scoped_lock lock(sync);
+
     return setMuted(eventHandler, true);
 }
 
 ErrCode EventImpl::unmuteListener(IEventHandler* eventHandler)
 {
+    std::scoped_lock lock(sync);
+
     return setMuted(eventHandler, false);
 }
 

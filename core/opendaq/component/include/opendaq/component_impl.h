@@ -222,7 +222,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     if (!context.assigned())
         throw InvalidParameterException{"Context must be assigned on component creation"};
 
-    {
+    if (context.getLogger().assigned()) {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
         const auto localIdString = localId.toStdString();
         if (!validateComponentId(localIdString))

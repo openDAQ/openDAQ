@@ -6,10 +6,9 @@ private:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
     InstancePtr instance;
-    DevicePtr device;
 
 protected:
-    PropertyPtr property;
+    DevicePtr device;
 
     void SetUp() override
     {
@@ -19,155 +18,186 @@ protected:
         instance = InstanceCustom(context, "mock_instance");
 
         device = instance.addDevice(connectionString);
-
-        property = device.getProperty("UserName");
     }
 };
 
-// TODO: It would make sense to test these on dedicated properties on the device.
-// I'd suggest adding a custom object to the simulator device that contains all different property types.
-// Some of such properties already exist in some test mocks and can be reused.
-
 TEST_F(RegressionTestProperty, getValueType)
 {
+    auto prop = device.getProperty("TestString");
     CoreType type;
-    ASSERT_NO_THROW(type = property.getValueType());
+    ASSERT_NO_THROW(type = prop.getValueType());
     ASSERT_EQ(type, CoreType::ctString);
 }
 
 TEST_F(RegressionTestProperty, getKeyType)
 {
+    auto prop = device.getProperty("TestDict");
     CoreType type;
-    ASSERT_NO_THROW(type = property.getKeyType());
-    ASSERT_EQ(type, CoreType::ctUndefined);
+    ASSERT_NO_THROW(type = prop.getKeyType());
+    ASSERT_EQ(type, CoreType::ctString);
 }
 
 TEST_F(RegressionTestProperty, getItemType)
 {
+    auto prop = device.getProperty("TestDict");
     CoreType type;
-    ASSERT_NO_THROW(type = property.getItemType());
-    ASSERT_EQ(type, CoreType::ctUndefined);
+    ASSERT_NO_THROW(type = prop.getItemType());
+    ASSERT_EQ(type, CoreType::ctString);
 }
 
 TEST_F(RegressionTestProperty, getName)
 {
+    auto prop = device.getProperty("TestString");
     StringPtr name;
-    ASSERT_NO_THROW(name = property.getName());
-    ASSERT_EQ(name, "UserName");
+    ASSERT_NO_THROW(name = prop.getName());
+    ASSERT_EQ(name, "TestString");
 }
 
 TEST_F(RegressionTestProperty, getDescription)
 {
+    auto prop = device.getProperty("TestString");
     StringPtr description;
-    ASSERT_NO_THROW(description = property.getDescription());
-    ASSERT_EQ(description, nullptr);
+    ASSERT_NO_THROW(description = prop.getDescription());
+    ASSERT_EQ(description, "TestDescription");
 }
 
 TEST_F(RegressionTestProperty, getUnit)
 {
+    auto prop = device.getProperty("TestInt");
     UnitPtr unit;
-    ASSERT_NO_THROW(unit = property.getUnit());
-    ASSERT_EQ(unit, nullptr);
+    ASSERT_NO_THROW(unit = prop.getUnit());
+    ASSERT_EQ(unit, Unit("TestUnit", -1, "TestName", "TestQunatity"));
 }
 
 TEST_F(RegressionTestProperty, getMinValue)
 {
+    auto prop = device.getProperty("TestInt");
     NumberPtr value;
-    ASSERT_NO_THROW(value = property.getMinValue());
-    ASSERT_EQ(value, nullptr);
+    ASSERT_NO_THROW(value = prop.getMinValue());
+    ASSERT_EQ(value, -666);
 }
 
 TEST_F(RegressionTestProperty, getMaxValue)
 {
+    auto prop = device.getProperty("TestInt");
     NumberPtr value;
-    ASSERT_NO_THROW(value = property.getMaxValue());
-    ASSERT_EQ(value, nullptr);
+    ASSERT_NO_THROW(value = prop.getMaxValue());
+    ASSERT_EQ(value, 777);
 }
 
 TEST_F(RegressionTestProperty, getDefaultValue)
 {
-    BaseObjectPtr value;
-    ASSERT_NO_THROW(value = property.getDefaultValue());
-    ASSERT_EQ(value, "");
+    auto prop = device.getProperty("TestInt");
+    NumberPtr value;
+    ASSERT_NO_THROW(value = prop.getDefaultValue());
+    ASSERT_EQ(value, 42);
 }
 
 TEST_F(RegressionTestProperty, getSuggestedValues)
 {
-    ListPtr<IBaseObject> values;
-    ASSERT_NO_THROW(values = property.getSuggestedValues());
-    ASSERT_EQ(values, nullptr);
+    auto prop = device.getProperty("TestInt");
+    ListPtr<INumber> values;
+    ASSERT_NO_THROW(values = prop.getSuggestedValues());
+    auto expected = List<Int>();
+    expected.pushBack(1);
+    expected.pushBack(2);
+    expected.pushBack(3);
+    ASSERT_EQ(values, expected);
 }
 
 TEST_F(RegressionTestProperty, getVisible)
 {
+    auto prop = device.getProperty("TestString");
     Bool visible;
-    ASSERT_NO_THROW(visible = property.getVisible());
+    ASSERT_NO_THROW(visible = prop.getVisible());
     ASSERT_EQ(visible, True);
 }
 
 TEST_F(RegressionTestProperty, getReadOnly)
 {
+    auto prop = device.getProperty("TestString");
     Bool readOnly;
-    ASSERT_NO_THROW(readOnly = property.getReadOnly());
+    ASSERT_NO_THROW(readOnly = prop.getReadOnly());
     ASSERT_EQ(readOnly, False);
 }
 
 TEST_F(RegressionTestProperty, getSelectionValues)
 {
+    auto prop = device.getProperty("TestSelection");
     BaseObjectPtr values;
-    ASSERT_NO_THROW(values = property.getSelectionValues());
-    ASSERT_EQ(values, nullptr);
+    ASSERT_NO_THROW(values = prop.getSelectionValues());
+    auto expected = List<IInteger>();
+    expected.pushBack(1);
+    expected.pushBack(2);
+    expected.pushBack(3);
+    ASSERT_EQ(values, expected);
 }
 
 TEST_F(RegressionTestProperty, getReferencedProperty)
 {
-    PropertyPtr prop;
-    ASSERT_NO_THROW(prop = property.getReferencedProperty());
-    ASSERT_EQ(prop, nullptr);
+    auto prop = device.getProperty("TestReference");
+    ASSERT_NO_THROW(prop = prop.getReferencedProperty());
+    ASSERT_EQ(prop.getDefaultValue(), "TestDefaultString");
 }
 
 TEST_F(RegressionTestProperty, getIsReferenced)
 {
-    Bool isReferenced;
-    ASSERT_NO_THROW(isReferenced = property.getIsReferenced());
-    ASSERT_EQ(isReferenced, False);
+    auto prop1 = device.getProperty("TestString");
+    Bool isReferenced1;
+    ASSERT_NO_THROW(isReferenced1 = prop1.getIsReferenced());
+    ASSERT_EQ(isReferenced1, True);
+
+    auto prop2 = device.getProperty("TestInt");
+    Bool isReferenced2;
+    ASSERT_NO_THROW(isReferenced2 = prop2.getIsReferenced());
+    ASSERT_EQ(isReferenced2, False);
 }
 
 TEST_F(RegressionTestProperty, getValidator)
 {
+    auto prop = device.getProperty("TestInt");
     ValidatorPtr validator;
-    ASSERT_NO_THROW(validator = property.getValidator());
-    ASSERT_EQ(validator, nullptr);
+    ASSERT_NO_THROW(validator = prop.getValidator());
+    ASSERT_EQ(validator.getEval(), "Value < 800");
 }
 
 TEST_F(RegressionTestProperty, getCoercer)
 {
+    auto prop = device.getProperty("TestInt");
     CoercerPtr coercer;
-    ASSERT_NO_THROW(coercer = property.getCoercer());
-    ASSERT_EQ(coercer, nullptr);
+    ASSERT_NO_THROW(coercer = prop.getCoercer());
+    ASSERT_EQ(coercer.getEval(), "if(Value > 900, Value, 900)");
 }
 
 TEST_F(RegressionTestProperty, getCallableInfo)
 {
+    auto prop = device.getProperty("TestString");
     CallableInfoPtr info;
-    ASSERT_NO_THROW(info = property.getCallableInfo());
+    ASSERT_NO_THROW(info = prop.getCallableInfo());
     ASSERT_EQ(info, nullptr);
 }
 
-// TODO: enable
-TEST_F(RegressionTestProperty, DISABLED_getStructType)
+TEST_F(RegressionTestProperty, getStructType)
 {
-    ASSERT_NO_THROW(property.getStructType());
+    auto prop = device.getProperty("TestStruct");
+    StructTypePtr stru;
+    ASSERT_NO_THROW(stru = prop.getStructType());
+    ASSERT_EQ(stru.getName(), "TestName");
+    ASSERT_EQ(stru.getFieldNames()[0], "TestKey");
 }
 
+// TODO: Why nullptr?
 TEST_F(RegressionTestProperty, getOnPropertyValueWrite)
 {
-    auto event = property.getOnPropertyValueWrite();
+    auto prop = device.getProperty("TestInt");
+    auto event = prop.getOnPropertyValueWrite();
     ASSERT_NE(event, nullptr);
 }
 
+// TODO: Why nullptr?
 TEST_F(RegressionTestProperty, getOnPropertyValueRead)
 {
-    auto event = property.getOnPropertyValueRead();
+    auto prop = device.getProperty("TestInt");
+    auto event = prop.getOnPropertyValueRead();
     ASSERT_NE(event, nullptr);
 }

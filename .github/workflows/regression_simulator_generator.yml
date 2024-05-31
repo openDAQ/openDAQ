@@ -1,15 +1,17 @@
 name: Generate openDAQ regression test simulator binaries
 
+# TODO: this whole action should likely be back-ported to 3.0.1 once a new tag is made, for future releases it won't be necessary
+
 on:
   workflow_dispatch:
   push: 
-    branches: # TODO: delete this before merge
+    branches: # TODO: debug only, delete
       - regression-tests 
     tags:
       - '**'
 
 env:
-  regression_tests_target_tag: v3.0.0
+  regression_tests_target_tag: v3.0.0 # TODO: not needed once we only run on tags
 
 jobs:
   regression_tests:
@@ -28,7 +30,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines_target: -DDAQMODULES_EMPTY_MODULE=OFF -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF -DAPP_ENABLE_WEBPAGE_EXAMPLES=OFF -DOPENDAQ_DOCUMENTATION_TESTS=OFF -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DAPP_ENABLE_AUDIO_APP=OFF -DAPP_ENABLE_EXAMPLE_APPS=OFF -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF 
+            cmake_defines_target: -DDAQMODULES_EMPTY_MODULE=OFF -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF -DAPP_ENABLE_WEBPAGE_EXAMPLES=OFF -DOPENDAQ_DOCUMENTATION_TESTS=OFF -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DAPP_ENABLE_AUDIO_APP=OFF -DAPP_ENABLE_EXAMPLE_APPS=OFF -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF # TODO: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON (later, to build simulator from tag)
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -62,40 +64,43 @@ jobs:
       - name: Install latest CMake
         run: pip install cmake
 
+      # TODO: not needed once we only run on tags, just checkout current 
       - name: Checkout target
         uses: actions/checkout@v3
         with:
           ref: ${{ env.regression_tests_target_tag }}
-          path: target
+          path: target # TODO: don't use target folder, just use default folder
 
-      # TODO: only checkout the necessary files and test if it still works
       - name: Checkout current
         uses: actions/checkout@v3
         with:
-          path: current
+          path: current # TODO: not needed once we only run on tags
 
+      # TODO: not needed once we only run on tags
       - name: Copy regression simulator to top folder
         run: cp -r current/regression/simulator .
-        
+
+      # TODO: not needed once we only run on tags
       - name: Move and rename CMakeListsTop.txt from current to top folder and move CMakePresets.json from target to top folder (to build simulator with target version)
         run: |
           mv current/regression/CMakeListsTop.txt CMakeLists.txt
           mv target/CMakePresets.json .
 
       - name: Configure target (with regression simulator)
-        working-directory: target
+        working-directory: target # TODO: not needed once we only run on tags (don't use target folder, just use default folder)
         run: |
           mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ../..
 
       - name: Build target (with regression simulator)
-        working-directory: target/build
+        working-directory: target/build # TODO: don't use target folder, just use default folder
         run: cmake --build .
-        
+
       - name: Move simulator binary to bin folder
-        run: mv target/build/simulator/regression_simulator target/build/bin
-        
+        run: mv target/build/simulator/regression_simulator target/build/bin # TODO: don't use target folder, just use default folder
+
+      # TODO: don't use target folder, just use default folder
       - name: Upload target bin folder .zip
         uses: actions/upload-artifact@v3
         with: 

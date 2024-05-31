@@ -43,7 +43,7 @@ ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& t
         return ProtocolType::Configuration; 
     if (type == "Streaming")
         return ProtocolType::Streaming;
-    return ProtocolType::ConfigurationAndStreaming; 
+    return ProtocolType::Unknown; 
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)

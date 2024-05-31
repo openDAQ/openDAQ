@@ -129,6 +129,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId);
     connectionInfo.setProtocolName("openDAQ OpcUa");
     connectionInfo.setProtocolType(ProtocolType::Configuration);
+    connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
     connectionInfo.setPort(std::stoi(port));
     connectionInfo.setPrefix("daq.opcua");

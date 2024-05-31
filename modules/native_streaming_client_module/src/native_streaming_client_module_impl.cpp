@@ -328,6 +328,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     connectionInfo.setProtocolId(protocolId);
     connectionInfo.setProtocolName(protocolName);
     connectionInfo.setProtocolType(protocolType);
+    connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
     connectionInfo.setPort(std::stoi(port.toStdString()));
     connectionInfo.setPrefix(protocolPrefix);

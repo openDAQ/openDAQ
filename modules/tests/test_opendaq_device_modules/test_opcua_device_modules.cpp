@@ -728,9 +728,13 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_opcua_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ OpcUa");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
     ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
 }
 
 

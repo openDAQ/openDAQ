@@ -287,6 +287,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
     ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
     ASSERT_EQ(connectionInfo.getPort(), 7414);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");

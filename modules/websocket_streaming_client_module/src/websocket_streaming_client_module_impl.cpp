@@ -124,6 +124,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     connectionInfo.setProtocolId(WebsocketDeviceTypeId);
     connectionInfo.setProtocolName("openDAQ LT Streaming");
     connectionInfo.setProtocolType(ProtocolType::Streaming);
+    connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
     connectionInfo.setPort(port);
     connectionInfo.setPrefix("daq.lt");

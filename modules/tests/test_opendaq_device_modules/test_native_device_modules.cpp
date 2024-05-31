@@ -1055,6 +1055,7 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
     ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");

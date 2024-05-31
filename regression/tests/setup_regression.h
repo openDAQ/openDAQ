@@ -28,20 +28,20 @@ namespace
 
 // TODO: make sure this uses getenv in production
 
-// StringPtr protocol = "nd"; // opcua nd ns lt
+// StringPtr protocol = "nd";  // opcua nd ns lt
 StringPtr protocol = getenv("protocol");
 
 StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
 
 // Macro that ensures that we only continue for listed protocols
-#define PROTOCOLS(...)                                               \
-    std::set<std::string> protos = {__VA_ARGS__};                    \
-    if (protocol == "opcua" && protos.find("opcua") == protos.end()) \
-        return;                                                      \
-    else if (protocol == "nd" && protos.find("nd") == protos.end())  \
-        return;                                                      \
-    else if (protocol == "ns" && protos.find("ns") == protos.end())  \
-        return;                                                      \
-    else if (protocol == "lt" && protos.find("lt") == protos.end())  \
+#define PROTOCOLS(...)                                                     \
+    std::set<std::string> protocols = {__VA_ARGS__};                       \
+    if (protocol == "opcua" && protocols.find("opcua") == protocols.end()) \
+        return;                                                            \
+    else if (protocol == "nd" && protocols.find("nd") == protocols.end())  \
+        return;                                                            \
+    else if (protocol == "ns" && protocols.find("ns") == protocols.end())  \
+        return;                                                            \
+    else if (protocol == "lt" && protocols.find("lt") == protocols.end())  \
         return;

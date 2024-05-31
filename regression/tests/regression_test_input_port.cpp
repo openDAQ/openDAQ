@@ -33,19 +33,26 @@ TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDiscon
 {
     PROTOCOLS("nd")
 
-    auto signal = device.getSignalsRecursive()[0];
+    auto signal1 = device.getSignalsRecursive()[0];
     Bool accepts;
-    ASSERT_NO_THROW(accepts = port.acceptsSignal(signal));
+    ASSERT_NO_THROW(accepts = port.acceptsSignal(signal1));
     ASSERT_EQ(accepts, True);
-    ASSERT_NO_THROW(port.connect(signal));
-    ASSERT_NO_THROW(port.getSignal());
-    ASSERT_NO_THROW(port.getConnection());
+    ASSERT_NO_THROW(port.connect(signal1));
+    SignalPtr signal2;
+    ASSERT_NO_THROW(signal2 = port.getSignal());
+    ASSERT_EQ(signal1, signal2);
+    ConnectionPtr connection;
+    ASSERT_NO_THROW(connection = port.getConnection());
+    ASSERT_NE(connection, nullptr);
     ASSERT_NO_THROW(port.disconnect());
+    ASSERT_EQ(port.getSignal(), nullptr);
 }
 
 TEST_F(RegressionTestInputPort, getRequiresSignal)
 {
     PROTOCOLS("opcua", "nd")
 
-    ASSERT_NO_THROW(port.getRequiresSignal());
+    Bool reqs;
+    ASSERT_NO_THROW(reqs = port.getRequiresSignal());
+    ASSERT_EQ(reqs, True);
 }

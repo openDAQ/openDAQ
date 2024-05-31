@@ -138,6 +138,8 @@ private:
     bool startOnFullUnitOfDomain;
 
     MultiReaderStatusPtr defaultStatus;
+
+    NotifyInfo notify{};
 };
 
 END_NAMESPACE_OPENDAQ

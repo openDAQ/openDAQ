@@ -206,14 +206,14 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     )
 }
 
-void SignalReader::prepare(void* outValues, SizeT count, std::chrono::milliseconds timeoutTime)
+void SignalReader::prepare(void* outValues, SizeT count)
 {
-    info.prepare(outValues, count / sampleRateDivider, timeoutTime);
+    info.prepare(outValues, count / sampleRateDivider, std::chrono::milliseconds(0));
 }
 
-void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count, std::chrono::milliseconds timeoutTime)
+void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count)
 {
-    info.prepareWithDomain(outValues, domain, count / sampleRateDivider, timeoutTime);
+    info.prepareWithDomain(outValues, domain, count / sampleRateDivider, std::chrono::milliseconds(0));
 }
 
 void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
@@ -446,8 +446,7 @@ ErrCode SignalReader::readPackets()
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
 
-    ReadInfo::Duration remainingTime = info.timeout;
-    while (info.remainingToRead > 0 && remainingTime.count() >= 0)
+    while (info.remainingToRead != 0)
     {
         PacketPtr packet = info.dataPacket;
         if (!packet.assigned())
@@ -457,9 +456,6 @@ ErrCode SignalReader::readPackets()
 
         if (packet.assigned())
             errCode = handlePacket(packet, firstData);
-
-        if (info.timeout.count() != 0)
-            remainingTime = info.timeout - info.durationFromStart();
     }
 
     return errCode;

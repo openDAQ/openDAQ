@@ -66,8 +66,8 @@ struct SignalReader
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
     void setCommonSampleRate(const std::int64_t commonSampleRate);
 
-    void prepare(void* outValues, SizeT count, std::chrono::milliseconds timeoutTime);
-    void prepareWithDomain(void* outValues, void* domain, SizeT count, std::chrono::milliseconds timeoutTime);
+    void prepare(void* outValues, SizeT count);
+    void prepareWithDomain(void* outValues, void* domain, SizeT count);
 
     void setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution);
 

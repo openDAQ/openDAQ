@@ -647,14 +647,12 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
     SizeT samplesToRead = remainingSamplesToRead;
-    SizeT availableSamples = remainingSamplesToRead;
     if (timeout.count() > 0)
     {
         std::unique_lock notifyLock(notify.mutex);
 
         MultiReaderStatusPtr status;
-        SizeT availableSamples {0};
-        auto condition = [this, &status, &availableSamples]
+        auto condition = [this, &status]
         {
             if (notify.packetReady == false)
                 return false;
@@ -675,19 +673,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
                 return true;
             }
 
-            if (syncStatus == SyncStatus::Synchronized && min > 0u)
-            {
-                availableSamples = min;
-                return availableSamples >= remainingSamplesToRead;
-            }
-            return false;
+            return (syncStatus == SyncStatus::Synchronized) && (min >= remainingSamplesToRead);
         };
         notify.condition.wait_for(notifyLock, timeout, condition);
 
         if (status.assigned())
             return status;
-
-        availableSamples = std::min(availableSamples, remainingSamplesToRead);
     }
 
     if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
@@ -703,17 +694,14 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     {
         return MultiReaderStatus(nullptr, !invalid);
     }
-
-    SizeT toRead = availableSamples - (samplesToRead - remainingSamplesToRead);
-
-    if (toRead == 0)
+    if (remainingSamplesToRead == 0)
     {
         return defaultStatus;
     }
 
     if (syncStatus == SyncStatus::Synchronized && min > 0u)
     {
-        toRead = std::min(toRead, min);
+        SizeT toRead = std::min(remainingSamplesToRead, min);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto start = std::chrono::steady_clock::now();
@@ -724,8 +712,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto end = std::chrono::steady_clock::now();
         LOG_T("Read {} / {} [{} left]",
                 toRead,
-                availableSamples,
-                (availableSamples - (samplesToRead - remainingSamplesToRead))
+                samplesToRead,
+                remainingSamplesToRead
         )
 #endif
     }

@@ -39,14 +39,22 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
 
     m.def("Scheduler", &daq::Scheduler_Create);
 
-    cls.def("schedule_work",
-        [](daq::IScheduler *object, daq::IFunction* work)
+    cls.def("schedule_function",
+        [](daq::IScheduler *object, daq::IFunction* function)
         {
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
-            return objectPtr.scheduleWork(work).detach();
+            return objectPtr.scheduleFunction(function).detach();
+        },
+        py::arg("function"),
+        "Schedules the specified @p work function to run on the thread-pool. The call does not block but immediately returns an @p awaitable that represents the asynchronous execution. It can be waited upon and queried for status and result.");
+    cls.def("schedule_work",
+        [](daq::IScheduler *object, daq::IWork* work)
+        {
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            objectPtr.scheduleWork(work);
         },
         py::arg("work"),
-        "Schedules the specified @p work function to run on the thread-pool. The call does not block but immediately returns an @p awaitable that represents the asynchronous execution. It can be waited upon and queried for status and result.");
+        "Schedules the specified work callback to run on the thread-pool. The call does not block.");
     cls.def("schedule_graph",
         [](daq::IScheduler *object, daq::ITaskGraph* graph)
         {

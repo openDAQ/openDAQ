@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -46,6 +46,13 @@ internal unsafe class RawFunction : RawBaseObject
 /// bindings provide their implementation which allows passing function as a lambda
 /// functions and other constructs.
 /// Available factories:
+/// <code>
+/// // Creates a new Function object. Throws exception if not successful.
+/// IFunction* Function_Create(FuncCall value)
+///
+/// // Creates a new Function object. Returns error code if not successful.
+/// ErrCode createFunction(IFuncObject** obj, FuncCall value)
+/// </code>
 /// </remarks>
 [Guid("2eeacd91-0883-5fc8-8eb8-4f4c80cd8131")]
 public class Function : BaseObject
@@ -79,7 +86,7 @@ public class Function : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params.NativePointer, out resultPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -110,7 +117,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFunction(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new Function(objPtr, incrementReference: false);
@@ -127,7 +134,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFunction(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

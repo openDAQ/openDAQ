@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ public class Iterable<TValue> : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawIterable.CreateStartIterator(base.NativePointer, out iteratorPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -92,7 +92,7 @@ public class Iterable<TValue> : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawIterable.CreateEndIterator(base.NativePointer, out iteratorPtr);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

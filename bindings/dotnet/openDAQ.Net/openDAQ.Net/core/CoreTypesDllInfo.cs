@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpConfigGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpConfigGenerator v1.0.0) on 22.05.2024 13:58:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -54,5 +54,5 @@ public static class CoreTypesDllInfo
 #endif
 
     /// <summary>The SDK version.</summary>
-    public static readonly OpenDaqVersion Version = new OpenDaqVersion(2, 0, 0);
+    public static readonly OpenDaqVersion Version = new OpenDaqVersion(3, 1, 0);
 }

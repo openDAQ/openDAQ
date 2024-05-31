@@ -27,7 +27,7 @@ TEST_P(SiggenTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignalsRecursive();
-    ASSERT_EQ(signals.getCount(), 2u);
+    ASSERT_EQ(signals.getCount(), 4u);
 }
 
 TEST_P(SiggenTest, SyncSignalDescriptors)
@@ -45,7 +45,42 @@ TEST_P(SiggenTest, SyncSignalDescriptors)
 
     EXPECT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
     EXPECT_EQ(dataDescriptor.getRule().getType(), DataRuleType::Explicit);
-    EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15.0, 15.0)); // default set by openDAQ client
+    EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15, 15));
+
+    EXPECT_FALSE(dataDescriptor.getPostScaling().assigned());
+
+    EXPECT_EQ(dataDescriptor.getDimensions().getCount(), 0u);
+    EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);
+    EXPECT_FALSE(dataDescriptor.getUnit().assigned());
+
+    EXPECT_EQ(domainDescriptor.getRule().getType(), DataRuleType::Linear);
+    EXPECT_EQ(domainDescriptor.getUnit().getSymbol(), "s");
+    EXPECT_EQ(domainDescriptor.getUnit().getQuantity(), "time");
+    EXPECT_NE(domainDescriptor.getOrigin(), "");
+    EXPECT_NE(domainDescriptor.getTickResolution().getNumerator(), 0);
+    EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
+}
+
+TEST_P(SiggenTest, SyncPostScalingSignalDescriptors)
+{
+    auto client = CreateClientInstance(GetParam());
+
+    auto signal  = client.getSignalsRecursive()[1];
+
+    EXPECT_EQ(signal.getLocalId(), "Signal2_Sync_PostScaling");
+
+    DataDescriptorPtr dataDescriptor = signal.getDescriptor();
+    DataDescriptorPtr domainDescriptor = signal.getDomainSignal().getDescriptor();
+
+    EXPECT_EQ(signal.getName(), "value");
+
+    EXPECT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
+    EXPECT_EQ(dataDescriptor.getRule().getType(), DataRuleType::Explicit);
+    EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15, 15));
+
+    ASSERT_TRUE(dataDescriptor.getPostScaling().assigned());
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("scale"), 2);
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("offset"), 5);
 
     EXPECT_EQ(dataDescriptor.getDimensions().getCount(), 0u);
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);
@@ -63,7 +98,7 @@ TEST_P(SiggenTest, DISABLED_AsyncSignalDescriptors)
 {
     auto client = CreateClientInstance(GetParam());
 
-    auto signal  = client.getSignalsRecursive()[1];
+    auto signal  = client.getSignalsRecursive()[2];
 
     EXPECT_EQ(signal.getLocalId(), "Signal2_Async");
 
@@ -74,7 +109,7 @@ TEST_P(SiggenTest, DISABLED_AsyncSignalDescriptors)
 
     EXPECT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
     EXPECT_EQ(dataDescriptor.getRule().getType(), DataRuleType::Explicit);
-    EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15.0, 15.0)); // default set by openDAQ client
+    EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15, 15));
 
     EXPECT_EQ(dataDescriptor.getDimensions().getCount(), 0u);
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);

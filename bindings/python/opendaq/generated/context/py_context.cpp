@@ -71,6 +71,14 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::return_value_policy::take_ownership,
         "Gets the Type Manager.");
+    cls.def_property_readonly("authentication_provider",
+        [](daq::IContext *object)
+        {
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return objectPtr.getAuthenticationProvider().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Authentication provider.");
     /*
     cls.def_property_readonly("on_core_event",
         [](daq::IContext *object)
@@ -97,4 +105,12 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::arg("module_id"),
         "Retrieves the options associated with the specified module ID.");
+    cls.def_property_readonly("discovery_servers",
+        [](daq::IContext *object)
+        {
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return objectPtr.getDiscoveryServers().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictionary of available discovery services.");
 }

@@ -92,7 +92,7 @@ daq::opcua::OpcUaServerPtr TmsObjectTest::CreateAndStartTestServer()
 
 daq::opcua::OpcUaClientPtr TmsObjectTest::CreateAndConnectTestClient()
 {
-    OpcUaEndpoint endpoint("Test", "opc.tcp://127.0.0.1:4840");
+    OpcUaEndpoint endpoint("opc.tcp://127.0.0.1:4840");
     endpoint.registerCustomTypes(UA_TYPES_DI_COUNT, UA_TYPES_DI);
     endpoint.registerCustomTypes(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
     endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);

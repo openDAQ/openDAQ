@@ -17,6 +17,7 @@
 #include "opendaq/range_factory.h"
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -117,7 +118,6 @@ void ScalingFbImpl::configure()
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
         setInputStatus(InputInvalid);
-        LOG_W("Incomplete signal descriptors")
         return;
     }
 
@@ -181,6 +181,9 @@ void ScalingFbImpl::configure()
 
 void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
 {
+    auto outQueue = List<IPacket>();
+    auto outDomainQueue = List<IPacket>();
+
     std::scoped_lock lock(sync);
 
     PacketPtr packet;
@@ -199,7 +202,7 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
                 break;
 
             case PacketType::Data:
-                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
+                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, std::move(packet), outQueue, outDomainQueue);
                 break;
 
             default:
@@ -208,6 +211,9 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
 
         packet = connection.dequeue();
     };
+
+    outputSignal.sendPackets(std::move(outQueue));
+    outputDomainSignal.sendPackets(std::move(outDomainQueue));
 }
 
 void ScalingFbImpl::processEventPacket(const EventPacketPtr& packet)
@@ -220,26 +226,50 @@ void ScalingFbImpl::processEventPacket(const EventPacketPtr& packet)
     }
 }
 
+/*
 template <SampleType InputSampleType>
 void ScalingFbImpl::processDataPacket(const DataPacketPtr& packet)
+{
+    const size_t sampleCount = packet.getSampleCount();
+
+    const auto outputPacket = DataPacketWithDomain(packet.getDomainPacket(), outputDataDescriptor, sampleCount);
+    outputSignal.sendPacket(outputPacket);
+    outputDomainSignal.sendPacket(packet.getDomainPacket());
+}
+*/
+
+ template <SampleType InputSampleType>
+void ScalingFbImpl::processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
 {
     using InputType = typename SampleTypeToType<InputSampleType>::Type;
     auto inputData = static_cast<InputType*>(packet.getData());
     const size_t sampleCount = packet.getSampleCount();
 
-    const auto outputPacket = DataPacketWithDomain(packet.getDomainPacket(), outputDataDescriptor, sampleCount);
+    DataPacketPtr outputPacket;
+    DataPacketPtr outputDomainPacket = packet.getDomainPacket();
+
+    const auto reusablePacket = packet.asPtrOrNull<IReusableDataPacket>(true);
+    if (reusablePacket.assigned() && packet.getRefCount() == 1 && reusablePacket.reuse(outputDataDescriptor, std::numeric_limits<SizeT>::max(), nullptr, nullptr, false))
+    {
+        outputPacket = std::move(packet);
+    }
+    else
+    {
+        outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, sampleCount);
+    }
+
     auto outputData = static_cast<Float*>(outputPacket.getData());
 
     for (size_t i = 0; i < sampleCount; i++)
         *outputData++ = scale * static_cast<Float>(*inputData++) + offset;
 
-    outputSignal.sendPacket(outputPacket);
-    outputDomainSignal.sendPacket(packet.getDomainPacket());
+    outQueue.pushBack(std::move(outputPacket));
+    outDomainQueue.pushBack(std::move(outputDomainPacket));
 }
 
 void ScalingFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("input", PacketReadyNotification::SchedulerQueueWasEmpty);
 }
 
 void ScalingFbImpl::createSignals()

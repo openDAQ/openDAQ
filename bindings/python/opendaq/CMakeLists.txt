@@ -35,6 +35,7 @@ set(SRC_Cpp
     generated/logger/py_logger_thread_pool.cpp
     generated/modulemanager/py_module.cpp
     generated/modulemanager/py_module_manager.cpp
+    generated/modulemanager/py_discovery_server.cpp
     generated/reader/py_block_reader.cpp
     generated/reader/py_packet_reader.cpp
     generated/reader/py_reader.cpp
@@ -44,6 +45,8 @@ set(SRC_Cpp
     generated/reader/py_time_reader.cpp
     generated/reader/py_reader_status.cpp
     generated/reader/py_block_reader_status.cpp
+    generated/reader/py_multi_reader.cpp
+    generated/reader/py_multi_reader_builder.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp

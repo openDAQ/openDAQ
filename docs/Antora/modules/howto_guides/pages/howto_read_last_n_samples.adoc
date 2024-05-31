@@ -37,6 +37,15 @@ reader = opendaq.TailReader(signal, 5)
 reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
 reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64)
 ----
+C#::
++
+[source,csharp]
+----
+// These calls all create the same Reader
+var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+var reader = OpenDAQFactory.CreateTailReader<double, long>(signal, 5);
+// right now there exists no factory function using `SampleType` as parameters
+----
 ====
 
 [NOTE]
@@ -75,6 +84,20 @@ reader = opendaq.TailReader(signal, 5)
 # Signal produces 3 samples: 1, 2, 3
 
 reader.read(5) # [1, 2, 3]
+----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+// Signal produces 3 samples: { 1, 2, 3 }
+
+nuint count = 5;
+double[] values = new double[5];
+long[] domain = new long[5];
+
+reader.ReadWithDomain(values, domain, ref count); // count = 3, values = { 1, 2, 3, 0, 0 }
 ----
 ====
 
@@ -156,6 +179,32 @@ values = reader.read(10)
 # and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
 
 values = reader.read(8)
+----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+/*
+ * The Signal produces 3 Packets
+ * [Packet 1]: 4 samples
+ * [Packet 2]: 3 samples
+ * [Packet 3]: 1 sample
+ * -------------------------------
+ *      Total: 8 samples
+ */
+
+nuint count = 10;
+double[] values = new double[10];
+
+// Will throw a SizeTooLargeException
+reader.read(values, ref count);
+
+// Will succeed as [Packet 3] and [Packet 2] together are less than 5 samples
+// and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
+count = 8;
+reader.read(values, ref count);
 ----
 ====
 

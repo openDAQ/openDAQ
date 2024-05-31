@@ -30,16 +30,21 @@ public:
               const ComponentPtr& parent,
               const std::string& opcUaUrl);
 
+    TmsClient(const ContextPtr& context,
+              const ComponentPtr& parent,
+              const OpcUaEndpoint& endpoint);
+
     daq::DevicePtr connect();
 
 
 protected:
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
+    void createAndConectClient();
 
     tms::TmsClientContextPtr tmsClientContext;
     ContextPtr context;
     daq::opcua::OpcUaClientPtr client;
-    std::string opcUaUrl;
+    OpcUaEndpoint endpoint;
     ComponentPtr parent;
     LoggerComponentPtr loggerComponent;
 };

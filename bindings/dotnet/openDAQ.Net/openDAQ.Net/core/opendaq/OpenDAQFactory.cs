@@ -42,7 +42,7 @@ public static partial class OpenDAQFactory
             //get the SDK version
             daqOpenDaqGetVersion(out int major, out int minor, out int revision);
 
-            //create and return object
+            //create and return .NET System object
             return new Version(major, minor, revision);
         }
     }
@@ -251,7 +251,7 @@ public static partial class OpenDAQFactory
         if (consoleSinkLogLevel != LogLevel.Off)
         {
             var consoleSink = StdOutLoggerSink();
-            consoleSink.SetLevel(consoleSinkLogLevel);
+            consoleSink.Level = consoleSinkLogLevel;
             sinks.Add(consoleSink);
         }
 
@@ -260,7 +260,7 @@ public static partial class OpenDAQFactory
         if (winDebugSinkLogLevel != LogLevel.Off)
         {
             var winDebugSink = WinDebugLoggerSink();
-            winDebugSink.SetLevel(winDebugSinkLogLevel);
+            winDebugSink.Level = winDebugSinkLogLevel;
             sinks.Add(winDebugSink);
         }
 #endif
@@ -274,7 +274,7 @@ public static partial class OpenDAQFactory
         if (!string.IsNullOrEmpty(fileSinkFileName))
         {
             var fileSink = RotatingFileLoggerSink(fileSinkFileName, 1048576, 5);
-            fileSink.SetLevel(fileSinkLogLevel);
+            fileSink.Level = fileSinkLogLevel;
             sinks.Add(fileSink);
         }
 
@@ -313,13 +313,16 @@ public static partial class OpenDAQFactory
     /// <param name="logger">The logger the context has access to.</param>
     /// <param name="typeManager">The type manager.</param>
     /// <param name="moduleManager">The module manager.</param>
+    /// <param name="authenticationProvider">The authentication provider.</param>
     /// <param name="options">The options.</param>
     /// <returns>The Context instance.</returns>
     public static Context Context(Scheduler scheduler,
                                   Logger logger,
                                   TypeManager typeManager,
                                   ModuleManager moduleManager,
-                                  IDictObject<StringObject, BaseObject> options = null)
+                                  AuthenticationProvider authenticationProvider,
+                                  IDictObject<StringObject, BaseObject> options = null,
+                                  IDictObject<StringObject, DiscoveryServer> discoveryServices = null)
     {
         /*
             inline ContextPtr Context(const SchedulerPtr& scheduler,
@@ -338,7 +341,12 @@ public static partial class OpenDAQFactory
             options = CoreTypesFactory.CreateDict<StringObject, BaseObject>();
         }
 
-        return CreateContext(scheduler, logger, typeManager, moduleManager, options);
+        if (discoveryServices == null)
+        {
+            discoveryServices = CoreTypesFactory.CreateDict<StringObject, DiscoveryServer>();
+        }
+
+        return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices);
     }
 
     /// <summary>
@@ -377,7 +385,8 @@ public static partial class OpenDAQFactory
         using var scheduler     = Scheduler(logger, 0);
         using var moduleManager = ModuleManager(modulePath);
         using var typeManager   = TypeManager();
-        using var context       = Context(scheduler, logger, typeManager, moduleManager);
+        using var authenticationProvider = AuthenticationProvider();
+        using var context       = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         //instantiate default parameters if null
         using StringObject localIdStr = localId ?? string.Empty;
@@ -400,6 +409,23 @@ public static partial class OpenDAQFactory
         */
 
         using var sinks = DefaultSinks(fileName);
+
+        return CreateLogger(sinks, level);
+    }
+
+    /// <summary>Creates a Logger object with given sinks, and log severity level.</summary>
+    /// <param name="sinks">The list of Sink objects. List members are of type &apos;ILoggerSink&apos;.</param>
+    /// <param name="level">The default minimal severity level of the messages to be logged.</param>
+    /// <returns>The Logger instance.</returns>
+    public static Logger LoggerWithSinks(IListObject<LoggerSink> sinks,
+                                         LogLevel level = LogLevel.Info)
+    {
+        /*
+            inline LoggerPtr LoggerWithSinks(ListPtr<ILoggerSink>sinks, LogLevel level = LogLevel(OPENDAQ_LOG_LEVEL))
+            {
+                return LoggerPtr(Logger_Create(sinks, level));
+            }
+        */
 
         return CreateLogger(sinks, level);
     }
@@ -460,4 +486,104 @@ public static partial class OpenDAQFactory
 
         return CreateScheduler(logger, numWorkers);
     }
+
+    #region AuthenticationProvider
+
+    /// <summary>Creates a default authentication provider with only anonymous authentication allowed.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    public static AuthenticationProvider AuthenticationProvider()
+    {
+        return AuthenticationProvider(true);
+    }
+
+    /// <summary>Creates an empty authentication provider without any user.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="allowAnonymous">True if anonymous authentication is allowed.</param>
+    public static AuthenticationProvider AuthenticationProvider(bool allowAnonymous)
+    {
+        using var userList = CoreTypesFactory.CreateList<BaseObject>();
+        return CoreObjectsFactory.CreateStaticAuthenticationProvider(allowAnonymous, userList);
+    }
+
+    /// <summary>Creates an authentication provider out of static list of users.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="allowAnonymous">True if anonymous authentication is allowed.</param>
+    /// <param name="userList">List of User objects.</param>
+    public static AuthenticationProvider StaticAuthenticationProvider(bool allowAnonymous, IListObject<BaseObject> userList)
+    {
+        return CoreObjectsFactory.CreateStaticAuthenticationProvider(allowAnonymous, userList);
+    }
+
+    /// <summary>Creates an authentication provider out of json file.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="filename">File path to a json file containing a list of serialized User objects.</param>
+    public static AuthenticationProvider JsonFileAuthenticationProvider(string filename)
+    {
+        return CoreObjectsFactory.CreateJsonFileAuthenticationProvider(filename);
+    }
+
+    /// <summary>Creates an authentication provider out of json string.</summary>
+    /// <returns>The &apos;AuthenticationProvider&apos; object.</returns>
+    /// <param name="jsonString">Json string containg a list of serialized User objects.</param>
+    public static AuthenticationProvider JsonStringAuthenticationProvider(string jsonString)
+    {
+        return CoreObjectsFactory.CreateJsonStringAuthenticationProvider(jsonString);
+    }
+
+    #endregion AuthenticationProvider
+
+    #region ConfigProvider
+
+    /// <summary>
+    /// Creates a Json configuration provider.
+    /// </summary>
+    /// <param name="filename">The filename.</param>
+    /// <returns>The <see cref="ConfigProvider"/>.</returns>
+    public static ConfigProvider JsonConfigProvider(string filename = null)
+    {
+        ConfigProvider obj = OpenDAQFactory.CreateJsonConfigProvider(filename);
+        return obj;
+    }
+
+    /// <summary>
+    /// Creates an environment configuration provider.
+    /// </summary>
+    /// <returns>The <see cref="ConfigProvider"/>.</returns>
+    public static ConfigProvider EnvConfigProvider()
+    {
+        ConfigProvider obj = OpenDAQFactory.CreateEnvConfigProvider();
+        return obj;
+    }
+
+    /// <summary>
+    /// Creates a command-line argument configuration provider.
+    /// </summary>
+    /// <param name="args">The command-line arguments.</param>
+    /// <returns>The <see cref="ConfigProvider"/>.</returns>
+    public static ConfigProvider CmdLineArgsConfigProvider(IList<string> args)
+    {
+        using IListObject<BaseObject> cmdLineArgs = CoreTypesFactory.CreateList<BaseObject>();
+
+        foreach (string arg in args)
+            cmdLineArgs.Add(arg);
+
+        ConfigProvider obj = OpenDAQFactory.CreateCmdLineArgsConfigProvider(cmdLineArgs);
+        return obj;
+    }
+
+    #endregion ConfigProvider
+
+    #region InstanceBuilder
+
+    /// <summary>
+    /// Creates a InstanceBuilder with no parameters configured.
+    /// </summary>
+    /// <returns>The <see cref="InstanceBuilder"/>.</returns>
+    public static InstanceBuilder InstanceBuilder()
+    {
+        InstanceBuilder obj = OpenDAQFactory.CreateInstanceBuilder();
+        return obj;
+    }
+
+    #endregion InstanceBuilder
 }

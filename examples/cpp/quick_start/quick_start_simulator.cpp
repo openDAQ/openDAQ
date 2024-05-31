@@ -13,11 +13,20 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
-    const InstancePtr instance = Instance(MODULE_PATH);
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder();
+    instanceBuilder.addModulePath(MODULE_PATH);
+    instanceBuilder.addDiscoveryService("mdns");
+    instanceBuilder.setRootDevice("daqref://device1");
+    
+    const InstancePtr instance = instanceBuilder.build();
 
-    instance.setRootDevice("daqref://device1");
     instance.addServer("openDAQ LT Streaming", nullptr);
     instance.addStandardServers();
+
+    for (const auto& server : instance.getServers())
+    {
+        server.enableDiscovery();
+    }
 
     while(true)
         std::this_thread::sleep_for(100ms);

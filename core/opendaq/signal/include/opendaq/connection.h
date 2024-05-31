@@ -114,6 +114,42 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * on remote devices.
      */
     virtual ErrCode INTERFACE_FUNC isRemote(Bool* remote) = 0;
+
+    // [overloadFor(enqueue), stealRef(packet)]
+    /*!
+     * @brief Places a packet at the back of the queue. The reference of the packet is stolen.
+     * @param packet The packet to be enqueued.
+     *
+     * After calling the method, the packet should not be touched again. The ownership of the packet
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Places multiple packets at the back of the queue.
+     * @param packet The packets to be enqueued.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) = 0;
+
+    // [elementType(packets, IPacket), overloadFor(enqueueMultiple), stealRef(packets)]
+    /*!
+     * @brief Places multiple packets at the back of the queue. The references of the packets are stolen.
+     * @param packet The packets to be enqueued.
+     *
+     * After calling the method, the packets should not be touched again. The ownership of the packets
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packets) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Removes all packets from the queue.
+     * @param[out] packets The removed packets.
+     *
+     * Removing all packets can be more efficient than dequeuing packet by packet in heavily loaded systems.
+     */
+    virtual ErrCode INTERFACE_FUNC dequeueAll(IList** packets) = 0;
 };
 /*!@}*/
 

@@ -14,6 +14,7 @@ ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal
     : port(port)
     , signalRef(signal)
     , context(std::move(context))
+    , queueEmpty(true)
     , loggerComponent(this->context.getLogger().getOrAddComponent("daq_connection"))
 {
     const auto portConfig = port.asPtrOrNull<IInputPortConfig>(true);
@@ -29,47 +30,167 @@ ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal
     }
 }
 
-template <class F>
-ErrCode ConnectionImpl::enqueueInternal(IPacket* packet, const F& f)
+template <class P, class F>
+ErrCode ConnectionImpl::enqueueInternal(P&& packet, const F& f)
 {
-    OPENDAQ_PARAM_NOT_NULL(packet);
-
-    const auto packetPtr = PacketPtr::Borrow(packet);
-
     return daqTry(
-        [this, &packetPtr, &f]
+        [this, &packet, &f]
         {
             if (!port.getActive())
             {
-                const auto type = packetPtr.getType();
+                const auto type = packet.getType();
                 if (type != PacketType::Event)
                     return OPENDAQ_IGNORED;
                 LOGP_T("Port not active, data packet dropped.")
             }
 
-            withLock(
-                [&packetPtr, this]()
-                {
-                    if (gapCheckState != GapCheckState::disabled)
-                        checkForGaps(packetPtr);
+			bool queueWasEmpty;
 
-                    packets.emplace_back(packetPtr);
+            withLock(
+                [&packet, &queueWasEmpty, this]()
+                {
+                    queueWasEmpty = queueEmpty;
+                    if (gapCheckState != GapCheckState::disabled)
+                        checkForGaps(packet);
+
+                    packets.emplace_back(std::forward<P>(packet));
+                    queueEmpty = false;
                     LOGP_T("Packet enqueued.")
                 });
 
-            f();
+            f(queueWasEmpty);
             return OPENDAQ_SUCCESS;
         });
 }
 
 ErrCode ConnectionImpl::enqueue(IPacket* packet)
 {
-    return enqueueInternal(packet, [this]() { port.notifyPacketEnqueued(); });
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    const auto packetPtr = PacketPtr::Borrow(packet);
+
+    return enqueueInternal(packetPtr, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
 }
 
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
 {
-    return enqueueInternal(packet, [this]() { port.notifyPacketEnqueuedOnThisThread(); });
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    const auto packetPtr = PacketPtr::Borrow(packet);
+
+    return enqueueInternal(packetPtr, [this](bool) { port.notifyPacketEnqueuedOnThisThread(); });
+}
+
+#if _MSC_VER < 1920
+
+ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
+{
+    return daqTry([this, &packets] {
+        if (!port.getActive())
+            return OPENDAQ_IGNORED;
+
+        bool queueWasEmpty;
+
+        withLock([&packets, &queueWasEmpty, this]() {
+            queueWasEmpty = queueEmpty;
+            const size_t cnt = packets.getCount();
+            for (size_t i = 0; i < cnt; ++i)
+            {
+                this->packets.push_back(packets.getItemAt(i));
+            }
+            queueEmpty = false;
+        });
+
+        port.notifyPacketEnqueued(queueWasEmpty);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
+{
+    return daqTry([this, &packets] {
+        if (!port.getActive())
+            return OPENDAQ_IGNORED;
+
+        bool queueWasEmpty;
+
+        withLock([&packets, &queueWasEmpty, this]() {
+            queueWasEmpty = queueEmpty;
+            const size_t cnt = packets.getCount();
+            for (size_t i = 0; i < cnt; ++i)
+                this->packets.push_back(packets.popBack());
+            queueEmpty = false;
+        });
+
+        port.notifyPacketEnqueued(queueWasEmpty);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+#else
+
+template <class P>
+ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
+{
+    return daqTry(
+        [this, &packets]
+        {
+            if (!port.getActive())
+                return OPENDAQ_IGNORED;
+
+            bool queueWasEmpty;
+
+            withLock(
+                [&packets, &queueWasEmpty, this]()
+                {
+                    queueWasEmpty = queueEmpty;
+                    const size_t cnt = packets.getCount();
+                    for (size_t i = 0; i < cnt; ++i)
+                    {
+                        if constexpr (std::is_rvalue_reference_v<P&&>)
+                        {
+                            this->packets.push_back(packets.popBack());
+                        }
+                        else
+                        {
+                            this->packets.push_back(packets.getItemAt(i));
+                        }
+                    }
+                    queueEmpty = false;
+                });
+
+            port.notifyPacketEnqueued(queueWasEmpty);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+#endif
+ 
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultiple(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
+
+    return enqueueMultipleInternal(packetsPtr);
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueAndStealRef(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    auto packetPtr = PacketPtr::Adopt(packet);
+
+    return enqueueInternal(std::move(packetPtr), [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultipleAndStealRef(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
+
+    return enqueueMultipleInternal(std::move(packetsPtr));
 }
 
 ErrCode ConnectionImpl::dequeue(IPacket** packet)
@@ -80,17 +201,36 @@ ErrCode ConnectionImpl::dequeue(IPacket** packet)
     {
         if (packets.empty())
         {
+            queueEmpty = true;
             LOGP_T("No packet to dequeue.")
             *packet = nullptr;
             return OPENDAQ_NO_MORE_ITEMS;
         }
 
-        *packet = packets.front().addRefAndReturn();
+        *packet = packets.front().detach();
         packets.pop_front();
         LOGP_T("Packet dequeued.")
 
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    auto packetsPtr = List<IPacket>();
+
+    return withLock(
+        [&packetsPtr, packets, this]()
+        {
+            for (auto& packet : this->packets)
+                packetsPtr.pushBack(std::move(packet));
+            this->packets.clear();
+
+            *packets = packetsPtr.detach();
+            return OPENDAQ_NO_MORE_ITEMS;
+        });
 }
 
 ErrCode ConnectionImpl::peek(IPacket** packet)
@@ -194,6 +334,35 @@ ErrCode ConnectionImpl::isRemote(Bool* remote)
     *remote = False;
     LOG_T("Remote = {}.", *remote)
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ConnectionImpl::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IConnection::Id)
+    {
+        *intf = static_cast<IConnection*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+ErrCode ConnectionImpl::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IConnection::Id)
+    {
+        *intf = const_cast<IConnection*>(static_cast<const IConnection*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 ErrCode ConnectionImpl::getSignal(ISignal** signal)

@@ -19,6 +19,7 @@
 #include <coretypes/event.h>
 #include <opendaq/logger.h>
 #include <coretypes/dictobject.h>
+#include <coreobjects/authentication_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,6 +46,7 @@ struct IModuleManager;
 /*#
  * [interfaceLibrary(ITypeManager, "coretypes")]
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
+ * [interfaceLibrary(IAuthenticationProvider, "coreobjects")]
  * [interfaceSmartPtr(IComponent, ComponentPtr, "<opendaq/context_ptr.fwd_declare.h>")]
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
@@ -70,6 +72,11 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @param[out] manager The type manager.
      */
     virtual ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** manager) = 0;
+    /*!
+     * @brief Gets the Authentication provider.
+     * @param[out] authenticationProvider The authentication provider.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) = 0;
 
     // [templateType(event, IComponent, ICoreEventArgs)]
     /*!
@@ -98,6 +105,14 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @param[out] options A dictionary containing the options associated with the specified module ID.
      */
     virtual ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) = 0;
+
+    
+    // [templateType(services, IString, IBaseObject)]
+    /*!
+     * @brief Gets the dictionary of available discovery services.
+     * @param[out] services The dictionary of available discovery services.
+     */
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** services) = 0;
 };
 /*!@}*/
 
@@ -108,14 +123,16 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
  */
 
 // [templateType(options, IStringObject, IBaseObject)]
-
+// [templateType(discoveryServices, IStringObject, IDiscoveryServer)]
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Context,
     IScheduler*, Scheduler,
     ILogger*, Logger,
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
-    IDict*, options
+    IAuthenticationProvider*, authenticationProvider,
+    IDict*, options,
+    IDict*, discoveryServices
 )
 
 /*!@}*/

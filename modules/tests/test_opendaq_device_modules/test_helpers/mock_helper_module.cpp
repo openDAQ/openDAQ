@@ -118,6 +118,11 @@ ErrCode MockHelperModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+ErrCode MockHelperModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 }
 
 END_NAMESPACE_OPENDAQ

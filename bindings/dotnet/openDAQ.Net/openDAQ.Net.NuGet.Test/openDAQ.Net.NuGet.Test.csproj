@@ -7,19 +7,20 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace(".CI", ""))</RootNamespace>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.1">
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-    <PackageReference Include="NUnit" Version="4.0.1" />
+    <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.0.1">
+    <PackageReference Include="NUnit.Analyzers" Version="4.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -28,7 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="openDAQ.Net" Version="2.1.0-beta" />
+    <!-- use latest available beta version -->
+    <PackageReference Include="openDAQ.Net" Version="*-*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +53,9 @@
 
   <Target Name="MessageBeforeBuild" BeforeTargets="BeforeBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+    <Message Importance="High" Text="Configuration                  = '$(Configuration)'" />
+    <Message Importance="High" Text="Platform                       = '$(Platform)'" />
+    <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
   </Target>
   <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />

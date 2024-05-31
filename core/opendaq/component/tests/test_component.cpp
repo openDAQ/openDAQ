@@ -61,7 +61,7 @@ TEST_F(ComponentTest, NullPropertyClass)
 
 TEST_F(ComponentTest, PropertyClass)
 {
-    auto context = Context(nullptr, Logger(), TypeManager(), nullptr);
+    auto context = Context(nullptr, Logger(), TypeManager(), nullptr, nullptr);
     auto rangeItemClass = PropertyObjectClassBuilder("TestClass").build();
     context.getTypeManager().addType(rangeItemClass);
 

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -53,27 +53,33 @@ public class BoolObject : BaseObject
             _rawBoolObject = Marshal.PtrToStructure<RawBoolObject>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets a boolean value stored in the object.</summary>
     /// <remarks>Call this method to extract the boolean value that is stored in the object.</remarks>
-    /// <returns>Stored boolean value.</returns>
-    public bool GetValue()
+    public bool Value
     {
-        //native output argument
-        bool value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawBoolObject.GetValue(base.NativePointer, out value);
+            //native output argument
+            bool value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawBoolObject.GetValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
+
+    #endregion properties
 
     /// <summary>Compares stored boolean value to the boolean parameter.</summary>
     /// <remarks>Call this method to directly compare the object to the boolean parameter.</remarks>
@@ -89,7 +95,7 @@ public class BoolObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawBoolObject.EqualsValue(base.NativePointer, value, out equal);
 
-            if (Result.Failed(errorCode))
+            if (Daq.Core.Types.Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -100,7 +106,7 @@ public class BoolObject : BaseObject
 
     #region operators
 
-    //implicit cast operators
+    //implicit cast operators 'Daq.Core.Types.BoolObject' to/from 'bool'
 
     /// <summary>Performs an implicit conversion from <see cref="bool"/> to <see cref="Daq.Core.Types.BoolObject"/>.</summary>
     /// <param name="value">The managed <c>bool</c> value.</param>
@@ -110,13 +116,12 @@ public class BoolObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BoolObject"/> to <see cref="bool"/>.</summary>
     /// <param name="value">The SDK <c>BoolObject</c>.</param>
     /// <returns>The managed <c>bool</c> value.</returns>
-    public static implicit operator bool(BoolObject value) => value.GetValue();
+    public static implicit operator bool(BoolObject value) => value.Value;
 
     /// <summary>Determines whether this instance and a specified <c>bool</c>, have the same value.</summary>
     /// <param name="other">The other <c>bool</c> to compare to this instance.</param>
     /// <returns><c>true</c> if the other <c>bool</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
     public bool Equals(bool other) => ((bool)this).Equals(other);
-
 
     #endregion operators
 }
@@ -142,7 +147,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolean(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new BoolObject(objPtr, incrementReference: false);
@@ -159,7 +164,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolean(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -184,7 +189,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolObject(out objPtr, value);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new BoolObject(objPtr, incrementReference: false);
@@ -201,7 +206,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolObject(out objPtr, value);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

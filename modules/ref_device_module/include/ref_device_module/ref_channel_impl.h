@@ -89,7 +89,7 @@ private:
     void resetCounter();
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
-    void generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
+    std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
     [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;

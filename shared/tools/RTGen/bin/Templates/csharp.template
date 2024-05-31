@@ -32,8 +32,7 @@ $CSClassGenericParamConstraints${
         IntPtr objVirtualTable = Marshal.ReadIntPtr(nativePointer, 0); //read the pointer from the given address
         base._virtualTable =
             _raw$NonInterfaceType$ = Marshal.PtrToStructure<Raw$NonInterfaceType$>(objVirtualTable);
-    }
-$CSImplementationMethods$$CSInterfaceImplementation$$CSOperators$
+    }$CSImplementationProperties$$CSImplementationMethods$$CSInterfaceImplementation$$CSOperators$
 }
 
 

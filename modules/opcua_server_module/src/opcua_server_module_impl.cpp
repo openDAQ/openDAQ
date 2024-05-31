@@ -18,7 +18,7 @@ DictPtr<IString, IServerType> OpcUaServerModule::onGetAvailableServerTypes()
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = OpcUaServerImpl::createType();
+    auto serverType = OpcUaServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;
@@ -32,7 +32,7 @@ ServerPtr OpcUaServerModule::onCreateServer(StringPtr serverType,
         throw InvalidParameterException{"Context parameter cannot be null."};
 
     if (!serverConfig.assigned())
-        serverConfig = OpcUaServerImpl::createDefaultConfig();
+        serverConfig = OpcUaServerImpl::createDefaultConfig(context);
 
     ServerPtr server(OpcUaServer_Create(rootDevice, serverConfig, context));
     return server;

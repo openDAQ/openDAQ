@@ -65,6 +65,7 @@ public:
     ErrCode INTERFACE_FUNC getSystemUuid(IString** uuid) override;
     ErrCode INTERFACE_FUNC getCustomInfoPropertyNames(IList** customInfoNames) override;
     ErrCode INTERFACE_FUNC getSdkVersion(IString** version) override;
+    ErrCode INTERFACE_FUNC getLocation(IString** location) override;
 
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
@@ -88,6 +89,7 @@ public:
     ErrCode INTERFACE_FUNC setPosition(Int position) override;
     ErrCode INTERFACE_FUNC setSystemType(IString* type) override;
     ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) override;
+    ErrCode INTERFACE_FUNC setLocation(IString* location) override;
 
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
 

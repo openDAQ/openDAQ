@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -36,22 +37,24 @@ namespace RTGen.CSharp.Generators
         private string            _currentBaseClassName;
         private string            _currentMethodName;
         private string            _lastOutParamForDocComment;
+        private List<string>      _alreadyProcessedProperties = new List<string>();
 
-        private readonly Dictionary<string, string> _fileNameMappings  = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _specialReMappings = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _fileNameMappings            = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _specialReMappings           = new Dictionary<string, string>();
 
-        private readonly Dictionary<string, string> _dotNetClassInterfaces    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _defaultArgumentValues    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _genericTypeParameters    = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _castOperatorTypes        = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _enumTypes                = new Dictionary<string, string>();
-        private readonly List<string>               _keyWords                 = new List<string>();
-        private readonly Dictionary<string, string> _renamedParameters        = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _callingConventions       = new Dictionary<string, string>();
-        private readonly List<string>               _factoryEnumTypesToIgnore = new List<string>();
-        private readonly Dictionary<string, string> _factoryArgumentDefaults  = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _dotNetClassInterfaces       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _defaultArgumentValues       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _genericTypeParameters       = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _castOperatorTypes           = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _manualFactories             = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _enumTypes                   = new Dictionary<string, string>();
+        private readonly List<string>                                   _keyWords                    = new List<string>();
+        private readonly Dictionary<string, Dictionary<string, string>> _renamedParameters           = new Dictionary<string, Dictionary<string, string>>();
+        private readonly Dictionary<string, string>                     _callingConventions          = new Dictionary<string, string>();
+        private readonly List<string>                                   _factoryEnumTypesToIgnore    = new List<string>();
+        private readonly Dictionary<string, string>                     _factoryArgumentDefaults     = new Dictionary<string, string>();
 
-        private readonly List<string> _defaultMethodsToHideWithNew = new List<string>();
+        private readonly List<string>                                   _defaultMethodsToHideWithNew = new List<string>();
 
         private readonly Dictionary<IMethod, string> _rawMethodNames = new Dictionary<IMethod, string>();
 
@@ -226,7 +229,9 @@ namespace RTGen.CSharp.Generators
                 _castOperatorTypes.Add("Integer", "long");
                 _castOperatorTypes.Add("String",  "string");
 
-                _enumTypes.Add("CoreType",        "CoreType");
+                _manualFactories.Add("Number", "CreateNumberObject");
+
+                _enumTypes.Add("CoreType", "CoreType");
 
                 //ignore certain factory argument types
                 _factoryEnumTypesToIgnore.Add("SampleType"); //replaced using `OpenDAQFactory.GetSampleType<TElementType>()`
@@ -272,7 +277,7 @@ namespace RTGen.CSharp.Generators
 
             //=== local functions =================================================================
 
-            string FixVariableMapping(string variable)
+            void FixVariableMapping(string variable)
             {
                 if (this.RtFileTypeMappings.TryGet(base.Variables[variable], out string mapping))
                 {
@@ -285,8 +290,6 @@ namespace RTGen.CSharp.Generators
                         base.Variables[variable] = mapping;
                     }
                 }
-
-                return mapping;
             }
 
             string GetUsings(string interfaceName)
@@ -336,6 +339,9 @@ namespace RTGen.CSharp.Generators
                 case "CSRawMethods":
                     return GenerateRawDelegateMethods(rtClass);
 
+                case "CSImplementationProperties":
+                    return GenerateImplementationProperties(rtClass);
+
                 case "CSImplementationMethods":
                     return GenerateImplementationMethods(rtClass);
 
@@ -360,61 +366,14 @@ namespace RTGen.CSharp.Generators
                 case "CSOperators":
                     return GenerateOperators(rtClass);
 
-                case "CSCreatorFactory":
-                    return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
-
-                case "CSMappedType":
-                    return GetMappedTypeName(rtClass.Type);
-
-                case "CSValueGetter":
-                    return GetValueGetterName(rtClass);
-
                 case "CSLicenseComment":
                     return GetLicenseHeader();
-
-                case "CSEqualsOptions":
-                    return GetEqualsOptions(rtClass.Type);
             }
 
             return base.GetFileVariable(rtClass, variable);
 
 
             //=== local functions =================================================================
-
-            string GetCreatorName(IRTFactory factory)
-            {
-                if (factory == null)
-                {
-                    return "#no factory found#";
-                }
-
-                IMethod factoryMethod = factory.ToOverload().Method;
-                return GetMethodVariable(factoryMethod, "Name");
-            }
-
-            string GetMappedTypeName(ITypeName rtClassType)
-            {
-                if (!_castOperatorTypes.TryGetValue(rtClassType.NonInterfaceName, out string mappedType))
-                {
-                    //ToDo: do we throw exceptions to stop further generation?
-                    return $"#{rtClassType.NonInterfaceName}#"; //not found, return something syntactical illegal
-                }
-
-                return mappedType; //e.g. "double"
-            }
-
-            string GetValueGetterName(IRTInterface rtClassInterface)
-            {
-                string mappedName = GetMappedTypeName(rtClassInterface.Type);
-                var method = rtClassInterface.Methods.FirstOrDefault(m => m.GetLastByRefArgument()?.Type.Name.Equals(mappedName) ?? false);
-                if (method == null)
-                {
-                    //ToDo: do we throw exceptions to stop further generation?
-                    return $"#no getter with return type {mappedName} found#"; //not found, return something syntactical illegal
-                }
-
-                return GetMethodVariable(method, "Name");
-            }
 
             string GetLicenseHeader()
             {
@@ -448,20 +407,6 @@ namespace RTGen.CSharp.Generators
 
                 return filePath;
             }
-
-            string GetEqualsOptions(ITypeName rtClassType)
-            {
-                switch (rtClassType.Name)
-                {
-                    case "IStringObject":
-                        return ", StringComparison.Ordinal";
-
-                    //default:
-                    //    break;
-                }
-
-                return string.Empty;
-            }
         }
 
         /// <summary>Get the value of the specified variable for the currently generated method.</summary>
@@ -472,11 +417,15 @@ namespace RTGen.CSharp.Generators
         /// If the returned value is <c>null</c> it checks for a base variable if exists otherwise reports a warning.</remarks>
         protected override string GetMethodVariable(IMethod method, string variable)
         {
-            bool isReaderFunction = IsReaderFunction(method);
-            var lastOutParam = method.GetLastByRefArgument();
+            bool      isReaderFunction = IsReaderFunction(method);
+            bool      isProperty       = IsProperty(method);
+            IArgument lastOutParam     = isProperty ? GetPropertyAsArgument(method) : method.GetLastByRefArgument();
 
             switch (variable)
             {
+                case "LibraryName":
+                    return _options.LibraryInfo.Name;
+
                 case "Name":
                     return GetDotNetMethodName();
 
@@ -485,6 +434,15 @@ namespace RTGen.CSharp.Generators
 
                 case "CSRawName":
                     return method.Name;
+
+                case "CSPropertyName":
+                    return GetPropertyName(method);
+
+                case "CSImplementationPropertyGetter":
+                    return GenerateImplementationPropertyGetter(method);
+
+                case "CSImplementationPropertySetter":
+                    return GenerateImplementationPropertySetter(method);
 
                 case "ReturnType":
                     return GetDotNetTypeName(method.ReturnType) ?? string.Empty;
@@ -571,6 +529,24 @@ namespace RTGen.CSharp.Generators
 
                 case "CSFixedArrays":
                     return GetFixedArrayCode();
+
+                case "CSCastToType":
+                    return GenerateOperatorCastToType(method);
+
+                case "CSCastType":
+                    return GetCastTypeName(lastOutParam.Type);
+
+                case "CSValueGetter":
+                    return GetValueGetterName(method);
+
+                case "CSEqualsOptions":
+                    return GetEqualsOptions(lastOutParam.Type);
+
+                case "CSCreatorFactory":
+                    return GetCreatorName(this.RtFile.Factories.FirstOrDefault());
+
+                case "CSStealRefHandling":
+                    return HandleStealRefAttributes(method.Overloads[0], method.Arguments);
             }
 
             return base.GetMethodVariable(method, variable);
@@ -612,6 +588,11 @@ namespace RTGen.CSharp.Generators
 
                 string indentation = base.Indentation + base.Indentation;
 
+                if (isProperty)
+                {
+                    indentation += base.Indentation;
+                }
+
                 bool oldUseArgumentPointers = _useArgumentPointers;
                 _useArgumentPointers = true;
                 string returnArgName = GetArgumentName(method.Overloads[0], lastOutParam) ?? string.Empty;
@@ -642,6 +623,11 @@ namespace RTGen.CSharp.Generators
                 string indentation        = base.Indentation + base.Indentation;
                 string returnValueName    = GetMethodVariable(method, "CSReturnValue");
                 string returnValueObject  = this.GetReturnValue(method, lastOutParam, dontCast: false);
+
+                if (isProperty)
+                {
+                    indentation += base.Indentation;
+                }
 
                 StringBuilder code = new StringBuilder();
 
@@ -690,6 +676,17 @@ namespace RTGen.CSharp.Generators
 
                 if (!isUnmanagedCall || _isFactory)
                     return argumentNames;
+
+                if (isProperty
+                    && IsSetter(method)
+                    && !IsCastOperatorType(lastOutParam.Type.NonInterfaceName)
+                    && !IsDotNetInterface(lastOutParam.Type.Name))
+                {
+                    argumentNames = "value";
+
+                    if (!lastOutParam.Type.Flags.IsValueType)
+                        argumentNames += ".NativePointer";
+                }
 
                 if (isReaderFunction)
                 {
@@ -883,7 +880,7 @@ namespace RTGen.CSharp.Generators
 
                 string[] checkCodeLines = new string[] //array of format strings so escape '{' and '}' when needed
                                           {
-                                              "if (!OpenDAQFactory.CheckSampleType<{0}>(base.Get{1}ReadType(), out errorMsg))",
+                                              "if (!OpenDAQFactory.CheckSampleType<{0}>(base.{1}ReadType, out errorMsg))",
                                               "{{",
                                               "    throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALIDTYPE,",
                                               "                               $\"The {2}-array type does not match the reader setting ({{errorMsg}}).\");",
@@ -936,6 +933,93 @@ namespace RTGen.CSharp.Generators
                 }
 
                 return string.Join(Environment.NewLine, codeLines).TrimStart();
+            }
+
+            string GetCastTypeName(ITypeName lastOutParamType)
+            {
+                bool   isValueType          = lastOutParamType.Flags.IsValueType;
+                string lastOutParamTypeName = isValueType ? lastOutParamType.Name : lastOutParamType.NonInterfaceName;
+
+                if (!isValueType && _castOperatorTypes.ContainsKey(lastOutParamTypeName))
+                {
+                    //cast source type -> get target type name
+                    lastOutParamTypeName = _castOperatorTypes[lastOutParamTypeName];
+                }
+                else if (!_castOperatorTypes.ContainsValue(lastOutParamTypeName))
+                {
+                    //not a cast target type name
+                    return $"#{lastOutParamType.NonInterfaceName}#"; //not found, return something syntactical illegal
+                }
+
+                return lastOutParamTypeName; //e.g. "double"
+            }
+
+            string GetValueGetterName(IMethod getter)
+            {
+                //it is either a .NET property or a getter function
+
+                if (IsGetter(getter))
+                    return GetPropertyName(getter);
+
+                return GetMethodVariable(getter, "Name") + "()";
+            }
+
+            string GetEqualsOptions(ITypeName lastOutParamType)
+            {
+                switch (lastOutParamType.Name)
+                {
+                    case "IStringObject":
+                    case "string":
+                        return ", StringComparison.Ordinal";
+                }
+
+                return string.Empty;
+            }
+
+            string GetCreatorName(IRTFactory factory)
+            {
+                if (factory == null)
+                {
+                    if (_manualFactories.TryGetValue(_currentClassType.NonInterfaceName, out string creatorName))
+                        return creatorName;
+
+                    //return $"Create{base.Variables["NonInterfaceType"]}";
+                    return "#no factory found#";
+                }
+                else
+                {
+                    IMethod factoryMethod = factory.ToOverload().Method; //ToDo: check if has only one argument and if argument type fits
+                    return GetMethodVariable(factoryMethod, "Name");
+                }
+            }
+
+            string HandleStealRefAttributes(IOverload overload, IList<IArgument> arguments)
+            {
+                //check all arguments for "stealRef" attribute and add SetNativePointerToZero() calls for those arguments
+
+                IList<IArgument> stealRefArguments = arguments.Where(arg => arg.IsStealRef).ToList();
+
+                if (stealRefArguments.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                string indentation = base.Indentation + base.Indentation + base.Indentation;
+
+                StringBuilder code = new StringBuilder();
+
+                code.AppendLine();
+                code.AppendLine($"{indentation}//invalidate the objects for the arguments with 'stealRef' attribute (protect from disposing)");
+
+                foreach (var stealRefArgument in stealRefArguments)
+                {
+                    string argumentName = GetArgumentName(overload, stealRefArgument);
+                    argumentName = GetRenamedParameterName(GetMethodVariable(overload.Method, "Name"), argumentName);
+
+                    code.AppendLine($"{indentation}{argumentName}.SetNativePointerToZero();");
+                }
+
+                return code.ToString();
             }
         }
 
@@ -1034,21 +1118,6 @@ namespace RTGen.CSharp.Generators
             }
 
             return argumentName;
-
-
-            //=== local functions =================================================================
-
-            void AddRenamedParameter(string methodName, string orgName, string newName)
-            {
-                if (_renamedParameters.ContainsKey(methodName))
-                {
-                    _renamedParameters[methodName] += $",{orgName};{newName}";
-                }
-                else
-                {
-                    _renamedParameters.Add(methodName, $"{orgName};{newName}");
-                }
-            }
         }
 
         protected override StringBuilder WriteMethods(IRTInterface rtClass, string baseTemplatePath)
@@ -1090,6 +1159,12 @@ namespace RTGen.CSharp.Generators
             base.GenerateFile(templatePath);
         }
 
+
+        private bool TryGetVariable(string key, out string value)
+        {
+            return base.Variables.TryGetValue(key, out value);
+        }
+
         private string HandleCSharpKeyword(string argumentName)
         {
             if (_keyWords.Contains(argumentName))
@@ -1104,6 +1179,43 @@ namespace RTGen.CSharp.Generators
             //where non-interface type names normally don't when starting with 'I' (e.g. "InfID")
             //"IXxxx" and not "Ixxxx"? (normally an interface identifier)
             return typeName.StartsWith("I") && (typeName.Length > 1) && char.IsUpper(typeName[1]);
+        }
+
+        private static bool IsProperty(IMethod method)
+        {
+            //setter-only properties not handled as .NET property
+            return (HasGetter(method));
+            //return (method.GetSetPair != null);
+        }
+
+        private static bool HasGetter(IMethod method)
+        {
+            return (method.GetSetPair?.Getter != null);
+        }
+
+        private static bool HasSetter(IMethod method)
+        {
+            return (method.GetSetPair?.Setter != null);
+        }
+
+        private static bool IsGetter(IMethod method)
+        {
+            return method.Equals(method.GetSetPair?.Getter);
+        }
+
+        private static bool IsSetter(IMethod method)
+        {
+            return method.Equals(method.GetSetPair?.Setter);
+        }
+
+        private static IArgument GetPropertyAsArgument(IMethod method)
+        {
+            return method.GetSetPair.Getter?.GetLastByRefArgument() ?? method.GetSetPair.Setter?.Arguments.First();
+        }
+
+        private string GetPropertyName(IMethod method)
+        {
+            return method.GetSetPair?.Name ?? string.Empty;
         }
 
         private bool IsCastOperatorType(string nonInterfaceName)
@@ -1180,17 +1292,41 @@ namespace RTGen.CSharp.Generators
             return docTagList.Where(findTag).ToList();
         }
 
+        /// <summary>
+        /// Adds the renamed parameter for the given method name.
+        /// </summary>
+        /// <param name="methodName">Name of the method (use <see cref="GetMethodVariable(IMethod, string)"/> for internal cast arguments).</param>
+        /// <param name="orgName">Original parameter name.</param>
+        /// <param name="newName">The new parameter name.</param>
+        private void AddRenamedParameter(string methodName, string orgName, string newName)
+        {
+            if (!_renamedParameters.TryGetValue(methodName, out Dictionary<string, string> renamedArguments))
+            {
+                renamedArguments = new Dictionary<string, string>();
+                _renamedParameters.Add(methodName, renamedArguments);
+            }
+
+            if (renamedArguments.ContainsKey(orgName))
+            {
+                return;
+            }
+
+            renamedArguments.Add(orgName, newName);
+        }
+
+        /// <summary>
+        /// Gets the name of the renamed parameter for the specified method name.
+        /// </summary>
+        /// <param name="methodName">Name of the method (use <see cref="GetMethodVariable(IMethod, string)"/> for internal cast arguments).</param>
+        /// <param name="paramName">Name of the parameter.</param>
+        /// <returns>The new parameter name (or original when not available).</returns>
         private string GetRenamedParameterName(string methodName, string paramName)
         {
-            if (_renamedParameters.TryGetValue(methodName, out string renamedParameters))
+            if (_renamedParameters.TryGetValue(methodName, out Dictionary<string, string> renamedParameters))
             {
-                //old-name;new-name pairs separated by ','
-                string[] paramNames = renamedParameters.Split(',');
-                string   pair       = paramNames.FirstOrDefault(entry => entry.StartsWith(paramName + ";"));
-
-                if (!string.IsNullOrEmpty(pair))
+                if (renamedParameters.TryGetValue(paramName, out string newName))
                 {
-                    paramName = pair.Split(';')[1];
+                    return newName;
                 }
             }
 
@@ -1217,7 +1353,7 @@ namespace RTGen.CSharp.Generators
             return csDocComment.ToString();
         }
 
-        private string GetDocComment(string methodName, IDocComment documentation, bool doReturnOutParam = true)
+        private string GetDocComment(string methodName, IDocComment documentation, bool doReturnOutParam = true, bool isProperty = false)
         {
             IDocBrief docBrief = documentation?.Brief;
 
@@ -1235,8 +1371,12 @@ namespace RTGen.CSharp.Generators
 
             ParseDocBrief(csDocComment, docBrief, docTags, indentation: base.Indentation);
             ParseDocDescription(csDocComment, documentation.Description, docTags, indentation: base.Indentation);
-            ParseDocParams(csDocComment, docTags, methodName, doReturnOutParam, indentation: base.Indentation);
-            ParseDocRetVal(csDocComment, docTags, doReturnOutParam, indentation: base.Indentation);
+
+            if (!isProperty)
+            {
+                ParseDocParams(csDocComment, docTags, methodName, doReturnOutParam, indentation: base.Indentation);
+                ParseDocRetVal(csDocComment, docTags, doReturnOutParam, indentation: base.Indentation);
+            }
 
             csDocComment.TrimTrailingNewLine();
 
@@ -2139,7 +2279,7 @@ namespace RTGen.CSharp.Generators
             {
                 string typeName = type.Name;
 
-                if (_isBasedOnSampleReader && typeName.Equals(this.RtFile.CurrentClass.Type.Name))
+                if (_isBasedOnSampleReader && typeName.Equals(_currentClassType.Name))
                 {
                     typeName = _currentBaseClassName + "Base";
                 }
@@ -2182,7 +2322,7 @@ namespace RTGen.CSharp.Generators
 
         private string GetFirstGenericParameterFromClass(string defaultName = "BaseObject")
         {
-            //if (GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] classGenericParams))
+            //if (GetGenericParameters(_currentClassType, out string[] classGenericParams))
             //    return classGenericParams[0];
 
             return defaultName;
@@ -2280,7 +2420,7 @@ namespace RTGen.CSharp.Generators
         {
             genericParameter = null;
 
-            if (!GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] genericParams, out _))
+            if (!GetGenericParameters(_currentClassType, out string[] genericParams, out _))
             {
                 return false;
             }
@@ -2321,8 +2461,15 @@ namespace RTGen.CSharp.Generators
         {
             StringBuilder returnTypeDeclaration = new StringBuilder();
 
-            string indentation = base.Indentation + base.Indentation;
-            bool addComment = true;
+            string indentation  = base.Indentation + base.Indentation;
+            bool   addComment   = true;
+            bool   isProperty   = IsProperty(overload.Method);
+            bool   isSetter     = isProperty && IsSetter(overload.Method);
+
+            if (isProperty)
+            {
+                indentation += base.Indentation;
+            }
 
             //cast argument types
             foreach (var argument in overload.Arguments)
@@ -2332,7 +2479,7 @@ namespace RTGen.CSharp.Generators
                 bool isFactoryIgnoredArgument = _isFactory && _isBasedOnSampleReader && _factoryEnumTypesToIgnore.Contains(argument.Type.Name);
 
                 if (!isFactoryIgnoredArgument
-                    && (argument.Equals(lastOutParam)
+                    && ((argument.Name.Equals(lastOutParam?.Name) && !isSetter)
                         || argument.Type.Flags.IsValueType
                         || !(isCastType || isDotNetInterface)))
                 {
@@ -2346,19 +2493,28 @@ namespace RTGen.CSharp.Generators
                     returnTypeDeclaration.AppendLine(indentation + "//cast .NET argument to SDK object");
                 }
 
-                string castType       = GetDotNetTypeName(argument.Type, overload.Method, argument, dontCast: true);
-                string argumentName   = base.GetArgumentName(overload, argument);
+                string castType     = GetDotNetTypeName(argument.Type, overload.Method, argument, dontCast: true);
+                string argumentName = base.GetArgumentName(overload, argument);
 
                 if (!isFactoryIgnoredArgument)
                 {
-                    string objectName = argumentName + "Ptr";
+                    //-> var packetsPtr = (ListObject<Packet>)packets;
+                    string castName       = argumentName + "Ptr";
                     string usingStatement = isDotNetInterface ? string.Empty : "using ";
 
-                    returnTypeDeclaration.AppendLine($"{indentation}{usingStatement}var {objectName} = ({castType}){HandleCSharpKeyword(argumentName)};");
+                    AddRenamedParameter(GetMethodVariable(overload.Method, "Name"), argumentName, castName);
+
+                    if (isProperty)
+                    {
+                        //override the name for the property setter
+                        argumentName = "value";
+                    }
+
+                    returnTypeDeclaration.AppendLine($"{indentation}{usingStatement}var {castName} = ({castType}){HandleCSharpKeyword(argumentName)};");
                 }
                 else
                 {
-                    //SampleType genericSampleType = OpenDAQFactory.GetSampleType<TElementType>();
+                    //-> SampleType genericSampleType = OpenDAQFactory.GetSampleType<TElementType>();
                     string[] genericParams = default;
                     string[] _ = default;
 
@@ -2374,13 +2530,11 @@ namespace RTGen.CSharp.Generators
 
         #endregion Implementation Arguments
 
-        #region ImplementationMethods
+        #region ImplementationProperties
 
-        private string GenerateImplementationMethods(IRTInterface rtClass)
+        private string GenerateImplementationProperties(IRTInterface rtClass)
         {
-            StringBuilder rawMethods = new StringBuilder();
-
-            rawMethods.AppendLine();
+            StringBuilder implementationProperties = new StringBuilder();
 
             //set flag to use the last "ByRef argument" (argument.IsOutParam) as return value
             bool backup = Options.GenerateWrapper;
@@ -2388,6 +2542,107 @@ namespace RTGen.CSharp.Generators
 
             foreach (IMethod method in rtClass.Methods)
             {
+                if (!IsProperty(method))
+                    continue;
+
+                string propertyName = GetPropertyName(method);
+
+                if (_alreadyProcessedProperties.Contains(propertyName))
+                    continue;
+
+                _alreadyProcessedProperties.Add(propertyName);
+
+                string templatePath = Utility.GetTemplate(Options.Language + ".property.impl.template");
+
+                string comment = GetDocComment(method.Name, method.Documentation, isProperty: true);
+                if (!string.IsNullOrWhiteSpace(comment))
+                    implementationProperties.AppendLine(comment);
+                implementationProperties.AppendLine(RenderFileTemplate(method, templatePath, GetMethodVariable));
+            }
+
+            Options.GenerateWrapper = backup;
+
+            if (implementationProperties.Length <= 0)
+            {
+                return string.Empty;
+            }
+
+            implementationProperties.TrimTrailingNewLines();
+
+            StringBuilder code = new StringBuilder();
+
+            code.AppendLine();
+            code.AppendLine();
+            code.AppendLine($"{base.Indentation}#region properties");
+            code.AppendLine();
+            code.AppendLine(implementationProperties.ToString());
+            code.AppendLine();
+            code.AppendLine($"{base.Indentation}#endregion properties");
+
+            code.TrimTrailingNewLines();
+            return code.ToString();
+        }
+
+        private string GenerateImplementationPropertyGetter(IMethod method)
+        {
+            if (!HasGetter(method))
+                return string.Empty;
+
+            StringBuilder implementationProperties = new StringBuilder();
+
+            implementationProperties.AppendLine();
+
+            string templatePath = Utility.GetTemplate(Options.Language + ".property.impl.get.template");
+
+            //string comment = GetDocComment(method.Name, method.Documentation);
+            //if (!string.IsNullOrWhiteSpace(comment))
+            //    implementationProperties.AppendLine(comment);
+            implementationProperties.AppendLine(RenderFileTemplate(method.GetSetPair.Getter, templatePath, GetMethodVariable));
+
+            implementationProperties.TrimTrailingNewLines();
+            return implementationProperties.ToString();
+        }
+
+        private string GenerateImplementationPropertySetter(IMethod method)
+        {
+            if (!HasSetter(method))
+                return string.Empty;
+
+            StringBuilder implementationProperties = new StringBuilder();
+
+            implementationProperties.AppendLine();
+
+            string templatePath = Utility.GetTemplate(Options.Language + ".property.impl.set.template");
+
+            //string comment = GetDocComment(method.Name, method.Documentation);
+            //if (!string.IsNullOrWhiteSpace(comment))
+            //    implementationProperties.AppendLine(comment);
+            implementationProperties.AppendLine(RenderFileTemplate(method.GetSetPair.Setter, templatePath, GetMethodVariable));
+
+            implementationProperties.TrimTrailingNewLines();
+            return implementationProperties.ToString();
+        }
+
+        #endregion ImplementationProperties
+
+        #region ImplementationMethods
+
+        private string GenerateImplementationMethods(IRTInterface rtClass)
+        {
+            StringBuilder implementationMethods = new StringBuilder();
+
+            implementationMethods.AppendLine();
+            implementationMethods.AppendLine();
+
+            //set flag to use the last "ByRef argument" (argument.IsOutParam) as return value
+            bool backup = Options.GenerateWrapper;
+            Options.GenerateWrapper = true;
+
+            foreach (IMethod method in rtClass.Methods)
+            {
+                if (IsProperty(method))
+                    continue;
+
                 bool hasRetVal          = method.ReturnsByRef()
                                           || method.Arguments.Any(argument => argument.IsOutParam);
                 bool isIteratorMoveNext = (method.Arguments.Count == 0)
@@ -2415,14 +2670,14 @@ namespace RTGen.CSharp.Generators
 
                 string comment = GetDocComment(method.Name, method.Documentation);
                 if (!string.IsNullOrWhiteSpace(comment))
-                    rawMethods.AppendLine(comment);
-                rawMethods.AppendLine(RenderFileTemplate(method, templatePath, GetMethodVariable));
+                    implementationMethods.AppendLine(comment);
+                implementationMethods.AppendLine(RenderFileTemplate(method, templatePath, GetMethodVariable));
             }
 
             Options.GenerateWrapper = backup;
 
-            rawMethods.TrimTrailingNewLines();
-            return rawMethods.ToString();
+            implementationMethods.TrimTrailingNewLines();
+            return implementationMethods.ToString();
         }
 
         private string GetReturnValue(IMethod method, IArgument lastOutParam, bool dontCast = true)
@@ -2448,7 +2703,7 @@ namespace RTGen.CSharp.Generators
             {
                 returnValue = $"{returnArgName}; //ToDo: void";
             }
-            else if (GetGenericParameters(this.RtFile.CurrentClass.Type, out string[] genericParams, out _)
+            else if (GetGenericParameters(_currentClassType, out string[] genericParams, out _)
                      && genericParams.Contains(nonInterfaceReturnTypePtr))
             {
                 //to return an instance of a generic parameter we use a BaseObject function instead of a constructor
@@ -2460,16 +2715,29 @@ namespace RTGen.CSharp.Generators
 
         private string GenerateOperators(IRTInterface rtClass)
         {
-            if (!_castOperatorTypes.TryGetValue(rtClass.Type.NonInterfaceName, out string castType)
-                || IsInterface(castType))
+            string templatePath  = Utility.GetTemplate(Options.Language + ".method.casts.template");
+            StringBuilder castOperators = new StringBuilder();
+
+            //get all "XxxValue" getters
+            var valueGetters = rtClass.Methods.Where(m => IsGetter(m) && m.Name.EndsWith("value", StringComparison.InvariantCultureIgnoreCase));
+
+            if ((valueGetters.Count() == 0) && _castOperatorTypes.TryGetValue(rtClass.Type.NonInterfaceName, out string castClassType))
             {
-                return string.Empty;
+                //no getter ending with "value" -> get the first getter that returns the cast type
+                valueGetters = rtClass.Methods.Where(m => IsGetter(m) && (m.GetLastByRefArgument()?.Type.Name == castClassType)).Take(1);
             }
 
-            string templatePath = Utility.GetTemplate(Options.Language + ".method.casts.template");
-            string castOperators = RenderFileTemplate(rtClass, templatePath, GetFileVariable);
+            //generate the cast operators -> $CSValueGetter$, $CSCastType$, $CSCreatorFactory$
+            foreach (var getter in valueGetters)
+            {
+                string castType = GetMethodVariable(getter, "CSCastType");
+                if (string.IsNullOrWhiteSpace(castType) || castType.StartsWith("#"))
+                    continue;
 
-            if (string.IsNullOrEmpty(castOperators))
+                castOperators.Append(RenderFileTemplate(getter, templatePath, GetMethodVariable));
+            }
+
+            if (castOperators.Length <= 0)
             {
                 return string.Empty;
             }
@@ -2479,13 +2747,27 @@ namespace RTGen.CSharp.Generators
             code.AppendLine();
             code.AppendLine();
             code.AppendLine($"{base.Indentation}#region operators");
-            code.AppendLine();
-            code.AppendLine(castOperators);
-            code.AppendLine();
+            code.AppendLine(castOperators.ToString());
             code.AppendLine($"{base.Indentation}#endregion operators");
 
             code.TrimTrailingNewLines();
             return code.ToString();
+        }
+
+        private string GenerateOperatorCastToType(IMethod getter)
+        {
+            string templatePath = Utility.GetTemplate(Options.Language + ".method.casts.totype.template");
+
+            IRTFactory factory = this.RtFile.Factories.FirstOrDefault();
+            if (factory != null)
+            {
+                if (factory.ToOverload().Arguments.Count > 2)
+                    return string.Empty;
+            }
+
+            string castOperator = RenderFileTemplate(getter, templatePath, GetMethodVariable);
+
+            return castOperator;
         }
 
         private string GetClassInterfaces(IRTInterface rtClass)

@@ -22,6 +22,7 @@
 #include "opendaq/mock/mock_fb_module.h"
 #include "opendaq/mock/mock_physical_device.h"
 #include "opendaq/mock/mock_server_module.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 namespace test_helpers
 {
@@ -32,7 +33,8 @@ namespace test_helpers
         const auto logger = Logger();
         const auto moduleManager = ModuleManager("[[none]]");
         const auto typeManager = TypeManager();
-        const auto context = Context(nullptr, logger, typeManager, moduleManager);
+        const auto authenticationProvider = AuthenticationProvider();
+        const auto context = Context(nullptr, logger, typeManager, moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

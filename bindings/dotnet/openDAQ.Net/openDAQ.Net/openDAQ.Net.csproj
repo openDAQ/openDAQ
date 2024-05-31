@@ -13,8 +13,8 @@
 
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
-    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">2.1.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>16</_BuildNumber>
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.0.0</OPENDAQ_PACKAGE_VERSION>
+    <_BuildNumber>17</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -25,6 +25,7 @@
     <!--<Version>2.0.0.12</Version>-->
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->
+    <VersionSuffix Condition="'$(Configuration)' != 'Release_Build'">beta-VS</VersionSuffix>
     <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
@@ -88,8 +89,7 @@
   <!-- $(BaseOutputPath) -->
   <ItemGroup>
     <!-- include the RTGen build output; exclude files which are managed manually -->
-    <Compile Include="$(_RTGenOutputPath)\**\*.cs"
-             Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs;$(_RTGenOutputPath)\shared\**" />
+    <Compile Include="$(_RTGenOutputPath)\**\*.cs" Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs;$(_RTGenOutputPath)\shared\**" />
     <!-- include the documentation path into the SolutionExplorer -->
     <None Include="$(_DocsPath)\**\*.adoc">
       <Link>docs\%(RecursiveDir)\%(FileName)%(Extension)</Link>
@@ -133,20 +133,20 @@
     <!-- NuGet package creation in CI -->
     <!-- Windows runtimes -->
     <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll" />
-    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <OpenDaqModuleWinLibs Include="$(_SdkOutputPathWindows64)\modules\*.dll" />
-    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false">
+    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)\modules')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <!-- Linux runtimes -->
-    <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.*" Exclude="$(_SdkOutputPathLinux64)\*.module.*" />
-    <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false">
+    <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.so" Exclude="$(_SdkOutputPathLinux64)\*.module.so" />
+    <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.*" />
-    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false">
+    <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.so" />
+    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -167,6 +167,7 @@
     <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
+    <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
   </Target>
   <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
@@ -183,9 +184,9 @@
   <Target Name="MessageAfterCompile" BeforeTargets="AfterCompile">
     <Message Importance="High" Text="+++++++++++++++++++++++ Compiling of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
   </Target>
-  <Target Name="MessageBeforePack" BeforeTargets="Pack">
-    <!-- strangely these messages appear AFTER the NuGet package creation was reported -->
-    <Message Importance="High" Text="+++++++++++++++++++++++ Packed $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  <Target Name="MessageBeforePack" BeforeTargets="GenerateNuspec">
+    <!-- strangely target "Pack" messages appear AFTER the NuGet package creation was reported so using "GenerateNuspec" instead -->
+    <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
     <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
@@ -193,5 +194,6 @@
     <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
+    <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
   </Target>
 </Project>

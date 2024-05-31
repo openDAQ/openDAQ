@@ -72,6 +72,9 @@ namespace RTGen.Types
         /// <summary>If the method should not be generated for a certain generator.</summary>
         public bool ReturnSelf { get; set; }
 
+        /// <summary>Generate overload for another function.</summary>
+        public string OverloadFor { get; set; }
+
         /// <summary>The calling convention used to call the method.</summary>
         /// <example>__stdcall, __cdecl, __fastcall</example>
         public string CallingConvention

@@ -20,6 +20,7 @@
 #include <thread>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -43,7 +44,7 @@ public:
         logger = Logger();
         loggerComponent = logger.getOrAddComponent("StreamingIntegrationTest");
         auto clientLogger = Logger();
-        clientContext = Context(Scheduler(clientLogger, 1), clientLogger, TypeManager(), nullptr);
+        clientContext = Context(Scheduler(clientLogger, 1), clientLogger, TypeManager(), nullptr, nullptr);
         instance = createDevice();
     }
 
@@ -165,7 +166,7 @@ protected:
     {
 
         const auto moduleManager = ModuleManager("[[none]]");
-        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager);
+        auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager, AuthenticationProvider());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

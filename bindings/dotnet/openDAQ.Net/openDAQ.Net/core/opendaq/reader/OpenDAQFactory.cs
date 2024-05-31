@@ -17,6 +17,7 @@
 
 using Daq.Core.Types;
 using Daq.Core.Objects;
+using System.Numerics;
 
 
 namespace Daq.Core.OpenDAQ;
@@ -54,6 +55,38 @@ public static partial class OpenDAQFactory
           //case ? _:      return SampleType.ComplexFloat32;
           //case ? _:      return SampleType.ComplexFloat64;
             default:       return SampleType.Undefined;
+        }
+    }
+
+    /// <summary>
+    /// Gets the .NET type for the given <see cref="SampleType"/>.
+    /// </summary>
+    /// <param name="sampleType">The <see cref="SampleType"/> to convert to a .NET type.</param>
+    /// <returns>The .NET type.</returns>
+    public static Type GetSampleType(SampleType sampleType)
+    {
+        switch (sampleType)
+        {
+            case SampleType.Float32:        return typeof(float);
+            case SampleType.Float64:        return typeof(double);
+            case SampleType.UInt8:          return typeof(byte);
+            case SampleType.Int8:           return typeof(sbyte);
+            case SampleType.UInt16:         return typeof(UInt16);
+            case SampleType.Int16:          return typeof(Int16);
+            case SampleType.UInt32:         return typeof(UInt32);
+            case SampleType.Int32:          return typeof(Int32);
+            case SampleType.UInt64:         return typeof(UInt64);
+            case SampleType.Int64:          return typeof(Int64);
+            case SampleType.RangeInt64:     return null;
+            case SampleType.ComplexFloat32: return null;
+            case SampleType.ComplexFloat64: return null;
+            case SampleType.Binary:         return null;
+            case SampleType.String:         return typeof(string);
+            case SampleType.Struct:         return null;
+            //case SampleType.Invalid:
+            //case SampleType.Undefined:
+            //case SampleType._count:
+            default:                        return null;
         }
     }
 
@@ -182,4 +215,21 @@ public static partial class OpenDAQFactory
     }
 
     #endregion TailReader
+
+    //ToDo: no `dynamic` for now (unwanted)
+    //      This syntax results in a dynamic object as its type is determined at runtime.
+    //      The compiler cannot check any calls on this object so in case of a syntax error the code will be compiled but fail at runtime.
+    //
+    //public static dynamic CreateTailReader(Signal signal, nuint historySize, SampleType valueType, SampleType domainType, ReadMode mode = ReadMode.Scaled)
+    //{
+    //    var functions = typeof(OpenDAQFactory).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+    //    var createFunction = functions.Where(mi =>    mi.Name.Equals(nameof(CreateTailReader))
+    //                                               && mi.ReturnType.Name.Equals(typeof(TailReader<,>).Name)
+    //                                               && (mi.GetGenericArguments().Length == 2))
+    //                                  .FirstOrDefault();
+
+    //    dynamic tailReader = createFunction?.MakeGenericMethod(GetSampleType(valueType), GetSampleType(domainType))
+    //                                        .Invoke(null, new object[] { signal, historySize, mode });
+    //    return tailReader;
+    //}
 }

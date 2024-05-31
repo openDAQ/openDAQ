@@ -64,7 +64,12 @@ time_reader = opendaq.TimeStreamReader(reader)
 values, timestamps = time_reader.read_with_timestamps(5)
 
 print(list(zip(timestamps, values)))
-
+----
+C#::
++
+[source,csharp]
+----
+// TimeReader not yet available in .NET
 ----
 ====
 

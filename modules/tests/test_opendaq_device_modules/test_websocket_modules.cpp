@@ -1,4 +1,5 @@
 #include "test_helpers/test_helpers.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 using WebsocketModulesTest = testing::Test;
 using namespace daq;
@@ -9,7 +10,8 @@ static InstancePtr CreateServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -55,6 +57,121 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);
+}
+
+TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/some/path"
+                }
+            }
+        }
+    )";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("WebsocketStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
+}
+
+TEST_F(WebsocketModulesTest, DiscoveringServer)
+{
+    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto path = "/test/streaming_lt/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+
+TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/test/streaming_lt/checkDeviceInfoPopulated"
+                }
+            }
+        }
+    )";
+    auto path = "/test/streaming_lt/checkDeviceInfoPopulated";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addDiscoveryService("mdns")
+                                     .addConfigProvider(provider)
+                                     .setDefaultRootDeviceInfo(rootInfo)
+                                     .build();
+    instance.addDevice("daqref://device1");
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                {
+                    break;
+                }
+
+                client.addDevice(capability.getConnectionString(), nullptr);
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                return;
+            }
+        }      
+    }
+
+    ASSERT_TRUE(false);
 }
 
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)

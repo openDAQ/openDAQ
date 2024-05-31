@@ -19,5 +19,18 @@
 		{
 			"LocalId": "falselocalid",
 			"Name": "Reference device simulator"
-		}
+		},
+    "Modules":
+        {
+            "NativeStreamingServer":
+                {
+                    "NativeStreamingPort": 7420,
+                    "Path": "/"
+                },
+            "OpcUaServer":
+                {
+                    "Port": 4840,
+                    "Path": "/"
+                }
+        }
 }

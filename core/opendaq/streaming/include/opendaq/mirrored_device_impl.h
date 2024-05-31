@@ -47,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
 
+protected:
+    StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+
 private:
     std::vector<StreamingPtr> streamingSources;
 };
@@ -144,6 +147,36 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    std::scoped_lock lock(this->sync);
+
+    auto it = std::find_if(streamingSources.begin(),
+                           streamingSources.end(),
+                           [&connectionString](const StreamingPtr& item)
+                           {
+                               return connectionString == item.getConnectionString();
+                           });
+
+    if (it != streamingSources.end())
+    {
+        throw DuplicateItemException(
+            fmt::format(
+                R"(Device with global Id "{}" already has streaming source "{}" )",
+                this->globalId,
+                connectionString
+            )
+        );
+    }
+
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    auto streamingPtr = managerUtils.createStreaming(connectionString, config);
+    streamingSources.push_back(streamingPtr);
+
+    return streamingPtr;
 }
 
 END_NAMESPACE_OPENDAQ

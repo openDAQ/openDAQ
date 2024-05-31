@@ -17,7 +17,7 @@ static ModulePtr CreateModule()
 {
     ModulePtr module;
     auto logger = Logger();
-    createModule(&module, Context(Scheduler(logger), logger, nullptr, nullptr));
+    createModule(&module, Context(Scheduler(logger), logger, nullptr, nullptr, nullptr));
     return module;
 }
 

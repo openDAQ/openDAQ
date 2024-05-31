@@ -40,30 +40,32 @@ using OpcUaEndpointPtr = std::shared_ptr<OpcUaEndpoint>;
 class OpcUaEndpoint
 {
 public:
-    OpcUaEndpoint(const std::string& name, const std::string& url);
-    OpcUaEndpoint();
+    OpcUaEndpoint(const std::string& url);
+    OpcUaEndpoint(const std::string& url, const std::string& username, const std::string& password);
 
     void setName(const std::string& name);
-    const std::string& getName() const;
+    const std::string getName() const;
 
     void setUrl(const std::string& url);
-    const std::string& getUrl() const;
+    const std::string getUrl() const;
 
-    void setSecurityConfig(OpcUaClientSecurityConfig* securityConfig);
-    const OpcUaClientSecurityConfig* getSecurityConfig() const;
+    void setUsername(const std::string& username);
+    const std::string getUsername() const;
+
+    void setPassword(const std::string& password);
+    const std::string getPassword() const;
 
     void registerCustomTypes(const size_t typesSize, const UA_DataType* types);
     const UA_DataTypeArray* getCustomDataTypes() const;
 
-    void setLogLevel(const UA_LogLevel logLevel);
-    UA_LogLevel getLogLevel() const;
+    bool isAnonymous();
 
 private:
-    std::string name{};
-    std::string url{};
-    std::optional<OpcUaClientSecurityConfig> securityConfig;
+    std::string name;
+    std::string url;
+    std::string username;
+    std::string password;
     OpcUaDataTypeArrayList customDataTypeList;
-    UA_LogLevel logLevel = UA_LOGLEVEL_WARNING;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

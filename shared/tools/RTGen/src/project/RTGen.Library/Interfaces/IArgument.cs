@@ -30,5 +30,8 @@ namespace RTGen.Interfaces
 
         /// <summary>Argument could be represented by multiple types.</summary>
         bool IsPolymorphic { get; set; }
+
+        /// <summary>True if method steals the reference to the argument.</summary>
+        bool IsStealRef { get; set; }
     }
 }

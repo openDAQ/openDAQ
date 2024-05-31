@@ -30,9 +30,10 @@ struct IInputPortNotifications;
  */
 enum class PacketReadyNotification
 {
-    None,       ///< Ignore the notification.
-    SameThread, ///< Call the listener in the same thread the notification was received.
-    Scheduler,  ///< Call the listener asynchronously or in another thread.
+    None,                   ///< Ignore the notification.
+    SameThread,             ///< Call the listener in the same thread the notification was received.
+    Scheduler,              ///< Call the listener asynchronously or in another thread.
+    SchedulerQueueWasEmpty  ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
 };
 
  /*!
@@ -58,8 +59,9 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
 
     /*!
      * @brief Gets called when a packet was enqueued in a connection.
+     * @param queueWasEmpty True if queue was empty before packet was enqueued.
      */
-    virtual ErrCode INTERFACE_FUNC notifyPacketEnqueued() = 0;
+    virtual ErrCode INTERFACE_FUNC notifyPacketEnqueued(Bool queueWasEmpty) = 0;
 
     /*!
      * @brief Gets called when a packet was enqueued in a connection.

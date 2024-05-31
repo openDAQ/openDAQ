@@ -19,7 +19,7 @@ DictPtr<IString, IServerType> WebsocketStreamingServerModule::onGetAvailableServ
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = WebsocketStreamingServerImpl::createType();
+    auto serverType = WebsocketStreamingServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;
@@ -33,7 +33,7 @@ ServerPtr WebsocketStreamingServerModule::onCreateServer(StringPtr serverType,
         throw InvalidParameterException{"Context parameter cannot be null."};
 
     if (!serverConfig.assigned())
-        serverConfig = WebsocketStreamingServerImpl::createDefaultConfig();
+        serverConfig = WebsocketStreamingServerImpl::createDefaultConfig(context);
 
     ServerPtr server(WebsocketStreamingServer_Create(rootDevice, serverConfig, context));
     return server;

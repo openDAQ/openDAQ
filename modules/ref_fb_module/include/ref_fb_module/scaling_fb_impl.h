@@ -63,7 +63,7 @@ private:
     void createSignals();
 
     template <SampleType InputSampleType>
-    void processDataPacket(const DataPacketPtr& packet);
+    void processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
 
     void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;

@@ -313,6 +313,17 @@ namespace RTGen.Python.Generators
             return false;
         }
 
+        private bool MethodHasStealRef(IMethod method)
+        {
+            foreach (IArgument argument in method.Overloads[0].Arguments)
+            {
+                if (argument.IsStealRef)
+                    return true;
+            }
+
+            return false;
+        }
+
         private int GetGetterPrefixLength(String name)
         {
             int prefixLength = -1;
@@ -419,6 +430,10 @@ namespace RTGen.Python.Generators
             {
                 foreach (IMethod method in rtClass.Methods)
                 {
+                    bool hasStealRef = MethodHasStealRef(method);
+                    if (hasStealRef) // steal ref methods not supported
+                        continue;
+
                     bool isTemporaryDisabled = isMethodTemporarilyDisabled(method);
                     bool isThisAGetterFromAGetSetPair = (method.GetSetPair != null) &&
                                                         (method.GetSetPair.Getter == method) &&

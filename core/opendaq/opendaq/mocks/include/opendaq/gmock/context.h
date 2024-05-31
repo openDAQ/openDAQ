@@ -34,14 +34,17 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getLogger, (daq::ILogger** logger), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getModuleManager, (daq::IBaseObject** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getTypeManager, (daq::ITypeManager** manager), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getAuthenticationProvider, (daq::IAuthenticationProvider** authenticationProvider), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOnCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, moveModuleManager, (daq::IModuleManager** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOptions, (daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getModuleOptions, (daq::IString* moduleId, daq::IDict** options), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getDiscoveryServers, (daq::IDict** services), (override MOCK_CALL));
 
     daq::SchedulerPtr scheduler;
     daq::LoggerPtr logger;
     daq::TypeManagerPtr typeManager;
+    daq::AuthenticationProviderPtr authenticationProvider;
     daq::BaseObjectPtr moduleManager;
     daq::EventEmitter<daq::ComponentPtr, daq::CoreEventArgsPtr> coreEvent;
 
@@ -65,12 +68,17 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
             .WillRepeatedly(DoAll(Invoke([&](daq::ITypeManager** typeManagerOut) { *typeManagerOut = typeManager.addRefAndReturn(); }),
                                   Return(OPENDAQ_SUCCESS)));
 
+        EXPECT_CALL(*this, getAuthenticationProvider)
+            .Times(AnyNumber())
+            .WillRepeatedly(DoAll(Invoke([&](daq::IAuthenticationProvider** authenticationProviderOut)
+                                         { *authenticationProviderOut = authenticationProvider.addRefAndReturn(); }),
+                                  Return(OPENDAQ_SUCCESS)));
+
         EXPECT_CALL(*this, getModuleManager)
             .Times(AnyNumber())
             .WillRepeatedly(DoAll(Invoke([&](daq::IBaseObject** moduleManagerOut) { *moduleManagerOut = moduleManager.addRefAndReturn(); }),
                                   Return(OPENDAQ_SUCCESS)));
 
-        
         EXPECT_CALL(*this, getOnCoreEvent)
             .Times(AnyNumber())
             .WillRepeatedly(DoAll(Invoke([&](daq::IEvent** event) { *event = coreEvent.addRefAndReturn(); }),

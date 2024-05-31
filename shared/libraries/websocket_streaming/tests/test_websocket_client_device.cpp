@@ -6,6 +6,7 @@
 #include <websocket_streaming/websocket_streaming_server.h>
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
+#include <opendaq/mirrored_signal_config_ptr.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -105,10 +106,22 @@ TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
     ASSERT_EQ(clientDevice.getSignals()[0].getName(), "TestName");
     ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "TestDescription");
 
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    auto signal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+    signal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        acknowledgementPromise.set_value(args.getStreamingConnectionString());
+    };
+
+    auto reader = PacketReader(clientDevice.getSignals()[0]);
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
     // Publish signal changes
     auto descriptor = DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).build();
     std::string signalId = testValueSignal.getGlobalId();
-    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
+    server->sendPacketToSubscribers(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 

@@ -3,7 +3,7 @@
 using namespace daq;
 
 MockServerImpl::MockServerImpl()
-    : Server(nullptr, nullptr, nullptr, nullptr)
+    : Server(nullptr, nullptr, nullptr, nullptr, nullptr)
 {
 }
 

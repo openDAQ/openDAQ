@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <istream>
 #include <ostream>
+#include <cstdint>
 
 // ICMP header for both IPv4 and IPv6.
 //

@@ -33,9 +33,9 @@ StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
     std::set<std::string> protos = {__VA_ARGS__};                    \
     if (protocol == "opcua" && protos.find("opcua") == protos.end()) \
         return;                                                      \
-    if (protocol == "nd" && protos.find("nd") == protos.end())       \
+    else if (protocol == "nd" && protos.find("nd") == protos.end())  \
         return;                                                      \
-    if (protocol == "ns" && protos.find("ns") == protos.end())       \
+    else if (protocol == "ns" && protos.find("ns") == protos.end())  \
         return;                                                      \
-    if (protocol == "lt" && protos.find("lt") == protos.end())       \
+    else if (protocol == "lt" && protos.find("lt") == protos.end())  \
         return;

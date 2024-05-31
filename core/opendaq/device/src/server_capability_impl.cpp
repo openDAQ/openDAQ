@@ -17,6 +17,7 @@ const char* CoreEventsEnabled = "CoreEventsEnabled";
 const char* ProtocolId = "protocolId";
 const char* Prefix = "prefix";
 const char* Addresses = "Addresses";
+const char* Port = "Port";
 
 StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
 {
@@ -57,6 +58,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
     Super::addProperty(StringProperty(Prefix, ""));
     Super::addProperty(ListProperty(Addresses, List<IString>()));
+    Super::addProperty(IntProperty(Port, -1));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -265,6 +267,21 @@ PropertyObjectPtr ServerCapabilityConfigImpl::createCloneBase()
 {
     const auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
     return obj;
+}
+
+ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    
+    return daqTry([&]() {
+        *port = getTypedProperty<IInteger>(Port).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
+{
+    return Super::setPropertyValue(String(Port), port);
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

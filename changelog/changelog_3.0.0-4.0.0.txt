@@ -2,7 +2,7 @@
 Description
   - Supporting reading client's connection info in the deviceInfo
 
-+ [function] IDeviceInfo::getConfigurationConnectionInfo(IPropertyObject** connectionInfo)
++ [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 
 27.05.2024
 Description

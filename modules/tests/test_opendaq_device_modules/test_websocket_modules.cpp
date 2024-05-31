@@ -284,7 +284,11 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getPropertyValue("protocolId"), "opendaq_lt_streaming");
-    ASSERT_EQ(connectionInfo.getPropertyValue("address"), "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPropertyValue("connectionString"), "daq.lt://127.0.0.1/");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }

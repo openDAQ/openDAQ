@@ -3,6 +3,7 @@
 #include <coretypes/validation.h>
 #include "coretypes/impl.h"
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,7 +41,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
     defaultPropertyNames.insert("serverCapabilities");
 
-    Super::addProperty(ObjectProperty("configurationConnectionInfo", CreateDefaultConfigurationConnectionInfo()));
+    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
     defaultPropertyNames.insert("configurationConnectionInfo");
 
     if (customSdkVersion.assigned())
@@ -682,25 +683,15 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IPropertyObject** connectionInfo)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 {
     BaseObjectPtr obj;
     StringPtr str = "configurationConnectionInfo";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
-    *connectionInfo = obj.asPtr<IPropertyObject>().detach();
+    *connectionInfo = obj.asPtr<IServerCapability>().detach();
     return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename ... Interfaces>
-PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::CreateDefaultConfigurationConnectionInfo()
-{
-    auto info = PropertyObject();
-    info.addProperty(StringProperty("protocolId", ""));
-    info.addProperty(StringProperty("address", ""));
-    info.addProperty(StringProperty("connectionString", ""));
-    return info;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

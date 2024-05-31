@@ -124,10 +124,15 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     completeDeviceServerCapabilities(device, host);
 
     // Set the connection info for the device
-    auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setPropertyValue("protocolId", DaqOpcUaDeviceTypeId);
-    connectionInfo.setPropertyValue("address", host);
-    connectionInfo.setPropertyValue("connectionString", connectionString);
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+
+    connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId);
+    connectionInfo.setProtocolName("openDAQ OpcUa");
+    connectionInfo.setProtocolType(ProtocolType::Configuration);
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(std::stoi(port));
+    connectionInfo.setPrefix("daq.opcua");
+    connectionInfo.setConnectionString(connectionString);
 
     return device;
 }
@@ -214,9 +219,9 @@ StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr&
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Address is not set");
 
-    if (!serverCapability.hasProperty("Port"))
+    auto port = serverCapability.getPort();
+    if (port == -1)
         throw InvalidParameterException("Port is not set");
-    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
     return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }

@@ -537,7 +537,11 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getPropertyValue("protocolId"), "opendaq_native_streaming");
-    ASSERT_EQ(connectionInfo.getPropertyValue("address"), "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPropertyValue("connectionString"), "daq.ns://127.0.0.1/");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
 }

@@ -37,7 +37,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                 if (!discoveredDevice.ipv4Address.empty())
                 {
                     auto connectionStringIpv4 = NativeStreamingClientModule::createUrlConnectionString(
-                        "daq.ns://",
+                        NativeStreamingDevicePrefix,
                         discoveredDevice.ipv4Address,
                         discoveredDevice.servicePort,
                         discoveredDevice.getPropertyOrDefault("path", "/")
@@ -49,7 +49,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                 if(!discoveredDevice.ipv6Address.empty())
                 {
                     auto connectionStringIpv6 = NativeStreamingClientModule::createUrlConnectionString(
-                        "daq.ns://",
+                        NativeStreamingDevicePrefix,
                         "[" + discoveredDevice.ipv6Address + "]",
                         discoveredDevice.servicePort,
                         discoveredDevice.getPropertyOrDefault("path", "/")
@@ -65,13 +65,13 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
                 auto connectionStringIpv4 = NativeStreamingClientModule::createUrlConnectionString(
-                    "daq.nd://",
+                    NativeConfigurationDevicePrefix,
                     discoveredDevice.ipv4Address,
                     discoveredDevice.servicePort,
                     discoveredDevice.getPropertyOrDefault("path", "/")
                 );
                 auto connectionStringIpv6 = NativeStreamingClientModule::createUrlConnectionString(
-                    "daq.nd://",
+                    NativeConfigurationDevicePrefix,
                     "[" + discoveredDevice.ipv6Address + "]",
                     discoveredDevice.servicePort,
                     discoveredDevice.getPropertyOrDefault("path", "/")
@@ -283,6 +283,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
     DevicePtr device;
     StringPtr protocolId;
+    StringPtr protocolName;
+    StringPtr protocolPrefix;
+    ProtocolType protocolType;
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::scoped_lock lock(sync);
@@ -302,11 +305,17 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             initTimeout
         );
         protocolId = NativeStreamingDeviceTypeId;
+        protocolName = "openDAQ Native Streaming";
+        protocolPrefix = "daq.ns";
+        protocolType = ProtocolType::Streaming;
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
         protocolId = NativeConfigurationDeviceTypeId;
+        protocolName = "openDAQ Native Configuration";
+        protocolPrefix = "daq.nd";
+        protocolType = ProtocolType::ConfigurationAndStreaming;
     }
     
     if (!device.assigned())
@@ -315,10 +324,14 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
 
     // Set the connection info for the device
-    auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setPropertyValue("protocolId", protocolId);
-    connectionInfo.setPropertyValue("address", host);
-    connectionInfo.setPropertyValue("connectionString", connectionString);
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setProtocolId(protocolId);
+    connectionInfo.setProtocolName(protocolName);
+    connectionInfo.setProtocolType(protocolType);
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(std::stoi(port.toStdString()));
+    connectionInfo.setPrefix(protocolPrefix);
+    connectionInfo.setConnectionString(connectionString);
     return device;
 }
 
@@ -479,9 +492,9 @@ StringPtr NativeStreamingClientModule::onCreateConnectionString(const ServerCapa
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Address is not set");
 
-    if (!serverCapability.hasProperty("Port"))
+    auto port = serverCapability.getPort();
+    if (port == -1)
         throw InvalidParameterException("Port is not set");
-    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
     return NativeStreamingClientModule::createUrlConnectionString(
         serverCapability.getProtocolId() == "opendaq_native_streaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix,

@@ -105,17 +105,30 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 
     // Set the connection info for the device
     auto host = String("");
+    auto port = -1;
     {
         std::smatch match;
         auto regexpConnectionString = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
         std::string connectionStringStr = connectionString;
         if (std::regex_search(connectionStringStr, match, regexpConnectionString))
+        {
             host = match[2].str();
+            port = 7414;
+            if (match[3].matched)
+                port = std::stoi(match[3]);
+        }
     }
-    auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setPropertyValue("protocolId", WebsocketDeviceTypeId);
-    connectionInfo.setPropertyValue("address", host);
-    connectionInfo.setPropertyValue("connectionString", connectionString);
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setProtocolId(WebsocketDeviceTypeId);
+    connectionInfo.setProtocolName("openDAQ LT Streaming");
+    connectionInfo.setProtocolType(ProtocolType::Streaming);
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(port);
+    connectionInfo.setPrefix("daq.lt");
+    connectionInfo.setConnectionString(connectionString);
+
     return device;
 }
 
@@ -163,9 +176,9 @@ StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerC
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Address is not set");
 
-    if (!serverCapability.hasProperty("Port"))
+    auto port = serverCapability.getPort();
+    if (port == -1)
         throw InvalidParameterException("Port is not set");
-    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
     return WebsocketStreamingClientModule::createUrlConnectionString(
         address,

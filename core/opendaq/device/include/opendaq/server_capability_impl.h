@@ -65,6 +65,9 @@ public:
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
+    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
+    ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
+    
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 

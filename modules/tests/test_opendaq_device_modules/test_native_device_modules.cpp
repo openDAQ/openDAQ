@@ -1052,7 +1052,11 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getPropertyValue("protocolId"), "opendaq_native_config");
-    ASSERT_EQ(connectionInfo.getPropertyValue("address"), "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPropertyValue("connectionString"), "daq.nd://127.0.0.1");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
 }

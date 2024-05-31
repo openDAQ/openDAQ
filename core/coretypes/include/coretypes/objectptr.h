@@ -209,6 +209,8 @@ public:
 
     static ObjectPtr<T> Borrow(T*&& obj) = delete;
 
+    static ObjectPtr<T> Borrow(const ObjectPtr<T>& ptr);
+
     /*!
      * @brief Adopts an interface.
      * @param obj The source interface.
@@ -1395,6 +1397,16 @@ typename InterfaceToSmartPtr<V>::SmartPtr ObjectPtr<T>::Borrow(U*& obj)
     objPtr.borrowed = true;
     return objPtr;
 }
+
+template <typename T>
+ObjectPtr<T> ObjectPtr<T>::Borrow(const ObjectPtr<T>& ptr)
+{
+    ObjectPtr<T> objPtr;
+    objPtr.object = ptr.getObject();
+    objPtr.borrowed = true;
+    return objPtr;
+}
+
 
 template <typename T>
 bool ObjectPtr<T>::equals(ObjectPtr<IBaseObject> other) const

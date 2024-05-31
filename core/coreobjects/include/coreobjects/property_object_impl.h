@@ -2476,7 +2476,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
 
     const auto keys = propValues.getKeys();
 
-    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>();
+    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>(true);
 
     for (const auto& key : keys)
     {

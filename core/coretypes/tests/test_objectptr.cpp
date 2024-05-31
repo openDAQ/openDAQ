@@ -317,6 +317,15 @@ TEST_F(ObjectPtrTest, BorrowFromAnotherInterface)
     baseObject->releaseRef();
 }
 
+TEST_F(ObjectPtrTest, BorrowFromPtr)
+{
+    const auto obj = BaseObject();
+    const auto borrowedObj = BaseObjectPtr::Borrow(obj);
+    ASSERT_EQ(obj->addRef(), 2);
+    obj->releaseRef();
+}
+
+
 TEST_F(ObjectPtrTest, Detach)
 {
     auto obj = BaseObject();

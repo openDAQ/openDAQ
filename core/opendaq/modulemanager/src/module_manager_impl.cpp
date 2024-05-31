@@ -541,7 +541,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 }
 
                 // automatically skips streaming connection for local and pseudo (streaming) devices
-                auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>();
+                auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true);
                 if (mirroredDeviceConfigPtr.assigned())
                 {
                     errCode = daqTry([this, &mirroredDeviceConfigPtr, &configPtr]

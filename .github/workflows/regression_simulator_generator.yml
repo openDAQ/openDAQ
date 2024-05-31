@@ -104,7 +104,7 @@ jobs:
       - name: Upload target bin folder .zip
         uses: actions/upload-artifact@v3
         with: 
-          name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }})
+          name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}) # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
           path: |
             target/build/bin/*daqcoreobjects-*
             target/build/bin/*daqcoretypes-*

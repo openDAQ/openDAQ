@@ -22,9 +22,15 @@ using namespace daq;
 
 namespace
 {
-// TODO: opcua nd ns lt
-// StringPtr protocol = "nd";
+
+// To run the tests locally you can set the protocol here manually,
+// instead of setting and reading the environment variable "protocol"
+
+// TODO: make sure this uses getenv in production
+
+// StringPtr protocol = "nd"; // opcua nd ns lt
 StringPtr protocol = getenv("protocol");
+
 StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 }
 

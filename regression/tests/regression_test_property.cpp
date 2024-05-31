@@ -24,6 +24,10 @@ protected:
     }
 };
 
+// TODO: It would make sense to test these on dedicated properties on the device.
+// I'd suggest adding a custom object to the simulator device that contains all different property types.
+// Some of such properties already exist in some test mocks and can be reused.
+
 TEST_F(RegressionTestProperty, getValueType)
 {
     CoreType type;
@@ -150,7 +154,7 @@ TEST_F(RegressionTestProperty, getCallableInfo)
     ASSERT_EQ(info, nullptr);
 }
 
-// TODO: ???
+// TODO: enable
 TEST_F(RegressionTestProperty, DISABLED_getStructType)
 {
     ASSERT_NO_THROW(property.getStructType());

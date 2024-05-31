@@ -675,7 +675,13 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
             return (syncStatus == SyncStatus::Synchronized) && (min >= remainingSamplesToRead);
         };
-        notify.condition.wait_for(notifyLock, timeout, condition);
+
+        auto start = std::chrono::steady_clock::now();
+        bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
+        auto end = std::chrono::steady_clock::now();
+        LOG_T("Waited {} ms with {} success"
+            , std::chrono::duration_cast<Milliseconds>(end - start).count()
+            , ok ? "with" : "without")
 
         if (status.assigned())
             return status;
@@ -703,19 +709,15 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     {
         SizeT toRead = std::min(remainingSamplesToRead, min);
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto start = std::chrono::steady_clock::now();
-#endif
         readSamples(toRead);
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
         LOG_T("Read {} / {} [{} left]",
                 toRead,
                 samplesToRead,
                 remainingSamplesToRead
         )
-#endif
     }
 
     return defaultStatus;

@@ -285,7 +285,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     StringPtr protocolId;
     StringPtr protocolName;
     StringPtr protocolPrefix;
-    ProtocolType protocolType;
+    ProtocolType protocolType = ProtocolType::Unknown;
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::scoped_lock lock(sync);

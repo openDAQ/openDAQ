@@ -145,7 +145,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingConnectionString)
     serverCapability.addAddress("123.123.123.123");
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
-    serverCapability.addProperty(IntProperty("Port", 1234));
+    serverCapability.setPort(1234);
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
     ASSERT_EQ(connectionString, "daq.ns://123.123.123.123:1234");
 
@@ -167,7 +167,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionString)
     serverCapability.addAddress("123.123.123.123");
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
-    serverCapability.addProperty(IntProperty("Port", 1234));
+    serverCapability.setPort(1234);
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
     ASSERT_EQ(connectionString, "daq.nd://123.123.123.123:1234");
 

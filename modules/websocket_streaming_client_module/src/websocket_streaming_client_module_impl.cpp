@@ -26,7 +26,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
+                auto cap = ServerCapability(WebsocketDeviceTypeId, "openDAQ LT Streaming", ProtocolType::Streaming);
 
                 if (!discoveredDevice.ipv4Address.empty())
                 {
@@ -101,7 +101,36 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     std::scoped_lock lock(sync);
 
     std::string localId = fmt::format("websocket_pseudo_device{}", deviceIndex++);
-    return WebsocketClientDevice(context, parent, localId, connectionString);
+    auto device = WebsocketClientDevice(context, parent, localId, connectionString);
+
+    // Set the connection info for the device
+    auto host = String("");
+    auto port = -1;
+    {
+        std::smatch match;
+        auto regexpConnectionString = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+        std::string connectionStringStr = connectionString;
+        if (std::regex_search(connectionStringStr, match, regexpConnectionString))
+        {
+            host = match[2].str();
+            port = 7414;
+            if (match[3].matched)
+                port = std::stoi(match[3]);
+        }
+    }
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setProtocolId(WebsocketDeviceTypeId);
+    connectionInfo.setProtocolName("openDAQ LT Streaming");
+    connectionInfo.setProtocolType(ProtocolType::Streaming);
+    connectionInfo.setConnectionType("TCP/IP");
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(port);
+    connectionInfo.setPrefix("daq.lt");
+    connectionInfo.setConnectionString(connectionString);
+
+    return device;
 }
 
 bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
@@ -148,9 +177,9 @@ StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerC
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Address is not set");
 
-    if (!serverCapability.hasProperty("Port"))
+    auto port = serverCapability.getPort();
+    if (port == -1)
         throw InvalidParameterException("Port is not set");
-    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
     return WebsocketStreamingClientModule::createUrlConnectionString(
         address,

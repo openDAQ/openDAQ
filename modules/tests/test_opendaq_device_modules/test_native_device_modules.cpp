@@ -1041,3 +1041,23 @@ TEST_F(NativeDeviceModulesTest, Update)
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
+
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
+}

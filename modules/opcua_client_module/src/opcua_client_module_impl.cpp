@@ -31,7 +31,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
                 if (!discoveredDevice.ipv4Address.empty())
                 {
                     auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
@@ -122,6 +122,19 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
     completeDeviceServerCapabilities(device, host);
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+
+    connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId);
+    connectionInfo.setProtocolName("openDAQ OpcUa");
+    connectionInfo.setProtocolType(ProtocolType::Configuration);
+    connectionInfo.setConnectionType("TCP/IP");
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(std::stoi(port));
+    connectionInfo.setPrefix("daq.opcua");
+    connectionInfo.setConnectionString(connectionString);
+
     return device;
 }
 
@@ -207,9 +220,9 @@ StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr&
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Address is not set");
 
-    if (!serverCapability.hasProperty("Port"))
+    auto port = serverCapability.getPort();
+    if (port == -1)
         throw InvalidParameterException("Port is not set");
-    auto port = serverCapability.getPropertyValue("Port").template asPtr<IInteger>();
 
     return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }

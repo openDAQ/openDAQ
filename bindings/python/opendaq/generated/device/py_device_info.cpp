@@ -222,4 +222,12 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
             return objectPtr.getLocation().toStdString();
         },
         "Gets the location of the device.");
+    cls.def_property_readonly("configuration_connection_info",
+        [](daq::IDeviceInfo *object)
+        {
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getConfigurationConnectionInfo().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the connection information for the configuration.");
 }

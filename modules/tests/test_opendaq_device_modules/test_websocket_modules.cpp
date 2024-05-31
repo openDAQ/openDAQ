@@ -273,3 +273,23 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
+}

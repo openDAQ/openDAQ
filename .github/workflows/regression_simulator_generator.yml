@@ -1,6 +1,6 @@
 name: Generate openDAQ regression test simulator binaries
 
-# TODO: this whole action should likely be back-ported to 3.0.1 once a new tag is made, for future releases it won't be necessary
+# TODO: this whole action should be back-ported once a new tag is made
 
 on:
   workflow_dispatch:
@@ -94,17 +94,20 @@ jobs:
           cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ../..
 
       - name: Build target (with regression simulator)
-        working-directory: target/build # TODO: don't use target folder, just use default folder
+        # TODO: don't use target folder, just use default folder
+        working-directory: target/build 
         run: cmake --build .
 
       - name: Move simulator binary to bin folder
-        run: mv target/build/simulator/regression_simulator target/build/bin # TODO: don't use target folder, just use default folder
+        # TODO: don't use target folder, just use default folder
+        run: mv target/build/simulator/regression_simulator target/build/bin 
 
-      # TODO: don't use target folder, just use default folder
-      - name: Upload target bin folder .zip
-        uses: actions/upload-artifact@v3
+      - name: Upload regression simulator binaries archive
+        uses: actions/upload-artifact@v4
         with: 
-          name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}) # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+          # TODO: don't use target folder, just use default folder
+          # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+          name: regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }})
           path: |
             target/build/bin/*daqcoreobjects-*
             target/build/bin/*daqcoretypes-*
@@ -116,5 +119,30 @@ jobs:
             target/build/bin/*ws_stream_srv_module-*
             target/build/bin/regression_simulator
 
-      # TODO: upload regression target bin .zip artifact to AWS automagically
-      # Currently, this has to be done manually
+      - name: Archive regression simulator binaries for S3
+        # TODO: don't use target folder, just use default folder
+        working-directory: target/build/bin
+        # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+        run: |
+          zip \
+          "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" \
+          *daqcoreobjects-* \
+          *daqcoretypes-* \
+          *native_stream_srv_module-* \
+          *opcua_server_module-* \
+          libopendaq-* \
+          *ref_device_module-* \
+          *ref_fb_module-* \
+          *ws_stream_srv_module-* \
+          regression_simulator
+
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload regression simulator binaries archive to S3
+        # TODO: don't use target folder, just use default folder
+        # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+        run: aws s3 cp "target/build/bin/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}"

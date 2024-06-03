@@ -221,10 +221,6 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     steps:
-      # TODO DELETE
-      - name: DEBUG TEST 
-        run: (&>/dev/null echo kek &)
-
       - name: Install basic dependencies
         run: |
           apt-get update
@@ -311,7 +307,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
         run: |
           # Run simulator and wait for it to to be ready
-          (&>/dev/null ./${{ env.regression_simulator_folder }}/regression_simulator &)
+          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -329,7 +325,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
         run: |
           # Run simulator and wait for it to to be ready
-          (&>/dev/null ./${{ env.regression_simulator_folder }}/regression_simulator &)
+          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -347,7 +343,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
         run: |
           # Run simulator and wait for it to to be ready
-          (&>/dev/null ./${{ env.regression_simulator_folder }}/regression_simulator &)
+          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests
@@ -365,7 +361,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
         run: |
           # Run simulator and wait for it to to be ready
-          (&>/dev/null ./${{ env.regression_simulator_folder }}/regression_simulator &)
+          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null
           while [ ! -f ready ]; do sleep 1; done
           
           # Run regression tests

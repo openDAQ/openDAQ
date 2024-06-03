@@ -802,10 +802,9 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    // if there is a callback
-    // and all signals have a packet
-    // or any of signals has a first packet as an event
-    // trigger the callback
+    // data are ready 
+    // if any of signals has event packet 
+    // or all signals have data packet
     bool hasEventPacket = false;
     bool hasDataPacket = true;
 

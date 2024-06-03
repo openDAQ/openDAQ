@@ -129,38 +129,40 @@ SizeT BlockReaderImpl::getAvailableSamples() const
 ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
-
-    bool triggerCallback = false;
+    
+    ProcedurePtr callback;
     {
+        bool triggerCallback = false;
         std::scoped_lock lock(notify.mutex);
-
-        if (getAvailable() != 0)
-        {
-            triggerCallback = true;
-            notify.dataReady = true;
-        }
-        else if (connection.hasEventPacket())
+        if (connection.hasEventPacket())
         {
             triggerCallback = true;
         }
         else
         {
-            return OPENDAQ_SUCCESS;
+            SizeT availableSamples = connection.getAvailableSamples();
+            if (info.currentDataPacketIter != info.dataPacketsQueue.end())
+            {
+                availableSamples = info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+            }
+
+            if (calculateBlockCount(availableSamples) != 0) 
+            {
+                triggerCallback = true;
+            }
+        }
+        if (triggerCallback)
+        {
+            callback = readCallback;
+            notify.dataReady = true;
         }
     }
+   
     notify.condition.notify_one();
 
-    if (triggerCallback)
+    if (callback.assigned())
     {
-        ProcedurePtr callback;
-        {
-            std::scoped_lock lock(mutex);
-            callback = readCallback;
-        }
-        if (callback.assigned())
-        {
-            return wrapHandler(callback);
-        }
+        return wrapHandler(callback);
     }
 
     return OPENDAQ_SUCCESS;

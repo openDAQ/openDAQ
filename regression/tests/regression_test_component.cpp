@@ -84,10 +84,18 @@ TEST_F(RegressionTestComponent, getTags)
 
 TEST_F(RegressionTestComponent, setVisibleGetVisible)
 {
-    ASSERT_NO_THROW(component.setVisible(True));  // TODO: does nothing, because the attribute is locked
-    Bool visible;
-    ASSERT_NO_THROW(visible = component.getVisible());
-    ASSERT_TRUE(visible);
+    auto componentPrivate = component.asPtr<IComponentPrivate>();
+    componentPrivate.unlockAllAttributes();
+
+    ASSERT_NO_THROW(component.setVisible(False));
+    Bool visible1;
+    ASSERT_NO_THROW(visible1 = component.getVisible());
+    ASSERT_FALSE(visible1);
+
+    ASSERT_NO_THROW(component.setVisible(True));
+    Bool visible2;
+    ASSERT_NO_THROW(visible2 = component.getVisible());
+    ASSERT_TRUE(visible2);
 }
 
 TEST_F(RegressionTestComponent, getLockedAttributes)

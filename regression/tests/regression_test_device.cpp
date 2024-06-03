@@ -214,7 +214,7 @@ TEST_F(RegressionTestDevice, saveConfigurationLoadConfiguration)
     StringPtr config;
     ASSERT_NO_THROW(config = device.saveConfiguration());
 
-    PROTOCOLS("nd", "ns", "lt") // TODO: Why opcua doesn't work?
+    PROTOCOLS("nd", "ns", "lt")  // TODO: why opcua doesn't work?
 
     ASSERT_NO_THROW(device.loadConfiguration(config));
 }

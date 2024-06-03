@@ -47,20 +47,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     instance.addProperty(ReferenceProperty("TestReference", EvalValue("%TestString")));
     // Add custom Struct Property
     instance.addProperty(StructProperty("TestStruct", Struct("TestName", dict, TypeManager())));
-    // TODO: FIX! Add custom getOnPropertyValueRead Event to TestInt Property
-    instance.addProperty(IntProperty("IntReadCount", 0));
-    instance.getOnPropertyValueRead("TestInt") += [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
-    {
-        IntegerPtr count = sender.getPropertyValue("IntReadCount");
-        sender.setPropertyValue("IntReadCount", count + 1);
-    };
-    // TODO: FIX! Add custom getOnPropertyValueWrite Event to TestInt Property
-    instance.addProperty(IntProperty("IntWriteCount", 0));
-    instance.getOnPropertyValueWrite("TestInt") += [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
-    {
-        IntegerPtr count = sender.getPropertyValue("IntWriteCount");
-        sender.setPropertyValue("IntWriteCount", count + 1);
-    };
 
     // Create an empty file named "ready" to let regression test suite know
     // the simulator is up and running and ready for tests

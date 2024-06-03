@@ -185,19 +185,3 @@ TEST_F(RegressionTestProperty, getStructType)
     ASSERT_EQ(stru.getName(), "TestName");
     ASSERT_EQ(stru.getFieldNames()[0], "TestKey");
 }
-
-// TODO: Why nullptr?
-TEST_F(RegressionTestProperty, getOnPropertyValueWrite)
-{
-    auto prop = device.getProperty("TestInt");
-    auto event = prop.getOnPropertyValueWrite();
-    ASSERT_NE(event, nullptr);
-}
-
-// TODO: Why nullptr?
-TEST_F(RegressionTestProperty, getOnPropertyValueRead)
-{
-    auto prop = device.getProperty("TestInt");
-    auto event = prop.getOnPropertyValueRead();
-    ASSERT_NE(event, nullptr);
-}

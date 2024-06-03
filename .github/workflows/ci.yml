@@ -314,6 +314,7 @@ jobs:
           cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
+          echo Killing simulator # TODO: Delete this line 4x
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
@@ -331,6 +332,7 @@ jobs:
           cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
+          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
@@ -348,6 +350,7 @@ jobs:
           cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
+          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
@@ -365,6 +368,7 @@ jobs:
           cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           # Kill simulator gracefully and wait for exit
+          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done

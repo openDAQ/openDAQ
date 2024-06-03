@@ -120,6 +120,7 @@ jobs:
             target/build/bin/*ref_fb_module-*
             target/build/bin/*ws_stream_srv_module-*
             target/build/bin/regression_simulator
+            target/build/bin/*audio_device_module-*
 
       - name: Archive regression simulator binaries for S3
         # TODO: don't use target folder, just use default folder

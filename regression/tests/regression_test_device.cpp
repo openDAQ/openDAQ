@@ -186,14 +186,13 @@ TEST_F(RegressionTestDevice, getFunctionBlocks)
     }
 }
 
-// Note: This test will fail locally for opcua and nd, as we have 8 function blocks available, but only 7 in GitHub Actions
 TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 {
     DictPtr<IString, IFunctionBlockType> types;
     ASSERT_NO_THROW(types = device.getAvailableFunctionBlockTypes());
     if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_EQ(types.getCount(), 7);
+        ASSERT_EQ(types.getCount(), 8);
     }
     else if (protocol == "ns" || protocol == "lt")
     {

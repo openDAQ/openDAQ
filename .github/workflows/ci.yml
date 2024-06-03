@@ -221,6 +221,10 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     steps:
+      # TODO DELETE
+      - name: DEBUG TEST 
+        run: (&>/dev/null echo kek &)
+
       - name: Install basic dependencies
         run: |
           apt-get update
@@ -291,11 +295,11 @@ jobs:
 
       - name: Download regression simulator binaries .zip from S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/${{ env.regression_tests_target_tag }}/regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
 
       - name: Unzip regression simulator binaries
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: unzip "regression target bin ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+        run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
 
       - name: Add execute permissions to regression simulator
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

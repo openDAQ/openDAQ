@@ -2,6 +2,7 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/time_reader.h>
 #include "reader_common.h"
+#include <opendaq/event_packet_params.h>
 #include <opendaq/input_port_factory.h>
 
 #include <gmock/gmock-matchers.h>
@@ -181,12 +182,12 @@ public:
     }
 
     [[nodiscard]]
-    ListPtr<IInputPortConfig> signalsToPortsList() const
+    ListPtr<IInputPortConfig> signalsToPortsList(bool enableGapDetection = false) const
     {
         ListPtr<IInputPortConfig> ports = List<IInputPortConfig>();
         for (const auto& read : readSignals)
         {
-            auto port = InputPort(read.signal.getContext(), nullptr, "readsig");
+            auto port = InputPort(read.signal.getContext(), nullptr, "readsig", enableGapDetection);
             port.connect(read.signal);
             ports.pushBack(port);
         }
@@ -2034,7 +2035,7 @@ TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
 
 TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
 {
-    readSignals.reserve(3);
+    readSignals.reserve(2);
 
     auto sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:03+00:00"));
@@ -2057,4 +2058,58 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
     a1.wait();
 
     ASSERT_EQ(count, numberOfSamplesToRead);
+}
+
+TEST_F(MultiReaderTest, MultiReaderGapDetection)
+{
+    constexpr const auto NUM_SIGNALS = 2;
+    readSignals.reserve(NUM_SIGNALS);
+
+    // time different between the two signals is 0.01s which is 10 samples
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(1, 0)));
+    auto& sig1 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03.01+00:00", nullptr, LinearDataRule(1, 0)));
+
+    auto multi = MultiReader(signalsToPortsList(true));
+
+    // for signal 0 writes first packet with 10 samples, and then second packet with 10 samples and offset of 5
+    // in signal will be generated 3 packets
+    // data packet with 10 samples
+    // event packet with gap in 5 samples
+    // data packet with 10 samples
+    sig0.createAndSendPacket(0);
+    sig0.packetOffset = 5;
+    sig0.createAndSendPacket(1);
+
+    // for signal 1 - write 20 samples
+    // in signal will be generated 1 packet with 20 samples
+    sig1.createAndSendPacket(0);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    SizeT count{0};
+    MultiReaderStatusPtr status = multi.read(nullptr, &count);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_TRUE(status.getEventPackets().assigned());
+    ASSERT_EQ(status.getEventPackets().getCount(), 1);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
+    
+    auto event = status.getEventPackets().get(sig0.signal);
+    ASSERT_EQ(event.getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_EQ(event.getParameters().get(event_packet_param::GAP_DIFF), 5);
+
+    constexpr const SizeT SAMPLES = 10;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1]};
+
+    count = SAMPLES;
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    // bacause the was no shifting in time
+    ASSERT_EQ(count, 10u);
 }

@@ -80,7 +80,7 @@ ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
 
 MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<ISignal, IEventPacket>& eventPackets, Bool valid)
     : Super(nullptr, valid)
-    , eventPackets(eventPackets)
+    , eventPackets(eventPackets.assigned() ? eventPackets : Dict<ISignal, IEventPacket>())
 {
 }
 
@@ -90,7 +90,7 @@ ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
     Bool valid;
     Super::getValid(&valid);
 
-    if (valid && (!eventPackets.assigned() || eventPackets.getCount() == 0))
+    if (valid && (eventPackets.getCount() == 0))
         *status = ReadStatus::Ok;
     else if (eventPackets.assigned())
         *status = ReadStatus::Event;
@@ -103,10 +103,7 @@ ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
 ErrCode MultiReaderStatusImpl::getEventPackets(IDict** events)
 {
     OPENDAQ_PARAM_NOT_NULL(events);
-    if (eventPackets.assigned())
-        *events = eventPackets.addRefAndReturn();
-    else 
-        *events = Dict<ISignal, IEventPacket>().detach();
+    *events = eventPackets.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -232,7 +232,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install build dependencies
+      - name: Install additional dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
             awscli unzip \

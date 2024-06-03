@@ -99,7 +99,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
-     * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
@@ -110,8 +110,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[in,out] count The maximum amount of samples to be skipped. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are skipped. The rest of the buffer is not modified or cleared.
+     * @param[out] status: Represents the status of the reader.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) = 0;
 
     /*!
      * @brief Gets the resolution the reader aligned all the signals to.
@@ -142,24 +146,6 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * Reader will try to synchronize the data from the signals when `getAvailableCount` or any of the read methods is called.
      */
     virtual ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) = 0;
-
-    /*!
-     * @brief Gets the user the option to invalidate the reader when the signal descriptor changes.
-     * @param callback The callback to call when the descriptor changes or @c nullptr to unset it.
-     * The callback takes a value and domain Signal descriptors as a parameters and returns a boolean indicating
-     * whether the change is still acceptable. In the case the value or domain descriptor did not change
-     * it will be @c nullptr. So either of the descriptors can be @c nullptr but not both.
-     *
-     * If the callback is not assigned or is set to @c nullptr the reader will just check if the new sample-type
-     * is still implicitly convertible to the read type and invalidate itself if that is not the case.
-     */
-    virtual ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) = 0;
-
-    /*!
-     * @brief Gets the currently set callback to call when the signal descriptor changes if any.
-     * @param[out] callback The callback to call when the descriptor changes or @c nullptr if not set.
-     */
-    virtual ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) = 0;
 	
     /*!
      * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such

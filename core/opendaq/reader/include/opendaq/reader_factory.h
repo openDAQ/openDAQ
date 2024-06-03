@@ -26,6 +26,8 @@
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/reader_status_ptr.h>
 #include <opendaq/block_reader_status_ptr.h>
+#include <opendaq/tail_reader_status_ptr.h>
+#include <opendaq/multi_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/block_reader_builder_ptr.h>
 
@@ -41,6 +43,16 @@ inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool
 inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
 {
     return BlockReaderStatus_Create(packet, valid, readSamples);
+}
+
+inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
+{
+    return TailReaderStatus_Create(packet, valid, sufficientHistory);
+}
+
+inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<ISignal, IEventPacket>& eventPackets = nullptr, Bool valid = true)
+{
+    return MultiReaderStatus_Create(eventPackets, valid);
 }
 
 /*!

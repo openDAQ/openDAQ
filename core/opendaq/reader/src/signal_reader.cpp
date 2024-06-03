@@ -4,6 +4,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,7 +35,6 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainReader(createReaderForType(domainReadType, old.domainReader->getTransformFunction()))
     , port(old.port)
     , connection(port.getConnection())
-    , changeCallback(old.changeCallback)
     , readMode(old.readMode)
     , domainInfo(loggerComponent)
     , sampleRate(-1)
@@ -55,7 +55,6 @@ SignalReader::SignalReader(const SignalInfo& old,
     , domainReader(createReaderForType(domainReadType, old.domainTransformFunction))
     , port(old.port)
     , connection(port.getConnection())
-    , changeCallback(old.changeCallback)
     , readMode(old.readMode)
     , domainInfo(loggerComponent)
     , sampleRate(-1)
@@ -200,18 +199,6 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 
     invalid = invalid || !validDomain;
 
-    // If both value and domain are still convertible
-    // check with the user if new state is valid for them
-    if (!invalid && changeCallback.assigned())
-    {
-        bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-        invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
-    }
-
     LOG_T("[Signal Descriptor Changed: {} | {} | {}]",
         port.getSignal().getLocalId(),
         printSync(synced),
@@ -219,14 +206,14 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     )
 }
 
-void SignalReader::prepare(void* outValues, SizeT count, std::chrono::milliseconds timeoutTime)
+void SignalReader::prepare(void* outValues, SizeT count)
 {
-    info.prepare(outValues, count / sampleRateDivider, timeoutTime);
+    info.prepare(outValues, count / sampleRateDivider, std::chrono::milliseconds(0));
 }
 
-void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count, std::chrono::milliseconds timeoutTime)
+void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count)
 {
-    info.prepareWithDomain(outValues, domain, count / sampleRateDivider, timeoutTime);
+    info.prepareWithDomain(outValues, domain, count / sampleRateDivider, std::chrono::milliseconds(0));
 }
 
 void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
@@ -241,8 +228,6 @@ void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, 
 
 std::unique_ptr<Comparable> SignalReader::readStartDomain()
 {
-    readUntilNextDataPacket();
-
     DataPacketPtr domainPacket = info.dataPacket.getDomainPacket();
     if (!domainPacket.assigned())
     {
@@ -252,24 +237,101 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
     return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
 }
 
-void SignalReader::readUntilNextDataPacket()
+bool SignalReader::isFirstPacketEvent()
 {
     if (info.dataPacket.assigned())
     {
-        return;
+        return false;
     }
 
-    PacketPtr packet = connection.dequeue();
-    while (packet.assigned() && packet.getType() != PacketType::Data)
+    auto packet = connection.peek();
+    while (packet.assigned())
     {
-        bool firstData{false};
-        ErrCode errCode = handlePacket(packet, firstData);
-        checkErrorInfo(errCode);
+        if (packet.getType() == PacketType::Data)
+        {
+            connection.dequeue();
+            info.dataPacket = packet;
+            info.prevSampleIndex = 0;
+            return false;
+        }
+        else if (packet.getType() == PacketType::Event)
+        {
+            return true;
+        }
+        connection.dequeue();
+    }
+    return false;
+}
 
-        packet = connection.dequeue();
-    }        
-    
-    info.dataPacket = packet;
+EventPacketPtr SignalReader::readUntilNextDataPacket()
+{
+    if (!isFirstPacketEvent())
+        return nullptr;
+
+    EventPacketPtr gapPacket;
+    DataDescriptorPtr dataDescriptor;
+    DataDescriptorPtr domainDescriptor;
+
+    PacketPtr packet;
+    while (true)
+    {
+        packet = connection.peek();
+        if (!packet.assigned() || (packet.getType() == PacketType::Data))
+            break;
+        
+        if (packet.getType() == PacketType::Event)
+        {
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                auto params = eventPacket.getParameters();
+                DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+                DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+                if (newValueDescriptor.assigned())
+                {
+                    dataDescriptor = newValueDescriptor;
+                }
+                if (newDomainDescriptor.assigned())
+                {
+                    domainDescriptor = newDomainDescriptor;
+                }
+            }
+            else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                {
+                    gapPacket = packet;
+                    connection.dequeue();
+                }
+                break;
+            }
+        }
+        
+        connection.dequeue();
+    }
+
+    if (packet.assigned() && packet.getType() == PacketType::Data)
+    {
+        info.dataPacket = packet;
+        info.prevSampleIndex = 0;
+    }
+
+    if (dataDescriptor.assigned() || domainDescriptor.assigned())
+    {
+        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+        bool firstData {false};
+        handlePacket(eventPacket, firstData);
+        return eventPacket;
+    }
+    if (gapPacket.assigned())
+    {
+        bool firstData {false};
+        handlePacket(gapPacket, firstData);
+        return gapPacket;
+    }
+
+    return nullptr;
 }
 
 bool SignalReader::sync(const Comparable& commonStart)
@@ -277,7 +339,8 @@ bool SignalReader::sync(const Comparable& commonStart)
     if (synced == SyncStatus::Synchronized)
         return true;
 
-    readUntilNextDataPacket();
+    if (isFirstPacketEvent())
+       return false;
 
     SizeT startPackets = info.prevSampleIndex;
     Int droppedPackets = 0;
@@ -298,7 +361,9 @@ bool SignalReader::sync(const Comparable& commonStart)
             droppedPackets += static_cast<Int>(domainPacket.getSampleCount() - startPackets);
 
             info.dataPacket = nullptr;
-            readUntilNextDataPacket();
+
+            if (isFirstPacketEvent())
+                return false;
 
             startPackets = 0;
         }
@@ -381,8 +446,7 @@ ErrCode SignalReader::readPackets()
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
 
-    ReadInfo::Duration remainingTime = info.timeout;
-    while (info.remainingToRead > 0 && remainingTime.count() >= 0)
+    while (info.remainingToRead != 0)
     {
         PacketPtr packet = info.dataPacket;
         if (!packet.assigned())
@@ -392,9 +456,6 @@ ErrCode SignalReader::readPackets()
 
         if (packet.assigned())
             errCode = handlePacket(packet, firstData);
-
-        if (info.timeout.count() != 0)
-            remainingTime = info.timeout - info.durationFromStart();
     }
 
     return errCode;

@@ -35,7 +35,7 @@ public:
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
+    static std::tuple<std::string, std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
     static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);

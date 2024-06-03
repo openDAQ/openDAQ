@@ -15,13 +15,15 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager,
                          AuthenticationProviderPtr authenticationProvider,
-                         DictPtr<IString, IBaseObject> options)
+                         DictPtr<IString, IBaseObject> options,
+                         DictPtr<IString, IDiscoveryServer> discoveryServices)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
     , typeManager(std::move(typeManager))
     , authenticationProvider(std::move(authenticationProvider))
     , options(std::move(options))
+    , discoveryServices(std::move(discoveryServices))
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
@@ -148,6 +150,12 @@ ErrCode ContextImpl::getOptions(IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
 
+    if (!this->options.assigned())
+    {
+        *options = Dict<IString, IBaseObject>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
     *options = this->options.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -197,6 +205,18 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 }
 
+ErrCode ContextImpl::getDiscoveryServers(IDict** services)
+{
+    OPENDAQ_PARAM_NOT_NULL(services);
+    if (!this->discoveryServices.assigned())
+    {
+        *services = Dict<IString, IDiscoveryServer>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+    *services = this->discoveryServices.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY,
     Context,
@@ -205,6 +225,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
     IAuthenticationProvider*, authenticationProvider,
-    IDict*, options)
+    IDict*, options,
+    IDict*, discoveryServices
+)
 
 END_NAMESPACE_OPENDAQ

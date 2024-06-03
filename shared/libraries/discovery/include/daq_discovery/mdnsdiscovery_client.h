@@ -117,9 +117,10 @@ private:
                       size_t record_offset,
                       size_t record_length,
                       void* user_data);
-    mdns_string_t ipv4AddressToString(char* buffer, size_t capacity, const sockaddr_in* addr, size_t addrlen, bool include_port = true);
-    mdns_string_t ipv6AddressToString(char* buffer, size_t capacity, const sockaddr_in6* addr, size_t addrlen, bool include_port = true);
-    mdns_string_t ipAddressToString(char* buffer, size_t capacity, const sockaddr* addr, size_t addrlen, bool include_port = true);
+
+    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = true);
+    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = true);
+    std::string ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort = true);
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
 
@@ -327,67 +328,39 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
 #endif
 }
 
-inline mdns_string_t MDNSDiscoveryClient::ipv4AddressToString(
-    char* buffer, size_t capacity, const sockaddr_in* addr, size_t addrlen, bool includePort)
+inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
 {
     char host[NI_MAXHOST] = {0};
     char service[NI_MAXSERV] = {0};
-    int ret = getnameinfo(reinterpret_cast<const sockaddr*>(addr),
-                          static_cast<socklen_t>(addrlen),
-                          host,
-                          NI_MAXHOST,
-                          service,
-                          NI_MAXSERV,
-                          NI_NUMERICSERV | NI_NUMERICHOST);
-    int len = 0;
-    if (ret == 0)
-    {
-        if (addr->sin_port != 0 && includePort)
-            len = snprintf(buffer, capacity, "%s:%s", host, service);
-        else
-            len = snprintf(buffer, capacity, "%s", host);
-    }
-    if (len >= static_cast<int>(capacity))
-        len = static_cast<int>(capacity) - 1;
-    mdns_string_t str;
-    str.str = buffer;
-    str.length = len;
-    return str;
+    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
+                        service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
+    if (ret != 0)
+        return "";
+
+    if (addr->sin_port != 0 && includePort)
+        return std::string(host) + ":" + service;
+    return std::string(host);
 }
 
-inline mdns_string_t MDNSDiscoveryClient::ipv6AddressToString(
-    char* buffer, size_t capacity, const sockaddr_in6* addr, size_t addrlen, bool includePort)
+inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort)
 {
     char host[NI_MAXHOST] = {0};
     char service[NI_MAXSERV] = {0};
-    int ret = getnameinfo(reinterpret_cast<const sockaddr*>(addr),
-                          static_cast<socklen_t>(addrlen),
-                          host,
-                          NI_MAXHOST,
-                          service,
-                          NI_MAXSERV,
-                          NI_NUMERICSERV | NI_NUMERICHOST);
-    int len = 0;
-    if (ret == 0)
-    {
-        if (addr->sin6_port != 0 && includePort)
-            len = snprintf(buffer, capacity, "[%s]:%s", host, service);
-        else
-            len = snprintf(buffer, capacity, "%s", host);
-    }
-    if (len >= static_cast<int>(capacity))
-        len = static_cast<int>(capacity) - 1;
-    mdns_string_t str;
-    str.str = buffer;
-    str.length = len;
-    return str;
+    int ret = getnameinfo((const struct sockaddr*)addr, (socklen_t)addrlen, host, NI_MAXHOST,
+                          service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
+    if (ret != 0)
+        return "";
+
+    if (addr->sin6_port != 0 && includePort)
+        return "[" + std::string(host) + "]:" + service;
+	return std::string(host);
 }
 
-inline mdns_string_t MDNSDiscoveryClient::ipAddressToString(char* buffer, size_t capacity, const sockaddr* addr, size_t addrlen, bool includePort)
+inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
 {
     if (addr->sa_family == AF_INET6)
-        return ipv6AddressToString(buffer, capacity, reinterpret_cast<const sockaddr_in6*>(addr), addrlen, includePort);
-    return ipv4AddressToString(buffer, capacity, reinterpret_cast<const sockaddr_in*>(addr), addrlen, includePort);
+        return ipv6AddressToString(reinterpret_cast<const sockaddr_in6*>(addr), addrlen, includePort);
+    return ipv4AddressToString(reinterpret_cast<const sockaddr_in*>(addr), addrlen, includePort);
 }
 
 inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(const DeviceData& data)
@@ -428,15 +401,11 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
                                               size_t record_length,
                                               void* user_data)
 {
-    char addrBuffer[64];
     char nameBuffer[256];
     mdns_record_txt_t txtbuffer[128];
 
-    mdns_string_t fromAddrStr = ipAddressToString(addrBuffer, sizeof(addrBuffer), from, addrlen);
-    mdns_string_t fromAddrStrNoPort = ipAddressToString(addrBuffer, sizeof(addrBuffer), from, addrlen, false);
-
-    std::string deviceAddr(fromAddrStr.str, fromAddrStr.length);
-    std::string deviceAddrNoPort(fromAddrStrNoPort.str, fromAddrStrNoPort.length);
+    std::string deviceAddr = ipAddressToString(from, addrlen);
+    std::string deviceAddrNoPort = ipAddressToString(from, addrlen, false);
 
     std::lock_guard lg(devicesMapLock);
 
@@ -462,15 +431,13 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     {
         sockaddr_in addr;
         mdns_record_parse_a(data, size, record_offset, record_length, &addr);
-        mdns_string_t addrstr = ipv4AddressToString(nameBuffer, sizeof(nameBuffer), &addr, sizeof(addr));
-        deviceData.A = std::string(addrstr.str, addrstr.length);
+        deviceData.A = ipv4AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
         sockaddr_in6 addr;
         mdns_record_parse_aaaa(data, size, record_offset, record_length, &addr);
-        mdns_string_t addrstr = ipv6AddressToString(nameBuffer, sizeof(nameBuffer), &addr, sizeof(addr));
-        deviceData.AAAA = std::string(addrstr.str, addrstr.length);
+        deviceData.AAAA = ipv6AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {

@@ -50,6 +50,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classILoggerThreadPool = declareILoggerThreadPool(m);
     auto classIModule = declareIModule(m);
     auto classIModuleManager = declareIModuleManager(m);
+    auto classIDiscoveryServer = declareIDiscoveryServer(m);
     auto classIReader = declareIReader(m);
     auto classIPacketReader = declareIPacketReader(m);
     auto classISampleReader = declareISampleReader(m);
@@ -134,6 +135,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILoggerThreadPool(m, classILoggerThreadPool);
     defineIModule(m, classIModule);
     defineIModuleManager(m, classIModuleManager);
+    defineIDiscoveryServer(m, classIDiscoveryServer);
     defineIReader(m, classIReader);
     defineIPacketReader(m, classIPacketReader);
     defineISampleReader(m, classISampleReader);

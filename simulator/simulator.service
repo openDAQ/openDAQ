@@ -1,6 +1,6 @@
 [Unit]
 Description=openDAQ simulator service
-After=network.target
+After=syslog.target network-online.target
 Before=avahi-daemon.service
 StartLimitIntervalSec=0
 
@@ -12,7 +12,6 @@ User=opendaq
 ExecStartPre=python3 /home/opendaq/configurator.py
 ExecStartPre=cp /home/opendaq/opendaq-config.json /home/opendaq/opendaq/
 ExecStartPre=cp /home/opendaq/opcuatms.service /etc/avahi/services/
-ExecStartPre=cp /home/opendaq/native_streaming.service /etc/avahi/services/
 Environment=LD_LIBRARY_PATH=/home/opendaq/opendaq/lib
 ExecStart=/home/opendaq/opendaq/application_simulator
 

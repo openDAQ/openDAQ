@@ -11,9 +11,8 @@ using namespace daq;
 using namespace daq::opcua;
 
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(nullptr, rootDevice, nullptr, nullptr)
+    : Server("OpcUaServer", config, rootDevice, context, nullptr)
     , server(rootDevice, context)
-    , config(config)
     , context(context)
 {
     const uint16_t port = config.getPropertyValue("Port");
@@ -26,25 +25,58 @@ OpcUaServerImpl::~OpcUaServerImpl()
 {
 }
 
-PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
+void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
+{
+    if (!context.assigned())
+        return;
+    if (!config.assigned())
+        return;
+
+    auto options = context.getModuleOptions("OpcUaServer");
+    for (const auto& [key, value] : options)
+    {
+        if (config.hasProperty(key))
+        {
+            config->setPropertyValue(key, value);
+        }
+    }
+}
+
+PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context)
 {
     constexpr Int minPortValue = 0;
     constexpr Int maxPortValue = 65535;
 
     auto defaultConfig = PropertyObject();
 
-    const auto portProp = IntPropertyBuilder("Port", 4840).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
+    const auto portProp = IntPropertyBuilder("Port", 4840)
+        .setMinValue(minPortValue)
+        .setMaxValue(maxPortValue)
+        .build();
     defaultConfig.addProperty(portProp);
 
+    defaultConfig.addProperty(StringProperty("Path", "/"));
+
+    populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
 
-ServerTypePtr OpcUaServerImpl::createType()
+PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
+{
+    auto discoveryConfig = PropertyObject();
+    discoveryConfig.addProperty(StringProperty("ServiceName", "_opcua-tcp._tcp.local."));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ"));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("Port")));
+    return discoveryConfig;
+}
+
+ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 {
     return ServerType("openDAQ OpcUa",
                       "openDAQ OpcUa server",
                       "Publishes device structure over OpcUa protocol",
-                      OpcUaServerImpl::createDefaultConfig());
+                      OpcUaServerImpl::createDefaultConfig(context));
 }
 
 void OpcUaServerImpl::onStopServer()

@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [interfaceLibrary(IProperty, "coreobjects")]
  * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
@@ -83,12 +84,19 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      */
     virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
 
-    // [templateType(addresses, IString)]
+    // [returnSelf]
     /*!
      * @brief Sets the device's address
      * @param[out] address The device's address
      */
     virtual ErrCode INTERFACE_FUNC addAddress(IString* address) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the port of the device
+     * @param port The port of the device
+     */
+    virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

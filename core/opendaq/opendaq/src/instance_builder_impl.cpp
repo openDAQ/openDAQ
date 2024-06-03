@@ -34,6 +34,7 @@ InstanceBuilderImpl::InstanceBuilderImpl()
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
+    , discoveryServices(List<IString>())
 {
 }
 
@@ -82,8 +83,6 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
     
     providers.pushBack(configProvider);
     return OPENDAQ_SUCCESS;
-    
-    
 
     auto configProviderPtr = ConfigProviderPtr::Borrow(configProvider);
     
@@ -200,9 +199,12 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     auto paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>();
-    if (paths.empty()) {
+    if (paths.empty()) 
+    {
         *path = String("").detach();
-    } else {
+    } 
+    else 
+    {
         *path = paths[0].asPtr<IString>().addRefAndReturn();
     }
 
@@ -299,10 +301,9 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
 {
     if (localId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-
-    getRootDevice().set("DefaultLocalId", localId);
+        getRootDevice().set("DefaultLocalId", "");
+    else
+        getRootDevice().set("DefaultLocalId", localId);
     return OPENDAQ_SUCCESS;
 }
 
@@ -409,6 +410,24 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
 ErrCode InstanceBuilderImpl::enableStandardProviders(Bool flag)
 {
     useStandardProviders = flag;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getDiscoveryServices(IList** services)
+{
+    if (services == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *services = discoveryServices.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::addDiscoveryService(IString* serviceName)
+{
+    if (serviceName == nullptr)
+        return OPENDAQ_IGNORED;
+
+    discoveryServices.pushBack(serviceName);
     return OPENDAQ_SUCCESS;
 }
 

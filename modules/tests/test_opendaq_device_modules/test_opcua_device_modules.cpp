@@ -74,7 +74,118 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
     auto client = Instance();
-    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]"));
+    client.addDevice("daq.opcua://[::1]");
+}
+
+TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "OpcUaServer":
+                {
+                    "Port": 1234,
+                    "Path": "/some/path"
+                }
+            }
+        }
+    )";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("Port").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
+}
+
+TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
+{
+    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/native_opcua/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                device = client.addDevice(capability.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "OpcUaServer":
+                {
+                    "Port": 1234,
+                    "Path": "/test/opcua/checkDeviceInfoPopulated/"
+                }
+            }
+        }
+    )";
+    auto path = "/test/opcua/checkDeviceInfoPopulated/";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    instance.addDevice("daqref://device1");
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                client.addDevice(capability.getConnectionString(), nullptr);
+
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                return;
+            }
+        }      
+    }
+
+    ASSERT_TRUE(false);
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
@@ -605,6 +716,27 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
         ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
     }
 }
+
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_opcua_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ OpcUa");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+}
+
 
 // TODO: Add all examples of dynamic changes
 // TODO: Add examples of all possible property object changes once rework is done

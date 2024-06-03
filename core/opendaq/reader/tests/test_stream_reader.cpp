@@ -1,18 +1,19 @@
-#include <testutils/testutils.h>
-#include "reader_common.h"
-#include <opendaq/stream_reader_ptr.h>
+#include <gmock/gmock.h>
 #include <opendaq/data_packet_ptr.h>
-#include <opendaq/event_packet_ptr.h>
-#include <opendaq/packet_factory.h>
 #include <opendaq/data_rule_factory.h>
+#include <opendaq/dimension_factory.h>
+#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
-#include <opendaq/input_port_factory.h>
-#include <opendaq/dimension_factory.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/stream_reader_ptr.h>
+#include <testutils/testutils.h>
 #include <future>
-#include <gmock/gmock.h>
+#include "reader_common.h"
+
 
 using namespace daq;
 using namespace testing;
@@ -26,12 +27,12 @@ TYPED_TEST_SUITE(StreamReaderTest, SampleTypes);
 
 TYPED_TEST(StreamReaderTest, Create)
 {
-    ASSERT_NO_THROW((StreamReader<TypeParam, ClockRange>)(this->signal));
+    ASSERT_NO_THROW((StreamReader<TypeParam, ClockRange>) (this->signal));
 }
 
 TYPED_TEST(StreamReaderTest, CreateNullThrows)
 {
-    ASSERT_THROW_MSG((StreamReader<TypeParam, ClockRange>)(nullptr), ArgumentNullException, "Signal must not be null")
+    ASSERT_THROW_MSG((StreamReader<TypeParam, ClockRange>) (nullptr), ArgumentNullException, "Signal must not be null")
 }
 
 TYPED_TEST(StreamReaderTest, IsReader)
@@ -92,7 +93,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSample)
 
     SizeT count{1};
     TypeParam samples[1]{};
-    reader.read((TypeParam*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
 
@@ -131,7 +132,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithTimeout)
 
     SizeT count{2};
     TypeParam samples[2]{};
-    reader.read((TypeParam*) &samples, &count, 1000u);
+    reader.read(&samples, &count, 1000u);
 
     if (t.joinable())
     {
@@ -172,7 +173,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithClockTicks)
     SizeT count{1};
     TypeParam samples[1]{};
     ClockTick ticks[1]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+    reader.readWithDomain(&samples, &ticks, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(ticks[0], 1);
@@ -214,7 +215,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithClockTicksTimeout)
     SizeT count{2};
     TypeParam samples[2]{};
     ClockTick ticks[2]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count, 1000u);
+    reader.readWithDomain(&samples, &ticks, &count, 1000u);
 
     if (t.joinable())
     {
@@ -266,7 +267,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithRanges)
     SizeT count{1};
     TypeParam samples[1]{};
     ClockRange stamps[1]{};
-    reader->readWithDomain((TypeParam*) &samples, (ClockRange*) &stamps, &count);
+    reader->readWithDomain(&samples, &stamps, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(stamps[0].start, 1);
@@ -309,7 +310,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithRangesTimeout)
     SizeT count{2};
     TypeParam samples[2]{};
     ClockRange stamps[2]{};
-    reader->readWithDomain((void*) &samples, (void*) &stamps, &count, 1000u);
+    reader->readWithDomain(&samples, &stamps, &count, 1000u);
 
     if (t.joinable())
     {
@@ -356,7 +357,7 @@ TYPED_TEST(StreamReaderTest, ReadLessThanOnePacket)
 
     SizeT count{1};
     TypeParam samples[1]{};
-    reader.read((void*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
 
@@ -388,7 +389,7 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPackets)
 
     SizeT count{1};
     TypeParam samples[1]{};
-    reader.read((void*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
@@ -415,7 +416,7 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsTimeout)
 
     SizeT count{1};
     TypeParam samples[1]{};
-    reader.read((void*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
@@ -436,7 +437,7 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsTimeout)
 
     count = 4;
     TypeParam samples2[4]{};
-    reader.read((TypeParam*) &samples2, &count, 1000u);
+    reader.read(&samples2, &count, 1000u);
 
     if (t.joinable())
         t.join();
@@ -475,7 +476,7 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsAndCheckValues)
 
     SizeT count{1};
     TypeParam samples[1]{};
-    reader.read((void*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
@@ -489,7 +490,7 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsAndCheckValues)
 
     count = 3;
     TypeParam nextSamples[3]{};
-    reader.read((TypeParam*) &nextSamples, &count);
+    reader.read(&nextSamples, &count);
 
     ASSERT_EQ(count, 3u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -519,7 +520,7 @@ TYPED_TEST(StreamReaderTest, ReadValuesMoreThanAvailable)
 
     SizeT count{3};
     TypeParam samples[3]{};
-    reader.read((void*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 2u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -547,14 +548,13 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
         SizeT count{samplesInPacket * 2};
         TypeParam samples[samplesInPacket * 2]{};
         ClockTick ticks[samplesInPacket * 2]{};
-        reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+        reader.readWithDomain(&samples, &ticks, &count);
         ASSERT_EQ(count, samplesInPacket * 2);
 
         ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3));
         ASSERT_THAT(samples, ElementsAre(12, 12, 24, 24));
     }
 }
-
 
 TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 {
@@ -574,7 +574,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 
     SizeT count{2};
     TypeParam samplesDouble[2]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
+    reader.read(&samplesDouble, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -588,9 +588,8 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
     this->sendPacket(dataPacketInt32);
 
     {
-        size_t tempCnt = 1;
-        auto status = reader.read((TypeParam*) &samplesDouble, &tempCnt);
-        ASSERT_EQ(tempCnt, 0u);
+        size_t tempCnt = 0;
+        auto status = reader.read(nullptr, &tempCnt);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -598,7 +597,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 
     count = 2;
     TypeParam sampleInt32[2]{};
-    reader.read((TypeParam*) &sampleInt32, &count);
+    reader.read(&sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -682,7 +681,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1];
-    auto status = reader.read((std::int32_t*) &samples, &count);
+    auto status = reader.read(&samples, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_FALSE(status.getValid());
 }
@@ -727,7 +726,7 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
 
     SizeT count{6};
     TypeParam samples[6]{};
-    reader.read((TypeParam*) &samples, &count, 1000u);
+    reader.read(&samples, &count, 1000u);
     
     if (t.joinable())
         t.join();
@@ -764,7 +763,7 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
 
     SizeT count{1};
     TypeParam samples[1];
-    auto status = reader.read((TypeParam*) &samples, &count);
+    auto status = reader.read(&samples, &count);
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
@@ -774,7 +773,7 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1];
-    status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
+    status = newReader.read(&complexSamples, &complexCount);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     ASSERT_EQ(complexCount, 1u);
@@ -972,7 +971,6 @@ protected:
 
         valueSignal.setDescriptor(canMsgDescriptor);
         domainSignal.setDescriptor(domainDescriptor);
-
     }
 };
 

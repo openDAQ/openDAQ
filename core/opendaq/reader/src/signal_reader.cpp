@@ -259,6 +259,7 @@ bool SignalReader::isFirstPacketEvent()
             return true;
         }
         connection.dequeue();
+        packet = connection.peek();
     }
     return false;
 }
@@ -268,21 +269,21 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     if (!isFirstPacketEvent())
         return nullptr;
 
-    EventPacketPtr gapPacket;
+    EventPacketPtr packetToReturn;
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
 
-    PacketPtr packet;
-    while (true)
+    PacketPtr packet = connection.peek();
+    while (packet.assigned())
     {
-        packet = connection.peek();
-        if (!packet.assigned() || (packet.getType() == PacketType::Data))
+        if (packet.getType() == PacketType::Data)
             break;
         
         if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            auto packetId = eventPacket.getEventId();
+            if (packetId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 auto params = eventPacket.getParameters();
                 DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
@@ -297,11 +298,11 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                     domainDescriptor = newDomainDescriptor;
                 }
             }
-            else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            else if (packetId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
                 if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
                 {
-                    gapPacket = packet;
+                    packetToReturn = packet;
                     connection.dequeue();
                 }
                 break;
@@ -309,6 +310,7 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         }
         
         connection.dequeue();
+        packet = connection.peek();
     }
 
     if (packet.assigned() && packet.getType() == PacketType::Data)
@@ -317,21 +319,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         info.prevSampleIndex = 0;
     }
 
-    if (dataDescriptor.assigned() || domainDescriptor.assigned())
-    {
-        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
-        bool firstData {false};
-        handlePacket(eventPacket, firstData);
-        return eventPacket;
-    }
-    if (gapPacket.assigned())
+    if (!packetToReturn.assigned() && (dataDescriptor.assigned() || domainDescriptor.assigned()))
+        packetToReturn = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+
+    if (packetToReturn.assigned())
     {
         bool firstData {false};
-        handlePacket(gapPacket, firstData);
-        return gapPacket;
+        handlePacket(packetToReturn, firstData);
     }
 
-    return nullptr;
+    return packetToReturn;
 }
 
 bool SignalReader::sync(const Comparable& commonStart)

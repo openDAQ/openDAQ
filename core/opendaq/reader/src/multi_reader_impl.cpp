@@ -1,12 +1,12 @@
+#include <coreobjects/ownable_ptr.h>
+#include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
-#include <opendaq/multi_reader_impl.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/multi_reader_impl.h>
 #include <opendaq/reader_errors.h>
-#include <opendaq/reader_utils.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/ownable_ptr.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/reader_utils.h>
 
 #include <fmt/ostream.h>
 #include <thread>
@@ -21,7 +21,6 @@ struct fmt::formatter<daq::Comparable> : ostream_formatter
 };
 
 BEGIN_NAMESPACE_OPENDAQ
-
 
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
@@ -59,7 +58,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         this->releaseWeakRefOnException();
         throw;
     }
-
 }
 
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
@@ -100,7 +98,8 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 
     readerConfig.markAsInvalid();
 
-    SignalInfo sigInfo {
+    SignalInfo sigInfo 
+    {
         nullptr,
         readerConfig.getValueTransformFunction(),
         readerConfig.getDomainTransformFunction(),
@@ -265,7 +264,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
 template <typename T>
 bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
 {
-    for (const auto & el : list)
+    for (const auto& el : list)
         if (el.asPtrOrNull<T>() == nullptr)
             return false;
     return true;
@@ -282,7 +281,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<ICom
     bool haveSignals = false;
 
     auto portList = List<IInputPortConfig>();
-    for (const auto & el : list)
+    for (const auto& el : list)
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
@@ -452,9 +451,7 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
         return errCode;
     }
 
-    *count = syncStatus == SyncStatus::Synchronized
-        ? min
-        : 0;
+    *count = syncStatus == SyncStatus::Synchronized ? min : 0;
 
     *count = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
 
@@ -473,14 +470,14 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
 
     if (invalid)
     {
-        if(status)
+        if (status)
             *status = MultiReaderStatus(nullptr, !invalid).detach();
         *count = 0;
         return OPENDAQ_IGNORED;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
-    prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
+    prepare((void**) samples, samplesToRead, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();
     if (status)
@@ -504,13 +501,13 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
 
     if (invalid)
     {
-        if(status)
+        if (status)
             *status = MultiReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
-    prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
+    prepareWithDomain((void**) samples, (void**) domain, samplesToRead, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();
     if (status)
@@ -530,7 +527,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
 
     if (invalid)
     {
-        if(status)
+        if (status)
             *status = MultiReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
@@ -647,8 +644,6 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 
 MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
-    [[maybe_unused]]
-    SizeT samplesToRead = remainingSamplesToRead;
     if (timeout.count() > 0)
     {
         std::unique_lock notifyLock(notify.mutex);
@@ -719,21 +714,18 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         SizeT toRead = std::min(remainingSamplesToRead, min);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
+        SizeT samplesToRead = remainingSamplesToRead;
         auto start = std::chrono::steady_clock::now();
 #endif
 
+        std::scoped_lock lock(notify.mutex);
         readSamples(toRead);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
-        LOG_T("Read {} / {} [{} left]",
-                toRead,
-                samplesToRead,
-                remainingSamplesToRead
-        )
+        LOG_T("Read {} / {} [{} left]", toRead, samplesToRead, remainingSamplesToRead)
 #endif
     }
-
     return defaultStatus;
 }
 
@@ -770,8 +762,9 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
 
         // check new signals
         auto portList = List<IInputPortConfig>();
-        for (const auto & signalReader : signals) {
-            const auto & inputPort = signalReader.port;
+        for (const auto& signalReader : signals)
+        {
+            const auto& inputPort = signalReader.port;
             if (inputPort.getSignal().assigned())
                 portList.pushBack(inputPort);
         }
@@ -813,25 +806,25 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     // and all signals have a packet
     // or any of signals has a first packet as an event
     // trigger the callback
-    bool isEventPacket = false;
-    bool isDataPacketFirst = true;
+    bool hasEventPacket = false;
+    bool hasDataPacket = true;
 
     std::unique_lock lock(notify.mutex);
-    ProcedurePtr callback = readCallback;
     for (auto& signal : signals)
     {
-        if (signal.isFirstPacketEvent())
+        if (signal.connection.hasEventPacket())
         {
-            isEventPacket = true;
+            hasEventPacket = true;
             break;
         }
 
-        isDataPacketFirst &= (signal.getAvailable(false) != 0);
+        hasDataPacket &= (signal.getAvailable(false) != 0);
     }
 
-    if (isEventPacket || isDataPacketFirst)
+    if (hasEventPacket || hasDataPacket)
     {
         notify.packetReady = true;
+        ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
         if (callback.assigned())

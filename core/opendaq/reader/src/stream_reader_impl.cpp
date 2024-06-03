@@ -1,15 +1,16 @@
-#include <opendaq/stream_reader_impl.h>
+#include <coreobjects/ownable_ptr.h>
+#include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/ownable_ptr.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/stream_reader_impl.h>
 
-#include <coretypes/validation.h>
+
 #include <coretypes/function.h>
+#include <coretypes/validation.h>
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
@@ -377,23 +378,17 @@ ErrCode StreamReaderImpl::readPacketData()
 
 ReaderStatusPtr StreamReaderImpl::readPackets()
 {
-    bool firstData = false;
-    SizeT samplesToRead = info.remainingToRead;
-
     if (info.timeout.count() > 0)
     {
         std::unique_lock notifyLock(notify.mutex);
-        SizeT dataPacketSamples = 0;
+        SizeT samplesToRead = info.remainingToRead;
         if (info.dataPacket.assigned())
         {
-            dataPacketSamples = info.dataPacket.getSampleCount() - info.prevSampleIndex;
+            samplesToRead -= info.dataPacket.getSampleCount() - info.prevSampleIndex;
         }
 
-        auto condition = [this, &dataPacketSamples, samplesToRead]
+        auto condition = [this, samplesToRead]
         {
-            if (notify.packetReady)
-                notify.packetReady = false;
-
             if (connection.hasEventPacket())
             {
                 return true;
@@ -404,13 +399,12 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             {
                 return samples != 0;
             }
-            return samples >= (samplesToRead - dataPacketSamples);
+            return samples >= samplesToRead;
         };
         notify.condition.wait_for(notifyLock, info.timeout, condition);
     }
 
-    
-    while (info.remainingToRead != 0)
+    while (true)
     {
         PacketPtr packet = info.dataPacket;
         if (!packet.assigned())
@@ -424,20 +418,9 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             break;
         }
 
-        switch (packet.getType())
-        {
-            case PacketType::Data:
+        if (packet.getType() == PacketType::Event)
             {
-                info.dataPacket = packet;
-
-                readPacketData();
-                firstData = true;
-                break;
-            }
-            case PacketType::Event:
-            {
-                // Handle events
-                auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
@@ -448,8 +431,15 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 } 
                 return ReaderStatus(eventPacket, !invalid);
             }
-            case PacketType::None:
+
+        if (packet.getType() == PacketType::Data)
+        {
+            info.dataPacket = packet;
+            if (info.remainingToRead == 0)
+            {
                 break;
+            }
+            readPacketData();
         }
     }
 
@@ -458,8 +448,11 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
 
 ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+    }
 
     std::scoped_lock lock(mutex);
 
@@ -488,9 +481,12 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
                                          SizeT timeoutMs,
                                          IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
-    OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+        OPENDAQ_PARAM_NOT_NULL(domain);
+    }
 
     std::scoped_lock lock(mutex);
 

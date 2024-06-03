@@ -12,6 +12,8 @@ protected:
 
     void SetUp() override
     {
+        PROTOCOLS("nd")
+
         moduleManager = ModuleManager("");
         context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
@@ -23,6 +25,8 @@ protected:
 
 TEST_F(RegressionTestProperty, getValueType)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     CoreType type;
     ASSERT_NO_THROW(type = prop.getValueType());
@@ -31,6 +35,8 @@ TEST_F(RegressionTestProperty, getValueType)
 
 TEST_F(RegressionTestProperty, getKeyType)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestDict");
     CoreType type;
     ASSERT_NO_THROW(type = prop.getKeyType());
@@ -39,6 +45,8 @@ TEST_F(RegressionTestProperty, getKeyType)
 
 TEST_F(RegressionTestProperty, getItemType)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestDict");
     CoreType type;
     ASSERT_NO_THROW(type = prop.getItemType());
@@ -47,6 +55,8 @@ TEST_F(RegressionTestProperty, getItemType)
 
 TEST_F(RegressionTestProperty, getName)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     StringPtr name;
     ASSERT_NO_THROW(name = prop.getName());
@@ -55,6 +65,8 @@ TEST_F(RegressionTestProperty, getName)
 
 TEST_F(RegressionTestProperty, getDescription)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     StringPtr description;
     ASSERT_NO_THROW(description = prop.getDescription());
@@ -63,6 +75,8 @@ TEST_F(RegressionTestProperty, getDescription)
 
 TEST_F(RegressionTestProperty, getUnit)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     UnitPtr unit;
     ASSERT_NO_THROW(unit = prop.getUnit());
@@ -71,6 +85,8 @@ TEST_F(RegressionTestProperty, getUnit)
 
 TEST_F(RegressionTestProperty, getMinValue)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     NumberPtr value;
     ASSERT_NO_THROW(value = prop.getMinValue());
@@ -79,6 +95,8 @@ TEST_F(RegressionTestProperty, getMinValue)
 
 TEST_F(RegressionTestProperty, getMaxValue)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     NumberPtr value;
     ASSERT_NO_THROW(value = prop.getMaxValue());
@@ -87,6 +105,8 @@ TEST_F(RegressionTestProperty, getMaxValue)
 
 TEST_F(RegressionTestProperty, getDefaultValue)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     NumberPtr value;
     ASSERT_NO_THROW(value = prop.getDefaultValue());
@@ -95,6 +115,8 @@ TEST_F(RegressionTestProperty, getDefaultValue)
 
 TEST_F(RegressionTestProperty, getSuggestedValues)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     ListPtr<INumber> values;
     ASSERT_NO_THROW(values = prop.getSuggestedValues());
@@ -107,6 +129,8 @@ TEST_F(RegressionTestProperty, getSuggestedValues)
 
 TEST_F(RegressionTestProperty, getVisible)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     Bool visible;
     ASSERT_NO_THROW(visible = prop.getVisible());
@@ -115,6 +139,8 @@ TEST_F(RegressionTestProperty, getVisible)
 
 TEST_F(RegressionTestProperty, getReadOnly)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     Bool readOnly;
     ASSERT_NO_THROW(readOnly = prop.getReadOnly());
@@ -123,6 +149,8 @@ TEST_F(RegressionTestProperty, getReadOnly)
 
 TEST_F(RegressionTestProperty, getSelectionValues)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestSelection");
     BaseObjectPtr values;
     ASSERT_NO_THROW(values = prop.getSelectionValues());
@@ -135,6 +163,8 @@ TEST_F(RegressionTestProperty, getSelectionValues)
 
 TEST_F(RegressionTestProperty, getReferencedProperty)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestReference");
     ASSERT_NO_THROW(prop = prop.getReferencedProperty());
     ASSERT_EQ(prop.getDefaultValue(), "TestDefaultString");
@@ -142,6 +172,8 @@ TEST_F(RegressionTestProperty, getReferencedProperty)
 
 TEST_F(RegressionTestProperty, getIsReferenced)
 {
+    PROTOCOLS("nd")
+
     auto prop1 = device.getProperty("TestString");
     Bool isReferenced1;
     ASSERT_NO_THROW(isReferenced1 = prop1.getIsReferenced());
@@ -155,6 +187,8 @@ TEST_F(RegressionTestProperty, getIsReferenced)
 
 TEST_F(RegressionTestProperty, getValidator)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     ValidatorPtr validator;
     ASSERT_NO_THROW(validator = prop.getValidator());
@@ -163,6 +197,8 @@ TEST_F(RegressionTestProperty, getValidator)
 
 TEST_F(RegressionTestProperty, getCoercer)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestInt");
     CoercerPtr coercer;
     ASSERT_NO_THROW(coercer = prop.getCoercer());
@@ -171,6 +207,8 @@ TEST_F(RegressionTestProperty, getCoercer)
 
 TEST_F(RegressionTestProperty, getCallableInfo)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestString");
     CallableInfoPtr info;
     ASSERT_NO_THROW(info = prop.getCallableInfo());
@@ -179,6 +217,8 @@ TEST_F(RegressionTestProperty, getCallableInfo)
 
 TEST_F(RegressionTestProperty, getStructType)
 {
+    PROTOCOLS("nd")
+
     auto prop = device.getProperty("TestStruct");
     StructTypePtr stru;
     ASSERT_NO_THROW(stru = prop.getStructType());

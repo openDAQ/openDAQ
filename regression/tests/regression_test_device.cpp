@@ -186,6 +186,7 @@ TEST_F(RegressionTestDevice, getFunctionBlocks)
     }
 }
 
+// Note: This test will fail locally for opcua and nd, as we have 8 function blocks available, but only 7 in GitHub Actions
 TEST_F(RegressionTestDevice, getAvailableFunctionBlockTypes)
 {
     DictPtr<IString, IFunctionBlockType> types;

@@ -84,6 +84,11 @@ TEST_F(RegressionTestComponent, getTags)
 
 TEST_F(RegressionTestComponent, setVisibleGetVisible)
 {
+    // Note: Works for opcua as well
+    ASSERT_TRUE(component.getVisible());
+
+    PROTOCOLS("nd", "ns", "lt")
+
     auto componentPrivate = component.asPtr<IComponentPrivate>();
     componentPrivate.unlockAllAttributes();
 

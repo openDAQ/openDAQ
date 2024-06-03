@@ -19,6 +19,7 @@
 #include <opendaq/module_impl.h>
 #include <daq_discovery/daq_discovery_client.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 #include <boost/asio/io_context.hpp>
 
@@ -47,15 +48,17 @@ private:
     static StringPtr getHost(const StringPtr& url);
     static StringPtr getPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
     static StringPtr getPath(const StringPtr& url);
-    static bool validateConnectionString(const StringPtr& connectionString);
+    static bool ValidateConnectionString(const StringPtr& connectionString);
+
+    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
 
     /// adds address to server capabilities
     /// @param capabilities The list of device server capabilities
     /// @param address IPv4 or IPv6 device address
-    static void completeServerCapabilities(const ListPtr<IServerCapability>& capabilities,
+    static void CompleteServerCapabilities(const ListPtr<IServerCapability>& capabilities,
                                            const StringPtr& address);
 
-    static StringPtr createUrlConnectionString(const char* prefix,
+    static StringPtr CreateUrlConnectionString(std::string prefix,
                                                const StringPtr& host,
                                                const IntegerPtr& port,
                                                const StringPtr& path);

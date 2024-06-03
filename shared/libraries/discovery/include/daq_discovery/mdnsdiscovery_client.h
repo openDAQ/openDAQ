@@ -59,9 +59,13 @@ struct MdnsDiscoveredDevice
     std::string ipv6Address;
     std::unordered_map<std::string, std::string> properties;
 
-    std::string getPropertyOrDefault(const std::string& name, const std::string& def = "")
+    std::string getPropertyOrDefault(const std::string& name, const std::string& def = "") const
     {
-        return (properties.count(name) > 0) ? properties[name] : def;
+        if (auto iter = properties.find(name); iter != properties.cend())
+        {
+            return iter->second;
+        }
+        return def;
     }
 };
 

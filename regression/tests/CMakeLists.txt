@@ -2,14 +2,14 @@ set(TEST_APP regression_tests)
 
 set(TEST_SOURCES setup_regression.h
                  test_app.cpp
-                 regression_test_device.cpp
-                 regression_test_signal.cpp
-                 regression_test_fb.cpp
-                 regression_test_component.cpp
-                 regression_test_input_port.cpp
-                 regression_test_folder.cpp
-                 regression_test_property.cpp
-                 regression_test_channel.cpp
+                 reg_p_test_device.cpp
+                 reg_p_test_signal.cpp
+                 reg_p_test_fb.cpp
+                 reg_p_test_component.cpp
+                 reg_p_test_input_port.cpp
+                 reg_p_test_folder.cpp
+                 reg_p_test_property.cpp
+                 reg_p_test_channel.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES})

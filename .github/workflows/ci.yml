@@ -241,6 +241,43 @@ jobs:
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
             libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
+       #TODO: DEBUG START
+
+      - uses: aws-actions/configure-aws-credentials@v2
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download regression simulator binaries .zip from S3 bucket
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
+      - name: Unzip regression simulator binaries
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+
+      - name: Add execute permissions to regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
+
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+          echo "pid=$(pgrep -f regression_simulator)" >> $GITHUB_ENV
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          echo pid is $pid
+          rm ready
+          while ps $pid > /dev/null; do sleep 1; done
+
+      # TODO: DEBUG END
+
       - name: Install latest CMake
         run: pip install cmake
 

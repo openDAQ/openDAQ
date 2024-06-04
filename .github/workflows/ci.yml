@@ -301,93 +301,98 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+
       - name: Protocol regression test - OPC UA
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
+        run: cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
-          # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=opcua ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-          # Kill simulator gracefully and wait for exit # TODO: Delete these two lines everywhere
-          echo Killing simulator 
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
+
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
 
       # TODO: debug only, DELETE THIS
       - name: Protocol regression test - FAIL
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/fail/"
+        run: cmake -E env protocol=fail ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
-          # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=fail ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-          # Kill simulator gracefully and wait for exit
-          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
+
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
 
       - name: Protocol regression test - ND
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
+        run: cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
-          # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=nd ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-          # Kill simulator gracefully and wait for exit
-          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
-          
+
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+
       - name: Protocol regression test - NS
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
+        run: cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
-          # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=ns ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-          # Kill simulator gracefully and wait for exit
-          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done
-          
+
+      - name: Run simulator and wait for it to to be ready
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: |
+          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+
       - name: Protocol regression test - LT
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
+        run: cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+      - name: Kill simulator gracefully and wait for exit
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
-          # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &> /dev/null &
-          while [ ! -f ready ]; do sleep 1; done
-          
-          # Run regression tests
-          cmake -E env protocol=lt ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-          # Kill simulator gracefully and wait for exit
-          echo Killing simulator
           pid=$(pgrep -f regression_simulator)
           rm ready
           while ps $pid > /dev/null; do sleep 1; done

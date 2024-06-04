@@ -1,6 +1,5 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/tail_reader_impl.h>
-#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -141,22 +140,18 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
+TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 {
     if (info.remainingToRead == 0)
     {
-        if (status)
-            *status = TailReaderStatus().detach();
-        return OPENDAQ_SUCCESS;
+        return defaultStatus;
     }
 
     std::unique_lock lock(mutex);
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
     {
-        if (status)
-            *status = TailReaderStatus(nullptr, !invalid, false).detach();
-        return OPENDAQ_SUCCESS;
+        return TailReaderStatus(nullptr, !invalid, false);
     }
 
     if (cachedSamples > info.remainingToRead)
@@ -167,16 +162,13 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 
     for (auto it = packets.begin(); it != packets.end();)
     {
-        const auto & packet = *it;
+        const auto packet = *it;
         if (packet.getType() == PacketType::Event)
         {
             handleDescriptorChanged(packet);
-            if (status)
-                *status = TailReaderStatus(packet, !invalid).detach();
-
             it = packets.erase(packets.begin(), it + 1);
             cachedSamples -= readCachedSamples;
-            return errCode;
+            return TailReaderStatus(packet, !invalid);
         } 
         else
         {
@@ -190,12 +182,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
         }
     }
 
-    if (status)
-    {
-        *status = TailReaderStatus().detach();
-    }
-
-    return errCode;
+    return defaultStatus;
 }
 
 ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
@@ -205,9 +192,13 @@ ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
 
     TailReaderInfo info{values, nullptr, *count};
 
-    ErrCode errCode = readData(info, status);
+    auto statusPtr = readData(info);
+    if (status != nullptr)
+    {
+        *status = statusPtr.detach();
+    }
     *count = *count - info.remainingToRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status)
@@ -218,9 +209,13 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count,
 
     TailReaderInfo info{values, domain, *count};
 
-    ErrCode errCode = readData(info, status);
+    auto statusPtr = readData(info);
+    if (status != nullptr)
+    {
+        *status = statusPtr.detach();
+    }
     *count = *count - info.remainingToRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)

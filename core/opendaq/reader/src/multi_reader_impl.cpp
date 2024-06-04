@@ -5,7 +5,6 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader_impl.h>
 #include <opendaq/reader_errors.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/reader_utils.h>
 
 #include <fmt/ostream.h>
@@ -31,7 +30,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  Bool startOnFullUnitOfDomain)
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
-    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     this->internalAddRef();
     try
@@ -64,7 +62,6 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
                                  SampleType valueReadType,
                                  SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
-    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
@@ -91,7 +88,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode)
-    : defaultStatus(MultiReaderStatus(nullptr, true))
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -127,7 +123,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
-    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     bool fromInputPorts;
     auto ports = CheckPreconditions(builder.getSourceComponents(), false, fromInputPorts);

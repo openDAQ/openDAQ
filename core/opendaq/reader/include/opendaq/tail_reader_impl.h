@@ -18,6 +18,7 @@
 #include <opendaq/tail_reader.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/data_packet_ptr.h>
+#include <opendaq/reader_factory.h>
 
 #include <deque>
 
@@ -66,13 +67,14 @@ public:
 
 private:
     ErrCode readPacket(TailReaderInfo& info, const DataPacketPtr& packet);
-    ErrCode readData(TailReaderInfo& info, IReaderStatus** status);
+    TailReaderStatusPtr readData(TailReaderInfo& info);
 
 private:
     SizeT historySize;
 
     SizeT cachedSamples;
     std::deque<PacketPtr> packets;
+    TailReaderStatusPtr defaultStatus {TailReaderStatus()};
 };
 
 END_NAMESPACE_OPENDAQ

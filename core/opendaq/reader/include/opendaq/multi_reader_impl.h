@@ -20,7 +20,7 @@
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
-#include <opendaq/multi_reader_status_ptr.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -138,7 +138,7 @@ private:
 
     bool startOnFullUnitOfDomain;
 
-    MultiReaderStatusPtr defaultStatus;
+    MultiReaderStatusPtr defaultStatus {MultiReaderStatus()};
 
     NotifyInfo notify{};
 };

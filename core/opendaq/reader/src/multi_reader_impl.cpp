@@ -498,6 +498,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     {
         if (status)
             *status = MultiReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
 
@@ -524,6 +525,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
     {
         if (status)
             *status = MultiReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
 

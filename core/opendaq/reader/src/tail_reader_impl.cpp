@@ -157,7 +157,6 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
     if (cachedSamples > info.remainingToRead)
         info.offset = cachedSamples - info.remainingToRead;
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
     size_t readCachedSamples = 0;
 
     for (auto it = packets.begin(); it != packets.end();)
@@ -176,7 +175,7 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
             if (dataPacket.assigned())
             {
                 readCachedSamples += dataPacket.getSampleCount();
-                errCode = readPacket(info, packet);
+                readPacket(info, packet);
             }            
             it++;
         }
@@ -189,6 +188,16 @@ ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
     OPENDAQ_PARAM_NOT_NULL(count);
+
+    if (invalid)
+    {
+        if (status != nullptr)
+        {
+            *status = TailReaderStatus(nullptr, false).detach();
+        }
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
 
     TailReaderInfo info{values, nullptr, *count};
 
@@ -206,6 +215,16 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count,
     OPENDAQ_PARAM_NOT_NULL(values);
     OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+
+    if (invalid)
+    {
+        if (status != nullptr)
+        {
+            *status = TailReaderStatus(nullptr, false).detach();
+        }
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
 
     TailReaderInfo info{values, domain, *count};
 

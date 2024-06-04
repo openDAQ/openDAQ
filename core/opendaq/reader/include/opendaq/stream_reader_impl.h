@@ -61,6 +61,7 @@ public:
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
     // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;

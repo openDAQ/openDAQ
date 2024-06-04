@@ -800,6 +800,27 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderImpl::empty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+    bool hasDataPacket = true;
+
+    std::scoped_lock lock(mutex);
+    for (auto& signal : signals)
+    {
+        if (signal.isFirstPacketEvent())
+        {
+            *empty = false;
+            return OPENDAQ_SUCCESS;
+        }
+
+        hasDataPacket &= (signal.getAvailable(true) != 0);
+    }
+
+    *empty = !hasDataPacket;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
     // data are ready 
@@ -811,13 +832,13 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     std::unique_lock lock(notify.mutex);
     for (auto& signal : signals)
     {
-        if (signal.connection.hasEventPacket())
+        if (signal.isFirstPacketEvent())
         {
             hasEventPacket = true;
             break;
         }
 
-        hasDataPacket &= (signal.getAvailable(false) != 0);
+        hasDataPacket &= (signal.getAvailable(true) != 0);
     }
 
     if (hasEventPacket || hasDataPacket)

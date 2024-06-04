@@ -67,6 +67,15 @@ ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode TailReaderImpl::empty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+    SizeT count;
+    getAvailableCount(&count);
+    *empty = count == 0;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode TailReaderImpl::getHistorySize(SizeT* size)
 {
     OPENDAQ_PARAM_NOT_NULL(size);
@@ -171,7 +180,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
         } 
         else
         {
-            auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+            auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
             if (dataPacket.assigned())
             {
                 readCachedSamples += dataPacket.getSampleCount();

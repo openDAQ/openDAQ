@@ -193,8 +193,9 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 ErrCode StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
-    if (readCallback.assigned())
-        return wrapHandler(readCallback);
+    auto callback = readCallback;
+    if (callback.assigned())
+        return wrapHandler(callback);
     return OPENDAQ_SUCCESS;
 }
 
@@ -234,6 +235,22 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
 
         *count += connection.getSamplesUntilNextDescriptor();
     });
+}
+
+ErrCode StreamReaderImpl::empty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+
+    std::scoped_lock lock(mutex);
+
+    if (connection.hasEventPacket())
+    {
+        *empty = false;
+        return OPENDAQ_SUCCESS;
+    }
+
+    *empty = connection.getAvailableSamples() == 0;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::getInputPorts(IList** ports)

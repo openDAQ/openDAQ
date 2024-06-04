@@ -253,7 +253,7 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    while (linearReader.getAvailableCount())
+    while (!linearReader.empty())
     {
         if (linearBlockCount == 0)
         {

@@ -54,6 +54,7 @@ public:
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC setDomainTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
+    ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;

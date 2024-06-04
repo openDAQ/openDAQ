@@ -50,6 +50,15 @@ ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
     return connection->getPacketCount(count);
 }
 
+ErrCode PacketReaderImpl::empty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+    SizeT count;
+    getAvailableCount(&count);
+    *empty = count == 0;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);

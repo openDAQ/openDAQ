@@ -143,13 +143,9 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
             SizeT availableSamples = connection.getAvailableSamples();
             if (info.currentDataPacketIter != info.dataPacketsQueue.end())
             {
-                availableSamples = info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+                availableSamples += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
             }
-
-            if (calculateBlockCount(availableSamples) != 0) 
-            {
-                triggerCallback = true;
-            }
+            triggerCallback = calculateBlockCount(availableSamples) != 0;
         }
         if (triggerCallback)
         {
@@ -165,6 +161,27 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
         return wrapHandler(callback);
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode BlockReaderImpl::empty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+    std::scoped_lock lock(mutex);
+
+    if (connection.hasEventPacket())
+    {
+        *empty = false;
+        return OPENDAQ_SUCCESS;
+    }
+
+    SizeT availableSamples = connection.getAvailableSamples();
+    if (info.currentDataPacketIter != info.dataPacketsQueue.end())
+    {
+        availableSamples += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    }
+
+    *empty = calculateBlockCount(availableSamples) == 0;
     return OPENDAQ_SUCCESS;
 }
 

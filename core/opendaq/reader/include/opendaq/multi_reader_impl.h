@@ -84,6 +84,7 @@ public:
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
+    bool fromInputPorts{ false };
 
     static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
@@ -92,7 +93,7 @@ private:
     void setStartInfo();
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    DictPtr<ISignal, IEventPacket> readUntilFirstDataPacket();
+    DictPtr<Int, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
 
     SyncStatus getSyncStatus() const;

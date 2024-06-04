@@ -34,7 +34,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     this->internalAddRef();
     try
     {
-        bool fromInputPorts;
         auto ports = CheckPreconditions(list, true, fromInputPorts);
         loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
@@ -589,18 +588,18 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-DictPtr<ISignal, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
+DictPtr<Int, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
-    auto packets = Dict<ISignal, EventPacketPtr>();
+    auto packets = Dict<Int, EventPacketPtr>();
 
-    for (auto& signal : signals)
+    for (size_t i = 0; i < signals.size(); ++i)
     {
+        auto& signal = signals[i];
+
         auto packet = signal.readUntilNextDataPacket();
         invalid |= signal.invalid;
         if (packet.assigned())
-        {
-            packets.set(signal.port.getSignal(), packet);
-        }
+            packets.set(i, packet);
     }
     return packets.detach();
 }

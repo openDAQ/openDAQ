@@ -101,7 +101,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
-    ASSERT_EQ(functionBlockTypes.getCount(), 7u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 8u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
     ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
@@ -111,6 +111,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power"));
     ASSERT_EQ("ref_fb_module_power", functionBlockTypes.get("ref_fb_module_power").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power_reader"));
+    ASSERT_EQ("ref_fb_module_power_reader", functionBlockTypes.get("ref_fb_module_power_reader").getId());
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_scaling"));
     ASSERT_EQ("ref_fb_module_scaling", functionBlockTypes.get("ref_fb_module_scaling").getId());

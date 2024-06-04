@@ -15,6 +15,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto instance = Instance("");
     // Set Root Device
     instance.setRootDevice("daqref://device1");
+    // Unlock all attributes (needed for OPC UA: RegressionTestComponent/setVisibleGetVisible)
+    auto componentPrivate = instance.getRootDevice().asPtr<IComponentPrivate>();
+    componentPrivate.unlockAllAttributes();
     // Add Trigger Reference Functioin Block
     instance.addFunctionBlock("ref_fb_module_trigger");
     // Add all current servers

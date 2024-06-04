@@ -26,7 +26,7 @@ namespace
 // To run the tests locally you can set the protocol here manually,
 // instead of setting and reading the environment variable "protocol"
 
-// TODO: make sure this uses getenv in production
+// Note: make sure this uses getenv in production
 
 // StringPtr protocol = "nd";  // opcua nd ns lt
 StringPtr protocol = getenv("protocol");

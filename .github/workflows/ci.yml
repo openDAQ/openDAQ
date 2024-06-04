@@ -241,6 +241,21 @@ jobs:
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
             libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
+      # TODO: DEBUG, move the following AWS steps down
+      - uses: aws-actions/configure-aws-credentials@v2
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: AWS LS
+        run: aws s3 ls s3://${{ env.s3_bucket }}/regression_test --recursive
+
+      - name: Download regression simulator binaries .zip from S3
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
       - name: Install latest CMake
         run: pip install cmake
 
@@ -281,17 +296,6 @@ jobs:
           retention-days: 7
 
       # REGRESSION TESTS BEGIN
-
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Download regression simulator binaries .zip from S3
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
 
       - name: Unzip regression simulator binaries
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}

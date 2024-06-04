@@ -168,6 +168,11 @@ static void checkSameDomain(const ListPtr<IInputPortConfig>& list)
     for (const auto& port : list)
     {
         auto signal = port.getSignal();
+        if (!signal.assigned())
+        {
+            continue;
+        }
+
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
@@ -432,12 +437,6 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 
     std::lock_guard lock(mutex);
 
-    if (getMinSamplesAvailable() == 0)
-    {
-        *count = 0;
-        return OPENDAQ_SUCCESS;
-    }
-
     SizeT min{};
     SyncStatus syncStatus{};
     ErrCode errCode = synchronize(min, syncStatus);
@@ -547,6 +546,11 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
     SizeT min = std::numeric_limits<SizeT>::max();
     for (const auto& signal : signals)
     {
+        if (!signal.connection.assigned())
+        {
+            LOG_W("Port {} is not connected", signal.port.getLocalId());
+            return 0;
+        }
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
         if (sigSamples < min)
         {
@@ -827,6 +831,15 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     bool hasDataPacket = true;
 
     std::unique_lock lock(notify.mutex);
+    for (auto& signal: signals)
+    {
+        if (!signal.connection.assigned())
+        {
+            notify.packetReady = false;
+            return OPENDAQ_SUCCESS;
+        }
+    }
+
     for (auto& signal : signals)
     {
         if (signal.isFirstPacketEvent())
@@ -834,7 +847,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
             hasEventPacket = true;
             break;
         }
-
         hasDataPacket &= (signal.getAvailable(true) != 0);
     }
 

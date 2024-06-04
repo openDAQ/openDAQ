@@ -2113,3 +2113,57 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     // bacause the was no shifting in time
     ASSERT_EQ(count, 10u);
 }
+
+TEST_F(MultiReaderTest, readWhenOnePortIsNotConnected)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = signalsToPortsList();
+    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
+    portList.pushBack(notConnectedPort);
+
+    auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto multi = MultiReaderFromPort(portList);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    constexpr const SizeT SAMPLES = 10u;
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+
+    // check that we read 0 sampes as one of the ports is not connected
+    SizeT count{SAMPLES};
+    MultiReaderStatusPtr status = multi.read(valuesPerSignal, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 0u);
+
+    count = SAMPLES;
+    status = multi.read(valuesPerSignal, &count, 1000);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 0u);
+
+    // connect signal to the port
+    notConnectedPort.connect(sig2.signal);
+    sig2.signal.getContext().getScheduler().waitAll();
+    sig2.createAndSendPacket(0);
+
+    // first packet on sig2 will be the event packet
+    count = 0;
+    status = multi.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = SAMPLES;
+    status = multi.read(valuesPerSignal, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10u);
+
+}

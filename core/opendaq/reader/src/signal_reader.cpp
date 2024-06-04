@@ -244,6 +244,11 @@ bool SignalReader::isFirstPacketEvent()
         return false;
     }
 
+    if (!connection.assigned())
+    {
+        return false;
+    }
+
     auto packet = connection.peek();
     while (packet.assigned())
     {
@@ -273,7 +278,7 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
 
-    PacketPtr packet = connection.peek();
+    PacketPtr packet = connection.dequeue();
     while (packet.assigned())
     {
         if (packet.getType() == PacketType::Data)
@@ -303,14 +308,12 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                 if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
                 {
                     packetToReturn = packet;
-                    connection.dequeue();
                 }
                 break;
             }
         }
-        
-        connection.dequeue();
-        packet = connection.peek();
+
+        packet = connection.dequeue();
     }
 
     if (packet.assigned() && packet.getType() == PacketType::Data)

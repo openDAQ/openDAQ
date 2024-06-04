@@ -146,7 +146,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Upload regression simulator binaries archive to S3
+      - name: Upload regression simulator binaries archive to S3 bucket
         # TODO: don't use target folder, just use default folder
+        working-directory: target/build/bin
         # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
-        run: aws s3 cp "target/build/bin/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" "s3://${{ env.s3_bucket }}/regression_test"
+        run: aws s3 cp "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" "s3://${{ env.s3_bucket }}/regression_test/"
+
+      - name: Show regression test related content in S3 bucket
+        run: aws s3 ls s3://${{ env.s3_bucket }}/regression_test --recursive

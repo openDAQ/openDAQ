@@ -2,6 +2,9 @@ name: Build and Test openDAQ
 
 on:
   workflow_dispatch:
+  push: # TODO: debug only, delete
+    branches:
+      - github-actions-versions-bump
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 

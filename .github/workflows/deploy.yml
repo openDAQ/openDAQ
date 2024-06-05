@@ -70,7 +70,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v3
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
@@ -281,7 +281,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v3
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Rename package (main)
         working-directory: ${{ env.package_path_rel }}
@@ -444,7 +444,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v3
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Rename Wheels (main)
         working-directory: ${{ env.wheels_path }}
@@ -523,7 +523,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v3
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Define simulator name
         id: simulator_name

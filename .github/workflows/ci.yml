@@ -312,11 +312,12 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Set trap that will catch failed test (8) and successful test (0) and kill simulator gracefully, then exit with trapped code
-          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; while ps $pid > /dev/null; do sleep 1; done; echo Simulator killed successfully; exit $rc" 0 8
+          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; wait $pid; echo Simulator killed successfully; exit $rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
 
+      # DELETE THIS
       - name: Protocol regression test - FAIL
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
@@ -328,7 +329,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Set trap that will catch failed test (8) and successful test (0) and kill simulator gracefully, then exit with trapped code
-          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; while ps $pid > /dev/null; do sleep 1; done; echo Simulator killed successfully; exit $rc" 0 8
+          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; wait $pid; echo Simulator killed successfully; exit $rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
@@ -344,7 +345,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Set trap that will catch failed test (8) and successful test (0) and kill simulator gracefully, then exit with trapped code
-          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; while ps $pid > /dev/null; do sleep 1; done; echo Simulator killed successfully; exit $rc" 0 8
+          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; wait $pid; echo Simulator killed successfully; exit $rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
@@ -360,7 +361,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Set trap that will catch failed test (8) and successful test (0) and kill simulator gracefully, then exit with trapped code
-          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; while ps $pid > /dev/null; do sleep 1; done; echo Simulator killed successfully; exit $rc" 0 8
+          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; wait $pid; echo Simulator killed successfully; exit $rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
@@ -376,7 +377,7 @@ jobs:
           while [ ! -f ready ]; do sleep 1; done
           
           # Set trap that will catch failed test (8) and successful test (0) and kill simulator gracefully, then exit with trapped code
-          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; while ps $pid > /dev/null; do sleep 1; done; echo Simulator killed successfully; exit $rc" 0 8
+          trap "rc=$?; echo Killing simulator; pid=$(pgrep -f regression_simulator); rm ready; wait $pid; echo Simulator killed successfully; exit $rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build

@@ -2220,16 +2220,15 @@ TEST_F(MultiReaderTest, readWhilePortIsConnected)
 
     std::future<void> future = std::async(std::launch::async, [&] {
         SizeT count{0};
-        status = multi.read(nullptr, &count, 5000);
+        status = multi.read(nullptr, &count, 1000);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     notConnectedPort.connect(sig2.signal);
 
     future.wait();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    // ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    // ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    // ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
 }
 

@@ -776,7 +776,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
             return signal.port == port;
         };
 
-    std::scoped_lock lock(mutex);
+    std::scoped_lock lock(notify.mutex);
     if (signals.empty())
         return OPENDAQ_SUCCESS;
 
@@ -807,7 +807,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
             return signal.port == port;
         };
 
-    std::scoped_lock lock(mutex);
+    std::scoped_lock lock(notify.mutex);
     if (signals.empty())
         return OPENDAQ_SUCCESS;
 

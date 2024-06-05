@@ -44,6 +44,8 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         connectPorts(ports, valueReadType, domainReadType, mode);
 
         updateCommonSampleRateAndDividers();
+        if (invalid)
+            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
 
         SizeT min{};
         SyncStatus syncStatus{};
@@ -82,6 +84,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     }
 
     updateCommonSampleRateAndDividers();
+    if (invalid)
+        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -118,6 +122,8 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
     }
 
     updateCommonSampleRateAndDividers();
+    if (invalid)
+        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
 }
 
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
@@ -135,6 +141,8 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
 
     updateCommonSampleRateAndDividers();
+    if (invalid)
+        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
 
     SizeT min{};
     SyncStatus syncStatus{};
@@ -248,15 +256,19 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
         {
-            signal.setCommonSampleRate(commonSampleRate);
-            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+            invalid = true;
+            return;
         }
     }
 
     sampleRateDividerLcm = 1;
-
     for (const auto& signal : signals)
     {
+        if (signal.sampleRateDivider == -1)
+        {
+            sampleRateDividerLcm = -1;
+            return;
+        }
         sampleRateDividerLcm = std::lcm(signal.sampleRateDivider, sampleRateDividerLcm);
     }
 }
@@ -445,9 +457,14 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
         return errCode;
     }
 
-    *count = syncStatus == SyncStatus::Synchronized ? min : 0;
-
-    *count = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
+    if (syncStatus == SyncStatus::Synchronized)
+    {
+        *count = (min / sampleRateDividerLcm) * sampleRateDividerLcm;
+    }
+    else
+    {
+        *count = 0;
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -546,15 +563,14 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
     SizeT min = std::numeric_limits<SizeT>::max();
     for (const auto& signal : signals)
     {
-        if (!signal.connection.assigned())
-        {
-            LOG_W("Port {} is not connected", signal.port.getLocalId());
-            return 0;
-        }
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
         if (sigSamples < min)
         {
             min = sigSamples;
+            if (min == 0)
+            {
+                return min;
+            }
         }
     }
 
@@ -647,13 +663,13 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
     if (timeout.count() > 0)
     {
-        std::unique_lock notifyLock(notify.mutex);
-
         MultiReaderStatusPtr status;
         auto condition = [this, &status]
         {
             if (notify.packetReady == false)
+            {
                 return false;
+            }
             notify.packetReady = false;
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
@@ -677,23 +693,33 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto start = std::chrono::steady_clock::now();
 #endif
-
+        std::unique_lock notifyLock(notify.mutex);
         [[maybe_unused]]
         bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
-        LOG_T("Waited {} ms with {} success"
+        LOG_T("Waited {} ms {} success"
             , std::chrono::duration_cast<Milliseconds>(end - start).count()
             , ok ? "with" : "without")
 #endif
 
         if (status.assigned())
+        {
+            if (sampleRateDividerLcm == -1)
+            {
+                updateCommonSampleRateAndDividers();
+            }
             return status;
+        }
     }
 
     if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
     {
+        if (sampleRateDividerLcm == -1)
+        {
+            updateCommonSampleRateAndDividers();
+        }
         return MultiReaderStatus(eventPackets, !invalid);
     }
 
@@ -765,20 +791,11 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         auto portList = List<IInputPortConfig>();
         for (const auto& signalReader : signals)
         {
-            const auto& inputPort = signalReader.port;
-            if (inputPort.getSignal().assigned())
-                portList.pushBack(inputPort);
+            if (signalReader.connection.assigned())
+                portList.pushBack(signalReader.port);
         }
 
         checkSameDomain(portList);
-
-        updateCommonSampleRateAndDividers();
-
-        SizeT min{};
-        SyncStatus syncStatus{};
-        errCode = synchronize(min, syncStatus);
-
-        checkErrorInfo(errCode);
     }
     return errCode;
 }
@@ -797,7 +814,11 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
 
     if (sigInfo != signals.end())
+    {
         sigInfo->connection = nullptr;
+        sigInfo->sampleRate = -1;
+        sigInfo->sampleRateDivider = -1;
+    }
     return OPENDAQ_SUCCESS;
 }
 

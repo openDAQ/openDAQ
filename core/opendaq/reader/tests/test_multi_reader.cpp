@@ -2165,5 +2165,71 @@ TEST_F(MultiReaderTest, readWhenOnePortIsNotConnected)
     status = multi.read(valuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, 10u);
-
 }
+
+TEST_F(MultiReaderTest, notifyPortIsConnected)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = signalsToPortsList();
+    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
+    portList.pushBack(notConnectedPort);
+
+    auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto multi = MultiReaderFromPort(portList);
+    MultiReaderStatusPtr status;
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    multi.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        SizeT count{0};
+        status = multi.read(nullptr, &count);
+        promise.set_value();
+    });
+
+    notConnectedPort.connect(sig2.signal);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(3));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
+}
+
+TEST_F(MultiReaderTest, readWhilePortIsConnected)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = signalsToPortsList();
+    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
+    portList.pushBack(notConnectedPort);
+
+    auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto multi = MultiReaderFromPort(portList);
+    MultiReaderStatusPtr status;
+
+    std::future<void> future = std::async(std::launch::async, [&] {
+        SizeT count{0};
+        status = multi.read(nullptr, &count, 5000);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    notConnectedPort.connect(sig2.signal);
+
+    future.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    // ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    // ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
+}
+

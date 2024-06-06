@@ -348,7 +348,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
     }
 
     auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-    return BlockReaderStatus(nullptr, !invalid, writtenSamplesCount).detach();
+    return BlockReaderStatus(nullptr, !invalid, writtenSamplesCount);
 }
 
 ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)

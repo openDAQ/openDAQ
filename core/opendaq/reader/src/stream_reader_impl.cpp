@@ -455,7 +455,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
         }
     }
 
-    return ReaderStatus();
+    return defaultStatus;
 }
 
 ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)

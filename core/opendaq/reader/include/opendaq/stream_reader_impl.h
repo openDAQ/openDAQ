@@ -25,7 +25,7 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
 #include <coreobjects/property_object_factory.h>
-#include <opendaq/reader_status_ptr.h>
+#include <opendaq/reader_factory.h>
 
 #include <condition_variable>
 
@@ -126,6 +126,7 @@ private:
 
     std::mutex mutex;
     ProcedurePtr readCallback;
+    ReaderStatusPtr defaultStatus {ReaderStatus()};
 };
 
 END_NAMESPACE_OPENDAQ

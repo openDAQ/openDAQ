@@ -100,8 +100,6 @@ private:
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
 
-    ErrCode onPacketReady();
-
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]

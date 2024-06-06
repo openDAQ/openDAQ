@@ -1208,8 +1208,8 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count{1};
-    MultiReaderStatusPtr status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    SizeT count{0};
+    MultiReaderStatusPtr status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
@@ -2089,7 +2089,6 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
 
     SizeT count{0};
     MultiReaderStatusPtr status = multi.read(nullptr, &count);
-    ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1);
@@ -2173,7 +2172,7 @@ TEST_F(MultiReaderTest, notifyPortIsConnected)
     readSignals.reserve(NUM_SIGNALS);
 
     auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
-    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
     auto portList = signalsToPortsList();
     auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
@@ -2186,7 +2185,7 @@ TEST_F(MultiReaderTest, notifyPortIsConnected)
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
-    multi.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    multi.setOnDataAvailable([&] {
         SizeT count{0};
         status = multi.read(nullptr, &count);
         promise.set_value();
@@ -2207,7 +2206,7 @@ TEST_F(MultiReaderTest, readWhilePortIsConnected)
     readSignals.reserve(NUM_SIGNALS);
 
     auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
-    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
     auto portList = signalsToPortsList();
     auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");

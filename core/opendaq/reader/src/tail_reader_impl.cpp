@@ -142,11 +142,6 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
 
 TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 {
-    if (info.remainingToRead == 0)
-    {
-        return defaultStatus;
-    }
-
     std::unique_lock lock(mutex);
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
@@ -186,8 +181,11 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 
 ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(values);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(values);
+    }
 
     if (invalid)
     {
@@ -212,9 +210,12 @@ ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
 
 ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(values);
-    OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(values);
+        OPENDAQ_PARAM_NOT_NULL(domain);
+    }
 
     if (invalid)
     {

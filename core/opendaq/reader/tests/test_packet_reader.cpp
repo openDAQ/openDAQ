@@ -195,7 +195,7 @@ TEST_F(PacketReaderTest, PacketReaderOnReadCallback)
     signal.setDescriptor(createDataDescriptor());
 
     auto reader = PacketReader(signal);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         packets = reader.readAll();
         promise.set_value();
     });
@@ -227,7 +227,7 @@ TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
     port.connect(signal);
 
     auto reader = PacketReaderFromPort(port);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         packets = reader.readAll();
         promise.set_value();
     });

@@ -170,7 +170,7 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(this->mutex);
+    std::scoped_lock lock(notify.mutex);
     connection = InputPortConfigPtr::Borrow(port).getConnection();
     return OPENDAQ_SUCCESS;
 }
@@ -179,7 +179,7 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(this->mutex);
+    std::scoped_lock lock(notify.mutex);
     connection = nullptr;
     return OPENDAQ_SUCCESS;
 }
@@ -187,13 +187,12 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    return onPacketReady();
-}
-
-ErrCode StreamReaderImpl::onPacketReady()
-{
+    ProcedurePtr callback;
+    {
+        std::scoped_lock lock(notify.mutex);
+        callback = readCallback;
+    }
     notify.condition.notify_one();
-    auto callback = readCallback;
     if (callback.assigned())
         return wrapHandler(callback);
     return OPENDAQ_SUCCESS;
@@ -227,13 +226,11 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
 
     return wrapHandler([count, this]
     {
-        *count = 0;
+        *count = connection.getSamplesUntilNextDescriptor();
         if (info.dataPacket.assigned())
         {
-            *count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
+            *count += info.dataPacket.getSampleCount() - info.prevSampleIndex;
         }
-
-        *count += connection.getSamplesUntilNextDescriptor();
     });
 }
 
@@ -385,7 +382,6 @@ ErrCode StreamReaderImpl::readPacketData()
     }
     else
     {
-        std::unique_lock lock(notify.mutex);
         info.reset();
     }
 
@@ -395,9 +391,9 @@ ErrCode StreamReaderImpl::readPacketData()
 
 ReaderStatusPtr StreamReaderImpl::readPackets()
 {
+    std::unique_lock notifyLock(notify.mutex);
     if (info.timeout.count() > 0)
     {
-        std::unique_lock notifyLock(notify.mutex);
         SizeT samplesToRead = info.remainingToRead;
         if (info.dataPacket.assigned())
         {
@@ -426,7 +422,6 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
         PacketPtr packet = info.dataPacket;
         if (!packet.assigned())
         {
-            std::unique_lock notifyLock(notify.mutex);
             packet = connection.dequeue();
         }
 
@@ -436,18 +431,18 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
         }
 
         if (packet.getType() == PacketType::Event)
-            {
+        {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
-                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
+                if (OPENDAQ_FAILED(errCode))
                 {
-                    ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
-                    if (OPENDAQ_FAILED(errCode))
-                    {
-                        invalid = true;
-                    }
-                } 
-                return ReaderStatus(eventPacket, !invalid);
-            }
+                    invalid = true;
+                }
+            } 
+            return ReaderStatus(eventPacket, !invalid);
+        }
 
         if (packet.getType() == PacketType::Data)
         {

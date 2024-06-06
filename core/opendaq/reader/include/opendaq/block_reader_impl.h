@@ -199,7 +199,10 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
+    ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override;
+    ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override;
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
+    
     ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
     ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
@@ -215,6 +218,7 @@ private:
 
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;
+    SizeT getTotalSamples() const;
 
     void initOverlap();
     SizeT calculateBlockCount(SizeT sampleCount) const;

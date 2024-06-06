@@ -27,42 +27,6 @@ static constexpr const SizeT BLOCK_SIZE = 2u;
 static constexpr const SizeT OVERLAP = 50;  // %
 static constexpr auto READ_MODE = ReadMode::Scaled;
 
-template <typename DataType, typename DomainType>
-size_t tryRead(const BlockReaderPtr& reader, DataType* data, DomainType* domain, size_t blockCnt = 1u, size_t timeout = 0u)
-{
-    SizeT samplesInBlock = reader.getBlockSize();
-    SizeT samplesRead{0u};
-    SizeT count{};
-
-    for (size_t i = 0u; i < blockCnt * 4u; i++)
-    {
-        count = blockCnt - samplesRead / samplesInBlock;
-        BlockReaderStatusPtr status = reader.readWithDomain(&data[samplesRead], &domain[samplesRead], &count, timeout);
-        samplesRead += status.getReadSamples();
-        if (samplesRead == blockCnt * samplesInBlock)
-            break;
-    }
-    return samplesRead / samplesInBlock;
-}
-
-template <typename DataType>
-size_t tryRead(const BlockReaderPtr& reader, DataType* data, size_t blockCnt = 1u, size_t timeout = 0u)
-{
-    SizeT samplesInBlock = reader.getBlockSize();
-    SizeT samplesRead{0u};
-    SizeT count{};
-
-    for (size_t i = 0u; i < blockCnt * 4u; i++)
-    {
-        count = blockCnt - samplesRead / samplesInBlock;
-        BlockReaderStatusPtr status = reader.read(&data[samplesRead], &count, timeout);
-        samplesRead += status.getReadSamples();
-        if (samplesRead == blockCnt * samplesInBlock)
-            break;
-    }
-    return samplesRead / samplesInBlock;
-}
-
 TYPED_TEST(BlockReaderTest, Create)
 {
     ASSERT_NO_THROW((BlockReader<TypeParam, ClockRange>) (this->signal, BLOCK_SIZE));
@@ -266,7 +230,7 @@ TYPED_TEST(BlockReaderTest, ReadOneBlock)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -308,7 +272,7 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlapped)
 
     SizeT count{3};
     TypeParam samples[3 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 3u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -366,7 +330,7 @@ TYPED_TEST(BlockReaderTest, ReadBigBlocksOverlapped)
 
     SizeT count{3};
     TypeParam samples[3 * BIG_BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count);
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 3u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -483,8 +447,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeEventOverlapped)
 
     SizeT count{1};
     TypeParam samples[BIG_BLOCK_SIZE]{};
+    BlockReaderStatusPtr status = reader.read(&samples, &count, 1000u);
 
-    BlockReaderStatusPtr status = reader.read((TypeParam*) &samples, &count, 1000u);
     ASSERT_EQ(count, 0u);
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
@@ -534,8 +498,7 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeTimeoutOverlapped)
 
     SizeT count{1};
     TypeParam samples[BIG_BLOCK_SIZE]{};
-
-    BlockReaderStatusPtr status = reader.read((TypeParam*) &samples, &count, 100u);
+    BlockReaderStatusPtr status = reader.read(&samples, &count, 100u);
 
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
@@ -585,7 +548,7 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
 
     SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count, 1000u);
+    reader.read(&samples, &count, 1000u);
 
     if (t.joinable())
     {
@@ -1186,7 +1149,7 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
 
     count = 2;
     TypeParam samples2[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples2, &count, 1000u);
+    reader.read(&samples2, &count, 1000u);
 
     if (t.joinable())
         t.join();
@@ -1249,7 +1212,7 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
 
     count = 2;
     TypeParam nextSamples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &nextSamples, &count);
+    reader.read(&nextSamples, &count);
 
     ASSERT_EQ(count, 2u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -1307,7 +1270,7 @@ TYPED_TEST(BlockReaderTest, ReadBetweenOverlappedPacketsAndCheckValues)
 
     count = 2;
     TypeParam nextSamples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &nextSamples, &count);
+    reader.read(&nextSamples, &count);
 
     ASSERT_EQ(count, 2u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -1406,7 +1369,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     SizeT count{1};
     TypeParam samplesDouble[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
+    reader.read(&samplesDouble, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -1424,18 +1387,15 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     {
         // read event packet
-        size_t tmpCount = 1;
-        BlockReaderStatusPtr status = reader.read((TypeParam*) &samplesDouble, &tmpCount);
-        ASSERT_TRUE(status.assigned());
+        size_t tmpCount = 0;
+        BlockReaderStatusPtr status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_EQ(status.getReadSamples(), 0);
-        ASSERT_EQ(tmpCount, 0);
     }
 
     count = 1;
     TypeParam sampleInt32[1 * BLOCK_SIZE]{};
 
-    reader.read((TypeParam*) &sampleInt32, &count);
+    reader.read(&sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -1468,7 +1428,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
 
     SizeT count{1};
     TypeParam samplesDouble[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
+    reader.read(&samplesDouble, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -1487,7 +1447,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
     {
         // read event packet
         size_t tmpCount = 1;
-        BlockReaderStatusPtr status = reader.read((TypeParam*) &samplesDouble, &tmpCount);
+        BlockReaderStatusPtr status = reader.read(&samplesDouble, &tmpCount);
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
         ASSERT_EQ(status.getReadSamples(), 1);
@@ -1496,13 +1456,13 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
-    count = 2;
+    count = 2u;
     TypeParam sampleInt32[2 * BLOCK_SIZE]{};
-
-    reader.read((TypeParam*) &sampleInt32, &count);
+    reader.read(&sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
+    ASSERT_EQ(count, 1u);
     ASSERT_EQ(sampleInt32[0], TypeParam(3));
     ASSERT_EQ(sampleInt32[1], TypeParam(4));
 }
@@ -1656,16 +1616,16 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
-    TypeParam samples[1 * BLOCK_SIZE];
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &samples, &tmpCount);
+        size_t tmpCount = 0;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
-    auto status = reader.read((TypeParam*) &samples, &count);
+    SizeT count{1};
+    TypeParam samples[1 * BLOCK_SIZE];
+    auto status = reader.read(&samples, &count);
 
     const daq::Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getValid(), convertable);
@@ -1722,17 +1682,17 @@ TYPED_TEST(BlockReaderTest, ReuseReaderOverlapped)
 
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
-
-    SizeT count{1};
-    TypeParam samples[1 * BLOCK_SIZE];
+   
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &samples, &tmpCount);
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
-    auto status = reader.read((TypeParam*) &samples, &count);
+    SizeT count{1};
+    TypeParam samples[1 * BLOCK_SIZE];
+    auto status = reader.read(&samples, &count);
 
     const daq::Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getValid(), convertable);
@@ -1827,16 +1787,15 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
-    double samples[BLOCK_SIZE]{};
-
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read(&samples, &tmpCount);
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
@@ -1879,8 +1838,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainOverlapped)
     double samples[3 * BLOCK_SIZE]{};
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read(&samples, &tmpCount);
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -2070,9 +2029,13 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 
     this->sendPacket(dataPacket);
 
+    SizeT count{0};
+    auto status = reader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = 1u;
     double samples[BLOCK_SIZE]{};
-    RangeType64 domain[BLOCK_SIZE]{};
-    SizeT count = tryRead(reader, samples, domain, 1u);
+    reader.read(samples, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -2104,9 +2067,13 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
 
     this->sendPacket(dataPacket);
 
+    SizeT count{0};
+    auto status = reader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = 3u;
     double samples[3 * BLOCK_SIZE]{};
-    RangeType64 domain[3 * BLOCK_SIZE]{};
-    SizeT count = tryRead(reader, samples, domain, 3u);
+    reader.read(samples, &count);
 
     ASSERT_EQ(count, 3u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -2138,16 +2105,16 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
     port.connect(this->signal);
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
-    double samples[BLOCK_SIZE]{};
-    RangeType64 domain[BLOCK_SIZE]{};
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
-    reader.readWithDomain(&samples, &domain, &count);
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -2178,16 +2145,16 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPortOverlapped)
     port.connect(this->signal);
     this->sendPacket(dataPacket);
 
-    SizeT count{3};
-    double samples[3 * BLOCK_SIZE]{};
-    RangeType64 domain[3 * BLOCK_SIZE]{};
     {
         // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
-    reader.readWithDomain(&samples, &domain, &count);
+
+    SizeT count{3};
+    double samples[3 * BLOCK_SIZE]{};
+    reader.read(&samples, &count);
 
     ASSERT_EQ(count, 3u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -2260,7 +2227,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
                       .build();
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&]
         {
             reader.read(&samples, &count);
             promise.set_value();
@@ -2301,7 +2268,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallbackOverlapped)
                       .build();
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&]
         {
             reader.read(&samples, &count);
             promise.set_value();
@@ -2348,7 +2315,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
                       .build();
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&]
         {
             BlockReaderStatusPtr status = reader.read(&samples[samplesRead], &count);
             samplesRead = status.getReadSamples();
@@ -2393,7 +2360,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
                       .build();
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&]
         {
             BlockReaderStatusPtr status = reader.read(&samples[samplesRead], &count);
             samplesRead = status.getReadSamples();
@@ -2438,9 +2405,16 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
                       .build();
 
     reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
+        [&]
         {
-            count = tryRead(reader, samples, count);
+            SizeT tmpCnt = 0;
+            auto status = reader.read(nullptr, &tmpCnt);
+            if (status.getReadStatus() != ReadStatus::Event)
+            {
+                count = 0u;
+            }
+
+            reader.read(&samples, &count);
             promise.set_value();
         });
 
@@ -2480,12 +2454,12 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     BlockReaderPtr newReader;
 
     reader.setOnDataAvailable(
-        [&, promise = &promise]() mutable
+        [&]
         {
             if (!newReader.assigned())
             {
-                SizeT tmpCount = 1;
-                auto status = reader.read(&samples, &tmpCount);
+                SizeT tmpCount = 0;
+                auto status = reader.read(nullptr, &tmpCount);
                 if (status.getReadStatus() == ReadStatus::Event)
                 {
                     newReader = BlockReaderBuilder()
@@ -2499,7 +2473,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
             else
             {
                 newReader.read(&samples, &count);
-                promise->set_value();
+                promise.set_value();
             }
         });
 

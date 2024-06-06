@@ -666,7 +666,7 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedConvertible)
     this->sendPacket(dataPacketInt32);
 
     {
-        size_t tempCnt = 0;
+        size_t tempCnt = 0u;
         auto status = reader.read(nullptr, &tempCnt);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }

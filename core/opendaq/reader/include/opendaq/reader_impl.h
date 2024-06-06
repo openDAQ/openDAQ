@@ -109,7 +109,7 @@ public:
      * @brief Called when a signal is connected to the input port.
      * @param inputPort The port to which the signal was connected.
      */
-    ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
+    virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
         connection = InputPortPtr::Borrow(inputPort).getConnection();
@@ -120,7 +120,7 @@ public:
      * @brief Called when a signal is disconnected from the input port.
      * @param inputPort The port from which a signal was disconnected.
      */
-    ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
+    virtual ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
 

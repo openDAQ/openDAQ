@@ -639,7 +639,7 @@ TYPED_TEST(StreamReaderTest, GapDetected)
     TypeParam samplesDouble[4]{};
     int64_t domainSamples[4]{};
 
-    auto status = reader.readWithDomain(reinterpret_cast<TypeParam*>(&samplesDouble), reinterpret_cast<int64_t*>(&domainSamples), &count);
+    auto status = reader.readWithDomain(&samplesDouble, &domainSamples, &count);
     ASSERT_EQ(count, 2);
     ASSERT_THAT(samplesDouble, ElementsAre(static_cast<TypeParam>(1), static_cast<TypeParam>(2), _, _));
     ASSERT_THAT(domainSamples, ElementsAre(0, 1, _, _));
@@ -679,9 +679,8 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedNotConvertible)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
-    std::int32_t samples[1];
-    auto status = reader.read(&samples, &count);
+    SizeT count{0};
+    auto status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_FALSE(status.getValid());
 }
@@ -761,9 +760,8 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
-    TypeParam samples[1];
-    auto status = reader.read(&samples, &count);
+    SizeT count{0};
+    auto status = reader.read(nullptr, &count);
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
@@ -823,15 +821,16 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
-    double samples[1]{};
-
     {
-        size_t tempCnt = 1;
-        auto status = reader.read(&samples, &tempCnt);
+        size_t tempCnt = 0;
+        auto status = reader.read(nullptr, &tempCnt);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
         ASSERT_TRUE(status.getValid());
     }
+
+    SizeT count{1};
+    double samples[1]{};
+
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
@@ -1148,13 +1147,14 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
+    SizeT count{0};
+    auto status = reader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = 1;
     double samples[1]{};
     RangeType64 domain[1]{};
-    while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
-    {
-        count = 1;
-    }
+    reader.readWithDomain(&samples, &domain, &count);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -1184,8 +1184,8 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
     RangeType64 domain[1]{};
 
     {
-        size_t tempCnt = 1;
-        auto status = reader.readWithDomain(&samples, &domain, &tempCnt);
+        size_t tempCnt = 0u;
+        auto status = reader.read(nullptr, &tempCnt);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -1232,7 +1232,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
     });
@@ -1271,7 +1271,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         auto tmpCount = count;
         while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
         {
@@ -1311,11 +1311,11 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
     StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
     StreamReaderPtr newReader;
 
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         if (!newReader.assigned())
         {
-            SizeT tmpCount = 1;
-            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            SizeT tmpCount = 0u;
+            auto status = reader.read(nullptr, &tmpCount);
             if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = daq::StreamReaderFromExisting(reader, SampleType::Undefined, SampleType::Undefined);

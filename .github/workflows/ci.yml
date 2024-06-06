@@ -282,7 +282,7 @@ jobs:
 
       # PROTOCOL REGRESSION TEST BEGIN
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

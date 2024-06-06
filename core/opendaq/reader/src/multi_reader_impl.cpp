@@ -273,15 +273,6 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     }
 }
 
-template <typename T>
-bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
-{
-    for (const auto& el : list)
-        if (el.asPtrOrNull<T>() == nullptr)
-            return false;
-    return true;
-}
-
 ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
 {
     if (!list.assigned())
@@ -661,10 +652,14 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 
 MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
+    std::unique_lock notifyLock(notify.mutex);
+    SizeT availableSamples{};
+    SyncStatus syncStatus{};
+
     if (timeout.count() > 0)
     {
         MultiReaderStatusPtr status;
-        auto condition = [this, &status]
+        auto condition = [this, &status, &availableSamples, &syncStatus]
         {
             if (notify.packetReady == false)
             {
@@ -678,22 +673,20 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
                 return true;
             }
 
-            SizeT min{};
-            SyncStatus syncStatus{};
-            ErrCode errCode = synchronize(min, syncStatus);
+            ErrCode errCode = synchronize(availableSamples, syncStatus);
             if (OPENDAQ_FAILED(errCode))
             {
                 status = MultiReaderStatus(nullptr, !invalid);
                 return true;
             }
 
-            return (syncStatus == SyncStatus::Synchronized) && (min >= remainingSamplesToRead);
+            return (syncStatus == SyncStatus::Synchronized) && (availableSamples >= remainingSamplesToRead);
         };
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto start = std::chrono::steady_clock::now();
 #endif
-        std::unique_lock notifyLock(notify.mutex);
+
         [[maybe_unused]]
         bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
 
@@ -714,38 +707,36 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         }
     }
 
-    if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
+    if (syncStatus != SyncStatus::Synchronized)
     {
-        if (sampleRateDividerLcm == -1)
+        if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
         {
-            updateCommonSampleRateAndDividers();
+            if (sampleRateDividerLcm == -1)
+            {
+                updateCommonSampleRateAndDividers();
+            }
+            return MultiReaderStatus(eventPackets, !invalid);
         }
-        return MultiReaderStatus(eventPackets, !invalid);
+
+        ErrCode errCode = synchronize(availableSamples, syncStatus);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return MultiReaderStatus(nullptr, !invalid);
+        }
+        if (remainingSamplesToRead == 0)
+        {
+            return defaultStatus;
+        }
     }
 
-    SizeT min{};
-    SyncStatus syncStatus{};
-
-    ErrCode errCode = synchronize(min, syncStatus);
-    if (OPENDAQ_FAILED(errCode))
+    if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
     {
-        return MultiReaderStatus(nullptr, !invalid);
-    }
-    if (remainingSamplesToRead == 0)
-    {
-        return defaultStatus;
-    }
-
-    if (syncStatus == SyncStatus::Synchronized && min > 0u)
-    {
-        SizeT toRead = std::min(remainingSamplesToRead, min);
+        SizeT toRead = std::min(remainingSamplesToRead, availableSamples);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         SizeT samplesToRead = remainingSamplesToRead;
         auto start = std::chrono::steady_clock::now();
 #endif
-
-        std::scoped_lock lock(notify.mutex);
         readSamples(toRead);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)

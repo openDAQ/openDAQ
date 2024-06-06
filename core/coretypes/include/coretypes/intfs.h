@@ -472,7 +472,7 @@ public:
 
     int INTERFACE_FUNC releaseRef() override
     {
-        const auto newRefCount = std::atomic_fetch_sub_explicit(&refCount, 1, std::memory_order_acq_rel) - 1;
+        const auto newRefCount = internalReleaseRef();
         assert(newRefCount >= 0);
         if (newRefCount == 0)
         {

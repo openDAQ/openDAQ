@@ -8,16 +8,31 @@
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <gtest/gtest.h>
 
+#include "opendaq/packet_return_callback_factory.h"
+
 using DataPacketTest = testing::Test;
 
 using namespace daq;
 
 // Helper methods
 
+template <bool Returnable>
+struct ReturnableCallback
+{
+    using Type = int;
+};
+
+template <>
+struct ReturnableCallback<true>
+{
+    using Type = PacketReturnCallbackPtr;
+};
+
 template <typename T, size_t SIZE>
 static DataPacketPtr createExplicitPacket(const DataDescriptorPtr& descriptor)
 {
-    const DataPacketPtr packet = DataPacket(descriptor, SIZE);
+    DataPacketPtr packet;
+    packet = DataPacket(descriptor, SIZE);
 
     T* data = static_cast<T*>(packet.getRawData());
     for (size_t i = 0; i < SIZE; ++i)
@@ -636,4 +651,77 @@ TEST_F(DataPacketTest, GetLastValueNoTypeManager)
     data[4] = 42;
 
     ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
+}
+
+TEST_F(DataPacketTest, DontReturn)
+{
+    const auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    bool returnCallbackCalled = false;
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+    packet.asPtr<IReusableDataPacket>(true).requestReturn(PacketReturnCallback([&returnCallbackCalled](const PacketPtr& packet)
+        {
+            returnCallbackCalled = true;
+            ASSERT_EQ(packet.getRefCount(), 0);
+        }), true);
+
+    ASSERT_EQ(packet.getRefCount(), 1);
+
+    packet.release();
+    ASSERT_TRUE(returnCallbackCalled);
+}
+
+
+TEST_F(DataPacketTest, ReturnOnce)
+{
+    const auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    PacketPtr returnedPacket;
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+    packet.asPtr<IReusableDataPacket>(true).requestReturn(PacketReturnCallback(
+                                                              [&returnedPacket](const PacketPtr& packet)
+                                                              {
+                                                                  ASSERT_EQ(packet.getRefCount(), 0);
+                                                                  returnedPacket = packet;
+                                                                  ASSERT_EQ(packet.getRefCount(), 1);
+                                                                  ASSERT_EQ(returnedPacket.getRefCount(), 1);
+                                                              }),
+                                                          true);
+
+    ASSERT_EQ(packet.getRefCount(), 1);
+
+    packet.release();
+    ASSERT_TRUE(returnedPacket.assigned());
+    ASSERT_EQ(returnedPacket.getRefCount(), 1);
+    returnedPacket.release();
+}
+
+TEST_F(DataPacketTest, ReturnUntilCanceled)
+{
+    const auto descriptor = setupDescriptor(SampleType::Float64, ExplicitDataRule(), nullptr);
+    PacketPtr returnedPacket;
+    auto packet = createExplicitPacket<uint16_t, 100>(descriptor);
+    packet.asPtr<IReusableDataPacket>(true).requestReturn(PacketReturnCallback(
+                                                              [&returnedPacket](const PacketPtr& packet)
+                                                              {
+                                                                  ASSERT_EQ(packet.getRefCount(), 0);
+                                                                  returnedPacket = packet;
+                                                                  ASSERT_EQ(packet.getRefCount(), 1);
+                                                                  ASSERT_EQ(returnedPacket.getRefCount(), 1);
+                                                              }),
+                                                          false);
+
+    ASSERT_EQ(packet.getRefCount(), 1);
+
+    packet.release();
+    ASSERT_TRUE(returnedPacket.assigned());
+    ASSERT_EQ(returnedPacket.getRefCount(), 1);
+
+    PacketPtr packet1 = std::move(returnedPacket);
+    ASSERT_EQ(packet1.getRefCount(), 1);
+
+    packet1.release();
+    ASSERT_TRUE(returnedPacket.assigned());
+    ASSERT_EQ(returnedPacket.getRefCount(), 1);
+
+    returnedPacket.asPtr<IReusableDataPacket>(true).cancelReturn();
+    returnedPacket.release();
 }

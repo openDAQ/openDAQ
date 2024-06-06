@@ -12,6 +12,8 @@
 #include <opendaq/scaling_factory.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/reusable_data_packet_ptr.h>
+#include <opendaq/packet_return_callback_factory.h>
 
 
 #define PI 3.141592653589793
@@ -36,6 +38,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
+    , packetPool(std::make_shared<PacketPool>())
 {
     initProperties();
     waveformChangedInternal();
@@ -52,6 +55,11 @@ void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgs
         signalTypeChanged();
     else
         needsSignalTypeChanged = true;
+}
+
+void RefChannelImpl::clearPacketPool()
+{
+    packetPool.reset(new PacketPool{});
 }
 
 void RefChannelImpl::initProperties()
@@ -177,6 +185,8 @@ void RefChannelImpl::packetSizeChangedInternal()
 {
     fixedPacketSize = objPtr.getPropertyValue("FixedPacketSize");
     packetSize = objPtr.getPropertyValue("PacketSize");
+
+    clearPacketPool();
 }
 
 void RefChannelImpl::packetSizeChanged()
@@ -216,6 +226,7 @@ void RefChannelImpl::signalTypeChanged()
     signalTypeChangedInternal();
     buildSignalDescriptors();
     updateSamplesGenerated();
+    clearPacketPool();
 }
 
 void RefChannelImpl::signalTypeChangedInternal()
@@ -306,7 +317,28 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        if (fixedPacketSize)
+        {
+            if (auto packetFromPool = packetPool->pop(); packetFromPool.assigned())
+            {
+                if (!packetFromPool.asPtr<IReusableDataPacket>(true).reuse(nullptr, newSamples, nullptr, domainPacket, False))
+                    assert(false);
+                dataPacket = std::move(packetFromPool);
+            }
+            else
+            {
+                dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+            }
+
+            dataPacket.asPtr<IReusableDataPacket>(true).requestReturn(PacketReturnCallback(
+                                                                          [weakPtr = std::weak_ptr(packetPool)](const PacketPtr& packet)
+                                                                          {
+                                                                              if (const auto packetPool = weakPtr.lock())
+                                                                                  packetPool->push(packet);
+                                                                          }),true);
+        }
+        else
+            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
 
         double* buffer;
 
@@ -447,6 +479,7 @@ void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
     signalTypeChangedInternal();
     buildSignalDescriptors();
     updateSamplesGenerated();
+    clearPacketPool();
 }
 
 std::string RefChannelImpl::getEpoch()

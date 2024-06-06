@@ -13,6 +13,7 @@ rtgen(SRC_DimensionBuilder dimension_builder.h)
 rtgen(SRC_EventPacket event_packet.h)
 rtgen(SRC_Packet packet.h)
 rtgen(SRC_PacketDestructCallback packet_destruct_callback.h)
+rtgen(SRC_PacketReturnCallback packet_return_callback.h)
 rtgen(SRC_Range range.h)
 rtgen(SRC_DataDescriptor data_descriptor.h)
 rtgen(SRC_DataDescriptorBuilder data_descriptor_builder.h)
@@ -97,6 +98,9 @@ source_group("packet" FILES ${SDK_HEADERS_DIR}/packet.h
                             ${SDK_HEADERS_DIR}/packet_destruct_callback.h
                             ${SDK_HEADERS_DIR}/packet_destruct_callback_factory.h
                             ${SDK_HEADERS_DIR}/packet_destruct_callback_impl.h
+                            ${SDK_HEADERS_DIR}/packet_return_callback.h
+                            ${SDK_HEADERS_DIR}/packet_return_callback_factory.h
+                            ${SDK_HEADERS_DIR}/packet_return_callback_impl.h
                             data_packet_impl.cpp
                             generic_data_packet_impl.cpp
                             event_packet_impl.cpp
@@ -206,6 +210,8 @@ set(SRC_PublicHeaders
     event_packet_params.h
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
+    packet_return_callback_impl.h
+    packet_return_callback_factory.h
     signal_impl.h
 )
 
@@ -286,6 +292,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Connection_PublicHeaders}
                               ${SRC_EventPacket_PublicHeaders}
                               ${SRC_Packet_PublicHeaders}
                               ${SRC_PacketDestructCallback_PublicHeaders}
+                              ${SRC_PacketReturnCallback_PublicHeaders}
                               ${SRC_Range_PublicHeaders}
                               ${SRC_DataDescriptor_PublicHeaders}
                               ${SRC_DataDescriptorBuilder_PublicHeaders}
@@ -315,6 +322,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_Connection_PrivateHeaders}
                                ${SRC_EventPacket_PrivateHeaders}
                                ${SRC_Packet_PrivateHeaders}
                                ${SRC_PacketDestructCallback_PrivateHeaders}
+                               ${SRC_PacketReturnCallback_PrivateHeaders}
                                ${SRC_Range_PrivateHeaders}
                                ${SRC_DataDescriptor_PrivateHeaders}
                                ${SRC_DataDescriptorBuilder_PrivateHeaders}

@@ -22,13 +22,14 @@
 #include <opendaq/packet_destruct_callback_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 template <typename TInterface = IPacket, typename ... TInterfaces>
 class PacketImpl : public ImplementationOf<TInterface, TInterfaces ...>
 {
 public:
+    using Super = ImplementationOf<TInterface, TInterfaces ...>;
+
     PacketImpl();
-    ~PacketImpl();
+    ~PacketImpl() override;
 
     ErrCode INTERFACE_FUNC getType(PacketType* type) override;
     ErrCode INTERFACE_FUNC subscribeForDestructNotification(IPacketDestructCallback* packetDestructCallback) override;
@@ -40,7 +41,6 @@ protected:
     PacketType type;
     std::mutex sync;
     std::vector<PacketDestructCallbackPtr> packetDestructCallbackList;
-
     void callDestructCallbacks();
 };
 
@@ -109,9 +109,12 @@ inline ErrCode INTERFACE_FUNC PacketImpl<TInterface, TInterfaces...>::equals(IBa
 template <typename TInterface, typename... TInterfaces>
 void PacketImpl<TInterface, TInterfaces...>::callDestructCallbacks()
 {
-    for (const auto& packetDestructCallback : packetDestructCallbackList)
-        packetDestructCallback->onPacketDestroyed();
-    packetDestructCallbackList.clear();
+    if (!packetDestructCallbackList.empty())
+    {
+        for (const auto& packetDestructCallback : packetDestructCallbackList)
+            packetDestructCallback->onPacketDestroyed();
+        packetDestructCallbackList.clear();
+    }
 }
 
 END_NAMESPACE_OPENDAQ

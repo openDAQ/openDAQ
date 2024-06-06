@@ -25,6 +25,8 @@
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/reusable_data_packet.h>
 #include <opendaq/deleter_ptr.h>
+#include <opendaq/packet_return_callback_ptr.h>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -79,6 +81,11 @@ public:
                                  Bool canReallocMemory,
                                  Bool* success) override;
 
+    ErrCode INTERFACE_FUNC requestReturn(IPacketReturnCallback* packetReturnCallback, Bool once) override;
+    ErrCode INTERFACE_FUNC cancelReturn() override;
+
+    int INTERFACE_FUNC releaseRef() override;
+
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     void freeMemory();
@@ -86,6 +93,8 @@ private:
     void initPacket();
 
     DeleterPtr deleter;
+    PacketReturnCallbackPtr packetReturnCallback;
+
     DataDescriptorPtr descriptor;
     NumberPtr offset = nullptr;
     uint32_t sampleCount;
@@ -102,6 +111,7 @@ private:
     bool hasDataRuleCalc;
     bool hasRawDataOnly;
     bool externalMemory;
+    bool returnOnce;
 
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
     BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
@@ -138,6 +148,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(false)
+    , returnOnce(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -180,6 +191,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(true)
+    , returnOnce(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -225,6 +237,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , sampleCount(sampleCount)
     , hasRawDataOnly(true)
     , externalMemory(false)
+    , returnOnce(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -710,6 +723,65 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
     *success = True;
     return OPENDAQ_SUCCESS;
 }
+
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::requestReturn(IPacketReturnCallback* packetReturnCallback, Bool once)
+{
+    OPENDAQ_PARAM_NOT_NULL(packetReturnCallback);
+
+    if (this->getReferenceCount() != 1)
+        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot request return of packet if reference count != 1", nullptr);
+
+    this->packetReturnCallback = packetReturnCallback;
+    this->returnOnce = once;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::cancelReturn()
+{
+    if (this->getReferenceCount() != 1)
+        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot cancel return of packet if reference count != 1", nullptr);
+
+    this->packetReturnCallback = nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface>
+int DataPacketImpl<TInterface>::releaseRef()
+{
+    auto newRefCount = this->internalReleaseRef();
+    assert(newRefCount >= 0);
+    if (newRefCount == 0)
+    {
+        if (packetReturnCallback.assigned())
+        {
+            const auto packetPtr = this->template borrowPtr<PacketPtr>();
+            packetReturnCallback.onPacketReturn(packetPtr);
+
+            newRefCount = this->getReferenceCount();
+            if (newRefCount == 0)
+            {
+                Super::checkAndCallDispose();
+                delete this;
+            }
+            else
+            {
+                if (returnOnce)
+                    packetReturnCallback.release();
+                this->callDestructCallbacks();
+            }
+        }
+        else
+        {
+            Super::checkAndCallDispose();
+            delete this;
+        }
+    }
+
+    return newRefCount;
+}
+
 
 template <typename TInterface>
 void DataPacketImpl<TInterface>::freeScaledData()

@@ -20,6 +20,7 @@
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
 #include <random>
+#include <coretypes/utility_sync.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -37,6 +38,32 @@ struct RefChannelInit
     double globalSampleRate;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
+};
+
+class PacketPool
+{
+public:
+    template <class T>
+    void push(T&& packet)
+    {
+        std::scoped_lock lock(mutex);
+        pool.push_back(std::forward<T>(packet));
+    }
+
+    PacketPtr pop()
+    {
+        std::scoped_lock lock(mutex);
+        if (pool.empty())
+            return nullptr;
+
+        const auto packet = std::move(pool.back());
+        pool.pop_back();
+        return packet;
+    }
+
+private:
+    std::vector<PacketPtr> pool;
+    daq::mutex mutex;
 };
 
 class RefChannelImpl final : public ChannelImpl<IRefChannel>
@@ -77,6 +104,7 @@ private:
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
+    std::shared_ptr<PacketPool> packetPool;
 
     void initProperties();
     void packetSizeChangedInternal();
@@ -94,6 +122,7 @@ private:
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
+    void clearPacketPool();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

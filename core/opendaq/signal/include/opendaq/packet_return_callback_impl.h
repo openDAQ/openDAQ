@@ -15,31 +15,31 @@
  */
 
 #pragma once
-#include <coretypes/baseobject.h>
-#include <opendaq/data_descriptor.h>
-#include <coretypes/number.h>
 #include <opendaq/packet_return_callback.h>
+#include <coretypes/intfs.h>
+#include <opendaq/packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*#
- * [interfaceLibrary(INumber, CoreTypes)]
- */
-
-/*!
- * @ingroup opendaq_packets
- * @addtogroup opendaq_reusable_data_packet Reusable Data packet
- * @{
- */
-
-DECLARE_OPENDAQ_INTERFACE(IReusableDataPacket, IBaseObject)
+template <class Callback>
+class PacketReturnCallbackImpl : public ImplementationOf<IPacketReturnCallback>
 {
-    virtual ErrCode INTERFACE_FUNC reuse(IDataDescriptor* newDescriptor, SizeT newSampleCount, INumber* newOffset, IDataPacket* newDomainPacket, Bool canReallocMemory, Bool* success) = 0;
+public:
+    explicit PacketReturnCallbackImpl(Callback callback)
+        : callback(callback)
+    {
+    }
 
-    virtual ErrCode INTERFACE_FUNC requestReturn(IPacketReturnCallback* packetReturnCallback, Bool once) = 0;
-    virtual ErrCode INTERFACE_FUNC cancelReturn() = 0;
+    ErrCode INTERFACE_FUNC onPacketReturn(IPacket* packet) override
+    {
+        const auto packetPtr = PacketPtr::Borrow(packet);
+        callback(packetPtr);
+
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    Callback callback;
 };
-
-/*!@}*/
 
 END_NAMESPACE_OPENDAQ

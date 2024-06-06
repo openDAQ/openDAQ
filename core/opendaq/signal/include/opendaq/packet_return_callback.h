@@ -16,30 +16,27 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
-#include <opendaq/data_descriptor.h>
-#include <coretypes/number.h>
-#include <opendaq/packet_return_callback.h>
+#include <opendaq/packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*#
- * [interfaceLibrary(INumber, CoreTypes)]
- */
-
 /*!
  * @ingroup opendaq_packets
- * @addtogroup opendaq_reusable_data_packet Reusable Data packet
+ * @addtogroup opendaq_packet Packet
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE(IReusableDataPacket, IBaseObject)
+/*!
+ * @brief Used to subscribe to packet return callback
+ */
+DECLARE_OPENDAQ_INTERFACE(IPacketReturnCallback, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC reuse(IDataDescriptor* newDescriptor, SizeT newSampleCount, INumber* newOffset, IDataPacket* newDomainPacket, Bool canReallocMemory, Bool* success) = 0;
-
-    virtual ErrCode INTERFACE_FUNC requestReturn(IPacketReturnCallback* packetReturnCallback, Bool once) = 0;
-    virtual ErrCode INTERFACE_FUNC cancelReturn() = 0;
+    /*!
+     * @brief Called before packet is destroyed. Subscriber can return the packet.
+     * @param packet The packet to return.
+     */
+    virtual ErrCode INTERFACE_FUNC onPacketReturn(IPacket* packet) = 0;
 };
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

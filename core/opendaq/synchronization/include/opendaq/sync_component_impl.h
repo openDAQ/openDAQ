@@ -28,6 +28,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+const char* Interfaces = "Interfaces";
+const char* SyncronizationLocked = "SyncronizationLocked";
+const char* Source = "Source";
+
 class GenericSyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 {
 public:
@@ -37,7 +41,7 @@ public:
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC test() override;
-    ErrCode INTERFACE_FUNC getSyncLocked(Bool* syncLocked) override;
+    ErrCode INTERFACE_FUNC getSyncLocked(Bool* SyncronizationLocked) override;
     ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) override;
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
 //    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
@@ -45,12 +49,23 @@ public:
 
 protected:
     ListPtr<IPropertyObject> interfaces;
-    Bool syncLocked;
+
+private:
+    template <typename T>
+    typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 };
 
 GenericSyncComponentImpl::GenericSyncComponentImpl()
     : Super()
 {
+    Super::addProperty(BoolProperty(SyncronizationLocked, false));
+    Super::addProperty(SelectionProperty(Source, List<IString>("Interface1", "Interface2", "Interface3"), 0));
+}
+
+template <typename T>
+typename InterfaceToSmartPtr<T>::SmartPtr GenericSyncComponentImpl::getTypedProperty(const StringPtr& name)
+{
+    return objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
 ErrCode GenericSyncComponentImpl::test()
@@ -60,12 +75,18 @@ ErrCode GenericSyncComponentImpl::test()
 
 ErrCode GenericSyncComponentImpl::getSyncLocked(Bool* syncLocked)
 {
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]() {
+        *syncLocked = getTypedProperty<IBoolean>(SyncronizationLocked);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode GenericSyncComponentImpl::getSelectedSource(IString** selectedSource)
 {
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]() {
+        *selectedSource = getTypedProperty<IString>(Source).detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)

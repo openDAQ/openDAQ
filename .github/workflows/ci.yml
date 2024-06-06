@@ -319,23 +319,12 @@ jobs:
           EOL
           
           chmod +x regression_test_run.sh
-          
-          # TODO: DELETE THIS
-          cat regression_test_run.sh
 
       - name: Protocol regression test - OPC UA
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
           GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
           protocol: opcua
-        run: ./regression_test_run.sh
-
-      # TODO: DELETE THIS
-      - name: Protocol regression test - FAIL
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/fail/"
-          protocol: fail
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - ND

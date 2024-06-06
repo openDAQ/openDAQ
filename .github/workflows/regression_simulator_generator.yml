@@ -68,13 +68,13 @@ jobs:
 
       # TODO: not needed once we only run on tags, just checkout current 
       - name: Checkout target
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.regression_tests_target_tag }}
           path: target # TODO: don't use target folder, just use default folder
 
       - name: Checkout current
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: current # TODO: not needed once we only run on tags
 

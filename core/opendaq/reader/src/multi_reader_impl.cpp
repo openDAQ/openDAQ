@@ -741,7 +741,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
-        LOG_T("Read {} / {} [{} left]", toRead, samplesToRead, remainingSamplesToRead)
+        LOG_T("Read {} / {} [{} left] for {} ms", 
+            toRead, 
+            samplesToRead, 
+            remainingSamplesToRead,
+            std::chrono::duration_cast<Milliseconds>(end - start).count())
 #endif
     }
     return defaultStatus;

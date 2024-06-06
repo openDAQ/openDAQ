@@ -350,7 +350,7 @@ jobs:
 
       - name: Upload regression test results
         if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Regression Test Results (${{ matrix.name }})
           path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/regression

@@ -257,7 +257,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/unit/"
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
         run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
@@ -265,7 +265,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/unit
+          path: /junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''
@@ -323,28 +323,28 @@ jobs:
       - name: Protocol regression test - OPC UA
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/opcua/"
+          GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
           protocol: opcua
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - ND
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/nd/"
+          GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
           protocol: nd
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - NS
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/ns/"
+          GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
           protocol: ns
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - LT
         if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/regression/lt/"
+          GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
           protocol: lt
         run: ./regression_test_run.sh
 
@@ -353,7 +353,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Regression Test Results (${{ matrix.name }})
-          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/regression
+          path: /junit_reports/regression
 
       # PROTOCOL REGRESSION TEST END
 
@@ -431,7 +431,7 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.GITHUB_WORKSPACE }}/junit_reports/unit/"
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
         run: |
           python$last_version -m venv venv
           . venv/bin/activate
@@ -444,7 +444,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.GITHUB_WORKSPACE }}/junit_reports/unit
+          path: /junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''

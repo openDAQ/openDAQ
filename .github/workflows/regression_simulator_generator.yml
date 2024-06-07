@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
   push: 
     branches: # TODO: debug only, delete
-      - regression-tests 
-    tags:
-      - '**'
+      - regression-tests
+    # tags: # TODO: later, to build simulator from tag
+    #   - '**'
 
 env:
   regression_tests_target_tag: v3.0.0 # TODO: not needed once we only run on tags

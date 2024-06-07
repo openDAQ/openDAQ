@@ -300,14 +300,20 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
-      - name: Create, save and give execute permissions to regression test runner script
+      - name: Create and give execute permissions to regression test runner script
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
         run: |
           cat > regression_test_run.sh << EOL
           
+          # Change directory because we expect the libraries to be in the folder we are running simulator from
+          cd ${{ env.regression_simulator_folder }}
+          
           # Run simulator and wait for it to to be ready
-          ./${{ env.regression_simulator_folder }}/regression_simulator &
+          ./regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
+          
+          # Change directory back
+          cd ..
           
           # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
@@ -317,6 +323,7 @@ jobs:
           
           EOL
           
+          # Make runner script executable
           chmod +x regression_test_run.sh
 
       - name: Protocol regression test - OPC UA

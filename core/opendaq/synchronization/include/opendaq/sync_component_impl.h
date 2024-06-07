@@ -28,7 +28,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-const char* Interfaces = "Interfaces";
+const char* Interfaces = "interfaces";
 const char* SyncronizationLocked = "SyncronizationLocked";
 const char* Source = "Source";
 
@@ -58,6 +58,7 @@ private:
 GenericSyncComponentImpl::GenericSyncComponentImpl()
     : Super()
 {
+    Super::addProperty(ObjectProperty(Interfaces, PropertyObject()));
     Super::addProperty(BoolProperty(SyncronizationLocked, false));
     Super::addProperty(SelectionProperty(Source, List<IString>("Interface1", "Interface2", "Interface3"), 0));
 }
@@ -91,19 +92,77 @@ ErrCode GenericSyncComponentImpl::getSelectedSource(IString** selectedSource)
 
 ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)
 {
+    OPENDAQ_PARAM_NOT_NULL(interfaces);
+    ListPtr<IPropertyObject> interfacesList = List<IPropertyObject>();
+
+    BaseObjectPtr Interfaces;
+    StringPtr str = "interfaces";
+    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
+    for (const auto& prop : InterfacesPtr.getAllProperties())
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            BaseObjectPtr interfaceProperty;
+            err = InterfacesPtr->getPropertyValue(prop.getName(), &interfaceProperty);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            interfacesList.pushBack(interfaceProperty.detach());
+        }
+    }
+
+    *interfaces = interfacesList.detach();
     return OPENDAQ_SUCCESS;
 }
 
 
 ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
 {
+    OPENDAQ_PARAM_NOT_NULL(interface);
+
+    //Check if interface inherits from SyncInterfaceBase
+
+    BaseObjectPtr Interfaces;
+    StringPtr str = "interfaces";
+    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
+    for (const auto& prop : InterfacesPtr.getAllProperties())
+    {
+        if (prop.getValueType() != ctObject)
+            continue;
+
+        auto interfaceProperty = InterfacesPtr.getPropertyValue(prop.getName());
+        //check for duplicates of the interface here
+    }
+
+    InterfacesPtr.addProperty(ObjectProperty(interface));
     return OPENDAQ_SUCCESS;
 }
 
 
 ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
 {
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_PARAM_NOT_NULL(interfaceName);
+
+    BaseObjectPtr Interfaces;
+    StringPtr str = "interfaces";
+    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
+    if (!InterfacesPtr.hasProperty(interfaceName))
+        return OPENDAQ_ERR_NOTFOUND;
+
+
+    return InterfacesPtr->removeProperty(interfaceName);
 }
 
 //OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)

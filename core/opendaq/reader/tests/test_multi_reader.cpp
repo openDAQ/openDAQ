@@ -2200,7 +2200,7 @@ TEST_F(MultiReaderTest, notifyPortIsConnected)
     ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
 }
 
-TEST_F(MultiReaderTest, readWhilePortIsConnected)
+TEST_F(MultiReaderTest, readWhilePortIsNotConnected)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2231,3 +2231,43 @@ TEST_F(MultiReaderTest, readWhilePortIsConnected)
     ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
 }
 
+TEST_F(MultiReaderTest, ReconnectWhileReading)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig2 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = signalsToPortsList();
+    auto multi = MultiReaderFromPort(portList);
+
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    constexpr const SizeT SAMPLES = 20u;
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+
+    SizeT count{SAMPLES};
+    MultiReaderStatusPtr status;
+    std::future<void> future = std::async(std::launch::async, [&] {
+        status = multi.read(valuesPerSignal, &count, 500);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    sig0.createAndSendPacket(0);
+    sig0.signal.getContext().getScheduler().waitAll();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    portList[0].disconnect();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    portList[0].connect(sig0.signal);
+
+    future.wait();
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
+    
+}

@@ -22,7 +22,6 @@ SignalReader::SignalReader(const InputPortConfigPtr& port,
     , domainInfo(logger)
     , sampleRate(-1)
     , commonSampleRate(-1)
-    , sampleRateDivider(-1)
 {
 }
 
@@ -40,7 +39,6 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainInfo(loggerComponent)
     , sampleRate(-1)
     , commonSampleRate(-1)
-    , sampleRateDivider(-1)
 {
     info = old.info;
 
@@ -61,7 +59,6 @@ SignalReader::SignalReader(const SignalInfo& old,
     , domainInfo(loggerComponent)
     , sampleRate(-1)
     , commonSampleRate(-1)
-    , sampleRateDivider(-1)
 {
     port.setListener(listener);
     readDescriptorFromPort();
@@ -105,19 +102,17 @@ void SignalReader::readDescriptorFromPort()
 SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
 {
     SizeT count = 0;
-    if (sampleRateDivider == -1)
-    {
-        return count;
-    }
-   
     if (info.dataPacket.assigned())
     {
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }
 
-    count += acrossDescriptorChanges
-        ? connection.getAvailableSamples()
-        : connection.getSamplesUntilNextDescriptor();
+    if (connection.assigned())
+    {
+        count += acrossDescriptorChanges
+            ? connection.getAvailableSamples()
+            : connection.getSamplesUntilNextDescriptor();
+    }
     return count * sampleRateDivider;
 }
 
@@ -216,12 +211,12 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 
 void SignalReader::prepare(void* outValues, SizeT count)
 {
-    info.prepare(outValues, sampleRateDivider == -1 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
+    info.prepare(outValues, sampleRateDivider == 0 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
 }
 
 void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count)
 {
-    info.prepareWithDomain(outValues, domain, sampleRateDivider == -1 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
+    info.prepareWithDomain(outValues, domain, sampleRateDivider == 0 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
 }
 
 void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)

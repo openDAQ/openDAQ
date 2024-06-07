@@ -264,7 +264,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     sampleRateDividerLcm = 1;
     for (const auto& signal : signals)
     {
-        if (signal.sampleRateDivider == -1)
+        if (!signal.connection.assigned())
         {
             sampleRateDividerLcm = -1;
             return;
@@ -680,7 +680,22 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
                 return true;
             }
 
-            return (syncStatus == SyncStatus::Synchronized) && (availableSamples >= remainingSamplesToRead);
+            if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
+            {
+                if (availableSamples >= remainingSamplesToRead)
+                {
+                    return true;
+                }
+                for (auto& signal : signals)
+                {
+                    if (signal.connection.hasEventPacket())
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         };
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
@@ -747,6 +762,15 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             remainingSamplesToRead,
             std::chrono::duration_cast<Milliseconds>(end - start).count())
 #endif
+
+        if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
+        {
+            if (sampleRateDividerLcm == -1)
+            {
+                updateCommonSampleRateAndDividers();
+            }
+            return MultiReaderStatus(eventPackets, !invalid);
+        }
     }
     return defaultStatus;
 }
@@ -811,8 +835,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = nullptr;
-        sigInfo->sampleRate = -1;
-        sigInfo->sampleRateDivider = -1;
+        sampleRateDividerLcm = -1;
     }
     return OPENDAQ_SUCCESS;
 }

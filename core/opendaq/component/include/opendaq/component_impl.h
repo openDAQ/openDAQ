@@ -169,6 +169,8 @@ protected:
 
     PropertyObjectPtr getPropertyObjectParent() override;
 
+    static bool validateComponentId(const std::string& id);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -219,6 +221,13 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (!context.assigned())
         throw InvalidParameterException{"Context must be assigned on component creation"};
+
+    if (context.getLogger().assigned()) {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        const auto localIdString = localId.toStdString();
+        if (!validateComponentId(localIdString))
+            LOG_W("Component has incorrect id '{}': contains whitespaces", localIdString);
+    }
 
     context->getOnCoreEvent(&this->coreEvent);
     lockedAttributes.insert("Visible");
@@ -1105,6 +1114,12 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                 }
                 return nullptr;
             });
+}
+
+template <class Intf, class... Intfs>
+bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
+{
+    return id.find(' ') == std::string::npos;
 }
 
 using StandardComponent = ComponentImpl<>;

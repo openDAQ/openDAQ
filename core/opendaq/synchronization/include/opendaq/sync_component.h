@@ -80,6 +80,13 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) = 0;
 
+    // [elementType(interface, IPropertyObject)]
+    /*!
+     * @brief Adds an interface to the synchronization component.
+     * @param interface The interface to be added.
+     */
+    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) = 0;
+
     /*!
      * @brief Removes an interface from the synchronization component.
      * @param interfaceName The name of the interface to be removed.

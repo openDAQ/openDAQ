@@ -44,7 +44,7 @@ public:
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* SyncronizationLocked) override;
     ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) override;
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
-//    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
+    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
 protected:
@@ -94,12 +94,12 @@ ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)
     return OPENDAQ_SUCCESS;
 }
 
-//
-//ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
-//{
-//    return OPENDAQ_SUCCESS;
-//}
-//
+
+ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
+{
+    return OPENDAQ_SUCCESS;
+}
+
 
 ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
 {

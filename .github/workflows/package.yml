@@ -313,7 +313,7 @@ jobs:
           yum install -y git
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
       - name: Install build dependencies
         run: |
@@ -343,7 +343,7 @@ jobs:
           done
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}

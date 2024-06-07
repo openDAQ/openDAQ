@@ -14,7 +14,6 @@ env:
   s3_bucket: bb-blueberry-sdk-releases
   regression_tests_target_tag: v3.0.0
   regression_simulator_folder: regression_test_simulator
-  LD_LIBRARY_PATH: ${{ github.workspace }}/regression_test_simulator
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build

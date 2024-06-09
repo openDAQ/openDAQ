@@ -12,6 +12,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/channel_impl.h>
+#include <opendaq/component_exceptions.h>
 
 using DeviceTest = testing::Test;
 

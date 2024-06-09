@@ -11,6 +11,7 @@
 #include <opendaq/component_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/component_exceptions.h>
 
 using namespace daq;
 using namespace testing;

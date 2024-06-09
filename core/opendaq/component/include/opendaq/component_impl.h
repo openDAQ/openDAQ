@@ -43,6 +43,7 @@
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <opendaq/component_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

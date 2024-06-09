@@ -131,6 +131,8 @@ set(SRC_PublicHeaders_Component
     component_status_container_factory.h
     component_status_container_impl.h
     component_holder_factory.h
+    component_errors.h
+    component_exceptions.h
     PARENT_SCOPE
 )
 

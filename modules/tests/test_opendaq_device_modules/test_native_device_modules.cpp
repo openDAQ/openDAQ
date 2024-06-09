@@ -1,4 +1,4 @@
-#include <opcuatms/exceptions.h>
+#include <opendaq/component_exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>

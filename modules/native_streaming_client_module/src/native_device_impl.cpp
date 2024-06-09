@@ -7,6 +7,7 @@
 
 #include <opendaq/ids_parser.h>
 #include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/component_exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 

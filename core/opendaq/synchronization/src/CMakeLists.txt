@@ -11,7 +11,6 @@ rtgen(SRC_SyncComponent sync_component.h)
 #rtgen(SRC_SyncComponentConfig sync_component_config.h)
 
 source_group("sync_component" FILES ${SDK_HEADERS_DIR}/sync_component.h
-                                    #${SDK_HEADERS_DIR}/sync_component_config.h
                                     ${SDK_HEADERS_DIR}/sync_component_impl.h
                                     ${SDK_HEADERS_DIR}/sync_component_factory.h
                                     sync_component_impl.cpp

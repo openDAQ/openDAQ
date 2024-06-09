@@ -47,6 +47,12 @@ public:
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
+    // ISerializable
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 protected:
     ListPtr<IPropertyObject> interfaces;
 
@@ -124,7 +130,7 @@ ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
 {
     OPENDAQ_PARAM_NOT_NULL(interface);
 
-    //Check if interface inherits from SyncInterfaceBase
+    //TBD: Check if interface inherits from SyncInterfaceBase
 
     BaseObjectPtr Interfaces;
     StringPtr str = "interfaces";
@@ -165,6 +171,42 @@ ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
     return InterfacesPtr->removeProperty(interfaceName);
 }
 
-//OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)
+ErrCode GenericSyncComponentImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr GenericSyncComponentImpl::SerializeId()
+{
+    return "Synchronization";
+}
+
+ErrCode GenericSyncComponentImpl::Deserialize(ISerializedObject* serialized,
+                                                IBaseObject* context,
+                                                IFunction* factoryCallback,
+                                                IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializePropertyObject(
+                    serialized,
+                    context,
+                    factoryCallback,
+                       [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
+                       {
+                           const auto sync = createWithImplementation<ISyncComponent, GenericSyncComponentImpl>();
+                           return sync;
+                       }).detach();
+        });
+}
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(GenericSyncComponentImpl)
 
 END_NAMESPACE_OPENDAQ

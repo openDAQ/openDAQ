@@ -38,6 +38,7 @@ namespace RTGen.CSharp.Generators
         private string            _currentMethodName;
         private string            _lastOutParamForDocComment;
         private List<string>      _alreadyProcessedProperties = new List<string>();
+        private bool              _hasResultProperty;
 
         private readonly Dictionary<string, string>                     _fileNameMappings            = new Dictionary<string, string>();
         private readonly Dictionary<string, string>                     _specialReMappings           = new Dictionary<string, string>();
@@ -581,7 +582,10 @@ namespace RTGen.CSharp.Generators
 
             string GetReturnPointerValidation()
             {
-                if (lastOutParam.Type.Name != "IStringObject")
+                //not to be handled as object type?
+                if (lastOutParam.Type.Flags.IsValueType
+                    /*|| !lastOutParam.Type.Name.Equals("string")*/)
+                //if (lastOutParam.Type.Name != "IStringObject")
                 {
                     return string.Empty;
                 }
@@ -604,7 +608,7 @@ namespace RTGen.CSharp.Generators
                 code.AppendLine(indentation + "// validate pointer");
                 code.AppendLine(indentation + $"if ({returnArgName} == IntPtr.Zero)");
                 code.AppendLine(indentation + "{");
-                code.AppendLine(indentation + base.Indentation + "return null;");
+                code.AppendLine(indentation + base.Indentation + "return default;");
                 code.AppendLine(indentation + "}");
 
                 //code.TrimTrailingNewLine();
@@ -1157,6 +1161,20 @@ namespace RTGen.CSharp.Generators
                 Directory.CreateDirectory(outputFilePath);
 
             base.GenerateFile(templatePath);
+        }
+
+
+        private string RenderFileTemplate(IMethod method, string templateFile, Func<IMethod, string, string> variableCallback)
+        {
+            string code = base.RenderFileTemplate(method, templateFile, variableCallback);
+
+            if (_hasResultProperty && !_isFactory)
+            {
+                //fully qualify access to class Daq.Core.Types.Result as it would conflict with the `Result` property of this class
+                code = code.Replace("(Result.", "(Daq.Core.Types.Result.");
+            }
+
+            return code;
         }
 
 
@@ -2041,19 +2059,22 @@ namespace RTGen.CSharp.Generators
                 }
 
                 rawMethods.AppendLine(base.Indentation + "//" + GetRawDeclaration(method.Overloads[0]));
-                rawMethods.Append(base.Indentation + RenderFileTemplate(method, templatePath, (method1, variable) =>
+                rawMethods.Append(base.Indentation + RenderFileTemplate(method, templatePath, (theMethod, variable) =>
                 {
                     switch (variable)
                     {
                         case "Name":
-                            return _rawMethodNames[method1];
+                            return _rawMethodNames[theMethod];
                         case "Arguments":
-                            return GetUnmanagedArguments(RenderRawCSharpArguments(method1));
+                            return GetUnmanagedArguments(RenderRawCSharpArguments(theMethod));
                     }
 
-                    return GetMethodVariable(method1, variable);
+                    return GetMethodVariable(theMethod, variable);
                 }));
             }
+
+            //determine whether this class has a Result property (getter) as this is needed to fully qualify access to static class Daq.Core.Types.Result for failure checking
+            _hasResultProperty = _rawMethodNames.Keys.Any(method => (method.GetSetPair?.Getter != null) && (method.GetSetPair?.Name == "Result"));
 
             rawMethods.TrimTrailingNewLine();
             return rawMethods.ToString();

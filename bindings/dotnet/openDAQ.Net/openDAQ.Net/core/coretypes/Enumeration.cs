@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:28.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -89,10 +89,16 @@ public class Enumeration : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetEnumerationType(base.NativePointer, out typePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (typePtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new EnumerationType(typePtr, incrementReference: false);
@@ -112,7 +118,7 @@ public class Enumeration : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetValue(base.NativePointer, out valuePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -121,7 +127,7 @@ public class Enumeration : BaseObject
             // validate pointer
             if (valuePtr == IntPtr.Zero)
             {
-                return null;
+                return default;
             }
 
             using var value = new StringObject(valuePtr, incrementReference: false);
@@ -142,7 +148,7 @@ public class Enumeration : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetIntValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -208,7 +214,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -229,7 +235,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -258,7 +264,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -279,7 +285,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -307,7 +313,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -327,7 +333,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -355,7 +361,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -375,7 +381,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:27.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ public class BoolObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawBoolObject.GetValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -95,7 +95,7 @@ public class BoolObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawBoolObject.EqualsValue(base.NativePointer, value, out equal);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -147,7 +147,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolean(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new BoolObject(objPtr, incrementReference: false);
@@ -164,7 +164,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolean(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -189,7 +189,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolObject(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new BoolObject(objPtr, incrementReference: false);
@@ -206,7 +206,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createBoolObject(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

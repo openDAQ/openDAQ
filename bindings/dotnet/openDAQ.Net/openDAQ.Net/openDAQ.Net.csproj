@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <!-- using function pointers (C# 9) and file scoped namespaces (C# 10) so netstandard2.0 not possible (C# 7.3) -->
     <!--<TargetFramework>netstandard2.0</TargetFramework>-->
@@ -9,9 +10,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
+
   <PropertyGroup>
-    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">2.1.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>13</_BuildNumber>
+    <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.0.0</OPENDAQ_PACKAGE_VERSION>
+    <_BuildNumber>17</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -21,26 +24,30 @@
     <Copyright>2024 by Blueberry d.o.o.</Copyright>
     <!--<Version>2.0.0.12</Version>-->
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
-    <!-- the <VersionSuffix> is normally set externally -->
-    <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta</VersionSuffix>
-    <!--<VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>-->
-    <!--<AssemblyVersion>2.0.0.12</AssemblyVersion>-->
+    <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->
+    <VersionSuffix Condition="'$(Configuration)' != 'Release_Build'">beta-VS</VersionSuffix>
+    <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
     <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
-    <PackageTags>open;daq;sdk;bindings</PackageTags>
+    <PackageTags>open;daq;sdk;bindings;blueberry</PackageTags>
+    <!-- for local test-purposes only, in CI == 'Release_Build' -->
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">True</GeneratePackageOnBuild>
     <PackageIcon>openDAQ-logo-orange-blue-rgb64x18.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
+
   <PropertyGroup>
     <!-- constants -->
     <_RootPath>..\..\..\..</_RootPath>
     <_BuildPath>$(_RootPath)\build</_BuildPath>
     <_SdkOutputPath>$(_BuildPath)\x64\msvc-22\full\bin</_SdkOutputPath>
     <_SdkOutputPath Condition="Exists('$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)')">$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)</_SdkOutputPath>
+    <_SdkOutputPathWindows64 Condition="Exists('$(SDK_WIN64_PATH)')">$(SDK_WIN64_PATH)</_SdkOutputPathWindows64>
+    <_SdkOutputPathLinux64 Condition="Exists('$(SDK_LINUX64_PATH)')">$(SDK_LINUX64_PATH)</_SdkOutputPathLinux64>
+    <_IsCiPackBuild Condition="'$(_SdkOutputPathWindows64)' != ''">True</_IsCiPackBuild>
     <_RTGenOutputPath>$(_BuildPath)\bindings\CSharp</_RTGenOutputPath>
     <_DocsPath>$(_RootPath)\docs\Antora\modules\howto_guides\pages</_DocsPath>
     <!-- there is no other way to get the runtime identifier (RID) https://learn.microsoft.com/en-us/dotnet/core/rid-catalog -->
@@ -50,19 +57,27 @@
     <_RuntimeIdentifier Condition="'$(_IsOSX)' == 'true'">osx-$(Platform)</_RuntimeIdentifier>
     <_RuntimeIdentifier Condition="'$(_IsLinunx)' == 'true'">linux-$(Platform)</_RuntimeIdentifier>
     <_PackageRuntimesPath>runtimes\$(_RuntimeIdentifier)\native</_PackageRuntimesPath>
+    <_ciPackageRuntimesPathWinx64>runtimes\win-x64\native</_ciPackageRuntimesPathWinx64>
+    <_ciPackageRuntimesPathWinx86>runtimes\win-x86\native</_ciPackageRuntimesPathWinx86>
+    <_ciPackageRuntimesPathLinx64>runtimes\linux-x64\native</_ciPackageRuntimesPathLinx64>
+    <_ciPackageLib>lib\net6.0</_ciPackageLib>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Platform)' == 'x64'">
     <DefineConstants>$(DefineConstants);_X64</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)' == 'x86'">
     <DefineConstants>$(DefineConstants);_X86</DefineConstants>
   </PropertyGroup>
+
   <PropertyGroup>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <BaseOutputPath>$(_RTGenOutputPath)\bin\</BaseOutputPath>
     <!--<BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>-->
     <!-- see  https://github.com/dotnet/msbuild/issues/1603 -->
+    <OutputPath Condition="'$(_IsCiPackBuild)' == 'True'">$(_SdkOutputPathWindows64)</OutputPath>
   </PropertyGroup>
+
   <ItemGroup>
     <None Remove="build\**" />
     <None Remove="runtimes*\**" />
@@ -70,16 +85,17 @@
     <Compile Remove="runtimes*\**" />
     <EmbeddedResource Remove="runtimes*\**" />
   </ItemGroup>
+
   <!-- $(BaseOutputPath) -->
   <ItemGroup>
     <!-- include the RTGen build output; exclude files which are managed manually -->
-    <Compile Include="$(_RTGenOutputPath)\**\*.cs"
-             Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs;$(_RTGenOutputPath)\shared\**" />
+    <Compile Include="$(_RTGenOutputPath)\**\*.cs" Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs;$(_RTGenOutputPath)\shared\**" />
     <!-- include the documentation path into the SolutionExplorer -->
     <None Include="$(_DocsPath)\**\*.adoc">
       <Link>docs\%(RecursiveDir)\%(FileName)%(Extension)</Link>
     </None>
   </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="LICENSE">
       <Pack>True</Pack>
@@ -94,7 +110,9 @@
       <PackagePath>\</PackagePath>
     </EmbeddedResource>
   </ItemGroup>
-  <ItemGroup>
+
+  <!-- SDK binaries (local build) -->
+  <ItemGroup Condition="'$(_IsCiPackBuild)' != 'True'">
     <!-- https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2022#none -->
     <!-- VS: have the bin output in layout '*.dll' and 'modules\*.dll' -->
     <!-- NuGet: pack all runtime DLLs into this layout 'runtimes\<architecture>\native\**' -->
@@ -109,6 +127,30 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <!-- SDK binaries (CI build) -->
+  <ItemGroup Condition="'$(_IsCiPackBuild)' == 'True'">
+    <!-- NuGet package creation in CI -->
+    <!-- Windows runtimes -->
+    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll" />
+    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <OpenDaqModuleWinLibs Include="$(_SdkOutputPathWindows64)\modules\*.dll" />
+    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)\modules')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <!-- Linux runtimes -->
+    <OpenDaqLinuxLibs Include="$(_SdkOutputPathLinux64)\*.so" Exclude="$(_SdkOutputPathLinux64)\*.module.so" />
+    <None Include="@(OpenDaqLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <OpenDaqModuleLinuxLibs Include="$(_SdkOutputPathLinux64)\*.module.so" />
+    <None Include="@(OpenDaqModuleLinuxLibs)" PackagePath="$(_ciPackageRuntimesPathLinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathLinux64)')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="System.Collections" />
     <Using Include="System.Runtime.InteropServices" />
@@ -116,10 +158,16 @@
 
   <Target Name="MessageBeforeBuild" BeforeTargets="BeforeBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+    <Message Importance="High" Text="Configuration                  = '$(Configuration)'" />
+    <Message Importance="High" Text="Platform                       = '$(Platform)'" />
+    <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
+    <Message Importance="High" Text="_SdkOutputPathWindows64        = '$(_SdkOutputPathWindows64)'" />
+    <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
+    <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
   </Target>
   <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
@@ -136,11 +184,16 @@
   <Target Name="MessageAfterCompile" BeforeTargets="AfterCompile">
     <Message Importance="High" Text="+++++++++++++++++++++++ Compiling of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
   </Target>
-  <Target Name="MessageBeforePack" BeforeTargets="Pack">
+  <Target Name="MessageBeforePack" BeforeTargets="GenerateNuspec">
+    <!-- strangely target "Pack" messages appear AFTER the NuGet package creation was reported so using "GenerateNuspec" instead -->
     <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+    <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
+    <Message Importance="High" Text="_SdkOutputPathWindows64        = '$(_SdkOutputPathWindows64)'" />
+    <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
+    <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
   </Target>
 </Project>

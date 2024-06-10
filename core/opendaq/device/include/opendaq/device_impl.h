@@ -24,7 +24,7 @@
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/unit_ptr.h>
-#include <opendaq/utility_sync.h>
+#include <coretypes/utility_sync.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>
@@ -42,10 +42,10 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
 class GenericDevice;
 
-template <typename... TTraits>
-using DeviceBase = GenericDevice<IDevice, TTraits...>;
+template <typename TInterface, typename... TTraits>
+using DeviceBase = GenericDevice<TInterface, TTraits...>;
 
-using Device = DeviceBase<>;
+using Device = DeviceBase<IDevice>;
 
 template <typename TInterface, typename... Interfaces>
 class GenericDevice : public SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>
@@ -105,6 +105,8 @@ public:
 
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
+    ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     
@@ -152,6 +154,8 @@ protected:
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
 
+    virtual StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -187,8 +191,8 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 
-    this->addProperty(StringProperty("UserName", ""));
-    this->addProperty(StringProperty("Location", ""));
+    this->addProperty(StringProperty("userName", ""));
+    this->addProperty(StringProperty("location", ""));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -208,6 +212,13 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
         this->deviceInfo = devInfo.detach();
+
+        if (this->deviceInfo.assigned())
+        {
+            this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
+            if (!this->deviceInfo.isFrozen())
+                this->deviceInfo.freeze();
+        }
     }
 
     *info = this->deviceInfo.addRefAndReturn();
@@ -705,6 +716,26 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+    OPENDAQ_PARAM_NOT_NULL(streaming);
+
+    StreamingPtr streamingPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddStreaming, streamingPtr, connectionString, config);
+
+    *streaming = streamingPtr.detach();
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotImplementedException();
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 {
     OPENDAQ_PARAM_NOT_NULL(device);
@@ -1018,6 +1049,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
+        deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
     }
 

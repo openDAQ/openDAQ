@@ -11,6 +11,7 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opcuaclient/opcuaclient.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 
 class OpcUaServerModuleTest : public testing::Test
@@ -35,7 +36,8 @@ static InstancePtr CreateTestInstance()
 {
     const auto logger = Logger();
     const auto moduleManager = ModuleManager("[[none]]");
-    const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager);
+    const auto authenticationProvider = AuthenticationProvider();
+    const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, authenticationProvider);
 
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);
@@ -150,7 +152,7 @@ TEST_F(OpcUaServerModuleTest, TestConnection)
     device.addServer("openDAQ OpcUa", config);
 
     OpcUaClient client("opc.tcp://localhost/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
 }
 
 TEST_F(OpcUaServerModuleTest, TestConnectionDifferentPort)
@@ -164,7 +166,7 @@ TEST_F(OpcUaServerModuleTest, TestConnectionDifferentPort)
     auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost:4841/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
 }
 
 TEST_F(OpcUaServerModuleTest, StopServer)
@@ -176,9 +178,9 @@ TEST_F(OpcUaServerModuleTest, StopServer)
     auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost/");
-    ASSERT_TRUE(client.connect());
+    ASSERT_NO_THROW(client.connect());
     client.disconnect();
 
     serverPtr.stop();
-    ASSERT_FALSE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
 }

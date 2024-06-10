@@ -11,7 +11,7 @@
         </Expand>
     </Type>
     <Type Name="daq::PropertyImpl">
-        <DisplayString>{{ Property {name}, {valueType,en}, &lt;{refCount}&gt;}}</DisplayString>
+        <DisplayString>{{ Property {name}, {valueType,en}, default: {defaultValue}, &lt;{refCount}&gt;}}</DisplayString>
         <Expand>
             <Item IncludeView="withRefCount" Name="[refCount]">refCount,na</Item>
             <Item Name="(onValueWrite)">onValueWrite</Item>

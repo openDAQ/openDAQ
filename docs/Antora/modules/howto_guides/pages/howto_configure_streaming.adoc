@@ -1,20 +1,20 @@
 = Configure Streaming
 
 [#server_config]
-== Server side configuration
+== Server side Configuration
 
 Typically, in addition to publishing its own structure (xref:background_info:signals.adoc[Signals],
 xref:background_info:function_blocks.adoc#channel[Channel]s,
 xref:background_info:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
 xref:background_info:device.adoc[Device] also publishes information about Streaming protocols it supports.
-This information includes the streaming protocol ID (e.g. `"opendaq_lt_streaming"` or `"opendaq_native_streaming"`)
-and a range of optional parameters (e.g. port number). Upon initiating a streaming server on the device,
+This information includes the Streaming protocol ID (e.g. `"opendaq_lt_streaming"` or `"opendaq_native_streaming"`)
+and a range of optional parameters (e.g. port number). Upon initiating a Streaming server on the Device,
 it automatically generates and prepares the mentioned piece of information, also known as a Server capability,
-for publication alongside the device's structural details. To enable the publication of this information,
-the server responsible for the transfer of structural information should be added last to the openDAQ(TM) instance,
-following the addition of all streaming servers.
+for publication alongside the Device's structural details. To enable the publication of this information,
+the server responsible for the transfer of structural information should be added last to the openDAQ(TM) Instance,
+following the addition of all Streaming servers.
 
-The example below demonstrates the correct sequence for adding various servers to the openDAQ(TM) instance.
+The example below demonstrates the correct sequence for adding various servers to the openDAQ(TM) Instance.
 
 [tabs]
 ====
@@ -32,7 +32,7 @@ int main()
 {
     using namespace std::chrono_literals;
 
-    const InstancePtr instance = Instance(MODULE_PATH);
+    const InstancePtr instance = Instance();
 
     instance.setRootDevice("daqref://device1");
 
@@ -53,44 +53,42 @@ int main()
 ----
 ====
 
-[#streaming_config_per_device]
-== Configure Streaming for structure-enabled Device
+[#streaming_autoconfig_per_device]
+== Configure Streaming for structure-enabled Device automatically
 
-Most openDAQ(TM) devices support structural information transferring. An example of such a device is an
-openDAQ(TM) OPC UA-compatible device that is running a compatible OPC UA server. Clients establish
-connections to these devices using a connection string prefixed with `"daq.opcua://"` recognized by the
-openDAQ(TM) `opcua_client_module`. This module not only manages the Device's structural details but also
-handles the received set of Streaming Server capabilities associated with the Device.
+Most openDAQ(TM) Devices support structural information transferring via the configuration protocol. These are
+openDAQ(TM) OPC UA-compatible Devices running an OPC UA server, as well as Devices that are compatible with
+the openDAQ(TM) Native configuration protocol. Regardless of the protocol type, the configuration protocol
+not only transfers the Device's structural details but also the set of Streaming Server capabilities
+available for the Device.
 
 Each Streaming Server capability is identified by the Streaming protocol ID, that is transformed into
 a prefix within the xref:background_info:streaming.adoc#streaming_connection_string[connection string]
-formed by considering all parameters in the Streaming Server capability along with the known device's IP address.
+formed by considering all parameters in the Streaming Server capability along with the known Device's IP address.
 This connection string enables the delegation of Streaming instantiation to the appropriate
 xref:background_info:streaming.adoc#streaming_and_structure_modules[data Streaming Module]. As a result,
-when connecting an openDAQ(TM) device, a streaming connection can be established automatically using the
-published streaming connection details.
+when connecting an openDAQ(TM) Device, a streaming connection can be established automatically using the
+published streaming connection details. When establishing a connection to a gateway Devices, which contains
+nested Devices, the default behavior is to ignore direct Streaming connections for these nested Devices,
+and establishing the minimum number of Streaming connections possible.
 
-The xref:background_info:device.adoc[Device] configuration xref:background_info:property_system.adoc[Property]
-object provides a mechanism for customizing the filtering of available Streaming protocols by enabling or
-disabling specific ones. Additionally, it allows to set the "primary" protocol type of the Streaming
-connection to be initially used as an active Streaming source for all of the
-xref:background_info:streaming.adoc#mirrored_signals[Signals].
+However, users can customize the rules for automatically establishing the Streaming connections. This is done by
+passing the xref:background_info:device.adoc[Device] Configuration xref:background_info:property_system.adoc[Property]
+object as a second parameter to the `addDevice` call.
+The configuration mechanism allows filtering available streaming protocols by enabling or disabling specific ones.
+Protocol listed first as enabled is given higher priority, determining its selection as the active Streaming
+source for all of the Device's xref:background_info:streaming.adoc#mirrored_signals[Signals].
 
 Furthermore, there's an option to specify a Streaming path heuristic, particularly useful for multiple
-nested devices connected in a tree-structured manner (as illustrated in the xref:background_info:device.adoc#nested_devices[diagram]).
+nested Devices connected in a tree-structured manner (as illustrated in the xref:background_info:device.adoc#nested_devices[diagram]).
 The allowed heuristics include:
 
 * "Minimize-connections" mode (ID 0) - is used to establish the fewest Streaming connections possible at
-the cost of routing Signals' data through gateway Devices, increasing the hop count.
+the cost of routing Signals' data through gateway Devices, increasing the hop count (default mode).
 * "Minimize-hops" mode (ID 1) - is used to attempt streaming data directly from nested Devices to minimize
 the amount of hops between Devices the data must make.
-* "Fallback" mode (ID 2) - is used to establish all possible Streaming connections.
-* "Not connected" mode (ID 3) - with this set the information about supported streaming protocols published
+* "Not connected" mode (ID 2) - with this set the information about supported streaming protocols published
 by the Device is not used to automatically establish Streaming connections.
-
-
-IMPORTANT: Currently, the openDAQ(TM) structure-enabled devices, operating through the Native configuration
-protocol, exclusively support the Native streaming protocol for transmitting acquired data.
 
 [tabs]
 ====
@@ -99,59 +97,124 @@ Cpp::
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
+#include <iostream>
 
 using namespace daq;
 
 int main()
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Get the default configuration Property object for OPC UA enabled device type
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    // Allow multiple streaming protocols by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    // Add property to allow multiple Streaming protocols with native protocol having the first priority
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
+    // Set property to disregard direct Streaming connections for nested Devices,
+    // and establish the minimum number of streaming connections possible.
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Disregard direct streaming connections for nested devices,
-    // establish the minimum number of streaming connections possible.
-    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);  
-
-    // Find and connect to a device hosting an OPC UA TMS server
+    // Find and connect to a Device hosting an OPC UA TMS server
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        if (capability.getProtocolName() == "openDAQ OpcUa")
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
-            {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
-                break;
-            }
+            device = instance.addDevice(capability.getConnectionString(), deviceConfig);
+            break;
         }
     }
 
     if (!device.assigned())
-        std::cerr << "No relevant device found!" << std::endl;
+        std::cerr << "No relevant Device found!" << std::endl;
     else
-        // Output the name of the added device
+        // Output the name of the added Device
         std::cout << device.getInfo().getName() << std::endl;
-    
+
     return 0;
 }
+
+----
+====
+
+[#streaming_add_per_device]
+== Add Streaming for structure-enabled Device manually
+
+The additional Streaming connections for the Device can be instantiated manually at any time after
+the Device is connected.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+int main()
+{
+    // Create a new Instance that we will use for all the interactions with the SDK
+    InstancePtr instance = Instance();
+
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
+
+    // Set property to disable automatic Streaming connection
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    2);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
+
+    // Connect to a Device hosting an OPC UA TMS server using connection string
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
+
+    if (!device.assigned())
+    {
+        std::cerr << "No relevant Device found!" << std::endl;
+        return 0;
+    }
+    else
+    {
+        // Output the name of the added Device
+        std::cout << device.getInfo().getName() << std::endl;
+    }
+
+    // Connect to a Native Streaming protocol using connection string
+    StreamingPtr streaming = device.addStreaming("daq.ns://127.0.0.1");
+
+    // Get all Device's Signals recursively
+    const auto deviceSignals = device.getSignals(search::Recursive(search::Any()));
+
+    // Associate Device's Signals with Streaming
+    streaming.addSignals(deviceSignals);
+
+    return 0;
+}
+
 ----
 ====
 
 [#connecting_pseudo_devices]
-== Connecting to Streaming protocol based pseudo-devices
+== Connecting to Streaming protocol based Pseudo-Devices
 
-Pseudo-devices belong to a category of openDAQ(TM) Devices whose implementation solely relies on the
+Pseudo-Devices belong to a category of openDAQ(TM) Devices whose implementation solely relies on the
 Streaming protocol. Such Devices offer a flat list of Signals without detailed structural information.
-These devices are created using the Module responsible for establishing the corresponding Streaming
+These Devices are created using the Module responsible for establishing the corresponding Streaming
 connection. The Device connection string serves to route and delegate Device object instantiation to the
 relevant Module. This connection string is identical to the
 xref:background_info:streaming.adoc#streaming_connection_string[Streaming connection string] used for
@@ -160,7 +223,7 @@ type might be replaced with the prefix representing the appropriate Device type.
 the same set of parameters unique to each Streaming protocol type is appended.
 
 For example, the prefix `"daq.ns"` in the Device connection string aligns with the Native Streaming protocol,
-which is identified by the same prefix "daq.ns" in the Streaming connection string. Similarly, the Device
+which is identified by the same prefix `"daq.ns"` in the Streaming connection string. Similarly, the Device
 connection string prefix `"daq.lt"` corresponds to the Websocket Streaming protocol, recognized
 by the Streaming connection string prefix `"daq.lt"`.
 
@@ -171,37 +234,39 @@ Cpp::
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
+#include <iostream>
 
 using namespace daq;
 
 int main()
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Find and connect to a device hosting an Native Streaming server
+    // Find and connect to a Device hosting an Native Streaming server
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ Native Streaming")
             {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
+                device = instance.addDevice(capability.getConnectionString());
                 break;
             }
         }
     }
 
     if (!device.assigned())
-        std::cerr << "No relevant device found!" << std::endl;
+        std::cerr << "No relevant Device found!" << std::endl;
     else
-        // Output the name of the added device
+        // Output the name of the added Device
         std::cout << device.getInfo().getName() << std::endl;
 
     return 0;
 }
+
 ----
 ====
 
@@ -217,11 +282,11 @@ the protocol type ID, and parameters based on the protocol type (IP address, por
 To manipulate the Streaming sources of particular Signal the `MirroredSignalConfig` object is used,
 it provides ability to:
 
-* retrieve a list of streaming sources available for signal by using __getStreamingSources__ call,
-* get the currently active streaming source by using __getActiveStreamingSource__ call,
-* change the active streaming source for a signal by using __setActiveStreamingSource__ call,
-* enable or disable data streaming for signal by using __setStreamed__ call,
-* check if streaming is enabled or disabled for signal by using __getStreamed__ call.
+* retrieve a list of streaming sources available for signal by using `getStreamingSources` call,
+* get the currently active streaming source by using `getActiveStreamingSource` call,
+* change the active streaming source for a signal by using `setActiveStreamingSource` call,
+* enable or disable data streaming for signal by using `setStreamed` call,
+* check if streaming is enabled or disabled for signal by using `getStreamed` call.
 
 [tabs]
 ====
@@ -230,23 +295,21 @@ Cpp::
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
+#include <iostream>
 
 using namespace daq;
 
-// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 int main()
 {
-    ...
+    // ...
 
-    // Get the first signal of conencted device
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    // Get the first Signal of connected Device
+    MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
-    daq::StringPtr nativeStreamingSource;
-    daq::StringPtr websocketStreamingSource;
-
-    // Find and output the streaming sources available for signal
-    std::cout << "Signal supports " << signal.getStreamingSources().getCount()
-              << " streaming sources:" << std::endl;
+    // Find and output the Streaming sources available for Signal
+    StringPtr nativeStreamingSource;
+    StringPtr websocketStreamingSource;
+    std::cout << "Signal supports " << signal.getStreamingSources().getCount() << " streaming sources:" << std::endl;
     for (const auto& source : signal.getStreamingSources())
     {
         std::cout << source << std::endl;
@@ -256,13 +319,13 @@ int main()
             websocketStreamingSource = source;
     }
 
-    // Output the active streaming source of signal
-    std::cout << "Active streaming source of signal: " << signal.getActiveStreamingSource();
+    // Output the active Streaming source of Signal
+    std::cout << "Active streaming source of signal: " << signal.getActiveStreamingSource() << std::endl;
 
-    // Output the streaming status for the signal to verify that streaming is enabled.
-    std::cout << "Streaming enabled status for signal is: " << signal.getStreamed();
+    // Output the Streaming status for the Signal to verify that streaming is enabled
+    std::cout << "Streaming enabled status for signal is: " << (signal.getStreamed() ? "true" : "false") << std::endl;
 
-    // Change the active streaming source of signal
+    // Change the active Streaming source of Signal
     signal.setActiveStreamingSource(nativeStreamingSource);
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
@@ -284,24 +347,26 @@ Cpp::
 +
 [source,cpp]
 ----
+#include <opendaq/opendaq.h>
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <opendaq/opendaq.h>
 
-void readSamples(const daq::MirroredSignalConfigPtr signal)
+using namespace daq;
+
+void readSamples(const MirroredSignalConfigPtr signal)
 {
     using namespace std::chrono_literals;
-    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal);
 
     // Get the resolution and origin
-    daq::DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
-    daq::RatioPtr resolution = descriptor.getTickResolution();
-    daq::StringPtr origin = descriptor.getOrigin();
-    daq::StringPtr unitSymbol = descriptor.getUnit().getSymbol();
+    DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
+    RatioPtr resolution = descriptor.getTickResolution();
+    StringPtr origin = descriptor.getOrigin();
+    StringPtr unitSymbol = descriptor.getUnit().getSymbol();
 
-    std::cout << "\nReading signal: " << signal.getName()
-              << "; active streaming source: " << signal.getActiveStreamingSource() << std::endl;
+    std::cout << "\nReading signal: " << signal.getName() << "; active Streaming source: " << signal.getActiveStreamingSource()
+              << std::endl;
     std::cout << "Origin: " << origin << std::endl;
 
     // Allocate buffer for reading double samples
@@ -311,12 +376,12 @@ void readSamples(const daq::MirroredSignalConfigPtr signal)
     {
         std::this_thread::sleep_for(25ms);
 
-        // Read up to 100 samples every 25ms, storing the amount read into `count`
-        daq::SizeT count = 100;
+        // Read up to 100 samples every 25 ms, storing the amount read into `count`
+        SizeT count = 100;
         reader.readWithDomain(samples, domainSamples, &count);
         if (count > 0)
         {
-            daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
+            Float domainValue = (Int) domainSamples[count - 1] * resolution;
             std::cout << "Value: " << samples[count - 1] << ", Domain: " << domainValue << unitSymbol << std::endl;
         }
     }
@@ -325,47 +390,51 @@ void readSamples(const daq::MirroredSignalConfigPtr signal)
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Get the default configuration Property object for OPC UA enabled device type
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    // Create an empty Property object
+    PropertyObjectPtr deviceConfig = PropertyObject();
 
-    // Allow multiple streaming protocol by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    // Add property to allow multiple Streaming protocols with native protocol having the first priority
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
-    // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
+    // Set property to ignore streaming sources of nested Devices
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                                                    0);
+    deviceConfig.addProperty(streamingConnectionHeuristicProp);
 
-    // Find and connect to a device hosting an OPC UA TMS server
+    // Find and connect to a Device using the device info connection string
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
+    DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
-            {
-                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
-                break;
-            }
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
         }
     }
 
-    // Exit if no device is found
+    // Exit if no Device is found
     if (!device.assigned())
     {
-        std::cerr << "No relevant device found!" << std::endl;
+        std::cerr << "No relevant Device found!" << std::endl;
         return 0;
     }
 
-    // Output the name of the added device
+    // Output the name of the added Device
     std::cout << device.getInfo().getName() << std::endl;
 
-    // Find the AI signal
+    // Find the AI Signal
     auto signals = device.getSignalsRecursive();
 
-    daq::ChannelPtr channel;
-    daq::MirroredSignalConfigPtr signal;
+    ChannelPtr channel;
+    MirroredSignalConfigPtr signal;
     for (const auto& sig : signals)
     {
         auto name = sig.getDescriptor().getName();
@@ -384,11 +453,10 @@ int main(int /*argc*/, const char* /*argv*/[])
         return 1;
     }
 
-    // Find and output the streaming sources of signal
-    daq::StringPtr nativeStreamingSource;
-    daq::StringPtr websocketStreamingSource;
-    std::cout << "AI signal has " << signal.getStreamingSources().getCount()
-              << " streaming sources:" << std::endl;
+    // Find and output the Streaming sources of Signal
+    StringPtr nativeStreamingSource;
+    StringPtr websocketStreamingSource;
+    std::cout << "AI signal has " << signal.getStreamingSources().getCount() << " Streaming sources:" << std::endl;
     for (const auto& source : signal.getStreamingSources())
     {
         std::cout << source << std::endl;
@@ -398,18 +466,18 @@ int main(int /*argc*/, const char* /*argv*/[])
             websocketStreamingSource = source;
     }
 
-    // Check the active streaming source of signal
+    // Check the active Streaming source of Signal
     if (signal.getActiveStreamingSource() != websocketStreamingSource)
     {
-        std::cerr << "Wrong active streaming source of AI signal" << std::endl;
+        std::cerr << "Wrong active Streaming source of AI signal" << std::endl;
         return 1;
     }
-    // Output samples using reader with websocket streaming
+    // Output samples using Reader with Streaming LT
     readSamples(signal);
 
-    // Change the active streaming source of signal
+    // Change the active Streaming source of Signal
     signal.setActiveStreamingSource(nativeStreamingSource);
-    // Output samples using reader with native streaming
+    // Output samples using Reader with native Streaming
     readSamples(signal);
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;

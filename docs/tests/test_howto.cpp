@@ -2,8 +2,8 @@
 #include <opendaq/opendaq.h>
 #include <fstream>
 
-#include "docs_test_helpers.h"
 #include <thread>
+#include "docs_test_helpers.h"
 
 using HowToTest = testing::Test;
 
@@ -36,31 +36,31 @@ TEST_F(HowToTest, ConnectToDevice2)
 
 void printProperty(const PropertyPtr& /*prop*/)
 {
-//    std::cout << prop.getName() << std::endl;
+    //    std::cout << prop.getName() << std::endl;
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 TEST_F(HowToTest, AddFunctionBlock)
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
     InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // get available function block types
+    // Get available Function Block types
     DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
     for (const auto& functionBlockType : functionBlockTypes.getKeys())
         std::cout << functionBlockType << std::endl;
 
-    // if there is not statistics function block available, exit with error
+    // If there is no Statistics Function Block available, exit with an error
     if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
-        ASSERT_TRUE(false) << "Function block does not exist";
+        ASSERT_TRUE(false) << "Function Block does not exist";
 
-    // add function block on the host computer
+    // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // print function block type info
+    // Print Function Block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
     std::cout << functionBlockType.getId() << std::endl;
     std::cout << functionBlockType.getName() << std::endl;
@@ -70,31 +70,32 @@ TEST_F(HowToTest, AddFunctionBlock)
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
 TEST_F(HowToTest, ConfigureFunctionBlock)
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
     InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // add function block on the host computer
+    // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // list properties of the function block
+    // List properties of the Function Block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
     for (const auto& prop : functionBlockProperties)
         std::cout << prop.getName() << std::endl;
 
-    // print current block size
+    // Print current block size
     Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
     std::cout << "Current block size is " << currentBlockSize << std::endl;
-
-    // configure the properties of the function block
+    // Configure the properties of the Function Block
     functionBlock.setPropertyValue("BlockSize", 100);
 
-    // connect the first signal of the first channel from the device to the first input port on the function block
+    // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
     functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+    // Read data from the first Signal of the Function Block
+    // ...
 
-    // get the output signal of the function block
+    // Get the output Signal of the Function Block
     SignalPtr outputSignal = functionBlock.getSignals()[0];
 
     std::cout << outputSignal.getDescriptor().getName() << std::endl;
@@ -106,10 +107,9 @@ TEST_F(HowToTest, SaveLoadConfiguration)
     {
         InstancePtr instance = Instance();
 
-        // save configuration to string
+        // Save Configuration to string
         std::string jsonStr = instance.saveConfiguration();
-
-        // write configuration string to file
+        // Write Configuration string to file
         std::ofstream configFile("config.json");
         configFile << jsonStr;
         configFile.close();
@@ -118,28 +118,23 @@ TEST_F(HowToTest, SaveLoadConfiguration)
     {
         InstancePtr instance = Instance();
 
-        // read configuration from file
+        // Read Configuration from file
         std::ifstream configFile("config.json");
         std::stringstream jsonStr;
         jsonStr << configFile.rdbuf();
-
-        // load configuration from string
+        // Load Configuration from string
         instance.loadConfiguration(jsonStr.str());
     }
 }
 
 TEST_F(HowToTest, InstanceConfiguration)
 {
-    InstanceBuilderPtr builder = InstanceBuilder()
-        .setGlobalLogLevel(LogLevel::Info)
-        .setModulePath("")
-        .setSchedulerWorkerNum(1)
-        .setRootDevice("daqref://device0");
+    InstanceBuilderPtr builder =
+        InstanceBuilder().setGlobalLogLevel(LogLevel::Info).setModulePath("").setSchedulerWorkerNum(1).setRootDevice("daqref://device0");
 
     InstancePtr instance = builder.build();
     daq::DevicePtr device = instance.getRootDevice();
     ASSERT_TRUE(device.assigned());
 }
-
 
 END_NAMESPACE_OPENDAQ

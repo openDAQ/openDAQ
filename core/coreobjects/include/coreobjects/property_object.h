@@ -18,6 +18,7 @@
 #include <coreobjects/property.h>
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
+#include <coreobjects/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [templated(defaultAliasName: PropertyObjectPtr)]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr)]
+ * [interfaceSmartPtr(IPermissionManager, PermissionManagerPtr, "<coreobjects/permission_manager_ptr.h>")]
  */
 
 /*!
@@ -329,6 +331,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * holds an event args object that contains a list of properties updated.
      */
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) = 0;
+
+    /*!
+     * @brief Gets the permission manager of property object.
+     * @param[out] permissionManager The permission manager of property object.
+     */
+    virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
 };
 
 /*!@}*/

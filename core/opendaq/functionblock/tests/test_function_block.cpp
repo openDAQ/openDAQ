@@ -47,7 +47,7 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
     auto defConfig = daq::PropertyObject();
     defConfig.addProperty(daq::StringPropertyBuilder("cfg", "val").build());
 
-    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("id", "name", "desc", [&defConfig] { return defConfig; });
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("id", "name", "desc", defConfig);
 
     const auto serializer = daq::JsonSerializer();
     fbType.serialize(serializer);

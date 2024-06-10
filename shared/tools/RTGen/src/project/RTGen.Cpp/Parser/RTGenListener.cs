@@ -554,6 +554,7 @@ namespace RTGen.Cpp.Parser {
             method.IsIgnored = Attributes.Next.Method.IsIgnored;
             method.ReturnSelf = Attributes.Next.Method.ReturnSelf;
             method.Documentation = Attributes.Next.Method.Documentation;
+            method.OverloadFor = Attributes.Next.Method.OverloadFor;
 
             foreach (var eval in Attributes.Next.Method.Polymorphics)
             {
@@ -675,7 +676,9 @@ namespace RTGen.Cpp.Parser {
                     GetTypeNameFromContext(argValue.type()),
                     argName,
                     isConst,
-                    argInfo?.ArrayInfo
+                    argInfo?.ArrayInfo,
+                    false,
+                    argInfo?.IsStealRef ?? false
                 );
 
                 if (argInfo?.ElementTypes != null)

@@ -11,6 +11,7 @@ rtgen(SRC_Module module.h)
 rtgen(SRC_ModuleManager module_manager.h)
 rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
 rtgen(SRC_ContextInternal context_internal.h)
+rtgen(SRC_DiscoveryServer discovery_server.h)
 
 source_group("module" FILES ${SDK_HEADERS_DIR}/module.h
                             ${SDK_HEADERS_DIR}/module_impl.h
@@ -38,11 +39,18 @@ source_group("errors" FILES ${SDK_HEADERS_DIR}/module_manager_errors.h
                             ${SDK_HEADERS_DIR}/module_manager_exceptions.h
 )
 
+source_group("discovery_server" FILES  ${SDK_HEADERS_DIR}/discovery_server.h
+                                        ${SDK_HEADERS_DIR}/discovery_server_factory.h
+                                        ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
+                                        mdns_discovery_server_impl.cpp)
+
 set(SRC_Cpp module_manager_impl.cpp
             module_manager_init.cpp
 
             context_impl.cpp
             orphaned_modules.cpp
+
+            mdns_discovery_server_impl.cpp
 )
 
 set(SRC_PublicHeaders module_manager_errors.h
@@ -55,6 +63,8 @@ set(SRC_PublicHeaders module_manager_errors.h
                       module_impl.h
 
                       context_factory.h
+
+                      discovery_server_factory.h
 )
 
 set(SRC_PrivateHeaders module_library.h
@@ -63,6 +73,7 @@ set(SRC_PrivateHeaders module_library.h
                        module_manager_init.h
                        boost_dll.h
                        context_impl.h
+                       mdns_discovery_server_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -76,12 +87,14 @@ list(APPEND SRC_PublicHeaders ${SRC_Module_PublicHeaders}
                               ${SRC_ModuleManager_PublicHeaders}
                               ${SRC_ModuleManagerUtils_PublicHeaders}
                               ${SRC_ContextInternal_PublicHeaders}
+                              ${SRC_DiscoveryServer_PublicHeaders}
                               module_manager.natvis
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Module_PrivateHeaders}
                                ${SRC_ModuleManager_PrivateHeaders}
                                ${SRC_ContextInternal_PrivateHeaders}
+                               ${SRC_DiscoveryServer_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC
@@ -109,6 +122,8 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::logger
         daq::utility
         daq::component
+        $<BUILD_INTERFACE:daq::icmp_ping>
+        $<BUILD_INTERFACE:daq::discovery_server>
     PUBLIC
         daq::coretypes
 )

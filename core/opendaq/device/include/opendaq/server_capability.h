@@ -42,6 +42,7 @@ enum class ProtocolType: uint32_t
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -112,6 +113,19 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] enabled The client update method (Boolean value indicating if core events are enabled for communication between server and client device).
      */
     virtual ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) = 0;
+
+    // [templateType(addresses, IString)]
+    /*!
+     * @brief Gets the device's list of addresses with the current protocol.
+     * @param[out] addresses The device's list of addresses (hosts)
+     */
+    virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
+
+    /*!
+     * @brief Gets the port of the device with the current protocol.
+     * @param[out] port The port of the device.
+     */
+    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };
 /*!@}*/
 

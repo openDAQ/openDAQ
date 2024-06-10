@@ -1,13 +1,13 @@
 = Measure a single value
 
-openDAQ offers a variety of solutions for reading Signal values, including Readers. 
+openDAQ(TM) offers a variety of solutions for reading Signal values, including Readers. 
 
 However, for developers requiring access to only the most recent value, the Signal interface provides a method for doing just that.
 
 [#last_value_signal]
 == Getting the last value of a Signal
 
-Reading the last value of a Signal yields an openDAQ Base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
+Reading the last value of a Signal yields an openDAQ(TM) Base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
 
 [tabs]
 ====
@@ -25,21 +25,28 @@ Python::
 # Get last value of a Signal
 my_last_value = my_signal.last_value
 ----
+C#::
++
+[source,csharp]
+----
+// Get last value of a Signal
+var myLastValue = mySignal.LastValue;
+----
 ====
 
 [#last_value_signal_types]
 == Last value and Signal types
 
-The method for getting the last value yields an openDAQ Base object-type value.
+The method for getting the last value yields an openDAQ(TM) Base object-type value.
 
-The underlying type of the openDAQ Base object-type value we get from the method call corresponds to the Sample Type in the Data Descriptor of the Signal.
+The underlying type of the openDAQ(TM) Base object-type value we get from the method call corresponds to the Sample Type in the Data Descriptor of the Signal.
 
-* openDAQ Float object-type corresponds to `Float32` or `Float64` Sample Types
-* openDAQ Integer object-type corresponds to `Int8` through `Int64` or `UInt8` through `UInt64` Sample Types
-* openDAQ Complex Float object-type corresponds to `ComplexFloat32` or `ComplexFloat64` Sample Types
-* openDAQ Range object-type corresponds to `RangeInt64` Sample Type
-* openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
-* openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
+* openDAQ(TM) Float object-type corresponds to `Float32` or `Float64` Sample Types
+* openDAQ(TM) Integer object-type corresponds to `Int8` through `Int64` or `UInt8` through `UInt64` Sample Types
+* openDAQ(TM) Complex Float object-type corresponds to `ComplexFloat32` or `ComplexFloat64` Sample Types
+* openDAQ(TM) Range object-type corresponds to `RangeInt64` Sample Type
+* openDAQ(TM) Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
+* openDAQ(TM) List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
 
 To retrieve the value Sample Type, one can do:
 
@@ -59,12 +66,19 @@ Python::
 # Retrieve the Signal's Sample Type
 my_sample_type = my_signal.descriptor.sample_type
 ----
+C#::
++
+[source,csharp]
+----
+// Retrieve the Signal's Sample Type
+var mySampleType = mySignal.Descriptor.SampleType;
+----
 ====
 
 [#last_value_struct]
 == Last value for Struct
 
-If the underlying type of the openDAQ Base object-type value we get from the method call is an openDAQ Struct object-type, the Signal's Data Descriptor has Struct Fields.
+If the underlying type of the openDAQ(TM) Base object-type value we get from the method call is an openDAQ(TM) Struct object-type, the Signal's Data Descriptor has Struct Fields.
 
 [NOTE]
 ====
@@ -97,6 +111,21 @@ Python::
 ----
 # Not supported in Python yet
 ----
+C#::
++
+[source,csharp]
+----
+var myDescriptor = mySignal.Descriptor;
+Debug.Assert(myDescriptor.SampleType == SampleType.Struct);
+Debug.Assert(myDescriptor.Name == "MyStruct");
+// Check Struct Fields
+var myStructFields = myDescriptor.StructFields;
+Debug.Assert(myStructFields.Count == 2);
+Debug.Assert(myStructFields[0].SampleType == SampleType.Int32);
+Debug.Assert(myStructFields[0].Name == "MyInt32");
+Debug.Assert(myStructFields[1].SampleType == SampleType.Float64);
+Debug.Assert(myStructFields[1].Name == "MyFloat64");
+----
 ====
 
 Knowing this, we can then do: 
@@ -118,6 +147,15 @@ Python::
 [source,python]
 ----
 # Not supported in Python yet
+----
+C#::
++
+[source,csharp]
+----
+Struct myStruct = mySignal.LastValue;
+// Extract values
+long myInt = myStruct.Get("MyInt32");
+double myFloat = myStruct.Get("MyFloat64");
 ----
 ====
 
@@ -161,8 +199,21 @@ assert len(my_signal.descriptor.dimensions) == 1
 my_list = my_signal.last_value
 # Check the number of elements in List
 assert len(my_list) == 2
-# Extract the second item on list
+# Extract the second item in List
 my_item = my_list[1]
+----
+C#::
++
+[source,csharp]
+----
+// Check Dimensions count in Signal's Data Descriptor
+Debug.Assert(mySignal.Descriptor.Dimensions.Count == 1);
+// Get last value of a Signal
+var myList = mySignal.LastValue.Cast<ListObject<BaseObject>>();
+// Check the number of elements in List
+Debug.Assert(myList.Count == 2);
+// Extract the second item on list
+var myItem = myList.GetItemAt(1);
 ----
 ====
 

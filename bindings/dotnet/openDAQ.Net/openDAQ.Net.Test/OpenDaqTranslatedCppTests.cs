@@ -70,11 +70,11 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         // Create an Instance, loading modules at MODULE_PATH
         var instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-        Console.WriteLine("instance.GetAvailableDevices()");
+        Console.WriteLine("instance.AvailableDevices");
         // Discover all available devices, filter out all of which connection strings
         // do not start with "daq.opcua://" or "daq.lt://"
         System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-        var deviceInfo = instance.GetAvailableDevices();
+        var deviceInfo = instance.AvailableDevices;
         sw.Stop();
         Console.WriteLine($"  {deviceInfo.Count} devices available - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
         sw.Reset();
@@ -93,7 +93,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         foreach (var info in deviceInfo)
         {
 #endif
-            var connectionString = info.GetConnectionString();
+            var connectionString = info.ConnectionString;
             if (connectionString.StartsWith(DAQ_OPCUA)
               //|| connectionString.StartsWith(DAQ_WEBSOCK)
                 || connectionString.StartsWith(DAQ_REF)
@@ -117,14 +117,14 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
                 catch (OpenDaqException ex)
                 {
                     sw.Stop();
-                    Console.WriteLine($"  - *** failed: {connectionString} ({info.GetName()}) - {ex.Message}");
+                    Console.WriteLine($"  - *** failed: {connectionString} ({info.Name}) - {ex.Message}");
                     continue;
                 }
 
-                Console.WriteLine($"  - {connectionString} ({info.GetName()})");
+                Console.WriteLine($"  - {connectionString} ({info.Name})");
             }
             else
-                Console.WriteLine($"  - ignored: {connectionString} ({info.GetName()})");
+                Console.WriteLine($"  - ignored: {connectionString} ({info.Name})");
         }
 
         // Output the names and connection strings of all connected-to devices
@@ -142,8 +142,8 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
             foreach (var device in devices)
         {
 #endif
-            var info = device.GetInfo();
-            Console.WriteLine($"  Name: {info.GetName()}, Connection string: {info.GetConnectionString()}");
+            var info = device.Info;
+            Console.WriteLine($"  Name: {info.Name}, Connection string: {info.ConnectionString}");
 
             device.PrintReferenceCount();
             //device.Dispose();
@@ -205,11 +205,11 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         // Create an Instance, loading modules at MODULE_PATH
         var instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-        Console.WriteLine("instance.GetAvailableDevices()");
+        Console.WriteLine("instance.AvailableDevices");
         // Discover all available devices, filter out all of which connection strings
         // do not start with "daq.opcua://" or "daq.lt://"
         System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-        var deviceInfo = instance.GetAvailableDevices();
+        var deviceInfo = instance.AvailableDevices;
         sw.Stop();
         Console.WriteLine($"  {deviceInfo.Count} devices available - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
         sw.Reset();
@@ -226,7 +226,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         foreach (var info in deviceInfo)
         {
 #endif
-            var connectionString = info.GetConnectionString();
+            var connectionString = info.ConnectionString;
             if (connectionString.StartsWith(DAQ_OPCUA)
                 || connectionString.StartsWith(DAQ_WEBSOCK)
                //|| connectionString.StartsWith(DAQ_REF)
@@ -249,8 +249,8 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         Console.WriteLine($"{devices.Count} connected devices - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
         foreach (var device in devices)
         {
-            var info = device.GetInfo();
-            Console.WriteLine($"  Name: {info.GetName()}, Connection string: {info.GetConnectionString()}");
+            var info = device.Info;
+            Console.WriteLine($"  Name: {info.Name}, Connection string: {info.ConnectionString}");
 
             device.PrintReferenceCount();
         }
@@ -288,8 +288,8 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
 
         // Output the name and connection string of connected-to device
         Console.WriteLine("Connected device:");
-        var info = device.GetInfo();
-        Console.WriteLine($"  Name: {info.GetName()}, Connection string: {info.GetConnectionString()}");
+        var info = device.Info;
+        Console.WriteLine($"  Name: {info.Name}, Connection string: {info.ConnectionString}");
     }
 
     [Test]

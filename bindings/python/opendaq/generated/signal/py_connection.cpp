@@ -113,4 +113,19 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.isRemote();
         },
         "Returns true if the type of connection is remote.");
+    cls.def("enqueue_multiple",
+        [](daq::IConnection *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueMultiple(packets);
+        },
+        py::arg("packets"),
+        "Places multiple packets at the back of the queue.");
+    cls.def("dequeue_all",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.dequeueAll().detach();
+        },
+        "Removes all packets from the queue.");
 }

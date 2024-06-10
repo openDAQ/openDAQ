@@ -31,18 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a new Instance with the provided Context.
- * @param context The Context.
- * @param localId The instance local id.
- */
-inline InstancePtr InstanceCustom(const ContextPtr& context,
-                                  const StringPtr& localId)
-{
-    InstancePtr obj(Instance_Create(context, localId));
-    return obj;
-}
-
-/*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
 inline InstanceBuilderPtr InstanceBuilder()
@@ -72,7 +60,21 @@ inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
  */
 inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
 {
-    auto builder = InstanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId);
+    auto builder = InstanceBuilder().setModulePath(modulePath)
+                                    .setDefaultRootDeviceLocalId(localId);
+    return InstanceFromBuilder(builder);
+}
+
+/*!
+ * @brief Creates a new Instance with the provided Context.
+ * @param context The Context.
+ * @param localId The instance local id.
+ */
+inline InstancePtr InstanceCustom(const ContextPtr& context,
+                                  const StringPtr& localId)
+{
+    auto builder = InstanceBuilder().setContext(context)
+                                    .setDefaultRootDeviceLocalId(localId);
     return InstanceFromBuilder(builder);
 }
 

@@ -55,6 +55,9 @@ public:
     ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager) override;
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) override;
 
+    ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) override;
+    ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) override;
+
     ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) override;
     ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) override;
 
@@ -75,6 +78,9 @@ public:
 
     ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) override;
 
+    ErrCode INTERFACE_FUNC getDiscoveryServices(IList** services) override;
+    ErrCode INTERFACE_FUNC addDiscoveryService(IString* serviceName) override;
+
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
 
@@ -92,12 +98,14 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    AuthenticationProviderPtr authenticationProvider;
     ContextPtr context{nullptr};
 
     Bool useStandardProviders{false};
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;
     PropertyObjectPtr rootDeviceConfig{nullptr};
+    ListPtr<IString> discoveryServices;
 };
 
 END_NAMESPACE_OPENDAQ

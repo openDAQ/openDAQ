@@ -32,13 +32,13 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
-    static bool acceptDeviceProperties(const PropertyObjectPtr& config);
-    static PropertyObjectPtr createDeviceDefaultConfig();
-    static void configureStreamingSources(const PropertyObjectPtr& deviceConfig, const DevicePtr& device);
+    static std::tuple<std::string, std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
     static DeviceTypePtr createDeviceType();
+    static PropertyObjectPtr createDefaultConfig();
+    static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;

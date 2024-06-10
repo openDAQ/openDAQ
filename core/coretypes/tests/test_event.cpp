@@ -248,26 +248,6 @@ TEST_F(EventTest, EventSubscriptionMuteLambda)
     ASSERT_EQ(callCount, 1);
 }
 
-TEST_F(EventTest, EventSubscriptionMuteFreeFunction)
-{
-    hasEvent->onEvent += [](BaseObjectPtr& /*prop*/, EventArgsPtr<>& /*args*/)
-    {
-        // ignore
-    };
-    hasEvent->onEvent += freeF2;
-    hasEvent->onEvent += freeF;
-
-    hasEvent->onEvent |= freeF;  // mute
-    hasEvent->triggerEvent();
-
-    ASSERT_EQ(hasEvent->callCount, 0);
-
-    hasEvent->onEvent &= freeF;  // unmute
-    hasEvent->triggerEvent();
-
-    ASSERT_EQ(hasEvent->callCount, 1);
-}
-
 TEST_F(EventTest, EventSubscriptionMute)
 {
     auto onChange = hasEvent->onEvent;

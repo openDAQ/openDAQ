@@ -13,6 +13,7 @@
 #include <opendaq/tags_private_ptr.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <test_input_port_notifications.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -48,7 +49,8 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
 {
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger);
-    const auto context = Context(scheduler, logger, nullptr, nullptr);
+    const auto authenticationProvider = AuthenticationProvider();
+    const auto context = Context(scheduler, logger, nullptr, nullptr, authenticationProvider);
 
     SignalPtr signal = Signal(context, nullptr, "sig");
 

@@ -35,15 +35,20 @@ set(SRC_Cpp
     generated/logger/py_logger_thread_pool.cpp
     generated/modulemanager/py_module.cpp
     generated/modulemanager/py_module_manager.cpp
+    generated/modulemanager/py_discovery_server.cpp
     generated/reader/py_block_reader.cpp
     generated/reader/py_packet_reader.cpp
     generated/reader/py_reader.cpp
     generated/reader/py_sample_reader.cpp
     generated/reader/py_stream_reader.cpp
     generated/reader/py_tail_reader.cpp
+    generated/reader/py_tail_reader_status.cpp
     generated/reader/py_time_reader.cpp
     generated/reader/py_reader_status.cpp
     generated/reader/py_block_reader_status.cpp
+    generated/reader/py_multi_reader.cpp
+    generated/reader/py_multi_reader_builder.cpp
+    generated/reader/py_multi_reader_status.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp
@@ -79,6 +84,8 @@ set(SRC_Cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp
+    generated/streaming/py_mirrored_device.cpp
+    generated/streaming/py_mirrored_device_config.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

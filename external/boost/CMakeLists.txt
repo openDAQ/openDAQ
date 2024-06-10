@@ -37,20 +37,21 @@ if (BUILD_ARM)
     set(BOOST_CONTEXT_ARCHITECTURE ${CONTEXT_ARCHITECTURE} CACHE STRING "Boost.Context architecture (arm, arm64, loongarch64, mips32, mips64, ppc32, ppc64, riscv64, s390x, i386, x86_64, combined)")
 endif()
 
-set(NEEDED_LIBRARIES algorithm
-                     asio
-                     beast
-                     dll
-                     program_options
-                     uuid
-                     locale
-)
+if (NOT BOOST_INCLUDE_LIBRARIES)
+    set(NEEDED_LIBRARIES algorithm
+                         asio
+                         beast
+                         dll
+                         program_options
+                         uuid
+                         locale
+    )
 
-set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
-    CACHE STRING
-    "List of libraries to build (default: all but excluded and incompatible)"
-    FORCE
-)
+    set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
+        CACHE STRING
+        "List of libraries to build (default: all but excluded and incompatible)"
+    )
+endif()
 
 opendaq_dependency(
     NAME                Boost
@@ -86,6 +87,7 @@ if (Boost_FOUND)
         Boost::locale
         Boost::beast
         Boost::align
+        Boost::asio
     )
 
     foreach(TARGET ${BOOST_TARGETS})

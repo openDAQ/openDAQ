@@ -1,7 +1,9 @@
 #include <opendaq/device_info_impl.h>
+#include <opendaq/component_ptr.h>
 #include <coretypes/validation.h>
 #include "coretypes/impl.h"
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +33,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("systemUuid", "");
     createAndSetDefaultStringProperty("connectionString", "");
     createAndSetDefaultStringProperty("sdkVersion", "");
+    createAndSetDefaultStringProperty("location", "");
     
     Super::setProtectedPropertyValue(String("name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);
@@ -38,14 +41,36 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
     defaultPropertyNames.insert("serverCapabilities");
 
+    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
+    defaultPropertyNames.insert("configurationConnectionInfo");
+
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
     else
         Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
+
+    this->objPtr.getOnPropertyValueRead("location") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    {
+        const PropertyObjectPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            value.setValue(ownerPtr.getPropertyValue("location"));
+        }
+    };
+
+    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    {
+        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            value.setValue(ownerPtr.getName());
+        }
+    };
 }
 
 template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
+    : DeviceInfoConfigImpl<TInterface, Interfaces...>("", "")
 {
 }
 
@@ -308,6 +333,23 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSdkVersion(IString**
 
     return daqTry([&]() {
         *version = getStringProperty("sdkVersion").detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setLocation(IString* location)
+{
+    return Super::setProtectedPropertyValue(String("location"), location);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getLocation(IString** location)
+{
+    OPENDAQ_PARAM_NOT_NULL(location);
+
+    return daqTry([&]() {
+        *location = getStringProperty("location").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -637,6 +679,18 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     }
 
     *serverCapabilities = caps.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
+{
+    BaseObjectPtr obj;
+    StringPtr str = "configurationConnectionInfo";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    *connectionInfo = obj.asPtr<IServerCapability>().detach();
     return OPENDAQ_SUCCESS;
 }
 

@@ -56,12 +56,18 @@ public:
     ErrCode INTERFACE_FUNC setConnectionType(IString* type) override;
     
     ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) override;
-    ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) override;    
-    
+    ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) override;  
+
+    ErrCode INTERFACE_FUNC getAddresses(IList** addresses) override;
+    ErrCode INTERFACE_FUNC addAddress(IString* address) override;
+
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
+    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
+    ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
+    
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 

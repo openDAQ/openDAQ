@@ -25,6 +25,7 @@
 #include "opendaq/mock/mock_fb_module.h"
 #include "opendaq/mock/mock_physical_device.h"
 #include "open62541/daqbsp_nodeids.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 namespace test_helpers
 {
@@ -33,7 +34,8 @@ namespace test_helpers
         using namespace daq;
         const auto logger = Logger();
         const auto moduleManager = ModuleManager("[[none]]");
-        const auto context = Context(nullptr, logger, TypeManager(), moduleManager);
+        const auto authenticationProvider = AuthenticationProvider();
+        const auto context = Context(nullptr, logger, TypeManager(), moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

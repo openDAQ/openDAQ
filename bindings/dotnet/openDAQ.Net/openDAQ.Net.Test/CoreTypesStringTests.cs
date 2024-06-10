@@ -43,7 +43,7 @@ public class CoreTypesStringTests : OpenDAQTestsBase
         bool? isEqual = default;
 
         Assert.DoesNotThrow(() => errorCode = CoreTypesFactory.CreateString(out testObject, expectedValue));
-        Assert.DoesNotThrow(() => actualValue = testObject?.GetCharPtr());
+        Assert.DoesNotThrow(() => actualValue = testObject?.CharPtr);
         Assert.DoesNotThrow(() => isEqual = testObject?.Equals(expectedValue));
 
         Assert.Multiple(() =>
@@ -69,7 +69,7 @@ public class CoreTypesStringTests : OpenDAQTestsBase
         bool? isEqual = default;
 
         Assert.DoesNotThrow(() => testObject = CoreTypesFactory.CreateString(expectedValue));
-        Assert.DoesNotThrow(() => actualValue = testObject?.GetCharPtr());
+        Assert.DoesNotThrow(() => actualValue = testObject?.CharPtr);
         Assert.DoesNotThrow(() => isEqual = testObject?.Equals(expectedValue));
 
         Assert.Multiple(() =>
@@ -142,7 +142,7 @@ public class CoreTypesStringTests : OpenDAQTestsBase
     {
         StringObject testObject = expectedValue;
 
-        string returnedValue = testObject.GetCharPtr();
+        string returnedValue = testObject.CharPtr;
         bool isEqual = testObject.Equals(expectedValue);
 
         Assert.Multiple(() =>
@@ -205,7 +205,7 @@ public class CoreTypesStringTests : OpenDAQTestsBase
     {
         StringObject testObject = expectedValue;
 
-        nuint length = testObject.GetLength();
+        nuint length = testObject.Length;
 
         Assert.That(length, Is.EqualTo((nuint)expectedValue.Length));
 

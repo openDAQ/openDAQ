@@ -18,6 +18,8 @@
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
 #include <opendaq/config_provider.h>
+#include <coreobjects/authentication_provider.h>
+#include <opendaq/discovery_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +31,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceLibrary(IAuthenticationProvider, "coreobjects")]
  */
 
 /*!
@@ -221,6 +224,19 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
+     * @brief Sets the AuthenticationProvider for the Instance.
+     * @param authenticationProvider The AuthenticationProvider for the Instance
+     */
+    virtual ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) = 0;
+
+    /*!
+     * @brief Gets the AuthenticationProvider of Instance
+     * @param[out] authenticationProvider The AuthenticationProvider of Instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) = 0;
+
+    // [returnSelf]
+    /*!
      * @brief Sets the number of worker threads in the scheduler of the Instance. If Scheduler has been set, configuring of Scheduler worker num has no effect in building Instance.
      * @param numWorkers The amount of worker threads in the scheduler of Instance. If @c is 0, then the amount of workers is the maximum number of concurrent threads supported by the implementation.
      */
@@ -309,6 +325,20 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param flag Boolean flag indicating whether to enable (true) or disable (false) standard config providers.
      */
     virtual ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) = 0;
+
+    // [elementType(services, IString)]
+    /*!
+     * @brief Gets the dictionary of discovery services
+     * @param[out] services The dictionary of discovery services
+     */
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServices(IList** services) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds a discovery service to the context
+     * @param service The discovery service to add
+     */
+    virtual ErrCode INTERFACE_FUNC addDiscoveryService(IString* serviceName) = 0;
 };
 /*!@}*/
 

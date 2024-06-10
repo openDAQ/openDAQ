@@ -48,22 +48,19 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
  */
 
 /*!
- * @brief Creates a Device type object, with the id, name, description and
- * optional createDefaultConfigCallback.
+ * @brief Creates a Device type object, with the id, name, description and optional defaultConfig.
  * @param id The unique type ID of the device.
  * @param name The name of the device type.
  * @param description A short description of the device type.
- * @param createDefaultConfigCallback The callback, which is called, when user want to create
- * new default configuration object.
- * Function needs to create and return property object. On each call, we need to create new object,
- * because we want that each instance of the device has its own configuration object.
+ * @param defaultConfig The property object, to be cloned and returned, each time user creates default
+ * configuration object. This way each instance of the device has its own configuration object.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, DeviceType,
     IString*, id,
     IString*, name,
     IString*, description,
-    IFunction*, createDefaultConfigCallback
+    IPropertyObject*, defaultConfig
 )
 
 /*!@}*/

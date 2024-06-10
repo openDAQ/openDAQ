@@ -14,9 +14,10 @@ const char* ProtocolName = "ProtocolName";
 const char* ProtocolTypeName = "ProtocolType";
 const char* ConnectionType = "ConnectionType";
 const char* CoreEventsEnabled = "CoreEventsEnabled"; 
-const char* ProtocolId = "protocolId"; 
-const char* PrimaryAddress = "address";
+const char* ProtocolId = "protocolId";
 const char* Prefix = "prefix";
+const char* Addresses = "Addresses";
+const char* Port = "Port";
 
 StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
 {
@@ -28,20 +29,21 @@ StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
             return "Streaming";
         case(ProtocolType::ConfigurationAndStreaming):
             return "ConfigurationAndStreaming";
-        default:
+        case ProtocolType::Unknown:
             return "Unknown";
     }
+    return "Unknown";
 }
 
 ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& type)
 {
     if (type == "ConfigurationAndStreaming")
         return ProtocolType::ConfigurationAndStreaming;
-    if (type == "Structure")
+    if (type == "Configuration")
         return ProtocolType::Configuration; 
     if (type == "Streaming")
         return ProtocolType::Streaming;
-    return ProtocolType::ConfigurationAndStreaming; 
+    return ProtocolType::Unknown; 
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
@@ -54,8 +56,9 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
-    Super::addProperty(StringProperty(PrimaryAddress, ""));
     Super::addProperty(StringProperty(Prefix, ""));
+    Super::addProperty(ListProperty(Addresses, List<IString>()));
+    Super::addProperty(IntProperty(Port, -1));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -196,6 +199,25 @@ ErrCode ServerCapabilityConfigImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ServerCapabilityConfigImpl::getAddresses(IList** addresses)
+{
+    return daqTry([&]() {
+        *addresses = getTypedProperty<IList>(Addresses).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::addAddress(IString* address)
+{
+    OPENDAQ_PARAM_NOT_NULL(address);
+    return daqTry([&]() {
+        ListPtr<IString> addresses = getTypedProperty<IList>(Addresses);
+        addresses.pushBack(address);
+        checkErrorInfo(Super::setPropertyValue(String(Addresses), addresses));
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 ErrCode ServerCapabilityConfigImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
 {
     if (idCount == nullptr)
@@ -245,6 +267,21 @@ PropertyObjectPtr ServerCapabilityConfigImpl::createCloneBase()
 {
     const auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
     return obj;
+}
+
+ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    
+    return daqTry([&]() {
+        *port = getTypedProperty<IInteger>(Port).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
+{
+    return Super::setPropertyValue(String(Port), port);
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

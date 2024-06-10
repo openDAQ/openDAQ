@@ -23,7 +23,8 @@ namespace test_config_provider_helpers
 {
 using namespace daq;
 
-DictPtr<IString, IBaseObject> getChildren(const DictPtr<IString, IBaseObject>& dict, const StringPtr& name)
+[[maybe_unused]]
+static DictPtr<IString, IBaseObject> getChildren(const DictPtr<IString, IBaseObject>& dict, const StringPtr& name)
 {
     return dict.get(name);
 }
@@ -100,7 +101,7 @@ protected:
                                            {"Modules", Dict<IString, IBaseObject>()}});
     }
 
-        static DictPtr<IString, IBaseObject> GetOptionsWithReferenceDevice()
+    static DictPtr<IString, IBaseObject> GetOptionsWithReferenceDevice()
     {
         return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ModulesPath", ""}})},
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},

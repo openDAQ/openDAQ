@@ -28,22 +28,23 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::streaming_protocol::SubscribedSignal& subscribedSignal)
 {
     SubscribedSignalInfo sInfo;
+    auto dataDescriptorBuilder = DataDescriptorBuilder();
 
     // *** meta "definition" start ***
     // get metainfo received via signal "definition" object and stored in SubscribedSignal struct
-    auto dataDescriptor = DataDescriptorBuilder().setRule(GetRule(subscribedSignal));
+    dataDescriptorBuilder.setRule(GetRule(subscribedSignal));
 
     if (subscribedSignal.isTimeSignal())
     {
         uint64_t numerator = 1;
         uint64_t denominator = subscribedSignal.timeBaseFrequency();
         auto resolution = Ratio(static_cast<daq::Int>(numerator), static_cast<daq::Int>(denominator));
-        dataDescriptor.setTickResolution(resolution);
+        dataDescriptorBuilder.setTickResolution(resolution);
     }
 
     daq::streaming_protocol::SampleType streamingSampleType = subscribedSignal.dataValueType();
     daq::SampleType daqSampleType = Convert(streamingSampleType);
-    dataDescriptor.setSampleType(daqSampleType);
+    dataDescriptorBuilder.setSampleType(daqSampleType);
 
     sInfo.signalName = subscribedSignal.memberName();
 
@@ -54,30 +55,51 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
                          "",
                          subscribedSignal.unitQuantity());
 
-        dataDescriptor.setUnit(unit);
+        dataDescriptorBuilder.setUnit(unit);
     }
 
-    dataDescriptor.setOrigin(subscribedSignal.timeBaseEpochAsString());
+    dataDescriptorBuilder.setOrigin(subscribedSignal.timeBaseEpochAsString());
+
+    auto streamingRange = subscribedSignal.range();
+    if (streamingRange.isUnlimited())
+    {
+        // An unlimited range indicates that it is not set within the "definition" object.
+        // Since the range is used to configure the renderer, we need to set a default value for fusion
+        // (non-openDAQ) device signals.
+        // If the signal is owned by an openDAQ-enabled server, the value range, if present,
+        // is specified within the "definition" object or alternatively might be set within
+        // the "interpretation" object, if so that value will override the default one.
+        if (!subscribedSignal.isTimeSignal())
+            dataDescriptorBuilder.setValueRange(CreateDefaultRange(dataDescriptorBuilder.getSampleType()));
+    }
+    else
+    {
+        dataDescriptorBuilder.setValueRange(Range(streamingRange.low, streamingRange.high));
+    }
+
+    // get linear post scaling from signal definition if it is not default - one-to-one scaling
+    auto streamingLinearPostScaling = subscribedSignal.postScaling();
+    if (!streamingLinearPostScaling.isOneToOne())
+    {
+        auto daqLinearPostScaling = LinearScaling(streamingLinearPostScaling.scale,
+                                                  streamingLinearPostScaling.offset,
+                                                  daqSampleType,
+                                                  ScaledSampleType::Float64);
+        dataDescriptorBuilder.setPostScaling(daqLinearPostScaling);
+        // overwrite sample type when linear scaling is present
+        dataDescriptorBuilder.setSampleType(SampleType::Float64);
+    }
     // *** meta "definition" end ***
 
-    if (!subscribedSignal.isTimeSignal())
-    {
-        // "definition" object does not contain signal value range used to configure renderer,
-        // we need to set the some default value for the fusion (non-openDAQ) device signals
-        // if the signal is owned by the openDAQ-enabled server
-        // than the value range from "interpretation" will overwrite the default value
-        dataDescriptor.setValueRange(daq::Range(-15.0, 15.0));
-    }
-
     auto bitsInterpretation = subscribedSignal.bitsInterpretationObject();
-    DecodeBitsInterpretationObject(bitsInterpretation, dataDescriptor);
+    DecodeBitsInterpretationObject(bitsInterpretation, dataDescriptorBuilder);
 
     // --- meta "interpretation" start ---
     // overwrite/add descriptor fields with ones from optional "interpretation" object
     auto extra = subscribedSignal.interpretationObject();
-    DecodeInterpretationObject(extra, dataDescriptor);
+    DecodeInterpretationObject(extra, dataDescriptorBuilder);
 
-    sInfo.dataDescriptor = dataDescriptor.build();
+    sInfo.dataDescriptor = dataDescriptorBuilder.build();
     if (extra.count("sig_name") > 0)
         sInfo.signalProps.name = extra["sig_name"];
     if (extra.count("sig_desc") > 0)
@@ -111,6 +133,24 @@ void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valu
     UnitPtr unit = dataDescriptor.getUnit();
     if (unit.assigned())
         valueStream->setUnit(unit.getId(), unit.getSymbol());
+
+    if (dataDescriptor.getValueRange().assigned())
+    {
+        auto daqRange = dataDescriptor.getValueRange();
+        daq::streaming_protocol::Range streamingRange;
+        streamingRange.high = daqRange.getHighValue().getFloatValue();
+        streamingRange.low = daqRange.getLowValue().getFloatValue();
+        valueStream->setRange(streamingRange);
+    }
+
+    auto daqPostScaling = dataDescriptor.getPostScaling();
+    if (daqPostScaling.assigned() && daqPostScaling.getType() == daq::ScalingType::Linear)
+    {
+        daq::streaming_protocol::PostScaling streamingLinearPostScaling;
+        streamingLinearPostScaling.scale = daqPostScaling.getParameters().get("scale");
+        streamingLinearPostScaling.offset = daqPostScaling.getParameters().get("offset");
+        valueStream->setPostScaling(streamingLinearPostScaling);
+    }
     // *** meta "definition" end ***
 
     // --- meta "interpretation" start ---
@@ -187,8 +227,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         break;
         case daq::streaming_protocol::RULETYPE_LINEAR:
         {
-            uint64_t start = subscribedSignal.time();
-            return LinearDataRule(subscribedSignal.linearDelta(), start);
+            return LinearDataRule(subscribedSignal.linearDelta(), 0);
         }
         break;
         default:
@@ -302,6 +341,47 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
     }
 }
 
+daq::RangePtr SignalDescriptorConverter::CreateDefaultRange(daq::SampleType sampleType)
+{
+    switch (sampleType)
+    {
+        case daq::SampleType::UInt8:
+            return Range(std::numeric_limits<uint8_t>::lowest(), std::numeric_limits<uint8_t>::max());
+            break;
+        case daq::SampleType::Int8:
+            return Range(std::numeric_limits<int8_t>::lowest(), std::numeric_limits<int8_t>::max());
+            break;
+        case daq::SampleType::UInt16:
+            return Range(std::numeric_limits<uint16_t>::lowest(), std::numeric_limits<uint16_t>::max());
+            break;
+        case daq::SampleType::Int16:
+            return Range(std::numeric_limits<int16_t>::lowest(), std::numeric_limits<int16_t>::max());
+            break;
+        case daq::SampleType::UInt32:
+            return Range(std::numeric_limits<uint32_t>::lowest(), std::numeric_limits<uint32_t>::max());
+            break;
+        case daq::SampleType::Int32:
+            return Range(std::numeric_limits<int32_t>::lowest(), std::numeric_limits<int32_t>::max());
+            break;
+        case daq::SampleType::UInt64:
+            // range integer values are of signed type so the highest value is max of signed type
+            return Range(std::numeric_limits<uint64_t>::lowest(), std::numeric_limits<int64_t>::max());
+            break;
+        case daq::SampleType::Int64:
+            return Range(std::numeric_limits<int64_t>::lowest(), std::numeric_limits<int64_t>::max());
+            break;
+        case daq::SampleType::Float32:
+            return Range(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+            break;
+        case daq::SampleType::Float64:
+            return Range(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+            break;
+        default:
+            return nullptr;
+            break;
+    }
+}
+
 void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorPtr& dataDescriptor, nlohmann::json& extra)
 {
     // put descriptor name into interpretation object
@@ -352,32 +432,32 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
     }
 }
 
-void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptor)
+void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptorBuilder)
 {
     if (!bits.empty() && bits.is_array())
     {
-        auto metadata = dataDescriptor.getMetadata();
+        auto metadata = dataDescriptorBuilder.getMetadata();
         metadata.set("bits", bits.dump());
     }
 }
 
-void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor)
+void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder)
 {
     // sets descriptor name when corresponding field is present in interpretation object
     if (extra.count("desc_name") > 0)
-        dataDescriptor.setName(extra["desc_name"]);
+        dataDescriptorBuilder.setName(extra["desc_name"]);
 
     if (extra.count("metadata") > 0)
     {
         auto meta = JsonToDict(extra["metadata"]);
-        dataDescriptor.setMetadata(meta);
+        dataDescriptorBuilder.setMetadata(meta);
     }
 
     if (extra.count("unit") > 0)
     {
         auto unitObj = extra["unit"];
         auto unit = Unit(unitObj["symbol"], unitObj["id"], unitObj["name"], unitObj["quantity"]);
-        dataDescriptor.setUnit(unit);
+        dataDescriptorBuilder.setUnit(unit);
     }
 
     if (extra.count("range") > 0)
@@ -386,11 +466,11 @@ void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json&
         auto low = std::stoi(std::string(rangeObj["low"]));
         auto high = std::stoi(std::string(rangeObj["high"]));
         auto range = Range(low, high);
-        dataDescriptor.setValueRange(range);
+        dataDescriptorBuilder.setValueRange(range);
     }
 
     if (extra.count("origin") > 0)
-        dataDescriptor.setOrigin(extra["origin"]);
+        dataDescriptorBuilder.setOrigin(extra["origin"]);
 
     if (extra.count("rule") > 0)
     {
@@ -398,7 +478,7 @@ void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json&
         params.freeze();
 
         auto rule = DataRuleBuilder().setType(extra["rule"]["type"]).setParameters(params).build();
-        dataDescriptor.setRule(rule);
+        dataDescriptorBuilder.setRule(rule);
     }
 
     if (extra.count("scaling") > 0)
@@ -412,10 +492,10 @@ void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json&
                            .setScalingType(extra["scaling"]["scalingType"])
                            .setParameters(params)
                            .build();
-        dataDescriptor.setPostScaling(scaling);
+        dataDescriptorBuilder.setPostScaling(scaling);
 
         // overwrite sample type when scaling is present
-        dataDescriptor.setSampleType(convertScaledToSampleType(scaling.getOutputSampleType()));
+        dataDescriptorBuilder.setSampleType(convertScaledToSampleType(scaling.getOutputSampleType()));
     }
 }
 

@@ -23,6 +23,14 @@ jobs:
         run: ./do-license-header-check.sh --fix
 
       - name: Show changed files and fail if there are any
+        id: check-status
         run: |
             git status -s
             [[ -z `git status -s` ]]
+
+      - name: Show hint for fix (on failure)
+        if: failure() && steps.check-status.outcome == 'failure'
+        run: |
+            echo "Please run './shared/tools/license-header-checker/do-license-header-check.sh --fix' from bash to repair the headers."
+            echo "Or add the files to './shared/tools/license-header-checker/ignore-filter.txt' if no header desired."
+            exit 1

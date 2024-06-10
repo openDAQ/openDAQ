@@ -32,6 +32,9 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <iostream>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -71,6 +74,7 @@ protected:
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
+        , permissionManager(PermissionManager())
     {
         if (valueType == ctBinaryData)
         {
@@ -109,6 +113,7 @@ public:
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
+        permissionManager = PermissionManager();
 
         checkErrorInfo(validateDuringConstruction());
     }
@@ -202,8 +207,12 @@ public:
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
         this->valueType = ctObject;
+
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();
+
+        auto objPermissionManager = this->defaultValue.asPtr<IPropertyObject>(true).getPermissionManager().asPtr<IPermissionManagerInternal>(true);
+        objPermissionManager.setParent(permissionManager);
 
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
@@ -1328,39 +1337,33 @@ public:
         }
 
         this->owner = owner;
+
+        const auto parentManager = this->owner.getRef().getPermissionManager();
+        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
         return OPENDAQ_SUCCESS;
     }
 
 protected:
     PropertyPtr propPtr;
     WeakRefPtr<IPropertyObject> owner;
-
     CoreType valueType;
-
     StringPtr name;
     StringPtr description;
-
     UnitPtr unit;
-
     NumberPtr minValue;
     NumberPtr maxValue;
-
     BaseObjectPtr defaultValue;
-
     BooleanPtr visible;
-
     BooleanPtr readOnly;
     BaseObjectPtr selectionValues;
     ListPtr<IBaseObject> suggestedValues;
-
     EvalValuePtr refProp;
-
     CoercerPtr coercer;
     ValidatorPtr validator;
-
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
+    PermissionManagerPtr permissionManager;
 
 private:
     PropertyPtr bindAndGetRefProp(bool& bound)

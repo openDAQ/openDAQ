@@ -1,4 +1,5 @@
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 using WebsocketModulesTest = testing::Test;
 using namespace daq;
@@ -9,7 +10,8 @@ static InstancePtr CreateServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -38,6 +40,138 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
+}
+
+TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.ws://127.0.0.1/", nullptr);
+}
+
+TEST_F(WebsocketModulesTest, ConnectViaIpv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.lt://[::1]", nullptr);
+}
+
+TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/some/path"
+                }
+            }
+        }
+    )";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("WebsocketStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
+}
+
+TEST_F(WebsocketModulesTest, DiscoveringServer)
+{
+    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto path = "/test/streaming_lt/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+            {
+                break;
+            }
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+
+TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
+{
+    std::string filename = "populateDefaultConfig.json";
+    std::string json = R"(
+        {
+            "Modules":
+            {
+                "StreamingLtServer":
+                {
+                    "WebsocketStreamingPort": 1234,
+                    "Path": "/test/streaming_lt/checkDeviceInfoPopulated"
+                }
+            }
+        }
+    )";
+    auto path = "/test/streaming_lt/checkDeviceInfoPopulated";
+    auto finally = test_helpers::CreateConfigFile(filename, json);
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setModel("TestModel");
+    rootInfo.setSerialNumber("TestSerialNumber");
+
+    auto provider = JsonConfigProvider(filename);
+    auto instance = InstanceBuilder().addDiscoveryService("mdns")
+                                     .addConfigProvider(provider)
+                                     .setDefaultRootDeviceInfo(rootInfo)
+                                     .build();
+    instance.addDevice("daqref://device1");
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                {
+                    break;
+                }
+
+                client.addDevice(capability.getConnectionString(), nullptr);
+                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+                return;
+            }
+        }      
+    }
+
+    ASSERT_TRUE(false);
 }
 
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
@@ -138,4 +272,24 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }

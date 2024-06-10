@@ -11,8 +11,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     name,
     IString*,
     description,
-    IFunction*,
-    createDefaultConfigCallback
-    )
+    IPropertyObject*,
+    defaultConfig
+)
 
 END_NAMESPACE_OPENDAQ

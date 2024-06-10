@@ -19,7 +19,7 @@ public:
     SignalContainerTest()
         : testing::Test()
         , GenericSignalContainerImpl<IComponent>(
-              Context(nullptr, Logger(), TypeManager(), ModuleManager("[[none]]")), nullptr, "localId")
+              Context(nullptr, Logger(), TypeManager(), ModuleManager("[[none]]"), nullptr), nullptr, "localId")
     {
         
         manager = context.asPtr<IContextInternal>().moveModuleManager();
@@ -32,7 +32,7 @@ public:
 
 TEST_F(SignalContainerTest, CreateWithClassName)
 {
-    const auto context = Context(nullptr, Logger(), TypeManager(), nullptr);
+    const auto context = Context(nullptr, Logger(), TypeManager(), nullptr, nullptr);
 
     auto rangeItemClass = PropertyObjectClassBuilder("TestClass").build();
     context.getTypeManager().addType(rangeItemClass);

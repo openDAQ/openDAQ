@@ -1,4 +1,4 @@
-= Read With Absolute Time-Stamps
+= Read with absolute time-stamps
 
 :tip-caption: Assumptions
 [TIP]
@@ -21,7 +21,7 @@ As this is a common practice, if you want to display the Signal data or perform 
 * The domain unit is `"s"` (seconds) [This restriction will be lifted in the future]
 * Tick resolution is defined
 
-You use it by wrapping any other reader that operates on samples and can read domain data.
+You use it by wrapping any other Reader that operates on samples and can read domain data.
 Then you can issue the same `read` calls as you would to the base Reader only now the read domain data is in https://en.cppreference.com/w/cpp/chrono/time_point[`std::chrono::time_point`] values of the https://en.cppreference.com/w/cpp/chrono/system_clock[`std::chrono::system_clock`] instead of ticks.
 
 .Reading time with Time Reader
@@ -41,7 +41,7 @@ SizeT count{5};
 double values[5]{};
 std::chrono::system_clock::time_point timeStamps[5]{};
 
-// read with Time Reader
+// Read with Time Reader
 timeReader.readWithDomain(values, timeStamps, &count);
 
 for (SizeT i = 0u; i < count; ++i)
@@ -59,12 +59,17 @@ reader = opendaq.StreamReader(signal)
 
 time_reader = opendaq.TimeStreamReader(reader)
 
-# read with Time Reader
+# Read with Time Reader
 
 values, timestamps = time_reader.read_with_timestamps(5)
 
 print(list(zip(timestamps, values)))
-
+----
+C#::
++
+[source,csharp]
+----
+// TimeReader not yet available in .NET
 ----
 ====
 
@@ -72,10 +77,14 @@ print(list(zip(timestamps, values)))
 [WARNING]
 ====
 The Time Reader installs a xref:background_info:readers.adoc#custom_conversion[transform function] for domain values on the wrapped Reader and removes it when it is destroyed.
-This means that performing reads on the original reader will still yield time-points as long as the Time Reader is alive.
+This means that performing reads on the original Reader will still yield time-points as long as the Time Reader is alive.
 ====
 
-.Reading time with the wrapped reader
+.Reading time with the wrapped Reader
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto reader = StreamReader(signal);
@@ -88,7 +97,7 @@ SizeT count{5};
 double values[5]{};
 std::chrono::system_clock::time_point timeStamps[5]{};
 
-// read with the wrapped Reader
+// Read with the wrapped Reader
 reader.readWithDomain(values, timeStamps, &count);
 
 for (SizeT i = 0u; i < count; ++i)
@@ -96,6 +105,7 @@ for (SizeT i = 0u; i < count; ++i)
     std::cout << timeStamps[i] << ": " << values[i] << std::endl;
 }
 ----
+====
 
 == Full listing
 
@@ -116,6 +126,10 @@ The output printed to the console in all below examples should be:
 Times are in {utc-wiki}[UTC].
 
 .Full listing
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 #include <coreobjects/unit_factory.h>
@@ -136,8 +150,8 @@ using namespace date;
 SignalConfigPtr setupExampleSignal();
 SignalPtr setupExampleDomain(const SignalPtr& value);
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset = 0);
-daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& rule = nullptr);
-DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const daq::DataRulePtr& rule = nullptr);
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule = nullptr);
+DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const DataRulePtr& rule = nullptr);
 
 /*
  * Example 1: Reading time with Time Reader
@@ -163,7 +177,7 @@ void example1(const SignalConfigPtr& signal)
     double values[5]{};
     std::chrono::system_clock::time_point timeStamps[5]{};
 
-    // read with Time Reader
+    // Read with Time Reader
     timeReader.readWithDomain(values, timeStamps, &count);
     assert(count == 5);
 
@@ -177,7 +191,7 @@ void example1(const SignalConfigPtr& signal)
 }
 
 /*
- * Example 2: Reading time with the wrapped reader
+ * Example 2: Reading time with the wrapped Reader
  */
 void example2(const SignalConfigPtr& signal)
 {
@@ -199,7 +213,7 @@ void example2(const SignalConfigPtr& signal)
     double values[5]{};
     std::chrono::system_clock::time_point timeStamps[5]{};
 
-    // read with the wrapped Reader
+    // Read with the wrapped Reader
     reader.readWithDomain(values, timeStamps, &count);
     assert(count == 5);
 
@@ -213,7 +227,7 @@ void example2(const SignalConfigPtr& signal)
 /*
  * ENTRY POINT
  */
-int main(int /*argc*/, const char* /*argv*/ [])
+int main(int /*argc*/, const char* /*argv*/[])
 {
     SignalConfigPtr signal = setupExampleSignal();
     signal.setDomainSignal(setupExampleDomain(signal));
@@ -240,7 +254,7 @@ int main(int /*argc*/, const char* /*argv*/ [])
 SignalConfigPtr setupExampleSignal()
 {
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
 
     auto signal = Signal(context, nullptr, "example signal");
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -250,22 +264,27 @@ SignalConfigPtr setupExampleSignal()
 
 SignalPtr setupExampleDomain(const SignalPtr& value)
 {
-    auto domainDataDescriptor = setupDescriptorBuilder(SampleTypeFromType<ClockTick>::SampleType, daq::LinearDataRule(1, 0))
-                                .setOrigin("2022-09-27T00:02:03+00:00")
-                                .setTickResolution(Ratio(1, 1000))
-                                .setUnit(Unit("s", -1, "seconds", "time"))
-                                .build();
+    auto domainDataDescriptor = setupDescriptorBuilder(SampleTypeFromType<ClockTick>::SampleType, LinearDataRule(1, 0))
+                                    .setOrigin("2022-09-27T00:02:03+00:00")
+                                    .setTickResolution(Ratio(1, 1000))
+                                    .setUnit(Unit("s", -1, "seconds", "time"))
+                                    .build();
 
     auto domain = Signal(value.getContext(), nullptr, "domain signal");
-    domain.setDescriptor(domainDescriptor);
+    domain.setDescriptor(domainDataDescriptor);
 
     return domain;
 }
 
-DataDescriptorBuilderPtr setupDescriptorBuilder(daq::SampleType type, const daq::DataRulePtr& rule)
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule)
 {
-    // Set up the data descriptor with the provided Sample-Type
-    const auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type);
+    return setupDescriptorBuilder(type, rule).build();
+}
+
+DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const DataRulePtr& rule)
+{
+    // Set up the Data Descriptor with the provided Sample Type
+    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(type);
 
     // For the Domain, we provide a Linear Rule to generate time-stamps
     if (rule.assigned())
@@ -274,24 +293,15 @@ DataDescriptorBuilderPtr setupDescriptorBuilder(daq::SampleType type, const daq:
     return dataDescriptor;
 }
 
-DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& rule)
-{
-    return setupDescriptorBuilder(type, rule).build();
-}
-
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset)
 {
-    // Create a data packet where the values are generated via the +1 rule starting at 0
-    auto domainPacket = daq::DataPacket(
-        signal.getDomainSignal().getDescriptor(),
-        numSamples,
-        offset  // offset from 0 to start the sample generation at
+    // Create a Data Packet where the values are generated via the +1 rule starting at 0
+    auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(),
+                                        numSamples,
+                                        offset  // offset from 0 to start the sample generation at
     );
 
-    return daq::DataPacketWithDomain(
-        domainPacket,
-        signal.getDescriptor(),
-        numSamples
-    );
+    return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }
 ----
+====

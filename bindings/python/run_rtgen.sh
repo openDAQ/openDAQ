@@ -98,14 +98,19 @@ run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_thread_pool
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module_manager
+run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager discovery_server
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        sample_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        block_reader
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        packet_reader
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        stream_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        tail_reader
+#run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        multi_reader
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        multi_reader_builder
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader_status
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        block_reader_status
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        tail_reader_status
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        multi_reader_status
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     awaitable
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     graph_visualization
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     scheduler
@@ -140,5 +145,7 @@ run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_config
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_private
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     subscription_event_args
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_device
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_device_config
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags_private

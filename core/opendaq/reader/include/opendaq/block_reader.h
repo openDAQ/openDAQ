@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IBlockReaderBuilder;
+
 /*#
  * [include(ISampleType)]
  * [interfaceSmartPtr(ISampleReader, GenericSampleReaderPtr)]
@@ -83,6 +85,12 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * @param[out] size The number of samples in a block.
      */
     virtual ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) = 0;
+
+    /*!
+     * @brief The amount of block overlapping.
+     * @param[out] overlap The overlap size in percents.
+     */
+    virtual ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) = 0;
 };
 /*!@}*/
 
@@ -110,6 +118,16 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode
+)
+
+/*!
+ * @brief Creates a BlockReader with Builder
+ * @param builder BlockReader Builder
+ */
+//[factory(Hide)]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, BlockReaderFromBuilder, IBlockReader,
+    IBlockReaderBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

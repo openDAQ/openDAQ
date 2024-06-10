@@ -183,7 +183,7 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
     }
     catch (const DaqException& e)
     {
-        LOG_W("getLastValue() RPC fialed: {}", e.what());
+        LOG_W("getLastValue() RPC failed: {}", e.what());
     }
     catch (const std::exception& e)
     {

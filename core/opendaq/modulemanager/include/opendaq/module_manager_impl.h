@@ -23,6 +23,12 @@
 #include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
 #include <vector>
+#include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_ptr.h>
+
+#include <thread>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,14 +49,33 @@ public:
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
+
+    void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
+    static PropertyObjectPtr populateStreamingConfig(const PropertyObjectPtr& streamingConfig);
+    static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
+
+    void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
+
+    void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
+                                  const ListPtr<IString>& allowedStreamingProtocols);
+
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
+
     bool modulesLoaded;
     std::vector<std::string> paths;
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+
+    std::vector<std::thread> pool;
+    boost::asio::io_context ioContext;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
+
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 };

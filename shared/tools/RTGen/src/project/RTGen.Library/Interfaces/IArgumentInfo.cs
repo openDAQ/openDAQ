@@ -10,5 +10,8 @@ namespace RTGen.Interfaces
 
         /// <summary>Parameter info about a pointer that is passed in as an array not an output parameter.</summary>
         IArray ArrayInfo { get; set; }
+
+        /// <summary>True if method steals the reference to the argument.</summary>
+        bool IsStealRef { get; set; }
     }
 }

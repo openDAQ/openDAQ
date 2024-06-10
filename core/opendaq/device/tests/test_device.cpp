@@ -29,10 +29,27 @@ public:
     daq::DeviceInfoPtr onGetInfo() override
     {
         auto deviceInfo = daq::DeviceInfo("conn");
+        deviceInfo.setName("test");
+        deviceInfo.setLocation("test");
         deviceInfo.freeze();
         return deviceInfo;
     }
 };
+
+TEST_F(DeviceTest, DeviceInfoNameLocationSync)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto info = device.getInfo();
+
+    ASSERT_EQ(info.getLocation(), "");
+    ASSERT_EQ(info.getName(), "dev");
+
+    device.setPropertyValue("location", "new_loc");
+    device.setName("new_name");
+
+    ASSERT_EQ(info.getLocation(), "new_loc");
+    ASSERT_EQ(info.getName(), "new_name");
+}
 
 TEST_F(DeviceTest, Folders)
 {
@@ -88,8 +105,8 @@ TEST_F(DeviceTest, CustomComponentSubItems)
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-    ASSERT_EQ(device.getPropertyValue("Location"), "");
-    ASSERT_EQ(device.getPropertyValue("UserName"), "");
+    ASSERT_EQ(device.getPropertyValue("location"), "");
+    ASSERT_EQ(device.getPropertyValue("userName"), "");
 }
 
 TEST_F(DeviceTest, DeviceTypeStructType)

@@ -50,7 +50,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * standard Property Objects. No metadata except the Value Type and Default Value are published
  * via OPC UA, and this only said Property metadata is visible to any clients.
  *
- * All fields - default (eg. platform, manufacturer...) and custom are represented as either:
+ * All fields - default (e.g. platform, manufacturer...) and custom are represented as either:
  *
  * - String-type properties
  * - Integer-type properties
@@ -59,7 +59,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * As such, listing all properties via Property Object methods, will return both the
  * names of the default and custom properties. All default properties are initialized to an empty
- * string with the exception of revisionCounter and Position that are integer properties and are
+ * string except for RevisionCounter and Position that are integer properties and are
  * thus initialized to '0'. The names of the properties are written in camelCase - for
  * example "systemUuid", "parentMacAddress", "manufacturerUri".
  *
@@ -72,6 +72,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
     /*!
      * @brief Gets the name of the device
      * @param[out] name The name of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the name string value matches that of the device's "name" attribute.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
@@ -244,6 +247,24 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * (List containing IServerCapability objects, representing the supported protocols along with their properties).
      */
     virtual ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) = 0;
+
+    /*!
+     * @brief Gets the location of the device.
+     * @param[out] location The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the location string value matches that of the device's "location" property.
+     */
+    virtual ErrCode INTERFACE_FUNC getLocation(IString** location) = 0;
+
+    /*!
+     * @brief Retrieves the configuration connection information of the server to which the client is connected.
+     * @param[out] connectionInfo the server capability with the configuration connection information.
+     *
+     * This method returns the configuration connection information of the server to which the client is connected.
+     * If the connection to the server is not established, the fields of the server capability object are empty.
+     */
+    virtual ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) = 0;
 };
 /*!@}*/
 

@@ -4,6 +4,7 @@ import unittest
 import opendaq_test
 import opendaq
 
+# Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 class TestDocumentationHow(opendaq_test.TestCase):
 
     def test_start_simulator(self):

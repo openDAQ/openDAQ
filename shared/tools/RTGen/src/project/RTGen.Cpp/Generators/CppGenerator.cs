@@ -603,6 +603,10 @@ namespace RTGen.Cpp.Generators
         {
             switch (variable)
             {
+                case "Name":
+                    return overload.Method.OverloadFor;
+                case "NameInInterface":
+                    return overload.Method.Name;
                 case "DocComment":
                     return overload.Method.Documentation != null
                                ? GenerateWrapperDoc(overload)
@@ -747,7 +751,28 @@ namespace RTGen.Cpp.Generators
                 return string.Join(separator, argNames);
             }
 
-            return base.GetArgumentNames(overload, separator, refSymbol);
+            StringBuilder names = new StringBuilder();
+            foreach (IArgument argument in overload.Arguments)
+            {
+                if (argument.IsOutParam)
+                {
+                    names.Append(refSymbol);
+                }
+
+                var argName = GetArgumentName(overload, argument);
+                if (argument.IsStealRef)
+                    names.Append(argName + ".detach()");
+                else
+                    names.Append(argName);
+                names.Append(separator);
+            }
+
+            if (names.Length > separator.Length)
+            {
+                names.Remove(names.Length - separator.Length, separator.Length);
+            }
+
+            return names.ToString();
         }
 
         protected override string GetMethodArgumentVariable(IArgument arg, IOverload method, string variable)
@@ -792,6 +817,11 @@ namespace RTGen.Cpp.Generators
                             return arg.Type.Modifiers;
                         }
 
+                        if (arg.IsStealRef)
+                        {
+                            return "&&";
+                        }
+
                         if (arg.IsOutParam || !arg.Type.Flags.IsValueType)
                         {
                             return "&";
@@ -802,6 +832,7 @@ namespace RTGen.Cpp.Generators
                 case "ArgTypeQualifiers":
                     if (options.GenerateWrapper &&
                         !arg.IsOutParam &&
+                        !arg.IsStealRef &&
                         !arg.Type.Flags.IsValueType &&
                         arg.Type.Name != "void")
                     {

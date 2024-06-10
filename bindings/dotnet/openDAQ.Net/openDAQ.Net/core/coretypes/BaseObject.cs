@@ -163,7 +163,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         {
             if (_handleRef.Handle == IntPtr.Zero) //this.IsDisposed not usable here since flag set at the beginning of Dispose()
             {
-                throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, $"{this.GetType().Name} already disposed");
+                throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, $"{this.GetType().Name} already disposed or 'stolen' through stealRef");
             }
 
             return _handleRef.Handle;
@@ -372,6 +372,16 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TObject : BaseObject
     {
         return QueryInterface<TObject>();
+    }
+
+    /// <summary>
+    /// Sets the native pointer to zero, so that the reference count would not be decremented on <see cref="Dispose()"/>. <br/>
+    /// Used internally for "stealRef" arguments.
+    /// </summary>
+    internal void SetNativePointerToZero()
+    {
+        if (_handleRef.Handle !=  IntPtr.Zero)
+            _handleRef = new HandleRef(this, IntPtr.Zero);
     }
 
     /// <summary>Disposes all references held by the object.</summary>

@@ -603,7 +603,7 @@ std::cout << sumFunc(12, 30) << std::endl;
 
 ==== Struct Properties
 
-TODO
+// TODO
 
 NOTE: Struct Properties can currently not be transmitted over OPC UA unless their Struct type name matches 
 a Structure type and key names/value types in the imported OPC UA nodesets.  
@@ -678,11 +678,10 @@ Python::
 ----
 prop_obj = opendaq.PropertyObject()
 float_prop = opendaq.FloatPropertyBuilder(opendaq.String('MyFloat'), opendaq.Float(1.123))
-# Unsupported in the current version
-# float_prop.min_value = 0.0
-# float_prop.max_value = 10.0
+float_prop.min_value = 0.0
+float_prop.max_value = 10.0
 
-propObj.add_property(float_prop.build())
+prop_obj.add_property(float_prop.build())
 ----
 ====
 
@@ -1070,7 +1069,15 @@ prop_obj.add_property(opendaq.ReferenceProperty(opendaq.String(
 
 all_props = prop_obj.all_properties
 visible_props = prop_obj.visible_properties
-# Properties orderings are not supported in the current version
+
+order = opendaq.List()
+order.push_back(opendaq.String('String')) 
+order.push_back(opendaq.String('Int'))
+order.push_back(opendaq.String('Float'))
+order.push_back(opendaq.String('FloatRef'))
+prop_obj.property_order = order
+
+all_props_reversed_order = prop_obj.all_properties
 ----
 ====
 
@@ -1249,7 +1256,7 @@ ListPtr<IString> list = propObj.getPropertyValue("List");
 list.pushBack("Blueberry");
 propObj.setPropertyValue("List", list);
 
-// Prints "Pear", "Strawberry", and "Blueberry"
+// Prints "Banana", "Kiwi", and "Blueberry"
 std::cout << propObj.getPropertyValue("List").toString() << std::endl;
 ----
 Python::
@@ -1260,7 +1267,7 @@ list = prop_obj.get_property_value("List")
 list.push_back('Blueberry')
 prop_obj.set_property_value('List', list)
 
-# Prints "Pear", "Strawberry", and "Blueberry"
+# Prints "Banana", "Kiwi", and "Blueberry"
 print(prop_obj.get_property_value('List'))
 ----
 ====
@@ -1292,14 +1299,14 @@ Python::
 dict = opendaq.Dict()
 dict[1] = 'Banana'
 dict[2] = 'Kiwi'
-property_object.add_property(opendaq.DictProperty(
+prop_obj.add_property(opendaq.DictProperty(
     opendaq.String('Dict'), dict, opendaq.Boolean(True)))
 
-dict = property_object.get_property_value("Dict")
+dict = prop_obj.get_property_value("Dict")
 dict[3] = 'Blueberry'
 
 # The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
-property_object.set_property_value('Dict', dict)
+prop_obj.set_property_value('Dict', dict)
 ----
 ====
 
@@ -1436,7 +1443,7 @@ list.push_back(opendaq.String('Apple'))
 list.push_back(opendaq.String('Kiwi'))
 prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 
-manager.add_class(prop_class.build())
+manager.add_type(prop_class.build())
 
 prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
 
@@ -1483,12 +1490,12 @@ manager = opendaq.TypeManager()
 
 prop_class1 = opendaq.PropertyObjectClassBuilderWithManager(manager, opendaq.String('InheritedClass'))
 prop_class1.add_property(opendaq.StringProperty(opendaq.String('InheritedProp'), opendaq.String('foo'), opendaq.Boolean(True)))
-manager.add_class(prop_class1.build())
+manager.add_type(prop_class1.build())
 
 prop_class2 = opendaq.PropertyObjectClassBuilderWithManager(manager, opendaq.String('MyClass'))
 prop_class2.add_property(opendaq.StringProperty(opendaq.String('OwnProp'), opendaq.String('bar'), opendaq.Boolean(True)))
 prop_class2.parent_name = 'InheritedClass'
-manager.add_class(prop_class2.build())
+manager.add_type(prop_class2.build())
 
 prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
 

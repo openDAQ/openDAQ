@@ -4,6 +4,7 @@ set(TEST_APP test_${MODULE_NAME})
 set(TEST_SOURCES
     main.cpp
     test_opcua_security.cpp
+    test_opcua_authentication.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES})

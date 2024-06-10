@@ -1,10 +1,6 @@
 set(BASE_NAME native_streaming_protocol)
 set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
-set(LIB_MAJOR_VERSION 1)
-set(LIB_MINOR_VERSION 0)
-set(LIB_PATCH_VERSION 0)
-
 set(SRC_Cpp native_streaming_client_handler.cpp
             native_streaming_server_handler.cpp
             native_streaming_protocol_types.cpp
@@ -65,4 +61,4 @@ endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
-opendaq_set_output_lib_name(${LIB_NAME} ${LIB_MAJOR_VERSION})
+opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})

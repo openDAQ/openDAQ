@@ -50,23 +50,23 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
 
     /*!
-     * @brief Gets the user-friendly name of a component.
-     * @param[out] name The user-friendly name of a component.
+     * @brief Gets the user-friendly name of a component type.
+     * @param[out] name The user-friendly name of a component type.
      *
      * Name is usually presented on the UI. Does not have to be unique.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
     /*!
-     * @brief Gets the description of a component.
-     * @param[out] description The description of a component.
+     * @brief Gets the description of a component type.
+     * @param[out] description The description of a component type.
      *
-     * A short description of a component and it's parameters.
+     * A short description of a component type and the associated configuration parameters it offers.
      */
     virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
 
     /*!
-     * @brief The function creates and returns default configuration. On each call, we need to create new object,
+     * @brief The function clones and returns default configuration. On each call, we need to create new object,
      * because we want that each instance of the component has its own configuration object.
      * @param[out] defaultConfig Newly created configuration object.
      *

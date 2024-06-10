@@ -3,6 +3,7 @@ set_cmake_context()
 add_subdirectory(utils)
 add_subdirectory(signal_generator)
 add_subdirectory(discovery)
+add_subdirectory(discovery_server)
 
 if (OPENDAQ_ENABLE_TEST_UTILS)
     add_subdirectory(testutils)
@@ -25,3 +26,5 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     add_subdirectory(packet_streaming)
     add_subdirectory(config_protocol)
 endif()
+
+add_subdirectory(ping)

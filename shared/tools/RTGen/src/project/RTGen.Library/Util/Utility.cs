@@ -164,13 +164,14 @@ namespace RTGen.Util
         /// <param name="buffer">The string buffer to trim.</param>
         public static void TrimTrailingNewLine(this StringBuilder buffer)
         {
-            if (buffer.Length > 2)
+            int newLineLength = Environment.NewLine.Length;
+            if (buffer.Length >= newLineLength)
             {
                 buffer.Replace(
                     Environment.NewLine,
                     string.Empty,
-                    buffer.Length - 2,
-                    2
+                    buffer.Length - newLineLength,
+                    newLineLength
                 );
             }
         }
@@ -182,7 +183,7 @@ namespace RTGen.Util
             int cutPosition = buffer.Length;
             int newLineLength = Environment.NewLine.Length;
 
-            for (int i = buffer.Length - newLineLength; i > 0; i -= newLineLength)
+            for (int i = buffer.Length - newLineLength; i >= 0; i -= newLineLength)
             {
                 bool isNewLine = true;
                 for (int j = 0; j < newLineLength; j++)

@@ -51,7 +51,7 @@ TEST_F(OpcUaClientTest, Connect)
 {
     OpcUaClient client(getServerUrl());
 
-    ASSERT_TRUE(client.connect());
+    client.connect();
     ASSERT_TRUE(client.isConnected());
     client.disconnect();
     ASSERT_FALSE(client.isConnected());
@@ -65,13 +65,13 @@ TEST_F_OPTIONAL(OpcUaClientTest, FirstConnectFails)
 
     client.setTimeout(500);
 
-    ASSERT_FALSE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
     ASSERT_FALSE(client.isConnected());
 
     testHelper.startServer();
 
     client.disconnect();
-    ASSERT_TRUE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
     ASSERT_TRUE(client.isConnected());
 
     client.disconnect();
@@ -118,7 +118,7 @@ TEST_F_OPTIONAL(OpcUaClientTest, ConnectTimeout)
 
     OpcUaClient client(getServerUrl());
 
-    ASSERT_TRUE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
     ASSERT_TRUE(client.isConnected());
 
     auto uaNode = OpcUaNodeId(1, ".d");
@@ -130,7 +130,7 @@ TEST_F_OPTIONAL(OpcUaClientTest, ConnectTimeout)
     ASSERT_THROW(client.nodeExists(uaNode), OpcUaException);
 
     client.disconnect();
-    ASSERT_TRUE(client.connect());
+    ASSERT_THROW(client.connect(), OpcUaException);
     ASSERT_TRUE(client.isConnected());
 
     ASSERT_TRUE(client.nodeExists(uaNode));

@@ -72,6 +72,8 @@ public:
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
 
+    ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
@@ -126,6 +128,7 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
     ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

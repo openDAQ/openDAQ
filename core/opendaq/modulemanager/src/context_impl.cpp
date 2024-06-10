@@ -6,6 +6,7 @@
 #include <opendaq/custom_log.h>
 #include <coretypes/type_manager_private.h>
 #include <coreobjects/core_event_args_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -13,15 +14,22 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
                          LoggerPtr logger,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager,
-                         DictPtr<IString, IBaseObject> options)
+                         AuthenticationProviderPtr authenticationProvider,
+                         DictPtr<IString, IBaseObject> options,
+                         DictPtr<IString, IDiscoveryServer> discoveryServices)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
     , typeManager(std::move(typeManager))
+    , authenticationProvider(std::move(authenticationProvider))
     , options(std::move(options))
+    , discoveryServices(std::move(discoveryServices))
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
+
+    if (!this->authenticationProvider.assigned())
+        this->authenticationProvider = AuthenticationProvider();
 
     if (this->moduleManager.assigned())
     {
@@ -105,6 +113,14 @@ ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC ContextImpl::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationProvider);
+
+    *authenticationProvider = this->authenticationProvider.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ContextImpl::getOnCoreEvent(IEvent** event)
 {
     OPENDAQ_PARAM_NOT_NULL(event);
@@ -133,6 +149,12 @@ ErrCode ContextImpl::moveModuleManager(IModuleManager** manager)
 ErrCode ContextImpl::getOptions(IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
+
+    if (!this->options.assigned())
+    {
+        *options = Dict<IString, IBaseObject>().detach();
+        return OPENDAQ_SUCCESS;
+    }
 
     *options = this->options.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -183,6 +205,18 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 }
 
+ErrCode ContextImpl::getDiscoveryServers(IDict** services)
+{
+    OPENDAQ_PARAM_NOT_NULL(services);
+    if (!this->discoveryServices.assigned())
+    {
+        *services = Dict<IString, IDiscoveryServer>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+    *services = this->discoveryServices.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY,
     Context,
@@ -190,6 +224,9 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     ILogger*, Logger,
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
-    IDict*, options)
+    IAuthenticationProvider*, authenticationProvider,
+    IDict*, options,
+    IDict*, discoveryServices
+)
 
 END_NAMESPACE_OPENDAQ

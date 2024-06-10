@@ -215,22 +215,18 @@ public:
     }
 
     /*!
-     * @brief Verifies whether the provided connection string or config object can be used to establish a streaming connection
-     * supported by this module. If the connection string is not assigned, it checks if the config object
-     * is valid and complete enough to generate a connection string.
-     * @param[out] accepted Whether this module supports the @p connectionString or @p config.
+     * @brief Verifies whether the provided connection string and config object can be used to establish a streaming connection
+     * supported by this module.
+     * @param[out] accepted Whether this module supports the @p connectionString with provided @p config.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
-     * @param config A configuration info object that contains streaming type ID and additional parameters.
-     * The configuration info is used to generate a connection string if it is not present.
+     * @param config A config object that contains parameters used to configure a streaming connection.
+     * This object can contain properties like various connection timeouts or other streaming protocol specific settings.
+     * Can be created from its corresponding Streaming type object. In case of a null value, it will use the default configuration.
      */
     ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) override
     {
         OPENDAQ_PARAM_NOT_NULL(accepted);
-        if (connectionString == nullptr && config == nullptr)
-            return makeErrorInfo(
-                OPENDAQ_ERR_ARGUMENT_NULL,
-                "At least one parameter connection string or config should be provided for streaming"
-            );
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
 
         bool accepts;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, config);
@@ -240,24 +236,40 @@ public:
     }
 
     /*!
-     * @brief Creates and returns a streaming object using the specified connection string or config info object.
+     * @brief Creates and returns a streaming object using the specified connection string and config object.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
-     * @param config Streaming configuration info.
+     * @param config A config object that contains parameters used to configure a streaming connection.
+     * In case of a null value, implementation should use default configuration.
      * @param[out] streaming The created streaming object.
      */
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
-        if (connectionString == nullptr && config == nullptr)
-            return makeErrorInfo(
-                OPENDAQ_ERR_ARGUMENT_NULL,
-                "At least one parameter connection string or config should be provided for streaming"
-            );
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
 
-        StreamingPtr streamingInstance;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, streamingInstance, connectionString, config);
+        StreamingPtr createdStreaming;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, createdStreaming, connectionString, config);
 
-        *streaming = streamingInstance.detach();
+        *streaming = createdStreaming.detach();
+        return errCode;
+    }
+
+    /*!
+     * @brief Creates and returns a connection string from the specified server capability object.
+     * @param serverCapability Represents the connection parameters of supported streaming or configuration protocol.
+     * @param[out] connectionString The created connection string.
+     * @return A non-zero error code if the @p serverCapability is not supported by module and is not complete enough to
+     * generate a connection string.
+     */
+    ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
+        OPENDAQ_PARAM_NOT_NULL(serverCapability);
+
+        StringPtr createdConnectionString;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateConnectionString, createdConnectionString, serverCapability);
+
+        *connectionString = createdConnectionString.detach();
         return errCode;
     }
 
@@ -353,34 +365,9 @@ public:
         return nullptr;
     }
 
-    StreamingPtr createStreamingFromAnotherModule(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+    virtual StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
     {
-        StreamingPtr streaming = nullptr;
-        ModuleManagerPtr moduleManager = context.getModuleManager();
-        for (const auto module : moduleManager.getModules())
-        {
-            bool accepted{};
-            try
-            {
-                accepted = module.acceptsStreamingConnectionParameters(connectionString, capability);
-            }
-            catch(NotImplementedException&)
-            {
-                LOG_I("{}: acceptsStreamingConnectionParameters not implemented", module.getName())
-                accepted = false;
-            }
-            catch(const std::exception& e)
-            {
-                LOG_W("{}: acceptsStreamingConnectionParameters failed: {}", module.getName(), e.what())
-                accepted = false;
-            }
-
-            if (accepted)
-            {
-                streaming = module.createStreaming(connectionString, capability);
-            }
-        }
-        return streaming;
+        return nullptr;
     }
 
 protected:

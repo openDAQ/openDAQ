@@ -22,6 +22,7 @@
 #include <coretypes/weakrefobj.h>
 #include <coretypes/deserializer.h>
 #include <coretypes/procedure_ptr.h>
+#include <coretypes/utility_sync.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -49,7 +50,7 @@ private:
     DictPtr<IString, IType> types;
     ProcedurePtr coreEventCallback;
     std::unordered_set<std::string> reservedTypeNames;
-    std::mutex sync;
+    daq::mutex sync;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TypeManagerImpl)

@@ -7,10 +7,15 @@
 #include <testutils/testutils.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/config_provider_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <thread>
 #include <fstream>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
+
 using RefModulesTest = testing::Test;
 using namespace daq;
 
@@ -603,8 +608,8 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
     ClassifierTestHelper helper;
     helper.setUp();
 
-    const auto inputSignal = helper.getInputSignal();
-    const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
+    // send packet to trigger classifier
+    helper.sendPacket(helper.createDataPacket(1));
 
     const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
@@ -613,16 +618,7 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
     const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
     // Check Explicit Rule
-    // ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
-
-    // Check Linear Rule
-    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Linear);
-
-    // Check deltas
-    auto classifierDelta = classifierDomainRule.getParameters().get("delta");
-    auto inputResolution = inputDomainDescriptor.getTickResolution() * Int(1000);
-    auto expectedClassifierDelata = 1.0 / static_cast<Float>(inputResolution);
-    ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
 }
 
 TEST_F(RefModulesTest, ClassifierRuleForAsync)
@@ -631,10 +627,7 @@ TEST_F(RefModulesTest, ClassifierRuleForAsync)
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10), false);
 
     // send packet to trigger classifier
-    auto dataPacket = helper.createDataPacket(1);
-    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
-    dataPtr[0] = 0;
-    helper.sendPacket(dataPacket);
+    helper.sendPacket(helper.createDataPacket(1));
 
     const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
@@ -652,10 +645,7 @@ TEST_F(RefModulesTest, ClassifierRangeSize)
     helper.setUp(daq::SampleType::UInt64, Range(-3, 3));
 
     // send packet to trigger classifier
-    auto dataPacket = helper.createDataPacket(1);
-    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
-    dataPtr[0] = 0;
-    helper.sendPacket(dataPacket);
+    helper.sendPacket(helper.createDataPacket(1));
 
     const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
@@ -671,10 +661,7 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
     helper.setUp(daq::SampleType::UInt64, Range(-5, 5));
 
     // send packet to trigger classifier
-    auto dataPacket = helper.createDataPacket(1);
-    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
-    dataPtr[0] = 0;
-    helper.sendPacket(dataPacket);
+    helper.sendPacket(helper.createDataPacket(1));
 
     const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("ClassCount", 4);
@@ -692,10 +679,7 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10));
 
     // send packet to trigger classifier
-    auto dataPacket = helper.createDataPacket(1);
-    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
-    dataPtr[0] = 0;
-    helper.sendPacket(dataPacket);
+    helper.sendPacket(helper.createDataPacket(1));
 
     const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("UseCustomClasses", true);
@@ -1108,6 +1092,80 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
     scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
 }
 
+TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
+{
+    constexpr bool enableRenderer = false;
+    FunctionBlockPtr rendererFb;
+
+    const auto instance = Instance();
+
+    const auto config = PropertyObject();
+    config.addProperty(IntPropertyBuilder("NumberOfChannels", 200).build());
+
+    const auto device = instance.addDevice("daqref://device0", config);
+    device.setPropertyValue("AcquisitionLoopTime", 1);
+    device.setPropertyValue("GlobalSampleRate", 100000);
+
+    const size_t numberOfChannels = device.getPropertyValue("NumberOfChannels");
+
+    if constexpr (enableRenderer)
+    {
+        rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+        rendererFb.setPropertyValue("Duration", 2.0);
+        rendererFb.setPropertyValue("SingleXAxis", 2.0);
+        rendererFb.setPropertyValue("ShowLastValue", True);
+    }
+
+    for (size_t i = 0; i < numberOfChannels; ++i)
+    {
+        const auto deviceChannel = device.getChannels()[i];
+        deviceChannel.setPropertyValue("FixedPacketSize", True);
+        deviceChannel.setPropertyValue("PacketSize", 10000);
+        deviceChannel.setPropertyValue("Waveform", 3);
+        const auto deviceSignal = deviceChannel.getSignals()[0];
+        deviceSignal.setPublic(false);
+
+        const auto scalingFb1 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb1.setPropertyValue("Scale", 2.0);
+        scalingFb1.setPropertyValue("Offset", 1.0);
+        scalingFb1.getInputPorts()[0].connect(deviceSignal);
+        const auto scaledSignal1 = scalingFb1.getSignals()[0];
+        scaledSignal1.setPublic(false);
+
+        const auto scalingFb2 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb2.setPropertyValue("Scale", 2.0);
+        scalingFb2.setPropertyValue("Offset", 1.0);
+        scalingFb2.getInputPorts()[0].connect(scaledSignal1);
+        const auto scaledSignal2 = scalingFb2.getSignals()[0];
+        scaledSignal2.setPublic(false);
+
+        const auto scalingFb3 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb3.setPropertyValue("Scale", 2.0);
+        scalingFb3.setPropertyValue("Offset", 1.0);
+        scalingFb3.getInputPorts()[0].connect(scaledSignal2);
+        const auto scaledSignal3 = scalingFb3.getSignals()[0];
+        scaledSignal3.setPublic(false);
+
+        const auto scalingFb4 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb4.setPropertyValue("Scale", 2.0);
+        scalingFb4.setPropertyValue("Offset", 1.0);
+        scalingFb4.getInputPorts()[0].connect(scaledSignal3);
+        const auto scaledSignal4 = scalingFb4.getSignals()[0];
+        scaledSignal4.setPublic(false);
+
+        if constexpr (enableRenderer)
+        {
+            if (i == 0)
+            {
+                rendererFb.getInputPorts()[0].connect(deviceSignal);
+                rendererFb.getInputPorts()[1].connect(scaledSignal4);
+            }
+        }
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+}
+
 static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
 {
     std::ofstream file;
@@ -1133,7 +1191,7 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
         }
     }
     )";
-    auto finaly = CreateConfigFile(configFilename, options);
+    auto finally = CreateConfigFile(configFilename, options);
 
     const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
     const auto device = instance.addDevice("daqref://device1");

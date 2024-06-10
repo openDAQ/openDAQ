@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -74,75 +74,113 @@ public class Enumeration : BaseObject
             _rawEnumeration = Marshal.PtrToStructure<RawEnumeration>(objVirtualTable);
     }
 
+    #region properties
+
     /// <summary>Gets the Enumeration&apos;s type.</summary>
-    /// <returns>The Enumeration type</returns>
-    public EnumerationType GetEnumerationType()
+    public EnumerationType EnumerationType
     {
-        //native output argument
-        IntPtr typePtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetEnumerationType(base.NativePointer, out typePtr);
+            //native output argument
+            IntPtr typePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetEnumerationType(base.NativePointer, out typePtr);
 
-        return new EnumerationType(typePtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new EnumerationType(typePtr, incrementReference: false);
+        }
     }
 
     /// <summary>Gets the Enumeration value as String containing the name of the enumerator constant.</summary>
-    /// <returns>Emumeration value.</returns>
-    public string GetValue()
+    public string Value
     {
-        //native output argument
-        IntPtr valuePtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetValue(base.NativePointer, out valuePtr);
+            //native output argument
+            IntPtr valuePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetValue(base.NativePointer, out valuePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
-        }
 
-        // validate pointer
-        if (valuePtr == IntPtr.Zero)
-        {
-            return null;
-        }
+            // validate pointer
+            if (valuePtr == IntPtr.Zero)
+            {
+                return null;
+            }
 
-        using var value = new StringObject(valuePtr, incrementReference: false);
-        return value;
+            using var value = new StringObject(valuePtr, incrementReference: false);
+            return value;
+        }
     }
 
     /// <summary>Gets the Enumeration value as Integer enumerator constant.</summary>
-    /// <returns>Emumeration Integer value.</returns>
-    public long GetIntValue()
+    public long IntValue
     {
-        //native output argument
-        long value;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetIntValue(base.NativePointer, out value);
+            //native output argument
+            long value;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawEnumeration.GetIntValue(base.NativePointer, out value);
 
-        return value;
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return value;
+        }
     }
+
+    #endregion properties
+
+    #region operators
+
+    //implicit cast operators 'Daq.Core.Types.Enumeration' to/from 'string'
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="string"/>.</summary>
+    /// <param name="value">The SDK <c>Enumeration</c>.</param>
+    /// <returns>The managed <c>string</c> value.</returns>
+    public static implicit operator string(Enumeration value) => value.Value;
+
+    /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
+    /// <param name="other">The other <c>string</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>string</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(string other) => ((string)this).Equals(other, StringComparison.Ordinal);
+
+    //implicit cast operators 'Daq.Core.Types.Enumeration' to/from 'long'
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="long"/>.</summary>
+    /// <param name="value">The SDK <c>Enumeration</c>.</param>
+    /// <returns>The managed <c>long</c> value.</returns>
+    public static implicit operator long(Enumeration value) => value.IntValue;
+
+    /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
+    /// <param name="other">The other <c>long</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>long</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(long other) => ((long)this).Equals(other);
+
+    #endregion operators
 }
 
 
@@ -170,7 +208,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -191,7 +229,57 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
+        {
+            throw new OpenDaqException(errorCode);
+        }
+
+        //create and return object
+        return new Enumeration(objPtr, incrementReference: false);
+    }
+
+
+    //ErrorCode createEnumerationWithIntValue(daq.IEnumeration** obj, daq.IString* name, daq.IInteger* value, daq.ITypeManager* typeManager); cdecl;
+    [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
+    private static extern ErrorCode createEnumerationWithIntValue(out IntPtr obj, IntPtr name, IntPtr value, IntPtr typeManager);
+
+    public static ErrorCode CreateEnumerationWithIntValue(out Enumeration obj, string name, long value, TypeManager typeManager)
+    {
+        //initialize output argument
+        obj = default;
+
+        //native output argument
+        IntPtr objPtr;
+
+        //cast .NET argument to SDK object
+        using var namePtr = (StringObject)name;
+        using var valuePtr = (IntegerObject)value;
+
+        //call native function
+        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        {
+            //create object
+            obj = new Enumeration(objPtr, incrementReference: false);
+        }
+
+        return errorCode;
+    }
+
+    public static Enumeration CreateEnumerationWithIntValue(string name, long value, TypeManager typeManager)
+    {
+        //native output argument
+        IntPtr objPtr;
+
+        //cast .NET argument to SDK object
+        using var namePtr = (StringObject)name;
+        using var valuePtr = (IntegerObject)value;
+
+        //call native function
+        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -219,7 +307,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new Enumeration(objPtr, incrementReference: false);
@@ -239,7 +327,55 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
+        {
+            throw new OpenDaqException(errorCode);
+        }
+
+        //create and return object
+        return new Enumeration(objPtr, incrementReference: false);
+    }
+
+
+    //ErrorCode createEnumerationWithIntValueAndType(daq.IEnumeration** obj, daq.IEnumerationType* type, daq.IInteger* value); cdecl;
+    [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
+    private static extern ErrorCode createEnumerationWithIntValueAndType(out IntPtr obj, IntPtr type, IntPtr value);
+
+    public static ErrorCode CreateEnumerationWithIntValueAndType(out Enumeration obj, EnumerationType type, long value)
+    {
+        //initialize output argument
+        obj = default;
+
+        //native output argument
+        IntPtr objPtr;
+
+        //cast .NET argument to SDK object
+        using var valuePtr = (IntegerObject)value;
+
+        //call native function
+        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        {
+            //create object
+            obj = new Enumeration(objPtr, incrementReference: false);
+        }
+
+        return errorCode;
+    }
+
+    public static Enumeration CreateEnumerationWithIntValueAndType(EnumerationType type, long value)
+    {
+        //native output argument
+        IntPtr objPtr;
+
+        //cast .NET argument to SDK object
+        using var valuePtr = (IntegerObject)value;
+
+        //call native function
+        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

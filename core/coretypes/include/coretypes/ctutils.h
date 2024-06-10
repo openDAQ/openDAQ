@@ -379,7 +379,7 @@ template <typename T>
 class ShowType;
 
 template <class F>
-ErrCode daqTry(const IBaseObject* context, const F& func)
+ErrCode daqTry(const IBaseObject* context, F&& func)
 {
     try
     {
@@ -426,6 +426,12 @@ ErrCode daqTry(const F& func)
     return daqTry(nullptr, func);
 }
 
+template <class F>
+ErrCode daqTry(F&& func)
+{
+    return daqTry(nullptr, std::move(func));
+}
+
 template <typename TPtr, typename TFunc>
 TPtr callNotNull(TPtr ptr, TFunc func)
 {
@@ -441,6 +447,21 @@ inline bool validateTypeName(ConstCharPtr typeName)
 {
     const std::regex validatorRegex("^[a-zA-Z_]+[a-zA-Z0-9_]*$");
     return std::regex_match(typeName, validatorRegex);
+}
+
+template <typename T>
+using IsEnumTypeEnum = std::enable_if<std::is_enum_v<T> && std::is_same_v<std::underlying_type_t<T>, EnumType>, int>;
+
+template <typename T, typename IsEnumTypeEnum<T>::type = 0>
+T operator|(T lhs, T rhs)
+{
+    return T(EnumType(lhs) | EnumType(rhs));
+}
+
+template <typename T, typename IsEnumTypeEnum<T>::type = 0>
+bool operator&(T lhs, T rhs)
+{
+    return EnumType(lhs) & EnumType(rhs);
 }
 
 END_NAMESPACE_OPENDAQ

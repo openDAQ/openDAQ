@@ -130,13 +130,21 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.acceptsStreamingConnectionParameters(connectionString, config);
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
-        "Verifies whether the provided connection string or config object can be used to establish a streaming connection supported by this module. If the connection string is not assigned, it checks if the config object is valid and complete enough to generate a connection string.");
+        "Verifies whether the provided connection string and config object can be used to establish a streaming connection supported by this module.");
     cls.def("create_streaming",
         [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createStreaming(connectionString, config).detach();
         },
-        py::arg("connection_string"), py::arg("config"),
-        "Creates and returns a streaming object using the specified connection string or config info object.");
+        py::arg("connection_string"), py::arg("config") = nullptr,
+        "Creates and returns a streaming object using the specified connection string and config object.");
+    cls.def("create_connection_string",
+        [](daq::IModule *object, daq::IServerCapability* serverCapability)
+        {
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.createConnectionString(serverCapability).toStdString();
+        },
+        py::arg("server_capability"),
+        "Creates and returns a connection string from the specified server capability object.");
 }

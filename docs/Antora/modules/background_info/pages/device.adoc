@@ -193,7 +193,7 @@ def device_info(device: opendaq.IDevice):
     info = device.info
     print(info.serial_number)
     # Prints the name of the first available device
-    available_device_info = device.available_devices.values[0]
+    available_device_info = device.available_devices[0]
     print(available_device_info.name)
 ----
 ====

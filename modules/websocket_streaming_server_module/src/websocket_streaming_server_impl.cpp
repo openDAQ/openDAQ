@@ -3,15 +3,15 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
 using namespace daq;
 
 WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server(nullptr, rootDevice, nullptr, nullptr)
+    : Server("StreamingLtServer", config, rootDevice, context, nullptr)
     , websocketStreamingServer(rootDevice, context)
-    , config(config)
 {
     const uint16_t streamingPort = config.getPropertyValue("WebsocketStreamingPort");
     const uint16_t controlPort = config.getPropertyValue("WebsocketControlPort");
@@ -21,7 +21,24 @@ WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice,
     websocketStreamingServer.start();
 }
 
-PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
+void WebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
+{
+    if (!context.assigned())
+        return;
+    if (!config.assigned())
+        return;
+
+    auto options = context.getModuleOptions("StreamingLtServer");
+    for (const auto& [key, value] : options)
+    {
+        if (config.hasProperty(key))
+        {
+            config->setPropertyValue(key, value);
+        }
+    }
+}
+
+PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig(const ContextPtr& context)
 {
     constexpr Int minPortValue = 0;
     constexpr Int maxPortValue = 65535;
@@ -36,24 +53,30 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
         IntPropertyBuilder("WebsocketControlPort", 7438).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
     defaultConfig.addProperty(websocketControlPortProp);
 
+    defaultConfig.addProperty(StringProperty("Path", "/"));
+
+    populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
 
-ServerTypePtr WebsocketStreamingServerImpl::createType()
+PropertyObjectPtr WebsocketStreamingServerImpl::getDiscoveryConfig()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&WebsocketStreamingServerImpl::createDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
+    auto discoveryConfig = PropertyObject();
+    discoveryConfig.addProperty(StringProperty("ServiceName", "_streaming-lt._tcp.local."));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", "LT"));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("WebsocketStreamingPort")));
+    return discoveryConfig;
+}
 
+
+ServerTypePtr WebsocketStreamingServerImpl::createType(const ContextPtr& context)
+{
     return ServerType(
         "openDAQ LT Streaming",
         "openDAQ LT Streaming server",
         "Publishes device signals as a flat list and streams data over WebsocketTcp protocol",
-        configurationCallback);
+        WebsocketStreamingServerImpl::createDefaultConfig(context));
 }
 
 void WebsocketStreamingServerImpl::onStopServer()

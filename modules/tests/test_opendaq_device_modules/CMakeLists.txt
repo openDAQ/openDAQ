@@ -3,7 +3,9 @@ set(TEST_APP test_device_modules)
 set(TEST_SOURCES test_native_device_modules.cpp
                  test_opcua_device_modules.cpp
                  test_app.cpp
-                 test_helpers.h
+                 test_helpers/test_helpers.h
+                 test_helpers/mock_helper_module.h
+                 test_helpers/mock_helper_module.cpp
 )
 
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -26,6 +28,10 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
 )
+
+# Should link only what you need $<BUILD_INTERFACE:Boost::asio>
+target_link_libraries(${TEST_APP} PRIVATE $<BUILD_INTERFACE:Boost::asio>)
+
 
 add_dependencies(${TEST_APP} daq::opcua_client_module
                              daq::opcua_server_module

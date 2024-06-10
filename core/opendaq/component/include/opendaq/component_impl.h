@@ -40,6 +40,9 @@
 #include <cctype>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -112,6 +115,7 @@ public:
 
 protected:
     virtual void activeChanged();
+    virtual void visibleChanged();
     virtual void removed();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
@@ -165,6 +169,8 @@ protected:
 
     PropertyObjectPtr getPropertyObjectParent() override;
 
+    static bool validateComponentId(const std::string& id);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -216,8 +222,26 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     if (!context.assigned())
         throw InvalidParameterException{"Context must be assigned on component creation"};
 
+    if (context.getLogger().assigned()) {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        const auto localIdString = localId.toStdString();
+        if (!validateComponentId(localIdString))
+            LOG_W("Component has incorrect id '{}': contains whitespaces", localIdString);
+    }
+
     context->getOnCoreEvent(&this->coreEvent);
     lockedAttributes.insert("Visible");
+
+    if (parent.assigned())
+    {
+        const auto parentManager = parent.getPermissionManager();
+        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+    }
+    else
+    {
+        this->permissionManager.setPermissions(
+            PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+    }
 }
 
 template <class Intf, class ... Intfs>
@@ -459,6 +483,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         }
 
         this->visible = visible;
+        visibleChanged();
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -788,6 +813,11 @@ void ComponentImpl<Intf, Intfs...>::activeChanged()
 }
 
 template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::visibleChanged()
+{
+}
+
+template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::removed()
 {
 }
@@ -1084,6 +1114,12 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                 }
                 return nullptr;
             });
+}
+
+template <class Intf, class... Intfs>
+bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
+{
+    return id.find(' ') == std::string::npos;
 }
 
 using StandardComponent = ComponentImpl<>;

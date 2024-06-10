@@ -7,8 +7,22 @@ MockServerImpl::MockServerImpl()
 {
 }
 
+ErrCode MockServerImpl::enableDiscovery()
+{
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MockServerImpl::stop()
 {
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MockServerImpl::getId(IString** serverId)
+{
+    if (serverId != nullptr)
+    {
+        *serverId = String("MockServer").detach();
+    }
     return OPENDAQ_SUCCESS;
 }
 

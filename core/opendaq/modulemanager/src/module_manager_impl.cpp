@@ -1,3 +1,4 @@
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/custom_log.h>
@@ -16,8 +17,15 @@
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <ping/icmp_ping.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
+#include <optional>
+#include <map>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -27,6 +35,7 @@ static std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& log
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
+    , work(ioContext.get_executor())
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(); pathStr.assigned())
     {
@@ -36,8 +45,20 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
-    else
-        throw InvalidParameterException{};
+
+    std::size_t numThreads = 2;
+    pool.reserve(numThreads);
+    
+    for (std::size_t i = 0; i < numThreads; ++i)
+    {
+        pool.emplace_back([this]
+        {
+            ioContext.run();
+        });
+    }
+
+    if (paths.empty())
+        throw InvalidParameterException{"No valid paths provided!"};
 }
 
 ModuleManagerImpl::~ModuleManagerImpl()
@@ -51,6 +72,14 @@ ModuleManagerImpl::~ModuleManagerImpl()
     }
 
     orphanedModules.tryUnload();
+
+    work.reset();
+    ioContext.stop();
+    for (auto& thread : pool)
+    {
+        if (thread.joinable())
+            thread.join();
+    }
 }
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
@@ -114,6 +143,56 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     });
 }
 
+struct DevicePing
+{
+    DeviceInfoPtr info;
+    std::shared_ptr<IcmpPing> ping;
+};
+
+void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
+{
+    using namespace std::chrono_literals;
+
+    std::vector<DevicePing> statuses;
+
+    for (auto deviceInfo : list)
+    {
+        if (!deviceInfo.hasProperty("ipv4Address"))
+        {
+            continue;
+        }
+
+        auto icmp = IcmpPing::Create(ioContext, logger);
+        IcmpPing& ping = *icmp;
+
+        std::string deviceIp = deviceInfo.getPropertyValue("ipv4Address");
+
+        ping.setMaxHops(1);
+        ping.start(boost::asio::ip::make_address_v4(deviceIp));
+        if (ping.waitSend())
+        {
+            deviceInfo.addProperty(BoolProperty("canPing", true));
+            continue;
+        }
+
+        statuses.push_back({deviceInfo, icmp});
+
+        LOG_T("No replies received yet: waiting 1s\n");
+    }
+
+    if (!statuses.empty())
+    {
+        std::this_thread::sleep_for(1s);
+
+        for (const auto& [info, ping] : statuses)
+        {
+            ping->stop();
+            info->addProperty(BoolProperty("canPing", ping->getNumReplies() > 0));
+        }
+        statuses.clear();
+    }
+}
+
 ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
@@ -170,7 +249,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || deviceInfo.getServerCapabilities().getCount() == 0)
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -184,18 +263,28 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                     for (const auto & capability : deviceInfo.getServerCapabilities())
                         if (!value.hasServerCapability(capability.getProtocolId()))
                             value.addServerCapability(capability);
+                    value.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                 }
                 else
                 {
-                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                     groupedDevices.set(id, deviceInfo);
                 }
-            }            
+            }
         }
     }
 
     for (const auto & [_, deviceInfo] : groupedDevices)
         availableDevicesPtr.pushBack(deviceInfo);
+
+    try
+    {
+        checkNetworkSettings(availableDevicesPtr);        
+    }
+    catch(const std::exception& e)
+    {
+        LOG_W("Failed to check for network settings: {}", e.what());
+        // ignore all errors
+    }
 
     *availableDevices = availableDevicesPtr.detach();
 
@@ -249,9 +338,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-    DeviceInfoPtr deviceInfo;
+    bool useSmartConnection = (connectionStringPtr.toStdString().find("daq://") == 0);
+
+    DeviceInfoPtr discoveredDeviceInfo;
     
-    if (connectionStringPtr.toStdString().find("daq://") == 0)
+    if (useSmartConnection)
     {
         if (!availableDevicesGroup.assigned())
         {
@@ -261,14 +352,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         }
         
         if (availableDevicesGroup.hasKey(connectionStringPtr))
-            deviceInfo = availableDevicesGroup.get(connectionStringPtr);
+            discoveredDeviceInfo = availableDevicesGroup.get(connectionStringPtr);
         
-        if (!deviceInfo.assigned())
+        if (!discoveredDeviceInfo.assigned())
         {
             return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
         }
 
-        const auto capabilities = deviceInfo.getServerCapabilities();
+        const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
         if (capabilities.getCount() == 0)
         {
             return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
@@ -298,7 +389,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             {
                 if (info.getConnectionString() == connectionStringPtr)
                 {
-                    deviceInfo = info;
+                    discoveredDeviceInfo = info;
                     break;
                 }
             }
@@ -310,12 +401,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                     {
                         if (connection == connectionStringPtr)
                         {
-                            deviceInfo = info;
+                            discoveredDeviceInfo = info;
                             break;
                         }
                     }
                 }
-                if (deviceInfo.assigned())
+                if (discoveredDeviceInfo.assigned())
                     break;
             }
         }
@@ -344,25 +435,56 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (accepted)
         {
             auto errCode = module->createDevice(device, connectionStringPtr, parent, config);
+
             if (OPENDAQ_FAILED(errCode))
                 return errCode;
 
-            auto devicePtr = DevicePtr::Borrow(*device); 
-            if (devicePtr.assigned() && deviceInfo.assigned() && devicePtr.getInfo().assigned())
+            auto devicePtr = DevicePtr::Borrow(*device);
+            if (devicePtr.assigned() && devicePtr.getInfo().assigned())
             {
-                auto deviceInfoConfig = devicePtr.getInfo().asPtr<IDeviceInfoInternal>();
-                for (const auto & capability : deviceInfo.getServerCapabilities())
+                auto connectedDeviceInfo = devicePtr.getInfo().asPtr<IDeviceInfoInternal>();
+                if (discoveredDeviceInfo.assigned())
                 {
-                    if (deviceInfoConfig.hasServerCapability(capability.getProtocolId()))
-                        deviceInfoConfig.removeServerCapability(capability.getProtocolId());
-                    deviceInfoConfig.addServerCapability(capability);
+                    // replaces the capabilities retrieved from the config/structure protocol
+                    // with the same capabilities sourced from the discovery client
+                    for (const auto& capability : discoveredDeviceInfo.getServerCapabilities())
+                    {
+                        if (connectedDeviceInfo.hasServerCapability(capability.getProtocolId()))
+                            connectedDeviceInfo.removeServerCapability(capability.getProtocolId());
+                        connectedDeviceInfo.addServerCapability(capability);
+                    }
+                }
+
+                for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
+                {
+                    // assigns missing connection strings for server capabilities
+                    if (capability.getConnectionString() == "" &&
+                        capability.getConnectionStrings().empty())
+                    {
+                        auto capConnectionString = createConnectionString(capability);
+                        if (capConnectionString.assigned())
+                            capability.asPtr<IServerCapabilityConfig>().addConnectionString(capConnectionString);
+                    }
+                }
+
+                // automatically skips streaming connection for local and pseudo (streaming) devices
+                auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>();
+                if (mirroredDeviceConfigPtr.assigned())
+                {
+                    auto configPtr = PropertyObjectPtr::Borrow(config);
+                    configureStreamings(mirroredDeviceConfigPtr, configPtr);
                 }
             }
+
             return errCode;
         }
     }
-    throw this->makeErrorInfo(
-        OPENDAQ_ERR_NOTFOUND, "Device with given connection string and config is not available [{}]", connectionString);
+
+    return this->makeErrorInfo(
+        OPENDAQ_ERR_NOTFOUND,
+        "Device with given connection string and config is not available [{}]",
+        connectionString
+    );
 }
 
 
@@ -477,7 +599,22 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     }
 
     return this->makeErrorInfo(
-        OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Function block with given uid and config is not available [{}])", typeId));
+        OPENDAQ_ERR_NOTFOUND,
+        fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
+    );
+}
+
+ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+    OPENDAQ_PARAM_NOT_NULL(streaming);
+
+    StreamingPtr streamingPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config);
+
+    *streaming = streamingPtr.detach();
+
+    return errCode;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
@@ -499,6 +636,207 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     }
 
     return 0;
+}
+
+PropertyObjectPtr ModuleManagerImpl::populateStreamingConfig(const PropertyObjectPtr& streamingConfig)
+{
+    PropertyObjectPtr resultConfig = streamingConfig.assigned() ? streamingConfig : PropertyObject();
+
+    if (!resultConfig.hasProperty("StreamingConnectionHeuristic"))
+    {
+        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                        List<IString>("MinConnections",
+                                                                                      "MinHops",
+                                                                                      "NotConnected"),
+                                                                        0);
+        resultConfig.addProperty(streamingConnectionHeuristicProp);
+    }
+
+    if (!resultConfig.hasProperty("PrioritizedStreamingProtocols"))
+    {
+        auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+        resultConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+    }
+
+    return resultConfig;
+}
+
+ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const MirroredDeviceConfigPtr& device)
+{
+    auto result = List<IMirroredDeviceConfig>();
+
+    auto childDevices = device.getDevices();
+    for (const auto& childDevice : childDevices)
+    {
+        auto subDevices = getAllDevicesRecursively(childDevice);
+        for (const auto& subDevice : subDevices)
+        {
+            result.pushBack(subDevice);
+        }
+    }
+
+    result.pushBack(device);
+
+    return result;
+}
+
+void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
+                                                 const ListPtr<IString>& prioritizedStreamingProtocols)
+{
+    auto deviceInfo = device.getInfo();
+    auto signals = device.getSignals(search::Recursive(search::Any()));
+
+    // protocol Id as a key, protocol priority as a value
+    std::map<StringPtr, SizeT> prioritizedProtocolsMap;
+    for (SizeT index = 0; index < prioritizedStreamingProtocols.getCount(); ++index)
+    {
+        prioritizedProtocolsMap.insert({prioritizedStreamingProtocols[index], index});
+    }
+
+    // protocol priority as a key, streaming source as a value
+    std::map<SizeT, StreamingPtr> prioritizedStreamingSourcesMap;
+
+    // connect via all allowed streaming protocols
+    for (const auto& cap : device.getInfo().getServerCapabilities())
+    {
+        LOG_D("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
+              device.getGlobalId(),
+              cap.getProtocolName(),
+              cap.getProtocolId(),
+              cap.getConnectionString(),
+              cap.getPrefix());
+
+        const StringPtr protocolId = cap.getPropertyValue("protocolId");
+        if (cap.getProtocolType() != ProtocolType::Streaming)
+            continue;
+
+        const auto protocolIt = prioritizedProtocolsMap.find(protocolId);
+        if (protocolIt == prioritizedProtocolsMap.end())
+            continue;
+        const SizeT protocolPriority = protocolIt->second;
+
+        StreamingPtr streaming;
+        auto connectionString = cap.getConnectionString();
+        if (!connectionString.assigned())
+            continue;
+
+        wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streaming, connectionString, nullptr);
+        if (!streaming.assigned())
+            continue;
+
+        prioritizedStreamingSourcesMap.insert_or_assign(protocolPriority, streaming);
+    }
+
+    // add streaming sources ordered by protocol priority
+    for (const auto& [_, streaming] : prioritizedStreamingSourcesMap)
+    {
+        device.addStreamingSource(streaming);
+        LOG_I("Device {} added streaming connection {}", device.getGlobalId(), streaming.getConnectionString());
+
+        streaming.addSignals(signals);
+        streaming.setActive(true);
+    }
+
+    // set the streaming source with the highest priority as active for device signals
+    if (!prioritizedStreamingSourcesMap.empty())
+    {
+        auto streaming = prioritizedStreamingSourcesMap.begin()->second;
+        auto connectionString = streaming.getConnectionString();
+        for (const auto& signal : signals)
+        {
+            if (!signal.getPublic())
+                continue;
+            MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+            if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
+                mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+        }
+    }
+}
+
+void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& config)
+{
+    auto streamingConfig = populateStreamingConfig(config);
+
+    const StringPtr streamingHeuristic = streamingConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
+    const ListPtr<IString> prioritizedStreamingProtocols = streamingConfig.getPropertyValue("PrioritizedStreamingProtocols");
+
+    if (streamingHeuristic == "MinConnections")
+    {
+        attachStreamingsToDevice(topDevice, prioritizedStreamingProtocols);
+    }
+    else if (streamingHeuristic == "MinHops")
+    {
+        // The order of handling nested devices is important since we need to establish streaming connections
+        // for the leaf devices first. The custom function is used to get the list of sub-devices
+        // recursively, because using the recursive search filter does not guarantee the required order
+        auto allDevicesInTree = getAllDevicesRecursively(topDevice);
+        for (const auto& device : allDevicesInTree)
+        {
+            attachStreamingsToDevice(device, prioritizedStreamingProtocols);
+        }
+    }
+}
+
+StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    StreamingPtr streaming = nullptr;
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        bool accepted = false;
+        try
+        {
+            accepted = module.acceptsStreamingConnectionParameters(connectionString, config);
+        }
+        catch (const NotImplementedException&)
+        {
+            LOG_D("{}: acceptsStreamingConnectionParameters not implemented", module.getName());
+            accepted = false;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("{}: acceptsStreamingConnectionParameters failed: {}", module.getName(), e.what());
+            accepted = false;
+        }
+
+        if (accepted)
+        {
+            try
+            {
+                streaming = module.createStreaming(connectionString, config);
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_E("{}: createStreaming failed: {}", module.getName(), e.what())
+                throw e;
+            }
+        }
+    }
+    return streaming;
+}
+
+StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& serverCapability)
+{
+    StringPtr connectionString = nullptr;
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        try
+        {
+            connectionString = module.createConnectionString(serverCapability);
+            if (connectionString.assigned())
+                return connectionString;
+        }
+        catch (const NotImplementedException&)
+        {
+            LOG_D("{}: createConnectionString not implemented", module.getName());
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: createConnectionString failed: {}", module.getName(), e.what());
+        }
+    }
+    return connectionString;
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

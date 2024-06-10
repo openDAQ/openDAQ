@@ -9,6 +9,9 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <regex>
+#include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_info_factory.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -26,11 +29,29 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             "OpcUaClient")
     , discoveryClient(
         {
-            [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-                cap.addConnectionString(connectionString);
+                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
+                if (!discoveredDevice.ipv4Address.empty())
+                {
+                    auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
+                                    DaqOpcUaDevicePrefix,
+                                    discoveredDevice.ipv4Address,
+                                    discoveredDevice.servicePort,
+                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                    cap.addConnectionString(connectionStringIpv4);
+                    cap.addAddress(discoveredDevice.ipv4Address);
+                }
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    auto connectionStringIpv6 = fmt::format("{}[{}]:{}{}",
+                                    DaqOpcUaDevicePrefix,
+                                    discoveredDevice.ipv6Address,
+                                    discoveredDevice.servicePort,
+                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                    cap.addConnectionString(connectionStringIpv6);
+                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                }
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;
@@ -58,22 +79,21 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
     auto deviceType = createDeviceType();
     result.set(deviceType.getId(), deviceType);
-
     return result;
 }
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& config)
+                                            const PropertyObjectPtr& aConfig)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    PropertyObjectPtr deviceConfig = config;
-    if (!deviceConfig.assigned())
-        deviceConfig = createDeviceDefaultConfig();
+    PropertyObjectPtr config = aConfig;
+    if (!config.assigned())
+        config = createDefaultConfig();
 
-    if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
+    if (!onAcceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -82,244 +102,129 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     auto parsedConnection = ParseConnectionString(connectionString);
     auto prefix = std::get<0>(parsedConnection);
     auto host = std::get<1>(parsedConnection);
-    auto path = std::get<2>(parsedConnection);
+    auto port = std::get<2>(parsedConnection);
+    auto path = std::get<3>(parsedConnection);
     if (prefix != DaqOpcUaDevicePrefix)
-        throw InvalidParameterException("OpcUa does not support connection string with prefix");
-
-    FunctionPtr createStreamingCallback = [&](const ServerCapabilityPtr& capability,
-                                              bool isRootDevice) -> StreamingPtr
-        {
-            if (capability.getProtocolType() != ProtocolType::Streaming)
-                return nullptr;
-
-            if (isRootDevice)
-                capability.setPropertyValue("address", host);
-
-            const StringPtr streamingHeuristic = deviceConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
-            const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
-
-            const StringPtr protocolId = capability.getPropertyValue("protocolId");
-
-            if (protocolId != nullptr)
-                if (const auto it = std::find(allowedStreamingProtocols.begin(),
-                                            allowedStreamingProtocols.end(),
-                                            protocolId);
-                    it == allowedStreamingProtocols.end())
-                    return nullptr;
-
-            if (streamingHeuristic == "MinHops" ||
-                streamingHeuristic == "Fallbacks" ||
-                streamingHeuristic == "MinConnections" && isRootDevice)
-                return this->createStreamingFromAnotherModule(nullptr, capability);
-            else
-                return nullptr;
-        };
+        throw InvalidParameterException("OpcUa does not support connection string with prefix " + prefix);
 
     std::scoped_lock lock(sync);
-    TmsClient client(context, parent, OpcUaScheme + host + path, createStreamingCallback);
+
+    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + ":" + port + path);
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("Username"))
+            endpoint.setUsername(config.getPropertyValue("Username"));
+        if (config.hasProperty("Password"))
+            endpoint.setPassword(config.getPropertyValue("Password"));
+    }
+
+    TmsClient client(context, parent, endpoint);
     auto device = client.connect();
-    this->configureStreamingSources(deviceConfig, device);
+    completeDeviceServerCapabilities(device, host);
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+
+    connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId);
+    connectionInfo.setProtocolName("openDAQ OpcUa");
+    connectionInfo.setProtocolType(ProtocolType::Configuration);
+    connectionInfo.setConnectionType("TCP/IP");
+    connectionInfo.addAddress(host);
+    connectionInfo.setPort(std::stoi(port));
+    connectionInfo.setPrefix("daq.opcua");
+    connectionInfo.setConnectionString(connectionString);
+
     return device;
 }
 
-std::tuple<std::string, std::string, std::string> OpcUaClientModule::ParseConnectionString(const StringPtr& connectionString)
+void OpcUaClientModule::completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
 {
+    auto deviceInfo = device.getInfo();
+    if (deviceInfo.assigned())
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            capability.asPtr<IServerCapabilityConfig>().addAddress(deviceAddress);
+        }
+    }
+}
+
+// {prefix://}{hostname}:{port}{/path}
+std::tuple<std::string, std::string, std::string, std::string> OpcUaClientModule::ParseConnectionString(const StringPtr& connectionString)
+{
+    std::string port = "4840";
+    std::string target = "/";
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex("^(.*:\\/\\/)(\\[[a-fA-F0-9:]+\\])(.*)");
-    auto regexIpv4Hostname = std::regex("^(.*:\\/\\/)([^:\\/\\s]+)(.*)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
-    if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return {match[1],match[2],match[3]};
-    if (std::regex_search(urlString, match, regexIpv4Hostname))
-        return {match[1],match[2],match[3]};
-    
-    throw InvalidParameterException("Host name not found in url: {}", connectionString);
+    bool parsed = false;
+    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    if (!parsed)
+        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+
+    if (!parsed)
+        throw InvalidParameterException("Host name not found in url: {}", connectionString);
+
+    if (match[3].matched)
+        port = match[3];
+    if (match[4].matched)
+        target = match[4];
+
+    return {match[1], match[2], port, target};
 }
 
 bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     std::string connStr = connectionString;
     auto found = connStr.find(DaqOpcUaDevicePrefix);
-    if (found != 0)
-        return false;
-
-    if (config.assigned() && !acceptDeviceProperties(config))
-    {
-        LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
-        return false;
-    }
-    else
-    {
+    if (found == 0)
         return true;
-    }
-}
-
-bool OpcUaClientModule::acceptDeviceProperties(const PropertyObjectPtr& config)
-{
-    bool hasRequiredProperties = config.hasProperty("StreamingConnectionHeuristic") &&
-                                 config.hasProperty("AllowedStreamingProtocols") &&
-                                 config.hasProperty("PrimaryStreamingProtocol");
-    if (!hasRequiredProperties)
+    else
         return false;
-
-    const StringPtr primaryStreamingProtocol = config.getPropertyValue("PrimaryStreamingProtocol");
-    const ListPtr<IString> allowedStreamingProtocols = config.getPropertyValue("AllowedStreamingProtocols");
-    if (const auto it = std::find(allowedStreamingProtocols.begin(),
-                                  allowedStreamingProtocols.end(),
-                                  primaryStreamingProtocol);
-        it == allowedStreamingProtocols.end())
-        return false;
-
-    return true;
-}
-
-PropertyObjectPtr OpcUaClientModule::createDeviceDefaultConfig()
-{
-    auto defaultConfig = PropertyObject();
-
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                    List<IString>("MinConnections",
-                                                                                  "MinHops",
-                                                                                  "Fallbacks",
-                                                                                  "NotConnected"),
-                                                                    0);
-    defaultConfig.addProperty(streamingConnectionHeuristicProp);
-
-    auto allowedStreamingProtocols = List<IString>();
-    StringPtr primaryStreamingProtocol = "none";
-
-#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    allowedStreamingProtocols.pushBack("opendaq_native_streaming");
-    primaryStreamingProtocol = "opendaq_native_streaming";
-// TODO add websocket streaming to default list of allowed protocols
-// when it will have subscribe/unsubscribe support
-//#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-//    allowedStreamingProtocols.pushBack("opendaq_lt_streaming");
-#endif
-#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    allowedStreamingProtocols.pushBack("opendaq_lt_streaming");
-//    primaryStreamingProtocol = "opendaq_lt_streaming";
-#endif
-
-    defaultConfig.addProperty(ListProperty("AllowedStreamingProtocols", allowedStreamingProtocols));
-    defaultConfig.addProperty(StringProperty("PrimaryStreamingProtocol", primaryStreamingProtocol));
-
-    return defaultConfig;
 }
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&OpcUaClientModule::createDeviceDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
-    return DeviceType(DaqOpcUaDeviceTypeId,
-                      "OpcUa enabled device",
-                      "Network device connected over OpcUa protocol",
-                      configurationCallback);
+    const auto config = createDefaultConfig();
+    return DeviceType(DaqOpcUaDeviceTypeId, "OpcUa enabled device", "Network device connected over OpcUa protocol", config);
 }
 
-void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& deviceConfig, const DevicePtr& device)
+PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
 {
-    const StringPtr streamingHeuristic = deviceConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
-    if (streamingHeuristic == "NotConnected")
-        return;
+    auto config = PropertyObject();
 
-    const StringPtr primaryStreamingProtocol = deviceConfig.getPropertyValue("PrimaryStreamingProtocol");
-    const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
-    std::unordered_map<std::string, std::string> idPrefixMap;
+    config.addProperty(StringProperty("Username", ""));
+    config.addProperty(StringProperty("Password", ""));
 
+    return config;
+}
+
+StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+{
+    if (serverCapability.getProtocolId() != "opendaq_opcua_config")
+        return nullptr;
+
+    StringPtr connectionString = serverCapability.getConnectionString();
+    if (connectionString.getLength() != 0)
+        return connectionString;
+
+    StringPtr address;
+    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
     {
-        auto devices = device.getDevices(search::Recursive(search::Any()));
-        devices.pushBack(device);
-
-        for (const auto& dev : devices)
-        {
-            const auto capabilities = dev.getInfo().getServerCapabilities();
-            for (const auto & cap : capabilities)
-            {
-                idPrefixMap.insert(std::make_pair(cap.getProtocolId(), cap.getPrefix()));
-            }
-        }
+        address = addresses[0];
     }
+    if (!address.assigned() || address.toStdString().empty())
+        throw InvalidParameterException("Address is not set");
 
-    for (const auto& signal : device.getSignals(search::Recursive(search::Any())))
-    {
-        MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+    auto port = serverCapability.getPort();
+    if (port == -1)
+        throw InvalidParameterException("Port is not set");
 
-        auto streamingSources = mirroredSignalConfigPtr.getStreamingSources();
-
-        if (streamingSources.empty())
-            continue;
-
-        // TODO this may raise bugs
-        // since sub-devices are being created recursively it is expected that
-        // the leaf device direct streaming is the first-one of available sources
-        // and root streaming is the last-one
-        StringPtr leafStreaming;
-        StringPtr rootStreaming;
-        for (const auto& streamingConnectionString : streamingSources)
-        {
-            std::string connectionString = streamingConnectionString.toStdString();
-            std::string streamingProtocolId = primaryStreamingProtocol.toStdString();
-
-            if (!idPrefixMap.count(streamingProtocolId))
-                continue;
-
-            std::string protocolPrefix = idPrefixMap.at(streamingProtocolId);
-            if (connectionString.find(protocolPrefix) == 0)
-            {
-                // save the first streaming source as the leaf streaming
-                if (!leafStreaming.assigned())
-                    leafStreaming = streamingConnectionString;
-
-                // save the last streaming source as the root streaming
-                rootStreaming = streamingConnectionString;
-            }
-        }
-
-        if (!leafStreaming.assigned() || !rootStreaming.assigned())
-        {
-            for (const auto& streamingConnectionString : streamingSources)
-            {
-                std::string connectionString = streamingConnectionString.toStdString();
-                for (const auto& streamingProtocolId : allowedStreamingProtocols)
-                {
-                    if (!idPrefixMap.count(streamingProtocolId))
-                        continue;
-
-                    std::string protocolPrefix = idPrefixMap.at(streamingProtocolId);
-                    if (connectionString.find(protocolPrefix) == 0)
-                    {
-                        // save the first streaming source as the leaf streaming
-                        if (!leafStreaming.assigned())
-                            leafStreaming = streamingConnectionString;
-
-                        // save the last streaming source as the root streaming
-                        rootStreaming = streamingConnectionString;
-                    }
-                }
-            }
-        }
-
-        if (!leafStreaming.assigned() || !rootStreaming.assigned())
-            continue;
-
-        if (streamingHeuristic == "MinConnections" || streamingHeuristic == "Fallbacks")
-        {
-            mirroredSignalConfigPtr.setActiveStreamingSource(rootStreaming);
-        }
-        else if (streamingHeuristic == "MinHops")
-        {
-            mirroredSignalConfigPtr.setActiveStreamingSource(leafStreaming);
-        }
-    }
+    return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

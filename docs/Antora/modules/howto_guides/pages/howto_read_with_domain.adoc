@@ -1,9 +1,9 @@
-= Read Basic Value And Domain Data
+= Read basic value and Domain data
 
 :tip-caption: Assumptions
 [TIP]
 ====
-For brevity, in `C++` we assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
+For brevity, in `C++`, we assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
 In this guide, you will go through the basics of the information provided in the xref:background_info:readers.adoc#common_behavior[Common Behavior of Readers] on the example of a xref:background_info:readers.adoc#stream_reader[Stream Reader].
@@ -12,7 +12,7 @@ In the end, you'll also get the option to continue on a more specific guide depe
 
 == Creating the Reader
 
-For starters, let's explore how you'd create a Stream Reader where you read the value data as `Float64` and domain as `Int`.
+For starters, let's explore how you'd create a Stream Reader where you read the value data as `double` and Domain as `Int` (signed 64-bit integer).
 
 [#create]
 .Creating a default Stream Reader
@@ -22,7 +22,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// These calls all create the same reader
+// These calls all create the same Reader
 auto reader = StreamReader(signal);
 auto reader = StreamReader<double, Int>(signal);
 auto reader = StreamReader(signal, SampleType::Float64, SampleType::Int64);
@@ -31,12 +31,22 @@ Python::
 +
 [source,python]
 ----
-#These calls all create the same reader
+#These calls all create the same Reader
 reader = opendaq.StreamReader(signal)
 reader = opendaq.StreamReader(
     signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
 ----
+C#::
++
+[source,csharp]
+----
+// These calls all create the same Reader
+var reader = OpenDAQFactory.CreateStreamReader(signal);
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+// right now there exists no factory function using `SampleType` as parameters
+----
 ====
+
 [NOTE]
 ====
 The constructor for the reader is designed to offer flexibility in its input parameters. It can accept either a signal or an input port, providing users with versatile options based on their specific requirements.
@@ -44,10 +54,10 @@ The constructor for the reader is designed to offer flexibility in its input par
 
 [NOTE]
 ====
-By default, if no explicit read sample-types are provided, they're assumed to be:
+By default, if no explicit read Sample Types are provided, they're assumed to be:
 
 * `SampleType::Float64` / `daq::Float` / `double` for _value_.
-* `SampleType::Int64` / `daq::Int` / `std::int64_t` for _domain_.
+* `SampleType::Int64` / `daq::Int` / `std::int64_t` for _Domain_.
 ====
 
 Setting up the Reader this way will let you read the Signal's data as `Float64` even if the samples it produces are in a different format.
@@ -66,37 +76,43 @@ Type2 b = (Type2) a;
 ----
 ====
 
-=== Reading with Signal's data-type
+=== Reading with Signal's Sample Type
 
-A reader can also be constructed without knowing the Signal's sample-types in advance by using `SampleType::Undefined`.
-This is useful if you don't want any conversions to be performed or just as a helper method that spares you the time to manually query the Signal's sample-types. You can choose to use the automatic sample-type deduction for either _value_ or _domain_ or both.
+A reader can also be constructed without knowing the Signal's Sample Types in advance by using `SampleType::Undefined`.
+This is useful if you don't want any conversions to be performed or just as a helper method that spares you the time to manually query the Signal's Sample Types. You can choose to use the automatic Sample Type deduction for either _value_ or _Domain_ or both.
 
-.Creating a reader with the Signal's sample-type
+.Creating a reader with the Signal's Sample Type
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-// Use the Signal's sample-types for both value and domain
+// Use the Signal's Sample Types for both value and Domain
 auto reader = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
 
-// ony for value
+// Only for value
 auto reader = StreamReader(signal, SampleType::Undefined, SampleType::Int64);
 
-// or ony for domain
+// Or only for Domain
 auto reader = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
 ----
 Python::
 +
 [source,python]
 ----
-#Use the Signal's sample-types for both value and domain
+# Use the Signal's Sample Types for both value and Domain
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
-#only for values
+# Only for values
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Int64)
-#or only for domain
+# Or only for Domain
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Undefined)
+----
+C#::
++
+[source,csharp]
+----
+// This feature is currently not possible in .NET
 ----
 ====
 
@@ -109,7 +125,7 @@ Once you've successfully created and configured the Reader, you can now actually
 You do this by issuing xref:background_info:readers.adoc#read_calls[_read_ calls] but at first, it is best to check how many samples are actually available and decide on how many you wish to read.
 After that, you need to properly prepare the call parameters and set up sample-buffers.
 
-The example below shows how to check for and read at first `5` value samples and then another `5` with the associated domain values.
+The example below shows how to check for and read at first `5` value samples and then another `5` with the associated Domain values.
 
 [CAUTION]
 The count / size parameter needs to be set _before_ the call to a desired maximum count and will be modified with the actual amount read _after_.
@@ -119,7 +135,7 @@ The type of the allocated memory buffer must match with the type the Reader is c
 There are no run-time checks to enforce this.
 If the buffer is bigger than the read amount, the rest of the buffer is not modified.
 
-.Reading first 5 values samples then another 5 with the associated domain
+.Reading first 5 values samples then another 5 with the associated Domain
 [tabs]
 ====
 Cpp::
@@ -143,7 +159,7 @@ double values[5]{};
 reader.read(values, &readCount);
 
 std::cout << "Read " << readCount << " values" << std::endl;
-for(double value : values)
+for (double value : values)
 {
     std::cout << value << std::endl;
 }
@@ -153,8 +169,8 @@ double newValues[5];
 Int newDomain[5];
 reader.readWithDomain(newValues, newDomain, &readCount);
 
-// `readCount` should now be `3`
-std::cout << "Read another " << readCount << " value and domain samples" << std::endl;
+// `readCount` should now be 3
+std::cout << "Read another " << readCount << " value and Domain samples" << std::endl;
 for (SizeT i = 0; i < readCount; ++i)
 {
     std::cout << newValues[i] << ", " << newDomain[i] << std::endl;
@@ -166,12 +182,12 @@ Python::
 ----
 reader = opendaq.StreamReader(signal)
 
-# should be 0
+# Should be 0
 available = reader.available_count
 
-#signal produces 8 samples
+# Signal produces 8 samples
 
-# should be 8
+# Should be 8
 available = reader.available_count
 
 values = reader.read(5)
@@ -179,29 +195,67 @@ print(f'Read {len(values)} samples:')
 print(values)
 
 to_read = 5
-values,domain = reader.read_with_domain(to_read)
+values, domain = reader.read_with_domain(to_read)
 
-# should be 3
+# Should be 3
 to_read = len(values)
 print(f'Read another {to_read} samples with domain:')
 for value, domain in zip(values, domain):
     print(domain, value)
 ----
+C#::
++
+[source,csharp]
+----
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+
+// Should return 0
+var available = reader.AvailableCount;
+
+//
+// Signal produces 8 samples
+//
+
+// Should return 8
+available = reader.AvailableCount;
+
+nuint readCount = 5;
+double[] values = new double[5];
+reader.Read(values, ref readCount);
+
+Console.WriteLine($"Read {readCount} values");
+foreach (double value in values)
+{
+    Console.WriteLine(value);
+}
+
+readCount = 5;
+double[] newValues = new double[5];
+long[] newDomain = new long[5];
+reader.ReadWithDomain(newValues, newDomain, ref readCount);
+
+// `readCount` should now be 3
+Console.WriteLine($"Read another {readCount} value and Domain samples");
+for (nuint i = 0; i < readCount; ++i)
+{
+    Console.WriteLine($"{newValues[i]}, {newDomain[i]}");
+}
+----
 ====
 
-As you can see in the example on the second _read,_ the Stream Reader didn't wait for the full `5` samples and returned only the currently available ones.
+As you can see in the example on the second _read_, the Stream Reader didn't wait for the full `5` samples and returned only the currently available ones.
 The `count` parameter in the _read_ calls should always be the *maximum* number of samples the reader should read, and the sample-buffers must be big enough a contiguous block to fit at least this number of samples.
 The Reader makes no checks if this is actually the case and assumes the user provided a buffer of proper size.
 If this isn't the case, it will write past the end and will probably cause stack or heap corruption resulting in an `Access Violation` or `Segmentation Fault`.
 
 [#descriptor_changed]
 == Handling Signal changes
-The xref:background_info:signals.adoc[Signal] stores the information about itself and its data in a xref:background_info:signals.adoc[Data Descriptor].
+The xref:background_info:signals.adoc[Signal] stores the information about itself and its data in a xref:background_info:signals.adoc#data_descriptor[Data Descriptor].
 Each time any of the Signal information changes, it creates an xref:glossary:glossary.adoc#event_packet[Event Packet] with the id of xref:background_info:packets.adoc#descriptor_changed[`"DATA_DESCRIPTOR_CHANGED"`].
 The user can react to these changes by installing a callback as shown below.
 
-The event contains two Data Descriptors, for value and domain, each of which can be `null` if unchanged but not both.
-The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested sample-types. Then in returns the Reader Status with event packet and status of data conversation.
+The event contains two Data Descriptors, one for value and one for Domain, each of which can be `null` if unchanged, but not both.
+The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested Sample Types. Then it returns the Reader Status with event Packet and status of data conversion.
 
 .Reacting to a Data Descriptor changed event
 [tabs]
@@ -210,82 +264,50 @@ Cpp::
 +
 [source,cpp]
 ----
-// Signal value sample-type is `Float64`
+// Signal Sample Type value is `Float64`
 
 auto reader = StreamReader<double, Int>(signal);
 
 // Signal produces 2 samples { 1.1, 2.2 }
 
 //
-// The value sample-type of the `signal` changes from `Float64` to `Int32`
+// The value Sample Type of the `signal` changes from `Float64` to `Int32`
 //
 
 // Signal produces 2 samples { 3, 4 }
 
-// The call succeeds because `Int32` is convertible to `Float64`
-// and results in `4` samples { 1.1, 2.2, 3.0, 4.0 }
-
+// If Descriptor has changed, Reader will return Reader status with that event
+// Call succeeds and results in 2 samples { 1.1, 2.2 }
 SizeT count{5};
 double values[5]{};
+auto status = reader.read(values, &count);
+assert(status.getReadStatus() == ReadStatus::Event);
+
+// The subsequent call succeeds because `Int32` is convertible to `Float64`
+// and results in 2 samples { 3.0, 4.0 }
 reader.read(values, &count);
 
 //
-// The value sample-type of the `signal` changes from `Int32` to `Int64`
+// The value Sample Type of the `signal` changes from `Int32` to `Int64`
 //
 
 // Signal produces 2 samples { 5, 6 }
-count = {2};
-double newValues[2]{};
 
-// the Reader reads 0 values and returns status with new Event packet
-ReaderStatusPtr status = reader.read(newValues, &count);
-assert(status.getReadStatus() == ReadStatus::Event);
-assert(status.getValid() == true);
-assert(status.getEventPacket().assigned() == true);
+// Reader reads 0 values and returns status with new Event Packet
+SizeT newCount{2};
+double newValues[2]{};
+auto newStatus = reader.read(newValues, &newCount);
+assert(newCount == 0u);
+assert(newStatus.getReadStatus() == ReadStatus::Event);
 ----
 ====
 
 [#invalidation]
 == Reader invalidation and reuse
-Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result the Reader status with getValid == false
-The only way to resolve this is to pass the Reader to a new Reader instance with valid sample-types and settings.
+Once the Reader falls into an *__invalid__* state, it can't be used to read data anymore and all attempts to do so will result the Reader status with `getValid` equal to `false`.
+The only way to resolve this is to pass the Reader to a new Reader instance with valid Sample Types and settings.
 This enables the new reader to reuse the xref:background_info:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
-
-.Resolving the Reader _invalid_ state
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Signal value sample-type is `Float64`
-
-auto reader = StreamReader<Int, Int>(signal);
-
-//
-// The value sample-type of the `signal` changes from `Int64` to `ComplexFloat64`
-//
-
-//
-// Signal produces 2 complex samples
-//
-
-SizeT count{5};
-Int values[5]{};
-ReaderStatusPtr status = reader.read(values, &count);
-assert(status.getValid() == false);
-
-// This will reuse the Reader's configuration and Connection but change read type
-// from to `Float64` to `Int64` and clear the `invalid` state.
-auto newReader = StreamReaderFromExisting<ComplexFloat64, Int>(reader);
-
-SizeT count{5};
-ComplexFloat64 values[5]{};
-newReader.read(values, &count); // count = 2
-----
-====
-
-You can also reuse a valid Reader, for example, if you want to change the read sample-type or change any other configuration that is immutable after creating a Reader.
+You can also reuse a valid Reader, for example, if you want to change the read Sample Type or change any other configuration that is immutable after creating a Reader.
 This will make the old reader invalid.
 
 .Reusing a Reader
@@ -298,41 +320,34 @@ Cpp::
 auto reader = StreamReader<Int, Int>(signal);
 
 // Signal produces 5 samples { 1, 2, 3, 4, 5 }
-auto packet1 = createPacketForSignal(signal, 5);
-auto data1 = static_cast<Int*>(packet1.getData());
-data1[0] = 1;
-data1[1] = 2;
-data1[2] = 3;
-data1[3] = 4;
-data1[4] = 5;
-
-signal.sendPacket(packet1);
 
 SizeT count{2};
 Int values[2]{};
 reader.read(values, &count);  // count = 2, values = { 1, 2 }
 
-// Reuse the reader
+// Reuse the Reader
 auto newReader = StreamReaderFromExisting<double, Int>(reader);
 
-// new reader successfully continues on from previous reader's position
+// New Reader successfully continues on from previous Reader's position
 count = 2;
 double newValues[2]{};
-newReader.read(newValues, &count);  // count = 2, values = { 3, 4 }
+newReader.read(newValues, &count);  // count = 2, values = { 3.0, 4.0 }
 
-// The old reader has been invalidated when re-used by a new one
+// The old Reader has been invalidated when reused by a new one
 count = 2;
 Int oldValues[2]{};
-ReaderStatusPtr status = reader.read(oldValues, &count);
+auto status = reader.read(oldValues, &count);
 assert(status.getValid() == false);
 ----
 ====
 
-== Related guides:
+== Related guides
 
-* xref:howto_guides:howto_read_with_timeouts.adoc[]
-* xref:howto_guides:howto_read_with_timestamps.adoc[]
-* xref:howto_guides:howto_read_last_n_samples.adoc[]
+* xref:howto_read_last_n_samples.adoc[]
+* xref:howto_read_with_timestamps.adoc[]
+* xref:howto_read_aligned_signals.adoc[]
+* xref:howto_read_with_timeouts.adoc[]
+
 
 == Full listing
 
@@ -362,10 +377,10 @@ using namespace daq;
 SignalConfigPtr setupExampleSignal();
 SignalPtr setupExampleDomain(const SignalPtr& value);
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset = 0);
-daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& rule = nullptr);
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule = nullptr);
 
 /*
- * Example 1: These calls all create the same reader
+ * Example 1: These calls all create the same Reader
  */
 void example1(const SignalConfigPtr& signal)
 {
@@ -378,42 +393,42 @@ void example1(const SignalConfigPtr& signal)
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader3.getValueReadType() == SampleType::Float64);
 
-    // For domain
+    // For Domain
     assert(reader1.getDomainReadType() == SampleType::Int64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
 }
 
 /*
- * Example 2: Creating a reader with the Signal’s sample-type
+ * Example 2: Creating a Reader with the Signal’s Sample Type
  */
 void example2(const SignalConfigPtr& signal)
 {
-    // Use the Signal's sample-types for both value and domain
+    // Use the Signal's Sample Types for both value and Domain
     auto reader1 = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
     assert(reader1.getValueReadType() == SampleType::Float64);
     assert(reader1.getDomainReadType() == SampleType::Int64);
 
-    // ony for value
+    // Only for value
     auto reader2 = StreamReader(signal, SampleType::Undefined, SampleType::Int64);
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
 
-    // or ony for domain
+    // Or only for Domain
     auto reader3 = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
     assert(reader3.getValueReadType() == SampleType::Float64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
 }
 
 /*
- * Reading basic value and domain data
+ * Example 3: Reading basic value and Domain data
  */
 void example3(const SignalConfigPtr& signal)
 {
     auto reader = StreamReader<double, Int>(signal);
 
     // Should return 0
-    auto available = reader.getAvailableCount();
+    [[maybe_unused]] auto available = reader.getAvailableCount();
     assert(available == 0u);
 
     //
@@ -441,8 +456,8 @@ void example3(const SignalConfigPtr& signal)
     Int newDomain[5];
     reader.readWithDomain(newValues, newDomain, &readCount);
 
-    // `readCount` should now be `3`
-    std::cout << "Read another " << readCount << " value and domain samples" << std::endl;
+    // `readCount` should now be 3
+    std::cout << "Read another " << readCount << " value and Domain samples" << std::endl;
     for (SizeT i = 0; i < readCount; ++i)
     {
         std::cout << newValues[i] << ", " << newDomain[i] << std::endl;
@@ -454,7 +469,7 @@ void example3(const SignalConfigPtr& signal)
  */
 void example4(const SignalConfigPtr& signal)
 {
-    // Signal value sample-type is `Float64`
+    // Signal Sample Type value is `Float64`
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = StreamReader<double, Int>(signal);
@@ -468,7 +483,7 @@ void example4(const SignalConfigPtr& signal)
     signal.sendPacket(packet1);
 
     //
-    // The value sample-type of the `signal` changes from `Float64` to `Int32`
+    // The value Sample Type of the `signal` changes from `Float64` to `Int32`
     //
     signal.setDescriptor(setupDescriptor(SampleType::Int32));
 
@@ -480,74 +495,48 @@ void example4(const SignalConfigPtr& signal)
 
     signal.sendPacket(packet2);
 
-    // The call succeeds because `Int32` is convertible to `Float64`
-    // and results in `4` samples { 1.1, 2.2, 3.0, 4.0 }
-
-    SizeT eventPacketCount{1};
-    SizeT count{5};
-    double values[5]{};
-    
-    auto status = reader.read(values, &eventPacketCount);
-    assert(status.getReadStatus() == ReadStatus::Event);
-    assert(status.getValid() == true);
-    assert(status.getEventPacket().assigned() == true);
-
-    reader.read(values, &count);
-
-    assert(count == 4u);
-    assert(values[0] == 1.1);
-    assert(values[1] == 2.2);
-    assert(values[2] == 3.0);
-    assert(values[3] == 4.0);
-}
-
-/*
- * Example 5: Reader invalidation
- */
-void example5(const SignalConfigPtr& signal)
-{
-    // Signal value sample-type is `Int64`
-    signal.setDescriptor(setupDescriptor(SampleType::Int64));
-
-    auto reader = StreamReader<Int, Int>(signal);
-
-    //
-    // The value sample-type of the `signal` changes from `Int64` to `ComplexFloat64`
-    //
-    signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat64));
-
-    //
-    // Signal produces 2 samples
-    //
-    auto packet = createPacketForSignal(signal, 2);
-    auto data = static_cast<std::ComplexFloat64*>(packet.getData());
-    data[0] = ComplexFloat64(1, 0);
-    data[1] = ComplexFloat64(2, 0);
-    signal.sendPacket(packet);
-
-
+    // If Descriptor has changed, Reader will return Reader status with that event
+    // Call succeeds and results in 2 samples { 1.1, 2.2 }
     SizeT count{5};
     double values[5]{};
     auto status = reader.read(values, &count);
-    assert(status.getValid() == false);
-
-    // This will reuse the Reader's configuration and Connection but change read type
-    // from to `Int64` to `ComplexFloat64` and clear the `invalid` state.
-    auto newReader = StreamReaderFromExisting<ComplexFloat64, Int>(reader);
-
-    SizeT count{5};
-    ComplexFloat64 values[5]{};
-    newReader.read(values, &count); // count = 2, values = {(1, 0), (2, 0)}
+    assert(status.getReadStatus() == ReadStatus::Event);
 
     assert(count == 2u);
-    assert(values[0] == ComplexFloat64(1, 0));
-    assert(values[1] == ComplexFloat64(2, 0));
+    assert(values[0] == 1.1);
+    assert(values[1] == 2.2);
+
+    // The subsequent call succeeds because `Int32` is convertible to `Float64`
+    // and results in 2 samples { 3.0, 4.0 }
+    reader.read(values, &count);
+    assert(count == 2u);
+    assert(values[0] == 3.0);
+    assert(values[1] == 4.0);
+
+    //
+    // The value Sample Type of the `signal` changes from `Int32` to `Int64`
+    //
+    signal.setDescriptor(setupDescriptor(SampleType::Int64));
+
+    // Signal produces 2 samples { 5, 6 }
+    auto packet3 = createPacketForSignal(signal, 2);
+    auto data3 = static_cast<std::int64_t*>(packet3.getData());
+    data3[0] = 3;
+    data3[1] = 4;
+    signal.sendPacket(packet3);
+
+    // Reader reads 0 values and returns status with new Event Packet
+    SizeT newCount{2};
+    double newValues[2]{};
+    auto newStatus = reader.read(newValues, &newCount);
+    assert(newCount == 0u);
+    assert(newStatus.getReadStatus() == ReadStatus::Event);
 }
 
 /*
- * Example 6: Reader reuse
+ * Example 5: Reader reuse
  */
-void example6(const SignalConfigPtr& signal)
+void example5(const SignalConfigPtr& signal)
 {
     signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
@@ -572,10 +561,10 @@ void example6(const SignalConfigPtr& signal)
     assert(values[0] == 1);
     assert(values[1] == 2);
 
-    // Reuse the reader
+    // Reuse the Reader
     auto newReader = StreamReaderFromExisting<double, Int>(reader);
 
-    // new reader successfully continues on from previous reader's position
+    // New Reader successfully continues on from previous Reader's position
     count = 2;
     double newValues[2]{};
     newReader.read(newValues, &count);  // count = 2, values = { 3, 4 }
@@ -583,8 +572,8 @@ void example6(const SignalConfigPtr& signal)
     assert(count == 2u);
     assert(newValues[0] == 3);
     assert(newValues[1] == 4);
-    // The old reader has been invalidated when reused by a new one
 
+    // The old Reader has been invalidated when reused by a new one
     count = 2;
     Int oldValues[2]{};
     auto status = reader.read(oldValues, &count);
@@ -594,7 +583,7 @@ void example6(const SignalConfigPtr& signal)
 /*
  * ENTRY POINT
  */
-int main(int /*argc*/, const char* /*argv*/ [])
+int main(int /*argc*/, const char* /*argv*/[])
 {
     SignalConfigPtr signal = setupExampleSignal();
     signal.setDomainSignal(setupExampleDomain(signal));
@@ -604,7 +593,6 @@ int main(int /*argc*/, const char* /*argv*/ [])
     example3(signal);
     example4(signal);
     example5(signal);
-    example6(signal);
 
     return 0;
 }
@@ -615,7 +603,7 @@ int main(int /*argc*/, const char* /*argv*/ [])
 SignalConfigPtr setupExampleSignal()
 {
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
 
     auto signal = Signal(context, nullptr, "example signal");
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -626,17 +614,17 @@ SignalConfigPtr setupExampleSignal()
 SignalPtr setupExampleDomain(const SignalPtr& value)
 {
     auto domain = Signal(value.getContext(), nullptr, "domain signal");
-    domain.setDescriptor(setupDescriptor(daq::SampleType::Int64, daq::LinearDataRule(1, 0)));
+    domain.setDescriptor(setupDescriptor(SampleType::Int64, LinearDataRule(1, 0)));
 
     return domain;
 }
 
-DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& rule)
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule)
 {
-    // Set-up the data descriptor with the provided Sample-Type
-    const auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type);
-    
-    // For the Domain we provide a Linear Rule to generate time-stamps
+    // Set up the data descriptor with the provided Sample Type
+    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(type);
+
+    // For the Domain, we provide a Linear Rule to generate time-stamps
     if (rule.assigned())
         dataDescriptor.setRule(rule);
 
@@ -646,17 +634,13 @@ DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& 
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset)
 {
     // Create a data packet where the values are generated via the +1 rule starting at 0
-    auto domainPacket = daq::DataPacket(
-        signal.getDomainSignal().getDescriptor(),
-        numSamples,
-        offset  // offset from 0 to start the sample generation at
+    auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(),
+                                   numSamples,
+                                   offset  // offset from 0 to start the sample generation at
     );
 
-    return daq::DataPacketWithDomain(
-        domainPacket,
-        signal.getDescriptor(),
-        numSamples
-    );
+    return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }
+
 ----
 ====

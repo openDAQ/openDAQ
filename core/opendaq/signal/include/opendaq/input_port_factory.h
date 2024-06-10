@@ -31,9 +31,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param parent The parent component.
  * @param localId The local ID of the component.
  */
-inline InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
 {
-    return { InputPort_Create(context, parent, localId) };
+    return { InputPort_Create(context, parent, localId, gapChecking) };
 }
 
 /*!@}*/

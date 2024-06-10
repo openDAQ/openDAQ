@@ -31,8 +31,9 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
-    std::array<WeakRefPtr<IDevice>, 2> devices;
+    std::vector<WeakRefPtr<IDevice>> devices;
     std::mutex sync;
+    size_t maxNumberOfDevices;
 
     size_t getIdFromConnectionString(const std::string& connectionString) const;
 };

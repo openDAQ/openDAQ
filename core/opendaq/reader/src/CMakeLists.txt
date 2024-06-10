@@ -9,10 +9,13 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_ReaderStatus reader_status.h)
 rtgen(SRC_BlockReaderStatus block_reader_status.h)
+rtgen(SRC_TailReaderStatus tail_reader_status.h)
+rtgen(SRC_MultiReaderStatus multi_reader_status.h)
 rtgen(SRC_Reader reader.h)
 rtgen(SRC_SampleReader sample_reader.h)
 rtgen(SRC_ReaderConfig reader_config.h)
 rtgen(SRC_StreamReader stream_reader.h)
+rtgen(SRC_BlockReaderBuilder block_reader_builder.h INTERNAL)
 rtgen(SRC_BlockReader block_reader.h)
 rtgen(SRC_TailReader tail_reader.h)
 rtgen(SRC_PacketReader packet_reader.h)
@@ -21,6 +24,8 @@ rtgen(SRC_MultiReader multi_reader.h)
 
 source_group("reader" FILES ${SDK_HEADERS_DIR}/reader_status.h
                             ${SDK_HEADERS_DIR}/block_reader_status.h
+                            ${SDK_HEADERS_DIR}/tail_reader_status.h
+                            ${SDK_HEADERS_DIR}/multi_reader_status.h
                             ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/sample_reader.h
                             ${SDK_HEADERS_DIR}/reader_config.h
@@ -42,9 +47,12 @@ source_group("stream" FILES ${SDK_HEADERS_DIR}/stream_reader.h
                             stream_reader_impl.cpp
 )
 
-source_group("block" FILES ${SDK_HEADERS_DIR}/block_reader.h
+source_group("block" FILES ${SDK_HEADERS_DIR}/block_reader_builder.h
+                           ${SDK_HEADERS_DIR}/block_reader_builder_impl.h
+                           ${SDK_HEADERS_DIR}/block_reader.h
                            ${SDK_HEADERS_DIR}/block_reader_impl.h
                            block_reader_impl.cpp
+                           block_reader_builder_impl.cpp
 )
 
 source_group("tail" FILES ${SDK_HEADERS_DIR}/tail_reader.h
@@ -71,6 +79,7 @@ source_group("multi" FILES ${SDK_HEADERS_DIR}/multi_reader_builder.h
 
 set(SRC_Cpp stream_reader_impl.cpp
             block_reader_impl.cpp
+            block_reader_builder_impl.cpp
             tail_reader_impl.cpp
             packet_reader_impl.cpp
             reader_status_impl.cpp
@@ -93,6 +102,7 @@ set(SRC_PublicHeaders reader_factory.h
 
 set(SRC_PrivateHeaders stream_reader_impl.h
                        block_reader_impl.h
+                       block_reader_builder_impl.h
                        tail_reader_impl.h
                        packet_reader_impl.h
                        multi_reader_impl.h
@@ -118,11 +128,14 @@ list(APPEND SRC_Cpp ${SRC_Reader_Cpp}
 
 list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
                               ${SRC_BlockReaderStatus_PublicHeaders}
+                              ${SRC_TailReaderStatus_PublicHeaders}
+                              ${SRC_MultiReaderStatus_PublicHeaders}
                               ${SRC_Reader_PublicHeaders}
                               ${SRC_SampleReader_PublicHeaders}
                               ${SRC_ReaderConfig_PublicHeaders}
                               ${SRC_StreamReader_PublicHeaders}
                               ${SRC_BlockReader_PublicHeaders}
+                              ${SRC_BlockReaderBuilder_PublicHeaders}
                               ${SRC_TailReader_PublicHeaders}
                               ${SRC_PacketReader_PublicHeaders}
                               ${SRC_MultiReader_PublicHeaders}
@@ -132,11 +145,14 @@ list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
 
 list(APPEND SRC_PrivateHeaders ${SRC_ReaderStatus_PrivateHeaders}
                                ${SRC_BlockReaderStatus_PrivateHeaders}
+                               ${SRC_TailReaderStatus_PrivateHeaders}
+                               ${SRC_MultiReaderStatus_PrivateHeaders}
                                ${SRC_Reader_PrivateHeaders}
                                ${SRC_SampleReader_PrivateHeaders}
                                ${SRC_ReaderConfig_PrivateHeaders}
                                ${SRC_StreamReader_PrivateHeaders}
                                ${SRC_BlockReader_PrivateHeaders}
+                               ${SRC_BlockReaderBuilder_PrivateHeaders}
                                ${SRC_TailReader_PrivateHeaders}
                                ${SRC_PacketReader_PrivateHeaders}
                                ${SRC_MultiReader_PrivateHeaders}

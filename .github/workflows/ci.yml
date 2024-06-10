@@ -86,9 +86,7 @@ jobs:
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
-        uses: seanmiddleditch/gha-setup-ninja@v3
-        with:
-          version: 1.10.2
+        uses: seanmiddleditch/gha-setup-ninja@v4
 
       - name: Install Python dependencies
         shell: pwsh
@@ -250,10 +248,10 @@ jobs:
         run: |
           apt-get update
           apt-get install -y git openssh-client
-          
+
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -354,10 +352,10 @@ jobs:
         run: |
           yum update -y
           yum install -y git
-          
+
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -626,7 +624,7 @@ jobs:
   #           -DANDROID_ABI=${{ matrix.android_abi }} \
   #           -DANDROID_NDK=${{ env.android_ndk_path }} \
   #           -DANDROID_PLATFORM=android-${{ matrix.android_version }} \
-  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \ 
+  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
   #           ..
   #     - name: Build
   #       working-directory: build

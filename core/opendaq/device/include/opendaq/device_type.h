@@ -33,11 +33,17 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Provides information about the device type.
+ * @brief Provides information on what device type can be created by a given module. Can be used
+ * to obtain the default configuration used when either adding/creating a new device.
  */
-
 DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
 {
+    /*
+     * @brief Gets the prefix found in connection strings used to create a device of the given type.
+     * @param[out] prefix The connection string prefix.
+     *
+     * The prefix is always found at the start of the connection string, before the "://" delimiter.
+     */
     virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/

@@ -31,10 +31,19 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Provides information about the Streaming.
+ * @brief Provides information on what streaming type can be created by a given module. Can be used
+ * to obtain the default configuration used when either adding/creating a new device, or establishing
+ * a new streaming connection.
  */
 DECLARE_OPENDAQ_INTERFACE(IStreamingType, IComponentType)
 {
+    /*
+     * @brief Gets the prefix found in connection strings used to establish a streaming connection of
+     * this type.
+     * @param[out] prefix The connection string prefix.
+     *
+     * The prefix is always found at the start of the connection string, before the "://" delimiter.
+     */
     virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/

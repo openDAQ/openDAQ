@@ -70,7 +70,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * @param[out] defaultConfig Newly created configuration object.
      *
      * Configuration objects are property object with user-defined key-value pairs.
-     * For example: DefaultPort=1000, OutputRate=5000, ...
+     * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) = 0;
 };

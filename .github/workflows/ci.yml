@@ -88,6 +88,13 @@ jobs:
         if: matrix.cmake_generator == 'Ninja'
         uses: seanmiddleditch/gha-setup-ninja@v4
 
+      # https://github.com/actions/runner-images/issues/10001
+      - name: Setup MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Remove outdated clang
+        shell: pwsh
+        run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
+
       - name: Install Python dependencies
         shell: pwsh
         run: |

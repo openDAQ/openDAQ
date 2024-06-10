@@ -21,14 +21,14 @@ protected:
     }
 };
 
-TEST_F(RegressionTestDevice, DISABLED_getInfo)
+TEST_F(RegressionTestDevice, getInfo)
 {
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());
     ASSERT_TRUE(info.assigned());
     if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_EQ(info.getName(), "Device 1");
+        ASSERT_EQ(info.getName(), "ref_dev1");
         ASSERT_EQ(info.getModel(), "Reference Device");
         ASSERT_EQ(info.getSerialNumber(), "dev_ser_1");
     }

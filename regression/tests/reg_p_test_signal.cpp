@@ -145,24 +145,17 @@ TEST_F(RegressionTestSignal, getLastValue)
         ASSERT_TRUE(lastValue.assigned());
 }
 
-TEST_F(RegressionTestSignal, DISABLED_reader)
+TEST_F(RegressionTestSignal, DISABLED_reader)  // TODO: enable
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.read(samples, &count));
-    if (protocol == "opcua")
-    {
-        ASSERT_EQ(count, 0);
-    }
-    else if (protocol == "nd" || protocol == "ns" || protocol == "lt")
-    {
-        ASSERT_EQ(count, 100);
-    }
+    ASSERT_EQ(count, 100);  // TODO FIX: opcua and nd currenty return 0
 }
 
-TEST_F(RegressionTestSignal, DISABLED_readerWithDomain)
+TEST_F(RegressionTestSignal, DISABLED_readerWithDomain)  // TODO: enable
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];
@@ -170,12 +163,5 @@ TEST_F(RegressionTestSignal, DISABLED_readerWithDomain)
     SizeT count = 100;
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
     ASSERT_NO_THROW(reader.readWithDomain(samples, domain, &count));
-    if (protocol == "opcua")
-    {
-        ASSERT_EQ(count, 0);
-    }
-    else if (protocol == "nd" || protocol == "ns" || protocol == "lt")
-    {
-        ASSERT_EQ(count, 100);
-    }
+    ASSERT_EQ(count, 100);  // TODO FIX: opcua and nd currenty return 0
 }

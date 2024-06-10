@@ -1058,9 +1058,8 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
     dataPtr[1] = 222.2;
     this->sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    // auto promiseStatus = future.wait_for(std::chrono::seconds(1));
-    // ASSERT_EQ(promiseStatus, std::future_status::ready);
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
 
     ASSERT_EQ(count, HISTORY_SIZE);
 }

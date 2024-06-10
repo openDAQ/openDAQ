@@ -316,7 +316,7 @@ jobs:
           cd ..
           
           # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
-          trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
+          trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
           
           # Perform tests
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build

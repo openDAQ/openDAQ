@@ -2083,6 +2083,7 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     // for signal 1 - write 20 samples
     // in signal will be generated 1 packet with 20 samples
     sig1.createAndSendPacket(0);
+    sig1.signal.getContext().getScheduler().waitAll();
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);

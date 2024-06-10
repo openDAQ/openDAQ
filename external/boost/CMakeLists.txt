@@ -56,8 +56,8 @@ endif()
 opendaq_dependency(
     NAME                Boost
     REQUIRED_VERSION    1.71.0
-    URL                 https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
-    URL_HASH            SHA256=fd60da30be908eff945735ac7d4d9addc7f7725b1ff6fcdcaede5262d511d21e
+    URL                 https://github.com/boostorg/boost/releases/download/boost-1.85.0/boost-1.85.0.tar.xz
+    URL_HASH            SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     EXPECT_TARGET       Boost::headers
 )
 

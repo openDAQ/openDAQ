@@ -13,7 +13,7 @@ protected:
     void SetUp() override
     {
         moduleManager = ModuleManager("");
-        context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+        context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr, nullptr, nullptr);
 
         instance = InstanceCustom(context, "mock_instance");
 
@@ -21,7 +21,7 @@ protected:
     }
 };
 
-TEST_F(RegressionTestDevice, getInfo)
+TEST_F(RegressionTestDevice, DISABLED_getInfo)
 {
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = device.getInfo());

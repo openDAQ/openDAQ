@@ -15,7 +15,7 @@ protected:
         PROTOCOLS("nd")
 
         moduleManager = ModuleManager("");
-        context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+        context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr, nullptr, nullptr);
 
         instance = InstanceCustom(context, "mock_instance");
 

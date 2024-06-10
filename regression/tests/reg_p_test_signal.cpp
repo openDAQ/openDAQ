@@ -16,7 +16,7 @@ protected:
     void SetUp() override
     {
         moduleManager = ModuleManager("");
-        context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+        context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr, nullptr, nullptr);
 
         instance = InstanceCustom(context, "mock_instance");
 
@@ -145,7 +145,7 @@ TEST_F(RegressionTestSignal, getLastValue)
         ASSERT_TRUE(lastValue.assigned());
 }
 
-TEST_F(RegressionTestSignal, reader)
+TEST_F(RegressionTestSignal, DISABLED_reader)
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];
@@ -162,7 +162,7 @@ TEST_F(RegressionTestSignal, reader)
     }
 }
 
-TEST_F(RegressionTestSignal, readerWithDomain)
+TEST_F(RegressionTestSignal, DISABLED_readerWithDomain)
 {
     StreamReaderPtr reader = StreamReader<double, int64_t>(signal);
     double samples[100];

@@ -1342,3 +1342,99 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
 
     ASSERT_EQ(count, 1u);
 }
+
+TYPED_TEST(StreamReaderTest, ReadingNotConnectedPort)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+
+    auto availableCount = reader.getAvailableCount();
+    ASSERT_EQ(availableCount, 0u);
+
+    SizeT count{1};
+    double samples[1]{};
+    auto status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    // read with timeout
+    count = 1;
+    status = reader.read(&samples, &count, 100u);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    // connecting port
+    port.connect(this->signal);
+
+    // check that event is encountered
+    count = 1;
+    status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(StreamReaderTest, NotifyPortIsConnected)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+
+    ReaderStatusPtr status;
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    reader.setOnDataAvailable([&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count);
+        promise.set_value();
+    });
+
+    port.connect(this->signal);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(StreamReaderTest, ReadWhilePortIsNotConnected)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+
+    ReaderStatusPtr status;
+    auto future = std::async(std::launch::async, [&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count, 1000u);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    port.connect(this->signal);
+
+    future.wait();
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(StreamReaderTest, ReconnectWhileReading)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+    
+    SizeT count{0};
+    ReaderStatusPtr status = reader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    status = nullptr;
+    auto future = std::async(std::launch::async, [&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count, 1000u);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    port.disconnect();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    port.connect(this->signal);
+
+    future.wait();
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}

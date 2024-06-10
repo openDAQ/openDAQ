@@ -119,17 +119,21 @@ SizeT BlockReaderImpl::getAvailable() const
 
 SizeT BlockReaderImpl::getAvailableSamples() const
 {
-    SizeT count = connection.getSamplesUntilNextDescriptor();
+    SizeT count = 0;
     if (info.currentDataPacketIter != info.dataPacketsQueue.end())
         count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    if (connection.assigned())
+        count += connection.getSamplesUntilNextDescriptor();
     return count;
 }
 
 SizeT BlockReaderImpl::getTotalSamples() const
 {
-    SizeT count = connection.getAvailableSamples();
+    SizeT count = 0;
     if (info.currentDataPacketIter != info.dataPacketsQueue.end())
         count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    if (connection.assigned())
+        count += connection.getAvailableSamples();
     return count;
 }
 
@@ -264,13 +268,17 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
 {
     std::unique_lock notifyLock(notify.mutex);
     auto initialWrittenSamplesCount = info.writtenSampleCount;
-    auto availableSamples = getAvailableSamples();
 
-    if (availableSamples < info.remainingSamplesToRead && info.timeout.count() > 0)
+    if (info.timeout.count() > 0)
     {
         // if there is no enough samples - wait for the timeout or a full block
         auto condition = [this]
         {
+            if (!connection.assigned())
+            {
+                return false;
+            }
+
             if (connection.hasEventPacket())
             {
                 return true;
@@ -298,7 +306,10 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
         if (!packet.assigned())
         {
             // if no partially-read packet and there are more blocks left in the connection
-            packet = connection.dequeue();
+            if (connection.assigned())
+            {
+                packet = connection.dequeue();
+            }
         }
 
         if (!packet.assigned())

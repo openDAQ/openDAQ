@@ -47,7 +47,10 @@ PacketReaderImpl::~PacketReaderImpl()
 ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
 {
     std::scoped_lock lock(mutex);
-    return connection->getPacketCount(count);
+    *count = 0;
+    if (connection.assigned())
+        return connection->getPacketCount(count);
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketReaderImpl::empty(Bool* empty)
@@ -69,8 +72,17 @@ ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
 
 ErrCode PacketReaderImpl::read(IPacket** packet)
 {
+    OPENDAQ_PARAM_NOT_NULL(packet);
     std::scoped_lock lock(mutex);
-    return connection->dequeue(packet);
+    if (connection.assigned())
+    {
+        return connection->dequeue(packet);
+    }
+    else
+    {
+        *packet = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
 }
 
 ErrCode PacketReaderImpl::readAll(IList** allPackets)
@@ -82,6 +94,9 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
         return errCode;
 
     std::scoped_lock lock(mutex);
+
+    if (!connection.assigned())
+        return OPENDAQ_SUCCESS;
 
     SizeT size{};
     errCode = connection->getPacketCount(&size);
@@ -127,20 +142,16 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     ProcedurePtr callback;
-    SizeT count{0};
 
     {
         std::scoped_lock lock(mutex);
         callback = readCallback;
-
-        if (!callback.assigned())
-            return OPENDAQ_SUCCESS;
-
-        connection->getPacketCount(&count);
-        if (!count)
-            return OPENDAQ_SUCCESS;
     }
-    return wrapHandler(callback);
+    
+    if (callback.assigned())
+        return wrapHandler(callback);
+
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

@@ -241,6 +241,7 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count,
 ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
 {
     std::unique_lock lock(mutex);
+    bool hasEventPacket = false;
     PacketPtr packet = connection.dequeue();
     while (packet.assigned())
     {
@@ -288,6 +289,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
             }
             case PacketType::Event:
             {
+                hasEventPacket = true;
                 packets.push_back(packet);
                 break;
             }
@@ -299,7 +301,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
     }
 
     auto callback = readCallback;
-    if (callback.assigned() && cachedSamples >= historySize)
+    if (callback.assigned() && (hasEventPacket || (cachedSamples >= historySize)))
     {
         lock.unlock();
         return wrapHandler(callback);

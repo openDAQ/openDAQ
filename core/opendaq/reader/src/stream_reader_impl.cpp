@@ -190,6 +190,7 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
     ProcedurePtr callback;
     {
         std::scoped_lock lock(notify.mutex);
+        notify.packetReady = true;
         callback = readCallback;
     }
     notify.condition.notify_one();
@@ -226,10 +227,14 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
 
     return wrapHandler([count, this]
     {
-        *count = connection.getSamplesUntilNextDescriptor();
+        *count = 0;
         if (info.dataPacket.assigned())
         {
             *count += info.dataPacket.getSampleCount() - info.prevSampleIndex;
+        }
+        if (connection.assigned())
+        {
+            *count += connection.getSamplesUntilNextDescriptor();
         }
     });
 }
@@ -402,6 +407,17 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
 
         auto condition = [this, samplesToRead]
         {
+            if (!connection.assigned())
+            {
+                return false;
+            }
+
+            if (!notify.packetReady)
+            {
+                return false;
+            }
+            notify.packetReady = false;
+
             if (connection.hasEventPacket())
             {
                 return true;
@@ -420,7 +436,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
     while (true)
     {
         PacketPtr packet = info.dataPacket;
-        if (!packet.assigned())
+        if (!packet.assigned() && connection.assigned())
         {
             packet = connection.dequeue();
         }

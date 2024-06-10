@@ -2114,7 +2114,7 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     ASSERT_EQ(count, 10u);
 }
 
-TEST_F(MultiReaderTest, readWhenOnePortIsNotConnected)
+TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2146,8 +2146,9 @@ TEST_F(MultiReaderTest, readWhenOnePortIsNotConnected)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, 0u);
 
+    // check reading with timeout
     count = SAMPLES;
-    status = multi.read(valuesPerSignal, &count, 1000);
+    status = multi.read(valuesPerSignal, &count, 100u);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, 0u);
 
@@ -2167,7 +2168,7 @@ TEST_F(MultiReaderTest, readWhenOnePortIsNotConnected)
     ASSERT_EQ(count, 10u);
 }
 
-TEST_F(MultiReaderTest, notifyPortIsConnected)
+TEST_F(MultiReaderTest, NotifyPortIsConnected)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2194,14 +2195,14 @@ TEST_F(MultiReaderTest, notifyPortIsConnected)
 
     notConnectedPort.connect(sig2.signal);
 
-    auto promiseStatus = future.wait_for(std::chrono::seconds(3));
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
 }
 
-TEST_F(MultiReaderTest, readWhilePortIsNotConnected)
+TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2220,7 +2221,7 @@ TEST_F(MultiReaderTest, readWhilePortIsNotConnected)
 
     std::future<void> future = std::async(std::launch::async, [&] {
         SizeT count{0};
-        status = multi.read(nullptr, &count, 1000);
+        status = multi.read(nullptr, &count, 1000u);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -2270,5 +2271,4 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
-    
 }

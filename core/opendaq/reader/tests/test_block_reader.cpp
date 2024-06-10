@@ -2493,3 +2493,130 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     ASSERT_EQ(samples[0], dataPtr[0]);
     ASSERT_EQ(samples[1], dataPtr[1]);
 }
+
+TYPED_TEST(BlockReaderTest, ReadingNotConnectedPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+
+    auto reader = BlockReaderBuilder()
+                      .setInputPort(port)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::RangeInt64)
+                      .setBlockSize(BLOCK_SIZE)
+                      .build();
+
+    auto avaialble = reader.getAvailableCount();
+    ASSERT_EQ(avaialble, 0u);
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    auto status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    // read with timeout
+    count = 1u;
+    status = reader.read(&samples, &count, 100u);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    // connecting port
+    port.connect(this->signal);
+
+    // check that event is encountered
+    count = 1u;
+    status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(BlockReaderTest, NotifyPortIsConnected)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+
+    auto reader = BlockReaderBuilder()
+                      .setInputPort(port)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::RangeInt64)
+                      .setBlockSize(BLOCK_SIZE)
+                      .build();
+    
+    BlockReaderStatusPtr status;
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    reader.setOnDataAvailable([&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count);
+        promise.set_value();
+    });
+
+    port.connect(this->signal);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(BlockReaderTest, ReadWhilePortIsNotConnected)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+
+    auto reader = BlockReaderBuilder()
+                      .setInputPort(port)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::RangeInt64)
+                      .setBlockSize(BLOCK_SIZE)
+                      .build();
+
+    BlockReaderStatusPtr status;
+    auto future = std::async(std::launch::async, [&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count, 1000u);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    port.connect(this->signal);
+
+    future.wait();
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(BlockReaderTest, ReconnectWhileReading)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader = BlockReaderBuilder()
+                      .setInputPort(port)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::RangeInt64)
+                      .setBlockSize(BLOCK_SIZE)
+                      .build();
+    
+    SizeT count{0};
+    BlockReaderStatusPtr status = reader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    status = nullptr;
+    auto future = std::async(std::launch::async, [&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count, 1000u);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    port.disconnect();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    port.connect(this->signal);
+
+    future.wait();
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}

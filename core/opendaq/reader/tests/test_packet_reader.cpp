@@ -246,3 +246,43 @@ TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
     auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
     ASSERT_TRUE(dataPacket.assigned());
 }
+
+TEST_F(PacketReaderTest, ReadingNotConnectedPort)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::PacketReaderFromPort(port);
+
+    auto availableCount = reader.getAvailableCount();
+    ASSERT_EQ(availableCount, 0u);
+
+    auto packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 0u);
+
+    // connecting port
+    port.connect(this->signal);
+
+    // check that event is encountered
+    packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 1u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+}
+
+TEST_F(PacketReaderTest, NotifyPortIsConnected)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::PacketReaderFromPort(port);
+
+    ListPtr<IPacket> packets;
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    reader.setOnDataAvailable([&] {
+        packets = reader.readAll();
+        promise.set_value();
+    });
+
+    port.connect(this->signal);
+
+    ASSERT_EQ(packets.getCount(), 1u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+}

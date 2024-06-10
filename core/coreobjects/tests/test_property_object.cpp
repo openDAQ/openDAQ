@@ -151,7 +151,7 @@ static void eventHandlerThrows(PropertyObjectPtr& /*sender*/, PropertyValueEvent
     ASSERT_FALSE(true) << "Should never be called!";
 }
 
-static void freeF(PropertyObjectPtr& prop, PropertyValueEventArgsPtr& args)
+static void freeF(PropertyObjectPtr& prop, PropertyValueEventArgsPtr& /*args*/)
 {
     IntPtr value = prop.getPropertyValue("callCount");
     if (!value.assigned())
@@ -159,10 +159,7 @@ static void freeF(PropertyObjectPtr& prop, PropertyValueEventArgsPtr& args)
         value = 0;
     }
 
-    // mute to prevent recursive call
-    prop.getOnPropertyValueWrite(args.getProperty().getName()) |= freeF;
     prop.setPropertyValue("callCount", value + 1);
-    prop.getOnPropertyValueWrite(args.getProperty().getName()) &= freeF;
 }
 
 static void freeF2(PropertyObjectPtr& /*prop*/, PropertyValueEventArgsPtr& /*args*/)

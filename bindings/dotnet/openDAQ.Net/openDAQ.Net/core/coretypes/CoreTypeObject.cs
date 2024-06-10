@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:28.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@ public class CoreTypeObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawCoreTypeObject.GetCoreType(base.NativePointer, out coreType);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }

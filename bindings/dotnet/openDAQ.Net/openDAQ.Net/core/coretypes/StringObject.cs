@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:36.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ public class StringObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStringObject.GetCharPtr(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -99,7 +99,7 @@ public class StringObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStringObject.GetLength(base.NativePointer, out size);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -154,7 +154,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -171,7 +171,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -196,7 +196,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -213,7 +213,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

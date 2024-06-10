@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:35.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ public class Procedure : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -112,7 +112,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createProcedure(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Procedure(objPtr, incrementReference: false);
@@ -129,7 +129,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createProcedure(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

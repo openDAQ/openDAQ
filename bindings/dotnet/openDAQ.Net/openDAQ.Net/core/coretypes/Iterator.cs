@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:34.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -86,10 +86,16 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawIterator.GetCurrent(base.NativePointer, out objPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (objPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return BaseObject.CreateInstance<TValue>(objPtr, incrementReference: false);
@@ -110,7 +116,7 @@ public class Iterator<TValue> : BaseObject, IEnumerator<TValue>
             {
                 return false;
             }
-            else if (Daq.Core.Types.Result.Failed(errorCode))
+            else if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

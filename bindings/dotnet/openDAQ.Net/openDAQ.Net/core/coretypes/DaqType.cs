@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:38.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ public class DaqType : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDaqType.GetName(base.NativePointer, out typeNamePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -84,7 +84,7 @@ public class DaqType : BaseObject
             // validate pointer
             if (typeNamePtr == IntPtr.Zero)
             {
-                return null;
+                return default;
             }
 
             using var typeName = new StringObject(typeNamePtr, incrementReference: false);

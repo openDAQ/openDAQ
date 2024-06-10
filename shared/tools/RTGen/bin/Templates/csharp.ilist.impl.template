@@ -77,7 +77,7 @@
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.Clear(base.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

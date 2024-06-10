@@ -2,9 +2,6 @@ name: Build and Test openDAQ
 
 on:
   workflow_dispatch:
-  push: # TODO: debug only, delete
-    branches:
-      - regression-tests 
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 

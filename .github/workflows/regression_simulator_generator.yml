@@ -4,10 +4,8 @@ name: Generate openDAQ regression test simulator binaries
 
 on:
   workflow_dispatch:
-  push: 
-    branches: # TODO: debug only, delete
-      - regression-tests
-    # tags: # TODO: later, to build simulator from tag
+  # push: # TODO: later, to build simulator from tag
+    # tags: 
     #   - '**'
 
 env:

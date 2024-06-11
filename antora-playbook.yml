@@ -22,5 +22,5 @@ content:
     start_path: docs/Antora
 ui:
   bundle:
-    url: https://github.com/openDAQ/antora-ui-spring/releases/download/1.2-opendaq/ui-bundle.zip
+    url: https://github.com/openDAQ/antora-ui-spring/releases/download/1.3-opendaq/ui-bundle.zip
     snapshot: true

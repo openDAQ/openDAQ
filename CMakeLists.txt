@@ -476,6 +476,10 @@ if (MSVC)
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
 
+	# Maintain binary compatibilty with older msvc runtime environments
+	# https://github.com/microsoft/STL/wiki/Changelog
+	add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+	
     if (NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
         # Build with multiple processes
         # https://learn.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes

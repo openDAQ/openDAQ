@@ -32,17 +32,19 @@ const char* Interfaces = "interfaces";
 const char* SyncronizationLocked = "SyncronizationLocked";
 const char* Source = "Source";
 
-class GenericSyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
+class SyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 {
 public:
     using Super = GenericPropertyObjectImpl<ISyncComponent>;
 
-    explicit GenericSyncComponentImpl();
+    explicit SyncComponentImpl();
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC test() override;
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* SyncronizationLocked) override;
     ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) override;
+    //ErrCode INTERFACE_FUNC setSyncLocked(Bool syncronizationLocked) override;
+    //ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSource) override;
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
@@ -61,7 +63,7 @@ private:
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 };
 
-GenericSyncComponentImpl::GenericSyncComponentImpl()
+SyncComponentImpl::SyncComponentImpl()
     : Super()
 {
     Super::addProperty(ObjectProperty(Interfaces, PropertyObject()));
@@ -70,17 +72,17 @@ GenericSyncComponentImpl::GenericSyncComponentImpl()
 }
 
 template <typename T>
-typename InterfaceToSmartPtr<T>::SmartPtr GenericSyncComponentImpl::getTypedProperty(const StringPtr& name)
+typename InterfaceToSmartPtr<T>::SmartPtr SyncComponentImpl::getTypedProperty(const StringPtr& name)
 {
     return objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
-ErrCode GenericSyncComponentImpl::test()
+ErrCode SyncComponentImpl::test()
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode GenericSyncComponentImpl::getSyncLocked(Bool* syncLocked)
+ErrCode SyncComponentImpl::getSyncLocked(Bool* syncLocked)
 {
     return daqTry([&]() {
         *syncLocked = getTypedProperty<IBoolean>(SyncronizationLocked);
@@ -88,7 +90,7 @@ ErrCode GenericSyncComponentImpl::getSyncLocked(Bool* syncLocked)
     });
 }
 
-ErrCode GenericSyncComponentImpl::getSelectedSource(IString** selectedSource)
+ErrCode SyncComponentImpl::getSelectedSource(IString** selectedSource)
 {
     return daqTry([&]() {
         *selectedSource = getTypedProperty<IString>(Source).detach();
@@ -96,7 +98,25 @@ ErrCode GenericSyncComponentImpl::getSelectedSource(IString** selectedSource)
     });
 }
 
-ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)
+
+//ErrCode INTERFACE_FUNC setSyncLocked(Bool syncronizationLocked)
+//{
+//    return daqTry([&]() {
+//        checkErrorInfo(Super::setPropertyValue(String(SyncronizationLocked), syncronizationLocked));
+//        return OPENDAQ_SUCCESS;
+//    });
+//}
+//
+//ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSource)
+//{
+//    OPENDAQ_PARAM_NOT_NULL(selectedSource);
+//    return daqTry([&]() {
+//        checkErrorInfo(Super::setPropertyValue(String(Source), selectedSource));
+//        return OPENDAQ_SUCCESS;
+//    });
+//}
+
+ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaces);
     ListPtr<IPropertyObject> interfacesList = List<IPropertyObject>();
@@ -126,7 +146,7 @@ ErrCode GenericSyncComponentImpl::getInterfaces(IList** interfaces)
 }
 
 
-ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
+ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
 {
     OPENDAQ_PARAM_NOT_NULL(interface);
 
@@ -153,7 +173,7 @@ ErrCode GenericSyncComponentImpl::addInterface(IPropertyObject* interface)
 }
 
 
-ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
+ErrCode SyncComponentImpl::removeInterface(IString* interfaceName)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaceName);
 
@@ -171,7 +191,7 @@ ErrCode GenericSyncComponentImpl::removeInterface(IString* interfaceName)
     return InterfacesPtr->removeProperty(interfaceName);
 }
 
-ErrCode GenericSyncComponentImpl::getSerializeId(ConstCharPtr* id) const
+ErrCode SyncComponentImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
@@ -180,12 +200,12 @@ ErrCode GenericSyncComponentImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
-ConstCharPtr GenericSyncComponentImpl::SerializeId()
+ConstCharPtr SyncComponentImpl::SerializeId()
 {
     return "Synchronization";
 }
 
-ErrCode GenericSyncComponentImpl::Deserialize(ISerializedObject* serialized,
+ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
                                                 IBaseObject* context,
                                                 IFunction* factoryCallback,
                                                 IBaseObject** obj)
@@ -201,12 +221,12 @@ ErrCode GenericSyncComponentImpl::Deserialize(ISerializedObject* serialized,
                     factoryCallback,
                        [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
                        {
-                           const auto sync = createWithImplementation<ISyncComponent, GenericSyncComponentImpl>();
+                           const auto sync = createWithImplementation<ISyncComponent, SyncComponentImpl>();
                            return sync;
                        }).detach();
         });
 }
 
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY(GenericSyncComponentImpl)
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)
 
 END_NAMESPACE_OPENDAQ

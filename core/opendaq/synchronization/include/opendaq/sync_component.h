@@ -73,6 +73,18 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) = 0;
 
+    /*!
+     * @brief Sets the synchronization lock status.
+     * @param SyncronizationLocked True if synchronization is locked; false otherwise.
+     */
+    //virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool syncronizationLocked) = 0;
+
+    /*!
+     * @brief Sets the selected sync source interface.
+     * @param selectedSource The selected sync source interface.
+     */
+    //virtual ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSource) = 0;
+
     // [elementType(interfaces, IPropertyObject)]
     /*!
      * @brief Retrieves the list of interfaces associated with this synchronization component.
@@ -94,5 +106,9 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) = 0;
 };
 /*!@}*/
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, SyncComponent, ISyncComponent
+)
 
 END_NAMESPACE_OPENDAQ

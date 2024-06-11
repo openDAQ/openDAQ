@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/sync_component_config_ptr.h>
+#include <opendaq/sync_component_ptr.h>
 #include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -30,9 +30,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param parent The parent component.
  * @param localId The local ID of the component.
  */
-inline SyncComponentConfigPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline SyncComponentPtr SyncComponent()
 {
-    return { SyncComponent_Create(context, parent, localId) };
+    return { SyncComponent_Create() };
 }
 
 /*!@}*/

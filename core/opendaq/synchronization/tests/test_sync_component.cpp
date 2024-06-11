@@ -1,4 +1,4 @@
-//#include <opendaq/sync_component_factory.h>
+#include <opendaq/sync_component_factory.h>
 #include <opendaq/context_factory.h>
 #include <gtest/gtest.h>
 #include <coreobjects/property_object_factory.h>
@@ -11,7 +11,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 TEST_F(SyncComponentTest, test1)
 {
-    //SyncComponentPtr syncComponent = SyncComponent();
+    SyncComponentPtr syncComponent = SyncComponent();
     ASSERT_TRUE(true);
 }
 

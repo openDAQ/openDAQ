@@ -53,10 +53,12 @@ ErrCode ConnectionImpl::enqueueInternal(P&& packet, const F& f)
                     if (gapCheckState != GapCheckState::disabled)
                         checkForGaps(packet);
 
-                    onPacketEnqueued(packet);
-                    packets.emplace_back(std::forward<P>(packet));
-                    queueEmpty = false;
-                    LOGP_T("Packet enqueued.")
+                    if (onPacketEnqueued(packet))
+                    {
+                        packets.emplace_back(std::forward<P>(packet));
+                        queueEmpty = false;
+                        LOGP_T("Packet enqueued.")
+                    }
                 });
 
             f(queueWasEmpty);
@@ -98,8 +100,10 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
             for (size_t i = 0; i < cnt; ++i)
             {
                 auto packet = packets.getItemAt(i);
-                onPacketEnqueued(packet);
-                this->packets.push_back(packet);
+                if (onPacketEnqueued(packet))
+                {
+                    this->packets.push_back(packet);
+                }
             }
             queueEmpty = false;
         });
@@ -123,10 +127,12 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
             for (size_t i = 0; i < cnt; ++i)
             {
                 auto packet = packets.popBack();
-                onPacketEnqueued(packet);
-                this->packets.push_back(packet);
+                if (onPacketEnqueued(packet))
+                {
+                    this->packets.push_back(packet);
+                    queueEmpty = false;
+                }
             }
-            queueEmpty = false;
         });
 
         port.notifyPacketEnqueued(queueWasEmpty);
@@ -163,10 +169,12 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
                         {
                             packet = packets.getItemAt(i);
                         }
-                        onPacketEnqueued(packet);
-                        this->packets.push_back(packet);
+                        if (onPacketEnqueued(packet))
+                        {
+                            this->packets.push_back(packet);
+                            queueEmpty = false;
+                        }
                     }
-                    queueEmpty = false;
                 });
 
             port.notifyPacketEnqueued(queueWasEmpty);
@@ -355,6 +363,12 @@ ErrCode ConnectionImpl::isRemote(Bool* remote)
 
     *remote = False;
     LOG_T("Remote = {}.", *remote)
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ConnectionImpl::dequeBlockSize(SizeT packet)
+{
+    blockSizeDequeue = packet;
     return OPENDAQ_SUCCESS;
 }
 
@@ -567,13 +581,18 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     }
 }
 
-void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
+bool ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
 {
     if (packet.getType() == PacketType::Data)
     {
         auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+       
         if (dataPacket.assigned())
         {
+            if ((samplesCnt + dataPacket.getSampleCount()) > (blockSizeDequeue + 1000u))
+            {
+                return false;
+            }
             samplesCnt += dataPacket.getSampleCount();
         }
     }
@@ -581,6 +600,7 @@ void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
     {
         eventPacketsCnt++;
     }
+    return true;
 }
 
 void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)

@@ -3,6 +3,7 @@
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/connection_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -72,6 +73,8 @@ BlockReaderImpl::BlockReaderImpl(
     initOverlap();
 
     this->internalAddRef();
+    connection.asPtr<IConnectionPrivate>(true).dequeBlockSize(blockSize);
+
     if (portBinder.assigned())
     {
         auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
@@ -81,7 +84,7 @@ BlockReaderImpl::BlockReaderImpl(
     {
         readDescriptorFromPort();
     }
-
+    
     notify.dataReady = false;
 }
 
@@ -143,6 +146,7 @@ ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
     OPENDAQ_PARAM_NOT_NULL(inputPort);
     std::scoped_lock lock(notify.mutex);
     connection = InputPortPtr::Borrow(inputPort).getConnection();
+    connection.asPtr<IConnectionPrivate>(true).dequeBlockSize(blockSize);
     return OPENDAQ_SUCCESS;
 }
 

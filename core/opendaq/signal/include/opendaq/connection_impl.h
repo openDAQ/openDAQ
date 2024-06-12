@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/connection.h>
+#include <opendaq/connection_private.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <coretypes/intfs.h>
@@ -30,10 +31,10 @@
 #include <queue>
 
 BEGIN_NAMESPACE_OPENDAQ
-class ConnectionImpl : public ImplementationOfWeak<IConnection>
+class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionPrivate>
 {
 public:
-    using Super = ImplementationOfWeak<IConnection>;
+    using Super = ImplementationOfWeak<IConnection, IConnectionPrivate>;
 
     explicit ConnectionImpl(
         const InputPortPtr& port,
@@ -58,6 +59,9 @@ public:
     ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
+
+    // IConnectionPrivate
+    ErrCode INTERFACE_FUNC dequeBlockSize(SizeT packet) override;
 
     // IBaseObject
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
@@ -103,7 +107,7 @@ private:
     mutable std::mutex mutex;
 #endif
 
-    void onPacketEnqueued(const PacketPtr& packet);
+    bool onPacketEnqueued(const PacketPtr& packet);
     void onPacketDequeued(const PacketPtr& packet);
 
     void checkForGaps(const PacketPtr& packet);
@@ -128,6 +132,7 @@ private:
 protected:
     SizeT samplesCnt{};
     SizeT eventPacketsCnt{};
+    SizeT blockSizeDequeue{1};
     std::deque<PacketPtr> packets;
 };
 

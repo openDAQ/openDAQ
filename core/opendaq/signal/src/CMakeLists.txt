@@ -8,6 +8,7 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_Connection connection.h)
+rtgen(SRC_ConnectionPrivate connection_private.h)
 rtgen(SRC_Dimension dimension.h)
 rtgen(SRC_DimensionBuilder dimension_builder.h)
 rtgen(SRC_EventPacket event_packet.h)
@@ -72,6 +73,7 @@ source_group("range" FILES ${SDK_HEADERS_DIR}/range.h
 )
 
 source_group("connection" FILES ${SDK_HEADERS_DIR}/connection.h
+                                ${SDK_HEADERS_DIR}/connection_private.h
                                 ${SDK_HEADERS_DIR}/connection_impl.h
                                 ${SDK_HEADERS_DIR}/connection_factory.h
                                 connection_impl.cpp
@@ -257,6 +259,7 @@ prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
 
 list(APPEND SRC_Cpp ${SRC_Connection_Cpp}
+                    ${SRC_ConnectionPrivate_Cpp}
                     ${SRC_Dimension_Cpp}
                     ${SRC_DimensionBuilder_Cpp}
                     ${SRC_EventPacket_Cpp}
@@ -281,6 +284,7 @@ list(APPEND SRC_Cpp ${SRC_Connection_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Connection_PublicHeaders}
+                              ${SRC_ConnectionPrivate_PublicHeaders}
                               ${SRC_Dimension_PublicHeaders}
                               ${SRC_DimensionBuilder_PublicHeaders}
                               ${SRC_EventPacket_PublicHeaders}
@@ -310,6 +314,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Connection_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Connection_PrivateHeaders}
+                               ${SRC_ConnectionPrivate_PrivateHeaders}
                                ${SRC_Dimension_PrivateHeaders}
                                ${SRC_DimensionBuilder_PrivateHeaders}
                                ${SRC_EventPacket_PrivateHeaders}

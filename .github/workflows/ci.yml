@@ -332,27 +332,33 @@ jobs:
 
       # PROTOCOL REGRESSION TEST BEGIN
 
+      - name: Check AWS secret availability
+        id: check-aws
+        env:
+          AWS_REG: ${{ secrets.AWS_REGION }}
+        run: echo "aws_available=${{ env.AWS_REG != '' }}" >> $GITHUB_OUTPUT
+
       - uses: aws-actions/configure-aws-credentials@v4
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Download regression simulator binaries .zip from S3 bucket
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
 
       - name: Unzip regression simulator binaries
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
 
       - name: Add execute permissions to regression simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
       - name: Create and give execute permissions to regression test runner script
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         run: |
           cat > regression_test_run.sh << EOL
           
@@ -378,35 +384,35 @@ jobs:
           chmod +x regression_test_run.sh
 
       - name: Protocol regression test - OPC UA
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         env:
           GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
           protocol: opcua
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - ND
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         env:
           GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
           protocol: nd
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - NS
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         env:
           GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
           protocol: ns
         run: ./regression_test_run.sh
 
       - name: Protocol regression test - LT
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         env:
           GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
           protocol: lt
         run: ./regression_test_run.sh
 
       - name: Upload regression test results
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' }}
+        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: Regression Test Results (${{ matrix.name }})

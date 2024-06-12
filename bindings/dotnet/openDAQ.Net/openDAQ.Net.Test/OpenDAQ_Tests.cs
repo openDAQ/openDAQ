@@ -992,6 +992,83 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         }
     }
 
+    [Test]
+    public void FunctionBlockTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+        using var addedDevice = ConnectFirstAvailableDevice(daqInstance, eDesiredConnection.DaqRef);
+
+        Console.WriteLine("daqInstance.GetAvailableFunctionBlocks()");
+        var availableFunctionBlockInfos = daqInstance.AvailableFunctionBlockTypes;
+
+        Console.WriteLine($"  {availableFunctionBlockInfos.Count} function blocks available");
+
+        var functionBlockKeys = availableFunctionBlockInfos.Keys;
+
+        using (var keyIterator = functionBlockKeys.GetEnumerator())
+        {
+            while (keyIterator.MoveNext())
+            {
+                using var keyObject = keyIterator.Current;
+                string key = keyObject;
+
+                using var functionBlockInfo = availableFunctionBlockInfos[keyObject];
+                var functionBlockId = functionBlockInfo.Id;
+                Console.WriteLine($"  - '{key}' ({functionBlockId})");
+
+                Console.WriteLine($"    add to daqInstance");
+                using var propertyObject = CoreObjectsFactory.CreatePropertyObject();
+                using var functionBlock = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
+
+                using var properties = functionBlock.AllProperties;
+                Console.WriteLine($"    {properties.Count} properties available");
+
+                foreach (var property in properties)
+                {
+                    string valueType   = property.ValueType.ToString();
+                    string? keyType    = (property.ValueType == CoreType.ctDict) ? property.KeyType.ToString() : null;
+                    string? itemType   = (property.ValueType == CoreType.ctDict) || (property.ValueType == CoreType.ctList) ? property.ItemType.ToString() : null;
+                    string? structType = (property.ValueType == CoreType.ctStruct) ? property.StructType.Name : null;
+                    Console.WriteLine($"    - {property.Name} ({valueType}: {keyType}; {itemType}; {structType})");
+
+                    using var selectionValues = property.SelectionValues;
+
+                    if (selectionValues != null)
+                    {
+                        using var list = selectionValues.Cast<ListObject<BaseObject>>();
+                        using var dict = selectionValues.Cast<DictObject<BaseObject, BaseObject>>();
+
+                        if (list != null)
+                        {
+                            Console.WriteLine($"      {list.Count} selection values in list");
+                        }
+                        else if (dict != null)
+                        {
+                            Console.WriteLine($"      {dict.Count} selection values in dictionary");
+                        }
+                        else
+                        {
+                            Console.WriteLine("      selection values not a list nor dictionary");
+                        }
+                    }
+                }
+            }
+        }
+
+        //*** always empty list as none connected ***
+
+        //var channel = addedDevice.GetChannels()[0];
+
+        //Console.WriteLine("channel.GetFunctionBlocks()");
+        //var functionBlocks = channel.GetFunctionBlocks();
+
+        //Console.WriteLine($"  {functionBlocks.Count} function blocks for channel {channel.Name}");
+
+        //foreach (var functionBlock in functionBlocks)
+        //{
+        //    Console.WriteLine($"  - '{functionBlock.Name}' ({functionBlock.LocalId})");
+        //}
+    }
     //[Test]
     public void FilterPropertyTest()
     {

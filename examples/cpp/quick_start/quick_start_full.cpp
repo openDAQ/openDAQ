@@ -98,7 +98,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     renderer.getInputPorts()[0].connect(signal);
 
     // Create an instance of the statistics function block
-    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_classifier");
+    statistics.setPropertyValue("BlockSize", 1024);
 
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);

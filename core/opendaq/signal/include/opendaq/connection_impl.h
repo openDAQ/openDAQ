@@ -133,6 +133,7 @@ protected:
     SizeT samplesCnt{};
     SizeT eventPacketsCnt{};
     SizeT blockSizeDequeue{1};
+    SizeT samplesDropped{0};
     std::deque<PacketPtr> packets;
 };
 

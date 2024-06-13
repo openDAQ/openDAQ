@@ -589,8 +589,9 @@ bool ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
        
         if (dataPacket.assigned())
         {
-            if ((samplesCnt + dataPacket.getSampleCount()) > (blockSizeDequeue + 1000u))
+            if ((samplesCnt + dataPacket.getSampleCount()) > (blockSizeDequeue + 1024u))
             {
+                samplesDropped += dataPacket.getSampleCount();
                 return false;
             }
             samplesCnt += dataPacket.getSampleCount();
@@ -599,6 +600,12 @@ bool ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
     else if (packet.getType() == PacketType::Event)
     {
         eventPacketsCnt++;
+    }
+
+    if (samplesDropped)
+    {
+        LOG_W("Connection {} queue is full, Dropped {} samples", port.getGlobalId(), samplesDropped);
+        samplesDropped = 0;
     }
     return true;
 }

@@ -200,6 +200,9 @@ void ClassifierFbImpl::configure()
             linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
+
+            if (linearBlockCount == 0)
+                throw std::runtime_error("Calculation of linearBlockCount failed");
         }
         else
         {
@@ -207,8 +210,12 @@ void ClassifierFbImpl::configure()
         }
 
         if (linearReader.getBlockSize() != linearBlockCount)
+        {
             linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, SampleType::Float64, SampleType::UInt64);
-        
+            inputData.resize(linearBlockCount);
+            inputDomainData.resize(linearBlockCount);
+        }
+
         auto dimensions = List<IDimension>();
         if (useCustomClasses) 
         {
@@ -253,23 +260,15 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
+    std::scoped_lock lock(sync);
     while (!linearReader.empty())
     {
-        if (linearBlockCount == 0)
-        {
-            LOG_D("blockSize have to more than zero");
-            return;
-        }
-
-        std::vector<Float> inputData(linearBlockCount);
-        std::vector<UInt> inputDomainData(linearBlockCount);
-       
         size_t blocksToRead = 1;
         auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &blocksToRead);
 
         if (blocksToRead == 1)
         {
-            if(domainLinear)
+            if (domainLinear)
                 processLinearData(inputData, inputDomainData);
             else
                 processExplicitData(inputData[0], inputDomainData[0]);
@@ -430,6 +429,8 @@ void ClassifierFbImpl::createInputPorts()
     
     linearReader = BlockReaderFromPort(inputPort, linearBlockCount, SampleType::Float64, SampleType::UInt64);
     linearReader.setOnDataAvailable([this] { processData(); });
+    inputData.resize(linearBlockCount);
+    inputDomainData.resize(linearBlockCount);
 }
 
 void ClassifierFbImpl::createSignals()

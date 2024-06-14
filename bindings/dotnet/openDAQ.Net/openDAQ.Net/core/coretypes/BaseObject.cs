@@ -392,6 +392,32 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         return BaseObject.CreateInstance<TObject>(objPtr, false);
     }
 
+    /// <summary>Casts this instance to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c>.</summary>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <returns>The cast instance when casting to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    public IListObject<TValue> CastList<TValue>()
+        where TValue : BaseObject
+    {
+        if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>)))
+            return new ListObject<TValue>(this.NativePointer, true);
+
+        return this.Cast<ListObject<TValue>>();
+    }
+
+    /// <summary>Casts this instance to <c>DictObject&lt;<typeparamref name="TKey"/>, <typeparamref name="TValue"/>&gt;</c>.</summary>
+    /// <typeparam name="TKey">The key value type.</typeparam>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <returns>The cast instance when casting to <c>DictObject&lt;<typeparamref name="TKey"/>, <typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    public IDictObject<TKey, TValue> CastDict<TKey, TValue>()
+        where TKey : BaseObject
+        where TValue : BaseObject
+    {
+        if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>)))
+            return new DictObject<TKey, TValue>(this.NativePointer, true);
+
+        return this.Cast<DictObject<TKey, TValue>>();
+    }
+
     /// <summary>
     /// Sets the native pointer to zero, so that the reference count would not be decremented on <see cref="Dispose()"/>. <br/>
     /// Used internally for "stealRef" arguments.

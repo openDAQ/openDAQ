@@ -1212,10 +1212,15 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         //    Console.WriteLine($"  - '{functionBlock.Name}' ({functionBlock.LocalId})");
         //}
     }
+
     //[Test]
     public void FilterPropertyTest()
     {
+    }
 
+    //[Test]
+    public void SensorPropertyTest()
+    {
     }
 
     //[Test]

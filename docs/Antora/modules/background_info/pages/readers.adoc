@@ -4,6 +4,11 @@ Readers are helpers that enable easy reading of data from xref:background_info:s
 
 Since this is always a chore and prone to mistakes, the Readers automate all this and enable you to handle reading the Signal data as it were a simple memory-stream conveniently already in your desired format. This way you can focus on actually doing your work instead of data juggling and worrying about all the details and options.
 
+[NOTE]
+====
+Since event handlers and call-backs are currently not applicable for _.NET Bindings_, some of the topics below cannot be used in .NET applications.
+====
+
 == Types of Readers
 The openDAQ(TM) SDK provides multiple types of Readers depending on what do you actually need or want to achieve.
 Some of the most used ones are listed below:

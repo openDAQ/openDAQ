@@ -1,14 +1,15 @@
-#include <ping/icmp_header.h>
-#include <ping/icmp_ping.h>
-#include <ping/ipv4_header.h>
-#include <ping/format.h>
+#include <opendaq/icmp_header.h>
+#include <opendaq/icmp_ping.h>
+#include <opendaq/ipv4_header.h>
+#include <opendaq/format.h>
 #include <opendaq/custom_log.h>
 #include <thread>
 
-using namespace daq;
 using namespace boost;
 using namespace boost::asio;
 using namespace std::chrono_literals;
+
+BEGIN_NAMESPACE_OPENDAQ
 
 IcmpPing::IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops)
     : loggerComponent(logger.getOrAddComponent("IcmpPing"))
@@ -290,3 +291,5 @@ uint16_t IcmpPing::GetIdentifier()
     return static_cast<uint16_t>(::getpid());
 #endif
 }
+
+END_NAMESPACE_OPENDAQ

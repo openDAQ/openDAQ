@@ -43,6 +43,7 @@
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <opendaq/component_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -86,13 +87,13 @@ public:
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
+    ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC lockAllAttributes() override;
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
-    ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
 
     // IRemovable
@@ -281,6 +282,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
     {
         std::scoped_lock lock(sync);
+
+        if (this->isComponentRemoved)
+            return OPENDAQ_ERR_COMPONENT_REMOVED;
     
         if (lockedAttributes.count("Active"))
         {
@@ -363,6 +367,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
     {
         std::scoped_lock lock(sync);
 
+        if (this->isComponentRemoved)
+            return OPENDAQ_ERR_COMPONENT_REMOVED;
+
         if (StringPtr namePtr = name; this->name == namePtr)
             return OPENDAQ_IGNORED;
 
@@ -410,6 +417,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 
     {
         std::scoped_lock lock(sync);
+
+        if (this->isComponentRemoved)
+            return OPENDAQ_ERR_COMPONENT_REMOVED;
 
         if (StringPtr descriptionPtr = description; this->description == descriptionPtr)
             return OPENDAQ_IGNORED;
@@ -469,6 +479,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
     {
         std::scoped_lock lock(sync);
 
+        if (this->isComponentRemoved)
+            return OPENDAQ_ERR_COMPONENT_REMOVED;
+
         if (lockedAttributes.count("Visible"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -514,6 +527,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
 
     std::scoped_lock lock(sync);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
@@ -530,6 +546,10 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
     std::scoped_lock lock(sync);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     return lockAllAttributesInternal();
 }
 
@@ -540,6 +560,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
         return OPENDAQ_SUCCESS;
 
     std::scoped_lock lock(sync);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
@@ -557,6 +580,10 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
 {
     std::scoped_lock lock(sync);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
     lockedAttributes.clear();
     return OPENDAQ_SUCCESS;
 }
@@ -567,6 +594,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
     OPENDAQ_PARAM_NOT_NULL(attributes);
     
     std::scoped_lock lock(sync);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
 
     ListPtr<IString> attributesList = List<IString>();
     for (const auto& str : lockedAttributes)

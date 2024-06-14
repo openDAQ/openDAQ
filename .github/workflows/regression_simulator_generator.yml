@@ -1,0 +1,154 @@
+name: Generate openDAQ regression test simulator binaries
+
+# TODO: this whole action should be back-ported once a new tag is made
+
+on:
+  workflow_dispatch:
+  # push: # TODO: later, to build simulator from tag
+    # tags: 
+    #   - '**'
+
+env:
+  regression_tests_target_tag: v3.0.0 # TODO: not needed once we only run on tags
+  s3_bucket: bb-blueberry-sdk-releases
+
+jobs:
+  regression_tests:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 22.04 gcc-12 Release
+            image: ubuntu:22.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines_target: -DDAQMODULES_EMPTY_MODULE=OFF -DDAQMODULES_AUDIO_DEVICE_MODULE=ON -DAPP_ENABLE_WEBPAGE_EXAMPLES=OFF -DOPENDAQ_DOCUMENTATION_TESTS=OFF -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DAPP_ENABLE_AUDIO_APP=OFF -DAPP_ENABLE_EXAMPLE_APPS=OFF -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF # TODO: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON (later, to build simulator from tag)
+            apt_packages: g++-12
+            cc: gcc-12
+            cxx: g++-12
+            cpack: DEB
+
+    container:
+      image: ${{ matrix.image }}
+      env:
+        TZ: Europe/Berlin
+        DEBIAN_FRONTEND: noninteractive
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
+
+    steps:
+      - name: Install basic dependencies
+        run: |
+          apt-get update
+          apt-get install -y git openssh-client
+          
+      - name: Disable git safe directory checks
+        run : git config --global --add safe.directory '*'
+
+      - name: Install additional dependencies
+        run: |
+          apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
+            lld ninja-build curl \
+            awscli zip \
+            python3-dev python3-numpy python3-distutils python3-pip \
+            mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
+            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+
+      - name: Install latest CMake
+        run: pip install cmake
+
+      # TODO: not needed once we only run on tags, just checkout current 
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.regression_tests_target_tag }}
+          path: target # TODO: don't use target folder, just use default folder
+
+      - name: Checkout current
+        uses: actions/checkout@v4
+        with:
+          path: current # TODO: not needed once we only run on tags
+
+      # TODO: not needed once we only run on tags
+      - name: Copy regression simulator to top folder
+        run: cp -r current/regression/simulator .
+
+      # TODO: not needed once we only run on tags
+      - name: Move and rename CMakeListsTop.txt from current to top folder and move CMakePresets.json from target to top folder (to build simulator with target version)
+        run: |
+          mv current/regression/CMakeListsTop.txt CMakeLists.txt
+          mv target/CMakePresets.json .
+
+      - name: Configure target (with regression simulator)
+        working-directory: target # TODO: not needed once we only run on tags (don't use target folder, just use default folder)
+        run: |
+          mkdir build
+          cd build
+          cmake -G ${{ matrix.cmake_generator }} --preset ci ${{ matrix.cmake_defines_target }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ../..
+
+      - name: Build target (with regression simulator)
+        # TODO: don't use target folder, just use default folder
+        working-directory: target/build 
+        run: cmake --build .
+
+      - name: Move simulator binary to bin folder
+        # TODO: don't use target folder, just use default folder
+        run: mv target/build/simulator/regression_simulator target/build/bin 
+
+      - name: Upload regression simulator binaries archive
+        uses: actions/upload-artifact@v4
+        with: 
+          # TODO: don't use target folder, just use default folder
+          # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+          name: regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }})
+          path: |
+            target/build/bin/*daqcoreobjects-*
+            target/build/bin/*daqcoretypes-*
+            target/build/bin/*native_stream_srv_module-*
+            target/build/bin/*opcua_server_module-*
+            target/build/bin/libopendaq-*
+            target/build/bin/*ref_device_module-*
+            target/build/bin/*ref_fb_module-*
+            target/build/bin/*ws_stream_srv_module-*
+            target/build/bin/regression_simulator
+            target/build/bin/*audio_device_module-*
+
+      - name: Archive regression simulator binaries for S3
+        # TODO: don't use target folder, just use default folder
+        working-directory: target/build/bin
+        # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+        run: |
+          zip \
+          "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" \
+          *daqcoreobjects-* \
+          *daqcoretypes-* \
+          *native_stream_srv_module-* \
+          *opcua_server_module-* \
+          libopendaq-* \
+          *ref_device_module-* \
+          *ref_fb_module-* \
+          *ws_stream_srv_module-* \
+          regression_simulator \
+          *audio_device_module-*
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload regression simulator binaries archive to S3 bucket
+        # TODO: don't use target folder, just use default folder
+        working-directory: target/build/bin
+        # TODO: use ${{ github.ref_name }} (tag) instead (once we run on tags only)
+        run: aws s3 cp "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" "s3://${{ env.s3_bucket }}/regression_test/"
+
+      - name: Show regression test related content in S3 bucket
+        run: aws s3 ls s3://${{ env.s3_bucket }}/regression_test --recursive

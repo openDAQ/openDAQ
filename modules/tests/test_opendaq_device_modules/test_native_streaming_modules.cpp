@@ -206,6 +206,16 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
 }
 
+TEST_F(NativeStreamingModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto device = client.addDevice("daq.ns://127.0.0.1/");
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
 TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
 {
     SKIP_TEST_MAC_CI;

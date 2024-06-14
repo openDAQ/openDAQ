@@ -1,4 +1,4 @@
-#include <opcuatms/exceptions.h>
+#include <opendaq/component_exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
@@ -282,6 +282,33 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveDevice)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
+TEST_F(NativeDeviceModulesTest, ChangePropAfterRemove)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+
+    ASSERT_TRUE(refDevice.isRemoved());
+
+    ASSERT_THROW(refDevice.setPropertyValue("NumberOfChannels", 1), ComponentRemovedException);
 }
 
 TEST_F(NativeDeviceModulesTest, RemoteGlobalIds)
@@ -826,7 +853,7 @@ TEST_P(AddComponentsTest, AddDevice)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, RemoveDevice)
+TEST_F(NativeDeviceModulesTest, RemoveSubDevice)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

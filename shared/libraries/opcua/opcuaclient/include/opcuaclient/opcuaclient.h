@@ -102,7 +102,7 @@ public:
 
     void initialize();
     void connect();
-    void disconnect();
+    void disconnect(bool doClear = true);
     void clear();
     bool isConnected();
     UA_Client* getUaClient();

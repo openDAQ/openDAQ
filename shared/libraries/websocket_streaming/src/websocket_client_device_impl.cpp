@@ -22,6 +22,12 @@ WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
 }
 
+void WebsocketClientDeviceImpl::removed()
+{
+    websocketStreaming.release();
+    Device::removed();
+}
+
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
     auto deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");

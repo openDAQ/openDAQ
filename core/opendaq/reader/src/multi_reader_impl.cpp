@@ -589,9 +589,9 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-DictPtr<ISignal, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
+DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
-    auto packets = Dict<ISignal, EventPacketPtr>();
+    auto packets = Dict<IString, EventPacketPtr>();
 
     for (auto& signal : signals)
     {
@@ -599,7 +599,7 @@ DictPtr<ISignal, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
         invalid |= signal.invalid;
         if (packet.assigned())
         {
-            packets.set(signal.port.getSignal(), packet);
+            packets.set(signal.port.getGlobalId(), packet);
         }
     }
     return packets.detach();

@@ -185,9 +185,11 @@ public:
     ListPtr<IInputPortConfig> signalsToPortsList(bool enableGapDetection = false) const
     {
         ListPtr<IInputPortConfig> ports = List<IInputPortConfig>();
+        size_t index = 0;
         for (const auto& read : readSignals)
         {
-            auto port = InputPort(read.signal.getContext(), nullptr, "readsig", enableGapDetection);
+            std::string localId = "readsig" + std::to_string(index++);
+            auto port = InputPort(read.signal.getContext(), nullptr, localId, enableGapDetection);
             port.connect(read.signal);
             ports.pushBack(port);
         }
@@ -1213,8 +1215,8 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey(sig1.signal));
-    ASSERT_NE(status.getEventPackets().get(sig1.signal), nullptr);
+    ASSERT_TRUE(status.getEventPackets().hasKey("/Read signal sig1"));
+    ASSERT_NE(status.getEventPackets().get("/Read signal sig1"), nullptr);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 458u);
@@ -2093,9 +2095,9 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1);
-    ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
+    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
     
-    auto event = status.getEventPackets().get(sig0.signal);
+    auto event = status.getEventPackets().get("/readsig0");
     ASSERT_EQ(event.getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
     ASSERT_EQ(event.getParameters().get(event_packet_param::GAP_DIFF), 5);
 
@@ -2177,7 +2179,7 @@ TEST_F(MultiReaderTest, NotifyPortIsConnected)
     addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
     auto portList = signalsToPortsList();
-    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
+    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig2");
     portList.pushBack(notConnectedPort);
 
     auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
@@ -2199,7 +2201,7 @@ TEST_F(MultiReaderTest, NotifyPortIsConnected)
     ASSERT_EQ(promiseStatus, std::future_status::ready);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
+    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig2"));
 }
 
 TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
@@ -2211,7 +2213,7 @@ TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
     addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
     auto portList = signalsToPortsList();
-    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
+    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig2");
     portList.pushBack(notConnectedPort);
 
     auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
@@ -2230,7 +2232,7 @@ TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
     future.wait();
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey(sig2.signal));
+    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig2"));
 }
 
 TEST_F(MultiReaderTest, ReconnectWhileReading)
@@ -2270,5 +2272,5 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     ASSERT_EQ(count, 10u);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
+    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 }

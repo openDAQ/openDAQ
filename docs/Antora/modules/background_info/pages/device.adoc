@@ -91,6 +91,27 @@ def access_device_components(device: opendaq.IDevice):
     channels = device.channels
     custom_components = device.custom_components
 ----
+C#::
++
+[source,csharp]
+----
+// Assumes a Device object is available in the `device` variable
+
+// Gets the Device's function blocks
+IListObject<FunctionBlock> functionBlocks = device.GetFunctionBlocks();
+// Gets the Device's Signals
+IListObject<Signal> signals = device.GetSignals();
+// Gets all Sub-Devices
+IListObject<Device> devices = device.GetDevices();
+
+// Gets the `io` folder.
+Folder inputsOutputsFolder = device.InputsOutputsFolder;
+// Shortcut to obtaining a list of channels that are the leaf Components of the `io` Folder
+IListObject<Channel> channels =  device.GetChannels();
+
+// Gets all custom Components of the Device
+IListObject<Component> customComponents = device.CustomComponents;
+----
 ====
 
 
@@ -196,6 +217,18 @@ def device_info(device: opendaq.IDevice):
     available_device_info = device.available_devices[0]
     print(available_device_info.name)
 ----
+C#::
++
+[source,csharp]
+----
+// Gets the Device information and prints its serial number
+DeviceInfo info = device.Info;
+Console.WriteLine(info.SerialNumber);
+
+// Prints the name of the first available device
+DeviceInfo availableDeviceInfo = device.AvailableDevices[0];
+Console.WriteLine(availableDeviceInfo.Name);
+----
 ====
 
 NOTE: The Device Info objects can contain additional, non-standardized fields. The
@@ -244,6 +277,16 @@ def instance_and_root():
     # The below two lines are equivalent.
     available_devices1 = instance.available_devices
     available_devices2 = instance.root_device.available_devices
+----
+C#::
++
+[source,csharp]
+----
+Instance instance = OpenDAQFactory.Instance();
+
+// The below two lines are equivalent.
+var availableDevices1 = instance.AvailableDevices;
+var availableDevices2 = instance.RootDevice.AvailableDevices;
 ----
 ====
 

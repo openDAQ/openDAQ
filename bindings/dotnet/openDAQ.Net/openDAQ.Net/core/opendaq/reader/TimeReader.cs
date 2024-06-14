@@ -43,6 +43,7 @@ public class TimeReader
 
     private TimeReader()
     {
+        //block direct instantiation, use Class Factory at the bottom of this file
     }
 
     /// <summary>
@@ -50,6 +51,7 @@ public class TimeReader
     /// </summary>
     /// <param name="reader">The sample reader.</param>
     /// <param name="domainDescriptor">The <c>DataDescriptor</c> of the domain signal.</param>
+    /// <remarks>Internal. Use Class Factory at the bottom of this file to instantiate a TimeReader.</remarks>
     internal TimeReader(SampleReader reader, DataDescriptor domainDescriptor)
     {
         _reader = reader;

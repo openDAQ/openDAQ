@@ -56,7 +56,7 @@ TEST_F(DeviceInfoTest, SetGetProperties)
     
     ASSERT_NO_THROW(deviceInfoConfig.setName("name"));
     ASSERT_EQ(deviceInfo.getName(), "name");
-    ASSERT_EQ(deviceInfo.getPropertyValue("name"), "name");
+    ASSERT_EQ(deviceInfo.getPropertyValue("Name"), "name");
 
     ASSERT_NO_THROW(deviceInfoConfig.setConnectionString("connectionString"));
     ASSERT_EQ(deviceInfo.getConnectionString(), "connectionString");
@@ -182,9 +182,8 @@ TEST_F(DeviceInfoTest, CustomProperties)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");
 
-    info.addProperty(StringProperty("Name", "Chell"));
-    ASSERT_EQ(info.getPropertyValue("Name"), "Chell");
-    ASSERT_EQ(info.getPropertyValue("Name"), "Chell");
+    info.addProperty(StringProperty("NewName", "Chell"));
+    ASSERT_EQ(info.getPropertyValue("NewName"), "Chell");
 
     ASSERT_NO_THROW(info.addProperty(IntProperty("Age", 999)));
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));

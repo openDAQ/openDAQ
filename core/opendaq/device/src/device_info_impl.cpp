@@ -11,7 +11,7 @@ template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
 {
-    createAndSetDefaultStringProperty("name", "");
+    createAndSetDefaultStringProperty("Name", "");
     createAndSetDefaultStringProperty("Manufacturer", "");
     createAndSetDefaultStringProperty("manufacturerUri", "");
     createAndSetDefaultStringProperty("model", "");
@@ -35,7 +35,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("sdkVersion", "");
     createAndSetDefaultStringProperty("location", "");
     
-    Super::setProtectedPropertyValue(String("name"), name);
+    Super::setProtectedPropertyValue(String("Name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
@@ -58,7 +58,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
         }
     };
 
-    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    this->objPtr.getOnPropertyValueRead("Name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {
         const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (ownerPtr.assigned())
@@ -77,14 +77,14 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setName(IString* name)
 {
-    return Super::setProtectedPropertyValue(String("name"), name);
+    return Super::setProtectedPropertyValue(String("Name"), name);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getName(IString** name)
 {
     return daqTry([&]() {
-        *name = getStringProperty("name").detach();
+        *name = getStringProperty("Name").detach();
         return OPENDAQ_SUCCESS;
     });
 }

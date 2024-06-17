@@ -523,7 +523,7 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     clientSubDevice.setName("new_name");
-    clientSubDevice.setPropertyValue("location", "new_location");
+    clientSubDevice.setPropertyValue("Location", "new_location");
     
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());

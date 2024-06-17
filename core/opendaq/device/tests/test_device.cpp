@@ -45,7 +45,7 @@ TEST_F(DeviceTest, DeviceInfoNameLocationSync)
     ASSERT_EQ(info.getLocation(), "");
     ASSERT_EQ(info.getName(), "dev");
 
-    device.setPropertyValue("location", "new_loc");
+    device.setPropertyValue("Location", "new_loc");
     device.setName("new_name");
 
     ASSERT_EQ(info.getLocation(), "new_loc");
@@ -106,7 +106,7 @@ TEST_F(DeviceTest, CustomComponentSubItems)
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-    ASSERT_EQ(device.getPropertyValue("location"), "");
+    ASSERT_EQ(device.getPropertyValue("Location"), "");
     ASSERT_EQ(device.getPropertyValue("userName"), "");
 }
 

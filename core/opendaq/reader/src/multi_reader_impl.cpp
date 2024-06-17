@@ -808,6 +808,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = sigInfo->port.getConnection();
+        sigInfo->synced = SyncStatus::Unsynchronized;
 
         // check new signals
         auto portList = List<IInputPortConfig>();

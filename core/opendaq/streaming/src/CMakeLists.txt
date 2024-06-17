@@ -39,7 +39,7 @@ source_group("mirrored_device" FILES ${SDK_HEADERS_DIR}/mirrored_device.h
 source_group("streaming_type" FILES ${SDK_HEADERS_DIR}/streaming_type.h
                                     ${SDK_HEADERS_DIR}/streaming_type_factory.h
                                     ${SDK_HEADERS_DIR}/streaming_type_impl.h
-									streaming_type_impl.cpp
+                                    streaming_type_impl.cpp
 )
 
 set(SRC_Cpp subscription_event_args_impl.cpp
@@ -54,12 +54,12 @@ set(SRC_PublicHeaders streaming_impl.h
                       mirrored_device.h
                       mirrored_device_config.h
                       mirrored_device_impl.h
-					  streaming_type.h
-					  streaming_type_factory.h
-					  streaming_type_impl.h
+                      streaming_type.h
+                      streaming_type_factory.h
 )
 
 set(SRC_PrivateHeaders subscription_event_args_impl.h
+                       streaming_type_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -70,6 +70,7 @@ list(APPEND SRC_Cpp ${SRC_Streaming_Cpp}
                     ${SRC_SubscriptionEventArgs_Cpp}
                     ${SRC_MirroredDevice_Cpp}
                     ${SRC_MirroredDeviceConfig_Cpp}
+                    ${SRC_StreamingType_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Streaming_PublicHeaders}
@@ -78,6 +79,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Streaming_PublicHeaders}
                               ${SRC_MirroredSignalPrivate_PublicHeaders}
                               ${SRC_MirroredDevice_PublicHeaders}
                               ${SRC_MirroredDeviceConfig_PublicHeaders}
+                              ${SRC_StreamingType_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Streaming_PrivateHeaders}
@@ -86,6 +88,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_Streaming_PrivateHeaders}
                                ${SRC_MirroredSignalPrivate_PrivateHeaders}
                                ${SRC_MirroredDevice_PrivateHeaders}
                                ${SRC_MirroredDeviceConfig_PrivateHeaders}
+                               ${SRC_StreamingType_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

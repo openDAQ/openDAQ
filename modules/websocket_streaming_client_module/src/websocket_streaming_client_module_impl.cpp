@@ -221,7 +221,7 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+)\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
@@ -231,11 +231,9 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     std::string path = "";
 
     bool parsed = false;
-    bool ipv6 = true;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
     if (!parsed)
     {
-        ipv6 = false;
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
     }
 
@@ -243,8 +241,6 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     {
         prefix = match[1];
         host = match[2];
-        if (ipv6)
-            host = "[" + host + "]";
         
         if (match[4].matched)
             path = match[4];

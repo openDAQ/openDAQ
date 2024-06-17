@@ -20,6 +20,8 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
     const PropertyObjectPtr general = config.getPropertyValue("general");
     ASSERT_TRUE(general.hasProperty("PrioritizedStreamingProtocols"));
     ASSERT_TRUE(general.hasProperty("StreamingConnectionHeuristic"));
+    ASSERT_TRUE(general.hasProperty("AllowedStreamingProtocols"));
+    ASSERT_TRUE(general.hasProperty("AutomaticallyConnectStreaming"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)

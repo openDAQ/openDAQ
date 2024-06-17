@@ -35,7 +35,7 @@ public:
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
     static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
@@ -43,7 +43,6 @@ private:
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;
-    std::string host;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

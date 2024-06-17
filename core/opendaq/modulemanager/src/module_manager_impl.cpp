@@ -520,7 +520,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>();
                 if (mirroredDeviceConfigPtr.assigned())
                 {
-                    configureStreamings(mirroredDeviceConfigPtr, configPtr);
+                    errCode = daqTry([this, &mirroredDeviceConfigPtr, &configPtr]
+                        {
+                            configureStreamings(mirroredDeviceConfigPtr, configPtr);
+                            return OPENDAQ_SUCCESS;
+                        });
                 }
             }
 
@@ -682,11 +686,11 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
         }
         catch (const NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+            LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getName(), e.what())
         }
 
         if (!types.assigned())

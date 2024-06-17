@@ -101,7 +101,8 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
 
-    auto formedConnectionString = formConnectionString(connectionString, config);
+    std::string host;
+    auto formedConnectionString = formConnectionString(connectionString, config, host);
 
     std::scoped_lock lock(sync);
 
@@ -146,7 +147,7 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
     return defConfig;
 }
 
-StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config)
+StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host)
 {
     int port = 4840;
     if (config.assigned() && config.hasProperty("Port"))
@@ -154,7 +155,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
 
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+)\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
@@ -163,11 +164,9 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     std::string path = "";
 
     bool parsed = false;
-    bool ipv6 = true;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
     if (!parsed)
     {
-        ipv6 = false;
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
     }
 
@@ -175,9 +174,6 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     {
         prefix = match[1];
         host = match[2];
-        if (ipv6)
-            host = "[" + host + "]";
-        
 
         if (match[3].matched && port == 4840)
             port = std::stoi(match[3]);

@@ -311,9 +311,10 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
         if (low == high)
             return low;
 
-        Int mid = low + (high - low) / 2;
+        Int mid = (low + high) / 2;
         Float midValue = static_cast<Float>(labels.getItemAt(mid));
-        if (value >= midValue && value < static_cast<Float>(labels.getItemAt(mid+1))) 
+
+        if (value >= midValue && value < static_cast<Float>(labels.getItemAt(mid + 1))) 
             return mid;
         else if (value < midValue) 
             high = mid - 1;

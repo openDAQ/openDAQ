@@ -141,11 +141,13 @@ void PowerReaderFbImpl::onDataReceived()
             DataDescriptorPtr voltageDescriptor;
             DataDescriptorPtr currentDescriptor;
 
-            if (eventPackets.hasKey(0))
-                getDescriptors(eventPackets.get(0), voltageDescriptor, domainDescriptor);
+            auto voltageId = voltageInputPort.getGlobalId();
+            if (eventPackets.hasKey(voltageId))
+                getDescriptors(eventPackets.get(voltageId), voltageDescriptor, domainDescriptor);
 
-            if (eventPackets.hasKey(1))
-                getDescriptors(eventPackets.get(0), currentDescriptor, domainDescriptor);
+            auto currentId = currentInputPort.getGlobalId();
+            if (eventPackets.hasKey(currentId))
+                getDescriptors(eventPackets.get(currentId), currentDescriptor, domainDescriptor);
 
             configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }

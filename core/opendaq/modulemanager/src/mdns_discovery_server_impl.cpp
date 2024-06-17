@@ -64,15 +64,15 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
 
     properties["Name"] = "";
     properties["Manufacturer"] = "";
-    properties["model"] = "";
-    properties["serialNumber"] = "";
+    properties["Model"] = "";
+    properties["SerialNumber"] = "";
 
     if (deviceInfoPtr.assigned())
     {
         properties["Name"] = deviceInfoPtr.getName().toStdString();
         properties["Manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
-        properties["model"] = deviceInfoPtr.getModel().toStdString();
-        properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
+        properties["Model"] = deviceInfoPtr.getModel().toStdString();
+        properties["SerialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
     }
 
     discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties);

@@ -72,7 +72,7 @@ TEST_F(DeviceInfoTest, SetGetProperties)
 
     ASSERT_NO_THROW(deviceInfoConfig.setModel("model"));
     ASSERT_EQ(deviceInfo.getModel(), "model");
-    ASSERT_EQ(deviceInfo.getPropertyValue("model"), "model");
+    ASSERT_EQ(deviceInfo.getPropertyValue("Model"), "model");
 
     ASSERT_NO_THROW(deviceInfoConfig.setProductCode("productCode"));
     ASSERT_EQ(deviceInfo.getProductCode(), "productCode");
@@ -96,7 +96,7 @@ TEST_F(DeviceInfoTest, SetGetProperties)
 
     ASSERT_NO_THROW(deviceInfoConfig.setSerialNumber("serialNumber"));
     ASSERT_EQ(deviceInfo.getSerialNumber(), "serialNumber");
-    ASSERT_EQ(deviceInfo.getPropertyValue("serialNumber"), "serialNumber");
+    ASSERT_EQ(deviceInfo.getPropertyValue("SerialNumber"), "serialNumber");
 
     ASSERT_NO_THROW(deviceInfoConfig.setProductInstanceUri("productInstanceUri"));
     ASSERT_EQ(deviceInfo.getProductInstanceUri(), "productInstanceUri");

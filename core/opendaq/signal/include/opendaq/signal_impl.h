@@ -25,7 +25,6 @@
 #include <opendaq/signal_private_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <coretypes/string_ptr.h>
-#include <opendaq/utility_sync.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/signal_events_ptr.h>
 #include <coretypes/validation.h>

@@ -1,4 +1,4 @@
-#include <ping/ipv4_header.h>
+#include <opendaq/ipv4_header.h>
 #include <istream>
 
 unsigned char IPv4Header::getVersion() const

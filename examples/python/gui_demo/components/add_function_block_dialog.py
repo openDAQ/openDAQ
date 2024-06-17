@@ -10,7 +10,7 @@ from .diaolog import Dialog
 
 class AddFunctionBlockDialog(Dialog):
     def __init__(self, parent, context, node, **kwargs):
-        Dialog.__init__(self, parent, 'Add device', context, **kwargs)
+        Dialog.__init__(self, parent, 'Add function block', context, **kwargs)
         self.node = node
         # send events to parent window
         self.event_port = EventPort(self.parent)

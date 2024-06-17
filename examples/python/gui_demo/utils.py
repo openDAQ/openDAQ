@@ -131,3 +131,13 @@ def get_files_in_directory(directory):
 def load_and_resize_image(filename, x_subsample=10, y_subsample=10):
     image = tk.PhotoImage(file=filename)
     return image.subsample(x_subsample, y_subsample)
+
+
+def get_last_value_for_signal(output_signal):
+    last_value = 'N/A'
+    if output_signal is not None and daq.ISignal.can_cast_from(output_signal):
+        try:
+            last_value = output_signal.last_value
+        except RuntimeError as e:
+            print(f'Error reading last value: {e}')
+    return last_value

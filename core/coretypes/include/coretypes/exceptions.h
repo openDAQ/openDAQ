@@ -112,7 +112,7 @@ DEFINE_EXCEPTION(DeserealizeNoType, OPENDAQ_ERR_DESERIALIZE_NO_TYPE, "Serialize 
 DEFINE_EXCEPTION(InvalidProperty, OPENDAQ_ERR_INVALIDPROPERTY, "Invalid property")
 DEFINE_EXCEPTION(DuplicateItem, OPENDAQ_ERR_DUPLICATEITEM, "Duplicate item")
 DEFINE_EXCEPTION(ArgumentNull, OPENDAQ_ERR_ARGUMENT_NULL, "Argument must not be NULL.")
-DEFINE_EXCEPTION(InvalidOperation, OPENDAQ_ERR_INVALID_OPERATION, "Operation in not valid for the current type or state.")
+DEFINE_EXCEPTION(InvalidOperation, OPENDAQ_ERR_INVALID_OPERATION, "Operation is not valid for the current type or state.")
 DEFINE_EXCEPTION(Uninitialized, OPENDAQ_ERR_UNINITIALIZED, "The operation requires initialization")
 DEFINE_EXCEPTION(InvalidState, OPENDAQ_ERR_INVALIDSTATE, "Invalid state")
 DEFINE_EXCEPTION(ValidateFailed, OPENDAQ_ERR_VALIDATE_FAILED, "Validate failed")

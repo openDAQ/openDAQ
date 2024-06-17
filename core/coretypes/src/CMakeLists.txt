@@ -233,6 +233,8 @@ set(SRC_PublicHeaders
     enumeration_type_factory.h
 
     filesystem.h
+    
+    utility_sync.h
 )
 
 set(SRC_PrivateHeaders baseobject_impl.h

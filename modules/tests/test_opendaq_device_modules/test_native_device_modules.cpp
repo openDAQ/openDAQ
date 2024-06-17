@@ -1,4 +1,4 @@
-#include <opcuatms/exceptions.h>
+#include <opendaq/component_exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
@@ -282,6 +282,33 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveDevice)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
+TEST_F(NativeDeviceModulesTest, ChangePropAfterRemove)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+
+    ASSERT_TRUE(refDevice.isRemoved());
+
+    ASSERT_THROW(refDevice.setPropertyValue("NumberOfChannels", 1), ComponentRemovedException);
 }
 
 TEST_F(NativeDeviceModulesTest, RemoteGlobalIds)
@@ -826,7 +853,7 @@ TEST_P(AddComponentsTest, AddDevice)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, RemoveDevice)
+TEST_F(NativeDeviceModulesTest, RemoveSubDevice)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -1040,4 +1067,24 @@ TEST_F(NativeDeviceModulesTest, Update)
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
+}
+
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
 }

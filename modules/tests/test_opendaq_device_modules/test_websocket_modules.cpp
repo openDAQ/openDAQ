@@ -184,6 +184,16 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(signals.getCount(), 7u);
 }
 
+TEST_F(WebsocketModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto device = client.addDevice("daq.lt://127.0.0.1/");
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
 TEST_F(WebsocketModulesTest, SignalConfig_Server)
 {
     const std::string newSignalName{"some new name"};
@@ -272,4 +282,24 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }

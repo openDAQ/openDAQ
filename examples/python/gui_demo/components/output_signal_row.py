@@ -16,9 +16,10 @@ class OutputSignalRow(tk.Frame):
 
         self.configure(padx=10, pady=5)
 
+        last_value = get_last_value_for_signal(output_signal)
         ttk.Label(self, text=output_signal.name).pack(side=tk.LEFT, padx=5)
-        ttk.Label(self, text=str(output_signal.last_value)
-                  ).pack(side=tk.LEFT, padx=5, expand=True)
+        ttk.Label(self, text=str(last_value)).pack(
+            side=tk.LEFT, padx=5, expand=True)
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(

@@ -206,6 +206,16 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
 }
 
+TEST_F(NativeStreamingModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto device = client.addDevice("daq.ns://127.0.0.1/");
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
 TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
 {
     SKIP_TEST_MAC_CI;
@@ -525,4 +535,24 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 2u);
+}
+
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
 }

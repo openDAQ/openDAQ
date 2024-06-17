@@ -51,6 +51,8 @@ public:
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
 
+    void closeConnectionOnRemoval();
+
 private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void setupProtocolClients(const ContextPtr& context);
@@ -104,6 +106,9 @@ public:
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void removed() override;
 
 private:
     void initStatuses(const ContextPtr& ctx);

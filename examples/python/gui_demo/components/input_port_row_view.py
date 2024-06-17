@@ -5,7 +5,7 @@ from tkinter import ttk
 from ..utils import *
 from ..event_port import EventPort
 from .attributes_dialog import AttributesDialog
-
+from ..app_context import AppContext
 
 class InputPortRowView(tk.Frame):
     def __init__(self, parent, input_port, context=None, **kwargs):
@@ -48,21 +48,21 @@ class InputPortRowView(tk.Frame):
 
     def refresh(self):
         if self.device is not None:
+            self.context.update_signals_for_device(self.device)
             self.fill_dropdown()
         if self.input_port is not None and self.input_port.connection is not None:
-            self.input_var.set(self.input_port.connection.signal.global_id)
-            self.dropdown.set(self.input_port.connection.signal.global_id)
+            short_id = self.context.short_id(self.input_port.connection.signal.global_id)
+            self.input_var.set(short_id)
+            self.dropdown.set(short_id)
 
     def fill_dropdown(self):
         signals = ['none']
-
-        signals += [signal.global_id for signal in self.device.signals_recursive]
+        signals += [signal_id for signal_id in self.context.signals_for_device(self.device).keys()]
         self.dropdown['values'] = signals
         self.selection = ''
 
     def handle_dropdown_select(self, event):
         self.selection = self.input_var.get()
-        print(self.selection)
         if self.selection == 'none':
             self.connect_button.configure(
                 text='Disconnect', image=self.disconnect_icon)
@@ -71,18 +71,15 @@ class InputPortRowView(tk.Frame):
                 text='Connect', image=self.connect_icon)
 
     def handle_edit_clicked(self):
-        print('Edit clicked')
         if self.input_port is not None:
             AttributesDialog(self, 'Attributes', self.input_port).show()
 
     def handle_connect_clicked(self):
-        print('Connect clicked')
         if (self.selection == 'none'):
             self.input_port.disconnect()
             self.event_port.emit()
         elif self.selection != '':
-            for signal in self.device.signals_recursive:
-                if signal.global_id == self.selection:
-                    self.input_port.connect(signal)
-                    self.event_port.emit()
-                    break
+            selected_signal = self.context.signals_for_device(self.device)[self.selection]
+            self.input_port.connect(selected_signal)
+            self.event_port.emit()
+

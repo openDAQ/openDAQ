@@ -25,6 +25,7 @@ class AppContext(object):
         self.instance = daq.Instance()
         self.enabled_devices = {}
         self.connection_string = ''
+        self.signals = {}
 
     def register_device(self, device_info):
         conn = device_info.connection_string
@@ -64,8 +65,9 @@ class AppContext(object):
         for subdevice in subdevices:
             del self.enabled_devices[subdevice.info.connection_string]
 
+        conn_string = device.info.connection_string
         parent_device.remove_device(device)
-        del self.enabled_devices[device.info.connection_string]
+        del self.enabled_devices[conn_string]
 
     def scan_devices(self, parent_device=None):
         parent_device = parent_device or self.instance
@@ -83,3 +85,30 @@ class AppContext(object):
             image = load_and_resize_image(os.path.join(directory, file))
             images[file.split('.')[0]] = image
         self.icons = images
+
+    def short_id(self, global_id: str):
+        parts = global_id.split('/')
+        n_parts = len(parts)
+        devices = ['']
+        if n_parts > 3: # empty + device + Sig + ID
+            if parts[-2] == 'Sig':
+                signal = parts[-1]
+                if signal:
+                    for index, part in enumerate(parts[:-2]):
+                        if part == 'Dev' and index + 1 < n_parts:
+                            devices.append(parts[index + 1])
+                    return '/'.join(devices) + '/' + signal
+        return ''
+
+    def update_signals_for_device(self, device):
+        if device is None:
+            return
+        self.signals[device.global_id] = {}
+        for signal in device.signals_recursive:
+            self.signals[device.global_id][self.short_id(
+                signal.global_id)] = signal
+            
+    def signals_for_device(self, device):
+        if device is None:
+            return {}
+        return self.signals.get(device.global_id, {})

@@ -1,3 +1,9 @@
+30.05.2024
+Description
+  - Supporting reading client's connection info in the deviceInfo
+
++ [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
+
 27.05.2024
 Description
   - Supporing servers to be discovered by mDNS

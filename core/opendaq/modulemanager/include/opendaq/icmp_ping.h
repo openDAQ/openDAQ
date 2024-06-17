@@ -20,6 +20,8 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 
+BEGIN_NAMESPACE_OPENDAQ
+
 class IcmpPing final : public std::enable_shared_from_this<IcmpPing>
 {
 public:
@@ -82,3 +84,5 @@ private:
     uint16_t sequenceNumber;
     std::size_t numReplies;
 };
+
+END_NAMESPACE_OPENDAQ

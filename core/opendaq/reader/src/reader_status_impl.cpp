@@ -54,6 +54,59 @@ ErrCode BlockReaderStatusImpl::getReadSamples(SizeT* readSamples)
     return OPENDAQ_SUCCESS;
 }
 
+TailReaderStatusImpl::TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, Bool sufficientHistory)
+    : Super(eventPacket, valid)
+    , sufficientHistory(sufficientHistory)
+{
+}
+
+ErrCode TailReaderStatusImpl::getReadStatus(ReadStatus* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    if (!sufficientHistory)
+    {
+        *status = ReadStatus::Fail;
+        return OPENDAQ_SUCCESS;
+    }
+    return Super::getReadStatus(status);
+}
+
+ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    *status = sufficientHistory;
+    return OPENDAQ_SUCCESS;
+}
+
+MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<ISignal, IEventPacket>& eventPackets, Bool valid)
+    : Super(nullptr, valid)
+    , eventPackets(eventPackets.assigned() ? eventPackets : Dict<ISignal, IEventPacket>())
+{
+}
+
+ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
+{
+    OPENDAQ_PARAM_NOT_NULL(status);
+    Bool valid;
+    Super::getValid(&valid);
+
+    if (valid && (eventPackets.getCount() == 0))
+        *status = ReadStatus::Ok;
+    else if (eventPackets.assigned())
+        *status = ReadStatus::Event;
+    else
+        *status = ReadStatus::Fail;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderStatusImpl::getEventPackets(IDict** events)
+{
+    OPENDAQ_PARAM_NOT_NULL(events);
+    *events = eventPackets.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
@@ -65,6 +118,19 @@ OPENDAQ_DEFINE_CLASS_FACTORY (
     IEventPacket*, eventPacket,
     Bool, valid,
     SizeT, readSamples
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY (
+    LIBRARY_FACTORY, TailReaderStatus,
+    IEventPacket*, eventPacket,
+    Bool, valid,
+    Bool, sufficientHistory
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY (
+    LIBRARY_FACTORY, MultiReaderStatus,
+    IDict*, eventPackets,
+    Bool, valid
 )
 
 END_NAMESPACE_OPENDAQ

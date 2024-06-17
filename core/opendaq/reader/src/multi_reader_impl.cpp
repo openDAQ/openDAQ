@@ -6,6 +6,7 @@
 #include <opendaq/reader_utils.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/reader_factory.h>
 
 #include <fmt/ostream.h>
 #include <thread>
@@ -31,6 +32,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  Bool startOnFullUnitOfDomain)
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     this->internalAddRef();
     try
@@ -64,6 +66,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
                                  SampleType valueReadType,
                                  SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
@@ -90,6 +93,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode)
+    : defaultStatus(MultiReaderStatus(nullptr, true))
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -97,7 +101,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
     readerConfig.markAsInvalid();
 
     SignalInfo sigInfo {
-        nullptr,
         nullptr,
         readerConfig.getValueTransformFunction(),
         readerConfig.getDomainTransformFunction(),
@@ -125,6 +128,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
+    , defaultStatus(MultiReaderStatus(nullptr, true))
 {
     bool fromInputPorts;
     auto ports = CheckPreconditions(builder.getSourceComponents(), false, fromInputPorts);
@@ -372,17 +376,6 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     }
 }
 
-ErrCode MultiReaderImpl::setOnDescriptorChanged(IFunction* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    for (auto& signal : signals)
-    {
-        signal.changeCallback = callback;
-    }
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
@@ -445,23 +438,15 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 
     std::lock_guard lock(mutex);
 
-    ErrCode errCode = readUntilFirstDataPacket();
-    if (OPENDAQ_FAILED(errCode))
+    if (getMinSamplesAvailable() == 0)
     {
-        if (errCode == OPENDAQ_ERR_INVALID_DATA)
-        {
-            *count = 0;
-            invalid = true;
-
-            clearErrorInfo();
-            return OPENDAQ_SUCCESS;
-        }
-        return errCode;
+        *count = 0;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT min{};
     SyncStatus syncStatus{};
-    errCode = synchronize(min, syncStatus);
+    ErrCode errCode = synchronize(min, syncStatus);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -478,62 +463,88 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 
 ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+    }
 
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
+    {
+        if(status)
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
-    OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+        OPENDAQ_PARAM_NOT_NULL(domain);
+    }
 
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
+    {
+        if(status)
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
-    return errCode;
+
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::skipSamples(SizeT* count)
+ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
+    {
+        if(status)
+            *status = MultiReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
-    const ErrCode errCode = readPackets();
+    auto statusPtr = readPackets();
+    if (status)
+        *status = statusPtr.detach();
 
     const SizeT samplesRead = samplesToRead - remainingSamplesToRead;
     *count = samplesRead;
-    return errCode;
+
+    return OPENDAQ_SUCCESS;
 }
 
 SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) const
@@ -572,29 +583,20 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-ErrCode MultiReaderImpl::readUntilFirstDataPacket()
+DictPtr<ISignal, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
-    try
+    auto packets = Dict<ISignal, EventPacketPtr>();
+
+    for (auto& signal : signals)
     {
-        for (auto& signal : signals)
+        auto packet = signal.readUntilNextDataPacket();
+        invalid |= signal.invalid;
+        if (packet.assigned())
         {
-            signal.readUntilNextDataPacket();
+            packets.set(signal.port.getSignal(), packet);
         }
     }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, nullptr);
-    }
-    catch (const std::exception& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return OPENDAQ_ERR_GENERALERROR;
-    }
-
-    return OPENDAQ_SUCCESS;
+    return packets.detach();
 }
 
 ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
@@ -602,20 +604,22 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     min = getMinSamplesAvailable();
     syncStatus = getSyncStatus();
 
-    if (syncStatus != SyncStatus::Synchronized)
+    if ((min != 0) && (syncStatus != SyncStatus::Synchronized))
     {
         try
         {
-            if (min > 1 && syncStatus != SyncStatus::Synchronizing)
+            // set info data packet
+            for (auto& signal : signals)
+            {
+                signal.isFirstPacketEvent();
+            }
+
+            if (syncStatus != SyncStatus::Synchronizing)
             {
                 setStartInfo();
                 readDomainStart();
-                sync();
             }
-            else if (syncStatus == SyncStatus::Synchronizing)
-            {
-                sync();
-            }
+            sync();
 
             // Re-check samples available after dropping them to sync
             syncStatus = getSyncStatus();
@@ -640,101 +644,96 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::readPackets()
+MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
     [[maybe_unused]]
-    auto count = remainingSamplesToRead;
-
-    ReadInfo::Duration remainingTime = timeout.count() == 0
-                                           ? 1ms
-                                           : timeout;
-
-    while (remainingSamplesToRead > 0 && remainingTime >= 1ms)
+    SizeT samplesToRead = remainingSamplesToRead;
+    if (timeout.count() > 0)
     {
-        errCode = readUntilFirstDataPacket();
-        if (OPENDAQ_FAILED(errCode))
+        std::unique_lock notifyLock(notify.mutex);
+
+        MultiReaderStatusPtr status;
+        auto condition = [this, &status]
         {
-            if (errCode == OPENDAQ_ERR_INVALID_DATA)
+            if (notify.packetReady == false)
+                return false;
+            notify.packetReady = false;
+
+            if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
             {
-                invalid = true;
-                errorMessage = reader::getErrorMessage();
-
-                clearErrorInfo();
-                return OPENDAQ_SUCCESS;
+                status = MultiReaderStatus(eventPackets, !invalid);
+                return true;
             }
-            return errCode;
-        }
 
-        if (timeout.count() != 0)
-        {
-            remainingTime = timeout - durationFromStart();
-            if (remainingTime < milliseconds(1))
+            SizeT min{};
+            SyncStatus syncStatus{};
+            ErrCode errCode = synchronize(min, syncStatus);
+            if (OPENDAQ_FAILED(errCode))
             {
-                LOGP_T("Time exceeded when reading non-data packets")
-                break;
+                status = MultiReaderStatus(nullptr, !invalid);
+                return true;
             }
-        }
 
-        SizeT min{};
-        SyncStatus syncStatus{};
-
-        errCode = synchronize(min, syncStatus);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
-
-        if (syncStatus == SyncStatus::Synchronized && min > 0u)
-        {
-            auto toRead = std::min(min, remainingSamplesToRead);
+            return (syncStatus == SyncStatus::Synchronized) && (min >= remainingSamplesToRead);
+        };
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-            auto start = std::chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
 #endif
-            readSamples(toRead);
+
+        [[maybe_unused]]
+        bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-            auto end = std::chrono::steady_clock::now();
-            LOG_T("Read {} / {} [{} left] took {} ms with {} ms remaining",
-                  toRead,
-                  count,
-                  remainingSamplesToRead,
-                  std::chrono::duration_cast<Milliseconds>(end - start).count(),
-                  std::chrono::duration_cast<Milliseconds>(timeout - durationFromStart()).count()
-            )
+        auto end = std::chrono::steady_clock::now();
+        LOG_T("Waited {} ms with {} success"
+            , std::chrono::duration_cast<Milliseconds>(end - start).count()
+            , ok ? "with" : "without")
 #endif
-        }
 
-        if (timeout.count() != 0)
-        {
-            auto fromStart = durationFromStart();
-            remainingTime = timeout - fromStart;
-
-            LOG_T("Time spent: {} ms | Remaining time: {} ms",
-                duration_cast<milliseconds>(fromStart).count(),
-                duration_cast<milliseconds>(remainingTime).count()
-            );
-
-            std::this_thread::sleep_for(1ms);
-        }
-        else if (min == 0)
-        {
-            break;
-        }
+        if (status.assigned())
+            return status;
     }
 
+    if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
     {
-        auto fromStart = durationFromStart();
-
-         LOG_T("FINAL> Time spent: {} ms | Remaining time: {} ms",
-             duration_cast<milliseconds>(fromStart).count(),
-             duration_cast<milliseconds>(remainingTime).count()
-         )
+        return MultiReaderStatus(eventPackets, !invalid);
     }
 
-    return errCode;
+    SizeT min{};
+    SyncStatus syncStatus{};
+
+    ErrCode errCode = synchronize(min, syncStatus);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return MultiReaderStatus(nullptr, !invalid);
+    }
+    if (remainingSamplesToRead == 0)
+    {
+        return defaultStatus;
+    }
+
+    if (syncStatus == SyncStatus::Synchronized && min > 0u)
+    {
+        SizeT toRead = std::min(remainingSamplesToRead, min);
+
+#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
+        auto start = std::chrono::steady_clock::now();
+#endif
+
+        readSamples(toRead);
+
+#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
+        auto end = std::chrono::steady_clock::now();
+        LOG_T("Read {} / {} [{} left]",
+                toRead,
+                samplesToRead,
+                remainingSamplesToRead
+        )
+#endif
+    }
+
+    return defaultStatus;
 }
 
 // Listener
@@ -809,19 +808,36 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    ProcedurePtr callback;
+    // if there is a callback
+    // and all signals have a packet
+    // or any of signals has a first packet as an event
+    // trigger the callback
+    bool isEventPacket = false;
+    bool isDataPacketFirst = true;
 
+    std::unique_lock lock(notify.mutex);
+    ProcedurePtr callback = readCallback;
+    for (auto& signal : signals)
     {
-        std::scoped_lock lock(mutex);
-        callback = readCallback;
-        if (!callback.assigned())
-            return OPENDAQ_SUCCESS;
+        if (signal.isFirstPacketEvent())
+        {
+            isEventPacket = true;
+            break;
+        }
+
+        isDataPacketFirst &= (signal.getAvailable(false) != 0);
     }
 
-    SizeT count;
-    getAvailableCount(&count);
-    if (count)
-        return wrapHandler(callback);
+    if (isEventPacket || isDataPacketFirst)
+    {
+        notify.packetReady = true;
+        lock.unlock();
+        notify.condition.notify_one();
+        if (callback.assigned())
+        {
+            return wrapHandler(callback);
+        }
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -844,7 +860,7 @@ void MultiReaderImpl::prepare(void** outValues, SizeT count, std::chrono::millis
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
         const auto outPtr = outValues != nullptr ? outValues[i] : nullptr;
-        signals[i].prepare(outPtr, alignedCount, timeoutTime);
+        signals[i].prepare(outPtr, alignedCount);
     }
 }
 
@@ -863,7 +879,7 @@ void MultiReaderImpl::prepareWithDomain(void** outValues, void** domain, SizeT c
     auto signalsNum = signals.size();
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
-        signals[i].prepareWithDomain(outValues[i], domain[i], alignedCount, timeoutTime);
+        signals[i].prepareWithDomain(outValues[i], domain[i], alignedCount);
     }
 }
 
@@ -897,12 +913,9 @@ void MultiReaderImpl::readDomainStart()
         {
             commonStart = std::move(sigStart);
         }
-        else
+        else if (*commonStart < *sigStart) 
         {
-            if (*commonStart < *sigStart)
-            {
-                commonStart = std::move(sigStart);
-            }
+            commonStart = std::move(sigStart);
         }
     }
 
@@ -995,15 +1008,6 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
 }
 
 #pragma region ReaderConfig
-
-ErrCode MultiReaderImpl::getOnDescriptorChanged(IFunction** callback)
-{
-    OPENDAQ_PARAM_NOT_NULL(callback);
-    std::scoped_lock lock(mutex);
-
-    *callback = signals[0].changeCallback;
-    return OPENDAQ_SUCCESS;
-}
 
 ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
 {

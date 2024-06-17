@@ -80,7 +80,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine($"CoreTypes SDK version   = {coreTypesVersion} / .NET Bindings version = {CoreTypesDllInfo.Version}");
         Console.WriteLine($"CoreObjects SDK version = {coreObjectsVersion} / .NET Bindings version = {CoreObjectsDllInfo.Version}");
-        Console.WriteLine($"openDAQ SDK version     = {coreTypesVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
+        Console.WriteLine($"openDAQ SDK version     = {openDaqVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
     }
 
     [Test]

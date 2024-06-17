@@ -1,4 +1,4 @@
-#include <ping/icmp_header.h>
+#include <opendaq/icmp_header.h>
 
 unsigned char ICMPHeader::getType() const
 {

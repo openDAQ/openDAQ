@@ -39,16 +39,9 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    // FIXME - use default config mega-object
-    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    if (!config.assigned())
-        config = PropertyObject();
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                    List<IString>("MinConnections",
-                                                                                  "MinHops",
-                                                                                  "NotConnected"),
-                                                                    2);
-    config.addProperty(streamingConnectionHeuristicProp);
+    auto config = instance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("StreamingConnectionHeuristic", 2);
 
     auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;

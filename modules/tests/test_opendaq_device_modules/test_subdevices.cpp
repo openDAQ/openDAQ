@@ -34,28 +34,13 @@ public:
     const char* ADDRESS = "127.0.0.1";
 
     PropertyObjectPtr createDeviceConfig(const InstancePtr& instance,
-                                         StructureProtocolType structureProtocol,
                                          ListPtr<IString> prioritizedStreamingProtocols,
                                          const IntegerPtr& heuristicValue)
     {
-        // FIXME - use default config mega-object
-
-        auto deviceTypeKey = (structureProtocol == StructureProtocolType::Native)
-                                 ? "opendaq_native_config" : "opendaq_opcua_config";
-        auto deviceType = instance.getAvailableDeviceTypes().get(deviceTypeKey);
-        auto config = deviceType.createDefaultConfig();
-
-        if (!config.assigned())
-            config = PropertyObject();
-
-        config.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-
-        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                        List<IString>("MinConnections",
-                                                                                      "MinHops",
-                                                                                      "NotConnected"),
-                                                                        heuristicValue);
-        config.addProperty(streamingConnectionHeuristicProp);
+        auto config = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
+        general.setPropertyValue("StreamingConnectionHeuristic", heuristicValue);
 
         return config;
     }
@@ -125,7 +110,7 @@ public:
             auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
                                             ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
                                             : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
-            const auto config = createDeviceConfig(instance, structureProtocolType, streamingProtocolIds, MIN_CONNECTIONS);
+            const auto config = createDeviceConfig(instance, streamingProtocolIds, MIN_CONNECTIONS);
             const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
 
@@ -161,13 +146,12 @@ public:
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
 
-        auto structureProtocolType = std::get<0>(GetParam());
         auto gatewayStreamingType = std::get<2>(GetParam());
 
         auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
                                         ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
                                         : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
-        auto config = createDeviceConfig(instance, structureProtocolType, streamingProtocolIds, heuristicValue);
+        auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
 
         return instance;

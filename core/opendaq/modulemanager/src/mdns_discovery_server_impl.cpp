@@ -63,14 +63,14 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
         properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
 
     properties["name"] = "";
-    properties["manufacturer"] = "";
+    properties["Manufacturer"] = "";
     properties["model"] = "";
     properties["serialNumber"] = "";
 
     if (deviceInfoPtr.assigned())
     {
         properties["name"] = deviceInfoPtr.getName().toStdString();
-        properties["manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
+        properties["Manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
         properties["model"] = deviceInfoPtr.getModel().toStdString();
         properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
     }

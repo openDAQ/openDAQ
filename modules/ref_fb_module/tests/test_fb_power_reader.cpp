@@ -310,6 +310,8 @@ TEST_F(PowerReaderTest, Gap)
     timePacket = DataPacket(timeSignal.getDescriptor(), 100, 150);
     timeSignal.sendPacket(timePacket);
 
+    fb.getInputPorts()[0].disconnect();
+
     voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
     voltageData = static_cast<float*>(voltagePacket.getRawData());
     for (size_t i = 0; i < 100; i++)
@@ -322,6 +324,8 @@ TEST_F(PowerReaderTest, Gap)
         *currentData++ = static_cast<float>(i + 100);
     currentSignal.sendPacket(currentPacket);
 
+    fb.getInputPorts()[0].connect(voltageSignal);
+
     std::vector<double> data(200);
     std::vector<int64_t> time(200);
 
@@ -329,18 +333,9 @@ TEST_F(PowerReaderTest, Gap)
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
     ASSERT_EQ(count, 100);
 
-    std::vector<double> expectedData(100);
-    std::generate(expectedData.begin(),
-                  expectedData.end(),
-                  [n = 0]() mutable
-                  {
-                      const auto res = n * n;
-                      n++;
-                      return res;
-                  });
-    ASSERT_THAT(data, testing::ElementsAreArray(expectedData.data(), 100));
-
-    std::vector<int64_t> expectedTime(100);
-    std::generate(expectedTime.begin(), expectedTime.end(), [n = 0]() mutable { return n++; });
-    ASSERT_THAT(time, testing::ElementsAreArray(expectedTime.data(), 100));
+    for (size_t i = 0; i < 100; i++)
+    {
+        ASSERT_EQ(data[i], i * i);
+        ASSERT_EQ(time[i], i);
+    }
 }

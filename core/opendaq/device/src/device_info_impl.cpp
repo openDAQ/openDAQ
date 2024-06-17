@@ -14,14 +14,14 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("Name", "");
     createAndSetDefaultStringProperty("Manufacturer", "");
     createAndSetDefaultStringProperty("manufacturerUri", "");
-    createAndSetDefaultStringProperty("model", "");
+    createAndSetDefaultStringProperty("Model", "");
     createAndSetDefaultStringProperty("productCode", "");
     createAndSetDefaultStringProperty("deviceRevision", "");
     createAndSetDefaultStringProperty("hardwareRevision", "");
     createAndSetDefaultStringProperty("softwareRevision", "");
     createAndSetDefaultStringProperty("deviceManual", "");
     createAndSetDefaultStringProperty("deviceClass", "");
-    createAndSetDefaultStringProperty("serialNumber", "");
+    createAndSetDefaultStringProperty("SerialNumber", "");
     createAndSetDefaultStringProperty("productInstanceUri", "");
     createAndSetDefaultIntProperty("revisionCounter", 0);
     createAndSetDefaultStringProperty("assetId", "");
@@ -159,14 +159,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturerUri(IStr
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setModel(IString* model)
 {
-    return Super::setProtectedPropertyValue(String("model"), model);
+    return Super::setProtectedPropertyValue(String("Model"), model);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getModel(IString** model)
 {
     return daqTry([&]() {
-        *model = getStringProperty("model").detach();
+        *model = getStringProperty("Model").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -417,14 +417,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceClass(IString*
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSerialNumber(IString* serialNumber)
 {
-    return Super::setProtectedPropertyValue(String("serialNumber"), serialNumber);
+    return Super::setProtectedPropertyValue(String("SerialNumber"), serialNumber);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSerialNumber(IString** serialNumber)
 {
     return daqTry([&]() {
-        *serialNumber = getStringProperty("serialNumber").detach();
+        *serialNumber = getStringProperty("SerialNumber").detach();
         return OPENDAQ_SUCCESS;
     });
 }

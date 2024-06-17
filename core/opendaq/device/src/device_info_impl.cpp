@@ -12,7 +12,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     : Super()
 {
     createAndSetDefaultStringProperty("name", "");
-    createAndSetDefaultStringProperty("manufacturer", "");
+    createAndSetDefaultStringProperty("Manufacturer", "");
     createAndSetDefaultStringProperty("manufacturerUri", "");
     createAndSetDefaultStringProperty("model", "");
     createAndSetDefaultStringProperty("productCode", "");
@@ -129,14 +129,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceType(IDeviceTy
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturer(IString* manufacturer)
 {
-    return Super::setProtectedPropertyValue(String("manufacturer"), manufacturer);
+    return Super::setProtectedPropertyValue(String("Manufacturer"), manufacturer);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturer(IString** manufacturer)
 {
     return daqTry([&]() {
-        *manufacturer = getStringProperty("manufacturer").detach();
+        *manufacturer = getStringProperty("Manufacturer").detach();
         return OPENDAQ_SUCCESS;
     });
 }

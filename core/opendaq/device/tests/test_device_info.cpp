@@ -64,7 +64,7 @@ TEST_F(DeviceInfoTest, SetGetProperties)
 
     ASSERT_NO_THROW(deviceInfoConfig.setManufacturer("manufacturer"));
     ASSERT_EQ(deviceInfo.getManufacturer(), "manufacturer");
-    ASSERT_EQ(deviceInfo.getPropertyValue("manufacturer"), "manufacturer");
+    ASSERT_EQ(deviceInfo.getPropertyValue("Manufacturer"), "manufacturer");
 
     ASSERT_NO_THROW(deviceInfoConfig.setManufacturerUri("manufacturerUri"));
     ASSERT_EQ(deviceInfo.getManufacturerUri(), "manufacturerUri");

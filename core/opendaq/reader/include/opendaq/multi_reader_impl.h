@@ -140,6 +140,7 @@ private:
     MultiReaderStatusPtr defaultStatus {MultiReaderStatus()};
 
     NotifyInfo notify{};
+    bool portConnected {};
 };
 
 END_NAMESPACE_OPENDAQ

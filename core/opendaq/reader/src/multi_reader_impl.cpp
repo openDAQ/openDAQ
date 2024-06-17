@@ -265,7 +265,6 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     {
         if (!signal.connection.assigned())
         {
-            sampleRateDividerLcm = -1;
             return;
         }
         sampleRateDividerLcm = std::lcm(signal.sampleRateDivider, sampleRateDividerLcm);
@@ -713,32 +712,30 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             , ok ? "with" : "without")
 #endif
 
-        if (status.assigned())
-        {
-            if (sampleRateDividerLcm == -1)
+        if (status.assigned() && portConnected)
             {
                 updateCommonSampleRateAndDividers();
-            }
+            portConnected = false;
             return status;
         }
     }
 
     if (syncStatus != SyncStatus::Synchronized)
     {
-        if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
-        {
-            if (sampleRateDividerLcm == -1)
+        auto eventPackets = readUntilFirstDataPacket();
+
+        if (portConnected && eventPackets.getCount() != 0)
             {
                 updateCommonSampleRateAndDividers();
-            }
-            return MultiReaderStatus(eventPackets, !invalid);
+            portConnected = false;
         }
 
         ErrCode errCode = synchronize(availableSamples, syncStatus);
-        if (OPENDAQ_FAILED(errCode))
+        if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
         {
-            return MultiReaderStatus(nullptr, !invalid);
+            return MultiReaderStatus(eventPackets, !invalid);
         }
+
         if (remainingSamplesToRead == 0)
         {
             return defaultStatus;
@@ -816,6 +813,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         }
 
         checkSameDomain(portList);
+        portConnected = true;
     }
     return errCode;
 }
@@ -836,7 +834,6 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = nullptr;
-        sampleRateDividerLcm = -1;
     }
     return OPENDAQ_SUCCESS;
 }

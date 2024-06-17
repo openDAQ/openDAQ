@@ -397,7 +397,7 @@ void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
 
             newDeviceInfo.addProperty(internalProp.clone());
         }
-        if (propName != "connectionString" && propName != "name")
+        if (propName != "ConnectionString" && propName != "Name")
         {
             const auto propValue = deviceInfo.getPropertyValue(propName);
             if (propValue.assigned())

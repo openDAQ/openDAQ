@@ -182,7 +182,7 @@ public:
     }
 
     [[nodiscard]]
-    ListPtr<IInputPortConfig> signalsToPortsList(bool enableGapDetection = false) const
+    ListPtr<IInputPortConfig> portsList(bool enableGapDetection = false) const
     {
         ListPtr<IInputPortConfig> ports = List<IInputPortConfig>();
         size_t index = 0;
@@ -190,7 +190,6 @@ public:
         {
             std::string localId = "readsig" + std::to_string(index++);
             auto port = InputPort(read.signal.getContext(), nullptr, localId, enableGapDetection);
-            port.connect(read.signal);
             ports.pushBack(port);
         }
         return ports;
@@ -1519,7 +1518,11 @@ TEST_F(MultiReaderTest, MultiReaderWithInputPort)
     auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
-    auto multi = MultiReaderFromPort(signalsToPortsList());
+    auto ports = portsList();
+    auto signals = signalsToList();
+    auto multi = MultiReaderFromPort(ports);
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        ports[i].connect(signals[i]);
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1535,6 +1538,9 @@ TEST_F(MultiReaderTest, MultiReaderWithInputPort)
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
+
+    auto status = multi.read(nullptr, &available);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 446u);
@@ -1577,14 +1583,15 @@ TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
     for (size_t i = 0; i < NUM_SIGNALS; i++)
         portList.pushBack(InputPort(readSignals[i].signal.getContext(), nullptr, "readsig" + std::to_string(i)));
     
-    auto multi = MultiReaderFromPort(signalsToPortsList());
+    auto ports = portsList();
+    auto signals = signalsToList();
+    auto multi = MultiReaderFromPort(ports);
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
-    portList[0].connect(sig0.signal);
-    portList[1].connect(sig1.signal);
-    portList[2].connect(sig2.signal);
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        ports[i].connect(signals[i]);
 
     sig0.createAndSendPacket(0);
     sig1.createAndSendPacket(0);
@@ -1597,6 +1604,8 @@ TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
+
+    auto status = multi.read(nullptr, &available);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 446u);
@@ -1633,7 +1642,7 @@ TEST_F(MultiReaderTest, MultiReaderWithDifferentInputs)
     addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
     auto componentList = List<IComponent>(portList[0], portList[1], sig2.signal);
 
     ASSERT_THROW(MultiReaderFromPort(componentList), InvalidParameterException);
@@ -1646,7 +1655,7 @@ TEST_F(MultiReaderTest, MultipleMultiReaderToInputPort)
 
     addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
 
     auto reader1 = MultiReaderFromPort(portList);
     ASSERT_THROW(MultiReaderFromPort(portList), AlreadyExistsException);
@@ -1659,7 +1668,7 @@ TEST_F(MultiReaderTest, MultiReaderReuseInputPort)
 
     addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
 
     {
         auto reader1 = MultiReaderFromPort(portList);
@@ -1749,9 +1758,16 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
     auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
-    auto reader = MultiReaderFromPort(signalsToPortsList());
+    auto ports = portsList();
+    auto signals = signalsToList();
+    auto reader = MultiReaderFromPort(ports);
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        ports[i].connect(signals[i]);
+    
+    SizeT toRead = 0u;
+    auto status = reader.read(nullptr, &toRead);
 
-    reader.setOnDataAvailable([&, promise = &promise] () mutable {
+    reader.setOnDataAvailable([&, promise = &promise] {
         if (reader.getAvailableCount() < count)
             return;
 
@@ -1970,7 +1986,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderGetSet)
     SignalPtr sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0))).signal;
     SignalPtr sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00")).signal;
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
 
     auto builder = MultiReaderBuilder();
     builder.addInputPort(portList[0]);
@@ -1984,7 +2000,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderGetSet)
     builder.setStartOnFullUnitOfDomain(true);
 
     ASSERT_EQ(builder.getSourceComponents().getCount(), 3u);
-    ASSERT_EQ(builder.getSourceComponents()[0].asPtr<IInputPort>().getSignal(), sig0);
+    ASSERT_EQ(builder.getSourceComponents()[0].asPtr<IInputPort>().getSignal(), nullptr);
     ASSERT_EQ(builder.getSourceComponents()[1], sig1);
     ASSERT_EQ(builder.getSourceComponents()[2], sig2);
 
@@ -2004,7 +2020,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
     auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
     auto sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
 
     SignalPtr signal1 = sig1.signal;
     SignalPtr signal2 = sig2.signal;
@@ -2071,7 +2087,15 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(1, 0)));
     auto& sig1 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03.01+00:00", nullptr, LinearDataRule(1, 0)));
 
-    auto multi = MultiReader(signalsToPortsList(true));
+    auto ports = portsList(true);
+    auto signals = signalsToList();
+    auto multi = MultiReader(ports);
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        ports[i].connect(signals[i]);
+    
+    SizeT toRead = 0u;
+    MultiReaderStatusPtr status = multi.read(nullptr, &toRead);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     // for signal 0 writes first packet with 10 samples, and then second packet with 10 samples and offset of 5
     // in signal will be generated 3 packets
@@ -2091,7 +2115,7 @@ TEST_F(MultiReaderTest, MultiReaderGapDetection)
     ASSERT_EQ(available, 0u);
 
     SizeT count{0};
-    MultiReaderStatusPtr status = multi.read(nullptr, &count);
+    status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
     ASSERT_EQ(status.getEventPackets().getCount(), 1);
@@ -2123,14 +2147,12 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
 
     auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
-
-    auto portList = signalsToPortsList();
-    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig");
-    portList.pushBack(notConnectedPort);
-
     auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
+    auto portList = portsList();
     auto multi = MultiReaderFromPort(portList);
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
 
     sig0.createAndSendPacket(0);
     sig1.createAndSendPacket(0);
@@ -2155,7 +2177,7 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
     ASSERT_EQ(count, 0u);
 
     // connect signal to the port
-    notConnectedPort.connect(sig2.signal);
+    portList[2].connect(sig2.signal);
     sig2.signal.getContext().getScheduler().waitAll();
     sig2.createAndSendPacket(0);
 
@@ -2163,6 +2185,7 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
     count = 0;
     status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
 
     count = SAMPLES;
     status = multi.read(valuesPerSignal, &count);
@@ -2176,15 +2199,14 @@ TEST_F(MultiReaderTest, NotifyPortIsConnected)
     readSignals.reserve(NUM_SIGNALS);
 
     auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
-    addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
-
-    auto portList = signalsToPortsList();
-    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig2");
-    portList.pushBack(notConnectedPort);
-
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
+    auto portList = portsList();
     auto multi = MultiReaderFromPort(portList);
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
+
     MultiReaderStatusPtr status;
 
     std::promise<void> promise;
@@ -2195,13 +2217,12 @@ TEST_F(MultiReaderTest, NotifyPortIsConnected)
         promise.set_value();
     });
 
-    notConnectedPort.connect(sig2.signal);
+    portList[2].connect(sig2.signal);
 
     auto promiseStatus = future.wait_for(std::chrono::seconds(1));
     ASSERT_EQ(promiseStatus, std::future_status::ready);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig2"));
+    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
 }
 
 TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
@@ -2210,15 +2231,14 @@ TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
     readSignals.reserve(NUM_SIGNALS);
 
     auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
-    addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
-
-    auto portList = signalsToPortsList();
-    auto notConnectedPort = InputPort(sig0.signal.getContext(), nullptr, "readsig2");
-    portList.pushBack(notConnectedPort);
-
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
+    auto portList = portsList();
     auto multi = MultiReaderFromPort(portList);
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
+
     MultiReaderStatusPtr status;
 
     std::future<void> future = std::async(std::launch::async, [&] {
@@ -2227,12 +2247,11 @@ TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    notConnectedPort.connect(sig2.signal);
+    portList[2].connect(sig2.signal);
 
     future.wait();
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
-    ASSERT_TRUE(status.getEventPackets().hasKey("/readsig2"));
+    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
 }
 
 TEST_F(MultiReaderTest, ReconnectWhileReading)
@@ -2244,8 +2263,10 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     auto& sig1 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig2 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
-    auto portList = signalsToPortsList();
+    auto portList = portsList();
     auto multi = MultiReaderFromPort(portList);
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        portList[i].connect(readSignals[i].signal);
 
     sig1.createAndSendPacket(0);
     sig2.createAndSendPacket(0);
@@ -2257,13 +2278,15 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     SizeT count{SAMPLES};
     MultiReaderStatusPtr status;
     std::future<void> future = std::async(std::launch::async, [&] {
-        status = multi.read(valuesPerSignal, &count, 500);
+        SizeT tmpCnt{0};
+        status = multi.read(nullptr, &tmpCnt, 500);
+        multi.read(valuesPerSignal, &count, 300);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     sig0.createAndSendPacket(0);
     sig0.signal.getContext().getScheduler().waitAll();
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     portList[0].disconnect();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     portList[0].connect(sig0.signal);
@@ -2271,6 +2294,6 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     future.wait();
     ASSERT_EQ(count, 10u);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_EQ(status.getEventPackets().getCount(), 3u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 }

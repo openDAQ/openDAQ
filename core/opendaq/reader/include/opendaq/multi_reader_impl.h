@@ -140,6 +140,7 @@ private:
 
     NotifyInfo notify{};
     bool portConnected {};
+    bool portDisconnected {};
 };
 
 END_NAMESPACE_OPENDAQ

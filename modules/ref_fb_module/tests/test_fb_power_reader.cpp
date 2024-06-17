@@ -312,12 +312,6 @@ TEST_F(PowerReaderTest, Gap)
 
     fb.getInputPorts()[0].disconnect();
 
-    voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
-    voltageData = static_cast<float*>(voltagePacket.getRawData());
-    for (size_t i = 0; i < 100; i++)
-        *voltageData++ = static_cast<float>(i + 100);
-    voltageSignal.sendPacket(voltagePacket);
-
     currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
     currentData = static_cast<float*>(currentPacket.getRawData());
     for (size_t i = 0; i < 100; i++)
@@ -326,16 +320,25 @@ TEST_F(PowerReaderTest, Gap)
 
     fb.getInputPorts()[0].connect(voltageSignal);
 
+    voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
+    voltageData = static_cast<float*>(voltagePacket.getRawData());
+    for (size_t i = 0; i < 100; i++)
+        *voltageData++ = static_cast<float>(i + 100);
+    voltageSignal.sendPacket(voltagePacket);
+
     std::vector<double> data(200);
     std::vector<int64_t> time(200);
 
     SizeT count = 200;
-    reader.readWithDomain(data.data(), time.data(), &count, 10000);
+    auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
     ASSERT_EQ(count, 100);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     for (size_t i = 0; i < 100; i++)
     {
         ASSERT_EQ(data[i], i * i);
         ASSERT_EQ(time[i], i);
     }
+
+    ASSERT_EQ(reader.getAvailableCount(), 0);
 }

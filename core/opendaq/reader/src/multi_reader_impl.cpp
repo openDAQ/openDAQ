@@ -301,6 +301,9 @@ ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<ICom
             if (haveSignals)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
 
+            if (overrideMethod && port.getConnection().assigned())
+                throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
             portList.pushBack(port);
@@ -720,6 +723,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         }
     }
 
+    if (portDisconnected)
+    {
+        return defaultStatus;
+    }
+
     if (syncStatus != SyncStatus::Synchronized)
     {
         auto eventPackets = readUntilFirstDataPacket();
@@ -797,12 +805,11 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     if (signals.empty())
         return OPENDAQ_SUCCESS;
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
     auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
-
     if (sigInfo != signals.end())
     {
         sigInfo->connection = sigInfo->port.getConnection();
+        sigInfo->synced = SyncStatus::Unsynchronized;
 
         // check new signals
         auto portList = List<IInputPortConfig>();
@@ -815,7 +822,25 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         checkSameDomain(portList);
         portConnected = true;
     }
-    return errCode;
+
+    portDisconnected = false;
+    for (auto& signal : signals)
+    {
+        if (!signal.connection.assigned())
+        {
+            portDisconnected = true;
+            break;
+        }
+    }
+    if (!portDisconnected)
+    {
+        for (auto& signal: signals)
+        {
+            signal.port.setActive(true);
+        }
+        portConnected = true;
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReaderImpl::disconnected(IInputPort* port)
@@ -834,6 +859,14 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = nullptr;
+        if (portDisconnected == false)
+        {
+            portDisconnected = true;
+            for (auto& signal: signals)
+            {
+                signal.port.setActive(false);
+            }
+        }
     }
     return OPENDAQ_SUCCESS;
 }
@@ -868,13 +901,10 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     bool hasDataPacket = true;
 
     std::unique_lock lock(notify.mutex);
-    for (auto& signal: signals)
+    if (portDisconnected)
     {
-        if (!signal.connection.assigned())
-        {
             notify.packetReady = false;
             return OPENDAQ_SUCCESS;
-        }
     }
 
     for (auto& signal : signals)

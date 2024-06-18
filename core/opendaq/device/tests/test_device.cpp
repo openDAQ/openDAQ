@@ -102,12 +102,11 @@ TEST_F(DeviceTest, CustomComponentSubItems)
     ASSERT_FALSE(customComponents[1].asPtrOrNull<daq::IFolder>().assigned());
 }
 
-
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     ASSERT_EQ(device.getPropertyValue("Location"), "");
-    ASSERT_EQ(device.getPropertyValue("userName"), "");
+    ASSERT_EQ(device.getPropertyValue("UserName"), "");
 }
 
 TEST_F(DeviceTest, DeviceTypeStructType)

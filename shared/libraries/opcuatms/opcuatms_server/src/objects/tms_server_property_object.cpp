@@ -133,8 +133,9 @@ void TmsServerPropertyObject::addChildNodes()
             const auto propName = prop.getName();
             if (hasChildNode(propName))
             {
+                const auto tempId = getChildNodeId(propName);
                 serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, object, propOrder);
-                childNodeId = serverInfo->registerToExistingOpcUaNode(nodeId);
+                childNodeId = serverInfo->registerToExistingOpcUaNode(tempId);
             }
             else
             {

@@ -38,11 +38,11 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::setProtectedPropertyValue(String("Name"), name);
     Super::setProtectedPropertyValue(String("ConnectionString"), connectionString);
 
-    Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
-    defaultPropertyNames.insert("serverCapabilities");
+    Super::addProperty(ObjectProperty("ServerCapabilities", PropertyObject()));
+    defaultPropertyNames.insert("ServerCapabilities");
 
-    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
-    defaultPropertyNames.insert("configurationConnectionInfo");
+    Super::addProperty(ObjectProperty("ConfigurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
+    defaultPropertyNames.insert("ConfigurationConnectionInfo");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("SdkVersion"), customSdkVersion);
@@ -468,7 +468,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3 && name != "serverCapabilities")
+    if (static_cast<int>(type) > 3 && name != "ServerCapabilities")
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;
@@ -572,7 +572,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
         return err;
 
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "serverCapabilities";
+    StringPtr str = "ServerCapabilities";
     err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -598,7 +598,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     OPENDAQ_PARAM_NOT_NULL(protocolId);
 
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "serverCapabilities";
+    StringPtr str = "ServerCapabilities";
     const ErrCode err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -615,7 +615,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
 {
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "serverCapabilities";
+    StringPtr str = "ServerCapabilities";
     ErrCode err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -642,7 +642,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(ISt
     OPENDAQ_PARAM_NOT_NULL(protocolId);
     
     BaseObjectPtr obj;
-    StringPtr str = "serverCapabilities";
+    StringPtr str = "ServerCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -684,7 +684,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     ListPtr<IServerCapability> caps = List<IServerCapability>();
 
     BaseObjectPtr obj;
-    StringPtr str = "serverCapabilities";
+    StringPtr str = "ServerCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -711,7 +711,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 {
     BaseObjectPtr obj;
-    StringPtr str = "configurationConnectionInfo";
+    StringPtr str = "ConfigurationConnectionInfo";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;

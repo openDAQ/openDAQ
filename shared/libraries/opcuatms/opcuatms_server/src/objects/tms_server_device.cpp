@@ -226,7 +226,7 @@ void TmsServerDevice::populateServerCapabilities()
     if (deviceInfo == nullptr)
         return;
 
-    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
+    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("ServerCapabilities"); 
 
     auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
             nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");

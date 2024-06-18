@@ -1134,7 +1134,7 @@ TEST_P(AddComponentsTest, AddDevice)
             if (component.asPtrOrNull<IDevice>().assigned())
             {
                 auto addedDev = component.asPtr<IDevice>();
-                if (addedDev.getLocalId() == "ref_dev1")
+                if (addedDev.getLocalId() == "RefDev1")
                 {
                     addDevPromise.set_value();
                 }

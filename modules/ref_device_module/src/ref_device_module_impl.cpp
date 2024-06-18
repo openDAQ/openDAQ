@@ -101,7 +101,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     }
 
     if (!localId.assigned())
-        localId = fmt::format("ref_dev{}", id);
+        localId = fmt::format("RefDev{}", id);
 
     auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
     devices[id] = devicePtr;

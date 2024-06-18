@@ -393,13 +393,13 @@ TEST_F(RefDeviceModuleTest, Ids)
     auto domainSignal = channel.getSignals(search::Any())[1];
 
     ASSERT_EQ(channel.getLocalId(), "refch0");
-    ASSERT_EQ(channel.getGlobalId(), "/ref_dev1/IO/ai/refch0");
+    ASSERT_EQ(channel.getGlobalId(), "/RefDev1/IO/ai/refch0");
 
     ASSERT_EQ(valueSignal.getLocalId(), "ai0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/ref_dev1/IO/ai/refch0/Sig/ai0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/RefDev1/IO/ai/refch0/Sig/ai0");
 
     ASSERT_EQ(domainSignal.getLocalId(), "ai0_time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/ref_dev1/IO/ai/refch0/Sig/ai0_time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/RefDev1/IO/ai/refch0/Sig/ai0_time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -821,7 +821,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
@@ -830,7 +830,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)

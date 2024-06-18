@@ -1136,9 +1136,9 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
-
+   
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+    port.connect(this->signal);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
@@ -1202,7 +1202,6 @@ TYPED_TEST(StreamReaderTest, MultipleStreamReaderToInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader1 = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
     ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
@@ -1212,7 +1211,6 @@ TYPED_TEST(StreamReaderTest, StreamReaderReuseInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     {
         auto reader1 = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
@@ -1268,9 +1266,9 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+    port.connect(this->signal);
     reader.setOnDataAvailable([&] {
         auto tmpCount = count;
         while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
@@ -1415,25 +1413,32 @@ TYPED_TEST(StreamReaderTest, ReadWhilePortIsNotConnected)
 
 TYPED_TEST(StreamReaderTest, ReconnectWhileReading)
 {
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
-    
+    port.connect(this->signal);
+
     SizeT count{0};
     ReaderStatusPtr status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     status = nullptr;
     auto future = std::async(std::launch::async, [&] {
-        SizeT count{0};
-        status = reader.read(nullptr, &count, 1000u);
+        // the timeout is ignored for count 0
+        SizeT count{1};
+        double samples;
+        status = reader.read(&samples, &count, 1000u);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     port.disconnect();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     port.connect(this->signal);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+    this->sendPacket(dataPacket);
 
     future.wait();
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);

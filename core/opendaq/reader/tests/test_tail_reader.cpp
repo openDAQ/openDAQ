@@ -842,8 +842,8 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    port.connect(this->signal);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -914,7 +914,6 @@ TEST_F(TailReaderTest, MultipleTailReaderToInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
     ASSERT_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
@@ -927,7 +926,6 @@ TEST_F(TailReaderTest, TailReaderReuseInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     {
         auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
@@ -986,9 +984,9 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    port.connect(this->signal);
 
     reader.setOnDataAvailable([&] {
         SizeT tmpCount = 0u;

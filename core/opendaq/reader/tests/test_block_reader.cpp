@@ -2013,13 +2013,13 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
     auto reader = BlockReaderBuilder()
                       .setInputPort(port)
                       .setValueReadType(SampleType::Undefined)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
+    port.connect(this->signal);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -2047,8 +2047,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
-
     auto reader = BlockReaderBuilder()
                       .setInputPort(port)
                       .setValueReadType(SampleType::Undefined)
@@ -2056,6 +2054,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
                       .build();
+    port.connect(this->signal);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
@@ -2167,10 +2166,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPortOverlapped)
 
 TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
 {
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
     auto reader = BlockReaderBuilder()
                       .setInputPort(port)
                       .setValueReadType(SampleType::Undefined)
@@ -2189,10 +2185,7 @@ TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
 
 TYPED_TEST(BlockReaderTest, BlockReaderReuseInputPort)
 {
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
     {
         auto reader = BlockReaderBuilder()
                           .setInputPort(port)
@@ -2395,7 +2388,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = BlockReaderBuilder()
                       .setInputPort(port)
@@ -2403,6 +2395,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
+    port.connect(this->signal);
 
     reader.setOnDataAvailable(
         [&]
@@ -2593,7 +2586,6 @@ TYPED_TEST(BlockReaderTest, ReconnectWhileReading)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = BlockReaderBuilder()
                       .setInputPort(port)
@@ -2601,21 +2593,28 @@ TYPED_TEST(BlockReaderTest, ReconnectWhileReading)
                       .setDomainReadType(SampleType::RangeInt64)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
-    
+    port.connect(this->signal);
+
     SizeT count{0};
     BlockReaderStatusPtr status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     status = nullptr;
     auto future = std::async(std::launch::async, [&] {
-        SizeT count{0};
-        status = reader.read(nullptr, &count, 1000u);
+        // the timeout is ignored for count 0
+        SizeT count{1};
+        double samples[BLOCK_SIZE];
+        status = reader.read(samples, &count, 1000u);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     port.disconnect();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     port.connect(this->signal);
+    
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    this->sendPacket(dataPacket);
 
     future.wait();
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);

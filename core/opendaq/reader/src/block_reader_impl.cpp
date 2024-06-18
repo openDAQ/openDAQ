@@ -142,7 +142,7 @@ ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
     std::scoped_lock lock(notify.mutex);
-    connection = InputPortPtr::Borrow(inputPort).getConnection();
+    inputPort->getConnection(&connection);
     return OPENDAQ_SUCCESS;
 }
 
@@ -158,7 +158,7 @@ ErrCode BlockReaderImpl::disconnected(IInputPort* inputPort)
 ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
-    
+
     ProcedurePtr callback;
     {
         bool triggerCallback = false;

@@ -123,10 +123,11 @@ TEST_F(PacketReaderTest, DataPacket)
 TEST_F(PacketReaderTest, PacketReaderWithInputPort)
 {
     signal.setDescriptor(createDataDescriptor());
+
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    auto reader = PacketReaderFromPort(port);
     port.connect(signal);
 
-    auto reader = PacketReaderFromPort(port);
     sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
 
     scheduler.waitAll();
@@ -165,9 +166,7 @@ TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
 
 TEST_F(PacketReaderTest, MultiplePacketReaderToInputPort)
 {
-    signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
 
     auto reader1 = PacketReaderFromPort(port);
     ASSERT_THROW(PacketReaderFromPort(port), AlreadyExistsException);
@@ -177,8 +176,6 @@ TEST_F(PacketReaderTest, PacketReaderReuseInputPort)
 {
     signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
-
     {
         auto reader1 = PacketReaderFromPort(port);
     }
@@ -224,9 +221,10 @@ TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
 
     signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
 
     auto reader = PacketReaderFromPort(port);
+    port.connect(signal);
+
     reader.setOnDataAvailable([&] {
         packets = reader.readAll();
         promise.set_value();

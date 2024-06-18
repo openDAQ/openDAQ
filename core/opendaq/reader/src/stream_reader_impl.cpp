@@ -48,6 +48,9 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
         throw ArgumentNullException("Input port must not be null.");
     
     inputPort = port;
+    if (inputPort.getConnection().assigned())
+        throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     valueReader = createReaderForType(valueReadType, nullptr);
@@ -57,9 +60,6 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
-
-    if (inputPort.getConnection().assigned())
-        connection = inputPort.getConnection();
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -171,7 +171,7 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
 
     std::scoped_lock lock(notify.mutex);
-    connection = InputPortConfigPtr::Borrow(port).getConnection();
+    port->getConnection(&connection);
     return OPENDAQ_SUCCESS;
 }
 

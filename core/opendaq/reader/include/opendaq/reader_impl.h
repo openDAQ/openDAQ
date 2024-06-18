@@ -66,6 +66,9 @@ public:
         , portBinder(PropertyObject())
         , timeoutType(ReadTimeoutType::All)
     {
+        if (port.getConnection().assigned())
+            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
         if (!port.assigned())
             throw ArgumentNullException("Signal must not be null.");
         
@@ -76,8 +79,6 @@ public:
         this->port = port;
         this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
-        if (port.getConnection().assigned())
-            connection = this->port.getConnection();
         valueReader = createReaderForType(valueReadType, nullptr);
         domainReader = createReaderForType(domainReadType, nullptr);
     }
@@ -112,7 +113,7 @@ public:
     virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        connection = InputPortPtr::Borrow(inputPort).getConnection();
+        inputPort->getConnection(&connection);
         return OPENDAQ_SUCCESS;
     }
 

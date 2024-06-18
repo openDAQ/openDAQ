@@ -25,17 +25,18 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
 
-    portBinder = PropertyObject();
     this->port = port;
+
+    if (this->port.getConnection().assigned())
+        throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+    portBinder = PropertyObject();
     this->port.asPtr<IOwnable>().setOwner(portBinder);
 
     this->internalAddRef();
 
     this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-
-    if (this->port.getConnection().assigned())
-        connection = this->port.getConnection();
 }
 
 PacketReaderImpl::~PacketReaderImpl()
@@ -125,7 +126,7 @@ ErrCode PacketReaderImpl::connected(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
     
     std::scoped_lock lock(mutex);
-    connection = InputPortConfigPtr::Borrow(port).getConnection();
+    port->getConnection(&connection);
     return OPENDAQ_SUCCESS;
 }
 

@@ -289,7 +289,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<ICom
         {
             if (haveInputPorts)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
-            auto port = InputPort(signal.getContext(), nullptr, fmt::format("Read signal {}", signal.getLocalId()));
+            auto port = InputPort(signal.getContext(), nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);

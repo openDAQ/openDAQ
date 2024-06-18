@@ -42,6 +42,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, TailReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
+    INumber*, offset,
     Bool, sufficientHistory
 )
 

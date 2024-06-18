@@ -35,24 +35,34 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using UndefinedType = void;
 
-inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                    Bool valid = true, 
+                                    const NumberPtr& offset = 0)
 {
-    return ReaderStatus_Create(packet, valid);
+    return ReaderStatus_Create(packet, valid, offset);
 }
 
-inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                              Bool valid = true, 
+                                              const NumberPtr& offset = 0, 
+                                              SizeT readSamples = 0)
 {
-    return BlockReaderStatus_Create(packet, valid, readSamples);
+    return BlockReaderStatus_Create(packet, valid, offset, readSamples);
 }
 
-inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
+inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                            Bool valid = true, 
+                                            const NumberPtr& offset = 0, 
+                                            Bool sufficientHistory = true)
 {
-    return TailReaderStatus_Create(packet, valid, sufficientHistory);
+    return TailReaderStatus_Create(packet, valid, offset, sufficientHistory);
 }
 
-inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, Bool valid = true)
+inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, 
+                                              Bool valid = true, 
+                                              const NumberPtr& offset = 0)
 {
-    return MultiReaderStatus_Create(eventPackets, valid);
+    return MultiReaderStatus_Create(eventPackets, valid, offset);
 }
 
 /*!

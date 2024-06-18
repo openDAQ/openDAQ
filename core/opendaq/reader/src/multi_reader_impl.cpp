@@ -715,8 +715,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 #endif
 
         if (status.assigned() && portConnected)
-            {
-                updateCommonSampleRateAndDividers();
+        {
+            updateCommonSampleRateAndDividers();
             portConnected = false;
             return status;
         }
@@ -732,8 +732,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto eventPackets = readUntilFirstDataPacket();
 
         if (portConnected && eventPackets.getCount() != 0)
-            {
-                updateCommonSampleRateAndDividers();
+        {
+            updateCommonSampleRateAndDividers();
             portConnected = false;
         }
 
@@ -749,8 +749,16 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         }
     }
 
+    NumberPtr offset;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
-    {
+    {        
+        auto delta = signals[0].packetDelta;
+        if (delta.assigned())
+        {
+            offset = (signals[0].info.dataPacket.getOffset().getIntValue() + signals[0].info.prevSampleIndex) * delta.getIntValue();
+            // printf("Offset: %lld\n", offset.getIntValue());
+        }
+
         SizeT toRead = std::min(remainingSamplesToRead, availableSamples);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
@@ -768,16 +776,9 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             std::chrono::duration_cast<Milliseconds>(end - start).count())
 #endif
 
-        if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
-        {
-            if (sampleRateDividerLcm == -1)
-            {
-                updateCommonSampleRateAndDividers();
-            }
-            return MultiReaderStatus(eventPackets, !invalid);
-        }
     }
-    return defaultStatus;
+
+    return MultiReaderStatus(nullptr, !invalid, offset);
 }
 
 // Listener

@@ -46,7 +46,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
     IDict*, eventPackets,
-    Bool, valid
+    Bool, valid,
+    INumber*, offset
 )
 
 END_NAMESPACE_OPENDAQ

@@ -5,9 +5,10 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <class MainInterface, class ... Interfaces>
-GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid)
+GenericReaderStatusImpl<MainInterface, Interfaces...>::GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset)
     : eventPacket(eventPacket)
     , valid(valid)
+    , offset(offset.assigned() ? offset : NumberPtr(0))
 {
 }
 
@@ -41,8 +42,16 @@ ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getValid(Bool* va
     return OPENDAQ_SUCCESS;
 }
 
-BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples)
-    : Super(eventPacket, valid)
+template <class MainInterface, class ... Interfaces>
+ErrCode GenericReaderStatusImpl<MainInterface, Interfaces...>::getOffset(INumber** offset)
+{
+    OPENDAQ_PARAM_NOT_NULL(offset);
+    *offset = this->offset.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+BlockReaderStatusImpl::BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset, SizeT readSamples)
+    : Super(eventPacket, valid, offset)
     , readSamples(readSamples)
 {
 }
@@ -54,8 +63,8 @@ ErrCode BlockReaderStatusImpl::getReadSamples(SizeT* readSamples)
     return OPENDAQ_SUCCESS;
 }
 
-TailReaderStatusImpl::TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, Bool sufficientHistory)
-    : Super(eventPacket, valid)
+TailReaderStatusImpl::TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset, Bool sufficientHistory)
+    : Super(eventPacket, valid, offset)
     , sufficientHistory(sufficientHistory)
 {
 }
@@ -78,8 +87,8 @@ ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
     return OPENDAQ_SUCCESS;
 }
 
-MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<IString, IEventPacket>& eventPackets, Bool valid)
-    : Super(nullptr, valid)
+MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset)
+    : Super(nullptr, valid, offset)
     , eventPackets(eventPackets.assigned() ? eventPackets : Dict<IString, IEventPacket>())
 {
 }
@@ -110,13 +119,15 @@ ErrCode MultiReaderStatusImpl::getEventPackets(IDict** events)
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, valid
+    Bool, valid,
+    INumber*, offset
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, BlockReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
+    INumber*, offset,
     SizeT, readSamples
 )
 
@@ -124,13 +135,15 @@ OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, TailReaderStatus,
     IEventPacket*, eventPacket,
     Bool, valid,
+    INumber*, offset,
     Bool, sufficientHistory
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
     IDict*, eventPackets,
-    Bool, valid
+    Bool, valid,
+    INumber*, offset
 )
 
 END_NAMESPACE_OPENDAQ

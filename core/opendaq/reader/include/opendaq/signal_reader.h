@@ -100,6 +100,8 @@ struct SignalReader
     
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
+
+    NumberPtr packetDelta;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -17,7 +17,7 @@
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
 #include <opendaq/input_port_config.h>
-#include <opendaq/reader_status.h>
+#include <opendaq/block_reader_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -44,6 +44,7 @@ struct IBlockReaderBuilder;
  */
 DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
 {
+    
     // [arrayArg(blocks, count), arrayArg(count, 1)]
     /*!
      * @brief Copies at maximum the next `count` blocks of unread samples to the values buffer.
@@ -59,7 +60,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
      * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(dataBlocks, count), arrayArg(domainBlocks, count), arrayArg(count, 1)]
     /*!
@@ -78,7 +79,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
      * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) = 0;
 
     /*!
      * @brief The amount of samples the reader considers as one block.

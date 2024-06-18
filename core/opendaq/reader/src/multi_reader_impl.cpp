@@ -462,7 +462,7 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)
@@ -492,7 +492,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)
@@ -524,7 +524,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
+ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 

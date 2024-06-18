@@ -179,7 +179,7 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
     return defaultStatus;
 }
 
-ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
+ErrCode TailReaderImpl::read(void* values, SizeT* count, ITailReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)
@@ -208,7 +208,7 @@ ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status)
+ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, ITailReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)

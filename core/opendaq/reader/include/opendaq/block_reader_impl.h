@@ -205,9 +205,9 @@ public:
     
     ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
-    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) override;
     ErrCode INTERFACE_FUNC
-    readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
     ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;

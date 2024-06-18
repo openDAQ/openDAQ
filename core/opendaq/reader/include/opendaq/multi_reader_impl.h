@@ -57,9 +57,9 @@ public:
     ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
 
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;

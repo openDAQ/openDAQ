@@ -362,7 +362,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
     return BlockReaderStatus(nullptr, !invalid, writtenSamplesCount);
 }
 
-ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IBlockReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)
@@ -392,7 +392,7 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IBlockReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)

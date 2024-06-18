@@ -1,3 +1,22 @@
+17.06.2024
+Description
+  - Add StreamingType object
+  - Change ComponentType objects to use builder pattern
+  - Provide default add-device config object containing config of all modules
+
++ [function] IDevice::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
++ [function] IDeviceType::getConnectionStringPrefix(IString** prefix) = 0;
++ [interface] IComponentTypeBuilder : public IBaseObject
++ [interface] IServerType : public IComponentType
++ [factory] ComponentTypeBuilderPtr StreamingTypeBuilder()
++ [factory] ComponentTypeBuilderPtr DeviceTypeBuilder()
++ [factory] ComponentTypeBuilderPtr FunctionBlockTypeBuilder()
++ [factory] ComponentTypeBuilderPtr ServerTypeBuilder()
++ [function] createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
++ [function] IModule::getAvailableStreamingTypes(IDict** streamingTypes)
++ [function] IModuleManagerUtils::getAvailableStreamingTypes(IDict** streamingTypes)
++ [function] IModuleManagerUtils::createDefaultAddDeviceConfig(IDict** streamingTypes)
+
 30.05.2024
 Description
   - Supporting reading client's connection info in the deviceInfo

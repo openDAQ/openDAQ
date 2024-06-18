@@ -3,6 +3,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+const char* Interfaces = "interfaces";
+const char* SyncronizationLocked = "SyncronizationLocked";
+const char* Source = "Source";
+
 SyncComponentImpl::SyncComponentImpl()
     : Super()
 {
@@ -22,10 +26,15 @@ ErrCode SyncComponentImpl::test()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncComponentImpl::getSyncLocked(Bool* syncLocked)
+ErrCode SyncComponentImpl::setSyncLocked(Bool synchronizationLocked)
+{
+    return Super::setPropertyValue(String(SyncronizationLocked), BooleanPtr(synchronizationLocked));
+}
+
+ErrCode SyncComponentImpl::getSyncLocked(Bool* synchronizationLocked)
 {
     return daqTry([&]() {
-        *syncLocked = getTypedProperty<IBoolean>(SyncronizationLocked);
+        *synchronizationLocked = getTypedProperty<IBoolean>(SyncronizationLocked);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -37,20 +46,6 @@ ErrCode SyncComponentImpl::getSelectedSource(IString** selectedSource)
         return OPENDAQ_SUCCESS;
     });
 }
-
-//ErrCode INTERFACE_FUNC setSyncLocked(Bool syncronizationLocked)
-//{
-//    return Super::setPropertyValue(String(SyncronizationLocked), BooleanPtr(syncronizationLocked));
-//}
-
-//ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSource)
-//{
-//    OPENDAQ_PARAM_NOT_NULL(selectedSource);
-//    return daqTry([&]() {
-//        checkErrorInfo(Super::setPropertyValue(String(Source), selectedSource));
-//        return OPENDAQ_SUCCESS;
-//    });
-//}
 
 ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
 {

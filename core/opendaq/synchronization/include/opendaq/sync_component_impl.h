@@ -28,10 +28,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-const char* Interfaces = "interfaces";
-const char* SyncronizationLocked = "SyncronizationLocked";
-const char* Source = "Source";
-
 class SyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 {
 public:
@@ -41,10 +37,11 @@ public:
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC test() override;
-    ErrCode INTERFACE_FUNC getSyncLocked(Bool* SyncronizationLocked) override;
+
+    ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
+    ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
+
     ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) override;
-    //ErrCode INTERFACE_FUNC setSyncLocked(Bool syncronizationLocked) override;
-    //ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSource) override;
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;

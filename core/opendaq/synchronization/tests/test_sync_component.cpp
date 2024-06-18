@@ -15,4 +15,23 @@ TEST_F(SyncComponentTest, test1)
     ASSERT_TRUE(true);
 }
 
+TEST_F(SyncComponentTest, test_getSyncLocked)
+{
+    SyncComponentPtr syncComponent = SyncComponent();
+    Bool syncLocked = false;
+    syncComponent->getSyncLocked(&syncLocked);
+    ASSERT_FALSE(syncLocked);
+}
+
+TEST_F(SyncComponentTest, test_setSyncLocked)
+{
+    SyncComponentPtr syncComponent = SyncComponent();
+    Bool syncLocked = false;
+    syncComponent->getSyncLocked(&syncLocked);
+    ASSERT_FALSE(syncLocked);
+    syncComponent->setSyncLocked(true);
+    syncComponent->getSyncLocked(&syncLocked);
+    ASSERT_TRUE(syncLocked);
+}
+
 END_NAMESPACE_OPENDAQ

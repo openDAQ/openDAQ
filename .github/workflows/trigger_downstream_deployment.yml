@@ -14,7 +14,7 @@ jobs:
     name: Trigger Github documentation deployment
     steps:
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PIPELINES_PAT }}
           repository: openDAQ/opendaq.github.io
@@ -32,7 +32,7 @@ jobs:
         uses: tj-actions/branch-names@v8
 
       - name: Check for changelog changes
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Repository Dispatch
         if: steps.check-pat.outputs.pat_available == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PIPELINES_PAT }}
           repository: openDAQ/openDAQ-Pipelines

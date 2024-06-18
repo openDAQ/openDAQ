@@ -51,25 +51,25 @@ protected:
 template <typename WrappedReaderPtr>
 struct ReaderStatusType
 {
-    using Type = typename ReaderStatusPtr;
+    using Type = ReaderStatusPtr;
 };
 
 template<>
 struct ReaderStatusType<BlockReaderPtr>
 {
-    using Type = typename BlockReaderStatusPtr;
+    using Type = BlockReaderStatusPtr;
 };
 
 template<>
 struct ReaderStatusType<TailReaderPtr>
 {
-    using Type = typename TailReaderStatusPtr;
+    using Type = TailReaderStatusPtr;
 };
 
 template <>
 struct ReaderStatusType<MultiReaderPtr>
 {
-    using Type = typename MultiReaderStatusPtr;
+    using Type = MultiReaderStatusPtr;
 };
 
 /*!

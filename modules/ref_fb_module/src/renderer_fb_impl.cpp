@@ -55,7 +55,7 @@ RendererFbImpl::~RendererFbImpl()
 FunctionBlockTypePtr RendererFbImpl::CreateType()
 {
     return FunctionBlockType(
-        "ref_fb_module_renderer",
+        "RefFbModuleRenderer",
         "Renderer",
         "Signal visualization"
     );

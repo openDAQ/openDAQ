@@ -21,7 +21,7 @@ public:
         defaultConfig.addProperty(StringProperty("name", "vlado"));
         defaultConfig.addProperty(ListProperty("scaling", List<IFloat>(1.0, 2.0, 3.0)));
 
-        return FunctionBlockType("ref_fb", "Reference function block", "Description", defaultConfig);
+        return FunctionBlockType("RefFb", "Reference function block", "Description", defaultConfig);
     }
 };
 
@@ -115,7 +115,7 @@ TEST_F(TmsFunctionBlockTypeTest, DISABLED_NonDefaultValues)
     defaultConfig.setPropertyValue("port", 1000);
     defaultConfig.setPropertyValue("name", "vlado");
 
-    auto fbType = FunctionBlockType("ref_fb", "Reference function block", "Description", defaultConfig);
+    auto fbType = FunctionBlockType("RefFb", "Reference function block", "Description", defaultConfig);
 
     auto serverFbType = std::make_shared<TmsServerFunctionBlockType>(fbType, server, ctx, serverContext);
     auto nodeId = serverFbType->registerOpcUaNode();

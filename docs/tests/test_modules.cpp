@@ -109,7 +109,7 @@ TEST_F(ModulesTest, CreateComponents)
     ASSERT_TRUE(it != availableDevices.end());
 
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = fbModule.getAvailableFunctionBlockTypes();
-    daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("ref_fb_module_statistics");
+    daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("RefFbModuleStatistics");
     
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> nativeStreamingServerTypes =
@@ -229,8 +229,8 @@ TEST_F(ModulesTest, InstanceModules)
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
 
     // Add the statistics function block, if available
-    if (functionBlockTypes.hasKey("ref_fb_module_statistics"))
-        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+    if (functionBlockTypes.hasKey("RefFbModuleStatistics"))
+        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFbModuleStatistics");
 }
 
 END_NAMESPACE_OPENDAQ

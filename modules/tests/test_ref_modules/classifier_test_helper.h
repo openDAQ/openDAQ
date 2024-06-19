@@ -126,7 +126,7 @@ struct ClassifierTestHelper
 
     static FunctionBlockPtr RegisterClassifier(InstancePtr instance, SignalConfigPtr inputSignal)
     {
-        auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+        auto classifierFb = instance.addFunctionBlock("RefFbModuleClassifier");
         const auto classifierInputPort = classifierFb.getInputPorts()[0];
         classifierInputPort.connect(inputSignal);
         return classifierFb;

@@ -20,7 +20,7 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statistics = instance.addFunctionBlock("RefFbModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
@@ -340,7 +340,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto refFb = daqDevice.getFunctionBlocks()[0];
     ASSERT_THROW(daqDevice.addFunctionBlock("test_fb"), daq::GeneralErrorException);
 
-    auto scalingFb = daqDevice.addFunctionBlock("ref_fb_module_scaling");
+    auto scalingFb = daqDevice.addFunctionBlock("RefFbModuleScaling");
     ASSERT_TRUE(scalingFb.assigned());
 
     ASSERT_NO_THROW(daqDevice.removeFunctionBlock(refFb));
@@ -630,7 +630,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
 
     instance.setRootDevice("daqref://device1");
 
-    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statistics = instance.addFunctionBlock("RefFbModuleStatistics");
     instance.addServer("openDAQ OpcUa", nullptr);
     auto client = CreateClientInstance();
 

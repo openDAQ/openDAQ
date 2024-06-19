@@ -15,12 +15,12 @@
         {
             "ConnectionString": "daqref://device1"
         },
-	"ReferenceDevice":
-		{
-			"LocalId": "falselocalid",
+    "ReferenceDevice":
+        {
+            "LocalId": "falselocalid",
             "Serial": "falseserial",
-			"Name": "Reference device simulator"
-		},
+            "Name": "Reference device simulator"
+        },
     "Modules":
         {
             "NativeStreamingServer":

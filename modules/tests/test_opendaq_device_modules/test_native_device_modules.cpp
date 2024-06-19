@@ -23,7 +23,7 @@ static InstancePtr CreateDefaultServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statistics = instance.addFunctionBlock("RefFbModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device0");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
@@ -42,7 +42,7 @@ static InstancePtr CreateUpdatedServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto statistics = instance.addFunctionBlock("ref_fb_module_scaling");
+    const auto statistics = instance.addFunctionBlock("RefFbModuleScaling");
     const auto refDevice = instance.addDevice("daqref://device0");
     refDevice.setPropertyValue("NumberOfChannels", 3);
 
@@ -823,7 +823,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_RendererSimple)
 
     ASSERT_TRUE(deviceSignal0.getDomainSignal().assigned());
 
-    const auto rendererFb = client.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = client.addFunctionBlock("RefFbModuleRenderer");
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
     rendererInputPort0.connect(deviceSignal0);
 
@@ -975,7 +975,7 @@ TEST_P(AddComponentsTest, AddFunctionBlock)
             if (component.asPtrOrNull<IFunctionBlock>().assigned())
             {
                 auto addedFb = component.asPtr<IFunctionBlock>();
-                if (addedFb.getFunctionBlockType().getId() == "ref_fb_module_statistics")
+                if (addedFb.getFunctionBlockType().getId() == "RefFbModuleStatistics")
                 {
                     addFbPromise.set_value();
                 }
@@ -983,7 +983,7 @@ TEST_P(AddComponentsTest, AddFunctionBlock)
         }
     };
 
-    const auto serverAddedFb = server.addFunctionBlock("ref_fb_module_statistics");
+    const auto serverAddedFb = server.addFunctionBlock("RefFbModuleStatistics");
     ASSERT_TRUE(addFbFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 
     auto clientAddedFb = client.getDevices()[0].getFunctionBlocks()[1];
@@ -1321,7 +1321,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
     ASSERT_EQ(fbs.getCount(), 1u);
-    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "ref_fb_module_scaling");
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "RefFbModuleScaling");
 
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
 

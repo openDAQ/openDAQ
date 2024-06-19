@@ -493,7 +493,7 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+        const auto statisticsFb = instance.addFunctionBlock("RefFbModuleStatistics");
         statisticsFb.setPropertyValue("DomainSignalType", 1);  // 1 - Explicit
         statisticsFb.getInputPorts()[0].connect(getSignal(instance, "ByteStep"));
 

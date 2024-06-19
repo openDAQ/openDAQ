@@ -64,7 +64,7 @@ void FFTFbImpl::readProperties()
 
 FunctionBlockTypePtr FFTFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_fft", "FFT", "Fast Fourier Transform");
+    return FunctionBlockType("RefFbModuleFft", "FFT", "Fast Fourier Transform");
 }
 
 bool FFTFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)

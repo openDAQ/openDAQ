@@ -79,23 +79,23 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.assigned());
     ASSERT_EQ(functionBlockTypes.getCount(), 7u);
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
-    ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModuleRenderer"));
+    ASSERT_EQ("RefFbModuleRenderer", functionBlockTypes.get("RefFbModuleRenderer").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_statistics"));
-    ASSERT_EQ("ref_fb_module_statistics", functionBlockTypes.get("ref_fb_module_statistics").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModuleStatistics"));
+    ASSERT_EQ("RefFbModuleStatistics", functionBlockTypes.get("RefFbModuleStatistics").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power"));
-    ASSERT_EQ("ref_fb_module_power", functionBlockTypes.get("ref_fb_module_power").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModulePower"));
+    ASSERT_EQ("RefFbModulePower", functionBlockTypes.get("RefFbModulePower").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_scaling"));
-    ASSERT_EQ("ref_fb_module_scaling", functionBlockTypes.get("ref_fb_module_scaling").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModuleScaling"));
+    ASSERT_EQ("RefFbModuleScaling", functionBlockTypes.get("RefFbModuleScaling").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_classifier"));
-    ASSERT_EQ("ref_fb_module_classifier", functionBlockTypes.get("ref_fb_module_classifier").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModuleClassifier"));
+    ASSERT_EQ("RefFbModuleClassifier", functionBlockTypes.get("RefFbModuleClassifier").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_trigger"));
-    ASSERT_EQ("ref_fb_module_trigger", functionBlockTypes.get("ref_fb_module_trigger").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModuleTrigger"));
+    ASSERT_EQ("RefFbModuleTrigger", functionBlockTypes.get("RefFbModuleTrigger").getId());
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
@@ -111,7 +111,7 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_renderer", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFbModuleRenderer", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -121,7 +121,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFbModuleStatistics", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -129,7 +129,7 @@ TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
 {
     auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFbModuleStatistics", nullptr, "id");
     ASSERT_EQ(fb.getSignals(search::Recursive(search::Any())).getCount(), 3u);
 }
 
@@ -137,7 +137,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_classifier", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFbModuleClassifier", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -145,6 +145,6 @@ TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFbModuleTrigger", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }

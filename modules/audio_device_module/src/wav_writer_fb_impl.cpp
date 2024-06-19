@@ -22,7 +22,7 @@ WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
 FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
 {
     return FunctionBlockType(
-        "audio_device_module_wav_writer",
+        "AudioDeviceModuleWavWriter",
         "WAVWriter",
         "Writes input signals to WAV files"
     );

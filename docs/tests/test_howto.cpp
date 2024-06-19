@@ -54,11 +54,11 @@ TEST_F(HowToTest, AddFunctionBlock)
         std::cout << functionBlockType << std::endl;
 
     // If there is no Statistics Function Block available, exit with an error
-    if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
+    if (!functionBlockTypes.hasKey("RefFbModuleStatistics"))
         ASSERT_TRUE(false) << "Function Block does not exist";
 
     // Add Function Block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFbModuleStatistics");
 
     // Print Function Block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
@@ -77,7 +77,7 @@ TEST_F(HowToTest, ConfigureFunctionBlock)
     DevicePtr device = instance.addDevice("daqref://device0");
 
     // Add Function Block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFbModuleStatistics");
 
     // List properties of the Function Block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();

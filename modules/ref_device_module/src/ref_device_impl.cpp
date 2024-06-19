@@ -50,7 +50,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : fmt::format("dev_ser_{}", id));
+    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;

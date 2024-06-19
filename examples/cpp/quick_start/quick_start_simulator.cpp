@@ -3,9 +3,8 @@
  * an openDAQ server on localhost that contains a simulated device.
  */
 
-#include <chrono>
-#include <thread>
 #include <opendaq/opendaq.h>
+#include <iostream>
 
 using namespace daq;
 
@@ -13,21 +12,23 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
-    const InstanceBuilderPtr instanceBuilder = InstanceBuilder();
-    instanceBuilder.addModulePath(MODULE_PATH);
-    instanceBuilder.addDiscoveryServer("mdns");
-    instanceBuilder.setRootDevice("daqref://device1");
-    
-    const InstancePtr instance = instanceBuilder.build();
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("Name", "Reference device simulator"));
+    config.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    config.addProperty(StringProperty("SerialNumber", "sim01"));
 
-    instance.addServer("openDAQ LT Streaming", nullptr);
-    instance.addStandardServers();
+    const InstancePtr instance = InstanceBuilder()
+                                 .addModulePath(MODULE_PATH)
+                                 .addDiscoveryServer("mdns")
+                                 .setRootDevice("daqref://device1", config)
+                                 .build();
 
-    for (const auto& server : instance.getServers())
-    {
+    const auto servers = instance.addStandardServers();
+
+    for (const auto& server : servers)
         server.enableDiscovery();
-    }
-
-    while(true)
-        std::this_thread::sleep_for(100ms);
+        
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
 }

@@ -55,6 +55,7 @@ private:
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
     size_t id;
+    StringPtr serialNumber;
 
     std::thread acqThread;
     std::condition_variable cv;

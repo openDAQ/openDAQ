@@ -30,6 +30,21 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("LocalId"))
+            serialNumber = config.getPropertyValue("SerialNumber");
+    }
+
+    const auto options = context.getOptions();
+    if (options.assigned() && options.hasKey("ReferenceDevice"))
+    {
+        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
+        if (referenceDevice.hasKey("SerialNumber"))
+            serialNumber = referenceDevice.get("SerialNumber");
+    }
+
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
 
@@ -65,17 +80,6 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    StringPtr serialNumber;
-
-    const auto options = context.getOptions();
-
-    if (options.assigned() && options.hasKey("ReferenceDevice"))
-    {
-        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
-        if (referenceDevice.hasKey("SerialNumber"))
-            serialNumber = referenceDevice.get("SerialNumber");
-    }
-
     auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
     deviceInfo.freeze();
     return deviceInfo;

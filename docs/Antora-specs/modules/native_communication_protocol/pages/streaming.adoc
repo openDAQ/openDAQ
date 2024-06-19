@@ -1,0 +1,331 @@
+= Streaming
+
+== Overview
+
+Once the client establishes a connection with the server, it can begin streaming measured data using a subscription-based model. Here's how it works:
+
+* _Streaming initialization_: The client initiates the streaming process by sending an initialization request to the server.
+In response, the server sends packages containing information about each available signal. Once all signals are accounted for, the server sends an acknowledgment package to complete the initialization.
+* _Available/unavailable signal information_: The package sent by the server to notify the client about an available signal includes a unique non-zero numeric ID assigned by the server, a symbolic ID
+(global ID of the openDAQ(TM) signal), and a serialized string containing all relevant signal information, such as the signal descriptor and associated domain signal symbolic ID.
+The server notifies the client of any changes in signal availability - it sends packages to inform the client when new signals become available or when previously available signals become unavailable.
+* _Signal subscription_: After initialization, the client can subscribe or unsubscribe to any available signals at any time. When the server processes a subscription or unsubscription request,
+it sends a corresponding acknowledgment notification package to the client.
+* _Signal packet streaming_: For subscribed signals, the server sends packages containing the signal's packets.
+
+== Streaming packages types
+
+[#init_req]
+=== Streaming initialization request
+
+To initiate the streaming flow after connecting to the server, the client should send the corresponding request package:
+
+[cols="1,1"]
+|===
+|Package type
+|_Streaming initialization request_
+
+|Package type code
+|0xB
+
+|Direction
+|client → server
+
+2+^|Header-only package
+|===
+
+The server will respond with <<Signal available notification>> packages, one for each available signal, and acknowledge the completion of streaming initialization with a <<Streaming initialization done acknowledgement>> package.
+
+[#init_done_ack]
+=== Streaming initialization done acknowledgement 
+
+After the server completes streaming initialization by sending <<Signal available notification>> packages for all available signals in response to the <<Streaming initialization request>>,
+it sends a header-only notification package to the client. This helps the client to be aware that the initialization step is completed.
+
+[cols="1,1"]
+|===
+|Package type
+|_Streaming initialization done acknowledgement_
+
+|Package type code
+|0x6
+
+|Direction
+|server → client
+
+2+^|Header-only package
+|===
+
+[#available]
+=== Signal available notification
+
+The server sends a signal available notification package for each available signal during the streaming initialization stage. Additionally, after initialization is completed,
+it is also send to notify the client that a new signal has become available. The notification contains signal numeric and symbolic IDs, and the serialized signal form presented
+as a null-terminated JSON string, adhering to the standard openDAQ(TM) serialization format:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal available notification_
+
+|Package type code
+|0x2
+
+|Direction
+|server → client
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+
+|Signal symbolic ID size (in bytes)
+|4
+|Unsigned 16 bit integer
+|2
+
+|Signal symbolic ID
+|6
+|String
+|Signal symbolic ID size
+
+|Serialized signal string
+|6 + Signal symbolic ID size
+|String
+|Rest of the payload size
+|===
+
+_Serialized signal string example_:
+
+[source,json]
+----
+{
+    "__type": "Signal",
+    "domainSignalId": "/DomainSignal",
+    "dataDescriptor": {
+        "__type": "DataDescriptor",
+        "name": "",
+        "sampleType": 2,
+        "dimensions": [],
+        "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+                "__type": "Dict",
+                "values": []
+            }
+        },
+        "origin": "",
+        "metadata": {
+            "__type": "Dict",
+            "values": []
+        },
+        "structFields": []
+    },
+    "public": true,
+    "description": "Value signal description",
+    "name": "ValueSignalName"
+}
+----
+
+[#unavailable]
+=== Signal unavailable notification
+
+Once any previously available signal becomes unavailable, the server sends a signal unavailable notification package:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal unavailable notification_
+
+|Package type code
+|0x3
+
+|Direction
+|server → client
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+
+|Signal symbolic ID
+|4
+|String
+|Rest of the payload size
+|===
+
+[#subscribe_req]
+=== Signal subscribe request
+
+After connecting to the server and completing the streaming initialization, the client can request to subscribe to any of the available signals at any time. If the subscribed signal is a value signal,
+then the corresponding domain signal should also be subscribed to by the client side. If the client is using the openDAQ(TM) SDK, the domain signal is automatically subscribed along with the value signal.
+For custom client implementations, it is the developer's responsibility to ensure that the domain signal subscribe request is sent along with the subscribe request for the value signal.
+Subscribing to the domain signal should always precede that of the value signal.
+
+The subscribe request package contains the signal numeric and symbolic IDs:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal subscribe request_
+
+|Package type code
+|0x4
+
+|Direction
+|client → server
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+
+|Signal symbolic ID
+|4
+|String
+|Rest of the payload size
+|===
+
+[#unsubscribe_req]
+=== Signal unsubscribe request
+
+To unsubscribe previously subscribed signal, client sends corresponding request package:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal unsubscribe request_
+
+|Package type code
+|0x5
+
+|Direction
+|client → server
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+
+|Signal symbolic ID
+|4
+|String
+|Rest of the payload size
+|===
+
+[#subscribe_ack]
+=== Signal subscribe acknowledgement
+
+To notify the client that the requested signal <<Signal subscribe request,subscription>> has been completed by the server, it sends a corresponding acknowledgment notification package:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal subscribe acknowledgement_
+
+|Package type code
+|0x7
+
+|Direction
+|server → client
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+|===
+
+[#unsubscribe_ack]
+=== Signal unsubscribe acknowledgement
+
+To notify the client that the requested signal <<Signal unsubscribe request,unsubscription>> has been completed by the server, it sends a corresponding acknowledgment notification package:
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal unsubscribe acknowledgement_
+
+|Package type code
+|0x8
+
+|Direction
+|server → client
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Signal numeric ID
+|0
+|Unsigned 32 bit integer
+|4
+|===
+
+[#packet]
+=== Signal packet
+
+After the client subscribes to the signal and server sends the corresponding <<Signal subscribe acknowledgement,acknowledgment>>, the server proceeds to transmit packages containing openDAQ(TM) packets. 
+These packages encapsulate measured xref:packet_streaming:data_packet.adoc[data packets] or serialized openDAQ(TM) xref:packet_streaming:event_packet.adoc[event packets].
+
+[cols="1,1"]
+|===
+|Package type
+|_Signal packet_
+
+|Package type code
+|0x1
+
+|Direction
+|server → client
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Packet buffer generic header
+|0
+|Binary data
+|12
+
+|Packet buffer extra header + payload
+|12
+|Binary data
+|Rest of the payload size
+|===
+
+The structure of the packet buffer header and payload is detailed in the xref:packet_streaming:format.adoc[packet streaming protocol specification]

@@ -18,7 +18,7 @@
     "ReferenceDevice":
         {
             "LocalId": "falselocalid",
-            "Serial": "falseserial",
+            "SerialNumber": "falseserial",
             "Name": "Reference device simulator"
         },
     "Modules":

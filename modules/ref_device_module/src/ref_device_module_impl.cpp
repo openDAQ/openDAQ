@@ -28,8 +28,8 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
         const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
-        if (referenceDevice.hasKey("Serial"))
-            serialNumber = referenceDevice.get("Serial");
+        if (referenceDevice.hasKey("SerialNumber"))
+            serialNumber = referenceDevice.get("SerialNumber");
     }
 
     auto availableDevices = List<IDeviceInfo>();

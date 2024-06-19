@@ -18,7 +18,7 @@ def configure_opendaq_config():
     data.setdefault("ReferenceDevice", {})["LocalId"] = "opendaq_" + serial
     
     # serial number
-    data.setdefault("ReferenceDevice", {})["Serial"] = serial
+    data.setdefault("ReferenceDevice", {})["SerialNumber"] = serial
 
     with open(filename, "w") as json_file:
         json.dump(data, json_file, indent = 4)

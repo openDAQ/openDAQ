@@ -1,0 +1,286 @@
+= Examples
+
+== How to emulate openDAQ(TM) native streaming server
+
+Here, we consider the minimal package flow required from the server-side perspective to enable the native communication protocol to stream a single value signal with domain signal.
+
+To simplify the example, let's assume that both the server and client are running on the same host. The server is reachable for the client via the IPv4 address "127.0.0.1" and port number 7420.
+The client is either the openDAQ(TM) client application, based on the provided <<An openDAQ client application code example,code snippet below>>, or the openDAQ(TM) Python GUI application. In both scenarios, the client uses the connection string
+"daq.ns://127.0.0.1:7420" to connect to the emulated server.
+
+The emulated server will advertise two signals:
+
+* _Value signal_: An asynchronous signal with a data type of double, having a symbolic ID of "/ValueSignal" and a numeric ID of "1"
+* _Domain signal_: A signal with a data type of unsigned 64-bit integer, featuring a symbolic ID of "/DomainSignal" and a numeric ID of "2"
+
+The server application needs to listen for incoming TCP connections on the loopback interface and port number 7420.
+Once an incoming TCP connection is accepted, it should be upgraded to a WebSocket connection following the procedure outlined in the Establishing a connection section.
+
+Once the connection is established, the server application should begin reading incoming data, expecting the receipt of a 4-byte package header first.
+Upon receiving a xref:streaming.adoc#init_req[Streaming initialization request] from the client, it should reply with two xref:streaming.adoc#available[Signal available notification packages]: one for the value signal and another for the domain signal.
+
+Below are examples of how the serialized signal strings inside signal available notifications might appear for the given scenario.
+
+_Value signal_:
+
+[source,json]
+----
+{
+    "__type": "Signal",
+    "domainSignalId": "/DomainSignal",
+    "dataDescriptor": {
+        "__type": "DataDescriptor",
+        "name": "",
+        "sampleType": 2,
+        "dimensions": [],
+        "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+                "__type": "Dict",
+                "values": []
+            }
+        },
+        "origin": "",
+        "metadata": {
+            "__type": "Dict",
+            "values": []
+        },
+        "structFields": []
+    },
+    "public": true,
+    "description": "Value signal description",
+    "name": "ValueSignalName"
+}
+----
+
+_Domain signal_:
+
+[source,json]
+----
+{
+    "__type": "Signal",
+    "dataDescriptor": {
+        "__type": "DataDescriptor",
+        "name": "",
+        "sampleType": 9,
+        "dimensions": [],
+        "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+                "__type": "Dict",
+                "values": []
+            }
+        },
+        "origin": "",
+        "metadata": {
+            "__type": "Dict",
+            "values": []
+        },
+        "structFields": []
+    },
+    "public": true,
+    "description": "Domain signal description",
+    "name": "DomainSignalName"
+}
+----
+
+Subsequently, the server application should send a xref:streaming.adoc#init_done_ack[Streaming initialization done acknowledgement] to finalize the streaming initialization process.
+Following this, the server application should continue to read incoming data.
+When it receives xref:streaming.adoc#subscribe_req[subscription requests] for the domain and value signals, it should respond with xref:streaming.adoc#subscribe_ack[subscription acknowledgements] for each request.
+
+Once these xref:streaming.adoc#subscribe_ack[subscription acknowledgments] are sent, both the value and domain signals are considered as subscribed, and the server application can start sending signal packets for these signals.
+Initially, the server should send the xref:packet_streaming:event_packet.adoc#ddc_event_packet[Data descriptor changed event packet], followed by the xref:packet_streaming:data_packet.adoc[data packets].
+
+=== An openDAQ client application code example
+
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <chrono>
+#include <iostream>
+#include <thread>
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    using namespace daq;
+    // Create a new Instance that we will use for all the interactions with the SDK
+    InstancePtr instance = Instance(MODULE_PATH);
+    // Connect to a Native streaming server
+    DevicePtr device = instance.addDevice("daq.ns://127.0.0.1:7420");
+    // Exit if connection failed
+    if (!device.assigned())
+    {
+        std::cerr << "Connection failed!" << std::endl;
+        return 0;
+    }
+    // Get the value signal
+    SignalPtr signal = device.getSignals()[0];
+    // Read data of value signal
+    const auto packetReader = PacketReader(signal);
+    while (true)
+    {
+        const auto packet = packetReader.read();
+        if (packet.assigned() && packet.getType() == PacketType::Data)
+        {
+            DataPacketPtr dataPacket = packet;
+            const auto data = reinterpret_cast<double*>(dataPacket.getData());
+            for (size_t index = 0; index < dataPacket.getSampleCount(); ++index)
+                std::cout << "Value signal data: " << data[index] << std::endl;
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    return 0;
+----
+
+// == How to emulate openDAQ(TM) native configuration protocol server
+// TODO
+
+
+=== Package sequences examples
+
+==== Streaming connection initialization
+
+For connections that support the streaming feature, the streaming initialization step packages appear first.
+
+|===
+|Package direction |Package type |Package details
+
+|client → server
+|xref:service.adoc#properties[Transport layer properties]
+|Package type code in header 0xA
+
+|client → server
+|xref:streaming.adoc#init_req[Streaming initialization request]
+|Package type code in header 0xB
+
+|server → client
+|Domain xref:streaming.adoc#available[signal available notification]
+|Package type code in header 0x2
+
+|server → client
+|Value xref:streaming.adoc#available[signal available notification]
+|Package type code in header 0x2
+
+|server → client
+|xref:streaming.adoc#init_done_ack[Streaming initialization done acknowledgement]
+|Package type code in header 0x6
+|===
+
+==== Streaming connection signal data transmission
+
+For streaming-enabled connections, once the initialization step is completed, it is followed by packages
+related to transmitting the signal data. The typical sequence contains following packages.
+[NOTE]
+====
+The xref:streaming.adoc#packet[signal packet] packages with xref:packet_streaming:data_packet.adoc[data packets]
+typically present multiple times
+====
+
+|===
+|Package direction |Package type |Package details
+
+|client → server
+|Domain xref:streaming.adoc#subscribe_req[signal subscribe request]
+|Package type code in header 0x4
+
+|client → server
+|Value xref:streaming.adoc#subscribe_req[signal subscribe request]
+|Package type code in header 0x4
+
+|server → client
+|Domain xref:streaming.adoc#subscribe_ack[signal subscribe acknowledgement]
+|Package type code in header 0x7
+
+|server → client
+|Value xref:streaming.adoc#subscribe_ack[signal subscribe acknowledgement]
+|Package type code in header 0x7
+
+|server → client
+|Domain xref:streaming.adoc#packet[signal packet package] with
+xref:packet_streaming:event_packet.adoc#ddc_event_packet[data descriptor changed event packet]
+|Package type code in header 0x1 +
+Packet buffer type code in payload 0x0
+
+|server → client
+|Value xref:streaming.adoc#packet[signal packet package] with
+xref:packet_streaming:event_packet.adoc#ddc_event_packet[data descriptor changed event packet]
+|Package type code in header 0x1 +
+Packet buffer type code in payload 0x0
+
+|server → client
+|Domain xref:streaming.adoc#packet[signal packet package] with
+xref:packet_streaming:data_packet.adoc[data packet]
+|Package type code in header 0x1 +
+Packet buffer type code in payload 0x1
+
+|server → client
+|Value xref:streaming.adoc#packet[signal packet package] with
+xref:packet_streaming:data_packet.adoc[data packet]
+|Package type code in header 0x1 +
+Packet buffer type code in payload 0x1
+
+|client → server
+|Value xref:streaming.adoc#unsubscribe_req[signal unubscribe request]
+|Package type code in header 0x5
+
+|client → server
+|Domain xref:streaming.adoc#unsubscribe_req[signal unsubscribe request]
+|Package type code in header 0x5
+
+|server → client
+|Value xref:streaming.adoc#unsubscribe_ack[signal unsubscribe acknowledgement]
+|Package type code in header 0x8
+
+|server → client
+|Domain xref:streaming.adoc#unsubscribe_ack[signal unsubscribe acknowledgement]
+|Package type code in header 0x8
+|===
+
+==== Configuration connection initialization
+
+For configuration-enabled connections, the initialization step includes following packages.
+// TODO add links to config protocol pages and package details
+
+|===
+|Package direction |Package type |Package details
+
+|client → server
+|xref:service.adoc#properties[Transport layer properties]
+|Package type code in header 0xA
+
+|client → server
+|Get config protocol information request
+|Package type code in header 0x9
+
+|server → client
+|Config protocol information reply
+|Package type code in header 0x9
+
+|client → server
+|Config protocol upgrade request
+|Package type code in header 0x9
+
+|server → client
+|Config protocol upgrade reply
+|Package type code in header 0x9
+
+|client → server
+|Get type manager request
+|Package type code in header 0x9
+
+|server → client
+|Get type manager reply
+|Package type code in header 0x9
+
+|client → server
+|Get root device request
+|Package type code in header 0x9
+
+|server → client
+|Get root device reply
+|Package type code in header 0x9
+|===

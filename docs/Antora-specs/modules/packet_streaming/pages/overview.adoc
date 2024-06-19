@@ -1,0 +1,11 @@
+= Overview
+
+The packet streaming protocol is designed to facilitate the encoding of openDAQ(TM) packets carrying measured signal data into a binary format suitable for transmission across various transport protocols,
+such as the xref:native_communication_protocol:introduction.adoc[openDAQ(TM) native communication protocol]
+utilizing WebSocket connections or any other appropriate binary protocol. Packet streaming protocol establishes the rules for decoding from binary format
+back into openDAQ(TM) packets on the receiver's end. Although primarily intended for openDAQ(TM) packets, this protocol can also be adapted to encode other forms of measured data in custom formats into the binary
+format supported by the packet streaming protocol. This binary format is referred to as a "packet buffer" within the protocol context.
+
+Functionally, the packet streaming protocol operates in a simplex mode, where one communication party, designated as the server, generates packet buffers for transmission. 
+These are sent to the other party, known as the client, via an independent transport protocol. The client then decodes these packet buffers back into openDAQ(TM) packets,
+which are subsequently forwarded along the openDAQ(TM) signal path. The protocol is designed under the assumption that only one client can be associated with one server.

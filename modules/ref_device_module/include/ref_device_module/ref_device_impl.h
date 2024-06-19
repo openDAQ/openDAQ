@@ -32,7 +32,7 @@ public:
     explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(size_t id);
+    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
     static DeviceTypePtr CreateType();
 
     // IDevice

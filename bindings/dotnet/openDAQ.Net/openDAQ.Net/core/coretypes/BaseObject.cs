@@ -363,6 +363,31 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         return BaseObject.CreateInstance<TObject>(objPtr, false);
     }
 
+    /// <summary>
+    /// Determines whether this instance can be cast to <typeparamref name="TObject"/>.
+    /// </summary>
+    /// <typeparam name="TObject">The type of the object.</typeparam>
+    /// <returns><c>true</c> if this instance can be cast; otherwise, <c>false</c>.</returns>
+    public bool CanCastTo<TObject>()
+        where TObject : BaseObject
+    {
+        Type genericType = typeof(TObject);
+        if (genericType == typeof(BaseObject))
+        {
+            return true;
+        }
+
+        var intfID = genericType.GUID;
+
+        unsafe //use native function pointer
+        {
+            //call native function
+            ErrorCode errorCode = (ErrorCode)_virtualTable.BorrowInterface(this.NativePointer, ref intfID, out _);
+
+            return Result.Succeeded(errorCode);
+        }
+    }
+
     //ToDo: perhaps this should be removed and Query-/BorrowInterface() has to be used directly
     /// <summary>Casts this instance to the possibly derived type <typeparamref name="TObject"/>.</summary>
     /// <remarks>Primary use would be to cast a returned instance of type <see cref="BaseObject"/> or an item of a <see cref="ListObject{BaseObject}"/> to its underlying type.</remarks>
@@ -371,8 +396,6 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     public TObject Cast<TObject>()
         where TObject : BaseObject
     {
-        //return QueryInterface<TObject>();
-
         Type genericType = typeof(TObject);
 
         if (genericType == typeof(BaseObject))

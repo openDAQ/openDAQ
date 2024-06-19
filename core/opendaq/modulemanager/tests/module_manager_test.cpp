@@ -135,12 +135,7 @@ TEST_F(ModuleManagerTest, RegisterDaqTypes)
 {
     auto typeManager = context.getTypeManager();
 
-    if (typeManager.assigned())
-    {
-        auto listTypes = typeManager.getTypes();
-        for (auto type : listTypes)
-        {
-            std::cout << type << std::endl;
-        }
-    }
+    ASSERT_TRUE(typeManager.hasType("PtpSyncInterface"));
+    ASSERT_TRUE(typeManager.hasType("SyncInterfaceBase"));
+    ASSERT_TRUE(typeManager.hasType("InterfaceClockSync"));
 }

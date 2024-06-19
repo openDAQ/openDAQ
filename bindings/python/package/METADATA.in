@@ -20,7 +20,7 @@ Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Requires-Python: >=3.8
-Requires-Dist: numpy>=1.7.0
+Requires-Dist: numpy >= 1.7.0, < 2.
 Description-Content-Type: text/markdown
 
 openDAQ

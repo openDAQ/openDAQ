@@ -34,4 +34,15 @@ TEST_F(SyncComponentTest, test_setSyncLocked)
     ASSERT_TRUE(syncLocked);
 }
 
+TEST_F(SyncComponentTest, test_setSetSelectedSource)
+{
+    SyncComponentPtr syncComponent = SyncComponent();
+    Int selectedSource = 0;
+    syncComponent->getSelectedSource(&selectedSource);
+    ASSERT_EQ(selectedSource, 0);
+    syncComponent->setSelectedSource(1);
+    syncComponent->getSelectedSource(&selectedSource);
+    ASSERT_EQ(selectedSource, 1);
+}
+
 END_NAMESPACE_OPENDAQ

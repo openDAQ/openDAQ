@@ -41,7 +41,9 @@ public:
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
     ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
 
-    ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) override;
+    ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
+    ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
+
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;

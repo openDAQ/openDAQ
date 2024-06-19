@@ -26,11 +26,6 @@ ErrCode SyncComponentImpl::test()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncComponentImpl::setSyncLocked(Bool synchronizationLocked)
-{
-    return Super::setPropertyValue(String(SyncronizationLocked), BooleanPtr(synchronizationLocked));
-}
-
 ErrCode SyncComponentImpl::getSyncLocked(Bool* synchronizationLocked)
 {
     return daqTry([&]() {
@@ -39,12 +34,22 @@ ErrCode SyncComponentImpl::getSyncLocked(Bool* synchronizationLocked)
     });
 }
 
-ErrCode SyncComponentImpl::getSelectedSource(IString** selectedSource)
+ErrCode SyncComponentImpl::setSyncLocked(Bool synchronizationLocked)
+{
+    return Super::setPropertyValue(String(SyncronizationLocked), BooleanPtr(synchronizationLocked));
+}
+
+ErrCode SyncComponentImpl::getSelectedSource(Int* selectedSource)
 {
     return daqTry([&]() {
-        *selectedSource = getTypedProperty<IString>(Source).detach();
+        *selectedSource = getTypedProperty<IInteger>(Source);
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode SyncComponentImpl::setSelectedSource(Int selectedSource)
+{
+    return Super::setPropertyValue(String(Source), Integer(selectedSource));
 }
 
 ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)

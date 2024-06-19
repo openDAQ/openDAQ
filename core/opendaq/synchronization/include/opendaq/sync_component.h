@@ -62,22 +62,28 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC test() = 0;
 
     /*!
-     * @brief Sets the synchronization lock status.
-     * @param synchronizationLocked True if synchronization is locked; false otherwise.
-     */
-    virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) = 0;
-
-    /*!
      * @brief Retrieves the synchronization lock status.
      * @param[out] synchronizationLocked True if synchronization is locked; false otherwise.
      */
     virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) = 0;
 
     /*!
+     * @brief Sets the synchronization lock status.
+     * @param synchronizationLocked True if synchronization is locked; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) = 0;
+
+    /*!
      * @brief Retrieves the selected sync source interface.
      * @param[out] selectedSource The selected sync source interface.
      */
-    virtual ErrCode INTERFACE_FUNC getSelectedSource(IString** selectedSource) = 0;
+    virtual ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) = 0;
+
+    /*!
+     * @brief Sets the selected sync source interface.
+     * @param selectedSource The selected sync source interface.
+     */
+    virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) = 0;
 
     // [elementType(interfaces, IPropertyObject)]
     /*!

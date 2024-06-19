@@ -105,7 +105,7 @@ jobs:
         run: |
           foreach($version in "${{ env.python_versions }}".split(" ")) {
             Write-Output "Installing numpy for Python $version"
-            Invoke-Expression "py -$version -m pip install numpy==1.26.4"
+            Invoke-Expression "py -$version -m pip install numpy"
           }
 
       - name: Configure
@@ -500,7 +500,7 @@ jobs:
         run: |
           python$last_version -m venv venv
           . venv/bin/activate
-          pip install numpy==1.26.4
+          pip install numpy
           pip install pip/packages/opendaq*.whl
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
 
@@ -568,7 +568,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install numpy
-        run: python -m pip install numpy==1.26.4
+        run: python -m pip install numpy
 
       - name: Configure, fetch dependencies
         run: |
@@ -648,7 +648,7 @@ jobs:
             Write-Output "Creating virtual environment for Python $version"
             Invoke-Expression "py -$version -m venv venv"
             ./venv/Scripts/activate
-            pip install numpy==1.26.4 pybind11-stubgen
+            pip install numpy pybind11-stubgen
             py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} -r
             foreach ($file in Get-ChildItem -Filter *.whl -Path pip/packages) {
               Write-Output "Installing $file"

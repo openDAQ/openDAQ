@@ -99,7 +99,7 @@ jobs:
             Write-Output "Creating virtual environment for Python $version"
             Invoke-Expression "py -$version -m venv venv"
             ./venv/Scripts/activate
-            pip install numpy==1.26.4 pybind11-stubgen
+            pip install numpy pybind11-stubgen
             $remove_python_module_flag = "-r"
             if ($version -eq $versions[-1]) {
               $remove_python_module_flag = $null

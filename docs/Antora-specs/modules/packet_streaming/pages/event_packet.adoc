@@ -1,0 +1,170 @@
+= Event packet encoding
+
+In addition to packets that carry measured signal data, openDAQ(TM) also uses packets to encode various types of events. This helps in monitoring changes in signal parameters and detecting losses and
+overlaps in measured data.
+
+[#ddc_event_packet]
+== Data descriptor changed event packet
+
+This type of event packet is utilized to monitor changes in signal parameters, ensuring accurate interpretation of measured data in light of these changes. Each packet of this type includes two openDAQ(TM)
+signal data descriptors: first mandatory descriptor that outlines the data structure and interpretation for the signal, and another optional descriptor for the associated domain signal.
+
+The Data Descriptor Changed Event Packet is strategically positioned at the start of the packet stream and acts as the initial packet before any subsequent xref:data_packet.adoc[data packets] containing measured data.
+It reappears whenever there are changes in signal parameters.
+
+The packet buffer for this event type consists of a 12-byte generic header and payload that includes the serialized forms of both signal descriptors.
+The serialized form is presented as a null-terminated JSON string, adhering to the standard openDAQ(TM) serialization format.
+
+|===
+||Bytes group |Start position offset (in bytes) |Value type |Size in bytes |Value
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0
+|unsigned 8 bit integer
+|1
+|12
+
+|Packet buffer type code
+|1
+|unsigned 8 bit integer
+|1
+|0x0
+
+|Packet streaming protocol version
+|2
+|unsigned 8 bit integer
+|1
+|-
+
+|xref:format.adoc#flags[Flags]
+|3
+|unsigned 8 bit integer
+|1
+|0x0
+
+|Signal numeric ID
+|4
+|unsigned 32 bit integer
+|4
+|-
+
+|Payload size
+|8
+|unsigned 32 bit integer
+|4
+|-
+
+|Payload
+|Packet data
+|12
+|Null terminated string
+|-
+|-
+|===
+
+=== Payload examples
+
+_Only value signal descriptor changed_:
+[source,json]
+{
+    "__type": "EventPacket",
+    "id": "DATA_DESCRIPTOR_CHANGED",
+    "params": {
+        "__type": "Dict",
+        "values": [
+            {
+                "key": "DataDescriptor",
+                "value": {
+                    "__type": "DataDescriptor",
+                    "name": "Domain",
+                    "sampleType": 9,
+                    "dimensions": [],
+                    "rule": {
+                        "__type": "DataRule",
+                        "ruleType": 3,
+                        "params": {
+                            "__type": "Dict",
+                            "values": []
+                        }
+                    },
+                    "origin": "",
+                    "metadata": {
+                        "__type": "Dict",
+                        "values": []
+                    },
+                    "structFields": []
+                }
+            },
+            {
+                "key": "DomainDataDescriptor",
+                "value": null
+            }
+        ]
+    }
+}
+----
+
+_Both descriptors changed_:
+[source,json]
+----
+{
+    "__type": "EventPacket",
+    "id": "DATA_DESCRIPTOR_CHANGED",
+    "params": {
+        "__type": "Dict",
+        "values": [
+            {
+                "key": "DataDescriptor",
+                "value": {
+                    "__type": "DataDescriptor",
+                    "name": "Value",
+                    "sampleType": 2,
+                    "dimensions": [],
+                    "rule": {
+                        "__type": "DataRule",
+                        "ruleType": 3,
+                        "params": {
+                            "__type": "Dict",
+                            "values": []
+                        }
+                    },
+                    "origin": "",
+                    "metadata": {
+                        "__type": "Dict",
+                        "values": []
+                    },
+                    "structFields": []
+                }
+            },
+            {
+                "key": "DomainDataDescriptor",
+                "value": {
+                    "__type": "DataDescriptor",
+                    "name": "Domain",
+                    "sampleType": 9,
+                    "dimensions": [],
+                    "rule": {
+                        "__type": "DataRule",
+                        "ruleType": 3,
+                        "params": {
+                            "__type": "Dict",
+                            "values": []
+                        }
+                    },
+                    "origin": "",
+                    "metadata": {
+                        "__type": "Dict",
+                        "values": []
+                    },
+                    "structFields": []
+                }
+            }
+        ]
+    }
+}
+----
+
+// == Gap packet
+// TODO

@@ -10,10 +10,16 @@ On supported systems you can install it with:
 ----
 pip install opendaq
 ----
+
+== Installing latest (development) Python bindings
+
+The latest versions of the Python bindings are available at https://www.docs-dev.opendaq.com. There you can downlowd the Python Wheels for your OS/Python version. 
+
+The python version the wheel is intended for can be discerned from the name of the file. Eg. opendaq-3.1.0_ad68082-cp310-cp310-win_amd64.whl is to be used with Python 3.10, as indicated by the "cp310" part of the filename.
+
 == Prerequisites
 
-Python *3.8-12* for Windows can be downloaded from https://www.python.org/downloads/.
-On Linux it can be installed via the package manager.
+Python *3.8-12* for Windows can be downloaded from https://www.python.org/downloads/. On Linux it can be installed via the package manager.
 
 == Testing the installation
 
@@ -34,4 +40,13 @@ When using just a reference module without being connected to a physical device,
 ----
 Name: Device 0 Connection string: daqref://device0
 Name: Device 1 Connection string: daqref://device1
+----
+
+== Python application
+
+The Python pip package comes bundled with a simple openDAQ(TM) application. It can be run from a terminal using the following command:
+
+[source,bash]
+----
+py -m opendaq
 ----

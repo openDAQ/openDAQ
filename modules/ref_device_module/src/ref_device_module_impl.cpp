@@ -85,6 +85,14 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     StringPtr localId;
     StringPtr name = fmt::format("Device {}", id);
 
+    if (config.assigned())
+    {
+        if (config.hasProperty("LocalId"))
+            localId = config.getPropertyValue("LocalId");
+        if (config.hasProperty("Name"))
+            name = config.getPropertyValue("Name");
+    }
+
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
         const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");

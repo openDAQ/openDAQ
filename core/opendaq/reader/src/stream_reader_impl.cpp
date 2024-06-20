@@ -21,9 +21,11 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
                                    SampleType valueReadType,
                                    SampleType domainReadType,
                                    ReadMode mode,
-                                   ReadTimeoutType timeoutType)
+                                   ReadTimeoutType timeoutType,
+                                   Bool skipEvents)
     : readMode(mode)
     , timeoutType(timeoutType)
+    , skipEvents(skipEvents)
 {
     if (!signal.assigned())
         throw ArgumentNullException("Signal must not be null");
@@ -90,6 +92,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
                                    SampleType domainReadType)
     : readMode(old->readMode)
     , timeoutType(ReadTimeoutType::All)
+    , skipEvents(old->skipEvents)
 {
     std::scoped_lock lock(old->mutex);
     dataDescriptor = old->dataDescriptor;
@@ -110,6 +113,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
+    inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
     handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
@@ -184,7 +188,6 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
     ProcedurePtr callback;
     {
         std::scoped_lock lock(notify.mutex);
-        notify.packetReady = true;
         callback = readCallback;
     }
     notify.condition.notify_one();
@@ -228,7 +231,7 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
         }
         if (connection.assigned())
         {
-            *count += connection.getSamplesUntilNextDescriptor();
+            *count += skipEvents ? connection.getAvailableSamples() : connection.getSamplesUntilNextDescriptor();
         }
     });
 }
@@ -239,7 +242,7 @@ ErrCode StreamReaderImpl::empty(Bool* empty)
 
     std::scoped_lock lock(mutex);
 
-    if (connection.hasEventPacket())
+    if (!skipEvents && connection.assigned() && connection.hasEventPacket())
     {
         *empty = false;
         return OPENDAQ_SUCCESS;
@@ -405,14 +408,8 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             {
                 return false;
             }
-            
-            if (!notify.packetReady)
-            {
-                return false;
-            }
-            notify.packetReady = false;
 
-            if (connection.hasEventPacket())
+            if (!skipEvents && connection.hasEventPacket())
             {
                 return true;
             }
@@ -452,7 +449,10 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                     invalid = true;
                 }
             } 
-            return ReaderStatus(eventPacket, !invalid, offset);
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                return ReaderStatus(eventPacket, !invalid, offset);
+            }
         }
 
         if (packet.getType() == PacketType::Data)
@@ -631,7 +631,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,
-    ReadTimeoutType, timeoutType
+    ReadTimeoutType, timeoutType,
+    Bool, skipEvents
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

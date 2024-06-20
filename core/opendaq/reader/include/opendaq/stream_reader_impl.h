@@ -39,7 +39,8 @@ public:
                               SampleType valueReadType,
                               SampleType domainReadType,
                               ReadMode mode,
-                              ReadTimeoutType timeoutType);
+                              ReadTimeoutType timeoutType,
+                              Bool skipEvents);
     
     explicit StreamReaderImpl(IInputPortConfig* port,
                               SampleType valueReadType,
@@ -126,6 +127,8 @@ private:
 
     std::mutex mutex;
     ProcedurePtr readCallback;
+
+    bool skipEvents = false;
 };
 
 END_NAMESPACE_OPENDAQ

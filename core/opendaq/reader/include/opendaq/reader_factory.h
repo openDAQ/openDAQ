@@ -112,9 +112,10 @@ inline StreamReaderPtr StreamReader(SignalPtr signal,
                                     SampleType valueReadType,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
-                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All,
+                                    Bool skipEvents = true)
 {
-    return StreamReader_Create(signal, valueReadType, domainReadType, mode, timeoutType);
+    return StreamReader_Create(signal, valueReadType, domainReadType, mode, timeoutType, skipEvents);
 }
 
 /*!

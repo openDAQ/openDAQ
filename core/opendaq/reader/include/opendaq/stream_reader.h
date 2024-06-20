@@ -88,11 +88,12 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, mode,
-    ReadTimeoutType, timeoutType
+    ReadTimeoutType, timeoutType,
+    Bool, skipEvents
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, StreamReaderFromPort ,IStreamReader,
+    LIBRARY_FACTORY, StreamReaderFromPort, IStreamReader,
     IInputPortConfig*, port,
     SampleType, valueReadType,
     SampleType, domainReadType,

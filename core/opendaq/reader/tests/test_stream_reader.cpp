@@ -537,12 +537,6 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
         this->signal.setDescriptor(setupDescriptor(SampleTypeFromType<TypeParam>::SampleType, ConstantDataRule()));
         auto reader = daq::StreamReader<TypeParam, ClockTick>(this->signal);
 
-        {
-            SizeT tmpCount = 0u;
-            auto status = reader.read(nullptr, &tmpCount);
-            ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        }
-
         auto domainPacket = DataPacket(domainDesc, samplesInPacket, 0);
         auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 12);
         this->sendPacket(dataPacket);
@@ -567,12 +561,6 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
-
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     const SizeT NUM_SAMPLES = 2;
     auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
@@ -599,12 +587,6 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 
     this->sendPacket(dataPacketInt32);
 
-    {
-        size_t tempCnt = 0;
-        auto status = reader.read(nullptr, &tempCnt);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
     ASSERT_EQ(reader.getAvailableCount(), 2u);
 
     count = 2;
@@ -626,12 +608,6 @@ TYPED_TEST(StreamReaderTest, GapDetected)
     this->signal.setDomainSignal(domainSignal);
 
     auto reader = daq::StreamReader<TypeParam, int64_t>(this->signal);
-
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     constexpr SizeT NUM_SAMPLES = 2;
 
@@ -688,11 +664,6 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedNotConvertible)
 
     auto reader = daq::StreamReader<std::int32_t, ClockRange>(this->signal);
 
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     this->signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
 
@@ -719,11 +690,6 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
 
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal, ReadTimeoutType::Any);
 
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -782,13 +748,6 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
     this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
 
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
-
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
     this->signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
 
     const SizeT NUM_SAMPLES = 2;
@@ -803,7 +762,6 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
     auto status = reader.read(nullptr, &count);
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(status.getValid(), convertable);
 
     auto newReader = daq::StreamReaderFromExisting<ComplexFloat32, ClockRange>(reader);
@@ -838,8 +796,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedNoDomain)
 
     {
         SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        reader.read(nullptr, &tmpCount);
     }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -854,8 +811,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
 
     {
         SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        reader.read(nullptr, &tmpCount);
     }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -871,13 +827,6 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
     dataPtr[0] = 123.4;
 
     this->sendPacket(dataPacket);
-
-    {
-        size_t tempCnt = 0;
-        auto status = reader.read(nullptr, &tempCnt);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_TRUE(status.getValid());
-    }
 
     SizeT count{1};
     double samples[1]{};
@@ -899,8 +848,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithNoDomainFromPacket)
 
     {
         SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        reader.read(nullptr, &tmpCount);
     }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -930,15 +878,6 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
 
     auto reader = daq::StreamReader<UndefinedType, UndefinedType>(this->signal);
 
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
-
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -963,12 +902,6 @@ TYPED_TEST(StreamReaderTest, ReadVoid)
     this->signal.setDescriptor(setupDescriptor(SampleTypeFromType<TypeParam>::SampleType));
 
     auto reader = daq::StreamReader<void*, ClockRange>(this->signal);
-
-    {
-        SizeT tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Struct);
 
@@ -1299,7 +1232,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
+    auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined, ReadMode::Scaled, ReadTimeoutType::All, false);
     
     {
         SizeT tmpCount = 0u;
@@ -1383,15 +1316,14 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
-    StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
+    StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined, ReadMode::Scaled, ReadTimeoutType::All, false);
     StreamReaderPtr newReader;
-
     {
         SizeT tmpCount = 0u;
         auto status = reader.read(nullptr, &tmpCount);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
-
+    
     reader.setOnDataAvailable([&] {
         if (!newReader.assigned())
         {
@@ -1525,4 +1457,34 @@ TYPED_TEST(StreamReaderTest, ReconnectWhileReading)
 
     future.wait();
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TYPED_TEST(StreamReaderTest, DeltaCheck)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::StreamReader(this->signal, SampleType::Float64, SampleType::RangeInt64);
+
+    for (int i = 0; i < 5; i++)
+    {
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, i);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+        this->sendPacket(dataPacket);
+    }
+
+    {
+        SizeT count{3};
+        double samples[3];
+        auto status = reader.read(samples, &count, 1000u);
+        ASSERT_EQ(count, 3u);
+        ASSERT_EQ(status.getOffset(), 0);
+    }
+
+    {
+        SizeT count{1};
+        double samples[1];
+        auto status = reader.read(samples, &count);
+        ASSERT_EQ(count, 1u);
+        ASSERT_EQ(status.getOffset(), 3);
+    }
 }

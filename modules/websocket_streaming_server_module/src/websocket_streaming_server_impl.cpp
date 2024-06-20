@@ -73,7 +73,7 @@ PropertyObjectPtr WebsocketStreamingServerImpl::getDiscoveryConfig()
 ServerTypePtr WebsocketStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerType(
-        "openDAQ LT Streaming",
+        "OpenDAQLTStreaming",
         "openDAQ LT Streaming server",
         "Publishes device signals as a flat list and streams data over WebsocketTcp protocol",
         WebsocketStreamingServerImpl::createDefaultConfig(context));

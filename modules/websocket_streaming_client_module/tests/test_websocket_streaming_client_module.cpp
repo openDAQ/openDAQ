@@ -194,7 +194,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
     ASSERT_FALSE(connectionString.assigned());
 
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "openDAQ LT Streaming", ProtocolType::Streaming);
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "OpenDAQLTStreaming", ProtocolType::Streaming);
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");

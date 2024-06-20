@@ -92,7 +92,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstance, IDevice)
 
     // [elementType(servers, IServer)]
     /*!
-     * @brief Creates and adds streaming and "openDAQ OpcUa" servers with default configurations.
+     * @brief Creates and adds streaming and "OpenDAQOPCUA" servers with default configurations.
      * @param[out] servers List of added created servers.
      */
     virtual ErrCode INTERFACE_FUNC addStandardServers(IList** servers) = 0;

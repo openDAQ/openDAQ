@@ -70,10 +70,10 @@ public:
         auto structureProtocolType = std::get<0>(GetParam());
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
             auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -83,9 +83,9 @@ public:
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT + index);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;
@@ -115,10 +115,10 @@ public:
         }
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
             auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -128,9 +128,9 @@ public:
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;

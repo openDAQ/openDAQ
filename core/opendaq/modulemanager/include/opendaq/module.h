@@ -23,6 +23,7 @@
 #include <coretypes/listobject.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/version_info.h>
+#include <opendaq/streaming_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -160,6 +161,13 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * generate a connection string.
      */
     virtual ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) = 0;
+
+    /*!
+     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.
+     * @param[out] streamingTypes The dictionary of known streaming types.
+     */
+    // [templateType(streamingTypes, IString, IStreamingType)]
+    virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
 };
 /*!@}*/
 

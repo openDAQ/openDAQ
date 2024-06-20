@@ -40,6 +40,8 @@ protected:
     void onRemoveDevice(const DevicePtr& device) override;
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
     void findAndCreateFunctionBlocks();
     void findAndCreateSignals();
     void findAndCreateInputsOutputs();

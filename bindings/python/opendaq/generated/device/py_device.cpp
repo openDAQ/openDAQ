@@ -251,4 +251,11 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Connects to a streaming at the given connection string, adds it as a streaming source of device and returns created streaming object.");
+    cls.def("create_default_add_device_config",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.createDefaultAddDeviceConfig().detach();
+        },
+        "");
 }

@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/device_type.h>
 #include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,7 +29,12 @@ public:
     explicit DeviceTypeImpl(const StringPtr& id,
                             const StringPtr& name,
                             const StringPtr& description,
-                            const PropertyObjectPtr& defaultConfig);
+                            const PropertyObjectPtr& defaultConfig,
+                            const StringPtr& prefix = "");
+
+    explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
+
+    ErrCode getConnectionStringPrefix(IString** prefix) override;
 };
 
 END_NAMESPACE_OPENDAQ

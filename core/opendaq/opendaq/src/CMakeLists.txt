@@ -17,6 +17,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_Instance_PrivateHeaders}
         ${SRC_InstanceBuilder_PrivateHeaders}
         ${SRC_ConfigProvider_PrivateHeaders}
+        ${SRC_ComponentTypeBuilder_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -54,6 +55,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/cmd_line_args_config_provider_impl.cpp
         ${SDK_SRC_DIR}/path_tool.cpp             
     )
+    
+    source_group("component_type" FILES 
+        ${SDK_HEADERS_DIR}/component_type_builder_impl.h
+        component_type_builder_impl.cpp
+    )
 endfunction()
 
 set(ConfigHeaderSource ../include/opendaq/opendaq_config.h.in)
@@ -81,6 +87,7 @@ set(SRC_PrivateHeaders_Component
     base_config_provider_impl.h
     env_config_provider_impl.h
     cmd_line_args_config_provider_impl.h
+    component_type_builder_impl.h
     PARENT_SCOPE
 )
 
@@ -95,6 +102,7 @@ set(SRC_Cpp_Component
     base_config_provider_impl.cpp
     env_config_provider_impl.cpp
     cmd_line_args_config_provider_impl.cpp
+    component_type_builder_impl.cpp
     opendaq.natvis
     PARENT_SCOPE
 )

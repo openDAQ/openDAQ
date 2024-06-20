@@ -61,11 +61,9 @@ static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
 
-    // FIXME - use default config mega-object
-    auto config = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
-    if (!config.assigned())
-        config = PropertyObject();
-    config.addProperty(ListProperty("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming")));
+    auto config = instance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming"));
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -603,16 +601,15 @@ public:
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
+        
+        auto config = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = config.getPropertyValue("General");
 
-        // FIXME - use default config mega-object
-        auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_native_config");
-        auto config = deviceType.createDefaultConfig();
-        if (!config.assigned())
-            config = PropertyObject();
         auto prioritizedStreamingProtocols = List<IString>();
         for (const auto& protocolId : GetParam())
             prioritizedStreamingProtocols.pushBack(protocolId);
-        config.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+        general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
 
         instance.addDevice("daq.nd://127.0.0.1", config);
         return instance;

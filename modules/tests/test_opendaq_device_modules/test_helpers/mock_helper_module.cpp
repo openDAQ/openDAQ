@@ -123,6 +123,11 @@ ErrCode MockHelperModuleImpl::createConnectionString(IString** /*connectionStrin
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+ErrCode MockHelperModuleImpl::getAvailableStreamingTypes(IDict** streamingTypes)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 }
 
 END_NAMESPACE_OPENDAQ

@@ -41,6 +41,7 @@ public:
 
     daq::ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(daq::Bool* accepted, daq::IString* connectionString, daq::IPropertyObject* /*config*/) override;
     daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming** streaming, daq::IString* connectionString, daq::IPropertyObject* /*config*/) override;
+    daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict** streamingTypes) override;
 
     daq::ErrCode INTERFACE_FUNC createConnectionString(daq::IString** connectionString, daq::IServerCapability* serverCapability) override;
 

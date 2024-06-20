@@ -15,24 +15,28 @@
  */
 
 #pragma once
-#include <opendaq/server_type.h>
+#include <opendaq/streaming_type.h>
 #include <coreobjects/component_type_impl.h>
 #include <opendaq/component_type_builder_ptr.h>
+#include <opendaq/streaming_type_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerTypeImpl : public GenericComponentTypeImpl<IServerType>
+class StreamingTypeImpl : public GenericComponentTypeImpl<IStreamingType>
 {
 public:
-    using Self = ServerTypeImpl;
-    using Super = GenericComponentTypeImpl<IServerType>;
+    using Self = StreamingTypeImpl;
+    using Super = GenericComponentTypeImpl<IStreamingType>;
 
-    explicit ServerTypeImpl(const StringPtr& id,
-                            const StringPtr& name,
-                            const StringPtr& description,
-                            const PropertyObjectPtr& defaultConfig);
+    explicit StreamingTypeImpl(const StringPtr& id,
+                               const StringPtr& name,
+                               const StringPtr& description,
+                               const StringPtr& prefix,
+                               const PropertyObjectPtr& defaultConfig);
 
-    explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
+    explicit StreamingTypeImpl(const ComponentTypeBuilderPtr& builder);
+    
+    ErrCode getConnectionStringPrefix(IString** prefix) override;
 };
 
 END_NAMESPACE_OPENDAQ

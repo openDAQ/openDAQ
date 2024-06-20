@@ -88,7 +88,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * localId string argument.
      */
     virtual ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) = 0;
-
+    
     /*!
      * @brief Creates a streaming object using the specified connection string and config object.
      * @param[out] streaming The created streaming object.
@@ -98,6 +98,10 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the provided connection string.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
+    // [templateType(streamingTypes, IString, IStreamingType)]
+    virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
+
+    virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 };
 /*!@}*/
 

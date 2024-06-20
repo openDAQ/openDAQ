@@ -411,30 +411,79 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             }
         }
     }
-    
+
+    const auto configPtr = PropertyObjectPtr::Borrow(config);
+    const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configPtr);
+    PropertyObjectPtr devConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("Device").asPtr<IPropertyObject>() : configPtr;
+
     for (const auto& library : libraries)
     {
         const auto module = library.module;
+        
+        bool accepted{false};
+        if (isDefaultAddDeviceConfigRes)
+        {
+            const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
+            DictPtr<IString, IDeviceType> types;
+            module->getAvailableDeviceTypes(&types);
+            if (!types.assigned())
+                continue;
+            StringPtr id;
+            for (auto const& [typeId, type] : types)
+            {
+                if (type.getConnectionStringPrefix()== prefix)
+                {
+                    id = typeId;
+                    break;
+                }
+            }
 
-        bool accepted{};
-        try
-        {
-            accepted = module.acceptsConnectionParameters(connectionStringPtr, config);
+            if (!id.assigned())
+                continue;
+
+            PropertyObjectPtr typeConfig = devConfig.getPropertyValue(id);
+
+            try
+            {
+                accepted = module.acceptsConnectionParameters(connectionStringPtr, typeConfig);
+            }
+            catch (NotImplementedException&)
+            {
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+                accepted = false;
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+                accepted = false;
+            }
+
+            if (accepted)
+            {
+                devConfig = typeConfig;
+            }
         }
-        catch (NotImplementedException&)
+        else
         {
-            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-            accepted = false;
-        }
-        catch ([[maybe_unused]] const std::exception& e)
-        {
-            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-            accepted = false;
+            try
+            {
+                accepted = module.acceptsConnectionParameters(connectionStringPtr, devConfig);
+            }
+            catch (NotImplementedException&)
+            {
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+                accepted = false;
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+                accepted = false;
+            }
         }
 
         if (accepted)
         {
-            auto errCode = module->createDevice(device, connectionStringPtr, parent, config);
+            auto errCode = module->createDevice(device, connectionStringPtr, parent, devConfig);
 
             if (OPENDAQ_FAILED(errCode))
                 return errCode;
@@ -471,8 +520,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>();
                 if (mirroredDeviceConfigPtr.assigned())
                 {
-                    auto configPtr = PropertyObjectPtr::Borrow(config);
-                    configureStreamings(mirroredDeviceConfigPtr, configPtr);
+                    errCode = daqTry([this, &mirroredDeviceConfigPtr, &configPtr]
+                        {
+                            configureStreamings(mirroredDeviceConfigPtr, configPtr);
+                            return OPENDAQ_SUCCESS;
+                        });
                 }
             }
 
@@ -617,6 +669,75 @@ ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming, IString* conn
     return errCode;
 }
 
+ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+    auto availableTypes = Dict<IString, IStreamingType>();
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        
+        DictPtr<IString, IStreamingType> types;
+        try
+        {
+            types = module.getAvailableStreamingTypes();
+        }
+        catch (const NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getName())
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getName(), e.what())
+        }
+
+        if (!types.assigned())
+            continue;
+
+        for (const auto& [id, type] : types)
+            availableTypes.set(id, type);
+    }
+
+    *streamingTypes = availableTypes.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    ErrCode err = getAvailableDeviceTypes(&deviceTypes);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    
+    DictPtr<IString, IStreamingType> streamingTypes;
+    err = getAvailableStreamingTypes(&streamingTypes);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    auto config = PropertyObject();
+    
+    auto deviceConfig = PropertyObject();
+    auto streamingConfig = PropertyObject();
+    auto generalConfig = PropertyObject();
+
+    for (auto const& [key, typeObj] : deviceTypes)
+        deviceConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
+    
+    for (auto const& [key, typeObj] : streamingTypes)
+        streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
+
+    config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
+    config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
+    config.addProperty(ObjectProperty("General", createGeneralConfig().detach()));
+
+    *defaultConfig = config.detach();
+    return OPENDAQ_SUCCESS;
+}
+
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "opendaq_native_config";
@@ -638,27 +759,20 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-PropertyObjectPtr ModuleManagerImpl::populateStreamingConfig(const PropertyObjectPtr& streamingConfig)
+PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(const PropertyObjectPtr& config)
 {
-    PropertyObjectPtr resultConfig = streamingConfig.assigned() ? streamingConfig : PropertyObject();
+    const auto defConfig = createGeneralConfig();
+    if (!config.assigned())
+        return defConfig;
 
-    if (!resultConfig.hasProperty("StreamingConnectionHeuristic"))
+    for (const auto& prop : defConfig.getAllProperties())
     {
-        const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                        List<IString>("MinConnections",
-                                                                                      "MinHops",
-                                                                                      "NotConnected"),
-                                                                        0);
-        resultConfig.addProperty(streamingConnectionHeuristicProp);
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
     }
 
-    if (!resultConfig.hasProperty("PrioritizedStreamingProtocols"))
-    {
-        auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
-        resultConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-    }
-
-    return resultConfig;
+    return defConfig;
 }
 
 ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const MirroredDeviceConfigPtr& device)
@@ -681,10 +795,21 @@ ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const
 }
 
 void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                                 const ListPtr<IString>& prioritizedStreamingProtocols)
+                                                 const PropertyObjectPtr& generalConfig,
+                                                 const PropertyObjectPtr& config)
 {
     auto deviceInfo = device.getInfo();
     auto signals = device.getSignals(search::Recursive(search::Any()));
+    
+    const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+    const ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
+
+     // protocol Id as a key, protocol priority as a value
+    std::unordered_set<std::string> allowedProtocolsSet;
+    for (SizeT index = 0; index < allowedStreamingProtocols.getCount(); ++index)
+    {
+        allowedProtocolsSet.insert(allowedStreamingProtocols[index]);
+    }
 
     // protocol Id as a key, protocol priority as a value
     std::map<StringPtr, SizeT> prioritizedProtocolsMap;
@@ -710,6 +835,9 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
+        if (!allowedProtocolsSet.empty() && !allowedProtocolsSet.count(protocolId))
+            continue;
+
         const auto protocolIt = prioritizedProtocolsMap.find(protocolId);
         if (protocolIt == prioritizedProtocolsMap.end())
             continue;
@@ -720,7 +848,7 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
         if (!connectionString.assigned())
             continue;
 
-        wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streaming, connectionString, nullptr);
+        wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streaming, connectionString, config);
         if (!streaming.assigned())
             continue;
 
@@ -755,14 +883,25 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
 
 void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& config)
 {
-    auto streamingConfig = populateStreamingConfig(config);
+    PropertyObjectPtr generalConfig;
+    PropertyObjectPtr addDeviceConfig;
+    
+    if (isDefaultAddDeviceConfig(config))
+    {
+        addDeviceConfig = config;
+        generalConfig = config.getPropertyValue("General");
+    }
+    else
+        generalConfig = populateGeneralConfig(config);
 
-    const StringPtr streamingHeuristic = streamingConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
-    const ListPtr<IString> prioritizedStreamingProtocols = streamingConfig.getPropertyValue("PrioritizedStreamingProtocols");
+    const StringPtr streamingHeuristic = generalConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
+    const bool automaticallyConnectStreaming = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
+    if (!automaticallyConnectStreaming)
+        return;
 
     if (streamingHeuristic == "MinConnections")
     {
-        attachStreamingsToDevice(topDevice, prioritizedStreamingProtocols);
+        attachStreamingsToDevice(topDevice, generalConfig, addDeviceConfig);
     }
     else if (streamingHeuristic == "MinHops")
     {
@@ -772,7 +911,7 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
         auto allDevicesInTree = getAllDevicesRecursively(topDevice);
         for (const auto& device : allDevicesInTree)
         {
-            attachStreamingsToDevice(device, prioritizedStreamingProtocols);
+            attachStreamingsToDevice(device, generalConfig, addDeviceConfig);
         }
     }
 }
@@ -780,30 +919,78 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StreamingPtr streaming = nullptr;
+    PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("Streaming").asPtr<IPropertyObject>() : config;
+
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        bool accepted = false;
-        try
+        bool accepted{false};
+        if (isDefaultAddDeviceConfig(config))
         {
-            accepted = module.acceptsStreamingConnectionParameters(connectionString, config);
+            const std::string prefix = getPrefixFromConnectionString(connectionString);
+            DictPtr<IString, IStreamingType> types;
+            module->getAvailableStreamingTypes(&types);
+            if (!types.assigned())
+                continue;
+
+            StringPtr id;
+            for (auto const& [typeId, type] : types)
+            {
+                if (type.getConnectionStringPrefix()== prefix)
+                {
+                    id = typeId;
+                    break;
+                }
+            }
+
+            if (!id.assigned())
+                continue;
+
+            PropertyObjectPtr typeConfig = streamingConfig.getPropertyValue(id);
+
+            try
+            {
+                accepted = module.acceptsConnectionParameters(connectionString, typeConfig);
+            }
+            catch (NotImplementedException&)
+            {
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+                accepted = false;
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+                accepted = false;
+            }
+
+            if (accepted)
+            {
+                streamingConfig = typeConfig;
+            }
         }
-        catch (const NotImplementedException&)
+        else
         {
-            LOG_D("{}: acceptsStreamingConnectionParameters not implemented", module.getName());
-            accepted = false;
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: acceptsStreamingConnectionParameters failed: {}", module.getName(), e.what());
-            accepted = false;
+            try
+            {
+                accepted = module.acceptsStreamingConnectionParameters(connectionString, streamingConfig);
+            }
+            catch (const NotImplementedException&)
+            {
+                LOG_D("{}: acceptsStreamingConnectionParameters not implemented", module.getName());
+                accepted = false;
+            }
+            catch (const std::exception& e)
+            {
+                LOG_W("{}: acceptsStreamingConnectionParameters failed: {}", module.getName(), e.what());
+                accepted = false;
+            }
         }
 
         if (accepted)
         {
             try
             {
-                streaming = module.createStreaming(connectionString, config);
+                streaming = module.createStreaming(connectionString, streamingConfig);
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
@@ -812,7 +999,43 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             }
         }
     }
+
     return streaming;
+}
+
+PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
+{
+    auto obj = PropertyObject();
+
+    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+                                                                    List<IString>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                                                    0);
+    obj.addProperty(streamingConnectionHeuristicProp);
+
+    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+    obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
+
+    obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
+    return obj.detach();
+}
+
+std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const
+{
+    try
+    {
+        return connectionString.substr(0, connectionString.find("://"));
+    }
+    catch(...)
+    {
+        LOG_W("Connection string has no prefix denoted by the \"://\" delimiter")
+    }
+
+    return "";
 }
 
 StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& serverCapability)
@@ -837,6 +1060,13 @@ StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& s
         }
     }
     return connectionString;
+}
+
+bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config)
+{
+    if (!config.assigned())
+        return false;
+    return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

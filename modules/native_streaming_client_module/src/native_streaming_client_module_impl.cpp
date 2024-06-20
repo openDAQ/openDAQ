@@ -4,6 +4,7 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_type_factory.h>
 
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
@@ -64,23 +65,31 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             },
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionStringIpv4 = NativeStreamingClientModule::createUrlConnectionString(
-                    NativeConfigurationDevicePrefix,
-                    discoveredDevice.ipv4Address,
-                    discoveredDevice.servicePort,
-                    discoveredDevice.getPropertyOrDefault("path", "/")
-                );
-                auto connectionStringIpv6 = NativeStreamingClientModule::createUrlConnectionString(
-                    NativeConfigurationDevicePrefix,
-                    "[" + discoveredDevice.ipv6Address + "]",
-                    discoveredDevice.servicePort,
-                    discoveredDevice.getPropertyOrDefault("path", "/")
-                );
                 auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
-                cap.addConnectionString(connectionStringIpv4);
-                cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString(connectionStringIpv6);
-                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+
+                if(!discoveredDevice.ipv4Address.empty())
+                {
+                    auto connectionStringIpv4 = NativeStreamingClientModule::createUrlConnectionString(
+                        NativeConfigurationDevicePrefix,
+                        discoveredDevice.ipv4Address,
+                        discoveredDevice.servicePort,
+                        discoveredDevice.getPropertyOrDefault("path", "/")
+                    );
+                    cap.addConnectionString(connectionStringIpv4);
+                    cap.addAddress(discoveredDevice.ipv4Address);
+                }
+
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    auto connectionStringIpv6 = NativeStreamingClientModule::createUrlConnectionString(
+                        NativeConfigurationDevicePrefix,
+                        "[" + discoveredDevice.ipv6Address + "]",
+                        discoveredDevice.servicePort,
+                        discoveredDevice.getPropertyOrDefault("path", "/")
+                    );
+                    cap.addConnectionString(connectionStringIpv6);
+                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                }
                 cap.setConnectionType("TCP/IP");
                 cap.setCoreEventsEnabled(true);
                 cap.setPrefix("daq.nd");
@@ -140,6 +149,16 @@ DictPtr<IString, IDeviceType> NativeStreamingClientModule::onGetAvailableDeviceT
 
     auto deviceType = createDeviceType();
     result.set(deviceType.getId(), deviceType);
+
+    return result;
+}
+
+DictPtr<IString, IStreamingType> NativeStreamingClientModule::onGetAvailableStreamingTypes()
+{
+    auto result = Dict<IString, IStreamingType>();
+
+    auto streamingType = createStreamingType();
+    result.set(streamingType.getId(), streamingType);
 
     return result;
 }
@@ -260,6 +279,35 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
+PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
+{
+    auto defConfig = createConnectionDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+        {
+            if (name == "TransportLayerConfig")
+            {
+                const PropertyObjectPtr transportLayerConfig = config.getPropertyValue(name);
+                const PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
+                for (const auto& transportLayerProp : defTransportLayerConfig.getAllProperties())
+                {
+                    const auto transportLayerName = transportLayerProp.getName();
+                    if (transportLayerConfig.hasProperty(name))
+                        defTransportLayerConfig.setPropertyValue(name, config.getPropertyValue(name));
+                }
+            }
+            else
+            {
+                defConfig.setPropertyValue(name, config.getPropertyValue(name));
+            }
+        }
+    }
+
+    return defConfig;
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
@@ -267,9 +315,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    PropertyObjectPtr deviceConfig = config;
-    if (!deviceConfig.assigned())
+    PropertyObjectPtr deviceConfig;
+    if (!config.assigned())
         deviceConfig = createConnectionDefaultConfig();
+    else
+        deviceConfig = populateDefaultConfig(config);
 
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
@@ -278,7 +328,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         throw InvalidParameterException("Context is not available.");
 
     auto host = getHost(connectionString);
-    auto port = getPort(connectionString);
+    auto port = getPort(connectionString, deviceConfig);
     auto path = getPath(connectionString);
 
     DevicePtr device;
@@ -357,6 +407,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     auto defaultConfig = PropertyObject();
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
+    defaultConfig.addProperty(IntProperty("Port", 7420));
 
     return defaultConfig;
 }
@@ -367,13 +418,12 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
     auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
 
-    if ((!devicePrefixFound && !pseudoDevicePrefixFound) ||
-        !validateConnectionString(connectionString))
+    if ((!devicePrefixFound && !pseudoDevicePrefixFound) || !validateConnectionString(connectionString))
     {
         return false;
     }
 
-    if ( config.assigned() && !validateConnectionConfig(config))
+    if (config.assigned() && !validateConnectionConfig(config))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;
@@ -389,9 +439,7 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
-               validateConnectionString(connectionString) &&
-               (config.assigned() ? validateConnectionConfig(config) : true);
+        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) && validateConnectionString(connectionString);
     }
     return false;
 }
@@ -458,16 +506,20 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
-
-    StringPtr host = getHost(connectionString);
-    StringPtr port = getPort(connectionString);
-    StringPtr path = getPath(connectionString);
-
     PropertyObjectPtr transportLayerConfig;
+
+    PropertyObjectPtr parsedConfig;
     if (config.assigned())
-        transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+    {
+        parsedConfig = populateDefaultConfig(config);
+        transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
+    }
     else
         transportLayerConfig = createTransportLayerDefaultConfig();
+
+    StringPtr host = getHost(connectionString);
+    StringPtr port = getPort(connectionString, parsedConfig);
+    StringPtr path = getPath(connectionString);
 
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
@@ -523,18 +575,35 @@ StringPtr NativeStreamingClientModule::createUrlConnectionString(const char* pre
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    return DeviceType(NativeStreamingDeviceTypeId,
-                      "PseudoDevice",
-                      "Pseudo device, provides only signals of the remote device as flat list",
-                      NativeStreamingClientModule::createConnectionDefaultConfig());
+    return DeviceTypeBuilder()
+        .setId(NativeStreamingDeviceTypeId)
+        .setName("PseudoDevice")
+        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+        .setConnectionStringPrefix("daq.ns")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    return DeviceType(NativeConfigurationDeviceTypeId,
-                      "Device",
-                      "Network device connected over Native configuration protocol",
-                      NativeStreamingClientModule::createConnectionDefaultConfig());
+    return DeviceTypeBuilder()
+        .setId(NativeConfigurationDeviceTypeId)
+        .setName("Device")
+        .setDescription("Network device connected over Native configuration protocol")
+        .setConnectionStringPrefix("daq.nd")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
+}
+
+StreamingTypePtr NativeStreamingClientModule::createStreamingType()
+{
+    return StreamingTypeBuilder()
+        .setId(NativeStreamingTypeId)
+        .setName("NativeStreaming")
+        .setDescription("openDAQ native streaming protocol client")
+        .setConnectionStringPrefix("daq.ns")
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .build();
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
@@ -552,8 +621,9 @@ StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
     throw InvalidParameterException("Host name not found in url: {}", url);
 }
 
-StringPtr NativeStreamingClientModule::getPort(const StringPtr& url)
+StringPtr NativeStreamingClientModule::getPort(const StringPtr& url, const PropertyObjectPtr& config)
 {
+    std::string outPort;
     std::string urlString = url.toStdString();
 
     auto regexPort = std::regex(":(\\d+)");
@@ -563,13 +633,18 @@ StringPtr NativeStreamingClientModule::getPort(const StringPtr& url)
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
     if (std::regex_search(suffix, match, regexPort))
-    {
-        return String(match[1]);
-    }
+        outPort = match[1];
     else
+        outPort = "7420";
+
+    if (config.assigned())
     {
-        return "7420";
+        std::string ctxPort = config.getPropertyValue("Port");
+        if (ctxPort != "7420")
+            outPort = ctxPort;
     }
+
+    return outPort;
 }
 
 StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)

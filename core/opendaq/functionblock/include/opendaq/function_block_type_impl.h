@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/function_block_type.h>
 #include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_builder_ptr.h>
 #include <opendaq/function_block_type_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -32,6 +33,8 @@ public:
                                    const StringPtr& description,
                                    const PropertyObjectPtr& defaultConfig);
 
+    explicit FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder);
+
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -46,6 +49,11 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& description,
                                                     const PropertyObjectPtr& defaultConfig)
     : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig)
+{
+}
+
+inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
+    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig())
 {
 }
 

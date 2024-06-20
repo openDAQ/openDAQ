@@ -99,6 +99,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIServer = declareIServer(m);
     auto classIServerType = declareIServerType(m);
     auto classIStreaming = declareIStreaming(m);
+    auto classIStreamingType = declareIStreamingType(m);
     auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
     auto classIMirroredSignalPrivate = declareIMirroredSignalPrivate(m);
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
@@ -184,6 +185,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIServer(m, classIServer);
     defineIServerType(m, classIServerType);
     defineIStreaming(m, classIStreaming);
+    defineIStreamingType(m, classIStreamingType);
     defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
     defineIMirroredSignalPrivate(m, classIMirroredSignalPrivate);
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);

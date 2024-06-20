@@ -392,14 +392,14 @@ TEST_F(RefDeviceModuleTest, Ids)
     auto valueSignal = channel.getSignals()[0];
     auto domainSignal = channel.getSignals(search::Any())[1];
 
-    ASSERT_EQ(channel.getLocalId(), "refch0");
-    ASSERT_EQ(channel.getGlobalId(), "/RefDev1/IO/ai/refch0");
+    ASSERT_EQ(channel.getLocalId(), "RefCh0");
+    ASSERT_EQ(channel.getGlobalId(), "/RefDev1/IO/AI/RefCh0");
 
-    ASSERT_EQ(valueSignal.getLocalId(), "ai0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/RefDev1/IO/ai/refch0/Sig/ai0");
+    ASSERT_EQ(valueSignal.getLocalId(), "AI0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0");
 
-    ASSERT_EQ(domainSignal.getLocalId(), "ai0_time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/RefDev1/IO/ai/refch0/Sig/ai0_time");
+    ASSERT_EQ(domainSignal.getLocalId(), "AI0Time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0Time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -498,7 +498,7 @@ TEST_F(RefDeviceModuleTest, Folders)
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
     FolderPtr ioFolder = device.getItem("IO");
-    FolderPtr aiFolder = ioFolder.getItem("ai");
+    FolderPtr aiFolder = ioFolder.getItem("AI");
     ChannelPtr chX = aiFolder.getItems()[0];
 
     auto channels = device.getChannels();
@@ -558,7 +558,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
 
     device.setPropertyValue("EnableCANChannel", True);
 
-    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("CAN").asPtr<IFolder>().getItems()[0];
 
     const auto canSignal = canCh.getSignals()[0];
     const auto canTimeSignal = canSignal.getDomainSignal();
@@ -609,7 +609,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
 
     device.setPropertyValue("EnableCANChannel", True);
 
-    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("CAN").asPtr<IFolder>().getItems()[0];
 
     const auto canSignal = canCh.getSignals()[0];
     const auto canTimeSignal = canSignal.getDomainSignal();

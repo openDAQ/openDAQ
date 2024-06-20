@@ -137,10 +137,10 @@ private:
     void createFunctionBlock()
     {
         // Fix for race condition
-        auto config = module.getAvailableFunctionBlockTypes().get("RefFbModuleTrigger").createDefaultConfig();
+        auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
-        fb = module.createFunctionBlock("RefFbModuleTrigger", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb", config);
 
         // Set input (port) and output (signal) of the function block
         fb.getInputPorts()[0].connect(signal);

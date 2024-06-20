@@ -116,7 +116,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFbModuleRenderer");
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);

@@ -323,7 +323,7 @@ TEST_F(NativeStreamingModulesTest, DISABLED_RenderSignal)
     auto client = CreateClientInstance();
 
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    const auto renderer = client.addFunctionBlock("RefFbModuleRenderer");
+    const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));

@@ -19,8 +19,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto device = instance.addDevice("daqref://device0");
 
     // Add statistics and renderer function block
-    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFbModuleStatistics");
-    FunctionBlockPtr renderer = instance.addFunctionBlock("RefFbModuleRenderer");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
+    FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Set renderer to draw 2.5s of data
     renderer.setPropertyValue("Duration", 2.5);

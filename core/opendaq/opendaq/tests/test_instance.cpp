@@ -48,7 +48,7 @@ TEST_F(InstanceTest, InstanceGetters)
 TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
     instance.setRootDevice("daqmock://client_device");
 }
 
@@ -70,7 +70,7 @@ TEST_F(InstanceTest, SetRootDeviceWithConfig)
 TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
     instance.setRootDevice("daqmock://phys_device");
 
     auto fbs = instance.getFunctionBlocks();
@@ -104,7 +104,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getInfo().getName(), String("OpenDAQClient"));
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -368,7 +368,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setModuleManager(moduleManager)
                                 .setSchedulerWorkerNum(1)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceLocalId("openDAQ Client")
+                                .setDefaultRootDeviceLocalId("OpenDAQClient")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .setAuthenticationProvider(authenticationProvider);
@@ -388,7 +388,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1u);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
-    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "openDAQ Client");
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "OpenDAQClient");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
     ASSERT_EQ(instanceBuilder.getAuthenticationProvider(), authenticationProvider);
@@ -448,7 +448,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
                         .setGlobalLogLevel(LogLevel::Debug)
                         .setModuleManager(moduleManager)
                         .setScheduler(scheduler)
-                        .setDefaultRootDeviceLocalId("openDAQ Client")
+                        .setDefaultRootDeviceLocalId("OpenDAQClient")
                         .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                         .setSchedulerWorkerNum(1)
                         .setAuthenticationProvider(authenticationProvider)
@@ -460,7 +460,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
     ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
-    ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getName(), String("OpenDAQClient"));
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }

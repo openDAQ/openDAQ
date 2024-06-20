@@ -69,7 +69,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
 
     const auto clientSignal = ch.getSignals()[0];
 
-    const auto clientFunctionBlock = clientDevice.addFunctionBlock("RefFbModuleStatistics");
+    const auto clientFunctionBlock = clientDevice.addFunctionBlock("RefFBModuleStatistics");
     const auto clientInputPort = clientFunctionBlock.getInputPorts()[0];
 
     clientInputPort.connect(clientSignal);

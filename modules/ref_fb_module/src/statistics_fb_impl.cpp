@@ -39,7 +39,7 @@ FunctionBlockTypePtr StatisticsFbImpl::CreateType()
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("RefFbModuleStatistics",
+    return FunctionBlockType("RefFBModuleStatistics",
                              "Statistics",
                              "Calculates statistics",
                              defaultConfig);
@@ -104,7 +104,7 @@ void StatisticsFbImpl::triggerModeChanged()
                 triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
             // Use trigger, output signals depending on trigger
-            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("RefFbModuleTrigger", "nfbt", triggerConfig);
+            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("RefFBModuleTrigger", "nfbt", triggerConfig);
         }
         catch (const std::exception& e)
         {

@@ -15,7 +15,7 @@ static InstancePtr CreateServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto statistics = instance.addFunctionBlock("RefFbModuleStatistics");
+    const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
 
@@ -323,7 +323,7 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     auto client = CreateClientInstance();
 
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    const auto renderer = client.addFunctionBlock("RefFbModuleRenderer");
+    const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));

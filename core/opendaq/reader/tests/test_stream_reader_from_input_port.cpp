@@ -120,6 +120,12 @@ TYPED_TEST(StreamReaderFromExistingTest, GetSamplesAvailable)
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     this->sendPacket(DataPacket(this->signal.getDescriptor(), 1));
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
@@ -138,6 +144,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSample)
     dataPtr[0] = 123.4;
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{1};
     TypeParam samples[1]{};
@@ -164,6 +176,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSampleTimeout)
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     // Set the first sample to
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -225,6 +243,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSampleWithClockTicks)
 
     this->sendPacket(dataPacket);
 
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     SizeT count{1};
     TypeParam samples[1]{};
     ClockTick ticks[1]{};
@@ -251,6 +275,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSampleWithClockTicksTimeout)
     auto oldReader = daq::StreamReader<TypeParam, ClockTick>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockTick>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::UInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
@@ -303,6 +333,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSampleWithRanges)
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
 
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
 
@@ -339,6 +375,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadOneSampleWithRangesTimeout)
     auto oldReader = daq::StreamReader<double, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
@@ -395,6 +437,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadLessThanOnePacket)
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
 
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     const SizeT NUM_SAMPLES = 2;
     auto dataPacket = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
 
@@ -429,6 +477,13 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadBetweenPackets)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 2);
 
     // Set the first sample to
@@ -457,6 +512,13 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadBetweenPacketsTimeout)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 2);
 
     // Set the first sample to
@@ -517,6 +579,13 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadBetweenPacketsValues)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 2);
 
     // Set the first sample to
@@ -569,6 +638,13 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadTwoPacketValuesFromInputPort)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 2);
 
     // Set the first sample to
@@ -622,6 +698,12 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadValuesMoreThanAvailable)
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
 
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     const SizeT NUM_SAMPLES = 2;
     this->sendPacket(DataPacket(this->signal.getDescriptor(), NUM_SAMPLES));
 
@@ -639,6 +721,12 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedConvertible)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     const SizeT NUM_SAMPLES = 2;
     auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
@@ -689,6 +777,13 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedNotConvertible)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<std::int32_t, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     this->signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
 
     const SizeT NUM_SAMPLES = 2;
@@ -714,7 +809,16 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal, ReadTimeoutType::Any);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    printf("=================\n");
 
     std::thread t([this, &FIRST_PACKET_SIZE, &SECOND_PACKET_SIZE] {
         using namespace std::chrono_literals;
@@ -726,7 +830,7 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
         dataPtr[0] = 11.1;
         dataPtr[1] = 22.2;
 
-        std::this_thread::sleep_for(30ms);
+        std::this_thread::sleep_for(100ms);
         this->sendPacket(packet, false);
 
         // Packet 2
@@ -772,6 +876,13 @@ TYPED_TEST(StreamReaderFromExistingTest, StealConnection)
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     this->signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
 
     const SizeT NUM_SAMPLES = 2;

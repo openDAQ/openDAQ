@@ -110,10 +110,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    if (portBinder.assigned())
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
-    else
-        readDescriptorFromPort();
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -151,9 +148,6 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
 
     inputPort.connect(signal);
-    connection = inputPort.getConnection();
-
-    readDescriptorFromPort();
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
@@ -411,7 +405,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             {
                 return false;
             }
-
+            
             if (!notify.packetReady)
             {
                 return false;
@@ -433,6 +427,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
         notify.condition.wait_for(notifyLock, info.timeout, condition);
     }
 
+    NumberPtr offset;
     while (true)
     {
         PacketPtr packet = info.dataPacket;
@@ -457,7 +452,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                     invalid = true;
                 }
             } 
-            return ReaderStatus(eventPacket, !invalid);
+            return ReaderStatus(eventPacket, !invalid, offset);
         }
 
         if (packet.getType() == PacketType::Data)
@@ -467,11 +462,29 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             {
                 break;
             }
+            if (!offset.assigned())
+            {
+                const auto domainPacket =  info.dataPacket.getDomainPacket();
+                if (domainPacket.assigned())
+                {
+                    const auto domainRule = domainPacket.getDataDescriptor().getRule();
+                    if (domainRule.getType() == DataRuleType::Linear)
+                    {
+                        const auto domainRuleParams = domainRule.getParameters();
+                        NumberPtr packetDelta = domainRuleParams.get("delta");
+                        offset = (domainPacket.getOffset() + info.prevSampleIndex) * packetDelta.getIntValue();
+                    }
+                }
+                if (!offset.assigned())
+                {
+                    offset = 0;
+                }
+            }
             readPacketData();
         }
     }
 
-    return defaultStatus;
+    return ReaderStatus(nullptr, !invalid, offset);
 }
 
 ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)

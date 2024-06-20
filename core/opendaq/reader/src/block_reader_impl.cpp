@@ -9,13 +9,12 @@ BEGIN_NAMESPACE_OPENDAQ
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
-BlockReaderImpl::BlockReaderImpl(
-    const SignalPtr& signal,
-    SizeT blockSize,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    ReadMode mode,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode,
+                                 SizeT overlap)
     : Super(signal, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
@@ -23,32 +22,29 @@ BlockReaderImpl::BlockReaderImpl(
     initOverlap();
 
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    readDescriptorFromPort();
+    packetReceived(port.asPtrOrNull<IInputPort>(true));
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    IInputPortConfig* port,
-    SizeT blockSize,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    ReadMode mode,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode,
+                                 SizeT overlap)
     : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
-
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    const ReaderConfigPtr& readerConfig,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    SizeT blockSize,
-    ReadMode mode,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 SizeT blockSize,
+                                 ReadMode mode,
+                                 SizeT overlap)
     : Super(readerConfig, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
@@ -58,12 +54,11 @@ BlockReaderImpl::BlockReaderImpl(
     readDescriptorFromPort();
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    BlockReaderImpl* old,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    SizeT blockSize,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 SizeT blockSize,
+                                 SizeT overlap)
     : Super(old, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
@@ -72,15 +67,7 @@ BlockReaderImpl::BlockReaderImpl(
     initOverlap();
 
     this->internalAddRef();
-    if (portBinder.assigned())
-    {
-        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
-        handleDescriptorChanged(eventPacket);
-    }
-    else
-    {
-        readDescriptorFromPort();
-    }
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 
     notify.dataReady = false;
 }
@@ -294,6 +281,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
         notify.condition.wait_for(notifyLock, info.timeout, condition);
     }
 
+    NumberPtr offset;
     while (true)    
     {
         PacketPtr packet;
@@ -330,11 +318,30 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
                 break;
             }
 
+            if (!offset.assigned())
+            {
+                const auto domainPacket = info.currentDataPacketIter->getDomainPacket();
+                if (domainPacket.assigned())
+                {
+                    const auto domainRule = domainPacket.getDataDescriptor().getRule();
+                    if (domainRule.getType() == DataRuleType::Linear)
+                    {
+                        const auto domainRuleParams = domainRule.getParameters();
+                        NumberPtr packetDelta = domainRuleParams.get("delta");
+                        offset = (domainPacket.getOffset() + info.prevSampleIndex) * packetDelta.getIntValue();
+                    }
+                }
+                if (!offset.assigned())
+                {
+                    offset = 0;
+                }
+            }
+
             ErrCode errCode = readPacketData();
             if (OPENDAQ_FAILED(errCode))
             {
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-                return BlockReaderStatus(nullptr, true, writtenSamplesCount);
+                return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
             }
         }
         else if (packet.getType() == PacketType::Event)
@@ -346,20 +353,20 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
                 handleDescriptorChanged(eventPacket);
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 info.clean();
-                return BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount);
+                return BlockReaderStatus(eventPacket, !invalid, offset, writtenSamplesCount);
             }
 
             if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 info.clean();
-                return BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount);
+                return BlockReaderStatus(eventPacket, !invalid, offset, writtenSamplesCount);
             }
         }
     }
 
     auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-    return BlockReaderStatus(nullptr, !invalid, writtenSamplesCount);
+    return BlockReaderStatus(nullptr, !invalid, offset, writtenSamplesCount);
 }
 
 ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IBlockReaderStatus** status)

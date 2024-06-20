@@ -13,7 +13,7 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
     , cachedSamples(0)
 {
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    readDescriptorFromPort();
+    packetReceived(port.as<IInputPort>(true));
 }
 
 TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
@@ -37,7 +37,6 @@ TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    readDescriptorFromPort();
 }
 
 TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
@@ -50,10 +49,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    if (portBinder.assigned())
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
-    else
-        readDescriptorFromPort();
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
@@ -146,7 +142,7 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
     {
-        return TailReaderStatus(nullptr, !invalid, false);
+        return TailReaderStatus(nullptr, !invalid, 0, false);
     }
 
     if (cachedSamples > info.remainingToRead)
@@ -154,6 +150,7 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 
     size_t readCachedSamples = 0;
 
+    NumberPtr offset;
     for (auto it = packets.begin(); it != packets.end();)
     {
         const auto packet = *it;
@@ -162,21 +159,39 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
             handleDescriptorChanged(packet);
             it = packets.erase(packets.begin(), it + 1);
             cachedSamples -= readCachedSamples;
-            return TailReaderStatus(packet, !invalid);
+            return TailReaderStatus(packet, !invalid, offset);
         } 
         else
         {
             auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
             if (dataPacket.assigned())
             {
-                readCachedSamples += dataPacket.getSampleCount();
+                if (!offset.assigned() && info.offset < dataPacket.getSampleCount())
+                {
+                    const auto domainPacket = dataPacket.getDomainPacket();
+                    if (domainPacket.assigned())
+                    {
+                        const auto domainRule = domainPacket.getDataDescriptor().getRule();
+                        if (domainRule.getType() == DataRuleType::Linear)
+                        {
+                            const auto domainRuleParams = domainRule.getParameters();
+                            NumberPtr packetDelta = domainRuleParams.get("delta");
+                            offset = (domainPacket.getOffset() + info.offset) * packetDelta.getIntValue();
+                        }
+                    }
+                    if (!offset.assigned())
+                    {
+                        offset = 0;
+                    }
+                }
                 readPacket(info, packet);
+                readCachedSamples += dataPacket.getSampleCount();
             }            
             it++;
         }
     }
 
-    return defaultStatus;
+    return TailReaderStatus(nullptr, !invalid, offset);
 }
 
 ErrCode TailReaderImpl::read(void* values, SizeT* count, ITailReaderStatus** status)

@@ -126,7 +126,6 @@ private:
 
     std::mutex mutex;
     ProcedurePtr readCallback;
-    ReaderStatusPtr defaultStatus {ReaderStatus()};
 };
 
 END_NAMESPACE_OPENDAQ

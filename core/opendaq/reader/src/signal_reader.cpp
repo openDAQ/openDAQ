@@ -204,7 +204,11 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
         {
             const auto domainRuleParams = domainRule.getParameters();
             packetDelta = domainRuleParams.get("delta");
-        } 
+        }
+        else
+        {
+            packetDelta = 0;
+        }
     }
 
     invalid = invalid || !validDomain;

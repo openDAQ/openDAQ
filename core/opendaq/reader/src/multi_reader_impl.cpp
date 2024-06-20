@@ -755,8 +755,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto delta = signals[0].packetDelta;
         if (delta.assigned())
         {
-            offset = (signals[0].info.dataPacket.getOffset().getIntValue() + signals[0].info.prevSampleIndex) * delta.getIntValue();
-            // printf("Offset: %lld\n", offset.getIntValue());
+            auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
+            offset = (domainPacket.getOffset().getIntValue() + signals[0].info.prevSampleIndex) * delta.getIntValue();
         }
 
         SizeT toRead = std::min(remainingSamplesToRead, availableSamples);

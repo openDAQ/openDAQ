@@ -45,4 +45,11 @@ TEST_F(SyncComponentTest, test_setSetSelectedSource)
     ASSERT_EQ(selectedSource, 1);
 }
 
+TEST_F(SyncComponentTest, test_addInterface)
+{
+    SyncComponentPtr syncComponent = SyncComponent();
+    PropertyObjectPtr interface = PropertyObject();
+    ASSERT_EQ(syncComponent->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
+}
+
 END_NAMESPACE_OPENDAQ

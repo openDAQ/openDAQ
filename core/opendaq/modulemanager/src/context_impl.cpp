@@ -191,6 +191,7 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 void ContextImpl::registerOpenDaqTypes()
 {
+    /// Register sync component types
     if (this->typeManager.assigned())
     {
         //Sync Component Interfaces

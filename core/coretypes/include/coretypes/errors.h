@@ -126,5 +126,13 @@
 #define OPENDAQ_ERR_NO_DATA                        OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_GENERIC, 0x0050u)
 
 /*!
+ * @types_error{
+ * 0x80000051,
+ * The given argument is not a valid.
+ * }
+ */
+#define OPENDAQ_ERR_INVALID_ARGUMENT               OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_GENERIC, 0x0051u)
+
+/*!
  * @}
  */

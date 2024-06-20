@@ -81,12 +81,16 @@ ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
     return OPENDAQ_SUCCESS;
 }
 
-
 ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
 {
     OPENDAQ_PARAM_NOT_NULL(interface);
 
-    //TBD: Check if interface inherits from SyncInterfaceBase
+    //TBD: Check if interface inherits from SyncInterfaceBaseauto
+    StringPtr className = "";
+    interface->getClassName(&className);
+
+    if (className != "SyncInterfaceBase")
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
 
     BaseObjectPtr Interfaces;
     StringPtr str = "interfaces";

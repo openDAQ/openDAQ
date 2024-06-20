@@ -262,7 +262,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ServerPtr nativeStreamingServer;
-    serverName = "openDAQ Native Streaming";
+    serverName = "OpenDAQNativeStreaming";
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {

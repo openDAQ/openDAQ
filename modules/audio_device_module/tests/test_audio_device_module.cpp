@@ -31,7 +31,7 @@ TEST_F(AudioDeviceModuleTest, CreateModule)
 TEST_F(AudioDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Audio device module");
+    ASSERT_EQ(module.getName(), "AudioDeviceModule");
 }
 
 TEST_F(AudioDeviceModuleTest, VersionAvailable)
@@ -115,8 +115,8 @@ TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("miniaudio"));
-    ASSERT_EQ(deviceTypes.get("miniaudio").getId(), "miniaudio");
+    ASSERT_TRUE(deviceTypes.hasKey("MiniAudio"));
+    ASSERT_EQ(deviceTypes.get("MiniAudio").getId(), "MiniAudio");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

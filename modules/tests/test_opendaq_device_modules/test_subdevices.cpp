@@ -76,9 +76,9 @@ public:
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT + index);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
@@ -108,8 +108,8 @@ public:
         for (auto index = 1; index <= 2; index++)
         {
             auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
-                                            ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                            : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                            ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                            : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
             const auto config = createDeviceConfig(instance, streamingProtocolIds, MIN_CONNECTIONS);
             const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
@@ -121,9 +121,9 @@ public:
             instance.addServer("openDAQ LT Streaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
@@ -149,8 +149,8 @@ public:
         auto gatewayStreamingType = std::get<2>(GetParam());
 
         auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
-                                        ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                        : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
 

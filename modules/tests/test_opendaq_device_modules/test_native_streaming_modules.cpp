@@ -17,7 +17,7 @@ static InstancePtr CreateServerInstance()
 
     const auto refDevice = instance.addDevice("daqref://device1");
 
-    instance.addServer("openDAQ Native Streaming", nullptr);
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
 
     return instance;
 }
@@ -58,7 +58,7 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
         {
             "Modules":
             {
-                "NativeStreamingServer":
+                "OpenDAQNativeStreamingServerModule":
                 {
                     "NativeStreamingPort": 1234,
                     "Path": "/some/path"
@@ -70,7 +70,7 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
 
     ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
     ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
@@ -83,10 +83,10 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
                                    .build();
     server.addDevice("daqref://device1");
 
-    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/";
     serverConfig.setPropertyValue("Path", path);
-    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -98,7 +98,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
             {
                 break;
             }
-            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
             {
                 device = client.addDevice(capability.getConnectionString(), nullptr);
                 return;
@@ -160,7 +160,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
         {
             "Modules":
             {
-                "NativeStreamingServer":
+                "OpenDAQNativeStreamingServerModule":
                 {
                     "NativeStreamingPort": 1234,
                     "Path": "/test/native/checkDeviceInfoPopulated/"
@@ -179,8 +179,8 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -192,7 +192,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 break;
             }
-            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
             {
                 client.addDevice(capability.getConnectionString(), nullptr);
 
@@ -592,8 +592,8 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_streaming");
-    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeStreaming");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");

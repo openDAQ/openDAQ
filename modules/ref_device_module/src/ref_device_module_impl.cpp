@@ -7,7 +7,7 @@
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefDeviceModule::RefDeviceModule(ContextPtr context)
-    : Module("Reference device module",
+    : Module("ReferenceDeviceModule",
              daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
              REF_MODULE_NAME)

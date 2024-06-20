@@ -44,7 +44,7 @@ TEST_F(RefDeviceModuleTest, CreateModule)
 TEST_F(RefDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Reference device module");
+    ASSERT_EQ(module.getName(), "ReferenceDeviceModule");
 }
 
 TEST_F(RefDeviceModuleTest, VersionAvailable)
@@ -714,13 +714,13 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
 TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDeviceModule\": { \"LocalId\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetOptionsWithReferenceDevice();
 
     auto expectedOptions = GetOptionsWithReferenceDevice();
-    getChildren(getChildren(expectedOptions, "Modules"), "ReferenceDevice").set("LocalId", "testtest");
+    getChildren(getChildren(expectedOptions, "Modules"), "ReferenceDeviceModule").set("LocalId", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -730,7 +730,7 @@ TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDeviceModule\": { \"LocalId\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -751,7 +751,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"Name\": \"testname\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDeviceModule\": { \"Name\": \"testname\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -772,7 +772,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDeviceModule\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -794,7 +794,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": { \"Error\": \"testtest\" } } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDeviceModule\": { \"LocalId\": { \"Error\": \"testtest\" } } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();

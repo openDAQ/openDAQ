@@ -68,7 +68,7 @@ ErrCode MockServerModuleImpl::getAvailableServerTypes(IDict** serverTypes)
 
     types.set("MockServer", ServerType("MockServer", "Mock Server", "Mock"));
     types.set("openDAQ LT Streaming", ServerType("openDAQ LT Streaming", "Mock Server", "Mock"));
-    types.set("openDAQ Native Streaming", ServerType("openDAQ Native Streaming", "Mock Server", "Mock"));
+    types.set("OpenDAQNativeStreaming", ServerType("OpenDAQNativeStreaming", "Mock Server", "Mock"));
     types.set("openDAQ OpcUa", ServerType("openDAQ OpcUa", "Mock Server", "Mock"));
 
     *serverTypes = types.detach();
@@ -84,7 +84,7 @@ ErrCode MockServerModuleImpl::createServer(IServer** server,
     const StringPtr serverTypePtr = StringPtr::Borrow(serverType);
     if (serverTypePtr == "MockServer" ||
         serverTypePtr == "openDAQ LT Streaming" ||
-        serverTypePtr == "openDAQ Native Streaming" ||
+        serverTypePtr == "OpenDAQNativeStreaming" ||
         serverTypePtr == "openDAQ OpcUa")
     {
         *server = MockServer().detach();

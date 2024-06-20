@@ -54,7 +54,7 @@ static InstancePtr CreateUpdatedServerInstance()
 
 static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServerInstance())
 {
-    instance.addServer("openDAQ Native Streaming", nullptr);
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
 
     return instance;
 }
@@ -65,7 +65,7 @@ static InstancePtr CreateClientInstance()
 
     auto config = instance.createDefaultAddDeviceConfig();
     PropertyObjectPtr general = config.getPropertyValue("General");
-    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming"));
+    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -255,10 +255,10 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
                                    .build();
     server.addDevice("daqref://device1");
 
-    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configuration/discovery/";
     serverConfig.setPropertyValue("Path", path);
-    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -270,7 +270,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
             
-            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
             {
                 device = client.addDevice(capability.getConnectionString(), nullptr);
                 ASSERT_EQ(device.getInfo().getMacAddress(), "custom_mac");
@@ -288,10 +288,10 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                                    .build();
     server.addDevice("daqref://device1");
 
-    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configuration/removeServer/";
     serverConfig.setPropertyValue("Path", path);
-    auto server1 = server.addServer("openDAQ Native Streaming", serverConfig);
+    auto server1 = server.addServer("OpenDAQNativeStreaming", serverConfig);
     server1.enableDiscovery();
 
     // check that server is discoverable
@@ -305,7 +305,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
             
-                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
                 {
                    deviceFound += 1;
                 }
@@ -327,7 +327,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
             
-                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
                 {
                    deviceFound += 1;
                 }
@@ -339,7 +339,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     // add server again and check that server is discoverable
     auto path2 = "/test/native_configuration/removeServer2/";
     serverConfig.setPropertyValue("Path", path2);
-    auto server2 = server.addServer("openDAQ Native Streaming", serverConfig);
+    auto server2 = server.addServer("OpenDAQNativeStreaming", serverConfig);
     server2.enableDiscovery();
     {
         auto client = Instance();
@@ -353,7 +353,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 if (!isRemovedServer && !isNewServer)
                     break;
 
-                if (capability.getProtocolName() == "openDAQ Native Configuration")
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
                 {
                    deviceFound += 1;
                 }
@@ -370,7 +370,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
         {
             "Modules":
             {
-                "NativeStreamingServer":
+                "OpenDAQNativeStreamingServerModule":
                 {
                     "NativeStreamingPort": 1234,
                     "Path": "/test/native_congifurator/checkDeviceInfoPopulated/"
@@ -389,8 +389,8 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
-    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -402,7 +402,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
             {
                 break;
             }
-            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
             {
                 client.addDevice(capability.getConnectionString(), nullptr);
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
@@ -674,8 +674,8 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
     ASSERT_EQ(info.getServerCapabilities().getCount(), 2u);
-    ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), "opendaq_native_streaming");
-    ASSERT_EQ(info.getServerCapabilities()[1].getProtocolId(), "opendaq_native_config");
+    ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(info.getServerCapabilities()[1].getProtocolId(), "OpenDAQNativeConfiguration");
 
     auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
     ASSERT_EQ(subDeviceInfo.getName(), "Device 0");
@@ -840,7 +840,7 @@ TEST_F(NativeDeviceModulesTest, NotPublicSignals)
     for (const auto& signal : serverChannels[0].getSignals(search::Any()))
         signal.setPublic(false);
 
-    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("OpenDAQNativeStreaming", nullptr);
 
     auto client = CreateClientInstance();
     auto clientDevice = client.getDevices()[0].getDevices()[0];
@@ -893,7 +893,7 @@ public:
         InstancePtr instance = CreateDefaultServerInstance();
 
         instance.addServer("openDAQ LT Streaming", nullptr);
-        instance.addServer("openDAQ Native Streaming", nullptr);
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
 
         return instance;
     }
@@ -931,9 +931,9 @@ public:
         auto streamingProtocolIDs = GetParam();
         if (streamingProtocolIDs.empty())
             return "unknown";
-        if (streamingProtocolIDs[0] == "opendaq_lt_streaming")
+        if (streamingProtocolIDs[0] == "OpenDAQLTStreaming")
             return "daq.lt://127.0.0.1:7414";
-        else if (streamingProtocolIDs[0] == "opendaq_native_streaming")
+        else if (streamingProtocolIDs[0] == "OpenDAQNativeStreaming")
             return "daq.ns://127.0.0.1:7420";
         else
             return "unknown";
@@ -1199,10 +1199,10 @@ INSTANTIATE_TEST_SUITE_P(
     DynamicComponentsTestGroup,
     AddComponentsTest,
     testing::Values(
-        std::vector<std::string>({"opendaq_native_streaming"}),
-        std::vector<std::string>({"opendaq_lt_streaming"}),
-        std::vector<std::string>({"opendaq_lt_streaming", "opendaq_native_streaming"}),
-        std::vector<std::string>({"opendaq_native_streaming", "opendaq_lt_streaming"})
+        std::vector<std::string>({"OpenDAQNativeStreaming"}),
+        std::vector<std::string>({"OpenDAQLTStreaming"}),
+        std::vector<std::string>({"OpenDAQLTStreaming", "OpenDAQNativeStreaming"}),
+        std::vector<std::string>({"OpenDAQNativeStreaming", "OpenDAQLTStreaming"})
     )
 );
 
@@ -1210,7 +1210,7 @@ TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
 {
     SKIP_TEST_MAC_CI;
     auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();
-    instance.addServer("openDAQ Native Streaming", nullptr);
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(),  "custom");
@@ -1237,7 +1237,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     std::string options = R"(
     {
     "Modules": {
-        "NativeStreamingClient": {
+        "OpenDAQNativeStreamingClientModule": {
             "MonitoringEnabled": true,
             "HeartbeatPeriod": 100,
             "InactivityTimeout": 200,
@@ -1255,7 +1255,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     InstancePtr instance;
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
 
-    auto deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
+    auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -1266,7 +1266,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 
-    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_streaming").createDefaultConfig();
+    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
     transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -1382,8 +1382,8 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
-    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeConfiguration");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");

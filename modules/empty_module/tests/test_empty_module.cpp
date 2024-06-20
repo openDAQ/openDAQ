@@ -30,7 +30,7 @@ TEST_F(EmptyModuleTest, CreateModule)
 TEST_F(EmptyModuleTest, ModuleName)
 {
     auto module = createModule();
-    ASSERT_EQ(module.getName(), "Empty module");
+    ASSERT_EQ(module.getName(), "EmptyModule");
 }
 
 TEST_F(EmptyModuleTest, VersionAvailable)

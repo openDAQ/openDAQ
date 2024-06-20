@@ -76,7 +76,7 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateModule)
 TEST_F(WebsocketStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ Websocket streaming server module");
+    ASSERT_EQ(module.getName(), "OpenDAQWebsocketStreamingServerModule");
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, VersionAvailable)

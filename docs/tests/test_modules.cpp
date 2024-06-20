@@ -43,7 +43,7 @@ TEST_F(ModulesTest, EnumerateModules)
     ModulePtr _module;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "Reference function block module")
+        if (mod.getName() == "ReferenceFunctionBlockModule")
         {
             _module = mod;
             break;
@@ -76,18 +76,18 @@ TEST_F(ModulesTest, CreateComponents)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "Reference function block module")
+        if (mod.getName() == "ReferenceFunctionBlockModule")
             fbModule = mod;
-        else if (mod.getName() == "Reference device module")
+        else if (mod.getName() == "ReferenceDeviceModule")
             devModule = mod;
-        else if (mod.getName() == "openDAQ OpcUa server module")
+        else if (mod.getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "openDAQ native streaming server module")
+        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "openDAQ Websocket streaming server module")
+        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }
@@ -114,7 +114,7 @@ TEST_F(ModulesTest, CreateComponents)
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> nativeStreamingServerTypes =
         nativeStreamingServerModule.getAvailableServerTypes();
-    daq::ServerTypePtr nativeStreamingServerType = nativeStreamingServerTypes.get("openDAQ Native Streaming");
+    daq::ServerTypePtr nativeStreamingServerType = nativeStreamingServerTypes.get("OpenDAQNativeStreaming");
     ASSERT_GT(nativeStreamingServerTypes.getCount(), 0u);
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -160,16 +160,16 @@ TEST_F(ModulesTest, CreateServer)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "openDAQ OpcUa server module")
+        if (mod.getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
-        else if (mod.getName() == "Reference device module")
+        else if (mod.getName() == "ReferenceDeviceModule")
             devModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "openDAQ native streaming server module")
+        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "openDAQ Websocket streaming server module")
+        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }
@@ -193,7 +193,7 @@ TEST_F(ModulesTest, CreateServer)
     daq::DevicePtr device = devModule.createDevice("daqref://device0", nullptr);
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    daq::ServerTypePtr nativeStreamingServerType = nativeStreamingServerTypes.get("openDAQ Native Streaming");
+    daq::ServerTypePtr nativeStreamingServerType = nativeStreamingServerTypes.get("OpenDAQNativeStreaming");
     daq::PropertyObjectPtr nativeStreamingConfig = nativeStreamingServerType.createDefaultConfig();
     daq::ListPtr<IProperty> nativeStreamingConfigFields = nativeStreamingConfig.getVisibleProperties();
     ASSERT_NO_THROW(nativeStreamingConfigFields[0].getName());

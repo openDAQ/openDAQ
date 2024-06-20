@@ -800,7 +800,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
-    const std::string nativeId = "opendaq_native_config";
+    const std::string nativeId = "OpenDAQNativeConfiguration";
     if (cap.getProtocolId() == nativeId)
         return 42;
 

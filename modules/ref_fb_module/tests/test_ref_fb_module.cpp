@@ -34,7 +34,7 @@ TEST_F(RefFbModuleTest, CreateModule)
 TEST_F(RefFbModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Reference function block module");
+    ASSERT_EQ(module.getName(), "ReferenceFunctionBlockModule");
 }
 
 TEST_F(RefFbModuleTest, VersionAvailable)

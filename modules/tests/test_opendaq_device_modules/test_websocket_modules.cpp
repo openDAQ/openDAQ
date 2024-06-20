@@ -339,7 +339,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQLTStreaming");
     ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");

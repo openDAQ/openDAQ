@@ -261,9 +261,9 @@ TEST_F(InstanceTest, EnumerateServerTypes)
     mockServer = serverTypes.get("openDAQ LT Streaming");
     ASSERT_EQ(mockServer.getId(), "openDAQ LT Streaming");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
-    mockServer = serverTypes.get("openDAQ Native Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ Native Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
+    mockServer = serverTypes.get("OpenDAQNativeStreaming");
+    ASSERT_EQ(mockServer.getId(), "OpenDAQNativeStreaming");
 
     ASSERT_TRUE(serverTypes.hasKey("openDAQ OpcUa"));
     mockServer = serverTypes.get("openDAQ OpcUa");

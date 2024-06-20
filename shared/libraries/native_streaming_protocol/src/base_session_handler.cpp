@@ -30,21 +30,26 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
     auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
     auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
 
-    OnConnectionAliveCallback onConnectionAliveCallback = [this, inactivityTimeoutMs]()
-    {
-        connectionInactivityTimer->cancel();
-        connectionInactivityTimer->expires_from_now(inactivityTimeoutMs);
+    std::weak_ptr<Session> session_weak = session;
+    std::weak_ptr<boost::asio::steady_timer> connectionInactivityTimer_weak;
 
-        std::weak_ptr<Session> session_weak = session;
-        connectionInactivityTimer->async_wait(
-            [errorHandler = errorHandler, session_weak](const boost::system::error_code& ec)
-            {
-                if (ec)
-                    return;
-                if (auto session = session_weak.lock())
-                    errorHandler("Connection activity timeout error", session);
-            }
-        );
+    OnConnectionAliveCallback onConnectionAliveCallback =
+        [connectionInactivityTimer_weak, session_weak, errorHandler = errorHandler, inactivityTimeoutMs]()
+    {
+        if (auto timer = connectionInactivityTimer_weak.lock())
+        {
+            timer->cancel();
+            timer->expires_from_now(inactivityTimeoutMs);
+
+            timer->async_wait(
+                [errorHandler, session_weak](const boost::system::error_code& ec)
+                {
+                    if (ec)
+                        return;
+                    if (auto session = session_weak.lock())
+                        errorHandler("Connection activity timeout error", session);
+                });
+        }
     };
     session->startConnectionActivityMonitoring(onConnectionAliveCallback, heartbeatPeriodMs);
     connectionActivityMonitoringStarted = true;

@@ -202,11 +202,11 @@ private:
     void createFunctionBlock()
     {
         // Fix for race condition
-        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFbModuleStatistics").createDefaultConfig();
+        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFBModuleStatistics").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
 
         // Create function block
-        fb = module.createFunctionBlock("RefFbModuleStatistics", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "fb", config);
 
         // Set input (port) and outputs (signals) of the function block
         fb.getInputPorts()[0].connect(signal);

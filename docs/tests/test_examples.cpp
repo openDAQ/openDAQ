@@ -38,7 +38,7 @@ TEST_F(ExamplesTest, FunctionBlock)
 	
     const InstancePtr instance = Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
-    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFbModuleStatistics");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
 
     const ChannelPtr sineChannel = device.getChannels()[0];
     const SignalPtr sineSignal = sineChannel.getSignals()[0];

@@ -99,7 +99,7 @@ void ScalingFbImpl::readProperties()
 
 FunctionBlockTypePtr ScalingFbImpl::CreateType()
 {
-    return FunctionBlockType("RefFbModuleScaling", "Scaling", "Signal scaling");
+    return FunctionBlockType("RefFBModuleScaling", "Scaling", "Signal scaling");
 }
 
 void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

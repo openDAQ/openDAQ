@@ -314,7 +314,7 @@ int main(int argc, const char* argv[])
 
     daq::FunctionBlockPtr renderer;
     if (useRenderer)
-        renderer = instance.addFunctionBlock("RefFbModuleRenderer");
+        renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Create readers and writers
     std::vector<RecordedDevicePtr> recordedDevices;

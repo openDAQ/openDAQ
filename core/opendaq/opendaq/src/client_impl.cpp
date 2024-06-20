@@ -16,9 +16,9 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     if (deviceInfo.assigned())
         this->deviceInfo = deviceInfo;
     else
-        this->deviceInfo = DeviceInfo("", "openDAQ Client");
+        this->deviceInfo = DeviceInfo("", "OpenDAQClient");
     this->deviceInfo.freeze();
-    this->name = "openDAQ Client";
+    this->name = "OpenDAQClient";
     this->isRootDevice = true;
 }
 

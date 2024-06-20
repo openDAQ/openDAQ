@@ -70,7 +70,7 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
-    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("RefFbModuleStatistics");
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     statistics.getInputPorts()[0].connect(device.getSignalsRecursive()[0]);
     const daq::ChannelPtr sineChannel = device.getChannels()[0];
 

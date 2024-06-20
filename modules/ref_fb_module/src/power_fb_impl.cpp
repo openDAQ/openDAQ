@@ -91,7 +91,7 @@ void PowerFbImpl::readProperties()
 
 FunctionBlockTypePtr PowerFbImpl::CreateType()
 {
-    return FunctionBlockType("RefFbModulePower", "Power", "Calculates power");
+    return FunctionBlockType("RefFBModulePower", "Power", "Calculates power");
 }
 
 void PowerFbImpl::onPacketReceived(const InputPortPtr& port)

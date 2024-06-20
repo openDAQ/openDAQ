@@ -73,9 +73,9 @@ PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
 
 ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 {
-    return ServerType("openDAQ OpcUa",
-                      "openDAQ OpcUa server",
-                      "Publishes device structure over OpcUa protocol",
+    return ServerType("OpenDAQOPCUA",
+                      "openDAQ OPC UA server",
+                      "Publishes device structure over OPC UA protocol",
                       OpcUaServerImpl::createDefaultConfig(context));
 }
 
@@ -86,8 +86,8 @@ void OpcUaServerImpl::onStopServer()
     {
         const auto info = this->rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("OpenDAQOPCUAConfig"))
-            infoInternal.removeServerCapability("OpenDAQOPCUAConfig");
+        if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+            infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
     }
 }
 

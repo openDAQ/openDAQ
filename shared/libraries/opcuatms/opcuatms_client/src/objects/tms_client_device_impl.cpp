@@ -187,7 +187,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     for (const auto & cap : deviceInfo.getServerCapabilities())
     {
-        if (cap.getProtocolId() == "OpenDAQOPCUAConfig")
+        if (cap.getProtocolId() == "OpenDAQOPCUAConfiguration")
         {
             deviceInfo.setConnectionString(cap.getConnectionString());
         }

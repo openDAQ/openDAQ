@@ -274,7 +274,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 
     ServerPtr websocketServer;
-    serverName = "openDAQ LT Streaming";
+    serverName = "OpenDAQLTStreaming";
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
@@ -285,7 +285,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 #endif
 
     ServerPtr opcUaServer;
-    serverName = "openDAQ OpcUa";
+    serverName = "OpenDAQOPCUA";
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {

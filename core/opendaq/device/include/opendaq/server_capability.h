@@ -56,7 +56,7 @@ enum class ProtocolType: uint32_t
  * The Server Capability object conforms to a standardized format, ensuring compatibility with communication standards. 
  * For instance, it provides methods to retrieve details like 
  * - the connection string (URL), 
- * - protocol name (e.g., "openDAQ Native Streaming," "openDAQ OpcUa"), 
+ * - protocol name (e.g., "openDAQ Native Streaming," "OpenDAQOPCUA"), 
  * - protocol type (e.g., "Configuration&Streaming," "Streaming"), 
  * - connection type (e.g., IPv4, IPv6),
  * - core events enabled (indicating communication mode).
@@ -78,7 +78,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 
     /*!
      * @brief Gets the name of the protocol supported by the device.
-     * @param[out] protocolName The name of the protocol (e.g., "OpenDAQNativeStreaming", "openDAQ OpcUa", "openDAQ LT Streaming").
+     * @param[out] protocolName The name of the protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQOPCUA", "OpenDAQLTStreaming").
      */
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 

@@ -31,7 +31,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 static const char* NativeConfigurationDeviceTypeId = "OpenDAQNativeConfiguration";
-static const char* NativeStreamingTypeId = "opendaq_native_streaming";
+static const char* NativeStreamingTypeId = "OpenDAQNativeStreaming";
 static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;

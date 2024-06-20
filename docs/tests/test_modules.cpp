@@ -120,11 +120,11 @@ TEST_F(ModulesTest, CreateComponents)
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> websocketStreamingServerTypes =
         websocketStreamingServerModule.getAvailableServerTypes();
-    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ LT Streaming");
+    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("OpenDAQLTStreaming");
     ASSERT_GT(websocketStreamingServerTypes.getCount(), 0u);
 #endif
     daq::DictPtr<daq::IString, daq::IServerType> serverTypes = serverModule.getAvailableServerTypes();
-    daq::ServerTypePtr opcUaServerType = serverTypes.get("openDAQ OpcUa");
+    daq::ServerTypePtr opcUaServerType = serverTypes.get("OpenDAQOPCUA");
 
     ASSERT_GT(functionBlockTypes.getCount(), 0u);
     ASSERT_GT(availableDevices.getCount(), 0u);
@@ -201,7 +201,7 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nativeStreamingConfig));
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("openDAQ LT Streaming");
+    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("OpenDAQLTStreaming");
     daq::PropertyObjectPtr webSocketConfig = webSocketServerType.createDefaultConfig();
     daq::ListPtr<IProperty> webSocketConfigFields = webSocketConfig.getVisibleProperties();
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());
@@ -210,7 +210,7 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(websocketStreamingServerModule.createServer(webSocketServerType.getId(), device, webSocketConfig));
 #endif
 
-    daq::ServerTypePtr opcUaServerType = serverTypes.get("openDAQ OpcUa");
+    daq::ServerTypePtr opcUaServerType = serverTypes.get("OpenDAQOPCUA");
     daq::PropertyObjectPtr opcUaConfig = opcUaServerType.createDefaultConfig();
     daq::ListPtr<IProperty> configFields = opcUaConfig.getVisibleProperties();
     ASSERT_NO_THROW(configFields[0].getName());

@@ -73,7 +73,7 @@ TEST_F(OpcUaClientModuleTest, EnumerateDevices)
 //    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
 //    ASSERT_FALSE(connectionString.assigned());
 //
-//    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQOPCUAConfig", "openDAQ OpcUa", ProtocolType::Configuration);
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUA", ProtocolType::Configuration);
 //    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 //
 //    serverCapability.addAddress("123.123.123.123");
@@ -124,8 +124,8 @@ TEST_F(OpcUaClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfig"));
-    ASSERT_EQ(deviceTypes.get("OpenDAQOPCUAConfig").getId(), "OpenDAQOPCUAConfig");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfiguration"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQOPCUAConfiguration").getId(), "OpenDAQOPCUAConfiguration");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -139,8 +139,8 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfig"));
-    auto config = deviceTypes.get("OpenDAQOPCUAConfig").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfiguration"));
+    auto config = deviceTypes.get("OpenDAQOPCUAConfiguration").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
     ASSERT_EQ(config.getAllProperties().getCount(), 3u);
 }

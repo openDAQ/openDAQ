@@ -16,7 +16,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
-static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfig";
+static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
 
@@ -32,7 +32,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
+                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
                 if (!discoveredDevice.ipv4Address.empty())
                 {
                     auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
@@ -151,7 +151,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                                  .build();
 
     connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId)
-                  .setProtocolName("openDAQ OpcUa")
+                  .setProtocolName("OpenDAQOPCUA")
                   .setProtocolType(ProtocolType::Configuration)
                   .setConnectionType("TCP/IP")
                   .addAddress(host)

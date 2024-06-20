@@ -174,13 +174,13 @@ TEST_F(StreamingConfigTest, ServerSideConfiguration)
     instance.setRootDevice("daqref://device1");
 
     // Creates and registers a Server capability with the ID `opendaq_lt_streaming` and the default port number 7414
-    instance.addServer("openDAQ LT Streaming", nullptr);
+    instance.addServer("OpenDAQLTStreaming", nullptr);
 
     // Creates and registers a Server capability with the ID `opendaq_native_streaming` and the default port number 7420
     instance.addServer("OpenDAQNativeStreaming", nullptr);
 
     // As the Streaming servers were added first, the registered Server capabilities are published over OPC UA
-    instance.addServer("openDAQ OpcUa", nullptr);
+    instance.addServer("OpenDAQOPCUA", nullptr);
 
     // while (true)
     //     std::this_thread::sleep_for(100ms);

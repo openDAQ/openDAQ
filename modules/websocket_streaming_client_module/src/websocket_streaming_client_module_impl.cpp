@@ -29,7 +29,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability(WebsocketDeviceTypeId, "openDAQ LT Streaming", ProtocolType::Streaming);
+                auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
                 if (!discoveredDevice.ipv4Address.empty())
                 {
@@ -156,7 +156,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     connectionInfo.setProtocolId(WebsocketDeviceTypeId);
-    connectionInfo.setProtocolName("openDAQ LT Streaming");
+    connectionInfo.setProtocolName("OpenDAQLTStreaming");
     connectionInfo.setProtocolType(ProtocolType::Streaming);
     connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);

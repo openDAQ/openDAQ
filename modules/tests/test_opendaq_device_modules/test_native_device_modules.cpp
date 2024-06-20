@@ -870,7 +870,7 @@ TEST_F(NativeDeviceModulesTest, AddStreamingPostConnection)
         ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 1u);
     }
 
-    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("OpenDAQLTStreaming", nullptr);
     StreamingPtr streaming;
     ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
     ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 2u);
@@ -892,7 +892,7 @@ public:
     {
         InstancePtr instance = CreateDefaultServerInstance();
 
-        instance.addServer("openDAQ LT Streaming", nullptr);
+        instance.addServer("OpenDAQLTStreaming", nullptr);
         instance.addServer("OpenDAQNativeStreaming", nullptr);
 
         return instance;

@@ -20,7 +20,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 device = instance.addDevice(capability.getConnectionString());
                 break;

@@ -57,7 +57,7 @@ static InstancePtr CreateTestInstance()
 
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
-    auto config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     config.setPropertyValue("WebsocketStreamingPort", 0);
     config.setPropertyValue("WebsocketControlPort", 0);
     return config;
@@ -110,8 +110,8 @@ TEST_F(WebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 1u);
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ LT Streaming"));
-    ASSERT_EQ(serverTypes.get("openDAQ LT Streaming").getId(), "openDAQ LT Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQLTStreaming"));
+    ASSERT_EQ(serverTypes.get("OpenDAQLTStreaming").getId(), "OpenDAQLTStreaming");
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
@@ -119,8 +119,8 @@ TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
     auto module = CreateModule();
 
     DictPtr<IString, IServerType> serverTypes = module.getAvailableServerTypes();
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ LT Streaming"));
-    auto config = serverTypes.get("openDAQ LT Streaming").createDefaultConfig();
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQLTStreaming"));
+    auto config = serverTypes.get("OpenDAQLTStreaming").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
     ASSERT_TRUE(config.hasProperty("WebsocketStreamingPort"));
@@ -136,7 +136,7 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateServer)
     auto module = CreateModule(device.getContext());
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(module.createServer("openDAQ LT Streaming", device.getRootDevice(), config));
+    ASSERT_NO_THROW(module.createServer("OpenDAQLTStreaming", device.getRootDevice(), config));
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, CreateServerFromInstance)
@@ -144,5 +144,5 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateServerFromInstance)
     auto device = CreateTestInstance();
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(device.addServer("openDAQ LT Streaming", config));
+    ASSERT_NO_THROW(device.addServer("OpenDAQLTStreaming", config));
 }

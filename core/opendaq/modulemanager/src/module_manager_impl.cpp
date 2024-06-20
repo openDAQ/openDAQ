@@ -1094,7 +1094,7 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
                                                                     0);
     obj.addProperty(streamingConnectionHeuristicProp);
 
-    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
     obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));

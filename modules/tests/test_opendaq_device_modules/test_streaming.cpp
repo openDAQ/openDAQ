@@ -186,7 +186,7 @@ protected:
         auto streamingServer = std::get<0>(GetParam());
         instance.addServer(streamingServer, nullptr);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("openDAQ OpcUa", nullptr);
+        instance.addServer("OpenDAQOPCUA", nullptr);
 
         return instance;
     }
@@ -237,7 +237,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets,
                              clientReceivedPackets,
-                             std::get<0>(GetParam()) == "openDAQ LT Streaming"));
+                             std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
@@ -500,7 +500,7 @@ protected:
         auto streamingServer = std::get<0>(GetParam());
         instance.addServer(streamingServer, nullptr);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("openDAQ OpcUa", nullptr);
+        instance.addServer("OpenDAQOPCUA", nullptr);
 
         return instance;
     }
@@ -563,7 +563,7 @@ protected:
         auto streamingServerName = std::get<0>(GetParam());
         streamingServer = instance.addServer(streamingServerName, nullptr);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("openDAQ OpcUa", nullptr);
+        instance.addServer("OpenDAQOPCUA", nullptr);
 
         return instance;
     }

@@ -97,13 +97,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
 TEST_F(ConfigProviderTest, jsonConfigReadModules)
 {
     std::string filename = "jsonConfigReadModules.json";
-    std::string json = "{ \"Modules\": { \"OpcUaClient\": { \"Debug\": 1 }, \"RefDevice\": { \"UseGlobalThreadForAcq\": 1 } } }";
+    std::string json = "{ \"Modules\": { \"OpenDAQOPCUAClientModule\": { \"Debug\": 1 }, \"RefDevice\": { \"UseGlobalThreadForAcq\": 1 } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
 
     auto expectedModules = Dict<IString, IBaseObject>({
-            {"OpcUaClient", Dict<IString, IBaseObject>({
+            {"OpenDAQOPCUAClientModule", Dict<IString, IBaseObject>({
                     {"Debug", 1}
                 })},
             {"RefDevice", Dict<IString, IBaseObject>({

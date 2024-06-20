@@ -77,7 +77,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
         {
             "Modules":
             {
-                "OpcUaServer":
+                "OpenDAQOPCUAServerModule":
                 {
                     "Port": 1234,
                     "Path": "/some/path"
@@ -132,7 +132,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
         {
             "Modules":
             {
-                "OpcUaServer":
+                "OpenDAQOPCUAServerModule":
                 {
                     "Port": 1234,
                     "Path": "/test/opcua/checkDeviceInfoPopulated/"
@@ -696,7 +696,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
     auto serverInstance = CreateServerInstance();
     auto clientInstance = InstanceBuilder().build();
 
-    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    auto config = clientInstance.getAvailableDeviceTypes().get("OpenDAQOPCUAConfig").createDefaultConfig();
     config.setPropertyValue("Username", "");
     config.setPropertyValue("Password", "");
 
@@ -714,7 +714,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
     auto serverInstance = CreateServerInstance(authenticationProvider);
 
     auto clientInstance = InstanceBuilder().build();
-    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    auto config = clientInstance.getAvailableDeviceTypes().get("OpenDAQOPCUAConfig").createDefaultConfig();
 
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
@@ -745,7 +745,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
     auto serverInstance = CreateServerInstance(authenticationProvider);
 
     auto clientInstance = InstanceBuilder().build();
-    auto config = clientInstance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    auto config = clientInstance.getAvailableDeviceTypes().get("OpenDAQOPCUAConfig").createDefaultConfig();
 
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
@@ -796,7 +796,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_opcua_config");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQOPCUAConfig");
     ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ OpcUa");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");

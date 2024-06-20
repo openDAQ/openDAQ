@@ -15,7 +15,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
-static const char* DaqOpcUaDeviceTypeId = "opendaq_opcua_config";
+static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfig";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua://";
 static const char* OpcUaScheme = "opc.tcp://";
 
@@ -23,10 +23,10 @@ using namespace discovery;
 using namespace daq::opcua;
 
 OpcUaClientModule::OpcUaClientModule(ContextPtr context)
-    : Module("openDAQ OpcUa client module",
+    : Module("OpenDAQOPCUAClientModule",
             daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
             std::move(context),
-            "OpcUaClient")
+            "OpenDAQOPCUAClientModule")
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
@@ -243,7 +243,7 @@ PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
 
 StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
 {
-    if (serverCapability.getProtocolId() != "opendaq_opcua_config")
+    if (serverCapability.getProtocolId() != "OpenDAQOPCUAConfig")
         return nullptr;
 
     StringPtr connectionString = serverCapability.getConnectionString();

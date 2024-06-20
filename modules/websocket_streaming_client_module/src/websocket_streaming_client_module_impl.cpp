@@ -10,7 +10,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
-static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
+static const char* WebsocketDeviceTypeId = "OpenDAQLTStreaming";
 static const char* WebsocketDevicePrefix = "daq.lt://";
 static const char* OldWebsocketDevicePrefix = "daq.ws://";
 
@@ -18,10 +18,10 @@ using namespace discovery;
 using namespace daq::websocket_streaming;
 
 WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr context)
-    : Module("openDAQ websocket client module",
+    : Module("OpenDAQWebsocketClientModule",
             daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
             std::move(context),
-            "WebsocketStreamingClient")
+            "OpenDAQWebsocketClientModule")
     , deviceIndex(0)
     , discoveryClient(
         {
@@ -180,7 +180,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
 
 StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
 {
-    if (serverCapability.getProtocolId() != "opendaq_lt_streaming")
+    if (serverCapability.getProtocolId() != "OpenDAQLTStreaming")
         return nullptr;
 
     StringPtr connectionString = serverCapability.getConnectionString();

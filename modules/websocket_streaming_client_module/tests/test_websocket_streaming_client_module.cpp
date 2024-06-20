@@ -33,7 +33,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateModule)
 TEST_F(WebsocketStreamingClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ websocket client module");
+    ASSERT_EQ(module.getName(), "OpenDAQWebsocketClientModule");
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, VersionAvailable)
@@ -194,7 +194,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
     ASSERT_FALSE(connectionString.assigned());
 
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "openDAQ LT Streaming", ProtocolType::Streaming);
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");
@@ -252,8 +252,8 @@ TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_lt_streaming"));
-    ASSERT_EQ(deviceTypes.get("opendaq_lt_streaming").getId(), "opendaq_lt_streaming");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQLTStreaming"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQLTStreaming").getId(), "OpenDAQLTStreaming");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

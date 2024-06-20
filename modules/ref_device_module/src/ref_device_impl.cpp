@@ -20,7 +20,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , stopAcq(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent("ReferenceDevice")
+                          ? this->logger.getOrAddComponent("ReferenceDeviceModule")
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initIoFolder();
@@ -73,8 +73,8 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
 
 DeviceTypePtr RefDeviceImpl::CreateType()
 {
-    return DeviceType("daqref",
-                      "Reference device",
+    return DeviceType("ReferenceDevice",
+                      "ReferenceDevice",
                       "Reference device");
 }
 

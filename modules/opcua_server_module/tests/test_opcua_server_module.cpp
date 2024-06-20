@@ -77,7 +77,7 @@ TEST_F(OpcUaServerModuleTest, CreateModule)
 TEST_F(OpcUaServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ OpcUa server module");
+    ASSERT_EQ(module.getName(), "OpenDAQOPCUAServerModule");
 }
 
 TEST_F(OpcUaServerModuleTest, VersionAvailable)

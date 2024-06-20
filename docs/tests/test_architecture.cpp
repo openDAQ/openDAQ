@@ -19,7 +19,7 @@ TEST_F(ArchitectureTest, ClientModule)
     ModulePtr clientModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "openDAQ OpcUa client module")
+        if (mod.getName() == "OpenDAQOPCUAClientModule")
         {
             clientModule = mod;
             break;

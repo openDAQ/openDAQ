@@ -10,7 +10,7 @@
 #include <thread>
 #include "testutils/memcheck_listener.h"
 
-using RefFbModuleTest = testing::Test;
+using RefFBModuleTest = testing::Test;
 using namespace daq;
 
 static ModulePtr CreateModule()
@@ -21,7 +21,7 @@ static ModulePtr CreateModule()
     return module;
 }
 
-TEST_F(RefFbModuleTest, CreateModule)
+TEST_F(RefFBModuleTest, CreateModule)
 {
     IModule* module = nullptr;
     ErrCode errCode = createModule(&module, NullContext());
@@ -31,19 +31,19 @@ TEST_F(RefFbModuleTest, CreateModule)
     module->releaseRef();
 }
 
-TEST_F(RefFbModuleTest, ModuleName)
+TEST_F(RefFBModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Reference function block module");
+    ASSERT_EQ(module.getName(), "ReferenceFunctionBlockModule");
 }
 
-TEST_F(RefFbModuleTest, VersionAvailable)
+TEST_F(RefFBModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
     ASSERT_TRUE(module.getVersionInfo().assigned());
 }
 
-TEST_F(RefFbModuleTest, VersionCorrect)
+TEST_F(RefFBModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
     auto version = module.getVersionInfo();
@@ -53,7 +53,7 @@ TEST_F(RefFbModuleTest, VersionCorrect)
     ASSERT_EQ(version.getPatch(), REF_FB_MODULE_PATCH_VERSION);
 }
 
-TEST_F(RefFbModuleTest, EnumerateDevices)
+TEST_F(RefFBModuleTest, EnumerateDevices)
 {
     auto module = CreateModule();
 
@@ -62,13 +62,13 @@ TEST_F(RefFbModuleTest, EnumerateDevices)
     ASSERT_EQ(deviceInfoDict.getCount(), 0u);
 }
 
-TEST_F(RefFbModuleTest, AcceptsConnectionStringNull)
+TEST_F(RefFBModuleTest, AcceptsConnectionStringNull)
 {
     auto module = CreateModule();
     ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
 }
 
-TEST_F(RefFbModuleTest, AcceptsConnectionStringEmpty)
+TEST_F(RefFBModuleTest, AcceptsConnectionStringEmpty)
 {
     auto module = CreateModule();
 
@@ -77,7 +77,7 @@ TEST_F(RefFbModuleTest, AcceptsConnectionStringEmpty)
     ASSERT_FALSE(accepts);
 }
 
-TEST_F(RefFbModuleTest, AcceptsConnectionStringInvalid)
+TEST_F(RefFBModuleTest, AcceptsConnectionStringInvalid)
 {
     auto module = CreateModule();
 
@@ -86,7 +86,7 @@ TEST_F(RefFbModuleTest, AcceptsConnectionStringInvalid)
     ASSERT_FALSE(accepts);
 }
 
-TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
+TEST_F(RefFBModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
 
@@ -122,14 +122,14 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ("RefFBModuleTrigger", functionBlockTypes.get("RefFBModuleTrigger").getId());
 }
 
-TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
+TEST_F(RefFBModuleTest, CreateFunctionBlockNotFound)
 {
     const auto module = CreateModule();
 
     ASSERT_THROW(module.createFunctionBlock("test", nullptr, "id"), NotFoundException);
 }
 
-TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
+TEST_F(RefFBModuleTest, DISABLED_CreateFunctionBlockRenderer)
 {
     MemCheckListener::expectMemoryLeak = true;
 
@@ -141,7 +141,7 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
     // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
-TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
+TEST_F(RefFBModuleTest, CreateFunctionBlockStatistics)
 {
     const auto module = CreateModule();
 
@@ -149,7 +149,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
     ASSERT_TRUE(fb.assigned());
 }
 
-TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
+TEST_F(RefFBModuleTest, StatisticsNumOfSignals)
 {
     auto module = CreateModule();
 
@@ -157,7 +157,7 @@ TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
     ASSERT_EQ(fb.getSignals(search::Recursive(search::Any())).getCount(), 3u);
 }
 
-TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
+TEST_F(RefFBModuleTest, CreateFunctionBlockClassifier)
 {
     const auto module = CreateModule();
 
@@ -165,7 +165,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
     ASSERT_TRUE(fb.assigned());
 }
 
-TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
+TEST_F(RefFBModuleTest, createFunctionBlockTrigger)
 {
     const auto module = CreateModule();
 

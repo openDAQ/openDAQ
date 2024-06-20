@@ -782,7 +782,7 @@ TEST_P(AddComponentsTest, AddChannel)
             if (component.asPtrOrNull<IChannel>().assigned())
             {
                 auto addedCh = component.asPtr<IChannel>();
-                if (addedCh.getFunctionBlockType().getId() == "ref_channel")
+                if (addedCh.getFunctionBlockType().getId() == "RefChannel")
                 {
                     addChPromise.set_value();
                 }

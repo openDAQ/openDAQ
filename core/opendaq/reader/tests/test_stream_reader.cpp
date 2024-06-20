@@ -957,7 +957,7 @@ protected:
                                         .build();
 
         canMsgDescriptor = DataDescriptorBuilder()
-                                          .setName("Can")
+                                          .setName("CAN")
                                           .setSampleType(SampleType::Struct)
                                           .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
                                           .build();

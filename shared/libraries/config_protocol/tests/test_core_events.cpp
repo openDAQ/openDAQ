@@ -63,8 +63,8 @@ protected:
 
 TEST_F(ConfigCoreEventTest, PropertyValueChanged)
 {
-    const auto clientComponent = client->getDevice().findComponent("IO/ai/ch");
-    const auto serverComponent = serverDevice.findComponent("IO/ai/ch");
+    const auto clientComponent = client->getDevice().findComponent("IO/AI/Ch");
+    const auto serverComponent = serverDevice.findComponent("IO/AI/Ch");
 
     int callCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -1031,7 +1031,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     
     serverDeviceFolder.removeItemWithLocalId("dev");
     serverSigFolder.removeItemWithLocalId("sig_device");
-    serverIOFolder.removeItemWithLocalId("ai");
+    serverIOFolder.removeItemWithLocalId("AI");
     
     const auto dev = createWithImplementation<IDevice, test_utils::MockDevice2Impl>(serverDevice.getContext(), serverDeviceFolder, "new_dev");
     const auto io = IoFolder(serverDevice.getContext(), serverIOFolder, "new_io");
@@ -1050,7 +1050,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     ASSERT_FALSE(clientDeviceFolder.hasItem("new_dev"));
     ASSERT_TRUE(clientSigFolder.hasItem("sig_device"));
     ASSERT_FALSE(clientSigFolder.hasItem("new_sig"));
-    ASSERT_TRUE(clientIOFolder.hasItem("ai"));
+    ASSERT_TRUE(clientIOFolder.hasItem("AI"));
     ASSERT_FALSE(clientIOFolder.hasItem("new_io"));
 
     const auto serializer = JsonSerializer();
@@ -1072,7 +1072,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     ASSERT_TRUE(clientDeviceFolder.hasItem("new_dev"));
     ASSERT_FALSE(clientSigFolder.hasItem("sig_device"));
     ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
-    ASSERT_FALSE(clientIOFolder.hasItem("ai"));
+    ASSERT_FALSE(clientIOFolder.hasItem("AI"));
     ASSERT_TRUE(clientIOFolder.hasItem("new_io"));
     ASSERT_TRUE(clientIOFolder.getItem("new_io").asPtr<IFolder>().hasItem("new_ch"));
 

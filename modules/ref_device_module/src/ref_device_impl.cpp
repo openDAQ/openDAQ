@@ -121,8 +121,8 @@ void RefDeviceImpl::initClock()
 
 void RefDeviceImpl::initIoFolder()
 {
-    aiFolder = this->addIoFolder("ai", ioFolder);
-    canFolder = this->addIoFolder("can", ioFolder);
+    aiFolder = this->addIoFolder("AI", ioFolder);
+    canFolder = this->addIoFolder("CAN", ioFolder);
 }
 
 void RefDeviceImpl::initSyncComponent()
@@ -243,7 +243,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     for (auto i = channels.size(); i < num; i++)
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("refch{}", i);
+        auto localId = fmt::format("RefCh{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
     }

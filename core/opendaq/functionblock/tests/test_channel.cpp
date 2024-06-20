@@ -19,7 +19,7 @@ class MockChannel final : public daq::Channel
 {
 public:
     MockChannel(const daq::ContextPtr& context, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
-        : daq::Channel(daq::FunctionBlockType("ch", "", ""), context, parent, localId)
+        : daq::Channel(daq::FunctionBlockType("Ch", "", ""), context, parent, localId)
     {
         createAndAddSignal("sig_ch");
     }
@@ -27,7 +27,7 @@ public:
 
 TEST_F(ChannelTest, SerializeAndDeserialize)
 {
-    const auto ch = daq::createWithImplementation<daq::IChannel, MockChannel>(daq::NullContext(), nullptr, "ch");
+    const auto ch = daq::createWithImplementation<daq::IChannel, MockChannel>(daq::NullContext(), nullptr, "Ch");
     ch.setName("ch_name");
     ch.setDescription("ch_desc");
     ch.getTags().asPtr<ITagsPrivate>().add("ch_tag");
@@ -38,7 +38,7 @@ TEST_F(ChannelTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "ch");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "Ch");
 
     const daq::ChannelPtr newCh = deserializer.deserialize(str1, deserializeContext, nullptr);
 

@@ -39,7 +39,7 @@ TEST_F(TmsChannelTest, Register)
     auto serverChannel = TmsServerChannel(channel, this->getServer(), ctx, serverContext);  // Not possible either
     auto nodeId = serverChannel.registerOpcUaNode();
 
-    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
+    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, nodeId);
     ASSERT_TRUE(clientChannel.assigned());
 }
 
@@ -51,7 +51,7 @@ TEST_F(TmsChannelTest, BrowseName)
     auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerChannel.registerOpcUaNode();
 
-    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
+    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, nodeId);
 
     auto browseName = client->readBrowseName(nodeId);
     ASSERT_EQ(browseName, "mockch");
@@ -68,7 +68,7 @@ TEST_F(TmsChannelTest, AttrFunctionBlockType)
     auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerChannel.registerOpcUaNode();
 
-    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
+    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, nodeId);
 
     auto type = clientChannel.getFunctionBlockType();
     ASSERT_EQ(type.getId(), "mock_ch");
@@ -84,7 +84,7 @@ TEST_F(TmsChannelTest, MethodGetInputPorts)
     auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto channelNodeId = tmsServerChannel.registerOpcUaNode();
 
-    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);
+    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, channelNodeId);
 
     auto inputPorts = clientChannel.getInputPorts();
     ASSERT_TRUE(inputPorts != nullptr);
@@ -103,7 +103,7 @@ TEST_F(TmsChannelTest, MethodGetSignals)
     auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto channelNodeId = tmsServerChannel.registerOpcUaNode();
 
-    auto clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);
+    auto clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, channelNodeId);
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientChannel.getSignals());
@@ -137,7 +137,7 @@ TEST_F(TmsChannelTest, MethodGetStatusSignal)
     OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
     getServer()->addReference(channelNodeId, referenceTypeId, signalNodeId, true);
 
-    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);
+    ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "Ch", clientContext, channelNodeId);
 
     //EXPECT_THROW(clientChannel.getStatusSignal(), daq::opcua::OpcUaClientCallNotAvailableException);
 

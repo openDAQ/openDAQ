@@ -23,7 +23,7 @@ RefCANChannelImpl::RefCANChannelImpl(const ContextPtr& context,
                                      const ComponentPtr& parent,
                                      const StringPtr& localId,
                                      const RefCANChannelInit& init)
-    : ChannelImpl(FunctionBlockType("ref_can_channel",  "CAN", ""), context, parent, localId)
+    : ChannelImpl(FunctionBlockType("RefCANChannel",  "CAN", ""), context, parent, localId)
     , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
@@ -152,8 +152,8 @@ void RefCANChannelImpl::buildSignalDescriptors()
 
 void RefCANChannelImpl::createSignals()
 {
-    valueSignal = createAndAddSignal("can");
-    timeSignal = createAndAddSignal("can_time", nullptr, false);
+    valueSignal = createAndAddSignal("CAN");
+    timeSignal = createAndAddSignal("CanTime", nullptr, false);
 }
 
 std::string RefCANChannelImpl::getEpoch()

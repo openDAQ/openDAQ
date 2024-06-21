@@ -26,6 +26,7 @@
 #include <opendaq/read_info.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/stream_reader_builder_ptr.h>
 
 #include <condition_variable>
 
@@ -46,7 +47,8 @@ public:
                               SampleType valueReadType,
                               SampleType domainReadType,
                               ReadMode mode,
-                              ReadTimeoutType timeoutType);
+                              ReadTimeoutType timeoutType,
+                              Bool skipEvents);
 
     explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                               SampleType valueReadType,
@@ -56,6 +58,8 @@ public:
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
+
+    StreamReaderImpl(const StreamReaderBuilderPtr& builder);
     
     ~StreamReaderImpl() override;
 

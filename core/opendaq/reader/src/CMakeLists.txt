@@ -7,6 +7,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_SampleReader sample_reader.h)
     rtgen(SRC_ReaderConfig reader_config.h)
     rtgen(SRC_StreamReader stream_reader.h)
+    rtgen(SRC_StreamReaderBuilder stream_reader_builder.h INTERNAL)
     rtgen(SRC_BlockReader block_reader.h)
     rtgen(SRC_BlockReaderBuilder block_reader_builder.h INTERNAL)
     rtgen(SRC_TailReader tail_reader.h)
@@ -23,6 +24,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SampleReader_PublicHeaders}
         ${SRC_ReaderConfig_PublicHeaders}
         ${SRC_StreamReader_PublicHeaders}
+        ${SRC_StreamReaderBuilder_PublicHeaders}
         ${SRC_BlockReader_PublicHeaders}
         ${SRC_BlockReaderBuilder_PublicHeaders}
         ${SRC_TailReader_PublicHeaders}
@@ -42,6 +44,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SampleReader_PrivateHeaders}
         ${SRC_ReaderConfig_PrivateHeaders}
         ${SRC_StreamReader_PrivateHeaders}
+        ${SRC_StreamReaderBuilder_PrivateHeaders}
         ${SRC_BlockReader_PrivateHeaders}
         ${SRC_BlockReaderBuilder_PrivateHeaders}
         ${SRC_TailReader_PrivateHeaders}
@@ -87,9 +90,12 @@ function(create_component_source_groups_${BASE_NAME})
     
     source_group("reader//stream" FILES 
         ${SDK_HEADERS_DIR}/stream_reader.h
+        ${SDK_HEADERS_DIR}/stream_reader_builder.h
         ${SDK_HEADERS_DIR}/stream_reader_ptr.h
         ${SDK_HEADERS_DIR}/stream_reader_impl.h
+        ${SDK_HEADERS_DIR}/stream_reader_builder_impl.h
         ${SDK_SRC_DIR}/stream_reader_impl.cpp
+        ${SDK_SRC_DIR}/stream_reader_builder_impl.cpp
     )
     
     source_group("reader//block" FILES 

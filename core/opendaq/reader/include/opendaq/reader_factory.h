@@ -30,6 +30,7 @@
 #include <opendaq/multi_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/block_reader_builder_ptr.h>
+#include <opendaq/stream_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -95,9 +96,10 @@ inline StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port,
                                     SampleType valueReadType,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
-                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All,
+                                    Bool skipEvents = false)
 {
-    return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType);
+    return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType, skipEvents);
 }
 
 /*!
@@ -113,7 +115,7 @@ inline StreamReaderPtr StreamReader(SignalPtr signal,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
                                     ReadTimeoutType timeoutType = ReadTimeoutType::All,
-                                    Bool skipEvents = true)
+                                    Bool skipEvents = false)
 {
     return StreamReader_Create(signal, valueReadType, domainReadType, mode, timeoutType, skipEvents);
 }
@@ -129,14 +131,15 @@ inline StreamReaderPtr StreamReader(SignalPtr signal,
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
+StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
 {
     return StreamReader(
         signal,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
         mode,
-        timeoutType
+        timeoutType,
+        skipEvents
     );
 }
 
@@ -151,14 +154,15 @@ StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType ti
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = ReadTimeoutType::All)
+StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
 {
     return StreamReader(
         signal,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
         ReadMode::Scaled,
-        timeoutType
+        timeoutType,
+        skipEvents
     );
 }
 
@@ -168,9 +172,9 @@ StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = Rea
  * @param signal The signal to read the data from.
  * @param timeoutType The type of time-out to use. See @see ReadTimeoutType.
  */
-inline StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All)
+inline StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
 {
-    return StreamReader<>(signal, mode, timeoutType);
+    return StreamReader<>(signal, mode, timeoutType, skipEvents);
 }
 
 /*!

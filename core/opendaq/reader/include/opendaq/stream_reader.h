@@ -98,7 +98,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,
-    ReadTimeoutType, timeoutType
+    ReadTimeoutType, timeoutType,
+    Bool, skipEvents
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

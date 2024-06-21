@@ -41,10 +41,12 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
                                    SampleType valueReadType,
                                    SampleType domainReadType,
                                    ReadMode mode,
-                                   ReadTimeoutType timeoutType)
+                                   ReadTimeoutType timeoutType,
+                                   Bool skipEvents)
     : readMode(mode)
     , timeoutType(timeoutType)
     , portBinder(PropertyObject())
+    , skipEvents(skipEvents)
 {
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
@@ -115,6 +117,28 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     this->internalAddRef();
     inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
     handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+}
+
+StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
+    : readMode(builder.getReadMode())
+    , timeoutType(builder.getReadTimeoutType())
+    , skipEvents(builder.getSkipEvents())
+{
+    inputPort = builder.getInputPort();
+    if (inputPort.assigned())
+    {
+        if (inputPort.getConnection().assigned())
+            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+        inputPort.asPtr<IOwnable>().setOwner(portBinder);
+    }
+    else
+    {
+
+    }
+    valueReader = createReaderForType(builder.getValueReadType(), nullptr);
+    domainReader = createReaderForType(builder.getDomainReadType(), nullptr);
+    this->internalAddRef();
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -642,7 +666,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,
-    ReadTimeoutType, timeoutType
+    ReadTimeoutType, timeoutType,
+    Bool, skipEvents
 )
 
 OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(

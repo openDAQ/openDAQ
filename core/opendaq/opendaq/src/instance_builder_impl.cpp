@@ -34,7 +34,7 @@ InstanceBuilderImpl::InstanceBuilderImpl()
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
-    , discoveryServices(List<IString>())
+    , discoveryServers(List<IString>())
 {
 }
 
@@ -413,21 +413,21 @@ ErrCode InstanceBuilderImpl::enableStandardProviders(Bool flag)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::getDiscoveryServices(IList** services)
+ErrCode InstanceBuilderImpl::getDiscoveryServers(IList** serverNames)
 {
-    if (services == nullptr)
+    if (serverNames == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *services = discoveryServices.addRefAndReturn();
+    *serverNames = discoveryServers.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::addDiscoveryService(IString* serviceName)
+ErrCode InstanceBuilderImpl::addDiscoveryServer(IString* serverName)
 {
-    if (serviceName == nullptr)
+    if (serverName == nullptr)
         return OPENDAQ_IGNORED;
 
-    discoveryServices.pushBack(serviceName);
+    discoveryServers.pushBack(serverName);
     return OPENDAQ_SUCCESS;
 }
 

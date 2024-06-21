@@ -229,5 +229,5 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
             return objectPtr.getConfigurationConnectionInfo().detach();
         },
         py::return_value_policy::take_ownership,
-        "Retrieves the connection information for the configuration.");
+        "Retrieves the configuration connection information of the server to which the client is connected.");
 }

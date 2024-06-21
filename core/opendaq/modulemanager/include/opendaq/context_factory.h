@@ -42,9 +42,9 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
                           const ModuleManagerPtr& moduleManager,
                           const AuthenticationProviderPtr& authenticationProvider,
                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
-                          const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
+                          const DictPtr<IString, IDiscoveryServer> discoveryServers = Dict<IString, IDiscoveryServer>())
 {
-    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices));
+    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers));
     return obj;
 }
 

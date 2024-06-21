@@ -257,5 +257,5 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.createDefaultAddDeviceConfig().detach();
         },
-        "");
+        "Creates config object that can be used when adding a device. Contains Device and Streaming default configuration for all available Device/Streaming types. Also contains general add-device configuration settings.");
 }

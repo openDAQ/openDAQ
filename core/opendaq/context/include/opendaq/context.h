@@ -123,7 +123,7 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
  */
 
 // [templateType(options, IStringObject, IBaseObject)]
-// [templateType(discoveryServices, IStringObject, IDiscoveryServer)]
+// [templateType(discoveryServers, IStringObject, IDiscoveryServer)]
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Context,
     IScheduler*, Scheduler,
@@ -132,7 +132,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IModuleManager*, moduleManager,
     IAuthenticationProvider*, authenticationProvider,
     IDict*, options,
-    IDict*, discoveryServices
+    IDict*, discoveryServers
 )
 
 /*!@}*/

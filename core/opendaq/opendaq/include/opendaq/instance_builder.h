@@ -98,7 +98,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Populates internal options dictionary with values from set config provider
-     * @param sink The configuration provider
+     * @param configProvider The configuration provider
      */
     virtual ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) = 0;
 
@@ -251,13 +251,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the custom scheduler of Instance
-     * @param moduleManager The custom scheduler of Instance
+     * @param scheduler The custom scheduler of Instance
      */
     virtual ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) = 0;
 
     /*!
      * @brief Gets the custom scheduler of Instance
-     * @param[out] moduleManager The custom scheduler of Instance. Returns nullptr, if custom Scheduler has not been set.
+     * @param[out] scheduler The custom scheduler of Instance. Returns nullptr, if custom Scheduler has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) = 0;
 
@@ -288,13 +288,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     /*!
      * @brief Gets the connection string for the default root device of Instance.
-     * @param[out] rootDevice The connection string for the root device of Instance. Returns nullptr, if root device connection string has not been set.
+     * @param[out] connectionString The connection string for the root device of Instance. Returns nullptr, if root device connection string has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString) = 0;
 
     /*!
      * @brief Gets the configuration property object for the default root device of Instance.
-     * @param[out] config The configuraiton property object for the root device of Instance. Returns nullptr, for the default
+     * @param[out] config The configuraton property object for the root device of Instance. Returns nullptr, for the default
      * configuration property object.
      */
     virtual ErrCode INTERFACE_FUNC getRootDeviceConfig(IPropertyObject** config) = 0;
@@ -308,7 +308,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     /*!
      * @brief Gets the default device info of Instance
-     * @param defaultDevice The default device info of Instance. Returns nullptr, if default device info has not been set.
+     * @param deviceInfo The default device info of Instance. Returns nullptr, if default device info has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) = 0;
 
@@ -326,19 +326,21 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) = 0;
 
-    // [elementType(services, IString)]
+    // [elementType(serverNames, IString)]
     /*!
-     * @brief Gets the dictionary of discovery services
-     * @param[out] services The dictionary of discovery services
+     * @brief Gets the dictionary of discovery servers
+     * @param[out] serverNames The dictionary of discovery server names
      */
-    virtual ErrCode INTERFACE_FUNC getDiscoveryServices(IList** services) = 0;
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IList** serverNames) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Adds a discovery service to the context
-     * @param service The discovery service to add
+     * @brief Adds a discovery server to the context
+     * @param serverName The discovery server to add
+     *
+     * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
      */
-    virtual ErrCode INTERFACE_FUNC addDiscoveryService(IString* serviceName) = 0;
+    virtual ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) = 0;
 };
 /*!@}*/
 

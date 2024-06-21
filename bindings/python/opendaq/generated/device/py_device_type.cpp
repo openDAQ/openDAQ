@@ -35,7 +35,15 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls)
 {
-    cls.doc() = "Provides information about the device type.";
+    cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
 
     m.def("DeviceType", &daq::DeviceType_Create);
+
+    cls.def_property_readonly("connection_string_prefix",
+        [](daq::IDeviceType *object)
+        {
+            const auto objectPtr = daq::DeviceTypePtr::Borrow(object);
+            return objectPtr.getConnectionStringPrefix().toStdString();
+        },
+        "");
 }

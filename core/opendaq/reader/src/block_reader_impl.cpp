@@ -14,10 +14,12 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 SizeT overlap)
+                                 SizeT overlap,
+                                 Bool skipEvents)
     : Super(signal, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
+    , skipEvents(skipEvents)
 {
     initOverlap();
 
@@ -30,10 +32,12 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 SizeT overlap)
+                                 SizeT overlap,
+                                 Bool skipEvents)
     : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
+    , skipEvents(skipEvents)
 {
     initOverlap();
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -63,6 +67,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , blockSize(blockSize)
     , overlap(overlap)
     , info(old->info)
+    , skipEvents(old->skipEvents)
 {
     initOverlap();
 
@@ -110,7 +115,7 @@ SizeT BlockReaderImpl::getAvailableSamples() const
     if (info.currentDataPacketIter != info.dataPacketsQueue.end())
         count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
     if (connection.assigned())
-        count += connection.getSamplesUntilNextDescriptor();
+        count += skipEvents ? connection.getAvailableSamples() : connection.getSamplesUntilNextDescriptor();
     return count;
 }
 
@@ -266,7 +271,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
                 return false;
             }
 
-            if (connection.hasEventPacket())
+            if (!skipEvents && connection.hasEventPacket())
             {
                 return true;
             }
@@ -351,12 +356,9 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 handleDescriptorChanged(eventPacket);
-                auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-                info.clean();
-                return BlockReaderStatus(eventPacket, !invalid, offset, writtenSamplesCount);
             }
 
-            if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 info.clean();
@@ -526,7 +528,8 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlap());
+                builderPtr.getOverlap(),
+                builderPtr.getSkipEvents());
         }
         else if (inputPort.assigned())
         {
@@ -537,7 +540,8 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlap());
+                builderPtr.getOverlap(),
+                builderPtr.getSkipEvents());
         }
         else
         {

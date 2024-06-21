@@ -186,14 +186,28 @@ class BlockReaderImpl final : public ReaderImpl<IBlockReader>
 public:
     using Super = ReaderImpl<IBlockReader>;
 
-    explicit BlockReaderImpl(
-        const SignalPtr& signal, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, SizeT overlap = 0);
+    explicit BlockReaderImpl(const SignalPtr& signal, 
+                             SizeT blockSize, 
+                             SampleType valueReadType, 
+                             SampleType domainReadType, 
+                             ReadMode readMode, 
+                             SizeT overlap = 0,
+                             Bool skipEvents = true);
 
-    explicit BlockReaderImpl(
-        IInputPortConfig* port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, SizeT overlap = 0);
+    explicit BlockReaderImpl(IInputPortConfig* port, 
+                             SizeT blockSize, 
+                             SampleType valueReadType, 
+                             SampleType domainReadType, 
+                             ReadMode readMode, 
+                             SizeT overlap = 0,
+                             Bool skipEvents = false);
 
-    BlockReaderImpl(
-        const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, ReadMode mode, SizeT overlap = 0);
+    BlockReaderImpl(const ReaderConfigPtr& readerConfig, 
+                    SampleType valueReadType, 
+                    SampleType domainReadType, 
+                    SizeT blockSize, 
+                    ReadMode mode, 
+                    SizeT overlap = 0);
 
     BlockReaderImpl(BlockReaderImpl* old, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, SizeT overlap = 0);
 
@@ -229,6 +243,8 @@ private:
     SizeT overlappedBlockSizeRemainder;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
+
+    bool skipEvents = false;
 };
 
 END_NAMESPACE_OPENDAQ

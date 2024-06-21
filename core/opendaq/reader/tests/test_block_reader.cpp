@@ -164,13 +164,8 @@ TYPED_TEST(BlockReaderTest, GetBlocksAvailable)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -195,13 +190,8 @@ TYPED_TEST(BlockReaderTest, GetOverlappedBlocksAvailable)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -230,13 +220,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlock)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -275,13 +260,8 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlapped)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -336,13 +316,8 @@ TYPED_TEST(BlockReaderTest, ReadBigBlocksOverlapped)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BIG_BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     double d[] = {0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9};
 
@@ -628,13 +603,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockTick>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
@@ -679,13 +649,8 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlappedWithClockTicks)
                       .setDomainReadType(SampleTypeFromType<ClockTick>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
 
@@ -760,13 +725,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicksTimeout)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockTick>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
@@ -832,13 +792,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1 * BLOCK_SIZE, 1);
 
@@ -888,13 +843,8 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlockOverlappedWithRanges)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
 
@@ -978,13 +928,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
@@ -1048,13 +993,8 @@ TYPED_TEST(BlockReaderTest, ReadLessThanOnePacket)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     const SizeT NUM_SAMPLES = BLOCK_SIZE + 1;
     auto dataPacket = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
@@ -1096,13 +1036,8 @@ TYPED_TEST(BlockReaderTest, ReadLessThanTwoPacketOverlapped)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     const SizeT NUM_SAMPLES = BLOCK_SIZE + 1;
     auto dataPacket = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
@@ -1143,14 +1078,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPackets)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
     auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE + 1);
 
     // Set the first sample to
@@ -1182,14 +1111,9 @@ TYPED_TEST(BlockReaderTest, ReadBetweenOverlappedPackets)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE);
 
     // Set the first sample to
@@ -1219,13 +1143,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-        
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     
     auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE + 1);
 
@@ -1296,14 +1215,9 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-        
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE + 1);
 
     // Set the first sample to
@@ -1362,14 +1276,9 @@ TYPED_TEST(BlockReaderTest, ReadBetweenOverlappedPacketsAndCheckValues)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-        
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE);
 
     // Set the first sample to
@@ -1435,13 +1344,8 @@ TYPED_TEST(BlockReaderTest, ReadValuesMoreThanAvailable)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     
     const SizeT NUM_SAMPLES = BLOCK_SIZE;
     this->sendPacket(DataPacket(this->signal.getDescriptor(), NUM_SAMPLES));
@@ -1465,14 +1369,9 @@ TYPED_TEST(BlockReaderTest, ReadOverlappedValuesMoreThanAvailable)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     const SizeT NUM_SAMPLES = BLOCK_SIZE;
     this->sendPacket(DataPacket(this->signal.getDescriptor(), NUM_SAMPLES));
     this->scheduler.waitAll();
@@ -1494,14 +1393,9 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     const SizeT NUM_SAMPLES = 2;
     auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
     auto dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
@@ -1528,15 +1422,6 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     this->sendPacket(dataPacketInt32);
     this->scheduler.waitAll();
-
-    ASSERT_EQ(reader.getAvailableCount(), 0u);
-
-    {
-        // read event packet
-        size_t tmpCount = 0;
-        BlockReaderStatusPtr status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     count = 1;
     TypeParam sampleInt32[1 * BLOCK_SIZE]{};
@@ -1633,13 +1518,8 @@ TYPED_TEST(BlockReaderTest, GapDetected)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<int64_t>::SampleType)
                       .setBlockSize(blockSize)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     
     constexpr SizeT NUM_SAMPLES = 6;
 
@@ -1733,13 +1613,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
                       .setValueReadType(SampleTypeFromType<std::int32_t>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-        
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     
     this->signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
 
@@ -1754,7 +1629,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
-    auto status = reader.read((std::int32_t*) &samples, &count);
+    auto status = reader.read(samples, &count);
     ASSERT_FALSE(status.getValid());
 }
 
@@ -1767,6 +1642,7 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
                       .setValueReadType(SampleTypeFromType<TypeParam>::SampleType)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
 
     const SizeT NUM_SAMPLES = 2 * BLOCK_SIZE;
@@ -1779,13 +1655,6 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
 
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
-
-    {
-        // read event packet
-        size_t tmpCount = 0;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE];
@@ -1833,6 +1702,7 @@ TYPED_TEST(BlockReaderTest, ReuseReaderOverlapped)
                       .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
     
     const SizeT NUM_SAMPLES = 2 * BLOCK_SIZE;
@@ -1845,13 +1715,6 @@ TYPED_TEST(BlockReaderTest, ReuseReaderOverlapped)
 
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
-   
-    {
-        // read event packet
-        size_t tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE];
@@ -1866,6 +1729,7 @@ TYPED_TEST(BlockReaderTest, ReuseReaderOverlapped)
                          .setDomainReadType(SampleTypeFromType<ClockRange>::SampleType)
                          .setBlockSize(BLOCK_SIZE)
                          .setOverlap(OVERLAP)
+                         .setSkipEvents(true)
                          .build();
 
     if (convertable)
@@ -1939,12 +1803,12 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
                       .setValueReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setDomainReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
     
     {
         SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        reader.read(nullptr, &tmpCount);
     }
     
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -1961,13 +1825,6 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
     dataPtr[1] = 22.2;
 
     this->sendPacket(dataPacket);
-
-    {
-        // read event packet
-        size_t tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
@@ -1990,12 +1847,12 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
     
     {
         SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        reader.read(nullptr, &tmpCount);
     }
     
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -2017,13 +1874,6 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainOverlapped)
 
     SizeT count{3};
     double samples[3 * BLOCK_SIZE]{};
-    {
-        // read event packet
-        size_t tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 3u);
@@ -2042,16 +1892,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithNoDomainFromPacket)
                       .setValueReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setDomainReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -2082,16 +1924,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithNoDomainFromPacketOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
@@ -2123,16 +1957,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithWithDomainFromPacket)
                       .setValueReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setDomainReadType(SampleTypeFromType<UndefinedType>::SampleType)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT count{0};
-        auto status = reader.read(nullptr, &count);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -2164,16 +1990,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithWithDomainFromPacketOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
@@ -2223,6 +2041,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
                       .setValueReadType(SampleType::Undefined)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
     port.connect(this->signal);
 
@@ -2234,13 +2053,9 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{0};
-    auto status = reader.read(nullptr, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-
-    count = 1u;
+    SizeT count{1};
     double samples[BLOCK_SIZE]{};
-    reader.read(samples, &count);
+    reader.read(samples, &count, 1000u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -2258,6 +2073,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
     port.connect(this->signal);
 
@@ -2271,11 +2087,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{0};
-    auto status = reader.read(nullptr, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-
-    count = 3u;
+    SizeT count{3};
     double samples[3 * BLOCK_SIZE]{};
     reader.read(samples, &count);
 
@@ -2298,6 +2110,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
                       .setValueReadType(SampleType::Undefined)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
@@ -2308,13 +2121,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
 
     port.connect(this->signal);
     this->sendPacket(dataPacket);
-
-    {
-        // read event packet
-        size_t tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
@@ -2336,6 +2142,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPortOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
@@ -2348,13 +2155,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPortOverlapped)
 
     port.connect(this->signal);
     this->sendPacket(dataPacket);
-
-    {
-        // read event packet
-        size_t tmpCount = 0u;
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
 
     SizeT count{3};
     double samples[3 * BLOCK_SIZE]{};
@@ -2422,14 +2222,9 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
                       .setValueReadType(SampleType::Undefined)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-    
+
     reader.setOnDataAvailable(
         [&]
         {
@@ -2469,13 +2264,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallbackOverlapped)
                       .setDomainReadType(SampleType::Undefined)
                       .setBlockSize(BLOCK_SIZE)
                       .setOverlap(OVERLAP)
+                      .setSkipEvents(true)
                       .build();
-    
-    {
-        SizeT tmpCount{0};
-        auto status = reader.read(nullptr, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     
     reader.setOnDataAvailable(
         [&]

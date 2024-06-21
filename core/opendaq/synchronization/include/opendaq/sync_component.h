@@ -57,11 +57,6 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
 {
     /*!
-     * @brief Test.
-     */
-    virtual ErrCode INTERFACE_FUNC test() = 0;
-
-    /*!
      * @brief Retrieves the synchronization lock status.
      * @param[out] synchronizationLocked True if synchronization is locked; false otherwise.
      */

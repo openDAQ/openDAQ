@@ -36,8 +36,6 @@ public:
     explicit SyncComponentImpl(const ContextPtr& context);
 
     //ISyncComponent
-    ErrCode INTERFACE_FUNC test() override;
-
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
     ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
 

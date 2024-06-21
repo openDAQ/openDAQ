@@ -14,18 +14,14 @@ SyncComponentImpl::SyncComponentImpl(const ContextPtr& context)
 {
     Super::addProperty(ObjectProperty(Interfaces, PropertyObject()));
     Super::addProperty(BoolProperty(SyncronizationLocked, false));
-    Super::addProperty(SelectionProperty(Source, List<IString>("Interface1", "Interface2", "Interface3"), 0));
+    Super::addProperty(ListProperty("InterfaceNames", List<IString>("Interface1", "Interface2", "Interface3")));
+    Super::addProperty(SelectionProperty(Source, EvalValue("$InterfaceNames"), 0));
 }
 
 template <typename T>
 typename InterfaceToSmartPtr<T>::SmartPtr SyncComponentImpl::getTypedProperty(const StringPtr& name)
 {
     return objPtr.getPropertyValue(name).template asPtr<T>();
-}
-
-ErrCode SyncComponentImpl::test()
-{
-    return OPENDAQ_SUCCESS;
 }
 
 ErrCode SyncComponentImpl::getSyncLocked(Bool* synchronizationLocked)
@@ -154,8 +150,8 @@ ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
                                                 IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    return OPENDAQ_ERR_NOTIMPLEMENTED; //To be implemented
-
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    //
     //return daqTry(
     //    [&obj, &serialized, &context, &factoryCallback]()
     //    {

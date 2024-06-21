@@ -230,4 +230,20 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         },
         py::return_value_policy::take_ownership,
         "Retrieves the configuration connection information of the server to which the client is connected.");
+    cls.def("has_server_capability",
+        [](daq::IDeviceInfo *object, const std::string& protocolId)
+        {
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.hasServerCapability(protocolId);
+        },
+        py::arg("protocol_id"),
+        "Checks whether the server capability with a given ID is available.");
+    cls.def("get_server_capability",
+        [](daq::IDeviceInfo *object, const std::string& protocolId)
+        {
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getServerCapability(protocolId).detach();
+        },
+        py::arg("protocol_id"),
+        "Gets the server capability with a given ID.");
 }

@@ -53,6 +53,8 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
 
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
+                if (discoveredDevice.servicePort > 0)
+                    cap.setPort(discoveredDevice.servicePort);
                 return cap;
             }
         }, 
@@ -60,6 +62,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
     )
 {
     discoveryClient.initMdnsClient(List<IString>("_streaming-lt._tcp.local.", "_streaming-ws._tcp.local."));
+    loggerComponent = this->context.getLogger().getOrAddComponent("StreamingLTClient");
 }
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
@@ -194,7 +197,10 @@ StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerC
 
     auto port = serverCapability.getPort();
     if (port == -1)
-        throw InvalidParameterException("Port is not set");
+    {
+        port = 7414;
+        LOG_W("LT Streaming server capability is missing port. Defaulting to 7414.")
+    }
 
     return WebsocketStreamingClientModule::createUrlConnectionString(
         address,

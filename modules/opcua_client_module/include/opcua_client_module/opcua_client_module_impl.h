@@ -39,7 +39,7 @@ private:
     StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
-    static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
+    static void completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     discovery::DiscoveryClient discoveryClient;
 

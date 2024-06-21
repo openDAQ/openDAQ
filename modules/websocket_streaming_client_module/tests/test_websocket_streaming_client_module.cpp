@@ -198,7 +198,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.lt://123.123.123.123:7414");
 
     serverCapability.setPort(1234);
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));

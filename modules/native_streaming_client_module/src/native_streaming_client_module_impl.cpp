@@ -61,6 +61,8 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
 
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.ns");
+                if (discoveredDevice.servicePort > 0)
+                    cap.setPort(discoveredDevice.servicePort);
                 return cap;
             },
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
@@ -99,6 +101,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {"OPENDAQ_NS"}
     )
 {
+    loggerComponent = this->context.getLogger().getOrAddComponent("NativeClient");
     discoveryClient.initMdnsClient(List<IString>("_opendaq-streaming-native._tcp.local."));
 }
 
@@ -226,7 +229,8 @@ void NativeStreamingClientModule::completeServerCapabilities(const ListPtr<IServ
 {
     for (const auto& capability : capabilities)
     {
-        capability.asPtr<IServerCapabilityConfig>().addAddress(address);
+        if (capability.getConnectionType() == "TCP/IP")
+            capability.asPtr<IServerCapabilityConfig>().addAddress(address);
     }
 }
 
@@ -547,7 +551,10 @@ StringPtr NativeStreamingClientModule::onCreateConnectionString(const ServerCapa
 
     auto port = serverCapability.getPort();
     if (port == -1)
-        throw InvalidParameterException("Port is not set");
+    {
+        port = 7420;
+        LOG_W("Native server capability is missing port. Defaulting to 7420.")
+    }
 
     return NativeStreamingClientModule::createUrlConnectionString(
         serverCapability.getProtocolId() == "opendaq_native_streaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix,

@@ -8,7 +8,7 @@
     <txt-record>name=Reference device simulator</txt-record>
     <txt-record>manufacturer=openDAQ</txt-record>
     <txt-record>model=Reference device</txt-record>
-    <txt-record>serialNumber=dev_ser_1</txt-record>
+    <txt-record>serialNumber=falseserial</txt-record>
     <txt-record>caps=OPENDAQ</txt-record>
   </service>
 </service-group>

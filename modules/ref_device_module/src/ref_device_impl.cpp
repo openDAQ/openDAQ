@@ -44,13 +44,13 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id)
+DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
     auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(fmt::format("dev_ser_{}", id));
+    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
@@ -65,7 +65,18 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
+    StringPtr serialNumber;
+
+    const auto options = context.getOptions();
+
+    if (options.assigned() && options.hasKey("ReferenceDevice"))
+    {
+        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
+        if (referenceDevice.hasKey("SerialNumber"))
+            serialNumber = referenceDevice.get("SerialNumber");
+    }
+
+    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
     deviceInfo.freeze();
     return deviceInfo;
 }

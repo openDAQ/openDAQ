@@ -21,12 +21,33 @@ RefDeviceModule::RefDeviceModule(ContextPtr context)
 
 ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 {
-    auto availableDevices = List<IDeviceInfo>();
-    for (size_t i = 0; i < 2; i++)
+    StringPtr serialNumber;
+
+    const auto options = context.getOptions();
+
+    if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
-        auto info = RefDeviceImpl::CreateDeviceInfo(i);
+        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
+        if (referenceDevice.hasKey("SerialNumber"))
+            serialNumber = referenceDevice.get("SerialNumber");
+    }
+
+    auto availableDevices = List<IDeviceInfo>();
+
+    if (serialNumber.assigned())
+    {
+        auto info = RefDeviceImpl::CreateDeviceInfo(0, serialNumber);
         availableDevices.pushBack(info);
     }
+    else
+    {
+        for (size_t i = 0; i < 2; i++)
+        {
+            auto info = RefDeviceImpl::CreateDeviceInfo(i);
+            availableDevices.pushBack(info);
+        }
+    }
+
     return availableDevices;
 }
 

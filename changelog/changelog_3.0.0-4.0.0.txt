@@ -1,3 +1,9 @@
+21.06.2024
+-m [function] IInstanceBuilder::addDiscoveryService
++m [function] IInstanceBuilder::addDiscoveryServer
+-m [function] IInstanceBuilder::getDiscoveryServices
++m [function] IInstanceBuilder::getDiscoveryServers
+
 17.06.2024
 Description
   - Add StreamingType object

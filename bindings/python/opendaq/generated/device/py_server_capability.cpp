@@ -108,4 +108,12 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         },
         py::return_value_policy::take_ownership,
         "Gets the device's list of addresses with the current protocol.");
+    cls.def_property_readonly("port",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getPort().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the port of the device with the current protocol.");
 }

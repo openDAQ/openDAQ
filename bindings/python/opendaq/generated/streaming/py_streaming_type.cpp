@@ -35,7 +35,15 @@ PyDaqIntf<daq::IStreamingType, daq::IComponentType> declareIStreamingType(pybind
 
 void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, daq::IComponentType> cls)
 {
-    cls.doc() = "Provides information about the Streaming.";
+    cls.doc() = "Provides information on what streaming type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device, or establishing a new streaming connection.";
 
     m.def("StreamingType", &daq::StreamingType_Create);
+
+    cls.def_property_readonly("connection_string_prefix",
+        [](daq::IStreamingType *object)
+        {
+            const auto objectPtr = daq::StreamingTypePtr::Borrow(object);
+            return objectPtr.getConnectionStringPrefix().toStdString();
+        },
+        "");
 }

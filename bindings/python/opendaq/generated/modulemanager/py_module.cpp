@@ -154,5 +154,5 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.getAvailableStreamingTypes().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Returns a dictionary of known and available streaming types that this module (client) can create.");
 }

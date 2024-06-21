@@ -275,20 +275,20 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::arg("flag"),
         "Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.");
-    cls.def_property_readonly("discovery_services",
+    cls.def_property_readonly("discovery_servers",
         [](daq::IInstanceBuilder *object)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            return objectPtr.getDiscoveryServices().detach();
+            return objectPtr.getDiscoveryServers().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictionary of discovery services");
-    cls.def("add_discovery_service",
-        [](daq::IInstanceBuilder *object, const std::string& serviceName)
+        "Gets the dictionary of discovery servers");
+    cls.def("add_discovery_server",
+        [](daq::IInstanceBuilder *object, const std::string& serverName)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.addDiscoveryService(serviceName);
+            objectPtr.addDiscoveryServer(serverName);
         },
-        py::arg("service_name"),
-        "Adds a discovery service to the context");
+        py::arg("server_name"),
+        "Adds a discovery server to the context");
 }

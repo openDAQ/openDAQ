@@ -81,7 +81,7 @@ static std::string defineLocalId(const std::string& localId)
     return boost::uuids::to_string(uuidBoost);
 }
 
-static DiscoveryServerPtr createDiscoveryService(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
 {
     if (serviceName == "mdns")
         return MdnsDiscoveryServer(logger);
@@ -128,15 +128,15 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
-    auto discoveryServices = Dict<IString, IDiscoveryServer>();
-    for (const auto& serviceName : builderPtr.getDiscoveryServices())
+    auto discoveryServers = Dict<IString, IDiscoveryServer>();
+    for (const auto& serviceName : builderPtr.getDiscoveryServers())
     {
-        auto service = createDiscoveryService(serviceName, logger);
+        auto service = createDiscoveryServer(serviceName, logger);
         if (service.assigned())
-            discoveryServices.set(serviceName, service);
+            discoveryServers.set(serviceName, service);
     }
 
-    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices);
+    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
 }
 
 void InstanceImpl::stopServers()

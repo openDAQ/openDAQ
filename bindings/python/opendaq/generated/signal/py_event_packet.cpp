@@ -39,6 +39,7 @@ void defineIEventPacket(pybind11::module_ m, PyDaqIntf<daq::IEventPacket, daq::I
 
     m.def("EventPacket", &daq::EventPacket_Create);
     m.def("DataDescriptorChangedEventPacket", &daq::DataDescriptorChangedEventPacket_Create);
+    m.def("ImplicitDomainGapDetectedEventPacket", &daq::ImplicitDomainGapDetectedEventPacket_Create);
 
     cls.def_property_readonly("event_id",
         [](daq::IEventPacket *object)

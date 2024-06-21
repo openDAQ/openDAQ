@@ -26,13 +26,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates an input port.
- * @param context The Context. Most often the creating function-block passes its own Context to the Folder.
- * @param parent The parent component.
- * @param localId The local ID of the component.
+ * @param context The Context. Most often the creating device passes its own Context to the Folder.
  */
-inline SyncComponentPtr SyncComponent()
+inline SyncComponentPtr SyncComponent(const ContextPtr& context)
 {
-    return { SyncComponent_Create() };
+    return { SyncComponent_Create(context) };
 }
 
 /*!@}*/

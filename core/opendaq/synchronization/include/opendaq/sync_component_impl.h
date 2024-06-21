@@ -33,7 +33,7 @@ class SyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 public:
     using Super = GenericPropertyObjectImpl<ISyncComponent>;
 
-    explicit SyncComponentImpl();
+    explicit SyncComponentImpl(const ContextPtr& context);
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC test() override;
@@ -60,6 +60,8 @@ protected:
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
+
+    ContextPtr context;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)

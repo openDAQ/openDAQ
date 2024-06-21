@@ -19,6 +19,7 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

@@ -299,6 +299,19 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
     return defaultConfig;
 }
 
+PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context)
+{
+    const auto defConfig = createDefaultConfig(context);
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 {
     auto discoveryConfig = PropertyObject();

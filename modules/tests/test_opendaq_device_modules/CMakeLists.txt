@@ -2,6 +2,7 @@ set(TEST_APP test_device_modules)
 
 set(TEST_SOURCES test_native_device_modules.cpp
                  test_opcua_device_modules.cpp
+                 test_default_config.cpp
                  test_app.cpp
                  test_helpers/test_helpers.h
                  test_helpers/mock_helper_module.h
@@ -26,6 +27,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opcuatms_client
+                                          daq::native_stream_cl_module
                                           daq::opendaq_mocks
 )
 

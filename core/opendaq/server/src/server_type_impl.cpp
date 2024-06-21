@@ -16,12 +16,22 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
 {
 }
 
+ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
+    : ServerTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig())
+{
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ServerType,
-    IString*, id,
-    IString*, name,
-    IString*, description,
-    IPropertyObject*, defaultConfig
-)
+    LIBRARY_FACTORY,
+    ServerType,
+    IString*,
+    id,
+    IString*,
+    name,
+    IString*,
+    description,
+    IPropertyObject*,
+    defaultConfig
+    )
 
 END_NAMESPACE_OPENDAQ

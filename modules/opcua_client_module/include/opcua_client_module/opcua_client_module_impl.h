@@ -18,6 +18,7 @@
 #include <opcua_client_module/common.h>
 #include <opendaq/module_impl.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -35,10 +36,11 @@ public:
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
+    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
     static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;

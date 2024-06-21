@@ -19,6 +19,7 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,9 +52,9 @@ inline DeviceTypePtr DeviceType(const StringPtr& id,
 inline StructTypePtr DeviceTypeStructType()
 {
     return StructType("deviceType",
-                      List<IString>("id", "name", "description"),
-                      List<IString>("", "", ""),
-                      List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString)));
+                      List<IString>("id", "name", "description", "prefix"),
+                      List<IString>("", "", "", ""),
+                      List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }
 
 /*!@}*/

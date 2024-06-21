@@ -15,6 +15,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ComponentStatusContainer component_status_container.h)
     rtgen(SRC_ComponentStatusContainerPrivate component_status_container_private.h)
     rtgen(SRC_ComponentHolder component_holder.h)
+    rtgen(SRC_ComponentTypeBuilder component_type_builder.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
@@ -32,6 +33,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentStatusContainer_PublicHeaders}
         ${SRC_ComponentStatusContainerPrivate_PublicHeaders}
         ${SRC_ComponentHolder_PublicHeaders}
+        ${SRC_ComponentTypeBuilder_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -112,6 +114,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/component_holder_impl.h
         ${SDK_SRC_DIR}/component_holder_impl.cpp
     )
+    
+    source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type_builder.h
+                                    ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+    )
 endfunction()
 
 set(SRC_PublicHeaders_Component 
@@ -133,6 +139,7 @@ set(SRC_PublicHeaders_Component
     component_holder_factory.h
     component_errors.h
     component_exceptions.h
+    component_type_builder_factory.h
     PARENT_SCOPE
 )
 

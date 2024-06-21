@@ -67,16 +67,16 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifacts for Windows x64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.windows_x64_artifact }}
           path: ${{ env.nuget_work_path_win_x64 }}
 
       - name: Download artifacts for Linux
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
           path: ${{ env.nuget_work_path_linux_x64 }}
@@ -115,14 +115,14 @@ jobs:
         # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
 
       - name: Upload package (openDAQ.Net NuGet)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.nuget_artifact }}
           path: ${{ env.nuget_work_path }}/win-x64/openDAQ.Net.*.nupkg
           retention-days: 7
 
       - name: Delete no longer needed artifacts
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             ${{ env.windows_x64_artifact }}
@@ -156,10 +156,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download NuGet package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.nuget_artifact }}
           path: ${{ env.nuget_work_path_win_x64 }}
@@ -188,7 +188,7 @@ jobs:
 
       - name: Upload NuGet package test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (openDAQ.Net NuGet)
           path: ${{ env.test_path }}

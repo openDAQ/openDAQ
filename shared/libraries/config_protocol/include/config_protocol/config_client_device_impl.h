@@ -51,6 +51,12 @@ public:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     uint64_t onGetTicksSinceOrigin() override;
 
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    void onRemoveDevice(const DevicePtr& device) override;
+    PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -121,6 +127,35 @@ uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
 {
     uint64_t ticks = this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetTicksSinceOrigin");
     return ticks;
+}
+
+template <class TDeviceBase>
+ListPtr<IDeviceInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDevices()
+{
+    return List<IDeviceInfo>();
+}
+
+template <class TDeviceBase>
+DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDeviceTypes()
+{
+    return Dict<IString, IDeviceType>();
+}
+
+template <class TDeviceBase>
+DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotImplementedException{};
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& /*device*/)
+{
+}
+
+template <class TDeviceBase>
+PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
+{
+    return PropertyObject();
 }
 
 template <class TDeviceBase>

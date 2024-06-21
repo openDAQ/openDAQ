@@ -73,6 +73,8 @@ public:
     virtual DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
     virtual void onRemoveDevice(const DevicePtr& device);
 
+    virtual PropertyObjectPtr onCreateDefaultAddDeviceConfig();
+
     // IDevice
     ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
     ErrCode INTERFACE_FUNC getDomain(IDeviceDomain** deviceDomain) override;
@@ -99,6 +101,7 @@ public:
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
     ErrCode INTERFACE_FUNC getDevices(IList** subDevices, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
@@ -812,6 +815,16 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& d
     this->devices.removeItem(device);
 }
 
+template <typename TInterface, typename ... Interfaces>
+PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDeviceConfig()
+{
+    PropertyObjectPtr obj;
+    const ModuleManagerUtilsPtr manager = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    checkErrorInfo(manager->createDefaultAddDeviceConfig(&obj));
+
+    return obj;
+}
+
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices, ISearchFilter* searchFilter)
 {
@@ -834,6 +847,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices,
     }
 
     return devices->getItems(subDevices, searchFilter);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    auto defaultConfigPtr = PropertyObject();
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onCreateDefaultAddDeviceConfig, defaultConfigPtr);
+
+    *defaultConfig = defaultConfigPtr.detach();
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

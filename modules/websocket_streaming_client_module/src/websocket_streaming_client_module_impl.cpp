@@ -4,6 +4,7 @@
 #include <chrono>
 #include <websocket_streaming/websocket_client_device_factory.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
+#include <opendaq/streaming_type_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <regex>
 
@@ -82,9 +83,20 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
     return result;
 }
 
+DictPtr<IString, IStreamingType> WebsocketStreamingClientModule::onGetAvailableStreamingTypes()
+{
+    auto result = Dict<IString, IStreamingType>();
+
+    auto websocketStreamingType = createWebsocketStreamingType();
+
+    result.set(websocketStreamingType.getId(), websocketStreamingType);
+
+    return result;
+}
+
 DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
-                                                const ComponentPtr& parent,
-                                                const PropertyObjectPtr& config)
+                                                         const ComponentPtr& parent,
+                                                         const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
@@ -98,10 +110,13 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     // We don't create any streaming objects here since the
     // internal streaming object is always created within the device
 
+    const StringPtr strPtr = formConnectionString(connectionString, config);
+    const std::string str = strPtr;
+
     std::scoped_lock lock(sync);
 
     std::string localId = fmt::format("websocket_pseudo_device{}", deviceIndex++);
-    auto device = WebsocketClientDevice(context, parent, localId, connectionString);
+    auto device = WebsocketClientDevice(context, parent, localId, strPtr);
 
     // Set the connection info for the device
     auto host = String("");
@@ -109,8 +124,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     {
         std::smatch match;
         auto regexpConnectionString = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
-        std::string connectionStringStr = connectionString;
-        if (std::regex_search(connectionStringStr, match, regexpConnectionString))
+        if (std::regex_search(str, match, regexpConnectionString))
         {
             host = match[2].str();
             port = 7414;
@@ -128,7 +142,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     connectionInfo.addAddress(host);
     connectionInfo.setPort(port);
     connectionInfo.setPrefix("daq.lt");
-    connectionInfo.setConnectionString(connectionString);
+    connectionInfo.setConnectionString(strPtr);
 
     return device;
 }
@@ -157,7 +171,8 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
-    return WebsocketStreaming(connectionString, context);
+    const StringPtr str = formConnectionString(connectionString, config);
+    return WebsocketStreaming(str, context);
 }
 
 StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
@@ -197,9 +212,72 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
 
 DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
 {
-    return DeviceType(WebsocketDeviceTypeId,
-                      "Websocket enabled device",
-                      "Pseudo device, provides only signals of the remote device as flat list");
+    return DeviceTypeBuilder()
+        .setId(WebsocketDeviceTypeId)
+        .setName("Streaming LT enabled pseudo-device")
+        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+        .setConnectionStringPrefix("daq.lt")
+        .setDefaultConfig(createDefaultConfig())
+        .build();
+}
+
+StreamingTypePtr WebsocketStreamingClientModule::createWebsocketStreamingType()
+{
+    return StreamingTypeBuilder()
+        .setId(WebsocketDeviceTypeId)
+        .setName("Streaming LT")
+        .setDescription("openDAQ native streaming protocol client")
+        .setConnectionStringPrefix("daq.lt")
+        .setDefaultConfig(createDefaultConfig())
+        .build();
+}
+
+PropertyObjectPtr WebsocketStreamingClientModule::createDefaultConfig()
+{
+    auto obj = PropertyObject();
+    obj.addProperty(IntProperty("Port", 7414));
+    return obj;
+}
+
+StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    if (!config.assigned() || !config.hasProperty("Port"))
+        return connectionString;
+
+    int port = config.getPropertyValue("Port");
+    if (port == 7414)
+        return connectionString;
+
+    std::string urlString = connectionString.toStdString();
+
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+    std::smatch match;
+
+    std::string host = "";
+    std::string target = "/";
+    std::string prefix = "";
+    std::string path = "";
+
+    bool parsed = false;
+    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    if (!parsed)
+    {
+        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+    }
+
+    if (parsed)
+    {
+        prefix = match[1];
+        host = match[2];
+        
+        if (match[4].matched)
+            path = match[4];
+
+        return prefix + host + ":" + std::to_string(port) + "/" + path;
+    }
+
+    return connectionString;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

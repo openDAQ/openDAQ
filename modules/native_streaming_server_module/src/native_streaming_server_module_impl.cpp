@@ -34,10 +34,13 @@ ServerPtr NativeStreamingServerModule::onCreateServer(StringPtr serverType,
     if (!context.assigned())
         throw InvalidParameterException{"Context parameter cannot be null."};
 
-    if (!serverConfig.assigned())
-        serverConfig = NativeStreamingServerImpl::createDefaultConfig(context);
+    PropertyObjectPtr config = serverConfig;
+    if (!config.assigned())
+        config = NativeStreamingServerImpl::createDefaultConfig(context);
+    else
+        config = NativeStreamingServerImpl::populateDefaultConfig(config, context);
 
-    ServerPtr server(NativeStreamingServer_Create(rootDevice, serverConfig, context));
+    ServerPtr server(NativeStreamingServer_Create(rootDevice, config, context));
     return server;
 }
 

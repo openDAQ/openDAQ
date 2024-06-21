@@ -92,6 +92,8 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     PropertyObjectPtr config = aConfig;
     if (!config.assigned())
         config = createDefaultConfig();
+    else
+        config = populateDefaultConfig(config);
 
     if (!onAcceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
@@ -99,17 +101,13 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
 
-    auto parsedConnection = ParseConnectionString(connectionString);
-    auto prefix = std::get<0>(parsedConnection);
-    auto host = std::get<1>(parsedConnection);
-    auto port = std::get<2>(parsedConnection);
-    auto path = std::get<3>(parsedConnection);
-    if (prefix != DaqOpcUaDevicePrefix)
-        throw InvalidParameterException("OpcUa does not support connection string with prefix " + prefix);
+    std::string host;
+    int port;
+    auto formedConnectionString = formConnectionString(connectionString, config, host, port);
 
     std::scoped_lock lock(sync);
 
-    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + ":" + port + path);
+    auto endpoint = OpcUaEndpoint(formedConnectionString);
 
     if (config.assigned())
     {
@@ -131,7 +129,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     connectionInfo.setProtocolType(ProtocolType::Configuration);
     connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
-    connectionInfo.setPort(std::stoi(port));
+    connectionInfo.setPort(port);
     connectionInfo.setPrefix("daq.opcua");
     connectionInfo.setConnectionString(connectionString);
 
@@ -150,31 +148,61 @@ void OpcUaClientModule::completeDeviceServerCapabilities(const DevicePtr& device
     }
 }
 
-// {prefix://}{hostname}:{port}{/path}
-std::tuple<std::string, std::string, std::string, std::string> OpcUaClientModule::ParseConnectionString(const StringPtr& connectionString)
+PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
 {
-    std::string port = "4840";
-    std::string target = "/";
+    const auto defConfig = createDefaultConfig();
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
+StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port)
+{
+    if (config.assigned() && config.hasProperty("Port"))
+    {
+        port = config.getPropertyValue("Port");
+    }
+
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
+
+    std::string target = "/";
+    std::string prefix = "";
+    std::string path = "";
 
     bool parsed = false;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
     if (!parsed)
+    {
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+    }
 
-    if (!parsed)
+    if (parsed)
+    {
+        prefix = match[1];
+        host = match[2];
+
+        if (match[3].matched && port == 4840)
+            port = std::stoi(match[3]);
+
+        if (match[4].matched)
+            path = match[4];
+    }
+    else
         throw InvalidParameterException("Host name not found in url: {}", connectionString);
 
-    if (match[3].matched)
-        port = match[3];
-    if (match[4].matched)
-        target = match[4];
+    if (prefix != DaqOpcUaDevicePrefix)
+        throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
 
-    return {match[1], match[2], port, target};
+    return OpcUaScheme + host + ":" + std::to_string(port) + "/" + path;
 }
 
 bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
@@ -189,8 +217,13 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
 {
-    const auto config = createDefaultConfig();
-    return DeviceType(DaqOpcUaDeviceTypeId, "OpcUa enabled device", "Network device connected over OpcUa protocol", config);
+    return DeviceTypeBuilder()
+        .setId(DaqOpcUaDeviceTypeId)
+        .setName("OpcUa enabled device")
+        .setDescription("Network device connected over OpcUa protocol")
+        .setConnectionStringPrefix("daq.opcua")
+        .setDefaultConfig(createDefaultConfig())
+        .build();
 }
 
 PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
@@ -199,6 +232,7 @@ PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
 
     config.addProperty(StringProperty("Username", ""));
     config.addProperty(StringProperty("Password", ""));
+    config.addProperty(IntProperty("Port", 4840));
 
     return config;
 }

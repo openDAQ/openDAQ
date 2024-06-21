@@ -135,4 +135,9 @@ ErrCode MockFunctionBlockModuleImpl::createConnectionString(IString** /*connecti
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
+daq::ErrCode MockFunctionBlockModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockFunctionBlockModule, IModule, IContext*, ctx)

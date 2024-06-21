@@ -259,6 +259,20 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
+    /*!
+     * @brief Creates config object that can be used when adding a device. Contains Device and Streaming default configuration
+     * for all available Device/Streaming types. Also contains general add-device configuration settings.
+     * @param[out] defaultConfig The configuration object containing default settings for adding a device.
+     *
+     * The default config object is organized to always have 3 object-type properties:
+     *   - "General" Contains general properties such as "AutomaticallyConnectStreaming"
+     *   - "Device": Contains a child object-type property for each available device type, with the key of each property
+     *     being the ID of the device type. These can be configured to customize the `addDevice` call when using
+     *     connecting to the selected device type (eg. via the native or OPC UA protocols).
+     *   - "Streaming": Same as device, but used to configure each individual streaming connection established
+     *     when calling `addDevice`.
+     */
+    virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 };
 /*!@}*/
 

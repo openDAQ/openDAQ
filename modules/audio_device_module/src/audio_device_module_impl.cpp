@@ -74,7 +74,7 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     std::scoped_lock lock(sync);
 
-    std::string localId = fmt::format("miniaudiodev{}", deviceIndex++);
+    std::string localId = fmt::format("MiniAudioDev{}", deviceIndex++);
 
     auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(maContext, id, context, parent, StringPtr(localId));
     return devicePtr;

@@ -582,7 +582,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.reserve(device.properties.size() + 3);
 
                 records.push_back(createSrvRecord(device));
-                if (serviceAddressIpv4.sin_family == AF_INET)
+                if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
                     records.push_back(createAaaaRecord(device));
@@ -600,28 +600,24 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 2);
 
-                if (serviceAddressIpv4.sin_family == AF_INET)
+                if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
                     records.push_back(createAaaaRecord(device));
-                device.populateRecords(records);
 
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
         else if (name == device.serviceQualified) 
         {
-            if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET)) 
+            if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET) && from->sa_family == AF_INET) 
             {
                 mdns_record_t answer = createARecord(device);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 1);
 
-                if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(answer);
-                device.populateRecords(records);
-
+                records.push_back(answer);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
             else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
@@ -631,10 +627,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 std::vector<mdns_record_t> records;
                 records.reserve(device.properties.size() + 1);
 
-                if (serviceAddressIpv4.sin_family == AF_INET)
-                    records.push_back(answer);
-                device.populateRecords(records);
-
+                records.push_back(answer);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }

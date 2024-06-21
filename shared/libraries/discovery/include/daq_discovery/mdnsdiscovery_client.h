@@ -185,7 +185,7 @@ inline void MDNSDiscoveryClient::setDiscoveryDuration(std::chrono::milliseconds 
 
 inline void MDNSDiscoveryClient::setupQuery()
 {
-    std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR, MDNS_RECORDTYPE_SRV, MDNS_RECORDTYPE_A, MDNS_RECORDTYPE_AAAA};
+    std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR};
     query.resize(serviceNames.size() * types.size());
     for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)
     {
@@ -411,11 +411,6 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
 
     auto it = devicesMap.insert({deviceAddr, DeviceData{}});
     DeviceData& deviceData = it.first->second;
-
-    if (from->sa_family == AF_INET6 && deviceData.AAAA.empty())
-        deviceData.AAAA = deviceAddrNoPort;
-    else if (from->sa_family == AF_INET && deviceData.A.empty())
-        deviceData.A = deviceAddrNoPort;
 
     if (rtype == MDNS_RECORDTYPE_PTR)
     {

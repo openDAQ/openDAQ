@@ -54,12 +54,15 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 }
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
+                if (discoveredDevice.servicePort > 0)
+                    cap.setPort(discoveredDevice.servicePort);
                 return cap;
             }
         },
         {"OPENDAQ"}
     )
 {
+    loggerComponent = this->context.getLogger().getOrAddComponent("OpcUaClient");
     discoveryClient.initMdnsClient(List<IString>("_opcua-tcp._tcp.local."));
 }
 
@@ -119,7 +122,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
-    completeDeviceServerCapabilities(device, host);
+    completeServerCapabilities(device, host);
 
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
@@ -136,14 +139,15 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     return device;
 }
 
-void OpcUaClientModule::completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
+void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
 {
     auto deviceInfo = device.getInfo();
     if (deviceInfo.assigned())
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
-            capability.asPtr<IServerCapabilityConfig>().addAddress(deviceAddress);
+            if (capability.getConnectionType() == "TCP/IP")
+                capability.asPtr<IServerCapabilityConfig>().addAddress(deviceAddress);
         }
     }
 }
@@ -256,7 +260,10 @@ StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr&
 
     auto port = serverCapability.getPort();
     if (port == -1)
-        throw InvalidParameterException("Port is not set");
+    {
+        port = 4840;
+        LOG_W("OPC UA server capability is missing port. Defaulting to 4840.")
+    }
 
     return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }

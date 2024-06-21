@@ -71,9 +71,10 @@ void WebsocketStreamingServer::stop()
 {
     if (this->device.assigned())
     {
-         const auto info = this->device.getInfo().asPtr<IDeviceInfoInternal>();
+         const auto info = this->device.getInfo();
+         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
          if (info.hasServerCapability("opendaq_lt_streaming"))
-             info.removeServerCapability("opendaq_lt_streaming");
+             infoInternal.removeServerCapability("opendaq_lt_streaming");
     }
 
     stopInternal();

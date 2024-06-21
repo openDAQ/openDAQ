@@ -1,4 +1,9 @@
 21.06.2024
+- [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
++ [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)
++ [function] IDeviceInfo::getServerCapability(IString* protocolId, IServerCapability** capability)
+
+21.06.2024
 -m [function] IInstanceBuilder::addDiscoveryService
 +m [function] IInstanceBuilder::addDiscoveryServer
 -m [function] IInstanceBuilder::getDiscoveryServices

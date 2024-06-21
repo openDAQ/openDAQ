@@ -103,6 +103,7 @@ public:
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
     ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
+    ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** capability) override;
 
     ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) override;
 

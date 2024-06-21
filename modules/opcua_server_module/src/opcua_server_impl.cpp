@@ -84,9 +84,10 @@ void OpcUaServerImpl::onStopServer()
     server.stop();
     if (this->rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        const auto info = this->rootDevice.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("opendaq_opcua_config"))
-            info.removeServerCapability("opendaq_opcua_config");
+            infoInternal.removeServerCapability("opendaq_opcua_config");
     }
 }
 

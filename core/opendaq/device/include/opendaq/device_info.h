@@ -265,6 +265,21 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * If the connection to the server is not established, the fields of the server capability object are empty.
      */
     virtual ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) = 0;
+
+     /*!
+     * @brief Checks whether the server capability with a given ID is available.
+     * @param protocolId The ID of the server capability protocol.
+     * @param[out] hasCapability True if the protocol is available; False otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) = 0;
+
+    /*!
+     * @brief Gets the server capability with a given ID.
+     * @param protocolId The ID of the server capability protocol.
+     * @param[out] serverCapability The server capability with the given ID.
+     * @retval OPENDAQ_ERR_NOTFOUND if the server capability is not available.
+     */
+    virtual ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** serverCapability) = 0;
 };
 /*!@}*/
 

@@ -444,7 +444,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v3.0
+        uses: benjlevesque/short-sha@v2.2 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
       - name: Rename Wheels (main)
         working-directory: ${{ env.wheels_path }}

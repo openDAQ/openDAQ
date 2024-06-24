@@ -31,7 +31,8 @@ public:
     explicit FunctionBlockTypeImpl(const StringPtr& id,
                                    const StringPtr& name,
                                    const StringPtr& description,
-                                   const PropertyObjectPtr& defaultConfig);
+                                   const PropertyObjectPtr& defaultConfig,
+                                   const ListPtr<IString>& altIds = nullptr);
 
     explicit FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder);
 
@@ -47,13 +48,14 @@ public:
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& name,
                                                     const StringPtr& description,
-                                                    const PropertyObjectPtr& defaultConfig)
-    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig)
+                                                    const PropertyObjectPtr& defaultConfig,
+                                                    const ListPtr<IString>& altIds)
+    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig, altIds)
 {
 }
 
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
-    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig())
+    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getAltIds())
 {
 }
 

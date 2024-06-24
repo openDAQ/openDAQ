@@ -47,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setAltIds(IList* altIds) override;
+    ErrCode INTERFACE_FUNC getAltIds(IList** altIds) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -54,6 +57,7 @@ private:
     StringPtr prefix;
     StringPtr description;
     PropertyObjectPtr defaultConfig;
+    ListPtr<IString> altIds;
 };
 
 END_NAMESPACE_OPENDAQ

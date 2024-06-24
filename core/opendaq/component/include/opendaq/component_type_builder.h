@@ -164,6 +164,23 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [templateType(altIds, IString)]
+    // [returnSelf]
+    /*!
+     * @brief Sets the alternative unique component type ids.
+     * @param id The alternative unique ids of a component type.
+     *
+     */
+    virtual ErrCode INTERFACE_FUNC setAltIds(IList* altIds) = 0;
+
+    // [templateType(altIds, IString)]
+    /*!
+     * @brief Gets the alternative unique component type ids.
+     * @param[out] id The alternative unique ids of a component type.
+     *
+     */
+    virtual ErrCode INTERFACE_FUNC getAltIds(IList** altIds) = 0;
 };
 /*!@}*/
 

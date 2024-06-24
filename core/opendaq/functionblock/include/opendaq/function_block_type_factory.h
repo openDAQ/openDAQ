@@ -39,9 +39,10 @@ BEGIN_NAMESPACE_OPENDAQ
 inline FunctionBlockTypePtr FunctionBlockType(const StringPtr& id,
                                               const StringPtr& name,
                                               const StringPtr& description,
-                                              const PropertyObjectPtr& defaultConfig = PropertyObject())
+                                              const PropertyObjectPtr& defaultConfig = PropertyObject(),
+                                              const ListPtr<IString> altIds = nullptr)
 {
-    FunctionBlockTypePtr obj(FunctionBlockType_Create(id, name, description, defaultConfig));
+    FunctionBlockTypePtr obj(FunctionBlockType_Create(id, name, description, defaultConfig, altIds));
     return obj;
 }
 

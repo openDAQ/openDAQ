@@ -49,10 +49,7 @@ FunctionBlockTypePtr TriggerFbImpl::CreateType()
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("RefFBModuleTrigger",
-                             "Trigger",
-                             "Trigger",
-                             defaultConfig);
+    return FunctionBlockType("RefFBModuleTrigger", "Trigger", "Trigger", defaultConfig, {"ref_fb_module_trigger"});
 }
 
 void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

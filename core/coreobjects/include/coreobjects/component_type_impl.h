@@ -34,19 +34,22 @@ public:
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const PropertyObjectPtr& defaultConfig);
+                                      const PropertyObjectPtr& defaultConfig,
+                                      const ListPtr<IString>& altIds = nullptr);
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const StringPtr& prefix,
-                                      const PropertyObjectPtr& defaultConfig);
+                                      const PropertyObjectPtr& defaultConfig,
+                                      const ListPtr<IString>& altIds = nullptr);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
+    ErrCode INTERFACE_FUNC getAltIds(IList** altIds) override;
 
 protected:
     StringPtr id;
@@ -54,6 +57,7 @@ protected:
     StringPtr description;
     StringPtr prefix;
     PropertyObjectPtr defaultConfig;
+    ListPtr<IString> altIds;
 };
 
 template <class Intf, class... Interfaces>
@@ -61,14 +65,16 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
-                                                                        const PropertyObjectPtr& defaultConfig)
+                                                                        const PropertyObjectPtr& defaultConfig,
+                                                                        const ListPtr<IString>& altIds)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
+          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"AltIds", altIds}}))
     , id(id)
     , name(name)
     , description(description)
     , prefix("")
     , defaultConfig(defaultConfig)
+    , altIds(altIds)
 {
 }
 
@@ -78,14 +84,17 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
-                                                                        const PropertyObjectPtr& defaultConfig)
+                                                                        const PropertyObjectPtr& defaultConfig,
+                                                                        const ListPtr<IString>& altIds)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
+          type,
+          Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}, {"AltIds", altIds}}))
     , id(id)
     , name(name)
     , description(description)
     , prefix(prefix)
     , defaultConfig(defaultConfig)
+    , altIds(altIds)
 {
 }
 
@@ -125,6 +134,15 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createDefaultConfig(IProp
         return this->defaultConfig.template asPtr<IPropertyObjectInternal>()->clone(defaultConfig);
 
     *defaultConfig = nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAltIds(IList** altIds)
+{
+    OPENDAQ_PARAM_NOT_NULL(altIds);
+
+    *altIds = this->altIds.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

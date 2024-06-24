@@ -90,9 +90,9 @@ function(create_component_source_groups_${BASE_NAME})
     
     source_group("reader//stream" FILES 
         ${SDK_HEADERS_DIR}/stream_reader.h
-        ${SDK_HEADERS_DIR}/stream_reader_builder.h
         ${SDK_HEADERS_DIR}/stream_reader_ptr.h
         ${SDK_HEADERS_DIR}/stream_reader_impl.h
+        ${SDK_HEADERS_DIR}/stream_reader_builder.h
         ${SDK_HEADERS_DIR}/stream_reader_builder_impl.h
         ${SDK_SRC_DIR}/stream_reader_impl.cpp
         ${SDK_SRC_DIR}/stream_reader_builder_impl.cpp
@@ -150,6 +150,7 @@ set(SRC_PublicHeaders_Component
 
 set(SRC_PrivateHeaders_Component
     stream_reader_impl.h
+    stream_reader_builder_impl.h
     block_reader_impl.h
     block_reader_builder_impl.h
     tail_reader_impl.h
@@ -165,6 +166,7 @@ set(SRC_PrivateHeaders_Component
 
 set(SRC_Cpp_Component 
     stream_reader_impl.cpp
+    stream_reader_builder_impl.cpp
     block_reader_impl.cpp
     block_reader_builder_impl.cpp
     tail_reader_impl.cpp

@@ -1,3 +1,5 @@
+#include <opendaq/stream_reader_impl.h>
+
 #include <coreobjects/ownable_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
@@ -5,9 +7,6 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
-#include <opendaq/reader_factory.h>
-#include <opendaq/stream_reader_impl.h>
-
 
 #include <coretypes/function.h>
 #include <coretypes/validation.h>
@@ -21,11 +20,9 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
                                    SampleType valueReadType,
                                    SampleType domainReadType,
                                    ReadMode mode,
-                                   ReadTimeoutType timeoutType,
-                                   Bool skipEvents)
+                                   ReadTimeoutType timeoutType)
     : readMode(mode)
     , timeoutType(timeoutType)
-    , skipEvents(skipEvents)
 {
     if (!signal.assigned())
         throw ArgumentNullException("Signal must not be null");
@@ -41,29 +38,19 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
                                    SampleType valueReadType,
                                    SampleType domainReadType,
                                    ReadMode mode,
-                                   ReadTimeoutType timeoutType,
-                                   Bool skipEvents)
+                                   ReadTimeoutType timeoutType)
     : readMode(mode)
     , timeoutType(timeoutType)
-    , portBinder(PropertyObject())
-    , skipEvents(skipEvents)
 {
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
-    
-    inputPort = port;
-    if (inputPort.getConnection().assigned())
-        throw InvalidParameterException("Signal has to be connected to port after reader is created");
-
-    inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     valueReader = createReaderForType(valueReadType, nullptr);
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
 
-    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    connectInputPort(port);
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -120,25 +107,34 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
-    : readMode(builder.getReadMode())
-    , timeoutType(builder.getReadTimeoutType())
-    , skipEvents(builder.getSkipEvents())
 {
-    inputPort = builder.getInputPort();
-    if (inputPort.assigned())
-    {
-        if (inputPort.getConnection().assigned())
-            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+    if (!builder.assigned())
+        throw ArgumentNullException("Builder must not be null");
+    
+    readMode = builder.getReadMode();
+    timeoutType = builder.getReadTimeoutType();
+    skipEvents = builder.getSkipEvents();
 
-        inputPort.asPtr<IOwnable>().setOwner(portBinder);
-    }
-    else
-    {
-
-    }
     valueReader = createReaderForType(builder.getValueReadType(), nullptr);
     domainReader = createReaderForType(builder.getDomainReadType(), nullptr);
+
     this->internalAddRef();
+
+    if (auto port = builder.getInputPort(); port.assigned())
+    {
+        if (port.getConnection().assigned())
+            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+        connectInputPort(port);
+    }
+    else if (auto signal = builder.getSignal(); signal.assigned())
+    {
+        connectSignal(builder.getSignal());
+    }
+    else 
+    {
+        throw ArgumentNullException("Signal or port must be set");
+    }
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -176,6 +172,19 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
 
     inputPort.connect(signal);
+}
+
+void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
+{
+    inputPort = port;
+    if (inputPort.getConnection().assigned())
+        throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+    portBinder = PropertyObject();
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
+
+    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
@@ -655,8 +664,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,
-    ReadTimeoutType, timeoutType,
-    Bool, skipEvents
+    ReadTimeoutType, timeoutType
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
@@ -666,8 +674,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,
-    ReadTimeoutType, timeoutType,
-    Bool, skipEvents
+    ReadTimeoutType, timeoutType
 )
 
 OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
@@ -676,5 +683,11 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, valueReadType,
     SampleType, domainReadType
 )
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createStreamReaderFromBuilder(IStreamReader** objTmp, IStreamReaderBuilder* builder)
+{
+    return daq::createObject<IStreamReader, StreamReaderImpl>(objTmp, builder);
+}
 
 END_NAMESPACE_OPENDAQ

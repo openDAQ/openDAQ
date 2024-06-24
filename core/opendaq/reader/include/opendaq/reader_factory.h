@@ -14,23 +14,28 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/stream_reader_ptr.h>
-#include <opendaq/block_reader_ptr.h>
-#include <opendaq/tail_reader_ptr.h>
-#include <opendaq/packet_reader_ptr.h>
 #include <opendaq/context_ptr.h>
-#include <opendaq/input_port_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
+
 #include <opendaq/reader_status_ptr.h>
-#include <opendaq/block_reader_status_ptr.h>
-#include <opendaq/tail_reader_status_ptr.h>
-#include <opendaq/multi_reader_status_ptr.h>
-#include <opendaq/multi_reader_builder_ptr.h>
+
+#include <opendaq/block_reader_ptr.h>
 #include <opendaq/block_reader_builder_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
+
+#include <opendaq/multi_reader_ptr.h>
+#include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/multi_reader_status_ptr.h>
+
+#include <opendaq/stream_reader_ptr.h>
 #include <opendaq/stream_reader_builder_ptr.h>
+
+#include <opendaq/tail_reader_ptr.h>
+#include <opendaq/tail_reader_status_ptr.h>
+
+#include <opendaq/packet_reader_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -96,10 +101,9 @@ inline StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port,
                                     SampleType valueReadType,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
-                                    ReadTimeoutType timeoutType = ReadTimeoutType::All,
-                                    Bool skipEvents = false)
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
-    return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType, skipEvents);
+    return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType);
 }
 
 /*!
@@ -114,10 +118,9 @@ inline StreamReaderPtr StreamReader(SignalPtr signal,
                                     SampleType valueReadType,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
-                                    ReadTimeoutType timeoutType = ReadTimeoutType::All,
-                                    Bool skipEvents = false)
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
-    return StreamReader_Create(signal, valueReadType, domainReadType, mode, timeoutType, skipEvents);
+    return StreamReader_Create(signal, valueReadType, domainReadType, mode, timeoutType);
 }
 
 /*!
@@ -131,15 +134,14 @@ inline StreamReaderPtr StreamReader(SignalPtr signal,
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
+StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
     return StreamReader(
         signal,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
         mode,
-        timeoutType,
-        skipEvents
+        timeoutType
     );
 }
 
@@ -154,15 +156,14 @@ StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType ti
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
+StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
     return StreamReader(
         signal,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType,
         ReadMode::Scaled,
-        timeoutType,
-        skipEvents
+        timeoutType
     );
 }
 
@@ -172,9 +173,9 @@ StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = Rea
  * @param signal The signal to read the data from.
  * @param timeoutType The type of time-out to use. See @see ReadTimeoutType.
  */
-inline StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Bool skipEvents = false)
+inline StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
-    return StreamReader<>(signal, mode, timeoutType, skipEvents);
+    return StreamReader<>(signal, mode, timeoutType);
 }
 
 /*!
@@ -212,6 +213,16 @@ StreamReaderPtr StreamReaderFromExisting(StreamReaderPtr invalidatedReader)
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );
+}
+
+inline StreamReaderBuilderPtr StreamReaderBuilder()
+{
+    return StreamReaderBuilder_Create();
+}
+
+inline StreamReaderPtr StreamReaderFromBuilder(const StreamReaderBuilderPtr& builder)
+{
+    return StreamReaderFromBuilder_Create(builder);
 }
 
 /*!

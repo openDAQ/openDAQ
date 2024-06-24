@@ -15,9 +15,9 @@
  */
 
 #pragma once
+#include <opendaq/stream_reader.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_ptr.h>
-#include <opendaq/stream_reader.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/input_port_factory.h>
@@ -25,10 +25,9 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
 #include <coreobjects/property_object_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/stream_reader_builder_ptr.h>
+#include <opendaq/reader_factory.h>
 
-#include <condition_variable>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,15 +39,13 @@ public:
                               SampleType valueReadType,
                               SampleType domainReadType,
                               ReadMode mode,
-                              ReadTimeoutType timeoutType,
-                              Bool skipEvents);
+                              ReadTimeoutType timeoutType);
     
     explicit StreamReaderImpl(IInputPortConfig* port,
                               SampleType valueReadType,
                               SampleType domainReadType,
                               ReadMode mode,
-                              ReadTimeoutType timeoutType,
-                              Bool skipEvents);
+                              ReadTimeoutType timeoutType);
 
     explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                               SampleType valueReadType,
@@ -102,6 +99,7 @@ public:
 
 private:
     void readDescriptorFromPort();
+    void connectInputPort(const InputPortConfigPtr& port);
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
 

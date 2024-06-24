@@ -42,19 +42,6 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReaderBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets old stream reader instance to copy from
-     * @param streamReader The old Stream reader instance
-     */
-    virtual ErrCode INTERFACE_FUNC setOldStreamReader(IStreamReader* streamReader) = 0;
-
-    /*!
-     * @brief Gets the old Stream reader instance to copy from
-     * @param streamReader The old Stream reader instance
-     */
-    virtual ErrCode INTERFACE_FUNC getOldStreamReader(IStreamReader** streamReader) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Sets the signal to stream reader
      * @param signal The signal which will be handled in stream reader
      */

@@ -16,7 +16,6 @@
 
 #pragma once
 #include <opendaq/stream_reader_builder.h>
-#include <opendaq/stream_reader_ptr.h>
 #include <opendaq/input_port_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -27,9 +26,6 @@ public:
     StreamReaderBuilderImpl();
 
     ErrCode INTERFACE_FUNC build(IStreamReader** streamReader) override;
-
-    ErrCode INTERFACE_FUNC setOldStreamReader(IStreamReader* streamReader) override;
-    ErrCode INTERFACE_FUNC getOldStreamReader(IStreamReader** streamReader) override;
 
     ErrCode INTERFACE_FUNC setSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -58,7 +54,6 @@ private:
     ReadMode readMode;
     SignalPtr signal;
     InputPortPtr inputPort;
-    StreamReaderPtr oldStreamReader;
     ReadTimeoutType readTimeoutType;
     bool used;
     bool skipEvents;

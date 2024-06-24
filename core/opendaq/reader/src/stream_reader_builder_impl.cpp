@@ -3,12 +3,13 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/sample_type_traits.h>
 #include <coretypes/validation.h>
+#include <opendaq/signal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 StreamReaderBuilderImpl::StreamReaderBuilderImpl()
     : valueReadType(SampleType::Float64)
-    , domainReadType(SampleTypeFromType<ClockTick>::SampleType)
+    , domainReadType(SampleType::RangeInt64)
     , readMode(ReadMode::Scaled)
     , signal(nullptr)
     , inputPort(nullptr)
@@ -29,22 +30,10 @@ ErrCode StreamReaderBuilderImpl::build(IStreamReader** streamReader)
         if (used)
             return OPENDAQ_ERR_CREATE_FAILED;
 
-        // *streamReader = StreamReaderFromBuilder(builderPtr).detach();
+        *streamReader = StreamReaderFromBuilder(builderPtr).detach();
         used = true;
         return OPENDAQ_SUCCESS;
     });
-}
-
-ErrCode StreamReaderBuilderImpl::setOldStreamReader(IStreamReader* streamReader)
-{
-    this->oldStreamReader = streamReader;
-    return OPENDAQ_SUCCESS;
-}
-ErrCode StreamReaderBuilderImpl::getOldStreamReader(IStreamReader** streamReader)
-{
-    OPENDAQ_PARAM_NOT_NULL(streamReader);
-    *streamReader = this->oldStreamReader.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderBuilderImpl::setSignal(ISignal* signal)
@@ -138,8 +127,10 @@ ErrCode StreamReaderBuilderImpl::getSkipEvents(Bool* skipEvents)
 ////
 ////////////////////
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, StreamReaderBuilder, IStreamReaderBuilder, createStreamReaderBuilder,
-)
+extern "C" ErrCode PUBLIC_EXPORT createStreamReaderBuilder(IStreamReaderBuilder** objTmp)
+{
+    return daq::createObject<IStreamReaderBuilder, StreamReaderBuilderImpl>(objTmp);
+}
+
 
 END_NAMESPACE_OPENDAQ

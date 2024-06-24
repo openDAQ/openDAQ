@@ -246,7 +246,13 @@ TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
     test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = daq::StreamReaderBuilder()
+        .setSignal(signal)
+        .setValueReadType(SampleTypeFromType<double>::SampleType)
+        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
+        .setSkipEvents(true)
+        .setReadTimeoutType(ReadTimeoutType::Any)
+        .build();
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
@@ -257,9 +263,8 @@ TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 

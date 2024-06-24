@@ -79,14 +79,14 @@ TEST_F(GenericStructConverterTest, TestStructWithOtherStructs)
     auto context = test_helpers::setupContext();
     DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Resolution", Ratio(10, 20)},
                                                                         {"TicksSinceOrigin", 1000},
-                                                                        {"Origin", "origin"},
-                                                                        {"Unit", Unit("symbol", -1, "name", "quantity")}});
+                                                                        {"Origin", "Origin"},
+                                                                        {"Unit", Unit("Symbol", -1, "Name", "Quantity")}});
     const auto structure = Struct("DeviceDomainStructure", members, context.getTypeManager());
 
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
     const auto deviceDomain = static_cast<UA_DeviceDomainStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(deviceDomain->origin), "origin");
-    ASSERT_EQ(utils::ToStdString(deviceDomain->unit.quantity), "quantity");
+    ASSERT_EQ(utils::ToStdString(deviceDomain->origin), "Origin");
+    ASSERT_EQ(utils::ToStdString(deviceDomain->unit.quantity), "Quantity");
     ASSERT_EQ(deviceDomain->unit.unitId, -1);
     ASSERT_EQ(deviceDomain->ticksSinceOrigin, 1000);
     ASSERT_EQ(deviceDomain->resolution.numerator, 10);
@@ -109,22 +109,22 @@ TEST_F(GenericStructConverterTest, TestDataDescriptorStruct)
 TEST_F(GenericStructConverterTest, TestStructWithOptionalsAssigned)
 {
     auto context = test_helpers::setupContext();
-    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "name"},
+    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "Name"},
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
                                                                                 {{"Type", "linear"}, {"Start", 10}, {"Delta", 10},
                                                                                  {"Size", 10}}),
                                                                                 context.getTypeManager())},
-                                                                        {"Unit", Unit("symbol", -1, "name", "quantity")}});
+                                                                        {"Unit", Unit("Symbol", -1, "Name", "Quantity")}});
     const auto structure = Struct("DimensionDescriptorStructure", members, context.getTypeManager());
 
     
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
 
     const auto dimension = static_cast<UA_DimensionDescriptorStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(*dimension->name), "name");
-    ASSERT_EQ(utils::ToStdString(dimension->unit->quantity), "quantity");
+    ASSERT_EQ(utils::ToStdString(*dimension->name), "Name");
+    ASSERT_EQ(utils::ToStdString(dimension->unit->quantity), "Quantity");
     
     const StructPtr convertedStructure = VariantConverter<IStruct>::ToDaqObject(var, context);
     ASSERT_EQ(structure, convertedStructure);
@@ -139,7 +139,7 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned1)
                                                             SimpleType(ctInt),
                                                             SimpleType(ctInt),
                                                             SimpleType(ctInt))));
-    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "name"},
+    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "Name"},
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
@@ -152,7 +152,7 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned1)
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
 
     const auto dimension = static_cast<UA_DimensionDescriptorStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(*dimension->name), "name");
+    ASSERT_EQ(utils::ToStdString(*dimension->name), "Name");
     ASSERT_EQ(dimension->unit, nullptr);
     
     const StructPtr convertedStructure = VariantConverter<IStruct>::ToDaqObject(var, context);
@@ -162,7 +162,7 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned1)
 TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned2)
 {
     auto context = test_helpers::setupContext();
-    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "name"},
+    DictPtr<IString, IBaseObject> members = Dict<IString, IBaseObject>({{"Name", "Name"},
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
@@ -175,7 +175,7 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned2)
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
 
     const auto dimension = static_cast<UA_DimensionDescriptorStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(*dimension->name), "name");
+    ASSERT_EQ(utils::ToStdString(*dimension->name), "Name");
     ASSERT_EQ(dimension->unit, nullptr);
     
     const StructPtr convertedStructure = VariantConverter<IStruct>::ToDaqObject(var, context);
@@ -186,13 +186,13 @@ TEST_F(GenericStructConverterTest, TestStructWithArrays1)
 {
     auto context = test_helpers::setupContext();
     const auto structure = Struct("ListRuleDescriptionStructure",
-                                  Dict<IString, IBaseObject>({{"Type", "list"}, {"Elements", List<IString>("foo", "bar")}}),
+                                  Dict<IString, IBaseObject>({{"Type", "List"}, {"Elements", List<IString>("foo", "bar")}}),
                                   context.getTypeManager());
 
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
 
     const auto rule = static_cast<UA_ListRuleDescriptionStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(rule->type), "list");
+    ASSERT_EQ(utils::ToStdString(rule->type), "List");
     ASSERT_EQ(rule->elementsSize, 2u);
     
     const StructPtr convertedStructure = VariantConverter<IStruct>::ToDaqObject(var, context);
@@ -203,14 +203,14 @@ TEST_F(GenericStructConverterTest, TestStructWithArrays2)
 {
     auto context = test_helpers::setupContext();
     const auto structure = Struct("CustomRuleDescriptionStructure",
-                                  Dict<IString, IBaseObject>({{"Type", "list"}, {"Parameters", Dict<IString, IBaseObject>({{"foo", "bar"}, {"foo1", "bar1"}})}}),
+                                  Dict<IString, IBaseObject>({{"Type", "List"}, {"Parameters", Dict<IString, IBaseObject>({{"foo", "bar"}, {"foo1", "bar1"}})}}),
                                   context.getTypeManager());
 
     
     auto var = VariantConverter<IStruct>::ToVariant(structure, nullptr, context);
 
     const auto rule = static_cast<UA_CustomRuleDescriptionStructure*>(var->data);
-    ASSERT_EQ(utils::ToStdString(rule->type), "list");
+    ASSERT_EQ(utils::ToStdString(rule->type), "List");
     ASSERT_EQ(rule->parametersSize, 2u);
 
     auto keyVariant = OpcUaVariant(rule->parameters[0].key);

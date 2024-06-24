@@ -77,8 +77,8 @@ std::vector<T> DataRuleCalcTyped<T>::ParseRuleParameters(const DictPtr<IString, 
     std::vector<T> parameters{};
     if (type == DataRuleType::Linear)
     {
-        T delta = ruleParameters.get("delta");
-        T start = ruleParameters.get("start");
+        T delta = ruleParameters.get("Delta");
+        T start = ruleParameters.get("Start");
         parameters.push_back(delta);
         parameters.push_back(start);
     }
@@ -92,8 +92,8 @@ inline std::vector<RangeType64> DataRuleCalcTyped<RangeType64>::ParseRuleParamet
     std::vector<RangeType64> parameters{};
     if (type == DataRuleType::Linear)
     {
-        RangeType64 delta = (RangeType64::Type) ruleParameters.get("delta");
-        RangeType64 start = (RangeType64::Type) ruleParameters.get("start");
+        RangeType64 delta = (RangeType64::Type) ruleParameters.get("Delta");
+        RangeType64 start = (RangeType64::Type) ruleParameters.get("Start");
         parameters.push_back(delta);
         parameters.push_back(start);
     }
@@ -106,8 +106,8 @@ inline std::vector<uint8_t> DataRuleCalcTyped<uint8_t>::ParseRuleParameters(cons
     std::vector<uint8_t> parameters{};
     if (type == DataRuleType::Linear)
     {
-        int16_t delta = ruleParameters.get("delta");
-        int16_t start = ruleParameters.get("start");
+        int16_t delta = ruleParameters.get("Delta");
+        int16_t start = ruleParameters.get("Start");
         parameters.push_back(static_cast<uint8_t>(delta));
         parameters.push_back(static_cast<uint8_t>(start));
     }

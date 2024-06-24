@@ -13,9 +13,9 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(DeviceInfoTest, Factory)
 {
     DeviceInfoPtr deviceInfo;
-    ASSERT_NO_THROW(deviceInfo = DeviceInfo("connectionStr", "name"));
+    ASSERT_NO_THROW(deviceInfo = DeviceInfo("connectionStr", "Name"));
     ASSERT_EQ(deviceInfo.getConnectionString(), "connectionStr");
-    ASSERT_EQ(deviceInfo.getName(), "name");
+    ASSERT_EQ(deviceInfo.getName(), "Name");
 }
 
 TEST_F(DeviceInfoTest, DefaultValues)
@@ -54,9 +54,9 @@ TEST_F(DeviceInfoTest, SetGetProperties)
     DeviceInfoConfigPtr deviceInfoConfig = DeviceInfo("", "");
     DeviceInfoPtr deviceInfo = deviceInfoConfig;
     
-    ASSERT_NO_THROW(deviceInfoConfig.setName("name"));
-    ASSERT_EQ(deviceInfo.getName(), "name");
-    ASSERT_EQ(deviceInfo.getPropertyValue("Name"), "name");
+    ASSERT_NO_THROW(deviceInfoConfig.setName("Name"));
+    ASSERT_EQ(deviceInfo.getName(), "Name");
+    ASSERT_EQ(deviceInfo.getPropertyValue("Name"), "Name");
 
     ASSERT_NO_THROW(deviceInfoConfig.setConnectionString("connectionString"));
     ASSERT_EQ(deviceInfo.getConnectionString(), "connectionString");
@@ -158,7 +158,7 @@ TEST_F(DeviceInfoTest, Freezable)
     ASSERT_NO_THROW(deviceInfoConfig.freeze());
     ASSERT_TRUE(deviceInfoConfig.isFrozen());
 
-    ASSERT_THROW(deviceInfoConfig.setName("name"), FrozenException);
+    ASSERT_THROW(deviceInfoConfig.setName("Name"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setConnectionString("connection_string"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setManufacturer("manufacturer"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setManufacturerUri("manufacturer_uri"), FrozenException);
@@ -196,7 +196,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");
 
-    info.setName("name");
+    info.setName("Name");
     info.setConnectionString("connection_string");
     info.setManufacturer("manufacturer");
     info.setManufacturerUri("manufacturer_uri");

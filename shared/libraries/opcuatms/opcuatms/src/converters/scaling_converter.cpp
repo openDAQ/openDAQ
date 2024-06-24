@@ -52,10 +52,10 @@ OpcUaObject<UA_LinearScalingDescriptionStructure> StructConverter<IScaling, UA_L
     OpcUaObject<UA_LinearScalingDescriptionStructure> scaling;
     scaling->type = UA_STRING_ALLOC("linear");
 
-    auto scale = object.getParameters().get("scale");
+    auto scale = object.getParameters().get("Scale");
     scaling->scale = VariantConverter<INumber>::ToVariant(scale).getDetachedValue();
 
-    auto offset = object.getParameters().get("offset");
+    auto offset = object.getParameters().get("Offset");
     scaling->offset = VariantConverter<INumber>::ToVariant(offset).getDetachedValue();
 
     return scaling;
@@ -87,8 +87,8 @@ OpcUaObject<UA_PostScalingStructure> StructConverter<IScaling, UA_PostScalingStr
     uaPostScaling->outputSampleType = ScaledSampleTypeToTmsEnum(object.getOutputSampleType());
 
     OpcUaObject<UA_LinearScalingDescriptionStructure> uaLinearScalingDescription;
-    const NumberPtr scale = object.getParameters().get("scale");
-    const NumberPtr offset = object.getParameters().get("offset");
+    const NumberPtr scale = object.getParameters().get("Scale");
+    const NumberPtr offset = object.getParameters().get("Offset");
     
     uaLinearScalingDescription->type = UA_STRING_ALLOC("linear");
     uaLinearScalingDescription->scale = VariantConverter<INumber>::ToVariant(scale).getDetachedValue();

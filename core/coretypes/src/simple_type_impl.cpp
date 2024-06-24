@@ -14,7 +14,7 @@ ErrCode SimpleTypeImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
     
-    serializer->key("coreType");
+    serializer->key("CoreType");
     serializer->writeInt(static_cast<int>(this->coreType));
 
     serializer->endObject();
@@ -39,7 +39,7 @@ ConstCharPtr SimpleTypeImpl::SerializeId()
 ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     Int coreTypeInt;
-    ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);
+    ErrCode errCode = ser->readInt("CoreType"_daq, &coreTypeInt);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     
@@ -66,38 +66,38 @@ std::string SimpleTypeImpl::coreTypeToString(CoreType coreType)
     switch(coreType)
     {
         case ctBool:
-            return "bool";
+            return "Bool";
         case ctInt:
-            return "int";
+            return "Int";
         case ctFloat:
-            return "float";
+            return "Float";
         case ctString:
-            return "string";
+            return "String";
         case ctList:
-            return "list";
+            return "List";
         case ctDict:
-            return "dict";
+            return "Dict";
         case ctRatio:
-            return "ratio";
+            return "Ratio";
         case ctProc:
-            return "proc";
+            return "Proc";
         case ctObject:
-            return "object";
+            return "Object";
         case ctBinaryData:
-            return "binaryData";
+            return "BinaryData";
         case ctFunc:
-            return "func";
+            return "Func";
         case ctComplexNumber:
-            return "complexNumber";
+            return "ComplexNumber";
         case ctStruct:
-            return "struct";
+            return "Struct";
         case ctEnumeration:
-            return "enumeration";
+            return "Enumeration";
         case ctUndefined:
-            return "undefined";
+            return "Undefined";
     }
 
-    return "undefined";
+    return "Undefined";
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

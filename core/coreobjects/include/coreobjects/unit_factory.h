@@ -78,8 +78,8 @@ inline UnitBuilderPtr UnitBuilderCopy(const UnitPtr& unit)
 inline StructTypePtr UnitStructType()
 {
     return StructType(
-        "unit",
-        List<IString>("id", "symbol", "name", "quantity"),
+        "Unit",
+        List<IString>("Id", "Symbol", "Name", "Quantity"),
         List<IBaseObject>(-1, "", "", ""),
         List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }

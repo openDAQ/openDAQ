@@ -253,7 +253,7 @@ ErrCode PropertyObjectClassImpl::getProperties(Bool includeInherited, IList** pr
 
 ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
 {
-    serializer->key("properties");
+    serializer->key("Properties");
     serializer->startObject();
 
     ListPtr<IProperty> properties;
@@ -331,13 +331,13 @@ ErrCode PropertyObjectClassImpl::serialize(ISerializer* serializer)
 
     if (name.assigned())
     {
-        serializer->key("name");
+        serializer->key("Name");
         name.serialize(serializer);
     }
 
     if (parent.assigned())
     {
-        serializer->key("parent");
+        serializer->key("Parent");
         parent.serialize(serializer);
     }
 
@@ -367,16 +367,16 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
         {
             const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
 
-            const auto name = serializedPtr.readString("name");
+            const auto name = serializedPtr.readString("Name");
             PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(name);
 
-            if (serializedPtr.hasKey("parent"))
+            if (serializedPtr.hasKey("Parent"))
             {
-                const auto parent = serializedPtr.readString("parent");
+                const auto parent = serializedPtr.readString("Parent");
                 builder.setParentName(parent);
             }
 
-            const auto properties = serializedPtr.readSerializedObject("properties");
+            const auto properties = serializedPtr.readSerializedObject("Properties");
             const auto keys = properties.getKeys();
 
             for (const auto& key : keys)

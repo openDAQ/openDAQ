@@ -17,11 +17,11 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
     : GenericStructImpl<IDimensionRule, IStruct, IRulePrivate>(
           detail::dimensionRuleStructType,
           Dict<IString, IBaseObject>({
-              {"ruleType", static_cast<Int>(ruleType)},
-              {"parameters", params},
+              {"RuleType", static_cast<Int>(ruleType)},
+              {"Parameters", params},
           }))
       , ruleType(ruleType)
-      , params(this->fields.get("parameters"))
+      , params(this->fields.get("Parameters"))
 {
     checkErrorInfo(verifyParametersInternal());
     if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
@@ -29,7 +29,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
 }
 
 DimensionRuleImpl::DimensionRuleImpl(const ListPtr<INumber>& list)
-    : DimensionRuleImpl(DimensionRuleType::List, Dict<IString, IBaseObject>({{"list", list}}))
+    : DimensionRuleImpl(DimensionRuleType::List, Dict<IString, IBaseObject>({{"List", list}}))
 {
 }
 
@@ -37,9 +37,9 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
     : DimensionRuleImpl(
         DimensionRuleType::Linear,
         Dict<IString, IBaseObject>({
-            {"delta", delta},
-            {"start", start},
-            {"size", size},
+            {"Delta", delta},
+            {"Start", start},
+            {"Size", size},
         }))
 {
 }
@@ -47,10 +47,10 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
 DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const NumberPtr& base, const SizeT& size)
     : DimensionRuleImpl(DimensionRuleType::Logarithmic,
                         Dict<IString, IBaseObject>({
-                            {"delta", delta},
-                            {"start", start},
-                            {"base", base},
-                            {"size", size},
+                            {"Delta", delta},
+                            {"Start", start},
+                            {"Base", base},
+                            {"Size", size},
                         }))
 {
 }
@@ -127,17 +127,17 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
     if (params.getCount() != 3)
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size" and "start")");
+                             R"(Linear rule has an invalid number of parameters. Required parameters are "Delta", "Size" and "Start")");
     }
 
-    if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size"))
+    if (!params.hasKey("Delta") || !params.hasKey("Start") || !params.hasKey("Size"))
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has invalid parameters. Required parameters are "delta", "size" and "start")");
+                             R"(Linear rule has invalid parameters. Required parameters are "Delta", "Size" and "Start")");
     }
 
-    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("size").asPtrOrNull<INumber>().assigned())
+    if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned() ||
+        !params.get("Size").asPtrOrNull<INumber>().assigned())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
@@ -146,17 +146,17 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
 
 ErrCode DimensionRuleImpl::checkListRuleValidity() const
 {
-    if (!params.hasKey("list"))
+    if (!params.hasKey("List"))
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "list" parameter is required.)");
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "List" parameter is required.)");
     }
 
-    if (!params.get("list").asPtrOrNull<IList>().assigned())
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "list" parameter must be a list object.)");
+    if (!params.get("List").asPtrOrNull<IList>().assigned())
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "List" parameter must be a list object.)");
 
-    if (!listLabelsValid(params.get("list")))
+    if (!listLabelsValid(params.get("List")))
         return makeErrorInfo(OPENDAQ_ERR_INVALID_DIMENSION_LABEL_TYPES,
-                             R"(The "list" elements must be either strings, numbers, or ranges. All elements must be of the same kind.)");
+                             R"(The "List" elements must be either strings, numbers, or ranges. All elements must be of the same kind.)");
 
     return OPENDAQ_SUCCESS;
 }
@@ -167,17 +167,17 @@ ErrCode DimensionRuleImpl::checkLogRuleValidity() const
     {
         return makeErrorInfo(
             OPENDAQ_ERR_INVALID_PARAMETERS,
-            R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size", "base" and "start")");
+            R"(Linear rule has an invalid number of parameters. Required parameters are "Delta", "Size", "Base" and "Start")");
     }
 
-    if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size") || !params.hasKey("base"))
+    if (!params.hasKey("Delta") || !params.hasKey("Start") || !params.hasKey("Size") || !params.hasKey("Base"))
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has invalid parameters. Required parameters are "delta", "size", "base" and "start")");
+                             R"(Linear rule has invalid parameters. Required parameters are "Delta", "Size", "Base" and "Start")");
     }
 
-    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("size").asPtrOrNull<INumber>().assigned() || !params.get("base").asPtrOrNull<INumber>().assigned())
+    if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned() ||
+        !params.get("Size").asPtrOrNull<INumber>().assigned() || !params.get("Base").asPtrOrNull<INumber>().assigned())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
@@ -221,7 +221,7 @@ ErrCode DimensionRuleImpl::serialize(ISerializer* serializer)
         serializer->key("rule_type");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("params");
+        serializer->key("Params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -247,7 +247,7 @@ ErrCode DimensionRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     auto ruleType = static_cast<DimensionRuleType>(serializedObj.readInt("rule_type"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
 
     return createObject<IDimensionRule, DimensionRuleImpl>(reinterpret_cast<IDimensionRule**>(obj), ruleType, params);
 }

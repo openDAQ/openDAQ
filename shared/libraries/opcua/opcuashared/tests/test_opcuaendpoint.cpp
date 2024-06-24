@@ -27,8 +27,8 @@ TEST_F(OpcUaEndpointTest, SettersAndGetters)
     endpoint.setUrl("opc.tcp://localhost:2000");
     ASSERT_EQ(endpoint.getUrl(), "opc.tcp://localhost:2000");
 
-    endpoint.setName("name");
-    ASSERT_EQ(endpoint.getName(), "name");
+    endpoint.setName("Name");
+    ASSERT_EQ(endpoint.getName(), "Name");
 
     endpoint.setUsername("username");
     ASSERT_EQ(endpoint.getUsername(), "username");

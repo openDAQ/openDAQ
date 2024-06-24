@@ -27,7 +27,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
     else
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
-    createAndAddInputPort("input", packetReadyNotification);
+    createAndAddInputPort("Input", packetReadyNotification);
 
     triggerInput = InputPort(context, inputPorts, "trigger");
     triggerInput.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
@@ -189,8 +189,8 @@ void StatisticsFbImpl::configure()
     overlappedBlockSize = static_cast<size_t>(std::trunc(blockSize * overlap) / 100.0);
     overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
-    start = domainRuleParams.get("start");
-    inputDeltaTicks = domainRuleParams.get("delta");
+    start = domainRuleParams.get("Start");
+    inputDeltaTicks = domainRuleParams.get("Delta");
     outputDeltaTicks = inputDeltaTicks * (static_cast<Int>(blockSize) - overlappedBlockSize);
 
     const auto outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setName("StatisticsDomain");

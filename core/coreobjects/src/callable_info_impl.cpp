@@ -13,10 +13,10 @@ namespace detail
 
 CallableInfoImpl::CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType)
     : GenericStructImpl<daq::ICallableInfo, daq::IStruct>(
-          detail::callableInfoStructType, Dict<IString, IBaseObject>({{"arguments", arguments}, {"returnType", static_cast<Int>(returnType)}}))
+          detail::callableInfoStructType, Dict<IString, IBaseObject>({{"Arguments", arguments}, {"ReturnType", static_cast<Int>(returnType)}}))
 {
-    this->returnType = this->fields.get("returnType");
-    this->arguments = this->fields.get("arguments");
+    this->returnType = this->fields.get("ReturnType");
+    this->arguments = this->fields.get("Arguments");
 }
 
 ErrCode CallableInfoImpl::getReturnType(CoreType* type)
@@ -78,11 +78,11 @@ ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
             {
                 if (arguments.assigned() && !arguments.empty())
                 {
-                    serializerPtr.key("arguments");
+                    serializerPtr.key("Arguments");
                     arguments.serialize(serializerPtr);
                 }
 
-                serializerPtr.key("returnType");
+                serializerPtr.key("ReturnType");
                 serializerPtr.writeInt(static_cast<Int>(returnType));
             }
 
@@ -116,10 +116,10 @@ ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         [&serializedObj, &contextPtr, factoryCallbackPtr, &obj]
         {
             ListPtr<IArgumentInfo> arguments;
-            if(serializedObj.hasKey("arguments"))
-                arguments = serializedObj.readObject("arguments", contextPtr, factoryCallbackPtr);
+            if(serializedObj.hasKey("Arguments"))
+                arguments = serializedObj.readObject("Arguments", contextPtr, factoryCallbackPtr);
 
-            const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
+            const auto returnType = static_cast<CoreType>(serializedObj.readInt("ReturnType"));
 
             *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType).detach();
         });

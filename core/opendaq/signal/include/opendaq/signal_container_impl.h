@@ -288,9 +288,9 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
 
     if (!visible)
     {
-        signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+        signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
         signal.setVisible(visible);
-        signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+        signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("Visible"));
     }
 
     signal.setPublic(isPublic);

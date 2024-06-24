@@ -34,7 +34,7 @@ static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
     {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}};
 
 static std::unordered_set<std::string> convertibleNativeStructs = {
-    "unit", "range", "argumentInfo", "complexNumber", "functionBlockType"};
+    "Unit", "Range", "ArgumentInfo", "ComplexNumber", "FunctionBlockType"};
 }
 
 StringPtr ConvertToDaqCoreString(const UA_String& uaString)

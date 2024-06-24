@@ -22,7 +22,7 @@ static SignalPtr deserializeSignal(const ContextPtr& context, const StringPtr& s
 
 static StringPtr getDomainSignalId(const SignalPtr& signal)
 {
-    return signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    return signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
 }
 
 class StreamingProtocolAttributes : public ClientAttributesBase

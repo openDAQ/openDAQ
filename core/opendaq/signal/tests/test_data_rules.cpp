@@ -19,8 +19,8 @@ TEST_F(DataRulesTest, LinearDataRuleSetGet)
     const auto rule = LinearDataRule(10, 20);
 
     ASSERT_EQ(rule.getType(), DataRuleType::Linear);
-    ASSERT_EQ(rule.getParameters().get("delta"), 10);
-    ASSERT_EQ(rule.getParameters().get("start"), 20);
+    ASSERT_EQ(rule.getParameters().get("Delta"), 10);
+    ASSERT_EQ(rule.getParameters().get("Start"), 20);
 }
 
 TEST_F(DataRulesTest, ConstantDataRuleSetGet)
@@ -42,8 +42,8 @@ TEST_F(DataRulesTest, LinearDataRuleCopyFactory)
     const auto rule = LinearDataRule(100, 50);
     const auto ruleCopy = DataRuleBuilderCopy(rule).build();
 
-    ASSERT_EQ(ruleCopy.getParameters().get("delta"), 100);
-    ASSERT_EQ(ruleCopy.getParameters().get("start"), 50);
+    ASSERT_EQ(ruleCopy.getParameters().get("Delta"), 100);
+    ASSERT_EQ(ruleCopy.getParameters().get("Start"), 50);
 }
 
 TEST_F(DataRulesTest, ConstantDataRuleCopyFactory)
@@ -70,11 +70,11 @@ TEST_F(DataRulesTest, LinearDataRuleInvalidParameters)
     ruleBuilder.setParameters(params);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("delta", "wrong");
+    params.set("Delta", "wrong");
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("delta", 10);
-    params.set("start", 10);
+    params.set("Delta", 10);
+    params.set("Start", 10);
     params.set("extra", 10);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
@@ -106,13 +106,13 @@ TEST_F(DataRulesTest, StructType)
 TEST_F(DataRulesTest, StructFields)
 {
     const daq::StructPtr structPtr = LinearDataRule(10, 10);
-    ASSERT_EQ(structPtr.get("type"), static_cast<Int>(DataRuleType::Linear));
+    ASSERT_EQ(structPtr.get("Type"), static_cast<Int>(DataRuleType::Linear));
     
     const auto params = Dict<IString, IBaseObject>({
-            {"delta", 10},
-            {"start", 10}
+            {"Delta", 10},
+            {"Start", 10}
         });
-    ASSERT_EQ(structPtr.get("parameters"), params);
+    ASSERT_EQ(structPtr.get("Parameters"), params);
 }
 
 TEST_F(DataRulesTest, StructNames)
@@ -141,8 +141,8 @@ TEST_F(DataRulesTest, ExplicitDomainDataRule)
 TEST_F(DataRulesTest, DataRuleBuilderSetGet)
 {
     const auto params = Dict<IString, IBaseObject>({
-            {"delta", 10},
-            {"start", 10}
+            {"Delta", 10},
+            {"Start", 10}
         });
     const auto dataRuleBuilder = DataRuleBuilder()
                                 .setType(DataRuleType::Linear)
@@ -155,8 +155,8 @@ TEST_F(DataRulesTest, DataRuleBuilderSetGet)
 TEST_F(DataRulesTest, DataRuleCreateFactory)
 {
     const auto params = Dict<IString, IBaseObject>({
-            {"delta", 10},
-            {"start", 10}
+            {"Delta", 10},
+            {"Start", 10}
         });
     const auto dataRuleBuilder = DataRuleBuilder()
                                 .setType(DataRuleType::Linear)

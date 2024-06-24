@@ -15,10 +15,10 @@ DictPtr<IString, IBaseObject> UnitImpl::PackBuilder(IUnitBuilder* unitBuilder)
 {
     const auto builderPtr = UnitBuilderPtr::Borrow(unitBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("id", builderPtr.getId());
-    params.set("symbol", builderPtr.getSymbol());
-    params.set("name", builderPtr.getName());
-    params.set("quantity", builderPtr.getQuantity());
+    params.set("Id", builderPtr.getId());
+    params.set("Symbol", builderPtr.getSymbol());
+    params.set("Name", builderPtr.getName());
+    params.set("Quantity", builderPtr.getQuantity());
 
     return params;
 }
@@ -27,7 +27,7 @@ UnitImpl::UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity)
     : GenericStructImpl<IUnit, IStruct>(
         detail::unitStructType,
         Dict<IString, IBaseObject>(
-            {{"id", id}, {"symbol", std::move(symbol)}, {"name", std::move(name)}, {"quantity", std::move(quantity)}}))
+            {{"Id", id}, {"Symbol", std::move(symbol)}, {"Name", std::move(name)}, {"Quantity", std::move(quantity)}}))
 {
 }
 
@@ -43,7 +43,7 @@ ErrCode UnitImpl::getId(Int* id)
     if (!id)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *id = this->fields.get("id");
+    *id = this->fields.get("Id");
     return OPENDAQ_SUCCESS;
 }
 
@@ -52,7 +52,7 @@ ErrCode UnitImpl::getSymbol(IString** symbol)
     if (!symbol)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *symbol = this->fields.get("symbol").asPtr<IString>().addRefAndReturn();
+    *symbol = this->fields.get("Symbol").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -61,7 +61,7 @@ ErrCode UnitImpl::getName(IString** name)
     if (!name)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *name = this->fields.get("name").asPtr<IString>().addRefAndReturn();
+    *name = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -70,7 +70,7 @@ ErrCode UnitImpl::getQuantity(IString** quantity)
     if (!quantity)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *quantity = this->fields.get("quantity").asPtr<IString>().addRefAndReturn();
+    *quantity = this->fields.get("Quantity").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -78,31 +78,31 @@ ErrCode UnitImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
     {
-        const StringPtr symbol = this->fields.get("symbol");
+        const StringPtr symbol = this->fields.get("Symbol");
         if (symbol.assigned())
         {
-            serializer->key("symbol");
+            serializer->key("Symbol");
             serializer->writeString(symbol.getCharPtr(), symbol.getLength());
         }
         
-        const Int id = this->fields.get("id");
+        const Int id = this->fields.get("Id");
         if (id != -1)
         {
-            serializer->key("id");
+            serializer->key("Id");
             serializer->writeInt(id);
         }
         
-        const StringPtr name = this->fields.get("name");
+        const StringPtr name = this->fields.get("Name");
         if (name.assigned())
         {
-            serializer->key("name");
+            serializer->key("Name");
             serializer->writeString(name.getCharPtr(), name.getLength());
         }
         
-        const StringPtr quantity = this->fields.get("quantity");
+        const StringPtr quantity = this->fields.get("Quantity");
         if (quantity.assigned())
         {
-            serializer->key("quantity");
+            serializer->key("Quantity");
             serializer->writeString(quantity.getCharPtr(), quantity.getLength());
         }
     }
@@ -128,22 +128,22 @@ ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*cont
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 
     StringPtr symbol;
-    ErrCode err = serializedObj->readString(String("symbol"), &symbol);
+    ErrCode err = serializedObj->readString(String("Symbol"), &symbol);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     Int id = -1;
-    err = serializedObj->readInt(String("id"), &id);
+    err = serializedObj->readInt(String("Id"), &id);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     StringPtr name;
-    err = serializedObj->readString(String("name"), &name);
+    err = serializedObj->readString(String("Name"), &name);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     StringPtr quantity;
-    err = serializedObj->readString(String("quantity"), &quantity);
+    err = serializedObj->readString(String("Quantity"), &quantity);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 

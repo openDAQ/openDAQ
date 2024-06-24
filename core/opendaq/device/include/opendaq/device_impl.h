@@ -1044,13 +1044,13 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         checkErrorInfo(this->getInfo(&deviceInfo));
         if (deviceInfo.assigned())
         {
-            serializer.key("deviceInfo");
+            serializer.key("DeviceInfo");
             deviceInfo.serialize(serializer);
         }
 
         if (deviceDomain.assigned())
         {
-            serializer.key("deviceDomain");
+            serializer.key("DeviceDomain");
             deviceDomain.serialize(serializer);
         }
     }
@@ -1063,7 +1063,7 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
-        auto typeId = serializedFunctionBlock.readString("typeId");
+        auto typeId = serializedFunctionBlock.readString("TypeId");
 
         auto config = PropertyObject();
         config.addProperty(StringProperty("LocalId", fbId));
@@ -1126,7 +1126,7 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
         updatableFolder.update(serializedItem);
 
         this->updateFolder(serializedItem,
-                           "IoFolder",
+                           "IOFolder",
                            "",
                            [this, &item](const std::string& itemId, const SerializedObjectPtr& obj)
                            { updateIoFolderItem(item, itemId, obj); });
@@ -1140,22 +1140,22 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    if (serializedObject.hasKey("deviceInfo"))
+    if (serializedObject.hasKey("DeviceInfo"))
     {
-        deviceInfo = serializedObject.readObject("deviceInfo");
+        deviceInfo = serializedObject.readObject("DeviceInfo");
         deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
     }
 
-    if (serializedObject.hasKey("deviceDomain"))
+    if (serializedObject.hasKey("DeviceDomain"))
     {
-        deviceDomain = serializedObject.readObject("deviceDomain");
+        deviceDomain = serializedObject.readObject("DeviceDomain");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
 
-    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "properties", "propValues"};
+    const std::set<std::string> ignoredKeys{"__type", "DeviceInfo", "DeviceDomain", "Properties", "PropValues"};
 
     const auto keys = serializedObject.getKeys();
     for (const auto& key : serializedObject.getKeys())
@@ -1191,10 +1191,10 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (obj.hasKey("IO"))
     {
         const auto ioFolder = obj.readSerializedObject("IO");
-        ioFolder.checkObjectType("IoFolder");
+        ioFolder.checkObjectType("IOFolder");
 
         this->updateFolder(ioFolder,
-                           "IoFolder",
+                           "IOFolder",
                            "",
                            [this](const std::string& localId, const SerializedObjectPtr& obj) { updateIoFolderItem(this->ioFolder, localId, obj); });
     }
@@ -1215,9 +1215,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         }
     }
 
-    if (obj.hasKey("deviceDomain"))
+    if (obj.hasKey("DeviceDomain"))
     {
-        deviceDomain = obj.readObject("deviceDomain");
+        deviceDomain = obj.readObject("DeviceDomain");
     }
 }
 

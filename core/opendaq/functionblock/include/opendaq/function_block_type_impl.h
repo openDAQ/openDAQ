@@ -68,18 +68,18 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
         {
             serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
             {
-                serializerPtr.key("id");
+                serializerPtr.key("Id");
                 serializerPtr.writeString(id);
 
                 if (name.assigned())
                 {
-                    serializerPtr.key("name");
+                    serializerPtr.key("Name");
                     serializerPtr.writeString(name);
                 }
 
                 if (description.assigned())
                 {
-                    serializerPtr.key("description");
+                    serializerPtr.key("Description");
                     serializerPtr.writeString(description);
                 }
 
@@ -122,15 +122,15 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
     return daqTry(
         [&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
         {
-            const auto id = serializedObj.readString("id");
+            const auto id = serializedObj.readString("Id");
 
             StringPtr name;
-            if (serializedObj.hasKey("name"))
-                name = serializedObj.readString("name");
+            if (serializedObj.hasKey("Name"))
+                name = serializedObj.readString("Name");
 
             StringPtr description;
-            if (serializedObj.hasKey("description"))
-                description = serializedObj.readString("description");
+            if (serializedObj.hasKey("Description"))
+                description = serializedObj.readString("Description");
 
             PropertyObjectPtr defaultConfig;
             if (serializedObj.hasKey("defaultConfig"))

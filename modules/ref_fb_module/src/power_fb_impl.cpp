@@ -431,8 +431,8 @@ void PowerFbImpl::configure(bool resync)
 
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
 
-        start = voltageDomainRuleParams.get("start");
-        delta = voltageDomainRuleParams.get("delta");
+        start = voltageDomainRuleParams.get("Start");
+        delta = voltageDomainRuleParams.get("Delta");
     }
     catch (const std::exception& e)
     {

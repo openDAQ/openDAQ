@@ -50,8 +50,8 @@ inline FunctionBlockTypePtr FunctionBlockType(const StringPtr& id,
  */
 inline StructTypePtr FunctionBlockTypeStructType()
 {
-    return StructType("functionBlockType",
-                      List<IString>("id", "name", "description"),
+    return StructType("FunctionBlockType",
+                      List<IString>("Id", "Name", "Description"),
                       List<IString>("", "", ""),
                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }

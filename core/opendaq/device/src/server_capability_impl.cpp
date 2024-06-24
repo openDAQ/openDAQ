@@ -15,7 +15,7 @@ const char* ProtocolTypeName = "ProtocolType";
 const char* ConnectionType = "ConnectionType";
 const char* CoreEventsEnabled = "CoreEventsEnabled"; 
 const char* ProtocolId = "protocolId";
-const char* Prefix = "prefix";
+const char* Prefix = "Prefix";
 const char* Addresses = "Addresses";
 const char* Port = "Port";
 

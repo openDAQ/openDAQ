@@ -217,14 +217,14 @@ TEST_F(TmsPropertyObjectTest, TestPropertyOrder)
 {
     auto obj = PropertyObject();
     for (SizeT i = 0; i < 200; ++i)
-        obj.addProperty(BoolProperty("bool" + std::to_string(i), true));
+        obj.addProperty(BoolProperty("Bool" + std::to_string(i), true));
     for (SizeT i = 0; i < 200; ++i)
-        obj.addProperty(StringProperty("string" + std::to_string(i), "test"));
+        obj.addProperty(StringProperty("String" + std::to_string(i), "test"));
     for (SizeT i = 0; i < 200; ++i)
     {
-        obj.addProperty(FunctionProperty("func" + std::to_string(i), ProcedureInfo()));
+        obj.addProperty(FunctionProperty("Func" + std::to_string(i), ProcedureInfo()));
         ProcedurePtr test = Procedure([](){});
-        obj.setPropertyValue("func" + std::to_string(i), test);
+        obj.setPropertyValue("Func" + std::to_string(i), test);
     }
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);

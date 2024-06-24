@@ -14,15 +14,15 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeBuilder)
     defConfig.addProperty(StringProperty("foo", "bar"));
 
     const ServerTypePtr type = ServerTypeBuilder()
-                               .setId("id")
-                               .setName("name")
-                               .setDescription("desc")
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
                                .setDefaultConfig(defConfig)
                                .build();
 
-    ASSERT_EQ(type.getId(), "id");
-    ASSERT_EQ(type.getName(), "name");
-    ASSERT_EQ(type.getDescription(), "desc");
+    ASSERT_EQ(type.getId(), "Id");
+    ASSERT_EQ(type.getName(), "Name");
+    ASSERT_EQ(type.getDescription(), "Desc");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 
@@ -32,17 +32,17 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeBuilder)
     defConfig.addProperty(StringProperty("foo", "bar"));
 
     const DeviceTypePtr type = DeviceTypeBuilder()
-                               .setId("id")
-                               .setName("name")
-                               .setDescription("desc")
-                               .setConnectionStringPrefix("prefix")
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
+                               .setConnectionStringPrefix("Prefix")
                                .setDefaultConfig(defConfig)
                                .build();
 
-    ASSERT_EQ(type.getId(), "id");
-    ASSERT_EQ(type.getName(), "name");
-    ASSERT_EQ(type.getDescription(), "desc");
-    ASSERT_EQ(type.getConnectionStringPrefix(), "prefix");
+    ASSERT_EQ(type.getId(), "Id");
+    ASSERT_EQ(type.getName(), "Name");
+    ASSERT_EQ(type.getDescription(), "Desc");
+    ASSERT_EQ(type.getConnectionStringPrefix(), "Prefix");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 
@@ -52,15 +52,15 @@ TEST_F(OpenDaqFactoriesTest, FBTypeBuilder)
     defConfig.addProperty(StringProperty("foo", "bar"));
 
     const FunctionBlockTypePtr type = FunctionBlockTypeBuilder()
-                               .setId("id")
-                               .setName("name")
-                               .setDescription("desc")
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
                                .setDefaultConfig(defConfig)
                                .build();
 
-    ASSERT_EQ(type.getId(), "id");
-    ASSERT_EQ(type.getName(), "name");
-    ASSERT_EQ(type.getDescription(), "desc");
+    ASSERT_EQ(type.getId(), "Id");
+    ASSERT_EQ(type.getName(), "Name");
+    ASSERT_EQ(type.getDescription(), "Desc");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 
@@ -70,17 +70,17 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeBuilder)
     defConfig.addProperty(StringProperty("foo", "bar"));
 
     const StreamingTypePtr type = StreamingTypeBuilder()
-                               .setId("id")
-                               .setName("name")
-                               .setDescription("desc")
-                               .setConnectionStringPrefix("prefix")
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
+                               .setConnectionStringPrefix("Prefix")
                                .setDefaultConfig(defConfig)
                                .build();
 
-    ASSERT_EQ(type.getId(), "id");
-    ASSERT_EQ(type.getName(), "name");
-    ASSERT_EQ(type.getDescription(), "desc");
-    ASSERT_EQ(type.getConnectionStringPrefix(), "prefix");
+    ASSERT_EQ(type.getId(), "Id");
+    ASSERT_EQ(type.getName(), "Name");
+    ASSERT_EQ(type.getDescription(), "Desc");
+    ASSERT_EQ(type.getConnectionStringPrefix(), "Prefix");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 

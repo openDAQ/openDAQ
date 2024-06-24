@@ -153,7 +153,7 @@ TEST_F(TypeTest, StructTypeSerializationNestedCustomStructType)
                                        List<IBaseObject>(1, "val"),
                                        List<IType>(SimpleType(ctInt), SimpleType(ctString)));
 
-    const auto structType = StructType("bar", List<IString>("string", "struct"), List<IType>(SimpleType(ctString), structTypeInner));
+    const auto structType = StructType("bar", List<IString>("String", "Struct"), List<IType>(SimpleType(ctString), structTypeInner));
     
     const auto serializer = JsonSerializer();
     
@@ -168,7 +168,7 @@ TEST_F(TypeTest, StructTypeSerializationNestedCustomStructType)
 
 TEST_F(TypeTest, StructTypeSerializationNestedDefaultStructType)
 {
-    const auto structType = StructType("bar", List<IString>("string", "ratio", "complexNumber"), List<IType>(SimpleType(ctString), RatioStructType(), ComplexNumberStructType()));
+    const auto structType = StructType("bar", List<IString>("String", "Ratio", "ComplexNumber"), List<IType>(SimpleType(ctString), RatioStructType(), ComplexNumberStructType()));
     
     const auto serializer = JsonSerializer();
     

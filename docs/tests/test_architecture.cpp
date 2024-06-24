@@ -91,8 +91,8 @@ TEST_F(ArchitectureTest, DataRule)
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
     DataRulePtr rule = device.getSignals(search::Recursive(search::Any()))[1].getDescriptor().getRule();
-    ASSERT_NO_THROW(rule.getParameters().get("start"));
-    ASSERT_NO_THROW(rule.getParameters().get("delta"));
+    ASSERT_NO_THROW(rule.getParameters().get("Start"));
+    ASSERT_NO_THROW(rule.getParameters().get("Delta"));
     ASSERT_EQ(rule.getType(), DataRuleType::Linear);
 }
 

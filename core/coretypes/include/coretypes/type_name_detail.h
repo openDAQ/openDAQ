@@ -35,61 +35,61 @@ namespace daq::Detail
     template <>
     constexpr auto nameOf<std::int32_t>()
     {
-        return constexprString("int32");
+        return constexprString("Int32");
     }
 
     template <>
     constexpr auto nameOf<std::uint32_t>()
     {
-        return constexprString("uint32");
+        return constexprString("UInt32");
     }
 
     template <>
     constexpr auto nameOf<std::int16_t>()
     {
-        return constexprString("int16");
+        return constexprString("Int16");
     }
 
     template <>
     constexpr auto nameOf<std::uint16_t>()
     {
-        return constexprString("uint16");
+        return constexprString("UInt16");
     }
 
     template <>
     constexpr auto nameOf<std::int8_t>()
     {
-        return constexprString("int8");
+        return constexprString("Int8");
     }
 
     template <>
     constexpr auto nameOf<std::uint8_t>()
     {
-        return constexprString("uint8");
+        return constexprString("UInt8");
     }
 
     template <>
     constexpr auto nameOf<char>()
     {
-        return constexprString("char");
+        return constexprString("Char");
     }
     
     template <>
     constexpr auto nameOf<bool>()
     {
-        return constexprString("bool");
+        return constexprString("Bool");
     }
     
     template <>
     constexpr auto nameOf<float>()
     {
-        return constexprString("float");
+        return constexprString("Float");
     }
     
     template <>
     constexpr auto nameOf<double>()
     {
-        return constexprString("double");
+        return constexprString("Double");
     }
 
     // Predefined type names of fundamental types according to the data-model
@@ -99,49 +99,49 @@ namespace daq::Detail
     template <>
     constexpr auto nameOf<long>()
     {
-        return constexprString("int64");
+        return constexprString("Int64");
     }
 
     template <>
     constexpr auto nameOf<unsigned long>()
     {
-        return constexprString("uint64");
+        return constexprString("UInt64");
     }
 
     template <>
     constexpr auto nameOf<long long>()
     {
-        return constexprString("int64");
+        return constexprString("Int64");
     }
 
     template <>
     constexpr auto nameOf<unsigned long long>()
     {
-        return constexprString("uint64");
+        return constexprString("UInt64");
     }
 #else
     template <>
     constexpr auto nameOf<long>()
     {
-        return constexprString("int32");
+        return constexprString("Int32");
     }
 
     template <>
     constexpr auto nameOf<unsigned long>()
     {
-        return constexprString("uint32");
+        return constexprString("UInt32");
     }
 
     template <>
     constexpr auto nameOf<long long>()
     {
-        return constexprString("int64");
+        return constexprString("Int64");
     }
 
     template <>
     constexpr auto nameOf<unsigned long long>()
     {
-        return constexprString("uint64");
+        return constexprString("UInt64");
     }
 #endif
 

@@ -14,20 +14,20 @@ DictPtr<IString, IBaseObject> ScalingImpl::PackBuilder(IScalingBuilder* scalingB
 {
     const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("inputDataType", static_cast<Int>(builderPtr.getInputDataType()));
-    params.set("outputDataType", static_cast<Int>(builderPtr.getOutputDataType()));
-    params.set("ruleType", static_cast<Int>(builderPtr.getScalingType()));
-    params.set("parameters", builderPtr.getParameters());
+    params.set("InputDataType", static_cast<Int>(builderPtr.getInputDataType()));
+    params.set("OutputDataType", static_cast<Int>(builderPtr.getOutputDataType()));
+    params.set("RuleType", static_cast<Int>(builderPtr.getScalingType()));
+    params.set("Parameters", builderPtr.getParameters());
     return params;
 }
 
 ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, ScalingType ruleType, DictPtr<IString, IBaseObject> params)
     : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType,
                                                          Dict<IString, IBaseObject>({
-                                                             {"outputDataType", static_cast<Int>(outputType)},
-                                                             {"inputDataType", static_cast<Int>(inputType)},
-                                                             {"ruleType", static_cast<Int>(ruleType)},
-                                                             {"parameters", params},
+                                                             {"OutputDataType", static_cast<Int>(outputType)},
+                                                             {"InputDataType", static_cast<Int>(inputType)},
+                                                             {"RuleType", static_cast<Int>(ruleType)},
+                                                             {"Parameters", params},
                                                          }))
     , outputDataType(outputType)
     , inputDataType(inputType)
@@ -41,7 +41,7 @@ ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, Scal
 }
 
 ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType, ScaledSampleType outputType)
-    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({{"scale", scale}, {"offset", offset}}))
+    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({{"Scale", scale}, {"Offset", offset}}))
 {
 }
 
@@ -134,16 +134,16 @@ ErrCode ScalingImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("outputDataType");
+        serializer->key("OutputDataType");
         serializer->writeInt(static_cast<Int>(outputDataType));
 
-        serializer->key("inputDataType");
+        serializer->key("InputDataType");
         serializer->writeInt(static_cast<Int>(inputDataType));
 
-        serializer->key("ruleType");
+        serializer->key("RuleType");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("params");
+        serializer->key("Params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -168,10 +168,10 @@ ConstCharPtr ScalingImpl::SerializeId()
 ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto outputDataType = static_cast<ScaledSampleType>(serializedObj.readInt("outputDataType"));
-    auto inputDataType = static_cast<SampleType>(serializedObj.readInt("inputDataType"));
-    auto ruleType = static_cast<ScalingType>(serializedObj.readInt("ruleType"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
+    auto outputDataType = static_cast<ScaledSampleType>(serializedObj.readInt("OutputDataType"));
+    auto inputDataType = static_cast<SampleType>(serializedObj.readInt("InputDataType"));
+    auto ruleType = static_cast<ScalingType>(serializedObj.readInt("RuleType"));
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
 
     return createObject<IScaling, ScalingImpl>(reinterpret_cast<IScaling**>(obj), inputDataType, outputDataType, ruleType, params);
 }
@@ -190,16 +190,16 @@ ErrCode ScalingImpl::verifyParametersInternal() const
         if (params.getCount() != 2)
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear Scaling has an invalid number of parameters. Required parameters are "scale" and "offset".)");
+                                 R"(Linear Scaling has an invalid number of parameters. Required parameters are "Scale" and "Offset".)");
         }
 
-        if (!params.hasKey("scale") || !params.hasKey("offset"))
+        if (!params.hasKey("Scale") || !params.hasKey("Offset"))
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear scaling has invalid parameters. Required parameters are "scale" and "offset".)");
+                                 R"(Linear scaling has invalid parameters. Required parameters are "Scale" and "Offset".)");
         }
 
-        if (!params.get("scale").asPtrOrNull<INumber>().assigned() || !params.get("offset").asPtrOrNull<INumber>().assigned())
+        if (!params.get("Scale").asPtrOrNull<INumber>().assigned() || !params.get("Offset").asPtrOrNull<INumber>().assigned())
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
 

@@ -25,7 +25,7 @@ public:
 
         component.addProperty(StringProperty("foo", "bar"));
         auto obj = PropertyObject();
-        obj.addProperty(IntProperty("int", 0));
+        obj.addProperty(IntProperty("Int", 0));
         component.addProperty(ObjectProperty("obj", obj));
 
         component.getTags().asPtr<ITagsPrivate>().add("tag1");
@@ -113,7 +113,7 @@ TEST_F(TmsComponentTest, Properties)
 
     PropertyObjectPtr serverObj = component.serverComponent.getPropertyValue("obj");
     PropertyObjectPtr clientObj = component.clientComponent.getPropertyValue("obj");
-    ASSERT_EQ(serverObj.getPropertyValue("int"), clientObj.getPropertyValue("int"));
+    ASSERT_EQ(serverObj.getPropertyValue("Int"), clientObj.getPropertyValue("Int"));
     ASSERT_EQ(component.serverComponent.getPropertyValue("foo"), component.clientComponent.getPropertyValue("foo"));
 
     component.clientComponent.setPropertyValue("foo", "notbar");

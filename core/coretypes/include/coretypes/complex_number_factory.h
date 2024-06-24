@@ -33,8 +33,8 @@ inline ComplexNumberPtr ComplexNumber(const Float real, const Float imaginary)
 
 inline StructTypePtr ComplexNumberStructType()
 {
-    return StructType("complexNumber",
-                      List<IString>("real", "imaginary"),
+    return StructType("ComplexNumber",
+                      List<IString>("Real", "Imaginary"),
                       List<IFloat>(0.0, 0.0),
                       List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
 }

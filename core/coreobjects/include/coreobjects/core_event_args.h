@@ -176,7 +176,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * @subsubsection opendaq_core_event_types_component_modified Attribute changed
  *
- * Event triggered when an internal attribute of a component has been changed. Eg. when the "active" state of the
+ * Event triggered when an internal attribute of a component has been changed. Eg. when the "Active" state of the
  * component is modified.
  *
  * The event has no preset parameters, but instead contains dictionary key-value pairs where the key corresponds to

@@ -115,8 +115,8 @@ inline DimensionRuleBuilderPtr DimensionRuleBuilderCopy(const DimensionRulePtr& 
  */
 inline StructTypePtr DimensionRuleStructType()
 {
-    return StructType("dimensionRule",
-                      List<IString>("ruleType", "parameters"),
+    return StructType("DimensionRule",
+                      List<IString>("RuleType", "Parameters"),
                       List<IBaseObject>(0, Dict<IString, IBaseObject>()),
                       List<IType>(SimpleType(ctInt), SimpleType(ctDict)));
 }

@@ -109,17 +109,22 @@ TEST_F(ArchitectureTest, Readers)
     statistics.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
 
     PacketReaderPtr packetReader = PacketReader(statistics.getSignals(search::Recursive(search::Any()))[0]);
-    StreamReaderPtr streamReader = StreamReader<double, uint64_t>(statistics.getSignals(search::Recursive(search::Any()))[0]);
+    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
+        .setSignal(statistics.getSignals(search::Recursive(search::Any()))[0])
+        .setValueReadType(SampleTypeFromType<double>::SampleType)
+        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
+        .setSkipEvents(true)
+        .setReadTimeoutType(ReadTimeoutType::Any)
+        .build();
 
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(1000ms);
 
     PacketPtr packet = packetReader.read();
     ASSERT_TRUE(packet.assigned());
 
     double data[1000];
     SizeT count = 1000;
-    streamReader.read(data, &count);
+    reader.read(data, &count, 1000);
     ASSERT_GT(count, 0u);
 }
 

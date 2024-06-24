@@ -50,6 +50,7 @@ DECLARE_OPENDAQ_INTERFACE(IFunctionBlockType, IComponentType)
  * @param name The name of the function block. Eg. FFT.
  * @param description A short description of the function block and its behaviour.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
+ * @param altIds The alternative unique type IDs of the function block.
  * configuration object. This way each instance of the function block has its own configuration object.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
@@ -57,7 +58,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
-    IPropertyObject*, defaultConfig
+    IPropertyObject*, defaultConfig,
+    IList*, altIds
 )
 
 /*!@}*/

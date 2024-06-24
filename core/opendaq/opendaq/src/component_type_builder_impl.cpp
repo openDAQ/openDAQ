@@ -123,6 +123,20 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ComponentTypeBuilderImpl::setAltIds(IList* altIds)
+{
+    this->altIds = altIds;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getAltIds(IList** altIds)
+{
+    OPENDAQ_PARAM_NOT_NULL(altIds);
+
+    *altIds = this->altIds.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 extern "C"

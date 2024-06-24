@@ -23,6 +23,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <coretypes/number_ptr.h>
 
 #include <mutex>
 #include <utility>
@@ -39,9 +40,11 @@ public:
     explicit ReaderImpl(SignalPtr signal,
                         ReadMode mode,
                         SampleType valueReadType,
-                        SampleType domainReadType)
+                        SampleType domainReadType,
+                        Bool skipEvents)
         : readMode(mode)
         , timeoutType(ReadTimeoutType::All)
+        , skipEvents(skipEvents)
     {
         if (!signal.assigned())
             throw ArgumentNullException("Signal must not be null.");
@@ -61,10 +64,12 @@ public:
     explicit ReaderImpl(InputPortConfigPtr port,
                         ReadMode mode,
                         SampleType valueReadType,
-                        SampleType domainReadType)
+                        SampleType domainReadType,
+                        Bool skipEvents)
         : readMode(mode)
         , portBinder(PropertyObject())
         , timeoutType(ReadTimeoutType::All)
+        , skipEvents(skipEvents)
     {
         if (port.getConnection().assigned())
             throw InvalidParameterException("Signal has to be connected to port after reader is created");
@@ -312,6 +317,7 @@ protected:
         : readMode(old->readMode)
         , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
+        , skipEvents(old->skipEvents)
     {
         dataDescriptor = old->dataDescriptor;
         domainDescriptor = old->domainDescriptor;
@@ -475,6 +481,22 @@ protected:
         throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
     }
 
+    NumberPtr calculateOffset(const DataPacketPtr& packet, SizeT offset) const 
+    {
+        const auto domainPacket = packet.getDomainPacket();
+        if (domainPacket.assigned())
+        {
+            const auto domainRule = domainPacket.getDataDescriptor().getRule();
+            if (domainRule.getType() == DataRuleType::Linear)
+            {
+                const auto domainRuleParams = domainRule.getParameters();
+                NumberPtr packetDelta = domainRuleParams.get("delta");
+                return {(domainPacket.getOffset() + offset) * packetDelta.getIntValue()};
+            }
+        }
+        return {0};
+    }
+
     bool invalid{};
     std::mutex mutex;
     ReadMode readMode;
@@ -489,6 +511,7 @@ protected:
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
+    Bool skipEvents = false;
 };
 
 END_NAMESPACE_OPENDAQ

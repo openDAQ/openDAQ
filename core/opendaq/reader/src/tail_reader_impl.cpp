@@ -7,8 +7,9 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
                                SizeT historySize,
                                SampleType valueReadType,
                                SampleType domainReadType,
-                               ReadMode mode)
-    : Super(SignalPtr(signal), mode, valueReadType, domainReadType)
+                               ReadMode mode,
+                               Bool skipEvents)
+    : Super(SignalPtr(signal), mode, valueReadType, domainReadType, skipEvents)
     , historySize(historySize)
     , cachedSamples(0)
 {
@@ -20,8 +21,9 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
                                SizeT historySize,
                                SampleType valueReadType,
                                SampleType domainReadType,
-                               ReadMode mode)
-    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+                               ReadMode mode,
+                               Bool skipEvents)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType, skipEvents)
     , historySize(historySize)
     , cachedSamples(0)
 {
@@ -156,10 +158,15 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
         const auto packet = *it;
         if (packet.getType() == PacketType::Event)
         {
-            handleDescriptorChanged(packet);
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            handleDescriptorChanged(eventPacket);
             it = packets.erase(packets.begin(), it + 1);
             cachedSamples -= readCachedSamples;
-            return TailReaderStatus(packet, !invalid, offset);
+
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                return TailReaderStatus(packet, !invalid, offset);
+            }
         } 
         else
         {
@@ -168,21 +175,7 @@ TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
             {
                 if (!offset.assigned() && info.offset < dataPacket.getSampleCount())
                 {
-                    const auto domainPacket = dataPacket.getDomainPacket();
-                    if (domainPacket.assigned())
-                    {
-                        const auto domainRule = domainPacket.getDataDescriptor().getRule();
-                        if (domainRule.getType() == DataRuleType::Linear)
-                        {
-                            const auto domainRuleParams = domainRule.getParameters();
-                            NumberPtr packetDelta = domainRuleParams.get("delta");
-                            offset = (domainPacket.getOffset() + info.offset) * packetDelta.getIntValue();
-                        }
-                    }
-                    if (!offset.assigned())
-                    {
-                        offset = 0;
-                    }
+                    offset = calculateOffset(dataPacket, info.offset);
                 }
                 readPacket(info, packet);
                 readCachedSamples += dataPacket.getSampleCount();
@@ -379,5 +372,36 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     SampleType, domainReadType,
     ReadMode, mode
 )
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITailReaderBuilder* builder)
+{
+    OPENDAQ_PARAM_NOT_NULL(builder);
+
+    auto builderPtr = TailReaderBuilderPtr::Borrow(builder);
+
+    if (auto port = builderPtr.getInputPort(); port.assigned())
+    {
+        return createObject<ITailReader, TailReaderImpl>(objTmp,
+                                                         port.as<IInputPortConfig>(true),
+                                                         builderPtr.getHistorySize(),
+                                                         builderPtr.getValueReadType(),
+                                                         builderPtr.getDomainReadType(),
+                                                         builderPtr.getReadMode(),
+                                                         builderPtr.getSkipEvents());
+    }
+    else if (auto signal = builderPtr.getSignal(); signal.assigned())
+    {
+        return createObject<ITailReader, TailReaderImpl>(objTmp,
+                                                         signal,
+                                                         builderPtr.getHistorySize(),
+                                                         builderPtr.getValueReadType(),
+                                                         builderPtr.getDomainReadType(),
+                                                         builderPtr.getReadMode(),
+                                                         builderPtr.getSkipEvents());
+    }
+
+    return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Neither signal nor input port is not set in TailReader builder", nullptr);
+}
 
 END_NAMESPACE_OPENDAQ

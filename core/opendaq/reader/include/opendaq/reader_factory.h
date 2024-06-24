@@ -33,6 +33,7 @@
 #include <opendaq/stream_reader_builder_ptr.h>
 
 #include <opendaq/tail_reader_ptr.h>
+#include <opendaq/tail_reader_builder_ptr.h>
 #include <opendaq/tail_reader_status_ptr.h>
 
 #include <opendaq/packet_reader_ptr.h>
@@ -322,7 +323,7 @@ inline TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, Siz
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
+TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
 {
     return TailReaderFromExisting(
         invalidatedReader,
@@ -330,6 +331,16 @@ StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT hi
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );
+}
+
+inline TailReaderBuilderPtr TailReaderBuilder()
+{
+    return TailReaderBuilder_Create();
+}
+
+inline TailReaderPtr TailReaderFromBuilder(const TailReaderBuilderPtr& builder)
+{
+    return TailReaderFromBuilder_Create(builder);
 }
 
 inline BlockReaderBuilderPtr BlockReaderBuilder()

@@ -22,6 +22,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct ITailReaderBuilder;
+
 /*!
  * @ingroup opendaq_readers
  * @addtogroup opendaq_tail_reader Tail reader
@@ -104,6 +106,12 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SizeT, historySize,
     SampleType, valueReadType,
     SampleType, domainReadType
+)
+
+//[factory(Hide)]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, TailReaderFromBuilder, ITailReader,
+    ITailReaderBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

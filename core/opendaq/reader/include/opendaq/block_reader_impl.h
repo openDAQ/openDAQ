@@ -243,8 +243,5 @@ private:
     SizeT overlappedBlockSizeRemainder;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
-
-    bool skipEvents = false;
 };
-
 END_NAMESPACE_OPENDAQ

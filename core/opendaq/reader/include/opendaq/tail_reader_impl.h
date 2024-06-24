@@ -19,6 +19,7 @@
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/tail_reader_builder_ptr.h>
 
 #include <deque>
 
@@ -37,13 +38,15 @@ public:
                    SizeT historySize,
                    SampleType valueReadType,
                    SampleType domainReadType,
-                   ReadMode mode);
+                   ReadMode mode,
+                   Bool skipEvents = false);
 
     TailReaderImpl(IInputPortConfig* port,
                    SizeT historySize,
                    SampleType valueReadType,
                    SampleType domainReadType,
-                   ReadMode mode);
+                   ReadMode mode,
+                   Bool skipEvents = false);
 
     TailReaderImpl(const ReaderConfigPtr& readerConfig,
                    SampleType valueReadType,
@@ -55,6 +58,8 @@ public:
                    SampleType valueReadType,
                    SampleType domainReadType,
                    SizeT historySize);
+
+    TailReaderImpl(const TailReaderBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC getHistorySize(SizeT* size) override;

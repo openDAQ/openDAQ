@@ -16,10 +16,9 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
                                  ReadMode mode,
                                  SizeT overlap,
                                  Bool skipEvents)
-    : Super(signal, mode, valueReadType, domainReadType)
+    : Super(signal, mode, valueReadType, domainReadType, skipEvents)
     , blockSize(blockSize)
     , overlap(overlap)
-    , skipEvents(skipEvents)
 {
     initOverlap();
 
@@ -34,10 +33,9 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
                                  ReadMode mode,
                                  SizeT overlap,
                                  Bool skipEvents)
-    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType, skipEvents)
     , blockSize(blockSize)
     , overlap(overlap)
-    , skipEvents(skipEvents)
 {
     initOverlap();
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -67,7 +65,6 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , blockSize(blockSize)
     , overlap(overlap)
     , info(old->info)
-    , skipEvents(old->skipEvents)
 {
     initOverlap();
 
@@ -325,21 +322,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
 
             if (!offset.assigned())
             {
-                const auto domainPacket = info.currentDataPacketIter->getDomainPacket();
-                if (domainPacket.assigned())
-                {
-                    const auto domainRule = domainPacket.getDataDescriptor().getRule();
-                    if (domainRule.getType() == DataRuleType::Linear)
-                    {
-                        const auto domainRuleParams = domainRule.getParameters();
-                        NumberPtr packetDelta = domainRuleParams.get("delta");
-                        offset = (domainPacket.getOffset() + info.prevSampleIndex) * packetDelta.getIntValue();
-                    }
-                }
-                if (!offset.assigned())
-                {
-                    offset = 0;
-                }
+                offset = calculateOffset(*info.currentDataPacketIter, info.prevSampleIndex);
             }
 
             ErrCode errCode = readPacketData();

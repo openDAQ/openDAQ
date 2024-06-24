@@ -98,7 +98,7 @@ ErrCode EnumerationTypeImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
 
-    serializer->key("typeName");
+    serializer->key("TypeName");
     serializer->writeString(this->typeName.getCharPtr(), this->typeName.getLength());
 
     serializer->key("enumerators");
@@ -140,7 +140,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     StringPtr typeName;
-    ErrCode errCode = ser->readString("typeName"_daq, &typeName);
+    ErrCode errCode = ser->readString("TypeName"_daq, &typeName);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

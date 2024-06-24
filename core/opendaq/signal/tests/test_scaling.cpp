@@ -22,8 +22,8 @@ TEST_F(ScalingTest, LinearScalingSetGet)
     const auto rule = LinearScaling(10, 20);
 
     ASSERT_EQ(rule.getType(), ScalingType::Linear);
-    ASSERT_EQ(rule.getParameters().get("scale"), 10);
-    ASSERT_EQ(rule.getParameters().get("offset"), 20);
+    ASSERT_EQ(rule.getParameters().get("Scale"), 10);
+    ASSERT_EQ(rule.getParameters().get("Offset"), 20);
 }
 
 TEST_F(ScalingTest, LinearScalingCopyFactory)
@@ -31,8 +31,8 @@ TEST_F(ScalingTest, LinearScalingCopyFactory)
     const auto rule = LinearScaling(100, 50);
     const auto ruleCopy = ScalingBuilderCopy(rule).build();
 
-    ASSERT_EQ(ruleCopy.getParameters().get("scale"), 100);
-    ASSERT_EQ(ruleCopy.getParameters().get("offset"), 50);
+    ASSERT_EQ(ruleCopy.getParameters().get("Scale"), 100);
+    ASSERT_EQ(ruleCopy.getParameters().get("Offset"), 50);
 }
 
 TEST_F(ScalingTest, LinearScalingInvalidParameters)
@@ -44,11 +44,11 @@ TEST_F(ScalingTest, LinearScalingInvalidParameters)
     ruleBuilder.setParameters(params);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("scale", "wrong");
+    params.set("Scale", "wrong");
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("scale", 10);
-    params.set("offset", 10);
+    params.set("Scale", 10);
+    params.set("Offset", 10);
     params.set("extra", 10);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
@@ -87,15 +87,15 @@ TEST_F(ScalingTest, StructType)
 TEST_F(ScalingTest, StructFields)
 {
     const daq::StructPtr structPtr = LinearScaling(10, 10);
-    ASSERT_EQ(structPtr.get("ruleType"), static_cast<Int>(ScalingType::Linear));
+    ASSERT_EQ(structPtr.get("RuleType"), static_cast<Int>(ScalingType::Linear));
 
     const auto params = Dict<IString, IBaseObject>({
-            {"scale", 10},
-            {"offset", 10}
+            {"Scale", 10},
+            {"Offset", 10}
         });
-    ASSERT_EQ(structPtr.get("parameters"), params);
-    ASSERT_EQ(structPtr.get("inputDataType"), static_cast<Int>(SampleType::Float64));
-    ASSERT_EQ(structPtr.get("outputDataType"), static_cast<Int>(SampleType::Float64));
+    ASSERT_EQ(structPtr.get("Parameters"), params);
+    ASSERT_EQ(structPtr.get("InputDataType"), static_cast<Int>(SampleType::Float64));
+    ASSERT_EQ(structPtr.get("OutputDataType"), static_cast<Int>(SampleType::Float64));
 }
 
 TEST_F(ScalingTest, StructNames)
@@ -108,8 +108,8 @@ TEST_F(ScalingTest, StructNames)
 TEST_F(ScalingTest, ScalingBuilderSetGet)
 {
     const auto params = Dict<IString, IBaseObject>({
-            {"scale", 10},
-            {"offset", 10}
+            {"Scale", 10},
+            {"Offset", 10}
         });
     const auto scalingBuilder = ScalingBuilder()
                                 .setInputDataType(SampleType::Int16)
@@ -126,8 +126,8 @@ TEST_F(ScalingTest, ScalingBuilderSetGet)
 TEST_F(ScalingTest, ScalingCreateFactory)
 {
     const auto params = Dict<IString, IBaseObject>({
-            {"scale", 10},
-            {"offset", 10}
+            {"Scale", 10},
+            {"Offset", 10}
         });
     const auto scalingBuilder = ScalingBuilder()
                                 .setInputDataType(SampleType::Int16)

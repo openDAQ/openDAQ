@@ -691,8 +691,8 @@ TEST_F(NativeDeviceModulesTest, ChannelProps)
     auto dev = client.getDevices()[0].getDevices()[0];
     auto customRangeValue = dev.getChannels()[0].getPropertyValue("CustomRange").asPtr<IStruct>();
 
-    ASSERT_EQ(customRangeValue.get("lowValue"), -10.0);
-    ASSERT_EQ(customRangeValue.get("highValue"), 10.0);
+    ASSERT_EQ(customRangeValue.get("LowValue"), -10.0);
+    ASSERT_EQ(customRangeValue.get("HighValue"), 10.0);
 }
 
 TEST_F(NativeDeviceModulesTest, FunctionBlockProperties)

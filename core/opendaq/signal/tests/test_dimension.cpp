@@ -31,11 +31,11 @@ TEST_F(DimensionTest, DimensionGetSet)
 {
     const auto dim = DimensionBuilder()
                      .setRule(LinearDimensionRule(10, 10, 100))
-                     .setUnit(Unit("symbol", 10))
+                     .setUnit(Unit("Symbol", 10))
                      .build();
 
-    ASSERT_EQ(dim.getRule().getParameters().get("start"), 10);
-    ASSERT_EQ(dim.getUnit().getSymbol(), "symbol");
+    ASSERT_EQ(dim.getRule().getParameters().get("Start"), 10);
+    ASSERT_EQ(dim.getUnit().getSymbol(), "Symbol");
 }
 
 TEST_F(DimensionTest, DimensionGetSizeList)
@@ -163,9 +163,9 @@ TEST_F(DimensionTest, StructType)
 TEST_F(DimensionTest, StructFields)
 {
     const StructPtr structPtr = Dimension(LinearDimensionRule(10, 1 ,10), Unit("Hz"), "test");
-    ASSERT_EQ(structPtr.get("rule"), LinearDimensionRule(10, 1, 10));
-    ASSERT_EQ(structPtr.get("unit"), Unit("Hz"));
-    ASSERT_EQ(structPtr.get("name"),  "test");
+    ASSERT_EQ(structPtr.get("Rule"), LinearDimensionRule(10, 1, 10));
+    ASSERT_EQ(structPtr.get("Unit"), Unit("Hz"));
+    ASSERT_EQ(structPtr.get("Name"),  "test");
 }
 
 TEST_F(DimensionTest, StructNames)

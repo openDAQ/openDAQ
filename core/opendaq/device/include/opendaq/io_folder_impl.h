@@ -81,7 +81,7 @@ ErrCode IoFolderImpl<Intfs...>::getSerializeId(ConstCharPtr* id) const
 template <class... Intfs>
 ConstCharPtr IoFolderImpl<Intfs...>::SerializeId()
 {
-    return "IoFolder";
+    return "IOFolder";
 }
 
 template <class... Intfs>

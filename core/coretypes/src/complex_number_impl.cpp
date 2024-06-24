@@ -18,10 +18,10 @@ static void hashCombine(size_t& seed, const T& value)
 ComplexNumberImpl::ComplexNumberImpl(const Float real, const Float imaginary)
     : GenericStructImpl<IComplexNumber, IStruct, IComparable, IConvertible>(
         ComplexNumberStructType(),
-        Dict<IString, IFloat>({{"real", real}, {"imaginary", imaginary}}))
+        Dict<IString, IFloat>({{"Real", real}, {"Imaginary", imaginary}}))
 {
-    value.real = this->fields.get("real");
-    value.imaginary = this->fields.get("imaginary");
+    value.real = this->fields.get("Real");
+    value.imaginary = this->fields.get("Imaginary");
 }
 
 ErrCode ComplexNumberImpl::getValue(ComplexFloat64* value)
@@ -167,9 +167,9 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::compareTo(IBaseObject* other)
 ErrCode INTERFACE_FUNC ComplexNumberImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
-    serializer->key("real");
+    serializer->key("Real");
     serializer->writeFloat(value.real);
-    serializer->key("imaginary");
+    serializer->key("Imaginary");
     serializer->writeFloat(value.imaginary);
     serializer->endObject();
     return OPENDAQ_SUCCESS;

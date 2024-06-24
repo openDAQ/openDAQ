@@ -13,9 +13,9 @@ namespace detail
 
 RangeImpl::RangeImpl(NumberPtr lowValue, NumberPtr highValue)
     : GenericStructImpl<IRange, IStruct>(detail::rangeStructType,
-                                         Dict<IString, IBaseObject>({{"lowValue", std::move(lowValue)}, {"highValue", std::move(highValue)}}))
-    , low(this->fields.get("lowValue"))
-    , high(this->fields.get("highValue"))
+                                         Dict<IString, IBaseObject>({{"LowValue", std::move(lowValue)}, {"HighValue", std::move(highValue)}}))
+    , low(this->fields.get("LowValue"))
+    , high(this->fields.get("HighValue"))
 {
     if (low > high)
         throw RangeBoundariesInvalidException{};
@@ -64,10 +64,10 @@ ErrCode RangeImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("low");
+        serializer->key("Low");
         low.serialize(serializer);
 
-        serializer->key("high");
+        serializer->key("High");
         high.serialize(serializer);
     }
     serializer->endObject();
@@ -93,26 +93,26 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     NumberPtr low, high;
-    const auto lowType = serializedObj.getType("low");
+    const auto lowType = serializedObj.getType("Low");
     switch (lowType)
     {
         case ctInt:
-            low = serializedObj.readInt("low");
+            low = serializedObj.readInt("Low");
             break;
         case ctFloat:
-            low = serializedObj.readFloat("low");
+            low = serializedObj.readFloat("Low");
             break;
         default:
             throw InvalidTypeException();
     }
-    const auto highType = serializedObj.getType("high");
+    const auto highType = serializedObj.getType("High");
     switch (highType)
     {
         case ctInt:
-            high = serializedObj.readInt("high");
+            high = serializedObj.readInt("High");
             break;
         case ctFloat:
-            high = serializedObj.readFloat("high");
+            high = serializedObj.readFloat("High");
             break;
         default:
             throw InvalidTypeException();

@@ -162,7 +162,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
         throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
 
     auto signalToAdd = createSignal(signalStringId, serializedSignal);
-    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
 
     // recreate signal -> domainSignal relations in the same way as on server
     for (const auto& item : deviceSignals)
@@ -201,7 +201,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
             throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
     }
 
-    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
 
     // remove domain signal if it is no longer assigned after reconnection
     if (signalToAdd.getDomainSignal().assigned() && !domainSignalStringId.assigned())

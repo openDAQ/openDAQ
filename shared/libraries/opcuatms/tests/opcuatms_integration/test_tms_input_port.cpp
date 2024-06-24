@@ -28,7 +28,7 @@ public:
     {
         auto ip = InputPort(NullContext(), nullptr, name);
         ip.setRequiresSignal(requiresSignal);
-        ip.getTags().asPtr<ITagsPrivate>().add("port");
+        ip.getTags().asPtr<ITagsPrivate>().add("Port");
         return ip;
     }
 };
@@ -159,8 +159,8 @@ TEST_F(TmsInputPortTest, ComponentMethods)
     auto tags = daqServerInputPort.getTags();
     auto clientTags = clientInputPort.getTags();
 
-    ASSERT_TRUE(tags.query("port"));
-    ASSERT_TRUE(clientTags.query("port"));
+    ASSERT_TRUE(tags.query("Port"));
+    ASSERT_TRUE(clientTags.query("Port"));
 
     clientInputPort.setActive(false);
     ASSERT_EQ(daqServerInputPort.getActive(), clientInputPort.getActive());

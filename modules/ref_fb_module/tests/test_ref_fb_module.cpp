@@ -102,7 +102,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
 {
     const auto module = CreateModule();
 
-    ASSERT_THROW(module.createFunctionBlock("test", nullptr, "id"), NotFoundException);
+    ASSERT_THROW(module.createFunctionBlock("test", nullptr, "Id"), NotFoundException);
 }
 
 TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
@@ -111,7 +111,7 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("RefFBModuleRenderer", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleRenderer", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 
     // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -121,7 +121,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -129,7 +129,7 @@ TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
 {
     auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "Id");
     ASSERT_EQ(fb.getSignals(search::Recursive(search::Any())).getCount(), 3u);
 }
 
@@ -137,7 +137,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("RefFBModuleClassifier", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleClassifier", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -145,6 +145,6 @@ TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 }

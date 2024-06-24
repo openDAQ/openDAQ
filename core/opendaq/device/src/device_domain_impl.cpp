@@ -13,7 +13,7 @@ DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution, StringPtr origin, Un
     : GenericStructImpl<IDeviceDomain, IStruct>(
         detail::unitStructType,
         Dict<IString, IBaseObject>(
-            {{"tickResolution", std::move(tickResolution)}, {"origin", std::move(origin)}, {"unit", std::move(unit)}}))
+            {{"TickResolution", std::move(tickResolution)}, {"Origin", std::move(origin)}, {"Unit", std::move(unit)}}))
 {
 }
 
@@ -21,7 +21,7 @@ ErrCode DeviceDomainImpl::getTickResolution(IRatio** tickResolution)
 {
     OPENDAQ_PARAM_NOT_NULL(tickResolution);
 
-    *tickResolution = this->fields.get("tickResolution").asPtr<IRatio>().addRefAndReturn();
+    *tickResolution = this->fields.get("TickResolution").asPtr<IRatio>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -29,7 +29,7 @@ ErrCode DeviceDomainImpl::getOrigin(IString** origin)
 {
     OPENDAQ_PARAM_NOT_NULL(origin);
 
-    *origin = this->fields.get("origin").asPtr<IString>().addRefAndReturn();
+    *origin = this->fields.get("Origin").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -37,7 +37,7 @@ ErrCode DeviceDomainImpl::getUnit(IUnit** unit)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
 
-    *unit = this->fields.get("unit").asPtr<IUnit>().addRefAndReturn();
+    *unit = this->fields.get("Unit").asPtr<IUnit>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -47,24 +47,24 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        const RatioPtr resolution = this->fields.get("tickResolution");
+        const RatioPtr resolution = this->fields.get("TickResolution");
         if (resolution.assigned())
         {
-            serializer->key("tickResolution");
+            serializer->key("TickResolution");
             resolution.serialize(serializer);
         }
         
-        const StringPtr origin = this->fields.get("origin");
+        const StringPtr origin = this->fields.get("Origin");
         if (origin.assigned() && origin != "")
         {
-            serializer->key("origin");
+            serializer->key("Origin");
             serializer->writeString(origin.getCharPtr(), origin.getLength());
         }
         
-        const UnitPtr unit = this->fields.get("unit");
+        const UnitPtr unit = this->fields.get("Unit");
         if (unit.assigned())
         {
-            serializer->key("unit");
+            serializer->key("Unit");
             unit.serialize(serializer);
         }
     }
@@ -96,19 +96,19 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     StringPtr origin;
     UnitPtr unit;
     
-    if (serializedObj.hasKey("tickResolution"))
+    if (serializedObj.hasKey("TickResolution"))
     {
-        resolution = serializedObj.readObject("tickResolution");
+        resolution = serializedObj.readObject("TickResolution");
     }
     
-    if (serializedObj.hasKey("origin"))
+    if (serializedObj.hasKey("Origin"))
     {
-        origin = serializedObj.readString("origin");
+        origin = serializedObj.readString("Origin");
     }
 
-    if (serializedObj.hasKey("unit"))
+    if (serializedObj.hasKey("Unit"))
     {
-        unit = serializedObj.readObject("unit");
+        unit = serializedObj.readObject("Unit");
     }
 
     *obj = DeviceDomain(resolution, origin, unit).as<IBaseObject>();

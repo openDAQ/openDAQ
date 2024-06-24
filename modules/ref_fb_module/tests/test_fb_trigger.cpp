@@ -104,7 +104,7 @@ private:
         }
         else
         {
-            Int delta = rule.getParameters().get("delta");
+            Int delta = rule.getParameters().get("Delta");
             for (size_t i = 0; i < mockPackets.size(); i++)
             {
                 // Linear creation of one domain packet

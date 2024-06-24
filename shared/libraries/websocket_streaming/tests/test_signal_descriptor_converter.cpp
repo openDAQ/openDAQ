@@ -138,7 +138,7 @@ TEST(SignalConverter, synchronousSignal)
     ASSERT_EQ(timeSignal->getTimeDelta(), outputRateInTicks);
     ASSERT_EQ(timeSignal->getTableId(), "table1");
 
-    auto start = domainDescriptor.getRule().getParameters().get("start");
+    auto start = domainDescriptor.getRule().getParameters().get("Start");
     timeSignal->setTimeStart(start);
     ASSERT_EQ(timeSignal->getTimeStart(), start);
 }
@@ -275,8 +275,8 @@ TEST(SignalConverter, subscribedDataSignal)
     postScaling = dataDescriptor.getPostScaling();
     ASSERT_TRUE(postScaling.assigned());
     ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
-    ASSERT_EQ(postScaling.getParameters().get("scale"), 2.0);
-    ASSERT_EQ(postScaling.getParameters().get("offset"), 3.0);
+    ASSERT_EQ(postScaling.getParameters().get("Scale"), 2.0);
+    ASSERT_EQ(postScaling.getParameters().get("Offset"), 3.0);
 }
 
 TEST(SignalConverter, subscribedBitfieldSignal)
@@ -289,7 +289,7 @@ TEST(SignalConverter, subscribedBitfieldSignal)
     std::string memberName = "This is the measured value";
 
     nlohmann::json bitsInterpretationObject =
-        R"([{"description": "Data overrun","index": 0,"uuid": "c214c128-2447-4cee-ba39-6227aed2eff4"}])"_json;
+        R"([{"Description": "Data overrun","index": 0,"uuid": "c214c128-2447-4cee-ba39-6227aed2eff4"}])"_json;
 
     bsp::SubscribedSignal subscribedSignal(signalNumber, bsp::Logging::logCallback());
 
@@ -395,8 +395,8 @@ TEST(SignalConverter, subscribedTimeSignal)
     ASSERT_EQ(daq::DataRuleType::Linear, rule.getType());
     DictPtr<IString, IBaseObject> params = rule.getParameters();
     ASSERT_EQ(params.getCount(), 2u);
-    uint64_t resultDelta = params.get("delta");
-    uint64_t resultStart = params.get("start");
+    uint64_t resultDelta = params.get("Delta");
+    uint64_t resultStart = params.get("Start");
     ASSERT_EQ(resultDelta, linearDelta);
     ASSERT_EQ(resultStart, 0);
 }

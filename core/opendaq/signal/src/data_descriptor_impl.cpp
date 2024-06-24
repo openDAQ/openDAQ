@@ -21,17 +21,17 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
 {
     const auto builderPtr = DataDescriptorBuilderPtr::Borrow(dataDescriptorBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("dimensions", builderPtr.getDimensions());
-    params.set("name", builderPtr.getName());
-    params.set("sampleType", static_cast<Int>(builderPtr.getSampleType()));
-    params.set("unit", builderPtr.getUnit());
-    params.set("valueRange", builderPtr.getValueRange());
-    params.set("dataRule", builderPtr.getRule());
-    params.set("scaling", builderPtr.getPostScaling());
-    params.set("origin", builderPtr.getOrigin());
-    params.set("tickResolution", builderPtr.getTickResolution());
-    params.set("structFields", builderPtr.getStructFields());
-    params.set("metadata", builderPtr.getMetadata());
+    params.set("Dimensions", builderPtr.getDimensions());
+    params.set("Name", builderPtr.getName());
+    params.set("SampleType", static_cast<Int>(builderPtr.getSampleType()));
+    params.set("Unit", builderPtr.getUnit());
+    params.set("ValueRange", builderPtr.getValueRange());
+    params.set("DataRule", builderPtr.getRule());
+    params.set("Scaling", builderPtr.getPostScaling());
+    params.set("Origin", builderPtr.getOrigin());
+    params.set("TickResolution", builderPtr.getTickResolution());
+    params.set("StructFields", builderPtr.getStructFields());
+    params.set("Metadata", builderPtr.getMetadata());
 
     return params;
 }
@@ -376,28 +376,28 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("name");
+        serializer->key("Name");
         serializer->writeString(name.getCharPtr(), name.getLength());
 
-        serializer->key("sampleType");
+        serializer->key("SampleType");
         serializer->writeInt(static_cast<Int>(sampleType));
 
         if (unit.assigned())
         {
-            serializer->key("unit");
+            serializer->key("Unit");
             unit.serialize(serializer);
         }
 
-        serializer->key("dimensions");
+        serializer->key("Dimensions");
         dimensions.serialize(serializer);
 
         if (valueRange.assigned())
         {
-            serializer->key("valueRange");
+            serializer->key("ValueRange");
             valueRange.serialize(serializer);
         }
 
-        serializer->key("rule");
+        serializer->key("Rule");
         dataRule.serialize(serializer);
 
         if (scaling.assigned())
@@ -406,19 +406,19 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
             scaling.serialize(serializer);
         }
 
-        serializer->key("origin");
+        serializer->key("Origin");
         serializer->writeString(origin.getCharPtr(), origin.getLength());
 
         if (resolution.assigned())
         {
-            serializer->key("tickResolution");
+            serializer->key("TickResolution");
             resolution.serialize(serializer);
         }
 
-        serializer->key("metadata");
+        serializer->key("Metadata");
         metadata.serialize(serializer);
 
-        serializer->key("structFields");
+        serializer->key("StructFields");
         structFields.serialize(serializer);
     }
     serializer->endObject();
@@ -452,28 +452,28 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 
-    auto name = serializedObj.readString("name");
+    auto name = serializedObj.readString("Name");
     dataDescriptor.setName(name);
 
-    auto sampleType = static_cast<SampleType>(serializedObj.readInt("sampleType"));
+    auto sampleType = static_cast<SampleType>(serializedObj.readInt("SampleType"));
     dataDescriptor.setSampleType(sampleType);
 
-    if (serializedObj.hasKey("unit"))
+    if (serializedObj.hasKey("Unit"))
     {
-        UnitPtr unit = serializedObj.readObject("unit");
+        UnitPtr unit = serializedObj.readObject("Unit");
         dataDescriptor.setUnit(unit);
     }
 
-    ListPtr<IDimension> dimensions = serializedObj.readObject("dimensions");
+    ListPtr<IDimension> dimensions = serializedObj.readObject("Dimensions");
     dataDescriptor.setDimensions(dimensions);
 
-    if (serializedObj.hasKey("valueRange"))
+    if (serializedObj.hasKey("ValueRange"))
     {
-        RangePtr valueRange = serializedObj.readObject("valueRange");
+        RangePtr valueRange = serializedObj.readObject("ValueRange");
         dataDescriptor.setValueRange(valueRange);
     }
 
-    DataRulePtr rule = serializedObj.readObject("rule");
+    DataRulePtr rule = serializedObj.readObject("Rule");
     dataDescriptor.setRule(rule);
 
     if (serializedObj.hasKey("postScaling"))
@@ -482,19 +482,19 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
         dataDescriptor.setPostScaling(postScaling);
     }
 
-    auto origin = serializedObj.readString("origin");
+    auto origin = serializedObj.readString("Origin");
     dataDescriptor.setOrigin(origin);
 
-    if (serializedObj.hasKey("tickResolution"))
+    if (serializedObj.hasKey("TickResolution"))
     {
-        RatioPtr tick_resolution = serializedObj.readObject("tickResolution");
+        RatioPtr tick_resolution = serializedObj.readObject("TickResolution");
         dataDescriptor.setTickResolution(tick_resolution);
     }
 
-    DictPtr<IString, IString> metadata = serializedObj.readObject("metadata");
+    DictPtr<IString, IString> metadata = serializedObj.readObject("Metadata");
     dataDescriptor.setMetadata(metadata);
 
-    ListPtr<IDataDescriptor> structFields = serializedObj.readObject("structFields");
+    ListPtr<IDataDescriptor> structFields = serializedObj.readObject("StructFields");
     dataDescriptor.setStructFields(structFields);
 
     *obj = dataDescriptor.build().as<IBaseObject>();

@@ -43,8 +43,8 @@ inline RangePtr Range(const NumberPtr& lowValue, const NumberPtr& highValue)
  */
 inline StructTypePtr RangeStructType()
 {
-    return StructType("range",
-                      List<IString>("lowValue", "highValue"),
+    return StructType("Range",
+                      List<IString>("LowValue", "HighValue"),
                       List<INumber>(0, 1),
                       List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
 }

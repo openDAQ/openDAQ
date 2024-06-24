@@ -82,7 +82,7 @@ void SignalGenerator::calculateResolutionAndOutputRate()
 
     if (rule.assigned() && rule.getType() == DataRuleType::Linear)
     {
-        Int delta = rule.getParameters().get("delta");
+        Int delta = rule.getParameters().get("Delta");
         this->outputRate = (double) resolution.getDenominator() / resolution.getNumerator() / delta;
     }
 }

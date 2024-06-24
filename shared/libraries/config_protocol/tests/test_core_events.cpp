@@ -855,13 +855,13 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 
 TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
 {
-    serverDevice.addProperty(StringProperty("string", "foo"));
-    serverDevice.addProperty(IntProperty("int", 0));
-    serverDevice.addProperty(FloatProperty("float", 1.123));
+    serverDevice.addProperty(StringProperty("String", "foo"));
+    serverDevice.addProperty(IntProperty("Int", 0));
+    serverDevice.addProperty(FloatProperty("Float", 1.123));
     
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.setPropertyValue("string", "bar");
-    serverDevice.setPropertyValue("int", 1);
+    serverDevice.setPropertyValue("String", "bar");
+    serverDevice.setPropertyValue("Int", 1);
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 
     const auto serializer = JsonSerializer();
@@ -880,23 +880,23 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
     const auto str = serializer.getOutput();
     deserializer.update(serverDevice, serializer.getOutput());
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
-    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Int"), serverDevice.getPropertyValue("Int"));
     ASSERT_EQ(updateCount, 1);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
 {
-    serverDevice.addProperty(FloatProperty("temp", 1.123));
+    serverDevice.addProperty(FloatProperty("Temp", 1.123));
 
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.addProperty(StringProperty("string", "foo"));
-    serverDevice.addProperty(IntProperty("int", 0));
-    serverDevice.addProperty(FloatProperty("float", 1.123));
-    serverDevice.removeProperty("temp");
+    serverDevice.addProperty(StringProperty("String", "foo"));
+    serverDevice.addProperty(IntProperty("Int", 0));
+    serverDevice.addProperty(FloatProperty("Float", 1.123));
+    serverDevice.removeProperty("Temp");
     
-    serverDevice.setPropertyValue("string", "bar");
-    serverDevice.setPropertyValue("int", 1);
+    serverDevice.setPropertyValue("String", "bar");
+    serverDevice.setPropertyValue("Int", 1);
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     
     const auto serializer = JsonSerializer();
@@ -914,10 +914,10 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverDevice, serializer.getOutput());
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
-    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
-    ASSERT_EQ(clientDevice.getPropertyValue("float"), serverDevice.getPropertyValue("float"));
-    ASSERT_FALSE(clientDevice.hasProperty("temp"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Int"), serverDevice.getPropertyValue("Int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Float"), serverDevice.getPropertyValue("Float"));
+    ASSERT_FALSE(clientDevice.hasProperty("Temp"));
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -1456,7 +1456,7 @@ TEST_F(ConfigCoreEventTest, DomainChanged)
 TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
 {
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(StringProperty("String", "foo"));
 
     int updateCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -1469,5 +1469,5 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
     client->reconnect();
     ASSERT_EQ(updateCount, 1);
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
 }

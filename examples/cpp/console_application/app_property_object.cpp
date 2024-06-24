@@ -10,13 +10,13 @@ bool AppPropertyObject::processCommand(BaseObjectPtr& propObj, const std::vector
     if (command.empty())
         return false;
 
-    if (command[0] == "list")
+    if (command[0] == "List")
         return list(propObj, command);
     if (command[0] == "get")
         return get(propObj, command);
-    if (command[0] == "set")
+    if (command[0] == "Set")
         return set(propObj, command);
-    if (command[0] == "help")
+    if (command[0] == "Help")
         return help();
 
     return false;
@@ -76,7 +76,7 @@ bool AppPropertyObject::get(const PropertyObjectPtr& propObj, const std::vector<
 
 bool AppPropertyObject::list(const PropertyObjectPtr& propObj, const std::vector<std::string>& command)
 {
-    if (command.size() != 2 && command[1] != "properties")
+    if (command.size() != 2 && command[1] != "Properties")
         return false;
 
     const auto properties = propObj.getVisibleProperties();

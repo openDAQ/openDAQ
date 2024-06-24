@@ -21,9 +21,9 @@ DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dime
 {
     const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("name", builderPtr.getName());
-    params.set("unit", builderPtr.getUnit());
-    params.set("rule", builderPtr.getRule());
+    params.set("Name", builderPtr.getName());
+    params.set("Unit", builderPtr.getUnit());
+    params.set("Rule", builderPtr.getRule());
 
     return params;
 }
@@ -31,9 +31,9 @@ DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dime
 DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, const StringPtr& name)
     : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType,
           Dict<IString, IBaseObject>({
-              {"name", name},
-              {"unit", unit},
-              {"rule", rule},
+              {"Name", name},
+              {"Unit", unit},
+              {"Rule", rule},
           }))
     , name(name)
     , unit(unit)
@@ -82,11 +82,11 @@ ErrCode DimensionImpl::getSize(SizeT* size)
 
     if (rule.getType() == DimensionRuleType::Linear || rule.getType() == DimensionRuleType::Logarithmic)
     {
-        *size = rule.getParameters().get("size");
+        *size = rule.getParameters().get("Size");
     }
     else if (rule.getType() == DimensionRuleType::List)
     {
-        *size = rule.getParameters().get("list").asPtr<IList>().getCount();
+        *size = rule.getParameters().get("List").asPtr<IList>().getCount();
     }
     else
     {
@@ -172,9 +172,9 @@ ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const
 // TODO: Allow ranges in rule
 ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 {
-    const SizeT size = rule.getParameters().get("size");
-    const Float delta = rule.getParameters().get("delta");
-    const Float start = rule.getParameters().get("start");
+    const SizeT size = rule.getParameters().get("Size");
+    const Float delta = rule.getParameters().get("Delta");
+    const Float start = rule.getParameters().get("Start");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
@@ -186,10 +186,10 @@ ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 // TODO: Allow ranges in rule
 ListPtr<IBaseObject> DimensionImpl::getLogLabels() const
 {
-    const SizeT size = rule.getParameters().get("size");
-    const Float delta = rule.getParameters().get("delta");
-    const Float start = rule.getParameters().get("start");
-    const Float base = rule.getParameters().get("base");
+    const SizeT size = rule.getParameters().get("Size");
+    const Float delta = rule.getParameters().get("Delta");
+    const Float start = rule.getParameters().get("Start");
+    const Float base = rule.getParameters().get("Base");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
@@ -200,7 +200,7 @@ ListPtr<IBaseObject> DimensionImpl::getLogLabels() const
 
 ListPtr<IBaseObject> DimensionImpl::getListLabels() const
 {
-    return rule.getParameters().get("list");
+    return rule.getParameters().get("List");
 }
 
 ErrCode DimensionImpl::serialize(ISerializer* serializer)
@@ -209,16 +209,16 @@ ErrCode DimensionImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("rule");
+        serializer->key("Rule");
         rule.serialize(serializer);
 
         if (unit.assigned())
         {
-            serializer->key("unit");
+            serializer->key("Unit");
             unit.serialize(serializer);
         }
 
-        serializer->key("name");
+        serializer->key("Name");
         serializer->writeString(name.getCharPtr(), name.getLength());
     }
     serializer->endObject();
@@ -243,11 +243,11 @@ ConstCharPtr DimensionImpl::SerializeId()
 ErrCode DimensionImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto rule = serializedObj.readObject("rule").asPtr<IDimensionRule>();
+    auto rule = serializedObj.readObject("Rule").asPtr<IDimensionRule>();
     UnitPtr unit;
-    if (serializedObj.hasKey("unit"))
-        unit = serializedObj.readObject("unit").asPtr<IUnit>();
-    auto name = serializedObj.readString("name");
+    if (serializedObj.hasKey("Unit"))
+        unit = serializedObj.readObject("Unit").asPtr<IUnit>();
+    auto name = serializedObj.readString("Name");
 
     return createObject<IDimension, DimensionImpl>(reinterpret_cast<IDimension**>(obj), rule, unit, name);
 }

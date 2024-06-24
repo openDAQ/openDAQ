@@ -97,12 +97,12 @@ TEST_F(EmptyModuleTest, CreateFunctionBlockIdNull)
     auto module = createModule();
 
     FunctionBlockPtr functionBlock;
-    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "id"), ArgumentNullException);
+    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "Id"), ArgumentNullException);
 }
 
 TEST_F(EmptyModuleTest, CreateFunctionBlockIdEmpty)
 {
     auto module = createModule();
 
-    ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
+    ASSERT_THROW(module.createFunctionBlock("", nullptr, "Id"), NotFoundException);
 }

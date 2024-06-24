@@ -30,8 +30,8 @@ template <>
 OpcUaObject<UA_LinearRuleDescriptionStructure> StructConverter<IDataRule, UA_LinearRuleDescriptionStructure>::ToTmsType(
     const DataRulePtr& object, const ContextPtr& /*context*/)
 {
-    const NumberPtr delta = object.getParameters().get("delta");
-    const NumberPtr start = object.getParameters().get("start");
+    const NumberPtr delta = object.getParameters().get("Delta");
+    const NumberPtr start = object.getParameters().get("Start");
 
     OpcUaObject<UA_LinearRuleDescriptionStructure> uaRuleDescription;
 

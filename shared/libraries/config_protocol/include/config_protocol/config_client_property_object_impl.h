@@ -417,7 +417,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
 {
     // Add/remove properties where needed
 
-    const auto keyStr = String("properties");
+    const auto keyStr = String("Properties");
     const auto hasKey = serObj.hasKey(keyStr);
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
@@ -454,7 +454,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const SerializedObjectPtr& serObj)
 {
-    const auto hasKeyStr = String("propValues");
+    const auto hasKeyStr = String("PropValues");
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
     if (!serObj.hasKey(hasKeyStr))
@@ -478,7 +478,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     }
     
     const TypeManagerPtr typeManager = this->manager.getRef();
-    const auto propValues = serObj.readSerializedObject("propValues");
+    const auto propValues = serObj.readSerializedObject("PropValues");
     const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
 
     for (const auto& prop : thisPtr.getAllProperties())

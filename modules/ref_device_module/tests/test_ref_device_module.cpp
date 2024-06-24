@@ -188,14 +188,14 @@ TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)
     auto module = CreateModule();
 
     FunctionBlockPtr functionBlock;
-    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "id"), ArgumentNullException);
+    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "Id"), ArgumentNullException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
+    ASSERT_THROW(module.createFunctionBlock("", nullptr, "Id"), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
@@ -448,7 +448,7 @@ TEST_F(RefDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
     auto channel = channels[0];
     auto signals = channel.getSignals();
 
-    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    auto inputPort = InputPort(NullContext(), nullptr, "Input");
     inputPort.connect(signals[0]);
 
     ASSERT_EQ(inputPort.getSignal(), signals[0]);
@@ -465,7 +465,7 @@ TEST_F(RefDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
     auto channel = channels[1];
     auto signals = channel.getSignals();
 
-    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    auto inputPort = InputPort(NullContext(), nullptr, "Input");
     inputPort.connect(signals[0]);
 
     ASSERT_EQ(inputPort.getSignal(), signals[0]);

@@ -2313,7 +2313,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
     if (numOfSerializablePropertyValues == 0)
         return OPENDAQ_SUCCESS;
 
-    serializer->key("propValues");
+    serializer->key("PropValues");
     serializer->startObject();
     {
         std::map<StringPtr, BaseObjectPtr> sorted(propValues.begin(), propValues.end());
@@ -2357,7 +2357,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         if (localProperties.size() == 0)
             return OPENDAQ_NOTFOUND;
 
-        checkErrorInfo(serializer->key("properties"));
+        checkErrorInfo(serializer->key("Properties"));
         checkErrorInfo(serializer->startList());
         for (const auto& prop : localProperties)
         {
@@ -2465,12 +2465,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
                                                                                            const FunctionPtr& factoryCallback,
                                                                                            PropertyObjectPtr& propObjPtr)
 {
-    const auto hasKeyStr = String("propValues");
+    const auto hasKeyStr = String("PropValues");
 
     if (!serialized.hasKey(hasKeyStr))
         return;
 
-    const auto propValues = serialized.readSerializedObject("propValues");
+    const auto propValues = serialized.readSerializedObject("PropValues");
 
     const auto keys = propValues.getKeys();
 
@@ -2489,7 +2489,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLoca
                                                                                             const FunctionPtr& /*factoryCallback*/,
                                                                                             PropertyObjectPtr& propObjPtr)
 {
-    const auto keyStr = String("properties");
+    const auto keyStr = String("Properties");
 
     const auto hasKey = serialized.hasKey(keyStr);
 
@@ -2698,8 +2698,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 {
     SerializedObjectPtr serializedProps;
 
-    if (serialized.hasKey("propValues"))
-        serializedProps = serialized.readSerializedObject("propValues");
+    if (serialized.hasKey("PropValues"))
+        serializedProps = serialized.readSerializedObject("PropValues");
 
     beginUpdate();
     Finally finally([this]() { endUpdate(); });

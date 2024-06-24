@@ -307,7 +307,7 @@ TEST_F(FunctionBlockWrapperTest, PropertyValidator)
 
     auto fbwCtrl = fbw.asPtr<daq::IFunctionBlockWrapper>();
 
-    ASSERT_THROW(fbwCtrl.setPropertyValidator("temp", daq::Validator("value == False")), daq::NotFoundException);
+    ASSERT_THROW(fbwCtrl.setPropertyValidator("Temp", daq::Validator("value == False")), daq::NotFoundException);
 
     fbwCtrl.setPropertyValidator("strprop", daq::Validator("value != 'val'"));
     ASSERT_THROW(fbw.setPropertyValue("strprop", ""), daq::ValidateFailedException);

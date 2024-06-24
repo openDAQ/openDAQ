@@ -68,7 +68,7 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
     this->tags.add("phys_device");
 
-    this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "origin", Unit("unit_symbol", 987, "unit_name", "unit_quantity")));
+    this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "Origin", Unit("UnitSymbol", 987, "UnitName", "UnitQuantity")));
 }
 
 MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()

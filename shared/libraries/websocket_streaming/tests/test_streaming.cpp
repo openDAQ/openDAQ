@@ -31,8 +31,8 @@ public:
         testDoubleSignal = streaming_test_helpers::createExplicitValueSignal(context, "DoubleSignal", testDomainSignal);
         testConstantSignal = streaming_test_helpers::createConstantValueSignal(context, "ConstantSignal", testDomainSignal);
 
-        delta = testDomainSignal.getDescriptor().getRule().getParameters().get("delta");
-        packetOffset = testDomainSignal.getDescriptor().getRule().getParameters().get("start");
+        delta = testDomainSignal.getDescriptor().getRule().getParameters().get("Delta");
+        packetOffset = testDomainSignal.getDescriptor().getRule().getParameters().get("Start");
     }
 
     void TearDown() override

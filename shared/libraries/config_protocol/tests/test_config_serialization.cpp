@@ -123,11 +123,11 @@ TEST_F(ConfigProtocolSerializationTest, Component)
     const auto ctx = NullContext();
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(ctx, nullptr, "temp");
+    const auto component = Component(ctx, nullptr, "Temp");
 
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().asPtr<ITagsPrivate>().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("Tag");
 
     const auto serializer = JsonSerializer(True);
     component.serialize(serializer);
@@ -138,7 +138,7 @@ TEST_F(ConfigProtocolSerializationTest, Component)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, ctx, nullptr, nullptr, "temp", nullptr);
+        clientComm, std::string {}, ctx, nullptr, nullptr, "Temp", nullptr);
     bool configComponentInstantiated = false;
     const ComponentPtr newComponent = deserializer.deserialize(str1,
                                                                deserializeContext,
@@ -323,7 +323,7 @@ TEST_F(ConfigProtocolSerializationTest, IoFolderWithComponent)
                                                                 const BaseObjectPtr& context,
                                                                 const FunctionPtr& factoryCallback) -> BaseObjectPtr
                                  {
-                                     if (typeId == "IoFolder")
+                                     if (typeId == "IOFolder")
                                      {
                                          BaseObjectPtr obj;
                                          checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
@@ -350,7 +350,7 @@ TEST_F(ConfigProtocolSerializationTest, InputPort)
     const auto inputPort = InputPort(NullContext(), nullptr, "ip");
 
     inputPort.setName("ip_name");
-    inputPort.getTags().asPtr<ITagsPrivate>().add("tag");
+    inputPort.getTags().asPtr<ITagsPrivate>().add("Tag");
 
     const auto serializer = JsonSerializer(True);
     inputPort.serialize(serializer);
@@ -734,7 +734,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
                                                                 const BaseObjectPtr& context,
                                                                 const FunctionPtr& factoryCallback) -> BaseObjectPtr
                                  {
-                                     if (typeId == "IoFolder")
+                                     if (typeId == "IOFolder")
                                      {
                                          BaseObjectPtr obj;
                                          checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));

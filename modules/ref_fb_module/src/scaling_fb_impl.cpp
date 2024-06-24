@@ -269,7 +269,7 @@ void ScalingFbImpl::processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& 
 
 void ScalingFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::SchedulerQueueWasEmpty);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::SchedulerQueueWasEmpty);
 }
 
 void ScalingFbImpl::createSignals()

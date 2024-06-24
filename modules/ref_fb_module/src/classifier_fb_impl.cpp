@@ -195,7 +195,7 @@ void ClassifierFbImpl::configure()
         {
             const auto domainRuleParams = domainRule.getParameters();
 
-            inputDeltaTicks = domainRuleParams.get("delta");
+            inputDeltaTicks = domainRuleParams.get("Delta");
             // packets per second
             linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize
@@ -426,7 +426,7 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     
     linearReader = BlockReaderFromPort(inputPort, linearBlockCount, SampleType::Float64, SampleType::UInt64);
     linearReader.setOnDataAvailable([this] { processData(); });

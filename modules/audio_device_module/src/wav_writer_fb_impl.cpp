@@ -72,7 +72,7 @@ bool WAVWriterFbImpl::validateDomainDescriptor() const
 bool WAVWriterFbImpl::initializeEncoder()
 {
     const auto domainRuleParams = inputTimeDataDescriptor.getRule().getParameters();
-    const auto inputDeltaTicks = domainRuleParams.get("delta");
+    const auto inputDeltaTicks = domainRuleParams.get("Delta");
     const auto tickResolution = inputTimeDataDescriptor.getTickResolution();
 
     const uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(tickResolution));
@@ -130,7 +130,7 @@ void WAVWriterFbImpl::storingChangedNoLock(bool store)
 
 void WAVWriterFbImpl::createInputPort()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     reader = StreamReaderFromPort(inputPort, SampleType::Float32, SampleType::UInt64);
     reader.setOnDataAvailable([this] { calculate();});
 }

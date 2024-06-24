@@ -153,13 +153,13 @@ static void eventHandlerThrows(PropertyObjectPtr& /*sender*/, PropertyValueEvent
 
 static void freeF(PropertyObjectPtr& prop, PropertyValueEventArgsPtr& /*args*/)
 {
-    IntPtr value = prop.getPropertyValue("callCount");
+    IntPtr value = prop.getPropertyValue("CallCount");
     if (!value.assigned())
     {
         value = 0;
     }
 
-    prop.setPropertyValue("callCount", value + 1);
+    prop.setPropertyValue("CallCount", value + 1);
 }
 
 static void freeF2(PropertyObjectPtr& /*prop*/, PropertyValueEventArgsPtr& /*args*/)
@@ -235,7 +235,7 @@ TEST_F(PropertyObjectTest, GetValueTypeReferenceProperty)
 
 TEST_F(PropertyObjectTest, SerializeJsonSimple)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","PropValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12}})";
 
     PropertyObjectPtr propObj = PropertyObject(objManager, "Test");
     propObj.setPropertyValue("IntProperty", "12");
@@ -259,7 +259,7 @@ TEST_F(PropertyObjectTest, SerializeJsonSimple)
 
 TEST_F(PropertyObjectTest, SerializeJsonSimpleWithLocalProperty)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","PropValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"Properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
 
     PropertyObjectPtr propObj = PropertyObject(objManager, "Test");
     propObj.addProperty(StringPropertyBuilder("LocalProp", "-").build());
@@ -284,7 +284,7 @@ TEST_F(PropertyObjectTest, SerializeJsonSimpleWithLocalProperty)
 
 TEST_F(PropertyObjectTest, DeserializeJsonSimple)
 {
-    const std::string json = R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12}})";
+    const std::string json = R"({"__type":"PropertyObject","className":"Test","PropValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12}})";
 
     auto deserializer = JsonDeserializer();
 
@@ -301,7 +301,7 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimple)
 TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
 {
     const std::string json =
-        R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+        R"({"__type":"PropertyObject","className":"Test","PropValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"Properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
 
     const auto deserializer = JsonDeserializer();
 
@@ -320,16 +320,16 @@ TEST_F(PropertyObjectTest, DISABLED_SerializeList)
     // Serializer fails to serialize default empty list property correctly.
 
     auto obj = PropertyObject();
-    obj.addProperty(ListProperty("list", List<IInteger>()));
-    obj.setPropertyValue("list", List<IInteger>(1, 2, 3));
+    obj.addProperty(ListProperty("List", List<IInteger>()));
+    obj.setPropertyValue("List", List<IInteger>(1, 2, 3));
 
     auto serializer = JsonSerializer();
     auto deserializer = JsonDeserializer();
     obj.serialize(serializer);
     const PropertyObjectPtr clone = deserializer.deserialize(serializer.getOutput());
     
-    ASSERT_TRUE(clone.hasProperty("list"));
-    ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("list"), clone.getPropertyValue("list")));
+    ASSERT_TRUE(clone.hasProperty("List"));
+    ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("List"), clone.getPropertyValue("List")));
 }
 
 TEST_F(PropertyObjectTest, SetNullPropertyPtr)
@@ -1086,9 +1086,9 @@ TEST_F(PropertyObjectTest, EventSubscriptionCount)
 TEST_F(PropertyObjectTest, EventSubscriptionMuteFreeFunction)
 {
     auto propObj = PropertyObject(objManager, "Test");
-    propObj.addProperty(IntProperty("callCount", 0));
+    propObj.addProperty(IntProperty("CallCount", 0));
 
-    propObj.setPropertyValue("callCount", 0);
+    propObj.setPropertyValue("CallCount", 0);
     
     propObj.addProperty(StringProperty("testProp", "test"));
 
@@ -1105,14 +1105,14 @@ TEST_F(PropertyObjectTest, EventSubscriptionMuteFreeFunction)
 
     propObj.setPropertyValue("testProp", "testValue");
 
-    Int callCount = propObj.getPropertyValue("callCount");
+    Int callCount = propObj.getPropertyValue("CallCount");
     ASSERT_EQ(callCount, 0);
 
     propObj.getOnPropertyValueWrite("testProp") &= freeF;  // unmute
 
     propObj.setPropertyValue("testProp", "testValue1");
 
-    callCount = propObj.getPropertyValue("callCount");
+    callCount = propObj.getPropertyValue("CallCount");
     ASSERT_EQ(callCount, 1);
 }
 
@@ -1588,7 +1588,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
     auto childObj = PropertyObject();
     childObj.addProperty(StringProperty("Foo", "Bar"));
 
-    auto prop = ObjectPropertyBuilder("child", childObj)
+    auto prop = ObjectPropertyBuilder("Child", childObj)
                 .setReadOnly(true)
                 .setVisible(false)
                 .build();
@@ -1596,7 +1596,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
     propObj.addProperty(prop);
 
     ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
-    ASSERT_THROW(propObj.setPropertyValue("child", PropertyObject()), AccessDeniedException);
+    ASSERT_THROW(propObj.setPropertyValue("Child", PropertyObject()), AccessDeniedException);
     ASSERT_THROW(childObj.setPropertyValue("Foo", "NotBar"), FrozenException);
 }
 
@@ -1688,7 +1688,7 @@ TEST_F(PropertyObjectTest, UpdateOrder)
     propObj.getOnPropertyValueWrite("Prop1") += onPropWrite;
     propObj.getOnPropertyValueWrite("Prop2") += onPropWrite;
 
-    const std::string jsonReversedPropOrderStr = R"({"__type":"PropertyObject","propValues":{"Prop2":"Value2","Prop1": "Value1"}})";
+    const std::string jsonReversedPropOrderStr = R"({"__type":"PropertyObject","PropValues":{"Prop2":"Value2","Prop1": "Value1"}})";
 
     const auto jsonDeserializer = JsonDeserializer();
     jsonDeserializer.update(propObj, jsonReversedPropOrderStr);
@@ -1790,15 +1790,15 @@ TEST_F(PropertyObjectTest, Clone)
     auto propObj2 = PropertyObject();
     propObj2.addProperty(StringProperty("foo", "bar"));
     
-    propObj1.addProperty(ObjectProperty("child", propObj2));
-    propObj.addProperty(ObjectProperty("child", propObj1));
+    propObj1.addProperty(ObjectProperty("Child", propObj2));
+    propObj.addProperty(ObjectProperty("Child", propObj1));
 
-    PropertyObjectPtr clonedObj1 = propObj.getPropertyValue("child");
-    PropertyObjectPtr clonedObj2 = clonedObj1.getPropertyValue("child");
+    PropertyObjectPtr clonedObj1 = propObj.getPropertyValue("Child");
+    PropertyObjectPtr clonedObj2 = clonedObj1.getPropertyValue("Child");
 
     ASSERT_NO_THROW(propObj.asPtr<IPropertyObjectInternal>().clone());
 
-    propObj.setPropertyValue("child.child.foo", "test");
+    propObj.setPropertyValue("Child.Child.foo", "test");
     ASSERT_EQ(propObj2.getPropertyValue("foo"), "bar");
     ASSERT_EQ(clonedObj2.getPropertyValue("foo"), "test");
 }
@@ -1924,7 +1924,7 @@ TEST_F(PropertyObjectTest, ClonedClassObjects)
 // TODO: Enable once nested object property deserialization works without classes
 TEST_F(PropertyObjectTest, DISABLED_ClonedObjectsSerialize)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","propValues":{"Child1":{"__type":"PropertyObject","propValues":{"Child2":{"__type":"PropertyObject"}}}}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","PropValues":{"Child1":{"__type":"PropertyObject","PropValues":{"Child2":{"__type":"PropertyObject"}}}}})";
 
     const PropertyObjectPtr propObj1 = PropertyObject();
     const PropertyObjectPtr propObj2 = PropertyObject();
@@ -1954,7 +1954,7 @@ TEST_F(PropertyObjectTest, DISABLED_ClonedObjectsSerialize)
 
 TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","PropValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","PropValues":{"Child":{"__type":"PropertyObject","Properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
 
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
     const auto serializer1 = JsonSerializer();

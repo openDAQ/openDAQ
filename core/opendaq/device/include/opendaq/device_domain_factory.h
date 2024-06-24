@@ -36,8 +36,8 @@ inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const String
 inline StructTypePtr DeviceDomainStructType()
 {
     return StructType(
-        "deviceDomain",
-        List<IString>("tickResolution", "origin", "unit"),
+        "DeviceDomain",
+        List<IString>("TickResolution", "Origin", "Unit"),
         List<IBaseObject>(Ratio(1, 1), "", "", Unit("s", -1, "second", "time")),
         List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType()));
 }

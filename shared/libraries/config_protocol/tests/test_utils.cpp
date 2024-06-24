@@ -20,9 +20,9 @@ DevicePtr createServerDevice()
     const auto typeManager = context.getTypeManager();
 
     const auto obj = PropertyObject();
-    obj.addProperty(StringProperty("NestedStringProperty", "string"));
+    obj.addProperty(StringProperty("NestedStringProperty", "String"));
     const auto mockClass = PropertyObjectClassBuilder("MockClass")
-                               .addProperty(StringProperty("MockString", "string"))
+                               .addProperty(StringProperty("MockString", "String"))
                                .addProperty(ObjectProperty("MockChild", obj))
                                .build();
 
@@ -44,7 +44,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     // TODO: Test struct and enum types once type manager is transferred.
 
     auto functionProp = FunctionProperty(
-        "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("int", ctInt), ArgumentInfo("float", ctFloat))));
+        "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("Int", ctInt), ArgumentInfo("Float", ctFloat))));
     FunctionPtr funcCallback = Function(
         [](ListPtr<IBaseObject> args)
         {
@@ -60,9 +60,9 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     auto procProp =
         FunctionProperty("procedure",
                          ProcedureInfo(List<IArgumentInfo>(
-                             ArgumentInfo("ratio", ctRatio),
-                             ArgumentInfo("string", ctString),
-                             ArgumentInfo("bool", ctBool))));
+                             ArgumentInfo("Ratio", ctRatio),
+                             ArgumentInfo("String", ctString),
+                             ArgumentInfo("Bool", ctBool))));
     ProcedurePtr procCallback = Procedure(
         [&](ListPtr<IBaseObject> /*args*/)
         {
@@ -126,9 +126,9 @@ static PropertyObjectPtr createMockNestedPropertyObject()
     PropertyObjectPtr child2_1 = PropertyObject();
     
     auto functionProp = FunctionProperty(
-        "Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+        "Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("Int", ctInt))));
     auto procedureProp = FunctionProperty(
-        "Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+        "Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt))));
 
     FunctionPtr funcCallback = Function(
         [](const IntegerPtr& intVal)
@@ -142,8 +142,8 @@ static PropertyObjectPtr createMockNestedPropertyObject()
                 throw InvalidParameterException{};
         });
 
-    child1_2_1.addProperty(StringProperty("String", "string"));
-    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
+    child1_2_1.addProperty(StringProperty("String", "String"));
+    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "String").setReadOnly(true).build());
     child1_2_1.addProperty(functionProp);
     child1_2_1.addProperty(procedureProp);
     child1_2_1.setPropertyValue("Function", funcCallback);
@@ -284,7 +284,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     const auto dev = createWithImplementation<IDevice, MockDevice1Impl>(ctx, this->devices, "dev");
     devices.addItem(dev);
 
-	const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}, {"float", 5.123}});
+	const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Float", 5.123}});
 	const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());

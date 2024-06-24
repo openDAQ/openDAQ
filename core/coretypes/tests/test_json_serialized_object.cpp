@@ -31,7 +31,7 @@ const std::string JsonSerializedObjectTest::factoryId = "test";
 static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Int value;
-    ErrCode errCode = serialized->readInt(String("int"), &value);
+    ErrCode errCode = serialized->readInt(String("Int"), &value);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -44,7 +44,7 @@ static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*
 static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Float value;
-    ErrCode errCode = serialized->readFloat(String("float"), &value);
+    ErrCode errCode = serialized->readFloat(String("Float"), &value);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -57,7 +57,7 @@ static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*contex
 static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Bool value;
-    ErrCode errCode = serialized->readBool(String("bool"), &value);
+    ErrCode errCode = serialized->readBool(String("Bool"), &value);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -70,7 +70,7 @@ static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context
 static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     IString* value;
-    ErrCode errCode = serialized->readString(String("string"), &value);
+    ErrCode errCode = serialized->readString(String("String"), &value);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -82,13 +82,13 @@ static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*conte
 
 static ErrCode serializedObjectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
-    return serialized->readSerializedList(String("list"), reinterpret_cast<ISerializedList**>(obj));
+    return serialized->readSerializedList(String("List"), reinterpret_cast<ISerializedList**>(obj));
 }
 
 static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     IList* list;
-    ErrCode errCode = serialized->readList(String("list"), nullptr, nullptr, &list);
+    ErrCode errCode = serialized->readList(String("List"), nullptr, nullptr, &list);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -103,7 +103,7 @@ TEST_F(JsonSerializedObjectTest, readIntPositive)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","int":1})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Int":1})";
     IntPtr ptr = deserializer.deserialize(json.data());
 
     Int intVal = ptr;
@@ -115,7 +115,7 @@ TEST_F(JsonSerializedObjectTest, readIntNegative)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","int":-1})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Int":-1})";
     IntPtr ptr = deserializer.deserialize(json.data());
 
     Int intVal = ptr;
@@ -127,7 +127,7 @@ TEST_F(JsonSerializedObjectTest, readIntInvalidType)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","int":1.0})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Int":1.0})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -143,7 +143,7 @@ TEST_F(JsonSerializedObjectTest, readFloatPositive)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","float":1.5})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Float":1.5})";
     Float floatVal = deserializer.deserialize(json.data());
 
     ASSERT_EQ(floatVal, 1.5);
@@ -153,7 +153,7 @@ TEST_F(JsonSerializedObjectTest, readFloatNegative)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","float":-1.5})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Float":-1.5})";
     Float floatVal = deserializer.deserialize(json.data());
 
     ASSERT_EQ(floatVal, -1.5);
@@ -171,7 +171,7 @@ TEST_F(JsonSerializedObjectTest, readFloatInvalidType)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","float":1})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Float":1})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -179,7 +179,7 @@ TEST_F(JsonSerializedObjectTest, readBoolTrue)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","bool":true})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Bool":true})";
     BooleanPtr ptr = deserializer.deserialize(json.data());
 
     Bool boolVal = ptr;
@@ -190,7 +190,7 @@ TEST_F(JsonSerializedObjectTest, readBoolFalse)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","bool":false})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Bool":false})";
     BooleanPtr ptr = deserializer.deserialize(json.data());
 
     Bool boolVal = ptr;
@@ -201,7 +201,7 @@ TEST_F(JsonSerializedObjectTest, readBoolInvalidType)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","bool":1})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Bool":1})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -217,7 +217,7 @@ TEST_F(JsonSerializedObjectTest, readString)
 {
     registerFactory(stringFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","string":"Test"})";
+    std::string json = R"({"__type":")" + factoryId + R"(","String":"Test"})";
     StringPtr ptr = deserializer.deserialize(json.data());
 
     std::string strVal = ptr.toStdString();
@@ -228,7 +228,7 @@ TEST_F(JsonSerializedObjectTest, readStringInvalidType)
 {
     registerFactory(stringFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","string":0})";
+    std::string json = R"({"__type":")" + factoryId + R"(","String":0})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -281,7 +281,7 @@ TEST_F(JsonSerializedObjectTest, testHasKeyFalse)
         return OPENDAQ_SUCCESS;
     });
 
-    std::string json = R"({"__type":")" + factoryId + R"(","string":"Test"})";
+    std::string json = R"({"__type":")" + factoryId + R"(","String":"Test"})";
     BooleanPtr boolPtr = deserializer.deserialize(json.data());
     Bool hasKey = boolPtr;
 
@@ -294,7 +294,7 @@ TEST_F(JsonSerializedObjectTest, readEmptyObjectKeys)
         [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         ISerializedObject* serializedObj;
-        ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
+        ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -313,7 +313,7 @@ TEST_F(JsonSerializedObjectTest, readEmptyObjectKeys)
         return OPENDAQ_SUCCESS;
     });
 
-    std::string json = R"({"__type":")" + factoryId + R"(","object":{}})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Object":{}})";
     ListPtr<IString> keys = deserializer.deserialize(json.data());
 
     ASSERT_EQ(keys.getCount(), 0u);
@@ -325,7 +325,7 @@ TEST_F(JsonSerializedObjectTest, readObjectKeys)
         [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         ISerializedObject* serializedObj;
-        ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
+        ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -345,7 +345,7 @@ TEST_F(JsonSerializedObjectTest, readObjectKeys)
     });
 
     std::string json = R"({"__type":")" + factoryId +
-                       R"(","object":{"key1":1,"key2":0.0,"key3":false,"key4":"string","key5":[],"key6":{}}})";
+                       R"(","Object":{"key1":1,"key2":0.0,"key3":false,"key4":"String","key5":[],"key6":{}}})";
     ListPtr<IString> keys = deserializer.deserialize(json.data());
 
     ASSERT_EQ(keys.getCount(), 6u);
@@ -364,7 +364,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentObject)
         return OPENDAQ_SUCCESS;
     });
 
-    std::string json = R"({"__type":")" + factoryId + R"(","object":{}})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Object":{}})";
     ASSERT_THROW(deserializer.deserialize(json.data()), NotFoundException);
 }
 
@@ -374,7 +374,7 @@ TEST_F(JsonSerializedObjectTest, readSerializedObjectInvalidType)
         [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** /*obj*/) -> ErrCode
     {
         ISerializedObject* serializedObj;
-        ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
+        ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -384,7 +384,7 @@ TEST_F(JsonSerializedObjectTest, readSerializedObjectInvalidType)
         return OPENDAQ_SUCCESS;
     });
 
-    std::string json = R"({"__type":")" + factoryId + R"(","object":[]})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Object":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -394,7 +394,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentSerializedObject)
         [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** /*obj*/) -> ErrCode
     {
         ISerializedObject* serializedObj;
-        ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
+        ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -412,7 +412,7 @@ TEST_F(JsonSerializedObjectTest, readEmptySerializedList)
 {
     registerFactory(serializedObjectFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","list":[]})";
+    std::string json = R"({"__type":")" + factoryId + R"(","List":[]})";
     SerializedListPtr listPtr = deserializer.deserialize(json.data());
 
     SizeT size = listPtr.getCount();
@@ -431,7 +431,7 @@ TEST_F(JsonSerializedObjectTest, readSerializedListInvalidType)
 {
     registerFactory(serializedObjectFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","list":false})";
+    std::string json = R"({"__type":")" + factoryId + R"(","List":false})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -439,7 +439,7 @@ TEST_F(JsonSerializedObjectTest, readEmptyList)
 {
     registerFactory(listFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","list":[]})";
+    std::string json = R"({"__type":")" + factoryId + R"(","List":[]})";
     ListPtr<IBaseObject> listPtr = deserializer.deserialize(json.data());
 
     SizeT size = listPtr.getCount();
@@ -458,7 +458,7 @@ TEST_F(JsonSerializedObjectTest, readListInvalidType)
 {
     registerFactory(listFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","list":false})";
+    std::string json = R"({"__type":")" + factoryId + R"(","List":false})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 

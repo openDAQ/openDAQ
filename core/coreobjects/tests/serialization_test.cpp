@@ -94,8 +94,8 @@ TEST_F(SerializationTest, JsonSerObjectToJsonString)
     PropertyObjectPtr child1_2_1 = PropertyObject();
     PropertyObjectPtr child2_1 = PropertyObject();
 
-    child1_2_1.addProperty(StringProperty("String", "string"));
-    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
+    child1_2_1.addProperty(StringProperty("String", "String"));
+    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "String").setReadOnly(true).build());
 
     child1_2.addProperty(ObjectProperty("child1_2_1", child1_2_1));
     child1_2.addProperty(IntProperty("Int", 1));

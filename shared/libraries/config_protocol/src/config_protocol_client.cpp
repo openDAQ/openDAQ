@@ -264,7 +264,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
             remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }
 
-    if (typeId == "IoFolder")
+    if (typeId == "IOFolder")
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
@@ -400,7 +400,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
         component,
         [&dev, &topComponent](const SignalPtr& signal)
         {
-            const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+            const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
             if (domainSignalId.assigned())
             {
                 SignalPtr domainSignal;

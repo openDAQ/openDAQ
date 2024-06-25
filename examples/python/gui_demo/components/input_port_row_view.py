@@ -50,8 +50,8 @@ class InputPortRowView(tk.Frame):
         if self.device is not None:
             self.context.update_signals_for_device(self.device)
             self.fill_dropdown()
-        if self.input_port is not None and self.input_port.connection is not None:
-            short_id = self.context.short_id(self.input_port.connection.signal.global_id)
+        if self.input_port is not None and self.input_port.signal is not None:
+            short_id = self.context.short_id(self.input_port.signal.global_id)
             self.input_var.set(short_id)
             self.dropdown.set(short_id)
 

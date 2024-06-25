@@ -637,6 +637,43 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     ASSERT_GT(client.getDevices()[0].getFunctionBlocks().getCount(), (SizeT) 0);
 }
 
+TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("");
+    auto typeManager = TypeManager();
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    auto instance = InstanceCustom(context, "local");
+    instance.setRootDevice("daqref://device1");
+    instance.addServer("openDAQ Native Streaming", nullptr);
+    instance.addServer("openDAQ OpcUa", nullptr);
+
+    auto client = InstanceBuilder().build();
+    auto clientDevice = client.addDevice("daq.opcua://127.0.0.1");
+
+    const auto newFb = clientDevice.addFunctionBlock("ref_fb_module_scaling");
+    const auto fbSignals = newFb.getSignals(search::Recursive(search::Any()));
+
+    for (const auto& signal : fbSignals)
+    {
+        ASSERT_GT(signal.asPtr<IMirroredSignalConfig>().getStreamingSources().getCount(), 0u);
+        ASSERT_TRUE(signal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource().assigned());
+    }
+
+    clientDevice.removeFunctionBlock(newFb);
+
+    for (const auto& signal : fbSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
+        ASSERT_TRUE(signal.isRemoved());
+    }
+}
+
 TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
 {
     auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();

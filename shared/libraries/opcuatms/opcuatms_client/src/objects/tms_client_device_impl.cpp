@@ -24,6 +24,7 @@
 #include "opcuatms/converters/property_object_conversion_utils.h"
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
+#include <opendaq/mirrored_device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -527,6 +528,22 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
 
     auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, localId, clientContext, fbNodeId);
     addNestedFunctionBlock(clientFunctionBlock);
+
+    auto fbSignals = clientFunctionBlock.getSignals(search::Recursive(search::Any()));
+    auto deviceStreamingSources = this->thisPtr<MirroredDevicePtr>().getStreamingSources();
+    for (const auto& streaming : deviceStreamingSources)
+    {
+        streaming.addSignals(fbSignals);
+    }
+    if (deviceStreamingSources.getCount() > 0)
+    {
+        for (const auto& signal : fbSignals)
+        {
+            if (signal.getPublic())
+                signal.asPtr<IMirroredSignalConfig>().setActiveStreamingSource(deviceStreamingSources[0].getConnectionString());
+        }
+    }
+
     return clientFunctionBlock;
 }
 

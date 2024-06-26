@@ -108,29 +108,29 @@ template <typename T, typename... Ts>
 constexpr bool variant_contains = contains<T, Ts...>::value;
 
 template <typename VariantType>
-daq::BaseObjectPtr getVariantValueInternal(VariantType& v)
+daq::BaseObjectPtr getVariantValueInternal(VariantType& variant)
 {
-    if (auto ptr = std::get_if<std::pair<int64_t, int64_t>>(&v))
+    if (auto ptr = std::get_if<std::pair<int64_t, int64_t>>(&variant))
     {
         return daq::Ratio(ptr->first, ptr->second);
     }
-    else if (auto complex = std::get_if<std::complex<double>>(&v))
+    else if (auto complex = std::get_if<std::complex<double>>(&variant))
     {
         return daq::ComplexNumber(complex->real(), complex->imag());
     }
-    else if (auto boolp = std::get_if<bool>(&v))
+    else if (auto boolp = std::get_if<bool>(&variant))
     {
         return *boolp;
     }
-    else if (auto floatp = std::get_if<double>(&v))
+    else if (auto floatp = std::get_if<double>(&variant))
     {
         return *floatp;
     }
-    else if (auto intp = std::get_if<int64_t>(&v))
+    else if (auto intp = std::get_if<int64_t>(&variant))
     {
         return *intp;
     }
-    else if (auto dict = std::get_if<py::dict>(&v))
+    else if (auto dict = std::get_if<py::dict>(&variant))
     {
         auto d = daq::Dict<daq::IBaseObject, daq::IBaseObject>();
         for (auto& [k, v] : *dict)
@@ -141,7 +141,7 @@ daq::BaseObjectPtr getVariantValueInternal(VariantType& v)
         }
         return d;
     }
-    else if (auto list = std::get_if<py::list>(&v))
+    else if (auto list = std::get_if<py::list>(&variant))
     {
         auto l = daq::List<daq::IBaseObject>();
         for (auto& item : *list)
@@ -151,11 +151,11 @@ daq::BaseObjectPtr getVariantValueInternal(VariantType& v)
         }
         return l;
     }
-    else if (auto str = std::get_if<py::str>(&v))
+    else if (auto str = std::get_if<py::str>(&variant))
     {
         return std::string(*str);
     }
-    else if (auto obj = std::get_if<py::object>(&v))
+    else if (auto obj = std::get_if<py::object>(&variant))
     {
         return pyObjectToBaseObject(*obj);
     }
@@ -180,7 +180,7 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
     }
     else if (auto native = std::get_if<NativeType>(&v))
     {
-        variant_full_t& variant = *native;
+        auto variant = variant_full_t(*native);
         return getVariantValueInternal(variant);
     }
     return nullptr;

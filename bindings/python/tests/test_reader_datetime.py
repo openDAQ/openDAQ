@@ -60,8 +60,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_timestamps(self):
         mock = opendaq.MockSignal()
         stream = opendaq.StreamReader(mock.signal)
+        stream.read(0)
         reader = opendaq.TimeStreamReader(stream)
-        reader.read(0)
 
         mock.add_data(numpy.arange(10))
 
@@ -342,7 +342,6 @@ class TestReaderDateTime(opendaq_test.TestCase):
         builder.add_signal(sig1.signal)
         builder.add_signal(sig2.signal)
         builder.value_read_type = opendaq.SampleType.Int64
-        builder.skip_events = True
         reader = builder.build()
         reader.read(0)
 

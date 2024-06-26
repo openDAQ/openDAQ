@@ -106,6 +106,9 @@ run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        stream_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        tail_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        multi_reader
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        block_reader_builder
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        stream_reader_builder
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        tail_reader_builder
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        multi_reader_builder
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader_status
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        block_reader_status

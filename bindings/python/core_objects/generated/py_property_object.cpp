@@ -179,4 +179,12 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         py::return_value_policy::take_ownership,
         "Gets the Event that is triggered whenever the batch configuration is applied.");
     */
+    cls.def_property_readonly("permission_manager",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getPermissionManager().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the permission manager of property object.");
 }

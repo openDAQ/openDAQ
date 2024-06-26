@@ -4,15 +4,26 @@
 #include <coreobjects/user_ptr.h>
 #include <coretypes/validation.h>
 #include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
-    : children(Dict<IPermissionManager, Bool>())
-    , permissions(PermissionsBuilder().inherit(true).build())
+    : permissions(PermissionsBuilder().inherit(true).build())
     , localPermissions(PermissionsBuilder().inherit(true).build())
 {
     setParent(parent);
+}
+
+PermissionManagerImpl::~PermissionManagerImpl()
+{
+    if (parent.assigned() && parent.getRef().assigned())
+    {
+        const auto self = borrowPtr<PermissionManagerPtr>();
+        const auto parent = getParentManager();
+        parent.removeChildManager(self);
+    }
 }
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IPermissions* permissions)
@@ -69,11 +80,24 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC PermissionManagerImpl::clone(IBaseObject** cloneOut)
+{
+    PermissionManagerPtr cloneParent = nullptr;
+
+    if (parent.assigned() && parent.getRef().assigned())
+        cloneParent = getParentManager();
+
+    auto manager = PermissionManager(cloneParent);
+    manager.setPermissions(PermissionsBuilder().inherit(localPermissions.getInherited()).extend(localPermissions).build());
+    *cloneOut = manager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* parentManager)
 {
     const auto self = borrowPtr<PermissionManagerPtr>();
 
-    if (parent.assigned())
+    if (parent.assigned() && parent.getRef().assigned())
     {
         auto parent = getParentManager();
         parent.removeChildManager(self);
@@ -81,7 +105,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* pare
 
     parent = parentManager;
 
-    if (parent.assigned())
+    if (parent.assigned() && parent.getRef().assigned())
     {
         auto parent = getParentManager();
         parent.addChildManager(self);
@@ -93,13 +117,13 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* pare
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::addChildManager(IPermissionManager* childManager)
 {
-    children.set(childManager, true);
+    children.insert(childManager);
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::removeChildManager(IPermissionManager* childManager)
 {
-    children.remove(childManager);
+    children.erase(childManager);
     return OPENDAQ_SUCCESS;
 }
 
@@ -121,8 +145,11 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
 
 void PermissionManagerImpl::updateChildPermissions()
 {
-    for (const auto& [child, _] : children)
-        child.asPtr<IPermissionManagerInternal>(true)->updateInheritedPermissions();
+    for (auto child : children)
+    {
+        PermissionManagerPtr childPtr = child;
+        childPtr.asPtr<IPermissionManagerInternal>(true)->updateInheritedPermissions();
+    }
 }
 
 PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()

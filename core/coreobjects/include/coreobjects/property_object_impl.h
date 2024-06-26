@@ -142,7 +142,8 @@ public:
                                 const ProcedurePtr& triggerCoreEvent,
                                 const PropertyOrderedMap& localProperties,
                                 const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
-                                const std::vector<StringPtr>& customOrder);
+                                const std::vector<StringPtr>& customOrder,
+                                const PermissionManagerPtr& permissionManager);
 
 protected:
     struct UpdatingAction
@@ -1083,8 +1084,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
 
         const auto propName = prop.getName();
         const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+
         if (!cloneable.assigned())
             return;
+
         const PropertyObjectPtr cloned = cloneable.clone();
         writeLocalValue(propName, cloned);
         configureClonedObj(propName, cloned);
@@ -1094,6 +1097,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj)
 {
+    obj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(permissionManager);
+
     const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
     if (!coreEventMuted && objInternal.assigned())
     {
@@ -1420,7 +1425,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const ProcedurePtr& triggerCoreEvent,
     const PropertyOrderedMap& localProperties,
     const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
-    const std::vector<StringPtr>& customOrder)
+    const std::vector<StringPtr>& customOrder,
+    const PermissionManagerPtr& permissionManager)
 {
     this->valueWriteEvents = valueWriteEvents;
     this->valueReadEvents = valueReadEvents;
@@ -1428,6 +1434,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;
+
+    BaseObjectPtr permissionManagerClone;
+    permissionManager.asPtr<ICloneable>()->clone(&permissionManagerClone);
+    this->permissionManager = permissionManagerClone;
 
     for (const auto& val : propValues)
     {
@@ -2207,7 +2217,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
                                         triggerCoreEvent,
                                         localProperties,
                                         propValues,
-                                        customOrder);
+                                        customOrder,
+                                        permissionManager);
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

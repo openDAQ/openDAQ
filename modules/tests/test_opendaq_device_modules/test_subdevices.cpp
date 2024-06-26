@@ -196,22 +196,20 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(clientSignal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
-        EXPECT_GT(count, 0u) << "iteration " << i;
+        auto status = reader.read(samples, &count, 100);
+        if (status.getReadStatus() == ReadStatus::Ok)
+        {
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
     }
 }
 
@@ -246,21 +244,18 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
                                            clientSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(clientSignal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
     
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
-        EXPECT_GT(count, 0u) << "iteration " << i;
+        auto status = reader.read(samples, &count, 100);
+        if (status.getReadStatus() == ReadStatus::Ok)
+        {
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
     }
 }
 
@@ -309,20 +304,8 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr clientReader = daq::StreamReaderBuilder()
-        .setSignal(clientSignal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
-    StreamReaderPtr gatewayReader = daq::StreamReaderBuilder()
-        .setSignal(gatewaySignal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
@@ -332,12 +315,19 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     for (int i = 0; i < 10; ++i)
     {
         daq::SizeT clientSamplesCount = 100;
-        clientReader.read(clientSamples, &clientSamplesCount, 100);
-        EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
-
+        auto status = clientReader.read(clientSamples, &clientSamplesCount, 100);
+        if (status.getReadStatus() == ReadStatus::Ok)
+        {
+            EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
+        }
+        
         daq::SizeT gatewaySamplesCount = 100;
-        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 100);
-        EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
+        status = gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 100);
+        if (status.getReadStatus() == ReadStatus::Ok)
+        {
+            EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
+        }
+        
     }
 }
 

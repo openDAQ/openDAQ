@@ -108,6 +108,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, domainReadType
 )
 
+//[factory(Hide)]
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, StreamReaderFromBuilder, IStreamReader,
     IStreamReaderBuilder*, builder

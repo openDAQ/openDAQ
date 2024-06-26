@@ -93,7 +93,7 @@ protected:
         std::vector<std::pair<std::string, std::string>> TXT;
     } DeviceData;
 
-    std::map<int, DeviceData> devicesMap;
+    std::map<std::string, DeviceData> devicesMap;
     std::mutex devicesMapLock;
     std::atomic_bool started;
 
@@ -331,15 +331,15 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
 
 inline void MDNSDiscoveryClient::pruneDevices()
 {
-    std::unordered_set<int> toPrune;
-    for (auto& [sock, data] : devicesMap)
+    std::unordered_set<std::string> toPrune;
+    for (auto& [addr, data] : devicesMap)
     {
-        if (toPrune.count(sock))
+        if (toPrune.count(addr))
             continue;
 
-        for (const auto& [sock1, data1] : devicesMap)
+        for (const auto& [addr1, data1] : devicesMap)
         {
-            if (sock == sock1)
+            if (addr == addr1)
                 continue;
 
             if (data.SRV.port != data1.SRV.port)
@@ -347,16 +347,14 @@ inline void MDNSDiscoveryClient::pruneDevices()
 
             if (data.AAAA == data1.AAAA && !data.AAAA.empty())
             {
-                const std::string ipv4 = data.A.empty() ? data1.A : data.A;
-                data.A = ipv4;
-                toPrune.insert(sock1);
+                data.A = data.A.empty() ? data1.A : data.A;
+                toPrune.insert(addr1);
             }
 
             if (data.A == data1.A && !data.A.empty())
             {
-                const std::string ipv6 = data.AAAA.empty() ? data1.AAAA : data.AAAA;
-                data.AAAA = ipv6;
-                toPrune.insert(sock1);
+                data.AAAA = data.AAAA.empty() ? data1.AAAA : data.AAAA;
+                toPrune.insert(addr1);
             }
         }
     }
@@ -442,8 +440,10 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     mdns_record_txt_t txtbuffer[128];
 
     std::lock_guard lg(devicesMapLock);
+    
+    std::string deviceAddr = ipAddressToString(from, addrlen);
 
-    auto it = devicesMap.insert({sock, DeviceData{}});
+    auto it = devicesMap.insert({deviceAddr, DeviceData{}});
     DeviceData& deviceData = it.first->second;
 
     if (rtype == MDNS_RECORDTYPE_PTR)

@@ -51,16 +51,15 @@ struct PyTypedReader
     template <typename ReaderType>
     static inline SampleTypeVariant readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
     {
-        daq::SampleType valueType = daq::SampleType::Undefined;
-        reader->getValueReadType(&valueType);
-
-        if (valueType == daq::SampleType::Undefined)
+        if (count == 0)
         {
             size_t tmpCount = 0;
             reader->read(nullptr, &tmpCount);
-            reader->getValueReadType(&valueType);
+            return SampleTypeVariant{};
         }
-        
+
+        daq::SampleType valueType = daq::SampleType::Undefined;
+        reader->getValueReadType(&valueType);        
         switch (valueType)
         {
             case daq::SampleType::Float32:
@@ -99,15 +98,15 @@ struct PyTypedReader
                                                                                         size_t count,
                                                                                         size_t timeoutMs)
     {
-        daq::SampleType valueType = daq::SampleType::Undefined;
-        reader->getValueReadType(&valueType);
-
-        if (valueType == daq::SampleType::Undefined)
+        if (count == 0)
         {
             size_t tmpCount = 0;
             reader->read(nullptr, &tmpCount);
-            reader->getValueReadType(&valueType);
+            return std::make_tuple(SampleTypeVariant{}, DomainTypeVariant{});
         }
+
+        daq::SampleType valueType = daq::SampleType::Undefined;
+        reader->getValueReadType(&valueType);
 
         switch (valueType)
         {

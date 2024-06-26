@@ -98,8 +98,40 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_configuration/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto& deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                device = client.addDevice(capability.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
+{
+    const auto info = DeviceInfo("", "foo");
+    info.setMacAddress("custom_mac");
     auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
+                                   .setDefaultRootDeviceInfo(info)
                                    .build();
     server.addDevice("daqref://device1");
 
@@ -112,6 +144,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
@@ -120,6 +153,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
                 device = client.addDevice(capability.getConnectionString(), nullptr);
+                ASSERT_EQ(device.getInfo().getMacAddress(), "custom_mac");
                 return;
             }
         }

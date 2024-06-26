@@ -93,7 +93,7 @@ protected:
         std::vector<std::pair<std::string, std::string>> TXT;
     } DeviceData;
 
-    std::map<std::string, DeviceData> devicesMap;
+    std::map<int, DeviceData> devicesMap;
     std::mutex devicesMapLock;
     std::atomic_bool started;
 
@@ -172,6 +172,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
         return devices;
     }
 
+    pruneDevices();
     for (const auto& device : devicesMap)
         devices.push_back(createMdnsDiscoveredDevice(device.second));
 
@@ -328,6 +329,42 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
 #endif
 }
 
+inline void MDNSDiscoveryClient::pruneDevices()
+{
+    std::unordered_set<int> toPrune;
+    for (auto& [sock, data] : devicesMap)
+    {
+        if (toPrune.count(sock))
+            continue;
+
+        for (const auto& [sock1, data1] : devicesMap)
+        {
+            if (sock == sock1)
+                continue;
+
+            if (data.SRV.port != data1.SRV.port)
+                continue;
+
+            if (data.AAAA == data1.AAAA && !data.AAAA.empty())
+            {
+                const std::string ipv4 = data.A.empty() ? data1.A : data.A;
+                data.A = ipv4;
+                toPrune.insert(sock1);
+            }
+
+            if (data.A == data1.A && !data.A.empty())
+            {
+                const std::string ipv6 = data.AAAA.empty() ? data1.AAAA : data.AAAA;
+                data.AAAA = ipv6;
+                toPrune.insert(sock1);
+            }
+        }
+    }
+
+    for (const auto& val : toPrune)
+        devicesMap.erase(val);
+}
+
 inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
 {
     char host[NI_MAXHOST] = {0};
@@ -404,12 +441,9 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     char nameBuffer[256];
     mdns_record_txt_t txtbuffer[128];
 
-    std::string deviceAddr = ipAddressToString(from, addrlen);
-    std::string deviceAddrNoPort = ipAddressToString(from, addrlen, false);
-
     std::lock_guard lg(devicesMapLock);
 
-    auto it = devicesMap.insert({deviceAddr, DeviceData{}});
+    auto it = devicesMap.insert({sock, DeviceData{}});
     DeviceData& deviceData = it.first->second;
 
     if (rtype == MDNS_RECORDTYPE_PTR)

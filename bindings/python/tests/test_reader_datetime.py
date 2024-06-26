@@ -10,12 +10,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_read(self):
         mock = opendaq.MockSignal()
-        reader_builder = opendaq.StreamReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.StreamReader(mock.signal)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -28,13 +23,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_read_override_value_type(self):
         mock = opendaq.MockSignal()
-        
-        reader_builder = opendaq.StreamReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.value_read_type = opendaq.SampleType.Int64
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.StreamReader(
+            mock.signal, value_type=opendaq.SampleType.Int64)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -53,12 +43,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_read_with_domain(self):
         mock = opendaq.MockSignal()
-        reader_builder = opendaq.StreamReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.StreamReader(mock.signal)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -72,12 +57,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_timestamps(self):
         mock = opendaq.MockSignal()
         stream = opendaq.StreamReader(mock.signal)
-        reader_builder = opendaq.StreamReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = opendaq.TimeStreamReader(reader_builder.build())
+        reader = opendaq.TimeStreamReader(stream)
 
         mock.add_data(numpy.arange(10))
 
@@ -89,13 +69,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_tail_read(self):
         mock = opendaq.MockSignal()
-        reader_builder = opendaq.TailReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.history_size = 10
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.TailReader(mock.signal, 10)
 
         self.assertEqual(reader.history_size, 10)
 
@@ -110,14 +84,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_tail_read_override_value_type(self):
         mock = opendaq.MockSignal()
-        
-        reader_builder = opendaq.TailReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.history_size = 10
-        reader_builder.value_read_type = opendaq.SampleType.Int64
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.TailReader(
+            mock.signal, 10, value_type=opendaq.SampleType.Int64)
 
         self.assertEqual(reader.history_size, 10)
 
@@ -138,14 +106,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_tail_read_with_domain(self):
         mock = opendaq.MockSignal()
-        
-        reader_builder = opendaq.TailReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.history_size = 10
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        reader = reader_builder.build()
+        reader = opendaq.TailReader(mock.signal, 10)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -158,15 +119,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
     def test_tail_read_with_timestamps(self):
         mock = opendaq.MockSignal()
-        
-        reader_builder = opendaq.TailReaderBuilder()
-        reader_builder.signal = mock.signal
-        reader_builder.history_size = 10
-        reader_builder.value_read_type = opendaq.SampleType.Invalid
-        reader_builder.domain_read_type = opendaq.SampleType.Invalid
-        reader_builder.skip_events = True
-        
-        reader = opendaq.TimeTailReader(reader_builder.build())
+        tail = opendaq.TailReader(mock.signal, 10)
+        reader = opendaq.TimeTailReader(tail)
 
         mock.add_data(numpy.arange(10))
 

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:31.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ public class DaqEventHandler : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEventHandler.HandleEvent(base.NativePointer, sender.NativePointer, eventArgs.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

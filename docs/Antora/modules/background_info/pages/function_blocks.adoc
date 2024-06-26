@@ -49,6 +49,15 @@ input_port.connect(signal)
 signal1 = input_port.signal
 assert signal1 == signal
 ----
+C#::
++
+[source,csharp]
+----
+inputPort.Connect(signal);
+// signal is now connected to the inputPort
+Signal signal1 = inputPort.Signal;
+Debug.Assert(signal1 == signal);
+----
 ====
 
 The connected Input Port will receive xref:background_info:packets.adoc[Packets] via 
@@ -89,6 +98,16 @@ fb = instance.add_function_block("fft_fb")
 fbs = instance.function_blocks
 fb1 = fbs[-1]
 assert fb == fb1
+----
+C#::
++
+[source,csharp]
+----
+FunctionBlock fb = instance.AddFunctionBlock("fft_fb");
+// Function Block appears under FunctionBlocks of the instance
+IListObject<FunctionBlock> fbs = instance.GetFunctionBlocks();
+FunctionBlock fb1 = fbs[fbs.Count - 1];
+Debug.Assert(fb == fb1);
 ----
 ====
 
@@ -155,6 +174,13 @@ Python::
 ----
 # get a flat list of channels
 channels = device.channels
+----
+C#::
++
+[source,csharp]
+----
+// get a flat list of channels
+IListObject<Channel> channels = device.GetChannels();
 ----
 ====
 

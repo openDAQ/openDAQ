@@ -69,7 +69,23 @@ C#::
 +
 [source,csharp]
 ----
-// TimeReader not yet available in .NET
+var reader = OpenDAQFactory.CreateStreamReader(signal);
+
+// Signal produces 5 samples
+
+var timeReader = OpenDAQFactory.CreateTimeReader(reader, signal);
+
+nuint count = 5;
+double[] values = new double[5];
+DateTime[] timeStamps = new DateTime[5];
+
+// Read with Time Reader
+timeReader.readWithDomain(values, timeStamps, ref count);
+
+for (nuint i = 0; i < count; ++i)
+{
+    Console.WriteLine($"{timeStamps[i]:yyyy-MM-dd HH:mm:ss.fff}: {values[i]}");
+}
 ----
 ====
 
@@ -77,7 +93,7 @@ C#::
 [WARNING]
 ====
 The Time Reader installs a xref:background_info:readers.adoc#custom_conversion[transform function] for domain values on the wrapped Reader and removes it when it is destroyed.
-This means that performing reads on the original Reader will still yield time-points as long as the Time Reader is alive.
+This means that performing reads on the original Reader will still yield time-points as long as the Time Reader is alive. (no such installation applicable for _.NET Bindings_ / _C#_)
 ====
 
 .Reading time with the wrapped Reader

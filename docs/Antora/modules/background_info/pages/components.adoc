@@ -127,6 +127,18 @@ std::cout << std::endl
           << scalingFb.getStatusContainer().getStatus("InputStatus")
           << std::endl;
 ----
+C#::
++
+[source,csharp]
+----
+var scalingFb = instance.AddFunctionBlock("ref_fb_module_scaling");
+Console.WriteLine("The Scaling Function Block available statuses: ");
+foreach (string statusName in functionBlock.StatusContainer.Statuses.Keys)
+    Console.WriteLine($"\"{statusName}\"");
+Console.WriteLine();
+Console.WriteLine("The Scaling Function Block \"InputStatus\" is {0}",
+                  scalingFb.StatusContainer.GetStatus("InputStatus"));
+----
 ====
 
 [#folder]

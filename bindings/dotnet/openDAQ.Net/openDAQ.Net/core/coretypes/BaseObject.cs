@@ -367,11 +367,55 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Casts this instance to the possibly derived type <typeparamref name="TObject"/>.</summary>
     /// <remarks>Primary use would be to cast a returned instance of type <see cref="BaseObject"/> or an item of a <see cref="ListObject{BaseObject}"/> to its underlying type.</remarks>
     /// <typeparam name="TObject">The type of the object.</typeparam>
-    /// <returns>The instance of the type given in <typeparamref name="TObject"/>.</returns>
+    /// <returns>The cast instance when casting to <typeparamref name="TObject"/> is possible; otherwise <c>null</c>.</returns>
     public TObject Cast<TObject>()
         where TObject : BaseObject
     {
-        return QueryInterface<TObject>();
+        //return QueryInterface<TObject>();
+
+        Type genericType = typeof(TObject);
+
+        if (genericType == typeof(BaseObject))
+        {
+            return (TObject)this;
+        }
+
+        var intfID = genericType.GUID;
+
+        ErrorCode errorCode = (ErrorCode)Marshal.QueryInterface(this.NativePointer, ref intfID, out IntPtr objPtr); //using RawIUnknown.QueryInterface()
+
+        if (Result.Failed(errorCode))
+        {
+            return null;
+        }
+
+        return BaseObject.CreateInstance<TObject>(objPtr, false);
+    }
+
+    /// <summary>Casts this instance to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c>.</summary>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <returns>The cast instance when casting to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    public IListObject<TValue> CastList<TValue>()
+        where TValue : BaseObject
+    {
+        if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>)))
+            return new ListObject<TValue>(this.NativePointer, true);
+
+        return this.Cast<ListObject<TValue>>();
+    }
+
+    /// <summary>Casts this instance to <c>DictObject&lt;<typeparamref name="TKey"/>, <typeparamref name="TValue"/>&gt;</c>.</summary>
+    /// <typeparam name="TKey">The key value type.</typeparam>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <returns>The cast instance when casting to <c>DictObject&lt;<typeparamref name="TKey"/>, <typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    public IDictObject<TKey, TValue> CastDict<TKey, TValue>()
+        where TKey : BaseObject
+        where TValue : BaseObject
+    {
+        if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>)))
+            return new DictObject<TKey, TValue>(this.NativePointer, true);
+
+        return this.Cast<DictObject<TKey, TValue>>();
     }
 
     /// <summary>

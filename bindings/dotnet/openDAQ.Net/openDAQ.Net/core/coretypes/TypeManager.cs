@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:38.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -88,10 +88,16 @@ public class TypeManager : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawTypeManager.GetTypes(base.NativePointer, out typesPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (typesPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new ListObject<StringObject>(typesPtr, incrementReference: false);
@@ -121,7 +127,7 @@ public class TypeManager : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawTypeManager.AddType(base.NativePointer, type.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -148,7 +154,7 @@ public class TypeManager : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawTypeManager.RemoveType(base.NativePointer, typeNamePtr.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -175,10 +181,16 @@ public class TypeManager : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawTypeManager.GetDaqType(base.NativePointer, typeNamePtr.NativePointer, out typePtr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (typePtr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return new DaqType(typePtr, incrementReference: false);
@@ -200,7 +212,7 @@ public class TypeManager : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawTypeManager.HasType(base.NativePointer, typeNamePtr.NativePointer, out hasType);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -231,7 +243,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createTypeManager(out objPtr);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new TypeManager(objPtr, incrementReference: false);
@@ -248,7 +260,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createTypeManager(out objPtr);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

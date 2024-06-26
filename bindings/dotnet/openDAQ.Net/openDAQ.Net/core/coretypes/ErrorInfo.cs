@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:29.
+//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ public class ErrorInfo : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetMessage(base.NativePointer, out messagePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -106,7 +106,7 @@ public class ErrorInfo : BaseObject
             // validate pointer
             if (messagePtr == IntPtr.Zero)
             {
-                return null;
+                return default;
             }
 
             using var message = new StringObject(messagePtr, incrementReference: false);
@@ -122,7 +122,7 @@ public class ErrorInfo : BaseObject
                 //call native method
                 ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetMessage(base.NativePointer, messagePtr.NativePointer);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -143,7 +143,7 @@ public class ErrorInfo : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetSource(base.NativePointer, out sourcePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -152,7 +152,7 @@ public class ErrorInfo : BaseObject
             // validate pointer
             if (sourcePtr == IntPtr.Zero)
             {
-                return null;
+                return default;
             }
 
             using var source = new StringObject(sourcePtr, incrementReference: false);
@@ -168,7 +168,7 @@ public class ErrorInfo : BaseObject
                 //call native method
                 ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetSource(base.NativePointer, sourcePtr.NativePointer);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -200,7 +200,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createErrorInfo(out objPtr);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new ErrorInfo(objPtr, incrementReference: false);
@@ -217,7 +217,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createErrorInfo(out objPtr);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

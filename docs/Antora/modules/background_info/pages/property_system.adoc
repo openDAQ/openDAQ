@@ -60,6 +60,28 @@ prop_obj.add_property(opendaq.IntProperty(opendaq.String(
 prop_obj.set_property_value('MyString', opendaq.String('bar'))
 print(prop_obj.get_property_value('MyString'))
 ----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.Objects;
+
+PropertyObject CreateSimplePropertyObject()
+{
+    var propObj = CoreObjectsFactory.CreatePropertyObject();
+    propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+    propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("MyInteger", 0, true));
+    return propObj;
+}
+
+var propObj = CreateSimplePropertyObject();
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
+Console.WriteLine((long)propObj.GetPropertyValue("MyInteger"));
+
+propObj.SetPropertyValue("MyString", "bar");
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
+----
 ====
 
 
@@ -98,9 +120,9 @@ Cpp::
 +
 [source,cpp]
 ----
-auto propObj = PropertyObject();
-propObj.addProperty(StringProperty("MyString", "foo"));
-propObj.setPropertyValue("MyString", "bar");
+auto propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo"));
+propObj.SetPropertyValue("MyString", "bar");
 std::cout << propObj.getPropertyValue("MyString") << std::endl;
 ----
 Python::
@@ -112,6 +134,15 @@ prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'MyString'), opendaq.String('foo'), opendaq.Boolean(True)))
 prop_obj.set_property_value('MyString', opendaq.String('bar'))
 print(prop_obj.get_property_value('MyString'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+propObj.SetPropertyValue("MyString", "bar");
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
 ----
 ====
 
@@ -273,6 +304,33 @@ print(prop_obj.get_property_value('Integer'))
 prop_obj.set_property_value('Float', opendaq.Float(2.34))
 print(prop_obj.get_property_value('Float'))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var intProp = CoreObjectsFactory.CreateIntPropertyBuilder("Integer", 10);
+intProp.MinValue = 0;
+intProp.MaxValue = 15;
+propObj.AddProperty(intProp.Build());
+
+var suggestedValues = CoreTypesFactory.CreateList<BaseObject>();
+suggestedValues.Add((FloatObject)1.23);
+suggestedValues.Add((FloatObject)3.21);
+suggestedValues.Add((FloatObject)5.67);
+var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
+floatProp.SuggestedValues = suggestedValues;
+
+propObj.AddProperty(floatProp.Build());
+
+// "Integer" is set to 15 due to the max value
+propObj.SetPropertyValue("Integer", 20);
+Console.WriteLine((long)propObj.GetPropertyValue("Integer"));
+
+// "Float" is set to 2.34 despite the suggested values not containing the value 2.34
+propObj.SetPropertyValue("Float", 2.34);
+Console.WriteLine((double)propObj.GetPropertyValue("Float"));
+----
 ====
 
 [#selection]
@@ -352,6 +410,36 @@ print(prop_obj.get_property_selection_value('DictSelection'))
 # Selects "foo"
 prop_obj.set_property_value('DictSelection', opendaq.Integer(0))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Apple");
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("ListSelection", list, 0, true));
+
+var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict.Add(0, "foo");
+dict.Add(10, "bar");
+propObj.AddProperty(CoreObjectsFactory.CreateSparseSelectionProperty("DictSelection", dict, 10, true));
+
+// Prints "1"
+Console.WriteLine((long)propObj.GetPropertyValue("ListSelection"));
+// Prints "Banana"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("ListSelection"));
+// Selects "Kiwi"
+propObj.SetPropertyValue("ListSelection", 2);
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("DictSelection"));
+// Selects "foo"
+propObj.SetPropertyValue("DictSelection", 0);
+----
 ====
 
 [#object]
@@ -424,6 +512,23 @@ prop_obj.add_property(opendaq.ObjectProperty(
 # Prints out the value of the "String" Property of child2
 print(prop_obj.get_property_value('Child.Child.String'))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var child1 = CoreObjectsFactory.CreatePropertyObject();
+var child2 = CoreObjectsFactory.CreatePropertyObject();
+
+// The order below is important, as "child1" and "child2" are frozen once
+// used as default property values.
+child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2));
+propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1));
+
+// Prints out the value of the "String" Property of child2
+Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
+----
 ====
 
 [#container]
@@ -491,6 +596,36 @@ list1 = opendaq.List()
 list1.push_back(opendaq.String('Pear'))
 list1.push_back(opendaq.String('Strawberry'))
 prop_obj.set_property_value('List', list1)
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+
+var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict.Add(0, "foo");
+dict.Add(10, "bar");
+propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict, true));
+
+// Prints out "Banana"
+Console.WriteLine((string)propObj.GetPropertyValue("List").CastList<StringObject>()[0]);
+// Prints out "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>()[10]);
+
+var list2 = CoreTypesFactory.CreateList<BaseObject>();
+list2.Add("Pear");
+list2.Add("Strawberry");
+
+// Sets a new value for the List Property
+propObj.SetPropertyValue("List", (BaseObject)list2);
 ----
 ====
 
@@ -561,6 +696,25 @@ prop_obj.set_property_value('Integer', opendaq.Integer(1))
 
 # Prints "bar"
 print(prop_obj.get_property_value('RefProp'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 0, true));
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop1", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop2", "bar", true));
+
+propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
+
+propObj.SetPropertyValue("Integer", 1);
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
 ----
 ====
 
@@ -644,6 +798,15 @@ prop_obj.add_property(opendaq.RatioProperty(opendaq.String(
 prop_obj.add_property(opendaq.BoolProperty(opendaq.String(
     'Bool'), opendaq.Boolean(True), opendaq.Boolean(True)))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateRatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10), true));
+propObj.AddProperty(CoreObjectsFactory.CreateBoolProperty("Bool", true, true));
+----
 ====
 
 === Creating and configuring a Property
@@ -682,6 +845,18 @@ float_prop.min_value = 0.0
 float_prop.max_value = 10.0
 
 prop_obj.add_property(float_prop.build())
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+PropertyBuilder floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("MyFloat", 1.123);
+floatProp.MinValue = 0.0;
+floatProp.MaxValue = 10.0;
+
+propObj.AddProperty(floatProp.Build());
 ----
 ====
 
@@ -804,6 +979,27 @@ simulated_channel.add_property(opendaq.ObjectProperty(
 simulated_channel.add_property(opendaq.ObjectProperty(
     opendaq.String('CounterSettings'), counterSettings))
 ----
+C#::
++
+[source,csharp]
+----
+PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Sine");
+list.Add("Counter");
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Waveform", list, 0, true));
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+
+...
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("SineSettings", sineSettings));
+
+...
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("CounterSettings", counterSettings));
+----
 ====
 
 The core of our Simulated channel configuration is formed by the `"Waveform"` Selection Property. It
@@ -830,11 +1026,19 @@ Python::
 # "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property. 
 opendaq.ReferenceProperty(opendaq.String('Settings'), opendaq.EvalValue(opendaq.String('if($Waveform == 0, %SineSettings, %CounterSettings)')))
 ----
+C#::
++
+[source,csharp]
+----
+// If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
+// "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property.
+CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
+----
 ====
 
 Reference Properties, however, aren't the only use case for `EvalValue` expressions. Any configurable
 Property metadata fields except for _Name_, _Description_, and _Value type_ can make use of the `EvalValue`
-system. In the example above, Properties are hidden depending on the state of other Property Values:
+system. In the example below, Properties are hidden depending on the state of other Property Values:
 
 [tabs]
 ====
@@ -869,6 +1073,12 @@ scaling_factor.visible = opendaq.EvalValue(opendaq.String('$EnableScaling'))
 # Unsupported in the current version
 loop_threshold.visible = opendaq.EvalValue(opendaq.String('$Mode == 1'))
 ----
+C#::
++
+[source,csharp]
+----
+// Not supported in .NET
+----
 ====
 
 We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit"` selected value, using
@@ -887,7 +1097,7 @@ Cpp::
 ----
 sineSettings.addProperty(SelectionProperty("AmplitudeUnit", List<IString>("V", "mV"), 0));
 
-....
+...
 
 amplitudeProp.setUnit(EvalValue("Unit(%AmplitudeUnit:SelectedValue)"));
 ----
@@ -905,6 +1115,12 @@ sine_settings.add_property(opendaq.SelectionProperty(opendaq.String(
 
 # Unsupported in the current version
 amplitude_prop.unit = opendaq.EvalValue(opendaq.String('Unit(%AmplitudeUnit:SelectedValue)'))
+----
+C#::
++
+[source,csharp]
+----
+// Not supported in .NET
 ----
 ====
 
@@ -967,6 +1183,25 @@ prop_obj.set_property_value('CoercedProp', opendaq.Integer(15))
 # Throws a validation error
 prop_obj.set_property_value('ValidatedProp', opendaq.Integer(15))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var coercedProp = CoreObjectsFactory.CreateIntPropertyBuilder("CoercedProp", 5);
+coercedProp.Coercer = CoreObjectsFactory.CreateCoercer("if(Value < 10, Value, 10)");
+propObj.AddProperty(coercedProp.Build());
+
+var validatedProp = CoreObjectsFactory.CreateIntPropertyBuilder("ValidatedProp", 5);
+validatedProp.Validator = CoreObjectsFactory.CreateValidator("Value < 10");
+propObj.AddProperty(validatedProp.Build());
+
+// Sets the value to 10
+propObj.SetPropertyValue("CoercedProp", 15);
+
+// Throws a validation error
+propObj.SetPropertyValue("ValidatedProp", 15);
+----
 ====
 
 == Property Object
@@ -1013,6 +1248,17 @@ prop_obj.add_property(opendaq.StringProperty(opendaq.String(
 prop_obj.remove_property('foo')
 
 foo_prop = prop_obj.get_property('foo') # Throws runtime error
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("foo", "bar", true));
+propObj.RemoveProperty("foo");
+
+// Throws a not found error
+var fooProp = propObj.GetProperty("foo");
 ----
 ====
 
@@ -1079,6 +1325,31 @@ prop_obj.property_order = order
 
 all_props_reversed_order = prop_obj.all_properties
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Int", 10, false));
+propObj.AddProperty(CoreObjectsFactory.CreateFloatProperty("Float", 15.0, true));
+propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
+
+// Contains the Properties "String", "Int", "Float", "FloatRef"
+var allProps = propObj.AllProperties;
+// Contains the Properties "String", "FloatRef"
+var visibleProps = propObj.VisibleProperties;
+
+var order = CoreTypesFactory.CreateList<StringObject>();
+order.Add("FloatRef");
+order.Add("Float");
+order.Add("Int");
+order.Add("String");
+propObj.SetPropertyOrder(order);
+
+// Contains the Properties in the order "FloatRef", "Float", "Int", String"
+var allPropsReverseOrder = propObj.AllProperties;
+----
 ====
 
 === Reading / Writing Property Values
@@ -1115,6 +1386,21 @@ prop_obj.set_property_value('String', opendaq.String('bar'))
 
 # Prints "bar"
 print(prop_obj.get_property_value('String'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", false));
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("String"));
+
+propObj.SetPropertyValue("String", "bar");
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("String"));
 ----
 ====
 
@@ -1163,6 +1449,23 @@ prop_obj.set_property_value(
 # Prints "bar"
 print(prop_obj.get_property_value('Child.Child.String'))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var child1 = CoreObjectsFactory.CreatePropertyObject();
+var child2 = CoreObjectsFactory.CreatePropertyObject();
+
+child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2, true));
+propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1, true));
+
+propObj.SetPropertyValue("Child.Child.String", "bar");
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
+----
 ====
 
 ==== Selection Properties
@@ -1200,6 +1503,21 @@ prop_obj.add_property(opendaq.SelectionProperty(opendaq.String(
 # Prints "Kiwi"
 print(prop_obj.get_property_selection_value('Selection'))
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+
+// Prints "Kiwi"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
+----
 ====
 
 ==== List Properties
@@ -1223,7 +1541,7 @@ std::cout << propObj.getPropertyValue("List[0]") << std::endl;
 propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
 
 // Prints "Pear" and "Strawberry"
-std::cout << list.toString() << std::endl;
+std::cout << propObj.getPropertyValue("List").toString() << std::endl;
 ----
 Python::
 +
@@ -1238,7 +1556,31 @@ prop_obj.add_property(opendaq.ListProperty(
 
 # Prints "Banana"
 print(prop_obj.get_property_value('List[0]'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
 
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+
+// Prints "Banana"
+Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
+
+var list2 = CoreTypesFactory.CreateList<BaseObject>();
+list2.Add("Pear");
+list2.Add("Strawberry");
+
+// Sets a new value to the List Property.
+propObj.SetPropertyValue("List", (BaseObject)list2);
+
+// Prints "[ Pear, Strawberry ]"
+Console.WriteLine(propObj.GetPropertyValue("List").ToString());
 ----
 ====
 
@@ -1270,11 +1612,22 @@ prop_obj.set_property_value('List', list)
 # Prints "Banana", "Kiwi", and "Blueberry"
 print(prop_obj.get_property_value('List'))
 ----
+C#::
++
+[source,csharp]
+----
+IListObject<BaseObject> list = propObj.GetPropertyValue("List").CastList<BaseObject>();
+list.Add("Blueberry");
+propObj.SetPropertyValue("List", (BaseObject)list);
+
+// Prints "[ Banana, Kiwi, Blueberry ]"
+Console.WriteLine(propObj.GetPropertyValue("List").ToString());
+----
 ====
 
 ==== Dictionary properties
 
-As with list-type properties, when retrieveing a dictionary property value, the dictionary object
+As with list-type properties, when retrieving a dictionary property value, the dictionary object
 is cloned, and can be modified without side effects to the Property object:
 
 [tabs]
@@ -1307,6 +1660,23 @@ dict[3] = 'Blueberry'
 
 # The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
 prop_obj.set_property_value('Dict', dict)
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict0.Add(1, "Banana");
+dict0.Add(12, "Kiwi");
+propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict0, true));
+
+IDictObject<IntegerObject, StringObject> dict = propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>();
+dict[3] = "Blueberry";
+
+// The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.SetPropertyValue("Dict", (BaseObject)dict);
 ----
 ====
 
@@ -1398,6 +1768,21 @@ list.push_back(opendaq.String('Apple'))
 list.push_back(opendaq.String('Kiwi'))
 prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 ----
+C#::
++
+[source,csharp]
+----
+PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
+
+propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+----
 ====
 
 === Manager
@@ -1423,7 +1808,7 @@ PropertyObjectClassBuilderPtr propClass = PropertyObjectClassBuilder("MyClass")
                                               .addProperty(IntProperty("Integer", 10))
                                               .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1));
 
-manager.addClass(propClass.build());
+manager.addType(propClass.build());
 
 PropertyObjectPtr propObj = PropertyObject(manager, "MyClass");
 
@@ -1450,6 +1835,30 @@ prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('My
 # Prints "Apple"
 print(prop_obj.get_property_selection_value('Selection'))
 ----
+C#::
++
+[source,csharp]
+----
+TypeManager manager = CoreTypesFactory.CreateTypeManager();
+
+PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
+
+propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+
+manager.AddType(propClass.Build());
+
+PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+
+// Prints "Apple"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
+----
 ====
 
 === Class inheritance
@@ -1468,12 +1877,12 @@ Cpp::
 TypeManagerPtr manager = TypeManager();
 
 PropertyObjectClassBuilderPtr propClass1 = PropertyObjectClassBuilder(manager, "InheritedClass").addProperty(StringProperty("InheritedProp", "foo"));
-manager.addClass(propClass1.build());
+manager.addType(propClass1.build());
 
 PropertyObjectClassBuilderPtr propClass2 = PropertyObjectClassBuilder(manager, "MyClass")
                                               .addProperty(StringProperty("OwnProp", "bar"))
                                               .setParentName("InheritedClass");
-manager.addClass(propClass2.build());
+manager.addType(propClass2.build());
 
 auto propObj = PropertyObject(manager, "MyClass");
 
@@ -1504,6 +1913,28 @@ print(prop_obj.get_property_value('InheritedProp'))
 
 # Prints "bar"
 print(prop_obj.get_property_value('OwnProp'))
+----
+C#::
++
+[source,csharp]
+----
+TypeManager manager = CoreTypesFactory.CreateTypeManager();
+
+PropertyObjectClassBuilder propClass1 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "InheritedClass");
+propClass1.AddProperty(CoreObjectsFactory.CreateStringProperty("InheritedProp", "foo", true));
+manager.AddType(propClass1.Build());
+
+PropertyObjectClassBuilder propClass2 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "MyClass");
+propClass2.AddProperty(CoreObjectsFactory.CreateStringProperty("OwnProp", "bar", true));
+propClass2.ParentName = "InheritedClass";
+manager.AddType(propClass2.Build());
+
+PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("InheritedProp"));
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("OwnProp"));
 ----
 ====
 

@@ -532,7 +532,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
                 {
                     // assigns missing connection strings for server capabilities
-                    if (capability.getConnectionString() == "" && capability.getConnectionStrings().empty())
+                    if (capability.getConnectionStrings().empty())
                     {
                         auto capConnectionString = createConnectionString(capability);
                         if (capConnectionString.assigned())

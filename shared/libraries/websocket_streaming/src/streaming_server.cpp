@@ -141,19 +141,6 @@ void StreamingServer::broadcastPacket(const std::string& signalId, const PacketP
     }
 }
 
-void StreamingServer::sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet)
-{
-    for (auto& [_, client] : clients)
-    {
-        auto signals = client.second;
-        if (auto signalIter = signals.find(signalId); signalIter != signals.end())
-        {
-            if (signalIter->second->isSubscribed())
-                signalIter->second->writeDaqPacket(packet);
-        }
-    }
-}
-
 DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
 {
     auto descriptor = signal.getDescriptor();

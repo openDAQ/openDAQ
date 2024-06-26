@@ -80,7 +80,10 @@ void OutputSignalBase::processAttributeChangedCoreEvent(ComponentPtr& /*componen
 
     // Streaming LT does not support attribute change forwarding for active, public, and visible
     toStreamedSignal(daqSignal, sigProps);
-    submitSignalChanges();
+
+    std::scoped_lock lock(subscribedSync);
+    if(this->subscribed)
+        submitSignalChanges();
 }
 
 SignalProps OutputSignalBase::getSignalProps(const SignalPtr& signal)
@@ -107,8 +110,7 @@ bool OutputSignalBase::isSubscribed()
 
 void OutputSignalBase::submitSignalChanges()
 {
-    if (dataWritingAllowed)
-        stream->writeSignalMetaInformation();
+    stream->writeSignalMetaInformation();
 }
 
 void OutputSignalBase::writeDescriptorChangedEvent(const DataDescriptorPtr& descriptor)
@@ -185,6 +187,11 @@ void OutputValueSignalBase::writeDescriptorChangedPacket(const EventPacketPtr& p
 
 void OutputValueSignalBase::writeDaqPacket(const PacketPtr& packet)
 {
+    std::scoped_lock lock(subscribedSync);
+
+    if (!this->subscribed)
+        return;
+
     const auto type = packet.getType();
 
     switch (type)
@@ -209,21 +216,19 @@ void OutputValueSignalBase::writeDaqPacket(const PacketPtr& packet)
 // Mutex locking ensures that data is sent only when the specified conditions are satisfied.
 void OutputValueSignalBase::setSubscribed(bool subscribed)
 {
+    std::scoped_lock lock(subscribedSync);
+
     if (this->subscribed != subscribed)
     {
-        std::scoped_lock lock(subscribedSync);
-
         this->subscribed = subscribed;
         doSetStartTime = true;
         if (subscribed)
         {
             outputDomainSignal->subscribeByDataSignal();
             stream->subscribe();
-            dataWritingAllowed = true;
         }
         else
         {
-            dataWritingAllowed = false;
             stream->unsubscribe();
             outputDomainSignal->unsubscribeByDataSignal();
         }
@@ -259,8 +264,7 @@ uint64_t OutputDomainSignalBase::calcStartTimeOffset(uint64_t dataPacketTimeStam
     {
         STREAMING_PROTOCOL_LOG_I("time signal {}: reset start timestamp: {}", daqSignal.getGlobalId(), dataPacketTimeStamp);
 
-        if (dataWritingAllowed)
-            domainStream->setTimeStart(dataPacketTimeStamp);
+        domainStream->setTimeStart(dataPacketTimeStamp);
         doSetStartTime = false;
         return 0;
     }
@@ -295,7 +299,6 @@ void OutputDomainSignalBase::subscribeByDataSignal()
         if (!this->subscribed)
         {
             stream->subscribe();
-            dataWritingAllowed = true;
         }
     }
 
@@ -318,7 +321,6 @@ void OutputDomainSignalBase::unsubscribeByDataSignal()
     {
         if (!this->subscribed)
         {
-            dataWritingAllowed = false;
             stream->unsubscribe();
         }
     }
@@ -326,24 +328,22 @@ void OutputDomainSignalBase::unsubscribeByDataSignal()
 
 void OutputDomainSignalBase::setSubscribed(bool subscribed)
 {
+    std::scoped_lock lock(subscribedSync);
+
     if (this->subscribed != subscribed)
     {
-        std::scoped_lock lock(subscribedSync);
-
         this->subscribed = subscribed;
         if (subscribed)
         {
             if (subscribedByDataSignalCount == 0)
             {
                 stream->subscribe();
-                dataWritingAllowed = true;
             }
         }
         else
         {
             if (subscribedByDataSignalCount == 0)
             {
-                dataWritingAllowed = false;
                 stream->unsubscribe();
             }
         }
@@ -515,8 +515,7 @@ void OutputSyncValueSignal::writeDataPacket(const DataPacketPtr& packet)
         doSetStartTime = false;
     }
 
-    if (dataWritingAllowed)
-        syncStream->addData(packet.getRawData(), packet.getSampleCount());
+    syncStream->addData(packet.getRawData(), packet.getSampleCount());
 }
 
 BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
@@ -639,8 +638,7 @@ void OutputConstValueSignal::writeData(const DataPacketPtr& packet, uint64_t fir
             indices.push_back(values[i].second + firstValueIndex);
         }
 
-        if (dataWritingAllowed)
-            constStream->addData(constants.data(), indices.data(), valuesCount);
+        constStream->addData(constants.data(), indices.data(), valuesCount);
     }
 
     lastConstValue = values.back().first;
@@ -707,10 +705,10 @@ void OutputConstValueSignal::writeDataPacket(const DataPacketPtr& packet)
 
 void OutputConstValueSignal::setSubscribed(bool subscribed)
 {
+    std::scoped_lock lock(subscribedSync);
+
     if (this->subscribed != subscribed)
     {
-        std::scoped_lock lock(subscribedSync);
-
         this->subscribed = subscribed;
         doSetStartTime = true;
         lastConstValue.reset();
@@ -719,11 +717,9 @@ void OutputConstValueSignal::setSubscribed(bool subscribed)
         {
             outputDomainSignal->subscribeByDataSignal();
             stream->subscribe();
-            dataWritingAllowed = true;
         }
         else
         {
-            dataWritingAllowed = false;
             stream->unsubscribe();
             outputDomainSignal->unsubscribeByDataSignal();
         }

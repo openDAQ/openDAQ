@@ -68,7 +68,6 @@ protected:
     bool doSetStartTime{false};
     std::mutex subscribedSync;
     daq::streaming_protocol::BaseSignalPtr stream;
-    bool dataWritingAllowed{false};
 
 private:
     void processAttributeChangedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);

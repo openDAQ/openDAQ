@@ -56,7 +56,7 @@ void WebsocketStreamingServer::start()
     packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets) {
         const auto signalId = signal.getGlobalId();
         for (const auto& packet : packets)
-            streamingServer.sendPacketToSubscribers(signalId, packet);
+            streamingServer.broadcastPacket(signalId, packet);
     });
     packetReader.start();
 

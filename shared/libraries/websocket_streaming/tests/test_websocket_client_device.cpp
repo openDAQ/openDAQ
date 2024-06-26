@@ -121,7 +121,7 @@ TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
     // Publish signal changes
     auto descriptor = DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).build();
     std::string signalId = testValueSignal.getGlobalId();
-    server->sendPacketToSubscribers(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
+    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 

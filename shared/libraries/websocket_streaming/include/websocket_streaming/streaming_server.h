@@ -56,7 +56,6 @@ public:
     void onUnsubscribe(const OnUnsubscribeCallback& callback);
     void unicastPacket(const std::string& streamId, const std::string& signalId, const PacketPtr& packet);
     void broadcastPacket(const std::string& signalId, const PacketPtr &packet);
-    void sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet);
 
 protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;

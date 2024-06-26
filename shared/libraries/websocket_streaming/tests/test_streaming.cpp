@@ -215,14 +215,14 @@ TEST_F(StreamingTest, PacketsCorrectSequence)
                                                                        1,
                                                                        {{2, 2}, {4, 4}, {6, 5}});
 
-    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket1);
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket1);
+    server->broadcastPacket(testConstantSignal.getGlobalId(), constantValuePacket1);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket1);
 
     auto domainPacket2 = getNextDomainPacket(sampleCount);
     auto explicitValuePacket2 = DataPacketWithDomain(domainPacket2, testDoubleSignal.getDescriptor(), sampleCount);
     std::memcpy(explicitValuePacket2.getRawData(), data.data(), explicitValuePacket2.getRawDataSize());
 
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket2);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket2);
 
     auto domainPacket3 = getNextDomainPacket(sampleCount);
     auto explicitValuePacket3 = DataPacketWithDomain(domainPacket3, testDoubleSignal.getDescriptor(), sampleCount);
@@ -232,8 +232,8 @@ TEST_F(StreamingTest, PacketsCorrectSequence)
                                                                        sampleCount,
                                                                        1);
 
-    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket3);
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket3);
+    server->broadcastPacket(testConstantSignal.getGlobalId(), constantValuePacket3);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket3);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
@@ -321,14 +321,14 @@ TEST_F(StreamingTest, PacketsIncorrectSequence)
                                                                        1,
                                                                        {{2, 2}, {4, 4}, {6, 5}});
 
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket1);
-    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket1);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket1);
+    server->broadcastPacket(testConstantSignal.getGlobalId(), constantValuePacket1);
 
     auto domainPacket2 = getNextDomainPacket(sampleCount);
     auto explicitValuePacket2 = DataPacketWithDomain(domainPacket2, testDoubleSignal.getDescriptor(), sampleCount);
     std::memcpy(explicitValuePacket2.getRawData(), data.data(), explicitValuePacket2.getRawDataSize());
 
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket2);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket2);
 
     auto domainPacket3 = getNextDomainPacket(sampleCount);
     auto explicitValuePacket3 = DataPacketWithDomain(domainPacket3, testDoubleSignal.getDescriptor(), sampleCount);
@@ -338,8 +338,8 @@ TEST_F(StreamingTest, PacketsIncorrectSequence)
                                                                        sampleCount,
                                                                        1);
 
-    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket3);
-    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket3);
+    server->broadcastPacket(testDoubleSignal.getGlobalId(), explicitValuePacket3);
+    server->broadcastPacket(testConstantSignal.getGlobalId(), constantValuePacket3);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 

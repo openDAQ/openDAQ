@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::module_ m)
 {
     py::enum_<daq::ReadMode>(m, "ReadMode")

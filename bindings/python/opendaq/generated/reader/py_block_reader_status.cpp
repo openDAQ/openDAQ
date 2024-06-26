@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> declareIBlockReaderStatus(pybind11::module_ m)
 {
     return wrapInterface<daq::IBlockReaderStatus, daq::IReaderStatus>(m, "IBlockReaderStatus");

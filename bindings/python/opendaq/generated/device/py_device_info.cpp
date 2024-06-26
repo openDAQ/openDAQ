@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m)
 {
     return wrapInterface<daq::IDeviceInfo, daq::IPropertyObject>(m, "IDeviceInfo");

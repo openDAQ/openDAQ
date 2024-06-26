@@ -28,6 +28,7 @@
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IPropertyValueEventArgs, daq::IEventArgs> declareIPropertyValueEventArgs(pybind11::module_ m)
 {
     py::enum_<daq::PropertyEventType>(m, "PropertyEventType")

@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m)
 {
@@ -36,8 +37,12 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls)
 {
     cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
+    cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
 
-    m.def("DeviceType", &daq::DeviceType_Create);
+    m.def("DeviceType", [](std::variant<daq::IString*, py::str>& id, std::variant<daq::IString*, py::str>& name, std::variant<daq::IString*, py::str>& description, daq::IPropertyObject* defaultConfig){
+        return daq::DeviceType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
+
 
     cls.def_property_readonly("connection_string_prefix",
         [](daq::IDeviceType *object)

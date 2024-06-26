@@ -429,6 +429,8 @@ TEST_F(TailReaderTest, GetSamplesRollingDomain)
     auto reader = TailReaderBuilder()
         .setSignal(this->signal)
         .setHistorySize(HISTORY_SIZE)
+        .setValueReadType(SampleTypeFromType<double>::SampleType)
+        .setDomainReadType(SampleTypeFromType<ClockTick>::SampleType)
         .setSkipEvents(true)
         .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);

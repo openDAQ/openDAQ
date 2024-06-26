@@ -11,6 +11,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(mock.signal)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -25,6 +26,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(
             mock.signal, value_type=opendaq.SampleType.Int64)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
@@ -44,6 +46,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_domain(self):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(mock.signal)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)

@@ -77,6 +77,8 @@ private:
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
 
+    StringPtr convertIfOldId(const StringPtr& id);
+
     bool modulesLoaded;
     std::vector<std::string> paths;
     std::vector<ModuleLibrary> libraries;

@@ -635,12 +635,33 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     return OPENDAQ_SUCCESS;
 }
 
+StringPtr ModuleManagerImpl::convertIfOldId(const StringPtr& id)
+{
+    if (id == "ref_fb_module_classifier")
+        return "RefFBModuleClassifier";
+    if (id == "ref_fb_module_fft")
+        return "RefFBModuleFFT";
+    if (id == "ref_fb_module_power")
+        return "RefFBModulePower";
+    if (id == "ref_fb_module_renderer")
+        return "RefFBModuleRenderer";
+    if (id == "ref_fb_module_scaling")
+        return "RefFBModuleScaling";
+    if (id == "ref_fb_module_statistics")
+        return "RefFBModuleStatistics";
+    if (id == "ref_fb_module_trigger")
+        return "RefFBModuleTrigger";
+    if (id == "audio_device_module_wav_writer")
+        return "AudioDeviceModuleWavWriter";
+    return id;
+}
+
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    const StringPtr typeId = StringPtr::Borrow(id);
+    const StringPtr typeId = convertIfOldId(StringPtr::Borrow(id));
 
     for (const auto& library : libraries)
     {

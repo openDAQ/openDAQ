@@ -9,6 +9,7 @@
 #include <testutils/testutils.h>
 #include <thread>
 #include "testutils/memcheck_listener.h"
+#include <opendaq/instance_factory.h>
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
@@ -147,4 +148,18 @@ TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
 
     auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
+}
+
+TEST_F(RefFBModuleTest, AddFunctionBlockBackwardsCompat)
+{
+    const auto instance = Instance();
+
+    instance.addFunctionBlock("ref_fb_module_classifier");
+    instance.addFunctionBlock("ref_fb_module_fft");
+    instance.addFunctionBlock("ref_fb_module_power");
+    // instance.addFunctionBlock("ref_fb_module_renderer");
+    instance.addFunctionBlock("ref_fb_module_scaling");
+    instance.addFunctionBlock("ref_fb_module_statistics");
+    instance.addFunctionBlock("ref_fb_module_trigger");
+    instance.addFunctionBlock("audio_device_module_wav_writer");
 }

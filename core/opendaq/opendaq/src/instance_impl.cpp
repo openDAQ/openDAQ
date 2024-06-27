@@ -191,12 +191,23 @@ ErrCode InstanceImpl::getAvailableServerTypes(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
+StringPtr InstanceImpl::convertIfOldId(const StringPtr& id)
+{
+    if (id == "openDAQ LT Streaming")
+        return "OpenDAQLTStreaming";
+    if (id == "openDAQ Native Streaming")
+        return "OpenDAQNativeStreaming";
+    if (id == "openDAQ OpcUa")
+        return "OpenDAQOPCUA";
+    return id;
+}
+
 ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server)
 {
     OPENDAQ_PARAM_NOT_NULL(serverTypeId);
     OPENDAQ_PARAM_NOT_NULL(server);
 
-    auto typeId = toStdString(serverTypeId);
+    auto typeId = convertIfOldId(toStdString(serverTypeId));
 
     for (const auto module : moduleManager.getModules())
     {

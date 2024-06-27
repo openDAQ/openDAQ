@@ -77,6 +77,14 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
         },
         py::arg("streaming_connection_string"),
         "Handles the completion of unsubscription acknowledged by the specified streaming source.");
+    cls.def("unsubscribe_completed_no_lock",
+        [](daq::IMirroredSignalPrivate *object, const std::string& streamingConnectionString)
+        {
+            const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
+            objectPtr.unsubscribeCompletedNoLock(streamingConnectionString);
+        },
+        py::arg("streaming_connection_string"),
+        "Acts the same as unsubscribeCompleted() but does not enter a critical section.");
     cls.def_property("mirrored_data_descriptor",
         [](daq::IMirroredSignalPrivate *object)
         {

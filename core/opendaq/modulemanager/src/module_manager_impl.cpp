@@ -23,6 +23,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
+#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -249,6 +250,8 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
+            // Group devices that have manufacturer, serial number and at least 1 server capability,
+            // the rest use their connection string as key.
             if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
@@ -259,15 +262,20 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
                 if (groupedDevices.hasKey(id))
                 {
-                    DeviceInfoInternalPtr value = groupedDevices.get(id);
+                    DeviceInfoConfigPtr value = groupedDevices.get(id);
+                    DeviceInfoInternalPtr valueInternal = value;
                     for (const auto & capability : deviceInfo.getServerCapabilities())
                         if (!value.hasServerCapability(capability.getProtocolId()))
-                            value.addServerCapability(capability);
-                    value.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                            valueInternal.addServerCapability(capability);
+                }
+                else if (deviceInfo.getServerCapabilities().getCount())
+                {
+                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                    groupedDevices.set(id, deviceInfo);
                 }
                 else
                 {
-                    groupedDevices.set(id, deviceInfo);
+                    groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
                 }
             }
         }
@@ -488,27 +496,43 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (OPENDAQ_FAILED(errCode))
                 return errCode;
 
-            auto devicePtr = DevicePtr::Borrow(*device);
+            const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
             {
-                auto connectedDeviceInfo = devicePtr.getInfo().asPtr<IDeviceInfoInternal>();
+                const auto connectedDeviceInfo = devicePtr.getInfo();
+                const auto connectedDeviceInfoInternal = connectedDeviceInfo.asPtr<IDeviceInfoInternal>();
                 if (discoveredDeviceInfo.assigned())
                 {
-                    // replaces the capabilities retrieved from the config/structure protocol
-                    // with the same capabilities sourced from the discovery client
+                    // Replaces the default fields of capabilities retrieved from the config/structure protocol
+                    // if a better alternative is available from the discovery results
                     for (const auto& capability : discoveredDeviceInfo.getServerCapabilities())
                     {
-                        if (connectedDeviceInfo.hasServerCapability(capability.getProtocolId()))
-                            connectedDeviceInfo.removeServerCapability(capability.getProtocolId());
-                        connectedDeviceInfo.addServerCapability(capability);
+                        const auto capId = capability.getProtocolId();
+                        ServerCapabilityPtr capPtr = capability;
+
+                        if (connectedDeviceInfo.hasServerCapability(capId))
+                        {
+                            try
+                            {
+                                capPtr = mergeDiscoveryAndDeviceCap(capability, connectedDeviceInfo.getServerCapability(capId));
+                            }
+                            catch ([[maybe_unused]] const std::exception& e)
+                            {
+                                capPtr = capability;
+                                LOG_W("{}: Failed to merge discovery and device server capability with ID {}: {}", module.getName(), capId, e.what())
+                            }
+
+                            connectedDeviceInfoInternal.removeServerCapability(capability.getProtocolId());
+                        }
+
+                        connectedDeviceInfoInternal.addServerCapability(capPtr);
                     }
                 }
 
                 for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
                 {
                     // assigns missing connection strings for server capabilities
-                    if (capability.getConnectionString() == "" &&
-                        capability.getConnectionStrings().empty())
+                    if (capability.getConnectionStrings().empty())
                     {
                         auto capConnectionString = createConnectionString(capability);
                         if (capConnectionString.assigned())
@@ -1060,6 +1084,32 @@ StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& s
         }
     }
     return connectionString;
+}
+
+ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap,
+                                                                  const ServerCapabilityPtr& deviceCap)
+{
+    auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
+    const auto caps = List<IServerCapability>(discoveryCap, deviceCap);
+
+    for (const auto& cap : caps)
+        for (const auto& prop : cap.getAllProperties())
+        {
+            const auto name = prop.getName();
+            const auto val = cap.getPropertyValue(name);
+            const bool hasProp = merged.hasProperty(name);
+
+            if (val == prop.getDefaultValue() && hasProp)
+                continue;
+                
+            if (hasProp)
+                merged.setPropertyValue(name, val);
+            else
+                merged.addProperty(prop);
+        }
+
+    merged.freeze();
+    return merged.detach();
 }
 
 bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config)

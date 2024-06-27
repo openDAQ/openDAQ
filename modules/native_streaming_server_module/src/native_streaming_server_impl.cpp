@@ -59,11 +59,12 @@ NativeStreamingServerImpl::~NativeStreamingServerImpl()
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
     if (this->rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        const auto info = this->rootDevice.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("opendaq_native_streaming"))
-            info.removeServerCapability("opendaq_native_streaming");
+            infoInternal.removeServerCapability("opendaq_native_streaming");
         if (info.hasServerCapability("opendaq_native_config"))
-            info.removeServerCapability("opendaq_native_config");
+            infoInternal.removeServerCapability("opendaq_native_config");
     }
 
     stopReading();
@@ -338,11 +339,12 @@ void NativeStreamingServerImpl::onStopServer()
 
     if (this->rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        const auto info = this->rootDevice.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("opendaq_native_streaming"))
-            info.removeServerCapability("opendaq_native_streaming");
+            infoInternal.removeServerCapability("opendaq_native_streaming");
         if (info.hasServerCapability("opendaq_native_config"))
-            info.removeServerCapability("opendaq_native_config");
+            infoInternal.removeServerCapability("opendaq_native_config");
     }
 
 }

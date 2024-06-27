@@ -86,7 +86,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
@@ -140,7 +140,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryService("mdns")
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns")
                                      .addConfigProvider(provider)
                                      .setDefaultRootDeviceInfo(rootInfo)
                                      .build();
@@ -252,16 +252,15 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(signal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
 
     double samples[100];
     for (int i = 0; i < 10; ++i)

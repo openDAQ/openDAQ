@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     const InstanceBuilderPtr instanceBuilder = InstanceBuilder();
     instanceBuilder.addModulePath(MODULE_PATH);
-    instanceBuilder.addDiscoveryService("mdns");
+    instanceBuilder.addDiscoveryServer("mdns");
     instanceBuilder.setRootDevice("daqref://device1");
     
     const InstancePtr instance = instanceBuilder.build();

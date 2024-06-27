@@ -98,8 +98,40 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_configuration/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto& deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                device = client.addDevice(capability.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
+{
+    const auto info = DeviceInfo("", "foo");
+    info.setMacAddress("custom_mac");
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
+                                   .setDefaultRootDeviceInfo(info)
                                    .build();
     server.addDevice("daqref://device1");
 
@@ -112,6 +144,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
@@ -120,6 +153,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
                 device = client.addDevice(capability.getConnectionString(), nullptr);
+                ASSERT_EQ(device.getInfo().getMacAddress(), "custom_mac");
                 return;
             }
         }
@@ -129,7 +163,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 
 TEST_F(NativeDeviceModulesTest, RemoveServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .build();
     server.addDevice("daqref://device1");
@@ -234,7 +268,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
     instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
@@ -479,19 +513,18 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
     test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(signal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
     ASSERT_EQ(domainSubscribeFuture.get(), streamingSource);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
 
     double samples[100];
     for (int i = 0; i < 10; ++i)

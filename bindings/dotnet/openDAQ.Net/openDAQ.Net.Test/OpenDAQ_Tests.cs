@@ -789,16 +789,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         Console.WriteLine("OpenDAQFactory.CreateTimeReader()");
         TimeReader timeReader = OpenDAQFactory.CreateTimeReader(sampleReader, signal);
-
-        {
-            // read events
-            Thread.Sleep(25);
-            nuint zeroCount = 0;
-            TValueType[] tmpSamples    = new TValueType[1];
-            DateTime[]   tmpTimeStamps = new DateTime[1];
-            timeReader.ReadWithDomain(tmpSamples, tmpTimeStamps, ref zeroCount, 1000);
-        }
-
         int readFailures = 0;
 
         Console.WriteLine($"  ValueReadType = {sampleReader.ValueReadType}, DomainReadType = {sampleReader.DomainReadType}");
@@ -820,7 +810,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             {
                 Thread.Sleep(sleepTime);
             }
-            while ((sampleReader.AvailableCount < count) && (--loopCount > 0));
+            while ((sampleReader.Empty()) && (--loopCount > 0));
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
 
@@ -849,6 +839,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             {
                 ++readFailures;
                 Console.WriteLine($"            read failed with ReadStatus = '{status?.ReadStatus}'");
+                break;
             }
         }
 

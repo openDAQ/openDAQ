@@ -86,7 +86,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryServer("MDNS").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
@@ -140,7 +140,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns")
+    auto instance = InstanceBuilder().addDiscoveryServer("MDNS")
                                      .addConfigProvider(provider)
                                      .setDefaultRootDeviceInfo(rootInfo)
                                      .build();

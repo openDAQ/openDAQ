@@ -792,6 +792,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         {
             // read events
+            Thread.Sleep(25);
             nuint zeroCount = 0;
             TValueType[] tmpSamples    = new TValueType[1];
             DateTime[]   tmpTimeStamps = new DateTime[1];

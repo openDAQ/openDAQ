@@ -47,13 +47,12 @@ TEST_F(QuickStartTest, QuickStartAppReader)
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(device.getSignals(search::Recursive(search::Any()))[0])
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0], ReadTimeoutType::Any);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
@@ -87,13 +86,12 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
     sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
     ASSERT_EQ(sineChannel.getPropertyValue("NoiseAmplitude"), 0.75);
 
-    daq::StreamReaderPtr reader2 = daq::StreamReaderBuilder()
-        .setSignal(device.getSignals(search::Recursive(search::Any()))[0])
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0], ReadTimeoutType::Any);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double amplStep = 0.1;
     double samples[100];
@@ -107,7 +105,7 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
         ASSERT_EQ(sineChannel.getPropertyValue("Amplitude"), ampl + amplStep);
 
         daq::SizeT count = 250;
-        reader2.read(samples, &count, 100);
+        reader.read(samples, &count, 100);
         ASSERT_GT(count, 0u);
     }
 }
@@ -152,13 +150,12 @@ TEST_F(QuickStartTest, QuickStartAppReaderWebsocket)
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(device.getSignals()[0])
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0], ReadTimeoutType::Any);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
@@ -197,13 +194,12 @@ TEST_F(QuickStartTest, QuickStartAppReaderNativePseudoDevice)
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(device.getSignals()[0])
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0], ReadTimeoutType::Any);
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[100];
     for (int i = 0; i < 5; ++i)

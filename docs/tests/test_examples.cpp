@@ -18,14 +18,13 @@ TEST_F(ExamplesTest, StreamReader)
     
     DevicePtr device = instance.addDevice("daqref://device0");
     SignalPtr signal = device.getSignalsRecursive()[0];
+
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
     
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(signal)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    {
+        SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
     
     double samples[5000];
     for (int i = 0; i < 10; ++i)
@@ -53,13 +52,12 @@ TEST_F(ExamplesTest, FunctionBlock)
     
     statistics.getInputPorts()[0].connect(sineSignal);
     const SignalPtr averagedSine = statistics.getSignalsRecursive()[0];
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(averagedSine)
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(averagedSine, ReadTimeoutType::Any);
+    
+    {
+        SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[5000];
     double ampl_step = 0.1;
@@ -101,13 +99,12 @@ TEST_F(ExamplesTest, Client)
     DeviceInfoPtr info = device.getInfo();
     ASSERT_EQ(info.getName(), "Device 1");
 
-    daq::StreamReaderPtr reader = daq::StreamReaderBuilder()
-        .setSignal(device.getSignals(search::Recursive(search::Any()))[0])
-        .setValueReadType(SampleTypeFromType<double>::SampleType)
-        .setDomainReadType(SampleTypeFromType<uint64_t>::SampleType)
-        .setSkipEvents(true)
-        .setReadTimeoutType(ReadTimeoutType::Any)
-        .build();
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0], ReadTimeoutType::Any);
+    
+    {
+        SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[5000];
     for (int i = 0; i < 10; ++i)

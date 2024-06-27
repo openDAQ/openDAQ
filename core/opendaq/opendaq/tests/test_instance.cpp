@@ -504,4 +504,13 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
 }
 
+TEST_F(InstanceTest, AddServerBackwardsCompat)
+{
+    auto instance = Instance();
+
+    ASSERT_NO_THROW(instance.addServer("openDAQ Native Streaming", nullptr));
+    ASSERT_NO_THROW(instance.addServer("openDAQ LT Streaming", nullptr));
+    ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
+}
+
 END_NAMESPACE_OPENDAQ

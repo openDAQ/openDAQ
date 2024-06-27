@@ -10,14 +10,14 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     const ConfigProviderPtr configProvider = JsonConfigProvider();
     const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider)
-                                                                .addDiscoveryServer("mdns");
+                                                                .addDiscoveryServer("MDNS");
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
     auto servers = instance.addStandardServers();
     for (const auto& server : servers)
     {
-        // OpcUa server uses Avahi service for discovery for example purposes
-        if (server.getId() != "OpcUaServer")
+        // OPC UA server uses Avahi service for discovery for example purposes
+        if (server.getId() != "OpenDAQOPCUAServerModule")
             server.enableDiscovery();
     }
 

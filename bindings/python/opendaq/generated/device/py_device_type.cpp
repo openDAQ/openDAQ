@@ -37,7 +37,6 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls)
 {
     cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
-    cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
 
     m.def("DeviceType", [](std::variant<daq::IString*, py::str>& id, std::variant<daq::IString*, py::str>& name, std::variant<daq::IString*, py::str>& description, daq::IPropertyObject* defaultConfig){
         return daq::DeviceType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);

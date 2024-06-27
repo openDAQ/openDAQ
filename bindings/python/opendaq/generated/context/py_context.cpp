@@ -38,9 +38,9 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
 {
     cls.doc() = "The Context serves as a container for the Scheduler and Logger. It originates at the instance, and is passed to the root device, which forwards it to components such as function blocks and signals.";
 
-    m.def("Context", [](daq::IScheduler* Scheduler, daq::ILogger* Logger, daq::ITypeManager* typeManager, daq::IModuleManager* moduleManager, daq::IAuthenticationProvider* authenticationProvider, std::variant<daq::IDict*, py::dict>& options, std::variant<daq::IDict*, py::dict>& discoveryServices){
-        return daq::Context_Create(Scheduler, Logger, typeManager, moduleManager, authenticationProvider, getVariantValue<daq::IDict*>(options), getVariantValue<daq::IDict*>(discoveryServices));
-    }, py::arg("scheduler"), py::arg("logger"), py::arg("type_manager"), py::arg("module_manager"), py::arg("authentication_provider"), py::arg("options"), py::arg("discovery_services"));
+    m.def("Context", [](daq::IScheduler* Scheduler, daq::ILogger* Logger, daq::ITypeManager* typeManager, daq::IModuleManager* moduleManager, daq::IAuthenticationProvider* authenticationProvider, std::variant<daq::IDict*, py::dict>& options, std::variant<daq::IDict*, py::dict>& discoveryServers){
+        return daq::Context_Create(Scheduler, Logger, typeManager, moduleManager, authenticationProvider, getVariantValue<daq::IDict*>(options), getVariantValue<daq::IDict*>(discoveryServers));
+    }, py::arg("scheduler"), py::arg("logger"), py::arg("type_manager"), py::arg("module_manager"), py::arg("authentication_provider"), py::arg("options"), py::arg("discovery_servers"));
 
 
     cls.def_property_readonly("scheduler",

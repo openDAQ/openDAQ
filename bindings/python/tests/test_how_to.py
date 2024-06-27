@@ -19,11 +19,11 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
             print(function_block_type)
 
         # If there is no Statistics Function Block available, exit with an error
-        if not "ref_fb_module_statistics" in function_block_types.keys():
+        if not "RefFBModuleStatistics" in function_block_types.keys():
             self.assertTrue(False, "Function block not found")
 
         # Add Function Block on the host computer
-        function_block = instance.add_function_block("ref_fb_module_statistics")
+        function_block = instance.add_function_block("RefFBModuleStatistics")
 
         # Print Function Block type info
         function_block_type = function_block.function_block_type
@@ -40,7 +40,7 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         device = instance.add_device('daqref://device0')
 
         # Add Function Block on the host computer
-        function_block = instance.add_function_block("ref_fb_module_statistics")
+        function_block = instance.add_function_block("RefFBModuleStatistics")
 
         # List properties of the Function Block
         function_block_properties = function_block.visible_properties

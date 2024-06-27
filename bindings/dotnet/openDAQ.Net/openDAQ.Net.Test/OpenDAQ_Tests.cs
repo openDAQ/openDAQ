@@ -1119,7 +1119,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                         case "ref_fb_module_renderer":
                             renderer = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
                             break;
-                        case "ref_fb_module_statistics":
+                        case "RefFBModuleStatistics":
                             statistics = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
                             break;
                     }

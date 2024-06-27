@@ -35,9 +35,9 @@ its rank (scalar, vector, matrix), and others.
 A signal can be explicit, meaning that its data is written to a buffer within a xref:packets.adoc[packet]. 
 Conversely, it can be implicit. In that case, its data is calculated via a rule. That rule can, for example, be 
 a linear rule, where the packet carries an `packetOffset` that is used as an input parameter for
-the rule. Each rule has a set of pre-defined parameters, such as the "start" and "delta" for the 
+the rule. Each rule has a set of pre-defined parameters, such as the "Start" and "Delta" for the 
 linear rule. The parameters and rule input value are used to calculate linear rule values for
-the nth sample in a packet as follows: `packetOffset + start + delta * n`.
+the nth sample in a packet as follows: `packetOffset + Start + Delta * n`.
 
 === Domain signals
 

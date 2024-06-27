@@ -303,7 +303,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
             auto device = instance.addDevice("daqref://device0");
 
             // Add statistics and renderer function block
-            FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+            FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
             FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
 
             // Set renderer to draw 2.5s of data
@@ -342,7 +342,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
         var device = instance.AddDevice("daqref://device0");
 
         // Add statistics and renderer function block
-        var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+        var statistics = instance.AddFunctionBlock("RefFBModuleStatistics");
         var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
 
         // Set renderer to draw 2.5s of data

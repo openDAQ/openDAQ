@@ -14,10 +14,10 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         # Add a reference device and set it as root
         instance.set_root_device('daqref://device0')
 
-        # Start a web-socket streaming server
-        instance.add_server('openDAQ LT Streaming', None)
+        # start a web-socket streaming server
+        instance.add_server('OpenDAQLTStreaming', None)
 
-        # Start an openDAQ OpcUa and native streaming servers
+        # start an openDAQ OPC UA and native streaming servers
         instance.add_standard_servers()
 
     def test_discovering_devices(self):
@@ -73,7 +73,7 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
     def test_connect_signal(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_statistics")
+        fb = instance.add_function_block("RefFBModuleStatistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         # doc code
@@ -84,7 +84,7 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
     def test_create_fb(self):
         instance = opendaq.Instance()
         # doc code
-        fb = instance.add_function_block("ref_fb_module_statistics")
+        fb = instance.add_function_block("RefFBModuleStatistics")
         fbs = instance.function_blocks
         fb1 = fbs[-1]
         assert fb1 == fb
@@ -94,7 +94,7 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
     def test_input_port_connection(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_statistics")
+        fb = instance.add_function_block("RefFBModuleStatistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         # doc code
@@ -107,7 +107,7 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
     def test_connection_dequeue(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_statistics")
+        fb = instance.add_function_block("RefFBModuleStatistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         input_port.connect(signal)

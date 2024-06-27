@@ -7,7 +7,7 @@ Typically, in addition to publishing its own structure (xref:knowledge_base:sign
 xref:knowledge_base:function_blocks.adoc#channel[Channel]s,
 xref:knowledge_base:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
 xref:knowledge_base:device.adoc[Device] also publishes information about Streaming protocols it supports.
-This information includes the Streaming protocol ID (e.g. `"opendaq_lt_streaming"` or `"opendaq_native_streaming"`)
+This information includes the Streaming protocol ID (e.g. `"OpenDAQLTStreaming"` or `"OpenDAQNativeStreaming"`)
 and a range of optional parameters (e.g. port number). Upon initiating a Streaming server on the Device,
 it automatically generates and prepares the mentioned piece of information, also known as a Server capability,
 for publication alongside the Device's structural details. To enable the publication of this information,
@@ -36,14 +36,14 @@ int main()
 
     instance.setRootDevice("daqref://device1");
 
-    // Creates and registers a Server capability with the ID `opendaq_lt_streaming` and the default port number 7414
-    instance.addServer("openDAQ LT Streaming", nullptr);
+    // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
+    instance.addServer("OpenDAQLTStreaming", nullptr);
 
-    // Creates and registers a Server capability with the ID `opendaq_native_streaming` and the default port number 7420
-    instance.addServer("openDAQ Native Streaming", nullptr);
+    // Creates and registers a Server capability with the ID `OpenDAQNativeStreaming` and the default port number 7420
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
 
     // As the Streaming servers were added first, the registered Server capabilities are published over OPC UA
-    instance.addServer("openDAQ OpcUa", nullptr);
+    instance.addServer("OpenDAQOPCUA", nullptr);
 
     while(true)
         std::this_thread::sleep_for(100ms);
@@ -110,7 +110,7 @@ int main()
     PropertyObjectPtr deviceConfig = PropertyObject();
 
     // Add property to allow multiple Streaming protocols with native protocol having the first priority
-    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
     // Set property to disregard direct Streaming connections for nested Devices,
@@ -128,7 +128,7 @@ int main()
     for (const auto& deviceInfo : availableDevices)
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
-        if (capability.getProtocolName() == "openDAQ OpcUa")
+        if (capability.getProtocolName() == "OpenDAQOPCUA")
         {
             device = instance.addDevice(capability.getConnectionString(), deviceConfig);
             break;
@@ -250,7 +250,7 @@ int main()
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
             {
                 device = instance.addDevice(capability.getConnectionString());
                 break;
@@ -396,7 +396,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     PropertyObjectPtr deviceConfig = PropertyObject();
 
     // Add property to allow multiple Streaming protocols with native protocol having the first priority
-    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
     // Set property to ignore streaming sources of nested Devices

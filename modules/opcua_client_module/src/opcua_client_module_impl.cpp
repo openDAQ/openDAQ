@@ -77,7 +77,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {"OPENDAQ"}
     )
 {
-    loggerComponent = this->context.getLogger().getOrAddComponent("OpcUaClient");
+    loggerComponent = this->context.getLogger().getOrAddComponent("OPCUAClient");
     discoveryClient.initMdnsClient(List<IString>("_opcua-tcp._tcp.local."));
 }
 

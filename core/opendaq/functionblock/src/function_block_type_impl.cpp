@@ -12,9 +12,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IString*,
     description,
     IPropertyObject*,
-    defaultConfig,
-    IList*,
-    altIds
+    defaultConfig
 )
 
 END_NAMESPACE_OPENDAQ

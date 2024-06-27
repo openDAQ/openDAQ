@@ -28,7 +28,6 @@ public:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
 private:
-    Bool contains(ListPtr<IString> list, StringPtr what);
 };
 
 END_NAMESPACE_REF_FB_MODULE

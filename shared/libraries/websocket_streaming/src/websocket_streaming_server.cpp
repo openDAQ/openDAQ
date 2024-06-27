@@ -60,7 +60,7 @@ void WebsocketStreamingServer::start()
     });
     packetReader.start();
 
-    const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "openDAQ-LT Streaming", ProtocolType::Streaming);
+    const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "OpenDAQLTStreaming", ProtocolType::Streaming);
     serverCapability.setPrefix("daq.lt");
     serverCapability.setPort(streamingPort);
     serverCapability.setConnectionType("TCP/IP");

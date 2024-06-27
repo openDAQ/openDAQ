@@ -841,6 +841,10 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
             }
+            else if (status?.ReadStatus == ReadStatus.Event)
+            {
+                Console.WriteLine($"            event occurred'");
+            }
             else
             {
                 ++readFailures;

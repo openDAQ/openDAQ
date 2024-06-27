@@ -433,7 +433,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 reader.Read(samples, ref count, 1000);
                 samplesCount += count;
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;±0.000})";
+                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;ï¿½0.000})";
                 Console.WriteLine($"  Block {readBlockNo + 1,2} read {count,3} values {values}");
             }
         }
@@ -510,6 +510,15 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine("OpenDAQFactory.CreateTimeReader()");
         TimeReader timeReader = OpenDAQFactory.CreateTimeReader(sampleReader, signal);
+
+        {
+            // read events
+            nuint zeroCount = 0;
+            TValueType[] tmpSamples    = new TValueType[1];
+            DateTime[]   tmpTimeStamps = new DateTime[1];
+            timeReader.ReadWithDomain(tmpSamples, tmpTimeStamps, ref zeroCount, 1000);
+        }
+
         int readFailures = 0;
 
         Console.WriteLine($"  ValueReadType = {sampleReader.ValueReadType}, DomainReadType = {sampleReader.DomainReadType}");
@@ -548,7 +557,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             {
                 string valueString = (samplesCount == 0)
                                      ? string.Empty
-                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;±0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
+                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;ï¿½0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
             }

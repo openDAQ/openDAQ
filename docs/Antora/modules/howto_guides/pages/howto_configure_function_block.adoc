@@ -175,7 +175,7 @@ int main()
     DevicePtr device = instance.addDevice("daqref://device0");
 
     // Add function block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFBModuleStatistics");
 
     // List properties of the Function Block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
@@ -214,7 +214,7 @@ instance = opendaq.Instance()
 device = instance.add_device('daqref://device0')
 
 # Add Function Block on the host computer
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block("RefFBModuleStatistics")
 
 # List properties of the Function Block
 function_block_properties = function_block.visible_properties
@@ -252,7 +252,7 @@ Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 Device device = instance.AddDevice("daqref://device0");
 
 // Add Function Block on the host computer
-FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
 // List properties of the Function Block
 IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;

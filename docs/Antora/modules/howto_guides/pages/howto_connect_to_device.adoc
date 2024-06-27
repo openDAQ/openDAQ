@@ -15,7 +15,7 @@ To discover available devices, we can use the `getAvailableDevices` method of th
 Device info contains information about device such as name, serial number, connection string, server capabilities, etc.
 Connection string is used to connect to the device. Prefix of connection string indentifies the protocol used to connect to the device or a type of device.
 
-* `daqref://` indentifies the reference device module that simulates sine wave signals;
+* `daqref://` indentifies the reference Device Module that simulates sine wave signals;
 * `daq.opcua://` is a prefix of OPC UA device;
 * `daq.ns://` indentifies the devices which supports native streaming protocol;
 * `daq.lt://` is a prefix of device that supports streaming Lt protocol;
@@ -30,7 +30,7 @@ NOTE: Device info may contatin server capability only for OpcUa, Native and stre
 
 openDAQ(TM) provides three client and three server Modules. They enable us to connect to openDAQ(TM) Devices,
 as well as transfer their signal data. The openDAQ(TM) `opcua_client_module` uses an OPC UA client to connect to
-openDAQ(TM) OPC UA-compatible devices that are running a compatible OPC UA server. Discovered devices which supports OPC UA protocol has server capabilities with protocol name `openDAQ OpcUa` in device info.
+openDAQ(TM) OPC UA-compatible devices that are running a compatible OPC UA server. Discovered devices which supports OPC UA protocol has server capabilities with protocol name `OpenDAQOPCUA` in device info.
 
 [tabs]
 ====
@@ -54,7 +54,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
+            if (capability.getProtocolName() == "OpenDAQOPCUA")
             {
                 std::cout << "Name: " << deviceInfo.getName() << ", Address: " << capability.getConnectionString() << std::endl;
             }
@@ -76,7 +76,7 @@ instance = opendaq.Instance()
 # Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
-        if capability.protocol_name == 'openDAQ OpcUa':
+        if capability.protocol_name == 'OpenDAQOPCUA':
             print('Name:', device_info.name, 'Address:', capability.connection_string)
 ----
 C#::
@@ -93,7 +93,7 @@ Instance instance = OpenDAQFactory.Instance();
 IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
 foreach (var deviceInfo in availableDevicesInfo)
     foreach (var capability in deviceInfo.ServerCapabilities)
-        if (capability.ProtocolName == "openDAQ OpcUa")
+        if (capability.ProtocolName == "OpenDAQOPCUA")
             Console.WriteLine($"Name: {deviceInfo.Name}, Address: {capability.ConnectionString}");
 ----
 ====
@@ -125,7 +125,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
+            if (capability.getProtocolName() == "OpenDAQOPCUA")
             {
                 devices.pushBack(instance.addDevice(capability.getConnectionString()));
             }
@@ -148,7 +148,7 @@ instance = opendaq.Instance()
 devices = []
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
-        if capability.protocol_name == 'openDAQ OpcUa':
+        if capability.protocol_name == 'OpenDAQOPCUA':
             devices.append(instance.add_device(capability.connection_string))
 ----
 C#::
@@ -166,7 +166,7 @@ IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
 IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
 foreach (var deviceInfo in availableDevicesInfo)
     foreach (var capability in deviceInfo.ServerCapabilities)
-        if (capability.ProtocolName == "openDAQ OpcUa")
+        if (capability.ProtocolName == "OpenDAQOPCUA")
             devices.Add(instance.AddDevice(capability.ConnectionString));
 ----
 ====
@@ -183,9 +183,9 @@ Depending on the Modules loaded we can connect to different types of Devices. Wh
 integrated into openDAQ(TM), it is added/connected to in the same manner as a openDAQ(TM) OPC UA Device, but using its
 own discovery mechanism and connection string format. For example:
 
-* the openDAQ(TM) reference device module uses addresses prefixed with "daqref://" and does not have server capability;
+* the openDAQ(TM) reference Device Module uses addresses prefixed with "daqref://" and does not have server capability;
 * the openDAQ(TM) `native_stream_cl_module` has server capability with name `openDAQ Native Configuration` and uses addresses prefixed with "daq.ns://";
-* the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.lt://" and have server capability with name `openDAQ LT Streaming`.
+* the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.lt://" and have server capability with name `OpenDAQLTStreaming`.
 
 [tabs]
 ====

@@ -154,7 +154,7 @@ daq::DeviceTypePtr referenceDeviceType = availableDeviceTypes.get("daqref");
 
 // Dictionary of information about available function block types that the module provides
 daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = _module.getAvailableFunctionBlockTypes(); 
-daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("ref_fb_module_statistics");
+daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("RefFBModuleStatistics");
 
 // Dictionary of information about available server types that the module provides
 daq::DictPtr<daq::IString, daq::IServerType> serverTypes = _module.getAvailableServerTypes(); 
@@ -237,7 +237,7 @@ daq::InstancePtr instance = Instance();
 daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
 
 // Add the statistics function block, if available
-if(functionBlockTypes.hasKey("ref_fb_module_statistics"))
-        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+if(functionBlockTypes.hasKey("RefFBModuleStatistics"))
+        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFBModuleStatistics");
 ----
 ====

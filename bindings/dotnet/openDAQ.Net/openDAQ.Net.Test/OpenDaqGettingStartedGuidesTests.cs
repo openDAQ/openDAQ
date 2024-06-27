@@ -88,7 +88,7 @@ public class OpenDaqGettingStartedGuidesTests : OpenDAQTestsBase
         renderer.GetInputPorts()[0].Connect(signal);
 
         // Create an instance of the statistics function block
-        var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+        var statistics = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         // Connect the first output signal of the device to the statistics
         statistics.GetInputPorts()[0].Connect(signal);

@@ -84,7 +84,7 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Classifier::ClassifierFbImpl>(context, parent, localId);
         return fb;
     }
-    if (id == Trigger::TriggerFbImpl::CreateType().getId() || contains(Trigger::TriggerFbImpl::CreateType().getAltIds(), id))
+    if (id == Trigger::TriggerFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Trigger::TriggerFbImpl>(context, parent, localId, config);
         return fb;
@@ -98,16 +98,6 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
 
     LOG_W("Function block \"{}\" not found", id);
     throw NotFoundException("Function block not found");
-}
-
-Bool RefFBModule::contains(ListPtr<IString> list, StringPtr what)
-{
-    for (const auto& item : list)
-    {
-        if (item == what)
-            return True;
-    }
-    return False;
 }
 
 END_NAMESPACE_REF_FB_MODULE

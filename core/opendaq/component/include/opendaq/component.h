@@ -198,7 +198,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * If the component parameter is true, the starting component is the root device.
      *
      * The id provided should be in relative form from the starting component. E.g., to find a signal in
-     * the starting component, the id should be in the form of "dev/dev_id/ch/ch_id/sig/sig_id.
+     * the starting component, the id should be in the form of "Dev/dev_id/Ch/ch_id/Sig/sig_id.
      */
     virtual ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) = 0;
 };

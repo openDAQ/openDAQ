@@ -450,13 +450,10 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
         return errCode;
     }
 
+    *count = 0;
     if (syncStatus == SyncStatus::Synchronized)
     {
         *count = (min / sampleRateDividerLcm) * sampleRateDividerLcm;
-    }
-    else
-    {
-        *count = 0;
     }
 
     return OPENDAQ_SUCCESS;

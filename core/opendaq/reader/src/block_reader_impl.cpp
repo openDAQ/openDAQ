@@ -130,6 +130,7 @@ SizeT BlockReaderImpl::getTotalSamples() const
 ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
+
     std::scoped_lock lock(notify.mutex);
     inputPort->getConnection(&connection);
     return OPENDAQ_SUCCESS;
@@ -181,8 +182,8 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 ErrCode BlockReaderImpl::empty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
-    std::scoped_lock lock(mutex);
 
+    std::scoped_lock lock(mutex);
     if (connection.hasEventPacket())
     {
         *empty = false;

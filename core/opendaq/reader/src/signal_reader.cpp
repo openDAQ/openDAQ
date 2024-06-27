@@ -199,15 +199,12 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
             validDomain = false;
         }
 
+        packetDelta = 0;
         const auto domainRule = newDomainDescriptor.getRule();
         if (domainRule.getType() == DataRuleType::Linear)
         {
             const auto domainRuleParams = domainRule.getParameters();
             packetDelta = domainRuleParams.get("delta");
-        }
-        else
-        {
-            packetDelta = 0;
         }
     }
 

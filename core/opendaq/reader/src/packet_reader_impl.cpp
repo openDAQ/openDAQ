@@ -74,16 +74,14 @@ ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
 ErrCode PacketReaderImpl::read(IPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
+    *packet = nullptr;
+
     std::scoped_lock lock(mutex);
     if (connection.assigned())
     {
         return connection->dequeue(packet);
     }
-    else
-    {
-        *packet = nullptr;
-        return OPENDAQ_SUCCESS;
-    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketReaderImpl::readAll(IList** allPackets)

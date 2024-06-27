@@ -59,7 +59,7 @@ struct PyTypedReader
         }
 
         daq::SampleType valueType = daq::SampleType::Undefined;
-        reader->getValueReadType(&valueType);        
+        reader->getValueReadType(&valueType);
         switch (valueType)
         {
             case daq::SampleType::Float32:

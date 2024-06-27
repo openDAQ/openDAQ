@@ -151,13 +151,13 @@ To define the Labels, the following Rule types are available:
 [cols="1,4"]
 |===
 | Linear
-| The Rule parameters contain a `delta`, `start`, and `size` parameters member. Calculated as: _index * delta + start_ for `size` number of elements.
+| The Rule parameters contain a `Delta`, `Start`, and `Size` parameters member. Calculated as: _index * Delta + Start_ for `Size` number of elements.
 
 | Logarithmic
-| The Rule parameters contain a `delta`, `start`, `base`, and `size` parameters member. Calculated as: _base ^ (index * delta + start)_ for `size` number of elements.
+| The Rule parameters contain a `Delta`, `Start`, `Base`, and `Size` parameters member. Calculated as: _Base ^ (index * Delta + Start)_ for `Size` number of elements.
 
 | List
-| The Rule parameters contain a `list` parameters member. The list contains all dimension labels.
+| The Rule parameters contain a `List` parameters member. The list contains all dimension labels.
 |===
 
 // NOTE: To get more info on configuring Signal Dimensions, the following how-to guide illustrates

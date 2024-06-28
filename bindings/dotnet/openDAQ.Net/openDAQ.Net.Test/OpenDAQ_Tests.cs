@@ -361,12 +361,12 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         {
             var    deviceName       = deviceInfo.Name;
             var    connectionString = deviceInfo.ConnectionString;
-            string model            = deviceInfo.GetPropertyValue("model");
-            string deviceClass      = deviceInfo.GetPropertyValue("deviceClass");
-            string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
+            string model            = deviceInfo.GetPropertyValue("Model");
+            string deviceClass      = deviceInfo.GetPropertyValue("DeviceClass");
+            string softwareRevision = deviceInfo.HasProperty("SoftwareRevision") ? deviceInfo.GetPropertyValue("SoftwareRevision") : "n/a";
 
-            Console.WriteLine($"  - Name = '{deviceName}', Connection string = '{connectionString}'");
-            Console.WriteLine($"    model = '{model}', deviceClass = '{deviceClass}', softwareRevision = '{softwareRevision}'");
+            Console.WriteLine($"  - Name = '{deviceName}', Connection String = '{connectionString}'");
+            Console.WriteLine($"    Model = '{model}', Device Class = '{deviceClass}', Software Revision = '{softwareRevision}'");
 
             //ShowAllProperties(deviceInfo, nameof(deviceInfo));
         }
@@ -1116,7 +1116,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
                     switch (functionBlockId.ToString())
                     {
-                        case "ref_fb_module_renderer":
+                        case "RefFBModuleRenderer":
                             renderer = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
                             break;
                         case "RefFBModuleStatistics":

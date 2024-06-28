@@ -31,7 +31,7 @@ namespace RTGen.Python.Generators
             { "IFloat", "double" },
             { "INumber", "double" },
             { "IRatio", "std::pair<int64_t, int64_t>" },
-            { "ICmplexNumber", "std::complex<double>" },
+            { "IComplexNumber", "std::complex<double>" },
             { "IList", "py::list" },
             { "IDict", "py::dict" },
             { "IString", "py::str" }

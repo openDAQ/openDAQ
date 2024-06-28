@@ -397,7 +397,7 @@ void StreamingServer::writeInit(const streaming_protocol::StreamWriterPtr& write
     jsonRpcHttp["httpMethod"] = "POST";
     jsonRpcHttp["httpPath"] = "/";
     jsonRpcHttp["httpVersion"] = "1.1";
-    jsonRpcHttp["Port"] = std::to_string(controlServer->getPort());
+    jsonRpcHttp["port"] = std::to_string(controlServer->getPort());
 
     nlohmann::json commandInterfaces;
     commandInterfaces["jsonrpc-http"] = jsonRpcHttp;

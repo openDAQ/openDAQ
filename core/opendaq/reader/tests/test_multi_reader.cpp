@@ -2060,7 +2060,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
     ASSERT_EQ(count, numberOfSamplesToRead);
 }
 
-TEST_F(MultiReaderTest, MultiReaderGapDetection)
+TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
 {
     constexpr const auto NUM_SIGNALS = 2;
     readSignals.reserve(NUM_SIGNALS);

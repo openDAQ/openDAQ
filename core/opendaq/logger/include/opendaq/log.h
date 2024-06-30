@@ -33,7 +33,7 @@
 /// Plain
 
 #define DAQLOG_PLAIN(loggerComponent, message, level) loggerComponent.logMessage(\
-    daq::SourceLocation{__FILE__, __LINE__, OPENDAQ_CURRENT_FUNCTION}, message, level);
+    daq::SourceLocation{nullptr, 0, nullptr}, message, level);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
     #define DAQLOG_T(loggerComponent, message) DAQLOG_PLAIN(loggerComponent, message, daq::LogLevel::Trace);
@@ -74,7 +74,7 @@
 /// Format
 
 #define DAQLOG_FORMATTED(loggerComponent, message, logLevel, ...)                                    \
-    loggerComponent.logMessage(daq::SourceLocation{__FILE__, __LINE__, OPENDAQ_CURRENT_FUNCTION},    \
+    loggerComponent.logMessage(daq::SourceLocation{nullptr, 0, nullptr},    \
                                fmt::format(FMT_STRING(message), ##__VA_ARGS__).data(),               \
                                logLevel);
 

@@ -8,6 +8,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/ids_parser.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -117,26 +118,23 @@ void StreamingServer::onUnsubscribe(const OnUnsubscribeCallback& callback)
     onUnsubscribeCallback = callback;
 }
 
-void StreamingServer::unicastPacket(const std::string& streamId,
-                                    const std::string& signalId,
-                                    const PacketPtr& packet)
-{
-    if (auto clientIt = clients.find(streamId); clientIt != clients.end())
-    {
-        auto signals = clientIt->second.second;
-        if (auto signalIt = signals.find(streamId); signalIt != signals.end())
-            signalIt->second->writeDaqPacket(packet);
-    }
-}
-
 void StreamingServer::broadcastPacket(const std::string& signalId, const PacketPtr& packet)
 {
     for (auto& [_, client] : clients)
     {
-        auto signals = client.second;
-        if (auto signalIter = signals.find(signalId); signalIter != signals.end())
+        auto writer = client.first;
+        auto& outputSignals = client.second;
+
+        if (auto signalIter = outputSignals.find(signalId); signalIter != outputSignals.end())
         {
-            signalIter->second->writeDaqPacket(packet);
+            auto outputSignal = signalIter->second;
+            auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+
+            if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                updateOutputValueSignal(outputSignal, outputSignals, writer);
+            }
+            outputSignal->writeDaqPacket(packet);
         }
     }
 }
@@ -155,62 +153,41 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
                                          SignalMap& outputSignals,
                                          const StreamWriterPtr& writer)
 {
-    auto createOutputDomainSignal = [&writer, this](const SignalPtr& domainSignal)
-        -> std::shared_ptr<OutputDomainSignalBase>
-    {
-        auto tableId = domainSignal.getGlobalId();
-        const auto domainSignalRuleType = getSignalRuleType(domainSignal);
-
-        if (domainSignalRuleType == DataRuleType::Linear)
-        {
-            return std::make_shared<OutputLinearDomainSignal>(writer, domainSignal, tableId, logCallback);
-        }
-        else
-        {
-            throw InvalidParameterException("Unsupported domain signal rule type");
-        }
-    };
-
     auto domainSignal = signal.getDomainSignal();
     if (domainSignal.assigned())
     {
         auto domainSignalId = domainSignal.getGlobalId();
 
-        OutputDomainSignaBaselPtr outputDomainSignal;
+        OutputDomainSignalBasePtr outputDomainSignal;
         if (const auto& outputSignalIt = outputSignals.find(domainSignalId); outputSignalIt != outputSignals.end())
         {
-            outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignalIt->second);
-            if (!outputDomainSignal)
-                throw NoInterfaceException("Registered output signal {} is not of domain type", domainSignalId);
+            auto outputSignal = outputSignalIt->second;
+
+            if (std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))
+            {
+                outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
+                outputSignals[domainSignalId] = outputDomainSignal;
+            }
+            else
+            {
+                outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignal);
+                if (!outputDomainSignal)
+                    throw NoInterfaceException("Registered output signal {} is not of domain type", domainSignalId);
+            }
         }
         else
         {
-            outputDomainSignal = createOutputDomainSignal(domainSignal);
+            outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
             outputSignals.insert({domainSignalId, outputDomainSignal});
         }
 
-        auto tableId = domainSignalId;
+        auto tableId = domainSignalId.toStdString();
 
         const auto domainSignalRuleType = getSignalRuleType(domainSignal);
         if (domainSignalRuleType == DataRuleType::Linear)
         {
-            const auto valueSignalRuleType = getSignalRuleType(signal);
-            if (valueSignalRuleType == DataRuleType::Explicit)
-            {
-                auto outputValueSignal =
-                    std::make_shared<OutputSyncValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
-                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
-            }
-            else if (valueSignalRuleType == DataRuleType::Constant)
-            {
-                auto outputValueSignal =
-                    std::make_shared<OutputConstValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
-                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
-            }
-            else
-            {
-                throw InvalidParameterException("Unsupported value signal rule type");
-            }
+            auto outputValueSignal = createOutputValueSignal(signal, outputDomainSignal, tableId, writer);
+            outputSignals.insert_or_assign(signal.getGlobalId(), outputValueSignal);
         }
         else
         {
@@ -221,7 +198,8 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
     {
         if (const auto& outputSignalIt = outputSignals.find(signal.getGlobalId()); outputSignalIt == outputSignals.end())
         {
-            outputSignals.insert({signal.getGlobalId(), createOutputDomainSignal(signal)});
+            auto outputDomainSignal = createOutputDomainSignal(signal, signal.getGlobalId(), writer);
+            outputSignals.insert({signal.getGlobalId(), outputDomainSignal});
         }
     }
 }
@@ -277,34 +255,17 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     writeInit(writer);
 
     auto signals = List<ISignal>();
-    auto filteredSignals = List<ISignal>();
+
     if (onAcceptCallback)
         signals = onAcceptCallback(writer);
 
     auto outputSignals = std::unordered_map<std::string, OutputSignalBasePtr>();
-    for (const auto& signal : signals)
-    {
-        if (!signal.getPublic())
-            continue;
 
-        filteredSignals.pushBack(signal);
-        
-        try
-        {
-            addToOutputSignals(signal, outputSignals, writer);
-        }
-        catch (const DaqException& e)
-        {
-            LOG_W("Failed to create an output websocket signal: {}", e.what());
-        }
-    }
+    publishSignalsToClient(writer, signals, outputSignals);
 
     auto clientId = stream->endPointUrl();
     LOG_I("New client connected. Stream Id: {}", clientId);
     clients.insert({clientId, {writer, outputSignals}});
-
-    writeSignalsAvailable(writer, filteredSignals);
-
     doRead(clientId, stream);
 }
 
@@ -374,15 +335,20 @@ void StreamingServer::writeProtocolInfo(const daq::streaming_protocol::StreamWri
     writer->writeMetaInformation(0, msg);
 }
 
-void StreamingServer::writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer, const ListPtr<ISignal>& signals)
+void StreamingServer::writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                                            const std::vector<std::string>& signalIds)
 {
-    std::vector<std::string> signalIds;
-
-    for (const auto& signal : signals)
-        signalIds.push_back(signal.getGlobalId());
-
     nlohmann::json msg;
     msg[METHOD] = META_METHOD_AVAILABLE;
+    msg[PARAMS][META_SIGNALIDS] = signalIds;
+    writer->writeMetaInformation(0, msg);
+}
+
+void StreamingServer::writeSignalsUnavailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                                              const std::vector<std::string>& signalIds)
+{
+    nlohmann::json msg;
+    msg[METHOD] = META_METHOD_UNAVAILABLE;
     msg[PARAMS][META_SIGNALIDS] = signalIds;
     writer->writeMetaInformation(0, msg);
 }
@@ -440,6 +406,128 @@ void StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSign
         if (signal->isDataSignal() && onUnsubscribeCallback)
             onUnsubscribeCallback(signal->getDaqSignal());
     }
+}
+
+void StreamingServer::addSignals(const ListPtr<ISignal>& signals)
+{
+    for (auto& [_, client] : clients)
+    {
+        auto writer = client.first;
+        auto& outputSignals = client.second;
+
+        publishSignalsToClient(writer, signals, outputSignals);
+    }
+}
+
+void StreamingServer::removeComponentSignals(const StringPtr& componentId)
+{
+    auto removedComponentId = componentId.toStdString();
+
+    for (auto& [_, client] : clients)
+    {
+        auto writer = client.first;
+        auto& outputSignals = client.second;
+
+        std::vector<std::string> signalsToRemove;
+
+        for (const auto& [signalId, outputSignal] : outputSignals)
+        {
+            // removed component is a signal, or signal is a descendant of removed component
+            if (signalId == removedComponentId || IdsParser::isNestedComponentId(removedComponentId, signalId))
+            {
+                signalsToRemove.push_back(signalId);
+                unsubscribeHandler(signalId, outputSignal);
+            }
+        }
+        for (const auto& signalId : signalsToRemove)
+        {
+            outputSignals.erase(signalId);
+        }
+
+        writeSignalsUnavailable(writer, signalsToRemove);
+    }
+}
+
+void StreamingServer::updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
+                                              SignalMap& outputSignals,
+                                              const StreamWriterPtr& writer)
+{
+    auto placeholderSignal = std::dynamic_pointer_cast<OutputNullSignal>(outputSignal);
+
+    if (placeholderSignal)
+    {
+        auto daqSignal = outputSignal->getDaqSignal();
+        auto signalId = daqSignal.getGlobalId().toStdString();
+
+        LOG_I("Parameters of unsupported signal {} has been changed, check if it is supported now ...", daqSignal.getGlobalId());
+        try
+        {
+            addToOutputSignals(daqSignal, outputSignals, writer);
+            outputSignal = outputSignals.at(signalId);
+
+            if (placeholderSignal->isSubscribed())
+                outputSignal->setSubscribed(true);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed to create an output LT streaming signal for {}: {}", daqSignal.getGlobalId(), e.what());
+        }
+    }
+}
+
+void StreamingServer::publishSignalsToClient(const StreamWriterPtr& writer,
+                                             const ListPtr<ISignal>& signals,
+                                             SignalMap& outputSignals)
+{
+    std::vector<std::string> filteredSignalsIds;
+    for (const auto& daqSignal : signals)
+    {
+        if (!daqSignal.getPublic())
+            continue;
+
+        auto signalId = daqSignal.getGlobalId().toStdString();
+        filteredSignalsIds.push_back(signalId);
+
+        try
+        {
+            addToOutputSignals(daqSignal, outputSignals, writer);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed to create an output LT streaming signal for {}: {}", signalId, e.what());
+            auto placeholderSignal = std::make_shared<OutputNullSignal>(daqSignal, logCallback);
+            outputSignals.insert({signalId, placeholderSignal});
+        }
+    }
+
+    writeSignalsAvailable(writer, filteredSignalsIds);
+}
+
+OutputDomainSignalBasePtr StreamingServer::createOutputDomainSignal(const SignalPtr& daqDomainSignal,
+                                                                    const std::string& tableId,
+                                                                    const StreamWriterPtr& writer)
+{
+    const auto domainSignalRuleType = getSignalRuleType(daqDomainSignal);
+
+    if (domainSignalRuleType == DataRuleType::Linear)
+        return std::make_shared<OutputLinearDomainSignal>(writer, daqDomainSignal, tableId, logCallback);
+    else
+        throw InvalidParameterException("Unsupported domain signal rule type");
+}
+
+OutputSignalBasePtr StreamingServer::createOutputValueSignal(const SignalPtr& daqSignal,
+                                                             const OutputDomainSignalBasePtr& outputDomainSignal,
+                                                             const std::string& tableId,
+                                                             const StreamWriterPtr& writer)
+{
+    const auto valueSignalRuleType = getSignalRuleType(daqSignal);
+
+    if (valueSignalRuleType == DataRuleType::Explicit)
+        return std::make_shared<OutputSyncValueSignal>(writer, daqSignal, outputDomainSignal, tableId, logCallback);
+    else if (valueSignalRuleType == DataRuleType::Constant)
+        return std::make_shared<OutputConstValueSignal>(writer, daqSignal, outputDomainSignal, tableId, logCallback);
+    else
+        throw InvalidParameterException("Unsupported value signal rule type");
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

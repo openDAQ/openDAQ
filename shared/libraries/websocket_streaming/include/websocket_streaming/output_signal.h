@@ -30,7 +30,7 @@ class OutputSignalBase;
 using OutputSignalBasePtr = std::shared_ptr<OutputSignalBase>;
 
 class OutputDomainSignalBase;
-using OutputDomainSignaBaselPtr = std::shared_ptr<OutputDomainSignalBase>;
+using OutputDomainSignalBasePtr = std::shared_ptr<OutputDomainSignalBase>;
 
 class OutputSignalBase
 {
@@ -78,12 +78,26 @@ private:
     DataDescriptorPtr domainDescriptor;
 };
 
+/// Used as a placeholder for openDAQ signals which aren't supported by LT-streaming
+class OutputNullSignal : public OutputSignalBase
+{
+public:
+    OutputNullSignal(const SignalPtr& signal, daq::streaming_protocol::LogCallback logCb);
+
+    void writeDaqPacket(const PacketPtr& packet) override;
+    void setSubscribed(bool subscribed) override;
+    bool isDataSignal() override;
+
+protected:
+    void toStreamedSignal(const SignalPtr& signal, const SignalProps& sigProps) override;
+};
+
 class OutputValueSignalBase : public OutputSignalBase
 {
 public:
     OutputValueSignalBase(daq::streaming_protocol::BaseValueSignalPtr valueStream,
                           const SignalPtr& signal,
-                          OutputDomainSignaBaselPtr outputDomainSignal,
+                          OutputDomainSignalBasePtr outputDomainSignal,
                           daq::streaming_protocol::LogCallback logCb);
 
     void writeDaqPacket(const PacketPtr& packet) override;
@@ -94,7 +108,7 @@ protected:
     virtual void writeDataPacket(const DataPacketPtr& packet) = 0;
     void toStreamedSignal(const SignalPtr& signal, const SignalProps& sigProps) override;
 
-    OutputDomainSignaBaselPtr outputDomainSignal;
+    OutputDomainSignalBasePtr outputDomainSignal;
 
 private:
     void writeEventPacket(const EventPacketPtr& packet);
@@ -132,7 +146,7 @@ class OutputSyncValueSignal : public OutputValueSignalBase
 public:
     OutputSyncValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
                           const SignalPtr& signal,
-                          OutputDomainSignaBaselPtr outputDomainSignal,
+                          OutputDomainSignalBasePtr outputDomainSignal,
                           const std::string& tableId,
                           daq::streaming_protocol::LogCallback logCb);
 
@@ -157,7 +171,7 @@ public:
 
     OutputConstValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
                            const SignalPtr& signal,
-                           OutputDomainSignaBaselPtr outputDomainSignal,
+                           OutputDomainSignalBasePtr outputDomainSignal,
                            const std::string& tableId,
                            daq::streaming_protocol::LogCallback logCb);
 

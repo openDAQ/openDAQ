@@ -50,6 +50,7 @@ public:
         std::function<void(const StringPtr& dataSignalId, const StringPtr& domainSignalId)>;
     using OnAvailableSignalsCallback = std::function<void(const std::vector<std::string>& signalIds)>;
     using OnSubsciptionAckCallback = std::function<void(const std::string& signalId, bool subscribed)>;
+    using OnSignalsInitDoneCallback = std::function<void()>;
 
     StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection = false);
     StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target, bool useRawTcpConnection = false);
@@ -57,15 +58,21 @@ public:
 
     bool connect();
     void disconnect();
+
+    void onDeviceAvailableSignalInit(const OnSignalCallback& callback);
+    void onDeviceSignalUpdated(const OnSignalCallback& callback);
+    void onDeviceDomainSingalInit(const OnDomainSignalInitCallback& callback);
+    void onDeviceAvailableSignals(const OnAvailableSignalsCallback& callback);
+    void onDeviceUnavailableSignals(const OnAvailableSignalsCallback& callback);
+    void onDeviceHiddenSignal(const OnSignalCallback& callback);
+    void onDeviceSignalsInitDone(const OnSignalsInitDoneCallback& callback);
+
+    void onStreamingAvailableSignals(const OnAvailableSignalsCallback& callback);
+    void onStreamingUnavailableSignals(const OnAvailableSignalsCallback& callback);
+    void onStreamingHiddenSignal(const OnSignalCallback& callback);
     void onPacket(const OnPacketCallback& callack);
-    void onAvailableSignalInit(const OnSignalCallback& callback);
-    void onSignalUpdated(const OnSignalCallback& callback);
-    void onDomainSingalInit(const OnDomainSignalInitCallback& callback);
-    void onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback);
-    void onAvailableDeviceSignals(const OnAvailableSignalsCallback& callback);
-    void onHiddenStreamingSignal(const OnSignalCallback& callback);
-    void onHiddenDeviceSignal(const OnSignalCallback& callback);
     void onSubscriptionAck(const OnSubsciptionAckCallback& callback);
+
     std::string getHost();
     uint16_t getPort();
     std::string getTarget();
@@ -76,6 +83,8 @@ public:
 
 protected:
     void parseConnectionString(const std::string& url);
+    void stopBackgroundContext();
+
     void onSignalMeta(const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
                       const std::string& method,
                       const nlohmann::json& params);
@@ -88,6 +97,9 @@ protected:
     void setSignalInitSatisfied(const std::string& signalId);
     std::vector<InputSignalBasePtr> findDataSignalsByTableId(const std::string& tableId);
     InputSignalBasePtr findTimeSignalByTableId(const std::string& tableId);
+    void checkTmpSubscribedSignalsInit();
+    void unavailableSignalsHandler(const nlohmann::json::const_iterator& unavailableSignalsArray);
+    void availableSignalsHandler(const nlohmann::json::const_iterator& availableSignalsArray);
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
@@ -98,20 +110,31 @@ protected:
     std::string target;
     bool connected = false;
     boost::asio::io_context ioContext;
+    boost::asio::io_context backgroundContext;
+
     daq::streaming_protocol::SignalContainer signalContainer;
     daq::streaming_protocol::ProtocolHanlderPtr protocolHandler;
     std::unordered_map<std::string, InputSignalBasePtr> availableSignals;
     std::unordered_map<std::string, InputSignalBasePtr> hiddenSignals;
-    OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
-    OnSignalCallback onAvailableSignalInitCb = [](const StringPtr&, const SubscribedSignalInfo&) {};
-    OnDomainSignalInitCallback onDomainSignalInitCallback = [](const StringPtr&, const StringPtr&) {};
+
+    // streaming callbacks
     OnAvailableSignalsCallback onAvailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
-    OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
-    OnSignalCallback onSignalUpdatedCallback = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
+    OnAvailableSignalsCallback onUnavailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnSignalCallback onHiddenStreamingSignalCb = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
-    OnSignalCallback onHiddenDeviceSignalInitCb = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
     OnSubsciptionAckCallback onSubscriptionAckCallback = [](const StringPtr& signalId, bool subscribed) {};
-    std::thread clientThread;
+    OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
+
+    // device callbacks
+    OnDomainSignalInitCallback onDomainSignalInitCallback = [](const StringPtr&, const StringPtr&) {};
+    OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
+    OnAvailableSignalsCallback onUnavailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
+    OnSignalCallback onAvailableSignalInitCb = [](const StringPtr&, const SubscribedSignalInfo&) {};
+    OnSignalCallback onSignalUpdatedCallback = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
+    OnSignalCallback onHiddenDeviceSignalInitCb = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
+    OnSignalsInitDoneCallback onSignalsInitDone = []() {};
+
+    std::thread clientIoThread;
+    std::thread clientBackgroundThread;
     std::mutex clientMutex;
     std::condition_variable conditionVariable;
     std::chrono::milliseconds connectTimeout{1000};
@@ -127,6 +150,10 @@ protected:
     std::unordered_map<std::string, std::tuple<std::promise<void>, std::future<void>, bool>> availableSigInitStatus;
 
     bool useRawTcpConnection;
+
+    std::unordered_set<std::string> tmpSubscribedSignalIds;
+
+    void startBackgroundContext();
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

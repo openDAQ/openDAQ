@@ -44,8 +44,6 @@ cd build
 cmake --build .
 ----
 
-TODO: Modify serial and local ID of simulator device
-
 We start the simulated device:
 
 [source,bash]

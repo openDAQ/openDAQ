@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:03.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ public class StringObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.StringObject"/> to <see cref="string"/>.</summary>
     /// <param name="value">The SDK <c>StringObject</c>.</param>
     /// <returns>The managed <c>string</c> value.</returns>
-    public static implicit operator string(StringObject value) => value?.CharPtr;
+    public static implicit operator string(StringObject value) => value?.CharPtr ?? default(string);
 
     /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>

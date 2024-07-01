@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:55.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ public class Enumeration : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="string"/>.</summary>
     /// <param name="value">The SDK <c>Enumeration</c>.</param>
     /// <returns>The managed <c>string</c> value.</returns>
-    public static implicit operator string(Enumeration value) => value.Value;
+    public static implicit operator string(Enumeration value) => value?.Value ?? default(string);
 
     /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>
@@ -179,7 +179,7 @@ public class Enumeration : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Enumeration"/> to <see cref="long"/>.</summary>
     /// <param name="value">The SDK <c>Enumeration</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
-    public static implicit operator long(Enumeration value) => value.IntValue;
+    public static implicit operator long(Enumeration value) => value?.IntValue ?? default(long);
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>

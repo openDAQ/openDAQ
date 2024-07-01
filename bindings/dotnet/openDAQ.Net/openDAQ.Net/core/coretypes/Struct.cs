@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:24:03.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 

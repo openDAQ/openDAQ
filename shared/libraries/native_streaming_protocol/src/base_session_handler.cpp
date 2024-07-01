@@ -31,7 +31,7 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
     auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
 
     std::weak_ptr<Session> session_weak = session;
-    std::weak_ptr<boost::asio::steady_timer> connectionInactivityTimer_weak;
+    std::weak_ptr<boost::asio::steady_timer> connectionInactivityTimer_weak = connectionInactivityTimer;
 
     OnConnectionAliveCallback onConnectionAliveCallback =
         [connectionInactivityTimer_weak, session_weak, errorHandler = errorHandler, inactivityTimeoutMs]()

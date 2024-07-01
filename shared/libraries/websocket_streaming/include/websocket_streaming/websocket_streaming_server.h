@@ -35,6 +35,12 @@ public:
     void stop();
 
 protected:
+    void addSignalsOfComponent(ComponentPtr& component);
+    void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void componentUpdated(ComponentPtr& updatedComponent);
+    void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+
     DevicePtr device;
     ContextPtr context;
 
@@ -42,6 +48,7 @@ protected:
     uint16_t controlPort = 0;
     daq::websocket_streaming::StreamingServer streamingServer;
     daq::websocket_streaming::AsyncPacketReader packetReader;
+    LoggerComponentPtr loggerComponent;
 
 private:
     void stopInternal();

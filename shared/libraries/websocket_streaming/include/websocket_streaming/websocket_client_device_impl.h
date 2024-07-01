@@ -40,13 +40,16 @@ protected:
     void onSignalInit(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onSignalUpdated(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onDomainSignalInit(const StringPtr& signalId, const StringPtr& domainSignalId);
-    void createDeviceSignals(const std::vector<std::string>& signalIds);
-    void addHiddenSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void registerAvailableSignals(const std::vector<std::string>& signalIds);
+    void removeSignals(const std::vector<std::string>& signalIds);
+    void registerHiddenSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void addInitializedSignals();
 
     DeviceInfoConfigPtr deviceInfo;
-    std::map<StringPtr, SignalPtr> deviceSignals;
+    std::unordered_map<StringPtr, SignalPtr> deviceSignals;
     StreamingPtr websocketStreaming;
     StringPtr connectionString;
+    std::vector<std::string> orderedSignalIds;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

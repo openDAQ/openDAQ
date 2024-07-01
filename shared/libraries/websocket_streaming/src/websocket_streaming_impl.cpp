@@ -60,13 +60,19 @@ void WebsocketStreamingImpl::prepareStreamingClient()
     {
         this->onAvailableSignals(signalIds);
     };
-    streamingClient->onAvailableStreamingSignals(availableSignalsCallback);
+    streamingClient->onStreamingAvailableSignals(availableSignalsCallback);
+
+    auto unavailableSignalsCallback = [this](const std::vector<std::string>& signalIds)
+    {
+        this->onUnavailableSignals(signalIds);
+    };
+    streamingClient->onStreamingUnavailableSignals(unavailableSignalsCallback);
 
     auto hiddenSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& /*sInfo*/)
     {
         this->onHiddenSignal(signalId);
     };
-    streamingClient->onHiddenStreamingSignal(hiddenSignalCallback);
+    streamingClient->onStreamingHiddenSignal(hiddenSignalCallback);
 
     auto signalSubscriptionAckCallback = [this](const std::string& signalStringId, bool subscribed)
     {
@@ -81,6 +87,15 @@ void WebsocketStreamingImpl::onAvailableSignals(const std::vector<std::string>& 
     {
         auto signalStringId = String(signalId);
         addToAvailableSignals(signalStringId);
+    }
+}
+
+void WebsocketStreamingImpl::onUnavailableSignals(const std::vector<std::string>& signalIds)
+{
+    for (const auto& signalId : signalIds)
+    {
+        auto signalStringId = String(signalId);
+        removeFromAvailableSignals(signalStringId);
     }
 }
 

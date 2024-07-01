@@ -110,7 +110,8 @@ bool OutputSignalBase::isSubscribed()
 
 void OutputSignalBase::submitSignalChanges()
 {
-    stream->writeSignalMetaInformation();
+    if (stream)
+        stream->writeSignalMetaInformation();
 }
 
 void OutputSignalBase::writeDescriptorChangedEvent(const DataDescriptorPtr& descriptor)
@@ -138,7 +139,7 @@ bool OutputSignalBase::isTimeConfigChanged(const DataDescriptorPtr& domainDescri
 
 OutputValueSignalBase::OutputValueSignalBase(daq::streaming_protocol::BaseValueSignalPtr valueStream,
                                              const SignalPtr& signal,
-                                             OutputDomainSignaBaselPtr outputDomainSignal,
+                                             OutputDomainSignalBasePtr outputDomainSignal,
                                              daq::streaming_protocol::LogCallback logCb)
     : OutputSignalBase(signal, outputDomainSignal->getDaqSignal().getDescriptor(), valueStream, logCb)
     , outputDomainSignal(outputDomainSignal)
@@ -477,7 +478,7 @@ BaseSynchronousSignalPtr OutputSyncValueSignal::createSignalStream(
 }
 
 OutputSyncValueSignal::OutputSyncValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
-                                             const SignalPtr& signal, OutputDomainSignaBaselPtr outputDomainSignal,
+                                             const SignalPtr& signal, OutputDomainSignalBasePtr outputDomainSignal,
                                              const std::string& tableId,
                                              daq::streaming_protocol::LogCallback logCb)
     : OutputValueSignalBase(createSignalStream(writer, signal, tableId, logCb), signal, outputDomainSignal, logCb)
@@ -582,7 +583,7 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
 }
 
 OutputConstValueSignal::OutputConstValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
-                                               const SignalPtr& signal, OutputDomainSignaBaselPtr outputDomainSignal,
+                                               const SignalPtr& signal, OutputDomainSignalBasePtr outputDomainSignal,
                                                const std::string& tableId,
                                                daq::streaming_protocol::LogCallback logCb)
     : OutputValueSignalBase(createSignalStream(writer, signal, tableId, logCb), signal, outputDomainSignal, logCb)
@@ -724,6 +725,31 @@ void OutputConstValueSignal::setSubscribed(bool subscribed)
             outputDomainSignal->unsubscribeByDataSignal();
         }
     }
+}
+
+OutputNullSignal::OutputNullSignal(const SignalPtr& signal, daq::streaming_protocol::LogCallback logCb)
+    : OutputSignalBase(signal, nullptr, nullptr, logCb)
+{
+}
+
+void OutputNullSignal::writeDaqPacket(const PacketPtr& packet)
+{
+}
+
+void OutputNullSignal::setSubscribed(bool subscribed)
+{
+    std::scoped_lock lock(subscribedSync);
+
+    this->subscribed = subscribed;
+}
+
+bool OutputNullSignal::isDataSignal()
+{
+    return daqSignal.getDomainSignal().assigned();
+}
+
+void OutputNullSignal::toStreamedSignal(const SignalPtr& signal, const SignalProps& sigProps)
+{
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -51,11 +51,15 @@ public:
     void start(uint16_t port = daq::streaming_protocol::WEBSOCKET_LISTENING_PORT,
                uint16_t controlPort = daq::streaming_protocol::HTTP_CONTROL_PORT);
     void stop();
+
     void onAccept(const OnAcceptCallback& callback);
     void onSubscribe(const OnSubscribeCallback& callback);
     void onUnsubscribe(const OnUnsubscribeCallback& callback);
-    void unicastPacket(const std::string& streamId, const std::string& signalId, const PacketPtr& packet);
-    void broadcastPacket(const std::string& signalId, const PacketPtr &packet);
+
+    void broadcastPacket(const std::string& signalId, const PacketPtr& packet);
+
+    void addSignals(const ListPtr<ISignal>& signals);
+    void removeComponentSignals(const StringPtr& componentId);
 
 protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;
@@ -71,10 +75,28 @@ protected:
     void addToOutputSignals(const SignalPtr& signal,
                             SignalMap& outputSignals,
                             const streaming_protocol::StreamWriterPtr& writer);
+    void publishSignalsToClient(const streaming_protocol::StreamWriterPtr& writer,
+                                const ListPtr<ISignal>& signals,
+                                SignalMap& outputSignals);
     void onAcceptInternal(const daq::stream::StreamPtr& stream);
+    OutputDomainSignalBasePtr createOutputDomainSignal(const SignalPtr& daqDomainSignal,
+                                                       const std::string& tableId,
+                                                       const streaming_protocol::StreamWriterPtr& writer);
+    OutputSignalBasePtr createOutputValueSignal(const SignalPtr& daqSignal,
+                                                const OutputDomainSignalBasePtr& outputDomainSignal,
+                                                const std::string& tableId,
+                                                const streaming_protocol::StreamWriterPtr& writer);
+    void updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
+                                 SignalMap& outputSignals,
+                                 const streaming_protocol::StreamWriterPtr& writer);
+
     void writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer);
-    void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer, const ListPtr<ISignal>& signals);
+    void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                               const std::vector<std::string>& signalIds);
+    void writeSignalsUnavailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                                 const std::vector<std::string>& signalIds);
     void writeInit(const daq::streaming_protocol::StreamWriterPtr& writer);
+
     bool isSignalSubscribed(const std::string& signalId) const;
     void subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
     void unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);

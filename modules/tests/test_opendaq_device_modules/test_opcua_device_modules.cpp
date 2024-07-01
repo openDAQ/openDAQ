@@ -805,7 +805,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
     auto client = InstanceBuilder().build();
     auto clientDevice = client.addDevice("daq.opcua://127.0.0.1");
 
-    const auto newFb = clientDevice.addFunctionBlock("ref_fb_module_scaling");
+    const auto newFb = clientDevice.addFunctionBlock("RefFBModuleScaling");
     const auto fbSignals = newFb.getSignals(search::Recursive(search::Any()));
 
     for (const auto& signal : fbSignals)

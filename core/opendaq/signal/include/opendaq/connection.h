@@ -150,6 +150,12 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * Removing all packets can be more efficient than dequeuing packet by packet in heavily loaded systems.
      */
     virtual ErrCode INTERFACE_FUNC dequeueAll(IList** packets) = 0;
+
+    /*!
+     * @brief Queries if the connection has an event packet.
+     * @param[out] hasEventPacket True if the connection has an event packet.
+     */
+    virtual ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) = 0;
 };
 /*!@}*/
 

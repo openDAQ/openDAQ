@@ -58,6 +58,15 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
      * @param callback The callback function to be set or @c nullptr to unset it.
      */
     virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
+
+    /*!
+     * @brief Checks if there is data to read. 
+     * @param[out] empty Set to true if there is data to read, false otherwise.
+     * 
+     * This method returns true if there is data available to read. 
+     * The data can be an event packet or a sufficient amount of data samples for minimum reading.
+     */
+    virtual ErrCode INTERFACE_FUNC empty(Bool* empty) = 0;
 };
 /*!@}*/
 

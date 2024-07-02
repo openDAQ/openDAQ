@@ -15,21 +15,17 @@
  */
 
 #pragma once
-#include <opendaq/block_reader_builder.h>
-#include <opendaq/block_reader_ptr.h>
+#include <opendaq/stream_reader_builder.h>
 #include <opendaq/input_port_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class BlockReaderBuilderImpl : public ImplementationOf<IBlockReaderBuilder>
+class StreamReaderBuilderImpl : public ImplementationOf<IStreamReaderBuilder>
 {
 public:
-    BlockReaderBuilderImpl();
+    StreamReaderBuilderImpl();
 
-    ErrCode INTERFACE_FUNC build(IBlockReader** blockReader) override;
-
-    ErrCode INTERFACE_FUNC setOldBlockReader(IBlockReader* blockReader) override;
-    ErrCode INTERFACE_FUNC getOldBlockReader(IBlockReader** blockReader) override;
+    ErrCode INTERFACE_FUNC build(IStreamReader** streamReader) override;
 
     ErrCode INTERFACE_FUNC setSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -43,14 +39,11 @@ public:
     ErrCode INTERFACE_FUNC setDomainReadType(SampleType domainReadType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* domainReadType) override;
 
+    ErrCode INTERFACE_FUNC setReadTimeoutType(ReadTimeoutType type) override;
+    ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* type) override;
+
     ErrCode INTERFACE_FUNC setReadMode(ReadMode mode) override;
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
-
-    ErrCode INTERFACE_FUNC setBlockSize(SizeT size) override;
-    ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
-
-    ErrCode INTERFACE_FUNC setOverlap(SizeT overlap) override;
-    ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
     ErrCode INTERFACE_FUNC setSkipEvents(Bool skipEvents) override;
     ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) override;
@@ -59,11 +52,9 @@ private:
     SampleType valueReadType;
     SampleType domainReadType;
     ReadMode readMode;
-    SizeT blockSize;
-    SizeT overlap;
     SignalPtr signal;
     InputPortPtr inputPort;
-    BlockReaderPtr oldBlockReader;
+    ReadTimeoutType readTimeoutType;
     bool used;
     bool skipEvents;
 };

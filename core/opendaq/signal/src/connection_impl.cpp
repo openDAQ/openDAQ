@@ -53,6 +53,7 @@ ErrCode ConnectionImpl::enqueueInternal(P&& packet, const F& f)
                     if (gapCheckState != GapCheckState::disabled)
                         checkForGaps(packet);
 
+                    onPacketEnqueued(packet);
                     packets.emplace_back(std::forward<P>(packet));
                     queueEmpty = false;
                     LOGP_T("Packet enqueued.")
@@ -96,7 +97,9 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
             const size_t cnt = packets.getCount();
             for (size_t i = 0; i < cnt; ++i)
             {
-                this->packets.push_back(packets.getItemAt(i));
+                auto packet = packets.getItemAt(i);
+                onPacketEnqueued(packet);
+                this->packets.push_back(packet);
             }
             queueEmpty = false;
         });
@@ -118,7 +121,11 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
             queueWasEmpty = queueEmpty;
             const size_t cnt = packets.getCount();
             for (size_t i = 0; i < cnt; ++i)
-                this->packets.push_back(packets.popBack());
+            {
+                auto packet = packets.popBack();
+                onPacketEnqueued(packet);
+                this->packets.push_back(packet);
+            }
             queueEmpty = false;
         });
 
@@ -147,14 +154,17 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
                     const size_t cnt = packets.getCount();
                     for (size_t i = 0; i < cnt; ++i)
                     {
+                        PacketPtr packet;
                         if constexpr (std::is_rvalue_reference_v<P&&>)
                         {
-                            this->packets.push_back(packets.popBack());
+                            packet = packets.popBack();
                         }
                         else
                         {
-                            this->packets.push_back(packets.getItemAt(i));
+                            packet = packets.getItemAt(i);
                         }
+                        onPacketEnqueued(packet);
+                        this->packets.push_back(packet);
                     }
                     queueEmpty = false;
                 });
@@ -209,6 +219,7 @@ ErrCode ConnectionImpl::dequeue(IPacket** packet)
 
         *packet = packets.front().detach();
         packets.pop_front();
+        onPacketDequeued(*packet);
         LOGP_T("Packet dequeued.")
 
         return OPENDAQ_SUCCESS;
@@ -225,7 +236,11 @@ ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
         [&packetsPtr, packets, this]()
         {
             for (auto& packet : this->packets)
+            {
                 packetsPtr.pushBack(std::move(packet));
+            }
+            samplesCnt = 0;
+            eventPacketsCnt = 0;
             this->packets.clear();
 
             *packets = packetsPtr.detach();
@@ -270,18 +285,7 @@ ErrCode ConnectionImpl::getAvailableSamples(SizeT* samples)
 
     return withLock([samples, this]()
     {
-        *samples = 0;
-        for (const auto& packet : packets)
-        {
-            if (packet.getType() == PacketType::Data)
-            {
-                auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
-                if (dataPacket.assigned())
-                {
-                    *samples += dataPacket.getSampleCount();
-                }
-            }
-        }
+        *samples = samplesCnt;
 
         LOG_T("Available samples = {}.", *samples)
         return OPENDAQ_SUCCESS;
@@ -293,6 +297,12 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
     OPENDAQ_PARAM_NOT_NULL(samples);
 
     return withLock([samples, this]() {
+        if (eventPacketsCnt == 0)
+        {
+            *samples = samplesCnt;
+            LOG_T("Samples until next descriptor = {}.", *samples)
+            return OPENDAQ_SUCCESS;
+        }
         *samples = 0;
         for (const auto& packet : packets)
         {
@@ -323,6 +333,18 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
         }
 
         LOG_T("Samples until next descriptor = {}.", *samples)
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ConnectionImpl::hasEventPacket(Bool* hasEventPacket)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasEventPacket);
+
+    return withLock([hasEventPacket, this]()
+    {
+        *hasEventPacket = eventPacketsCnt > 0;
+        LOG_T("Has event packet = {}.", *hasEventPacket)
         return OPENDAQ_SUCCESS;
     });
 }
@@ -542,6 +564,38 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     else if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
     {
         throw InvalidOperationException("Gap packets should not be inserted into connection queue from outside.");
+    }
+}
+
+void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
+{
+    if (packet.getType() == PacketType::Data)
+    {
+        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+        if (dataPacket.assigned())
+        {
+            samplesCnt += dataPacket.getSampleCount();
+        }
+    }
+    else if (packet.getType() == PacketType::Event)
+    {
+        eventPacketsCnt++;
+    }
+}
+
+void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)
+{
+    if (packet.getType() == PacketType::Data)
+    {
+        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+        if (dataPacket.assigned())
+        {
+            samplesCnt -= dataPacket.getSampleCount();
+        }
+    }
+    else if (packet.getType() == PacketType::Event)
+    {
+        eventPacketsCnt--;
     }
 }
 

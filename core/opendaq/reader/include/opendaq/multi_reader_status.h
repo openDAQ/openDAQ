@@ -34,10 +34,10 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
 {
-    // [elementType(eventPackets, ISignal, IEventPacket)]
+    // [elementType(eventPackets, IString, IEventPacket)]
     /*!
      * @brief Retrieves the dictionary of event packets from the reading process, ordered by signals.
-     * @param[out] eventPackets The dictionary where the key is the signal index and the value is the corresponding event packet.
+     * @param[out] eventPackets The dictionary with global id of input port and the corresponding event packet.
      */
     virtual ErrCode INTERFACE_FUNC getEventPackets(IDict** eventPackets) = 0;
 };
@@ -46,7 +46,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
     IDict*, eventPackets,
-    Bool, valid
+    Bool, valid,
+    INumber*, offset
 )
 
 END_NAMESPACE_OPENDAQ

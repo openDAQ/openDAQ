@@ -112,6 +112,11 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
     {
         *remote = False;

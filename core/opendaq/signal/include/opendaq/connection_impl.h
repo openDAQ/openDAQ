@@ -55,6 +55,7 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
 
@@ -102,6 +103,9 @@ private:
     mutable std::mutex mutex;
 #endif
 
+    void onPacketEnqueued(const PacketPtr& packet);
+    void onPacketDequeued(const PacketPtr& packet);
+
     void checkForGaps(const PacketPtr& packet);
     void enqueueGapPacket(const DomainValue& diff);
     void beginGapCheck(const DataPacketPtr& domainPacket);
@@ -122,6 +126,8 @@ private:
 #endif
 
 protected:
+    SizeT samplesCnt{};
+    SizeT eventPacketsCnt{};
     std::deque<PacketPtr> packets;
 };
 

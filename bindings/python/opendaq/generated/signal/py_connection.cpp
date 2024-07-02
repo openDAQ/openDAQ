@@ -128,4 +128,11 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.dequeueAll().detach();
         },
         "Removes all packets from the queue.");
+    cls.def("has_event_packet",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.hasEventPacket();
+        },
+        "Queries if the connection has an event packet.");
 }

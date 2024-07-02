@@ -67,4 +67,12 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
             return objectPtr.getValid();
         },
         "Checks the validity of the reader.");
+    cls.def_property_readonly("offset",
+        [](daq::IReaderStatus *object)
+        {
+            const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
+            return objectPtr.getOffset().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the offset of the the read values");
 }

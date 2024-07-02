@@ -20,7 +20,7 @@
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
-#include <opendaq/multi_reader_status_ptr.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,11 +54,12 @@ public:
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC setDomainTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
+    ErrCode INTERFACE_FUNC empty(Bool* empty) override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
 
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -84,8 +85,6 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    template <typename T>
-    static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
     static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
@@ -93,7 +92,7 @@ private:
     void setStartInfo();
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    DictPtr<ISignal, IEventPacket> readUntilFirstDataPacket();
+    DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
 
     SyncStatus getSyncStatus() const;
@@ -137,9 +136,11 @@ private:
 
     bool startOnFullUnitOfDomain;
 
-    MultiReaderStatusPtr defaultStatus;
+    MultiReaderStatusPtr defaultStatus {MultiReaderStatus()};
 
     NotifyInfo notify{};
+    bool portConnected {};
+    bool portDisconnected {};
 };
 
 END_NAMESPACE_OPENDAQ

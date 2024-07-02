@@ -51,8 +51,11 @@ private:
     SignalConfigPtr outputDomainSignal;
 
     bool domainLinear {false};
-    SizeT linearBlockCount{1};
     BlockReaderPtr linearReader;
+
+    SizeT linearBlockCount{1};
+    std::vector<Float> inputData;
+    std::vector<UInt> inputDomainData;
 
     SizeT blockSize;
     SizeT classCount;

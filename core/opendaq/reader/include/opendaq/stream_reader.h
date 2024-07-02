@@ -23,6 +23,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 struct IInputPort;
+struct IStreamReaderBuilder;
 
 /*!
  * @ingroup opendaq_readers
@@ -92,7 +93,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, StreamReaderFromPort ,IStreamReader,
+    LIBRARY_FACTORY, StreamReaderFromPort, IStreamReader,
     IInputPortConfig*, port,
     SampleType, valueReadType,
     SampleType, domainReadType,
@@ -105,6 +106,12 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IStreamReader*, invalidatedReader,
     SampleType, valueReadType,
     SampleType, domainReadType
+)
+
+//[factory(Hide)]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, StreamReaderFromBuilder, IStreamReader,
+    IStreamReaderBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

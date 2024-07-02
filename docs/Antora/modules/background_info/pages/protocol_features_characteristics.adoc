@@ -1,0 +1,351 @@
+= Protocol features and characteristics
+
+This article features an overview of the different features of each server/client protocol currently supported in the main openDAQ(TM) repository. We aim to outline different capabilities and features made available by the SDK's core, as well as indicate which of the protocols support said feature. 
+
+Additionally, we provide metrics for protocol compatibility within a given openDAQ(TM) system of devices, detailing which servers/clients can be used in conjunction with different system setups.
+
+== Brief Server/Client architecture overview
+
+The SDK is structured in a manner where each device represents its structure in the form of a tree of components, with each component having a set of properties. We use a server-client architecture to forward the information about the device's tree structure from server to client. A device will start a server, advertising its capabilities over a discovery server, allowing clients to find the device, and connect to it via a corresponding client implementation. In general, server-client connections in openDAQ(TM) are split into two different types:
+
+* **Configuration**: The server sends information on its tree structure and properties to the client, allowing the client to produce a mirror of the device's component tree. This allows the client-side application to act as if the device was local to the client instance, traversing its tree, and modifying its property values. A configuration connection does not transfer signal data.
+* **Streaming**: The server sends information on what signals it has available to the client, and sends the data sent through the signals if the client is subscribed to said signals. This form of connection is usually combined with a configuration connection, allowing users to see the whole device structure, as well as read the device's signal data. If only a streaming connection is formed, the client will not see the full component tree, but will still be able to see a list of the device's signals directly underneath the device's "signals" folder.
+
+NOTE: For more information on components and properties, you can refer to the xref:components.adoc[Components] and xref:property_system.adoc[Property System] articles.
+
+== Protocol overview
+
+Currently, openDAQ(TM) supports 3 different server/client protocols: Native, OPC UA, and LT
+
+=== Native
+
+The main protocol that is used when an openDAQ(TM) instance is running both on the server and client. The protocol aims to support all core SDK features via the client and aims to minimize network traffic while optimizing performance when connecting openDAT(TM) to openDAQ(TM). It allows for both streaming and configuration connections to be formed. The Native protocol makes extensive use of the SDK's serialization mechanism, transferring the JSON strings obtained when serializing components to the client, which in turn deserializes/updates its own mirrored versions of the server components.
+
+The protocol uses a push-based approach, where the server notifies any clients of changes to the system. As such, the client does not need to poll the server for any changes. 
+
+=== OPC UA
+
+OPC UA is an open-source standard for data exchange that defines a model of how devices can describe themselves on the network. openDAQ(TM) extends the standard with its own node sets and modeling rules built upon the https://reference.opcfoundation.org/DI/v102/docs/[OPC 10000-100: Devices node set]. It converts its component tree and the corresponding properties of each component into an OPC UA representation on the server side and does the corresponding conversion from OPC UA to SDK core objects within the client implementation.
+
+The OPC UA server/client implementation is configuration-only and does thus not provide any data transfer capabilities (beyond reading the last value of a signal). In comparison to the Native protocol it does not fully support all SDK features (see table below for a more detailed list), and is pull-based, requiring the client to ask the device for any changes to its configuration. 
+
+=== LT
+
+Streaming-only protocol defined by openDAQ(TM). Aimed at devices that want to support a subset of the openDAQ(TM) streaming features without any of the additional capabilities offered by Native. The SDK implementation of the protocol is currently limited to only one-dimensional, numeric, synchronous signals (signals with an implicit, linear data rule).
+
+== Protocol features
+
+The following table showcases which of the protocols supports what features. You can find explanations of each different feature below the table.
+
+.Properties
+[cols="3,6,1,1,1"]
+|===
+
+| **Feature**
+| **Description**
+^| **Native**
+^| **OPC UA**
+^| **LT**
+
+| Read property values/metadata
+| Clients can read what properties are available on each individual component of the device. The clients can read the properties metadata (eg. read-only, visible), as well as read the value of the property.
+^| ✅
+^| ✅
+^| 
+
+| Write property values
+| Clients can set the value of any individual property of a component on a device.
+^| ✅
+^| ✅
+^| 
+
+|===
+
+.Signals
+[cols="3,6,1,1,1"]
+|===
+
+| **Feature**
+| **Description**
+^| **Native**
+^| **OPC UA**
+^| **LT**
+
+| Mirror signal components
+| Clients have a list of all public signals available.
+^| ✅
+^| ✅
+^| ✅
+
+
+| Read signal data descriptor
+| Clients can read the current data descriptor of any signal, allowing for interpretation of the signal's data.
+^| ✅
+^| ✅
+^| ✅
+
+| Get domain signal
+| Clients can check what signal is used as the domain signal of any individual signal.
+^| ✅
+^| ✅
+^| ✅
+
+| Read last value
+| Clients can read the last value of the last packet sent through a signal.
+^| ✅
+^| ✅
+^| ✅
+
+| Stream data server → client
+| Clients can receive full-rate data from the device.
+^| ✅
+^| 
+^| ✅
+
+| Stream data client → server
+| Clients can send full-rate data to the device.
+^|
+^| 
+^|
+
+| Stream data server → server
+| Clients can configure two devices (servers) to send data to each other, either directly or using the client as a gateway.
+^| 
+^| 
+^| 
+
+|===
+
+.Structure
+[cols="3,6,1,1,1"]
+|===
+
+| **Feature**
+| **Description**
+^| **Native**
+^| **OPC UA**
+^| **LT**
+
+| Mirror component tree structure
+| Clients can see the entirety of the device's component tree structure. They create a mirror copy of the tree, attaching the mirrored device as the client device's subdevice.
+^| ✅
+^| ✅
+^| 
+
+| Update tree structure mirror on device change
+| When the structure of a device changes (eg. a component is added/removed), the client is able to update its structure to match the new state of the device. Clients that are unable to do so are referred to as "static", requiring the device to maintain a static structure post-connection.
+^| ✅
+^| 
+^| 
+
+| Update client signal list on server signal add/remove
+| Same as "Update tree structure mirror on device change", but specific to signals. Relevant for streaming-only connections.
+^| ✅
+^| 
+^| 
+
+| Add/remove subdevices
+| Clients can add or remove a subdevice on the server device. On add/remove the server device uses its client implementation to connect to/disconnect from another server device.
+^| 
+^| 
+^| 
+
+| Add/remove function blocks
+| Clients can add or remove function blocks on the device. It uses the modules loaded by the device to instantiate a new function block.
+^| ✅
+^| ✅
+^| 
+
+| Connect/disconnect signals to/from input ports
+| Clients can connect/disconnect signals from the input ports of the device. Depending on the streaming direction capabilities (See "Signals" table fields for client → server and server → server data transfer), only some signals can be connected to the device's input ports. A protocol without the above capabilities allows only signals of the device itself (or its subdevices) to be connected to its input ports.
+^| ✅
+^| ✅
+^| 
+
+| Add/remove servers
+| Clients can add/remove a server from a device. Removing a server might terminate an established connection.
+^| 
+^| 
+^| 
+
+| Modify server configuration
+| Clients have access to configuration parameters of the device's server and can modify them.
+^| 
+^| 
+^| 
+
+| Add/remove/modify streaming sources
+| Clients can modify the per-signal or per-device streaming sources on the server device. This feature applies if the server device itself is connected to _another_ server device that provides multiple streaming sources (eg. multiple streaming protocols) for data transfer.
+^| 
+^| 
+^| 
+
+| Save/load configuration
+| Clients can save the setup of the device as a string representation, and later restore the setup by loading it.
+^| ✅
+^| ✅
+^| 
+
+|===
+
+
+.Component attributes
+[cols="3,6,1,1,1"]
+|===
+
+| **Feature**
+| **Description**
+^| **Native**
+^| **OPC UA**
+^| **LT**
+
+| Device Info (read)
+| Clients can read device information such as its serial number and manufacturer.
+^| ✅
+^| ✅
+^| 
+
+| Device Domain (read)
+| Clients can read the domain information of the device (resolution, ticks since origin, origin).
+^| ✅
+^| ✅
+^| 
+
+| Active (read/write)
+| Clients can read and configure the active state of each individual device component.
+^| ✅
+^| ✅
+^| 
+
+| Name (read/write)
+| Clients can read and configure the name of each individual device component.
+^| ✅
+^| ✅
+^| 
+
+| Description (read/write)
+| Clients can read and configure the description of each individual device component.
+^| ✅
+^| ✅
+^| 
+
+| Visible (read/write)
+| Clients can read and configure the visible attribute of each individual device component.
+^| ✅
+^| ✅
+^| 
+
+|===
+
+=== Limitations
+
+The above table shows what features are enabled by what protocol. However, in reality, some features might have limitations within a given protocol. The tables below highlight different limitations of a given protocol.
+
+.OPC UA protocol limitations
+[cols="1,4"]
+|===
+
+| **Feature**
+| **Limitation**
+
+| **Properties**
+|
+
+| Read properties
+| Struct and enumeration properties must exactly match an OPC UA struct/enumeration type for them to be readable.
+
+| Configure properties
+| Struct and enumeration properties must exactly match an OPC UA struct/enumeration type for them to be configurable. Additionally, property changes that result in a modified component tree structure might cause unintended behaviour, as the mirrored device structure will not reflect the actual state.
+
+| **Signals**
+|
+
+| Read last value
+| Struct-type signal data must exactly match an OPC UA struct/enumeration type for them to be readable.
+
+| **Structure**
+|
+
+| Save/load configuration
+| Any changes that affect the structure of the device will not be applied/reflected in the resulting state and can thus mostly only be used to update property values (said modifications must also not result in the device's structure changing).
+
+|===
+
+.LT protocol limitations
+[cols="1,4"]
+|===
+
+| **Feature**
+| **Limitation**
+
+| Stream data server → client
+| Only synchronous data of synchronous, scalar signals can be streamed. Synchronous signals are those with an implicit, linear data rule. Scalar signals are signals with numeric data and no additional dimensions. 
+
+| Read last value
+| To read the last value, the signal must be subscribed (must be connected to an input port, or subscribed manually). Unsubscribed signals do not send data to the client.
+
+|===
+
+== Protocol characteristics
+
+The table below outlines some key characteristics of protocols in openDAQ, highlighting differences between them.
+
+.Protocol characteristics
+[cols="4,14,5,5,5"]
+|===
+
+| **Characteristic**
+| **Description**
+^| **Native**
+^| **OPC UA**
+^| **LT**
+
+| Type
+| Configuration or streaming. Configuration connections mirror the whole device's component tree but do not enable data transfer. Streaming only provides information on signals and transfers data, but no information on components and their properties.
+^| Configuration + Streaming
+^| Configuration
+^| Streaming
+
+| Update style
+| Push-based protocols notify clients of device changes as they happen on the device. Pull-based ones require the client to ask the device whether any changes have ocurred.
+^| Push
+^| Pull
+^| Push
+
+
+| Structure type
+| Dynamic connections allow for changes to the device to occur, as the client is able to react to them, updating their mirrored representation of the device. Static connections require the device's structure to stay the same.  
+^| Dynamic
+^| Static (+ manage function blocks)
+^| Static
+
+
+| Transport layer
+| The medium over which data is transferred between server and client. Eg. TCP/IP or USB. 
+^| TCP/IP
+^| TCP/IP
+^| TCP/IP
+
+
+| Discovery protocol
+| The protocol used for a device to advertise its available connection protocols, allowing a client to discover what devices it can connect to.
+^| mDNS (https://datatracker.ietf.org/doc/html/rfc6762[RFC 6762], https://datatracker.ietf.org/doc/html/rfc6763[RFC 6763])
+^| mDNS (https://datatracker.ietf.org/doc/html/rfc6762[RFC 6762], https://datatracker.ietf.org/doc/html/rfc6763[RFC 6763])
+^| mDNS (https://datatracker.ietf.org/doc/html/rfc6762[RFC 6762], https://datatracker.ietf.org/doc/html/rfc6763[RFC 6763])
+
+
+|===
+
+=== Characteristic incompatibility and guarantees
+
+==== Update style in sequentially connected devices
+
+We cannot connect with a push-based client to Device A if it is already connected to Device B through a pull-based connection, as we would never receive updates to the configuration of Device B. To avoid such situations, a push-based server should never be started on a device with established pull-based connections.
+
+==== Structure type 
+
+When connected with a dynamic structure client to Device A, which is connected to Device B through a static structure connection, we have no guarantees that our mirror of Device B will be up-to-date even though we established a dynamic structure connection to Device A. 
+
+==== Mixing different protocols
+
+When connected to Device A, which is connected to Device B, we have to work with the capabilities of the protocol used to establish the connection between Device A and B, even if our connection to Device A has a larger feature set.

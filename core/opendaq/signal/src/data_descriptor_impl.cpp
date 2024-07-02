@@ -402,7 +402,7 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
 
         if (scaling.assigned())
         {
-            serializer->key("postScaling");
+            serializer->key("PostScaling");
             scaling.serialize(serializer);
         }
 
@@ -476,9 +476,9 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     DataRulePtr rule = serializedObj.readObject("Rule");
     dataDescriptor.setRule(rule);
 
-    if (serializedObj.hasKey("postScaling"))
+    if (serializedObj.hasKey("PostScaling"))
     {
-        ScalingPtr postScaling = serializedObj.readObject("postScaling");
+        ScalingPtr postScaling = serializedObj.readObject("PostScaling");
         dataDescriptor.setPostScaling(postScaling);
     }
 

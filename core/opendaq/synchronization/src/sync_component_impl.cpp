@@ -101,7 +101,7 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
         ErrCode errCode = typeManager->getType(className, &type);
         if (OPENDAQ_FAILED(errCode) || type == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found.", className));
+            return makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
         }
 
         if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())

@@ -1,7 +1,7 @@
 = Add Function Block
 
-openDAQ(TM) provides processing features through xref:background_info:function_blocks.adoc[Function Blocks].
-They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
+openDAQ(TM) provides processing features through xref:knowledge_base:function_blocks.adoc[Function Blocks].
+They can process Signals either on a xref:knowledge_base:device.adoc[Device] or on a host PC where the SDK
 is running.
 
 :tip-caption: Statistics Function Block
@@ -23,7 +23,7 @@ be used to add other function blocks.
 == Get a list of available function blocks
 
 The SDK provides a method to get a list of all available types of 
-xref:background_info:function_blocks.adoc[Function Blocks]. This step is optional if the application uses a fixed 
+xref:knowledge_base:function_blocks.adoc[Function Blocks]. This step is optional if the application uses a fixed 
 configuration of modules and the available Function Blocks are predefined.
 
 The result is a dictionary with Function Block id as a key and Function Block type information as a value of the

@@ -6,8 +6,8 @@
 For brevity, in `C++`, we assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
-In this guide, you will go through the basics of the information provided in the xref:background_info:readers.adoc#common_behavior[Common Behavior of Readers] on the example of a xref:background_info:readers.adoc#stream_reader[Stream Reader].
-You will learn what options you have with creating and configuring a Reader and how to properly issue xref:background_info:readers.adoc#read_calls[_read_ calls] and provide read buffers.
+In this guide, you will go through the basics of the information provided in the xref:knowledge_base:readers.adoc#common_behavior[Common Behavior of Readers] on the example of a xref:knowledge_base:readers.adoc#stream_reader[Stream Reader].
+You will learn what options you have with creating and configuring a Reader and how to properly issue xref:knowledge_base:readers.adoc#read_calls[_read_ calls] and provide read buffers.
 In the end, you'll also get the option to continue on a more specific guide depending on the features you're interested in.
 
 == Creating the Reader
@@ -122,7 +122,7 @@ In case you choose to use the automatic deduction, you must take extra care to c
 [#reading_data]
 == Reading data
 Once you've successfully created and configured the Reader, you can now actually start to _read_ the data from the Signal.
-You do this by issuing xref:background_info:readers.adoc#read_calls[_read_ calls] but at first, it is best to check how many samples are actually available and decide on how many you wish to read.
+You do this by issuing xref:knowledge_base:readers.adoc#read_calls[_read_ calls] but at first, it is best to check how many samples are actually available and decide on how many you wish to read.
 After that, you need to properly prepare the call parameters and set up sample-buffers.
 
 The example below shows how to check for and read at first `5` value samples and then another `5` with the associated Domain values.
@@ -250,8 +250,8 @@ If this isn't the case, it will write past the end and will probably cause stack
 
 [#descriptor_changed]
 == Handling Signal changes
-The xref:background_info:signals.adoc[Signal] stores the information about itself and its data in a xref:background_info:signals.adoc#data_descriptor[Data Descriptor].
-Each time any of the Signal information changes, it creates an xref:glossary:glossary.adoc#event_packet[Event Packet] with the id of xref:background_info:packets.adoc#descriptor_changed[`"DATA_DESCRIPTOR_CHANGED"`].
+The xref:knowledge_base:signals.adoc[Signal] stores the information about itself and its data in a xref:knowledge_base:signals.adoc#data_descriptor[Data Descriptor].
+Each time any of the Signal information changes, it creates an xref:glossary:glossary.adoc#event_packet[Event Packet] with the id of xref:knowledge_base:packets.adoc#descriptor_changed[`"DATA_DESCRIPTOR_CHANGED"`].
 The user can react to these changes by installing a callback as shown below.
 
 The event contains two Data Descriptors, one for value and one for Domain, each of which can be `null` if unchanged, but not both.
@@ -306,7 +306,7 @@ assert(newStatus.getReadStatus() == ReadStatus::Event);
 == Reader invalidation and reuse
 Once the Reader falls into an *__invalid__* state, it can't be used to read data anymore and all attempts to do so will result the Reader status with `getValid` equal to `false`.
 The only way to resolve this is to pass the Reader to a new Reader instance with valid Sample Types and settings.
-This enables the new reader to reuse the xref:background_info:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
+This enables the new reader to reuse the xref:knowledge_base:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
 You can also reuse a valid Reader, for example, if you want to change the read Sample Type or change any other configuration that is immutable after creating a Reader.
 This will make the old reader invalid.
 

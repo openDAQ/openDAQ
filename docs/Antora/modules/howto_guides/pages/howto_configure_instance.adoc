@@ -10,7 +10,7 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
 
 **Related articles:**
 
-  * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
+  * xref:knowledge_base:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
 

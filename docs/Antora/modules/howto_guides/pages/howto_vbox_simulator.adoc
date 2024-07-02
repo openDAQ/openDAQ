@@ -3,7 +3,7 @@
 :sdk-docs-website: https://docs.opendaq.com
 
 The openDAQ(TM) VirtualBox image provides a simulated xref:glossary:glossary.adoc#device[Device] that is discoverable by openDAQ(TM), and can be connected to using the openDAQ(TM) client.
-The Device itself outputs two sine wave xref:background_info:signals.adoc[Signal]s, with configurable parameters such as the signal amplitude and frequency.
+The Device itself outputs two sine wave xref:knowledge_base:signals.adoc[Signal]s, with configurable parameters such as the signal amplitude and frequency.
 
 To start, head over to {sdk-docs-website}[The openDAQ(TM) downloads page] and download the simulator image. Within this guide we will be using https://www.virtualbox.org/wiki/Downloads[VirtualBox] to run the simulator.
 

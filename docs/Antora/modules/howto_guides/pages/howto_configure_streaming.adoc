@@ -3,10 +3,10 @@
 [#server_config]
 == Server side Configuration
 
-Typically, in addition to publishing its own structure (xref:background_info:signals.adoc[Signals],
-xref:background_info:function_blocks.adoc#channel[Channel]s,
-xref:background_info:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
-xref:background_info:device.adoc[Device] also publishes information about Streaming protocols it supports.
+Typically, in addition to publishing its own structure (xref:knowledge_base:signals.adoc[Signals],
+xref:knowledge_base:function_blocks.adoc#channel[Channel]s,
+xref:knowledge_base:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
+xref:knowledge_base:device.adoc[Device] also publishes information about Streaming protocols it supports.
 This information includes the Streaming protocol ID (e.g. `"opendaq_lt_streaming"` or `"opendaq_native_streaming"`)
 and a range of optional parameters (e.g. port number). Upon initiating a Streaming server on the Device,
 it automatically generates and prepares the mentioned piece of information, also known as a Server capability,
@@ -63,24 +63,24 @@ not only transfers the Device's structural details but also the set of Streaming
 available for the Device.
 
 Each Streaming Server capability is identified by the Streaming protocol ID, that is transformed into
-a prefix within the xref:background_info:streaming.adoc#streaming_connection_string[connection string]
+a prefix within the xref:knowledge_base:streaming.adoc#streaming_connection_string[connection string]
 formed by considering all parameters in the Streaming Server capability along with the known Device's IP address.
 This connection string enables the delegation of Streaming instantiation to the appropriate
-xref:background_info:streaming.adoc#streaming_and_structure_modules[data Streaming Module]. As a result,
+xref:knowledge_base:streaming.adoc#streaming_and_structure_modules[data Streaming Module]. As a result,
 when connecting an openDAQ(TM) Device, a streaming connection can be established automatically using the
 published streaming connection details. When establishing a connection to a gateway Devices, which contains
 nested Devices, the default behavior is to ignore direct Streaming connections for these nested Devices,
 and establishing the minimum number of Streaming connections possible.
 
 However, users can customize the rules for automatically establishing the Streaming connections. This is done by
-passing the xref:background_info:device.adoc[Device] Configuration xref:background_info:property_system.adoc[Property]
+passing the xref:knowledge_base:device.adoc[Device] Configuration xref:knowledge_base:property_system.adoc[Property]
 object as a second parameter to the `addDevice` call.
 The configuration mechanism allows filtering available streaming protocols by enabling or disabling specific ones.
 Protocol listed first as enabled is given higher priority, determining its selection as the active Streaming
-source for all of the Device's xref:background_info:streaming.adoc#mirrored_signals[Signals].
+source for all of the Device's xref:knowledge_base:streaming.adoc#mirrored_signals[Signals].
 
 Furthermore, there's an option to specify a Streaming path heuristic, particularly useful for multiple
-nested Devices connected in a tree-structured manner (as illustrated in the xref:background_info:device.adoc#nested_devices[diagram]).
+nested Devices connected in a tree-structured manner (as illustrated in the xref:knowledge_base:device.adoc#nested_devices[diagram]).
 The allowed heuristics include:
 
 * "Minimize-connections" mode (ID 0) - is used to establish the fewest Streaming connections possible at
@@ -217,7 +217,7 @@ Streaming protocol. Such Devices offer a flat list of Signals without detailed s
 These Devices are created using the Module responsible for establishing the corresponding Streaming
 connection. The Device connection string serves to route and delegate Device object instantiation to the
 relevant Module. This connection string is identical to the
-xref:background_info:streaming.adoc#streaming_connection_string[Streaming connection string] used for
+xref:knowledge_base:streaming.adoc#streaming_connection_string[Streaming connection string] used for
 Streaming connection instantiation, with the exception that the prefix indicating the Streaming protocol
 type might be replaced with the prefix representing the appropriate Device type. Following this prefix,
 the same set of parameters unique to each Streaming protocol type is appended.
@@ -273,8 +273,8 @@ int main()
 [#streaming_config_per_signal]
 == Configure Streaming per Signal
 
-Once the xref:background_info:device.adoc[Device] is connected, the Streaming sources of its
-xref:background_info:streaming.adoc#mirrored_signals[Signals] can be examined and modified for each Signal individually
+Once the xref:knowledge_base:device.adoc[Device] is connected, the Streaming sources of its
+xref:knowledge_base:streaming.adoc#mirrored_signals[Signals] can be examined and modified for each Signal individually
 at any given time.
 
 The Streaming sources are identified by a connection string that includes the protocol prefix, indicating

@@ -1,7 +1,7 @@
 = Configure Function Block
 
-openDAQ(TM) provides processing features through xref:background_info:function_blocks.adoc[Function Blocks].
-They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
+openDAQ(TM) provides processing features through xref:knowledge_base:function_blocks.adoc[Function Blocks].
+They can process Signals either on a xref:knowledge_base:device.adoc[Device] or on a host PC where the SDK
 is running.
 
 :tip-caption: Statistics Function Block
@@ -108,7 +108,7 @@ domain Signal (new sample rate) of the output Signal and it will continue to pro
 
 == Connecting Function Block Input Ports
 
-Function Blocks that process data require that their xref:background_info:data_path.adoc#input_port[Input Ports] connect to 
+Function Blocks that process data require that their xref:knowledge_base:data_path.adoc#input_port[Input Ports] connect to 
 Signals. Function Blocks can have a variable number of Input Ports. The Statistics Function Block provides one Input Port that 
 is required to calculate the average value. Once the Input Port is connected, the output Signal will start to produce the data.
  

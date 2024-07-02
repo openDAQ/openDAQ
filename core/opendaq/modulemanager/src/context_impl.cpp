@@ -228,20 +228,20 @@ void ContextImpl::registerOpenDaqTypes()
         return;
 
     //Sync Component Interfaces
-    auto syncInterfaceBase = PropertyObjectClassBuilder("SyncInterfaceBase")
+    auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
                                     .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 0))
                                     .build();
-    this->typeManager.addType(syncInterfaceBase);
+    typeManager.addType(syncInterfaceBase);
 
     PropertyObjectPtr statusProperty = PropertyObject();
     statusProperty.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
 
-    auto interfaceClockSync = PropertyObjectClassBuilder("InterfaceClockSync")
+    auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
                                     .setParentName("SyncInterfaceBase")
                                     .addProperty(ObjectProperty("Status", statusProperty))
                                     .build();
 
-    this->typeManager.addType(interfaceClockSync);
+    typeManager.addType(interfaceClockSync);
 
     PropertyObjectPtr statusProperty_2 = PropertyObject();
     statusProperty_2.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
@@ -259,11 +259,11 @@ void ContextImpl::registerOpenDaqTypes()
     const auto enumProfiles = EnumerationType(
         "PtpProfileEnumeration", List<IString>("I558", "802_IAS"));
 
-    this->typeManager.addType(enumClockType);
-    this->typeManager.addType(enumStepFlag);
-    this->typeManager.addType(enumTransportProtocol);
-    this->typeManager.addType(enumDelayMechanism);
-    this->typeManager.addType(enumProfiles);
+    typeManager.addType(enumClockType);
+    typeManager.addType(enumStepFlag);
+    typeManager.addType(enumTransportProtocol);
+    typeManager.addType(enumDelayMechanism);
+    typeManager.addType(enumProfiles);
 
     PropertyObjectPtr ports = PropertyObject();
     ports.addProperty(BoolProperty("Port1", true));
@@ -271,25 +271,25 @@ void ContextImpl::registerOpenDaqTypes()
     PropertyObjectPtr parameters = PropertyObject();
     parameters.addProperty(StructProperty("Configuration",
                                         Struct("Configuration",
-                                                Dict<IString, IBaseObject>({{"ClockType", Enumeration("PtpClockTypeEnumeration", "Transparent", this->typeManager)},
-                                                            {"TransportProtocol", Enumeration("PtpProtocolEnumeration", "IEEE802_3", this->typeManager)},
-                                                            {"StepFlag", Enumeration("PtpStepFlagEnumeration", "One", this->typeManager)},
+                                                Dict<IString, IBaseObject>({{"ClockType", Enumeration("PtpClockTypeEnumeration", "Transparent", typeManager)},
+                                                            {"TransportProtocol", Enumeration("PtpProtocolEnumeration", "IEEE802_3", typeManager)},
+                                                            {"StepFlag", Enumeration("PtpStepFlagEnumeration", "One", typeManager)},
                                                             {"DomainNumber", 0},
                                                             {"LeapSeconds", 0},
-                                                            {"DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "P2P", this->typeManager)},
+                                                            {"DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "P2P", typeManager)},
                                                             {"Priority1", 0},
                                                             {"Priority2", 0},
-                                                            {"Profiles", Enumeration("PtpProfileEnumeration", "I558", this->typeManager)}}),
-                                                            this->typeManager)));
+                                                            {"Profiles", Enumeration("PtpProfileEnumeration", "I558", typeManager)}}),
+                                                            typeManager)));
     parameters.addProperty(ObjectProperty("Ports", ports));
 
-    auto ptpSyncInterface = PropertyObjectClassBuilder("PtpSyncInterface")
+    auto ptpSyncInterface = PropertyObjectClassBuilder(typeManager, "PtpSyncInterface")
                                     .setParentName("SyncInterfaceBase")
                                     .addProperty(ObjectProperty("Status", statusProperty_2))
                                     .addProperty(ObjectProperty("Parameters", parameters))
                                     .build();
 
-    this->typeManager.addType(ptpSyncInterface);
+    typeManager.addType(ptpSyncInterface);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

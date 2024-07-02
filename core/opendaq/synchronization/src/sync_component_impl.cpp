@@ -86,11 +86,37 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
 
     PropertyObjectPtr interfacePtr = interface;
 
-    //TBD: Check if interface inherits from SyncInterfaceBaseauto
+    //TBD: Check if interface inherits from SyncInterfaceBase
     StringPtr className = interfacePtr.getClassName();
 
     if (className != "SyncInterfaceBase")
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+    {
+        auto typeManager = context.getTypeManager();
+        if (typeManager == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
+        }
+
+        TypePtr type;
+        ErrCode errCode = typeManager->getType(className, &type);
+        if (OPENDAQ_FAILED(errCode) || type == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found.", className));
+        }
+
+        if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
+        {
+            auto parentName = objectClass.getParentName();
+            if (!parentName.assigned() || parentName != "SyncInterfaceBase")
+            {
+                return OPENDAQ_ERR_INVALID_ARGUMENT;
+            }
+        }
+        else
+        {
+            return OPENDAQ_ERR_INVALID_ARGUMENT;
+        }
+    }
 
     BaseObjectPtr Interfaces;
     StringPtr str = InterfacesKey;
@@ -98,18 +124,8 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
-    for (const auto& prop : InterfacesPtr.getAllProperties())
-    {
-        if (prop.getValueType() != ctObject)
-            continue;
-
-        auto interfaceProperty = InterfacesPtr.getPropertyValue(prop.getName());
-        //check for duplicates of the interface here
-    }
-
-    InterfacesPtr.addProperty(ObjectProperty(interface));
-    return OPENDAQ_SUCCESS;
+    const auto interfacesPtr = Interfaces.asPtr<IPropertyObject>(true);
+    return interfacesPtr->addProperty(ObjectProperty(className, interface));
 }
 
 

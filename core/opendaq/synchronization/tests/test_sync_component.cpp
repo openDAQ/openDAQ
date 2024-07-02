@@ -57,7 +57,7 @@ TEST_F(SyncComponentTest, test_addInterfaceInvalidArgument)
 
 //#define TEST_DEBUG
 
-TEST_F(SyncComponentTest, DISABLED_addInterface)
+TEST_F(SyncComponentTest, test_addInterface)
 {
     const auto ctx = daq::NullContext();
     SyncComponentPtr syncComponent = SyncComponent(ctx);
@@ -83,12 +83,13 @@ TEST_F(SyncComponentTest, DISABLED_addInterface)
 #endif
 
     //Assert that an interfaces with valid base class can be added
-    syncComponent->addInterface(interface1);
-    syncComponent->addInterface(interface2);
-    syncComponent->addInterface(interface3);
     ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
     //TBD: Assert GetInterfaces(String list) indeed includes the added interfaces
 
 

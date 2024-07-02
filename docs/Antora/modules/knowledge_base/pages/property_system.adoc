@@ -2,8 +2,8 @@
 
 openDAQ(TM) provides a Property system that allows for custom Properties with metadata
 descriptions to be added to data acquisition components represented in its architecture.
-It allows for Properties such as a xref:background_info:device.adoc[Device]'s sampling
-rate or an FFT xref:background_info:function_blocks.adoc[Function Block]'s line count to
+It allows for Properties such as a xref:knowledge_base:device.adoc[Device]'s sampling
+rate or an FFT xref:knowledge_base:function_blocks.adoc[Function Block]'s line count to
 be customized by users. Any Property on a component can be read/written (if the 
 Property is not read-only) by openDAQ(TM) applications. The Properties are the main
 building blocks of any user interface implementation that wishes to interact with openDAQ(TM)

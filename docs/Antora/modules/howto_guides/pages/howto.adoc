@@ -2,21 +2,12 @@
 
 * xref:howto_vbox_simulator.adoc[]
 * xref:howto_connect_to_device.adoc[]
-// * xref:howto_configure_a_device.adoc[]
 * xref:howto_add_function_block.adoc[]
 * xref:howto_configure_function_block.adoc[]
 * xref:howto_configure_instance.adoc[]
 * xref:howto_configure_instance_providers.adoc[]
 * xref:howto_configure_streaming.adoc[]
 * xref:howto_measure_single_value.adoc[]
-// * xref:howto_configure_a_device.adoc[]
-
-// == Configure a Signal
-
-// * xref:howto_create_a_signal.adoc[]
-// * xref:howto_configure_data_rule.adoc[]
-// * xref:howto_create_dimension_objects.adoc[]
-// * xref:howto_configure_a_time_signal.adoc[]
 
 == Read data with Readers
 

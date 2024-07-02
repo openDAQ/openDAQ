@@ -56,7 +56,7 @@ The most fundamental consumer is the Reader.
 
 Readers are objects that allow for reading Signal data in a specific manner, as defined by the Reader.
 When created, they form a connection with one or more Signals, listen for data and retrieve the data when requested by the user.
-Two basic readers provided by openDAQ(TM) are the xref:background_info:readers.adoc#packet_reader[Packet] and xref:background_info:readers.adoc#stream_reader[Stream Reader].
+Two basic readers provided by openDAQ(TM) are the xref:knowledge_base:readers.adoc#packet_reader[Packet] and xref:knowledge_base:readers.adoc#stream_reader[Stream Reader].
 They both contain a single xref:function_blocks.adoc#input_port[Input Port], which is connected to the Signal used as the constructor parameter of the Reader.
 
  * *Packet reader*: Provides access to the queue of packets in a Signal's xref:data_path.adoc#connection[Connection].
@@ -107,7 +107,7 @@ and others.
 
 **Related articles**
 
-  * xref:background_info:function_blocks.adoc#channel[Function Block: Channel]
+  * xref:knowledge_base:function_blocks.adoc#channel[Function Block: Channel]
 
 [#Device]
 == Device
@@ -135,7 +135,7 @@ As is the case with all openDAQ components, devices expose a set of user-configu
 == Module
 
 openDAQ(TM) xref:function_blocks.adoc[Function Block]s and xref:device.adoc[Device] drivers are bundled within Modules, usually dynamically loaded libraries.
-The Modules are loaded by a xref:background_info:modules.adoc#module_manager[Module Manager], which can access any Component implementation provided by the Module.
+The Modules are loaded by a xref:knowledge_base:modules.adoc#module_manager[Module Manager], which can access any Component implementation provided by the Module.
 A Module can contain any of the following components:
 
  * **Function block**: Provides a set of Function Block types that can be created.
@@ -174,8 +174,6 @@ As openDAQ(TM) development continues, support for all functionalities will be ad
 Any method that is not available on mirrored Devices throws an `OpcUaClientCallNotAvailableException` exception.
 ====
 
-// TODO: Add a link to client/server how-tos and background info once written.
-
 [#instance]
 == Instance
 
@@ -203,9 +201,6 @@ As such, currently, any change such as adding / removing a Function Block will n
 ====
 For information about Instance configuration, see the xref:howto_guides:howto_configure_instance.adoc[Configure Instance] guide.
 
-
-// TODO: Add a link to openDAQ(TM) instance how-tos and background info once written.
-
 == Overview
 
 To summarize, the openDAQ(TM) architecture is formed as a tree.
@@ -222,7 +217,7 @@ Users must take caution to not create cycles in the structure.
 ====
 
 xref:function_blocks.adoc[Function Block], Server, and Device driver implementations are provided within modules.
-xref:modules.adoc[Module]s are usually dynamically loaded libraries that are loaded by the xref:background_info:modules.adoc#module_manager[Module Manager] when an Instance is created.
+xref:modules.adoc[Module]s are usually dynamically loaded libraries that are loaded by the xref:knowledge_base:modules.adoc#module_manager[Module Manager] when an Instance is created.
 
 The behavior of an individual Function Block, Server, or Device driver depends on the implementation of the Module.
 By default, openDAQ(TM) provides the openDAQ(TM) Client and two Server modules that allow for connecting to openDAQ(TM) OPC UA compatible Devices and streaming data of openDAQ(TM) Devices via web socket streaming.

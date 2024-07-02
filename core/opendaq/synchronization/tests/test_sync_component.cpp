@@ -33,7 +33,7 @@ TEST_F(SyncComponentTest, test_setSyncLocked)
     ASSERT_TRUE(syncLocked);
 }
 
-TEST_F(SyncComponentTest, test_setSetSelectedSource)
+TEST_F(SyncComponentTest, test_setSelectedSource)
 {
     const auto ctx = daq::NullContext();
     SyncComponentPtr syncComponent = SyncComponent(ctx);

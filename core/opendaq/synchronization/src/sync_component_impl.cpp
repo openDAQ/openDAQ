@@ -5,17 +5,18 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-const char* Interfaces = "interfaces";
-const char* SyncronizationLocked = "SyncronizationLocked";
-const char* Source = "Source";
+const char* InterfacesKey = "Interfaces";
+const char* InterfaceNamesKey = "InterfaceNames";
+const char* SourceKey = "Source";
+const char* SyncronizationLockedKey = "SyncronizationLocked";
 
 SyncComponentImpl::SyncComponentImpl(const ContextPtr& context)
     : Super(), context(context)
 {
-    Super::addProperty(ObjectProperty(Interfaces, PropertyObject()));
-    Super::addProperty(BoolProperty(SyncronizationLocked, false));
-    Super::addProperty(ListProperty("InterfaceNames", List<IString>("Interface1", "Interface2", "Interface3")));
-    Super::addProperty(SelectionProperty(Source, EvalValue("$InterfaceNames"), 0));
+    Super::addProperty(ObjectProperty(InterfacesKey, PropertyObject()));
+    Super::addProperty(ListProperty(InterfaceNamesKey, List<IString>("Interface1", "Interface2", "Interface3")));
+    Super::addProperty(SelectionProperty(SourceKey, EvalValue("$InterfaceNames"), 0));
+    Super::addProperty(BoolProperty(SyncronizationLockedKey, false));
 }
 
 template <typename T>
@@ -27,27 +28,27 @@ typename InterfaceToSmartPtr<T>::SmartPtr SyncComponentImpl::getTypedProperty(co
 ErrCode SyncComponentImpl::getSyncLocked(Bool* synchronizationLocked)
 {
     return daqTry([&]() {
-        *synchronizationLocked = getTypedProperty<IBoolean>(SyncronizationLocked);
+        *synchronizationLocked = getTypedProperty<IBoolean>(SyncronizationLockedKey);
         return OPENDAQ_SUCCESS;
     });
 }
 
 ErrCode SyncComponentImpl::setSyncLocked(Bool synchronizationLocked)
 {
-    return Super::setPropertyValue(String(SyncronizationLocked), BooleanPtr(synchronizationLocked));
+    return Super::setPropertyValue(String(SyncronizationLockedKey), BooleanPtr(synchronizationLocked));
 }
 
 ErrCode SyncComponentImpl::getSelectedSource(Int* selectedSource)
 {
     return daqTry([&]() {
-        *selectedSource = getTypedProperty<IInteger>(Source);
+        *selectedSource = getTypedProperty<IInteger>(SourceKey);
         return OPENDAQ_SUCCESS;
     });
 }
 
 ErrCode SyncComponentImpl::setSelectedSource(Int selectedSource)
 {
-    return Super::setPropertyValue(String(Source), Integer(selectedSource));
+    return Super::setPropertyValue(String(SourceKey), Integer(selectedSource));
 }
 
 ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
@@ -56,7 +57,7 @@ ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
     ListPtr<IPropertyObject> interfacesList = List<IPropertyObject>();
 
     BaseObjectPtr Interfaces;
-    StringPtr str = "interfaces";
+    StringPtr str = InterfacesKey;
     ErrCode err = this->getPropertyValue(str, &Interfaces);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -92,7 +93,7 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
         return OPENDAQ_ERR_INVALID_ARGUMENT;
 
     BaseObjectPtr Interfaces;
-    StringPtr str = "interfaces";
+    StringPtr str = InterfacesKey;
     ErrCode err = this->getPropertyValue(str, &Interfaces);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -117,7 +118,7 @@ ErrCode SyncComponentImpl::removeInterface(IString* interfaceName)
     OPENDAQ_PARAM_NOT_NULL(interfaceName);
 
     BaseObjectPtr Interfaces;
-    StringPtr str = "interfaces";
+    StringPtr str = InterfacesKey;
     ErrCode err = this->getPropertyValue(str, &Interfaces);
     if (OPENDAQ_FAILED(err))
         return err;

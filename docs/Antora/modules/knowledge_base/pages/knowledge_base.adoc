@@ -1,0 +1,4 @@
+= Knowledge base
+
+This section contains information about the general workings of the openDAQ(TM) SDK, ranging from an overview of the device architecture representation in openDAQ(TM) to SDK internal concept definitions and explanations. It offers detailed insight into the SDK, it's workings, as well as it's design philosophy.
+

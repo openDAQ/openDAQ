@@ -7,7 +7,7 @@ The procedure of querying Modules for available Devices, as well as selecting th
 
 **Related articles:**
 
-  * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
+  * xref:knowledge_base:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Discovering Devices
 openDAQ(TM) provides three client and three server modules. They make possible to connect to openDAQ(TM) devices, as well as transfer their signal data. 

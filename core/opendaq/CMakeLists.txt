@@ -19,6 +19,7 @@ set(DAQ_COMPONENTS
     component
     streaming
     opendaq
+    synchronization
 )
 
 foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})

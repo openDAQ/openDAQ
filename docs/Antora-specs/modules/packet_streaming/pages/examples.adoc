@@ -1,0 +1,261 @@
+= Dataflow examples
+
+== Single asynchronous value signal and single domain signal
+
+The following example demonstrates the sequence of packet buffers needed to initialize packet streaming and transmit two samples of an asynchronous value signal.
+
+. _xref:event_packet.adoc#ddc_event_packet[Data descriptor changed event packet] for value signal_
++
+[cols="1,1,2"]
+|===
+|||
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0x0C
+
+|Packet buffer type code
+|0x00 (event)
+
+|Packet streaming protocol version
+|0x00
+
+|xref:format.adoc#flags[Flags]
+|0x00
+
+|Signal numeric ID
+|0x00000001
+
+|Payload size
+|0x0000026B
+
+2+^|Payload
+a|[source,json]
+----
+{
+  "__type": "EventPacket",
+  "id": "DATA_DESCRIPTOR_CHANGED",
+  "params": {
+    "__type": "Dict",
+    "values": [
+      {
+        "key": "DataDescriptor",
+        "value": {
+          "__type": "DataDescriptor",
+          "name": "Value",
+          "sampleType": 2,
+          "dimensions": [],
+          "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+              "__type": "Dict",
+              "values": []
+            }
+          },
+          "origin": "",
+          "metadata": {
+            "__type": "Dict",
+            "values": []
+          },
+          "structFields": []
+        }
+      },
+      {
+        "key": "DomainDataDescriptor",
+        "value": {
+          "__type": "DataDescriptor",
+          "name": "Domain",
+          "sampleType": 9,
+          "dimensions": [],
+          "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+              "__type": "Dict",
+              "values": []
+            }
+          },
+          "origin": "",
+          "metadata": {
+            "__type": "Dict",
+            "values": []
+          },
+          "structFields": []
+        }
+      }
+    ]
+  }
+}
+----
+|===
+
+. _xref:event_packet.adoc#ddc_event_packet[Data descriptor changed event packet] for domain signal_
++
+[cols="1,1,2"]
+|===
+|||
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0x0C
+
+|Packet buffer type code
+|0x00 (event)
+
+|Packet streaming protocol version
+|0x00
+
+|xref:format.adoc#flags[Flags]
+|0x00
+
+|Signal numeric ID
+|0x00000002
+
+|Payload size
+|0x0000018F
+
+2+^|Payload
+a|[source,json]
+----
+{
+  "__type": "EventPacket",
+  "id": "DATA_DESCRIPTOR_CHANGED",
+  "params": {
+    "__type": "Dict",
+    "values": [
+      {
+        "key": "DataDescriptor",
+        "value": {
+          "__type": "DataDescriptor",
+          "name": "Domain",
+          "sampleType": 9,
+          "dimensions": [],
+          "rule": {
+            "__type": "DataRule",
+            "ruleType": 3,
+            "params": {
+              "__type": "Dict",
+              "values": []
+            }
+          },
+          "origin": "",
+          "metadata": {
+            "__type": "Dict",
+            "values": []
+          },
+          "structFields": []
+        }
+      },
+      {
+        "key": "DomainDataDescriptor",
+        "value": null
+      }
+    ]
+  }
+}
+----
+|===
+
+. _Value signal xref:data_packet.adoc[data packet] (with release flag)_
++
+[cols="1,1,2"]
+|===
+|||
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0x2C
+
+|Packet buffer type code
+|0x01 (data)
+
+|Packet streaming protocol version
+|0x00
+
+|xref:format.adoc#flags[Flags]
+|0x01 (Release packet)
+
+|Signal numeric ID
+|0x00000001
+
+|Payload size
+|0x00000010
+
+.4+.^|Extra header
+
+|Packet ID
+|0x0000000000000010
+
+|Domain packet ID
+|0x0000000000000012
+
+|Sample count
+|0x0000000000000002
+
+|Packet offset
+|0x0000000000000000
+
+2+^|Payload
+| 1.445e14, -3.78e-4
+|===
+
+. _Domain signal xref:data_packet.adoc[data packet] explicit without offset (with release flag)_
++
+[cols="1,1,2"]
+|===
+|||
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0x2C
+
+|Packet buffer type code
+|0x01 (data)
+
+|Packet streaming protocol version
+|0x00
+
+|xref:format.adoc#flags[Flags]
+|0x01 (Release packet)
+
+|Signal numeric ID
+|0x00000002
+
+|Payload size
+|0x00000010
+
+.4+.^|Extra header
+
+|Packet ID
+|0x0000000000000012
+
+|Domain packet ID
+|0x0000000000000000
+
+|Sample count
+|0x0000000000000002
+
+|Packet offset
+|0x0000000000000000
+
+2+^|Payload
+|0x0000000000000001,0x0000000000000002
+
+|===
+
+////
+== Two synchronous value signals share single domain signal
+TODO
+
+. xref:event_packet.adoc#ddc_event_packet[Data descriptor changed event packet]
+. 1-st value signal xref:data_packet.adoc[data packet] (without release flag)
+. Domain signal xref:data_packet.adoc[data packet] with offset (without release flag)
+. 2-nd value signal xref:data_packet.adoc[data packet] (without release flag)
+. xref:internal.adoc#already_sent[Already sent packet] for domain packet
+. xref:internal.adoc#release[Packet release]
+////

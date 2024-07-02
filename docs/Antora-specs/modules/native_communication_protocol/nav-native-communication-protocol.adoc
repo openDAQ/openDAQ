@@ -1,0 +1,9 @@
+* xref:introduction.adoc[**Native communication protocol**]
+
+** xref:introduction.adoc[Introduction]
+** xref:glossary.adoc[Terminology and abbreviations]
+** xref:streaming.adoc[Streaming packages]
+// ** xref:configuration.adoc[Configuration packages]
+** xref:service.adoc[Protocol service packages]
+// ** xref:activity_monitoring.adoc[Connection activity monitoring]
+** xref:examples.adoc[Examples]

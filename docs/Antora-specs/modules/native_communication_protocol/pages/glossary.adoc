@@ -1,0 +1,6 @@
+= Terminology and abbreviations
+
+== WebSocket
+Communications protocol, providing a simultaneous two-way communication channel over a single Transmission Control Protocol (TCP) connection.
+
+// TODO

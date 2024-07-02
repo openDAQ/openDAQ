@@ -1,0 +1,91 @@
+= Data packet encoding
+
+openDAQ(TM) signal data packets are encoded into packet buffers consisting of a generic header of 12 bytes, an extra header of 32 bytes, and an optional payload representing the data samples of the packet.
+These packets can belong to either a value signal or a domain signal. Each data packet, whether it belongs to a value signal or a domain signal, has its own unique ID encoded in the extra header.
+For packets belonging to value signals, the extra header also includes a non-zero ID of the associated domain packet. This allows the client to locate the appropriate domain packet among the received
+packets to create a copy of the value signal data packet.
+
+The order of value/domain packets on the network is not defined. A value signal can receive its data packet before or after the associated domain packet is received.
+This approach implies that in certain scenarios, such as when value signals share the same domain signal, the copies of data packets recreated on the client side need to be retained for some time until
+they are no longer needed for any future recreated packets. This is supported by the protocol in two ways: for packets for which client copies can be released immediately,
+the server sets and the client handles the corresponding "Packet can be released" flag. For packets that need to be kept for a while by the client,
+the server creates separate packets release internal protocol message containing packet IDs to be released when the time comes.
+
+Another protocol-specific aspect pertains to the encoding of data packets for signals following either explicit or implicit data rules. In the case of explicit rules,
+measured samples are encoded into the payload of the packet buffer. However, for other types of rules, where data values can be calculated using an offset value,
+it is only the offset is encoded as part of the extra header without transferring measured values as a payload.
+
+|===
+||Bytes group |Start position offset (in bytes) |Value type |Size in bytes |Value
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0
+|unsigned 8 bit integer
+|1
+|44
+
+|Packet buffer type code
+|1
+|unsigned 8 bit integer
+|1
+|0x1
+
+|Packet streaming protocol version
+|2
+|unsigned 8 bit integer
+|1
+|-
+
+|xref:format.adoc#flags[Flags]
+|3
+|unsigned 8 bit integer
+|1
+|-
+
+|Signal numeric ID
+|4
+|unsigned 32 bit integer
+|4
+|-
+
+|Payload size
+|8
+|unsigned 32 bit integer
+|4
+|-
+
+.4+.^|Extra header
+
+|Packet ID
+|12
+|unsigned 64 bit integer
+|8
+|-
+
+|Domain packet ID
+|20
+|unsigned 64 bit integer
+|8
+|-
+
+|Sample count
+|28
+|unsigned 64 bit integer
+|8
+|-
+
+|Packet offset
+|36
+|signed 64 bit integer or double
+|8
+|-
+
+|Payload
+|Packet data
+|44
+|Binary
+|-
+|-
+|===

@@ -1,0 +1,66 @@
+= Packet buffer format
+
+Every packet buffer produced by server begins with a standard generic header that is 12 bytes in size, and may include an optional extra header and optional payload. 
+The presence of these optional parts varies depending on the type of packet buffer.
+
+The generic header specifies the version number of the streaming protocol. Currently, there is only one version of the protocol, which is identified as version “0”.
+
+[#generic_header]
+== Generic header
+
+|===
+| Bytes group | Start position offset (in bytes) | Value type | Size in bytes
+
+| Header size - including extra header length
+| 0
+| unsigned 8 bit integer
+| 1
+
+| Packet buffer type code
+| 1
+| unsigned 8 bit integer
+| 1
+
+| Packet streaming protocol version
+| 2
+| unsigned 8 bit integer
+| 1
+
+| xref:#flags[Flags]
+| 3
+| unsigned 8 bit integer
+| 1
+
+| Signal numeric ID
+| 4
+| unsigned 32 bit integer
+| 4
+
+| Payload size
+| 8
+| unsigned 32 bit integer
+| 4
+
+|===
+
+[#flags]
+== Packet buffer flags
+
+The generic header contains a 1-byte field with bit flags that determine how to interpret the contents of the packet buffer.
+
+|===
+| Flag bit | Flag bit mask | Flag bit offset
+
+| Packet can be released
+| 0x1
+| 0
+
+| Packet offset is of integer type
+| 0x2
+| 1
+
+| Packet offset is of double type
+| 0x4
+| 2
+
+|===

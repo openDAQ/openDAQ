@@ -12,7 +12,7 @@ bool AppPropertyObject::processCommand(BaseObjectPtr& propObj, const std::vector
 
     if (command[0] == "List")
         return list(propObj, command);
-    if (command[0] == "get")
+    if (command[0] == "Get")
         return get(propObj, command);
     if (command[0] == "Set")
         return set(propObj, command);

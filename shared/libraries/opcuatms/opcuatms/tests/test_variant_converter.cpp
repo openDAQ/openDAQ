@@ -47,13 +47,13 @@ static DataDescriptorBuilderPtr CreateTestStructDescriptorBuilder()
     //     Meta meta;
     // };
 
-    auto id = DataDescriptorBuilder().setSampleType(SampleType::Int32).setName("id").build();
+    auto id = DataDescriptorBuilder().setSampleType(SampleType::Int32).setName("Id").build();
     auto data = DataDescriptorBuilder().setSampleType(SampleType::UInt8).setName("data").build();
 
     auto desc = DataDescriptorBuilder()
                 .setSampleType(SampleType::String)
-                .setName("description")
-                .setUnit(Unit("V", 1, "voltage", "quantity"))
+                .setName("Description")
+                .setUnit(Unit("V", 1, "voltage", "Quantity"))
                 .setValueRange(Range(1, 10))
                 .setRule(ExplicitDataRule())
                 .setOrigin("2022-11-30T10:53:06")
@@ -254,7 +254,7 @@ TEST_F(VariantConverterTest, CustomDataRule)
 {
     auto params = Dict<IString, IBaseObject>();
     params.set("count", 1);
-    params.set("type", "apple");
+    params.set("Type", "apple");
     params.set("type1", "gala");
     params.set("type2", "fuji");
     params.set("weight", 1.123);
@@ -272,7 +272,7 @@ TEST_F(VariantConverterTest, DataDescriptor)
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::Float64)
                           .setName("Value 1")
-                          .setUnit(Unit("V", 1, "voltage", "quantity"))
+                          .setUnit(Unit("V", 1, "voltage", "Quantity"))
                           .setValueRange(Range(1, 10))
                           .setRule(ExplicitDataRule())
                           .setDimensions(CreateTestDimensions())
@@ -316,7 +316,7 @@ TEST_F(VariantConverterTest, StructDescriptorEmpty)
 TEST_F(VariantConverterTest, DataDescriptorMetadata)
 {
     auto metadata = Dict<IString, IBaseObject>();
-    metadata.set("name", "sine1");
+    metadata.set("Name", "sine1");
     metadata.set("frequency", "50");
 
     auto descriptor = CreateTestStructDescriptorBuilder().setName("Sine1").setMetadata(metadata).build();
@@ -371,7 +371,7 @@ TEST_F(VariantConverterTest, CustomDimensionRule)
 {
     auto params = Dict<IString, IBaseObject>();
     params.set("count", 1);
-    params.set("type", "apple");
+    params.set("Type", "apple");
     params.set("type1", "gala");
     params.set("type2", "fuji");
     params.set("weight", 1.123);

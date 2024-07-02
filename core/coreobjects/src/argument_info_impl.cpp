@@ -12,10 +12,10 @@ namespace detail
 
 ArgumentInfoImpl::ArgumentInfoImpl(StringPtr name, CoreType type)
     : GenericStructImpl<daq::IArgumentInfo, daq::IStruct>(detail::argumentInfoStructType,
-                                                          Dict<IString, IBaseObject>({{"name", name}, {"type", static_cast<Int>(type)}}))
+                                                          Dict<IString, IBaseObject>({{"Name", name}, {"Type", static_cast<Int>(type)}}))
 {
-    this->name = fields.get("name");
-    this->argType = fields.get("type");
+    this->name = fields.get("Name");
+    this->argType = fields.get("Type");
 }
 
 ErrCode ArgumentInfoImpl::getName(IString** argName)
@@ -68,11 +68,11 @@ ErrCode ArgumentInfoImpl::serialize(ISerializer* serializer)
     {
         if (name.assigned())
         {
-            serializer->key("name");
+            serializer->key("Name");
             serializer->writeString(name.getCharPtr(), name.getLength());
         }
 
-        serializer->key("type");
+        serializer->key("Type");
         serializer->writeInt(static_cast<Int>(argType));
     }
 
@@ -102,8 +102,8 @@ ErrCode ArgumentInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
     return daqTry([&serializedObj, &obj]
     {
-        const auto name = serializedObj.readString("name");
-        const auto argType = static_cast<CoreType>(serializedObj.readInt("type"));
+        const auto name = serializedObj.readString("Name");
+        const auto argType = static_cast<CoreType>(serializedObj.readInt("Type"));
 
         *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType).detach();
     });

@@ -12,7 +12,7 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(EventPacketTest, Create)
 {
     const auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    ASSERT_NO_THROW(EventPacket("id", Dict<IString,IBaseObject>()));
+    ASSERT_NO_THROW(EventPacket("Id", Dict<IString,IBaseObject>()));
     ASSERT_NO_THROW(DataDescriptorChangedEventPacket(desc, desc));
 }
 
@@ -20,7 +20,7 @@ TEST_F(EventPacketTest, Getters)
 {
     const auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
     auto packet1 = DataDescriptorChangedEventPacket(desc, desc);
-    auto packet2 = EventPacket("id", Dict<IString,IBaseObject>());
+    auto packet2 = EventPacket("Id", Dict<IString,IBaseObject>());
 
     ASSERT_EQ(packet1.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
     ASSERT_EQ(packet1.getParameters().get(event_packet_param::DATA_DESCRIPTOR), desc);

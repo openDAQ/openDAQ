@@ -44,22 +44,22 @@ TEST_F(ServerTypeTest, DefaultConfigNullValue)
 TEST_F(ServerTypeTest, ServerTypeStructType)
 {
     const auto structType = daq::ServerTypeStructType();
-    const daq::StructPtr structPtr = daq::ServerType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::ServerType("Id", "Name", "Desc");
     ASSERT_EQ(structType, structPtr.getStructType());
 }
 
 TEST_F(ServerTypeTest, ServerTypeStructFields)
 {
-    const daq::StructPtr structPtr = daq::ServerType("id", "name", "desc");
-    ASSERT_EQ(structPtr.get("id"), "id");
-    ASSERT_EQ(structPtr.get("name"), "name");
-    ASSERT_EQ(structPtr.get("description"), "desc");
+    const daq::StructPtr structPtr = daq::ServerType("Id", "Name", "Desc");
+    ASSERT_EQ(structPtr.get("Id"), "Id");
+    ASSERT_EQ(structPtr.get("Name"), "Name");
+    ASSERT_EQ(structPtr.get("Description"), "Desc");
 }
 
 TEST_F(ServerTypeTest, ServerTypeStructNames)
 {
     const auto structType = daq::ServerTypeStructType();
-    const daq::StructPtr structPtr = daq::ServerType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::ServerType("Id", "Name", "Desc");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 

@@ -97,13 +97,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
 TEST_F(ConfigProviderTest, jsonConfigReadModules)
 {
     std::string filename = "jsonConfigReadModules.json";
-    std::string json = "{ \"Modules\": { \"OpcUaClient\": { \"Debug\": 1 }, \"RefDevice\": { \"UseGlobalThreadForAcq\": 1 } } }";
+    std::string json = "{ \"Modules\": { \"OpenDAQOPCUAClientModule\": { \"Debug\": 1 }, \"RefDevice\": { \"UseGlobalThreadForAcq\": 1 } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
 
     auto expectedModules = Dict<IString, IBaseObject>({
-            {"OpcUaClient", Dict<IString, IBaseObject>({
+            {"OpenDAQOPCUAClientModule", Dict<IString, IBaseObject>({
                     {"Debug", 1}
                 })},
             {"RefDevice", Dict<IString, IBaseObject>({
@@ -330,7 +330,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
     // correct field
     setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath", "\"testtest\"");
     // broken field (can not convert to integer)
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "\"string\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "\"String\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -348,7 +348,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
     // correct field
     setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "\"SomeValue\"");
     // broken field (out of depth)
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath_NotExpectedChild", "\"string\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath_NotExpectedChild", "\"String\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -456,7 +456,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument1)
 {
     auto comandLineArgs = List<IString>(
         "-CModuleManager_ModulesPath=\"testtest\"", 
-        "-CScheduler_WorkersNum=\"string\"");
+        "-CScheduler_WorkersNum=\"String\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -473,7 +473,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument2)
 {
     auto comandLineArgs = List<IString>(
         "-Cdeep1_deep2=\"SomeValue\"",
-        "-CModuleManager_ModulesPath_NotExpectedChild=\"string\"");
+        "-CModuleManager_ModulesPath_NotExpectedChild=\"String\"");
 
     auto options = GetDefaultOptions(); 
     

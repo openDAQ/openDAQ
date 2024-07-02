@@ -52,8 +52,8 @@ inline StreamingTypePtr StreamingType(const StringPtr& id,
  */
 inline StructTypePtr StreamingTypeStructType()
 {
-    return StructType("streamingType",
-                      List<IString>("id", "name", "description", "prefix"),
+    return StructType("StreamingType",
+                      List<IString>("Id", "Name", "Description", "Prefix"),
                       List<IString>("", "", "", ""),
                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }

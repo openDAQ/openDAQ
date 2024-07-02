@@ -104,7 +104,7 @@ private:
         }
         else
         {
-            Int delta = rule.getParameters().get("delta");
+            Int delta = rule.getParameters().get("Delta");
             for (size_t i = 0; i < mockPackets.size(); i++)
             {
                 // Linear creation of one domain packet
@@ -137,10 +137,10 @@ private:
     void createFunctionBlock()
     {
         // Fix for race condition
-        auto config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
+        auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
-        fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb", config);
 
         // Set input (port) and output (signal) of the function block
         fb.getInputPorts()[0].connect(signal);

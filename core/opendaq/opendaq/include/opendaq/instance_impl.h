@@ -159,6 +159,8 @@ private:
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);
+
+    StringPtr convertIfOldId(const StringPtr& id);
 };
 
 END_NAMESPACE_OPENDAQ

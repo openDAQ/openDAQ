@@ -79,8 +79,8 @@ TEST_P(SiggenTest, SyncPostScalingSignalDescriptors)
     EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15, 15));
 
     ASSERT_TRUE(dataDescriptor.getPostScaling().assigned());
-    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("scale"), 2);
-    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("offset"), 5);
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("Scale"), 2);
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("Offset"), 5);
 
     EXPECT_EQ(dataDescriptor.getDimensions().getCount(), 0u);
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);
@@ -127,7 +127,7 @@ TEST_P(SiggenTest, DISABLED_RenderSignals)
 {
     auto client = CreateClientInstance(GetParam());
 
-    const auto rendererFb = client.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = client.addFunctionBlock("RefFBModuleRenderer");
 
     rendererFb.getInputPorts()[0].connect(client.getSignalsRecursive()[0]);
     rendererFb.getInputPorts()[1].connect(client.getSignalsRecursive()[1]);

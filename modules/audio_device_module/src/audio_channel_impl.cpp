@@ -6,7 +6,7 @@
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 AudioChannelImpl::AudioChannelImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : ChannelImpl(FunctionBlockType("audio_channel", "Audio", ""), ctx, parent, localId)
+    : ChannelImpl(FunctionBlockType("AudioChannel", "Audio", ""), ctx, parent, localId)
 {
     outputSignal = createAndAddSignal("Audio");
 }

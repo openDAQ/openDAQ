@@ -44,7 +44,7 @@ public:
                                         .setName("Value Name")
                                         .setDimensions(List<IDimension>())
                                         .setRule(ConstantDataRule())
-                                        .setUnit(Unit("symbol", 1, "name", "quantity"))  // Optional
+                                        .setUnit(Unit("Symbol", 1, "Name", "Quantity"))  // Optional
                                         .setOrigin("Origin")                             // Optional
                                         .setValueRange(Range(0.0, 100.0))                // Optional
                                         .setMetadata(serverMetadata)
@@ -91,7 +91,7 @@ public:
     template <typename T>
     void testGetLastValue(const SampleType& sampleType, const T& value)
     {
-        auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+        auto daqServerSignal = Signal(NullContext(), nullptr, "Id");
 
         auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
         auto nodeId = serverSignal.registerOpcUaNode();
@@ -121,7 +121,7 @@ public:
     template <typename T>
     void testGetLastValueComplex(const SampleType& sampleType, const T& realValue, const T& imaginaryValue)
     {
-        auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+        auto daqServerSignal = Signal(NullContext(), nullptr, "Id");
 
         auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
         auto nodeId = serverSignal.registerOpcUaNode();
@@ -150,7 +150,7 @@ TEST_F(TmsSignalTest, Create)
 
 TEST_F(TmsSignalTest, Register)
 {
-    SignalPtr signal = createSignal("id");
+    SignalPtr signal = createSignal("Id");
     auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
@@ -160,13 +160,13 @@ TEST_F(TmsSignalTest, Register)
 
 TEST_F(TmsSignalTest, AttrUniqueId)
 {
-    SignalPtr daqServerSignal = createSignal("id");
+    SignalPtr daqServerSignal = createSignal("Id");
     daqServerSignal.setActive(true);
 
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
-    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "id", clientContext, nodeId);
+    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "Id", clientContext, nodeId);
 
     // UniqueId is set by core, so only test is that it is transferred correctly:
     ASSERT_EQ(daqServerSignal.getLocalId(), clientSignal.getLocalId());
@@ -174,7 +174,7 @@ TEST_F(TmsSignalTest, AttrUniqueId)
 
 TEST_F(TmsSignalTest, AttrActive)
 {
-    SignalPtr daqServerSignal = createSignal("id");
+    SignalPtr daqServerSignal = createSignal("Id");
     daqServerSignal.setActive(true);
 
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
@@ -198,7 +198,7 @@ TEST_F(TmsSignalTest, AttrActive)
 
 TEST_F(TmsSignalTest, AttrPublic)
 {
-    SignalPtr daqServerSignal = createSignal("id");
+    SignalPtr daqServerSignal = createSignal("Id");
 
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
@@ -275,7 +275,7 @@ TEST_F(TmsSignalTest, GetLastValueUInt64)
 
 TEST_F(TmsSignalTest, GetLastValueRange)
 {
-    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+    auto daqServerSignal = Signal(NullContext(), nullptr, "Id");
 
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
@@ -297,7 +297,7 @@ TEST_F(TmsSignalTest, GetLastValueRange)
 
 TEST_F(TmsSignalTest, GetLastValueListOfInt64)
 {
-    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+    auto daqServerSignal = Signal(NullContext(), nullptr, "Id");
 
     auto numbers = List<INumber>();
     numbers.pushBack(1);
@@ -351,7 +351,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
                                     .setSampleType(SampleType::Float32)
                                     .setDimensions(List<IDimension>())
                                     .setRule(ConstantDataRule())
-                                    .setUnit(Unit("symbol", 1, "name", "quantity"))  // Optional
+                                    .setUnit(Unit("Symbol", 1, "Name", "Quantity"))  // Optional
                                     .setOrigin("Origin")                             // Optional
                                     .setValueRange(Range(0.0, 100.0))                // Optional
                                     .setName("Signal Name")
@@ -402,9 +402,9 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     ASSERT_EQ(clientRuleParameters.getCount(), 0u);
 
     auto clientUnit = clientDataDescriptor.getUnit();
-    ASSERT_EQ(clientUnit.getQuantity(), "quantity");
-    ASSERT_EQ(clientUnit.getName(), "name");
-    ASSERT_EQ(clientUnit.getSymbol(), "symbol");
+    ASSERT_EQ(clientUnit.getQuantity(), "Quantity");
+    ASSERT_EQ(clientUnit.getName(), "Name");
+    ASSERT_EQ(clientUnit.getSymbol(), "Symbol");
 
     auto clientValueRange = clientDataDescriptor.getValueRange();
     ASSERT_EQ(clientValueRange.getLowValue(), 0.0);
@@ -483,7 +483,7 @@ TEST_F(TmsSignalTest, AttrRelatedSignals)
 
 TEST_F(TmsSignalTest, MethodGetConnections)
 {
-    SignalPtr daqServerSignal1 = createSignal("id");
+    SignalPtr daqServerSignal1 = createSignal("Id");
     auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), ctx, serverContext);
     auto nodeId1 = serverSignal1.registerOpcUaNode();
 

@@ -73,9 +73,9 @@ template <>
 inline ErrCode write<ComplexFloat64>(ISerializer* serializer, const ComplexFloat64& value)
 {
     serializer->startObject();
-    serializer->key("real");
+    serializer->key("Real");
     serializer->writeFloat(value.real);
-    serializer->key("imaginary");
+    serializer->key("Imaginary");
     serializer->writeFloat(value.imaginary);
     serializer->endObject();
     return OPENDAQ_SUCCESS;
@@ -86,11 +86,11 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, ComplexFlo
 {
     ErrCode status;
 
-    status = serializedObj->readFloat("real"_daq, &valueOut.real);
+    status = serializedObj->readFloat("Real"_daq, &valueOut.real);
     if (OPENDAQ_FAILED(status))
         return status;
 
-    status = serializedObj->readFloat("imaginary"_daq, &valueOut.imaginary);
+    status = serializedObj->readFloat("Imaginary"_daq, &valueOut.imaginary);
     if (OPENDAQ_FAILED(status))
         return status;
 

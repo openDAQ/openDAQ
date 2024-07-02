@@ -225,7 +225,7 @@ void OpcUaServer::createSession(const OpcUaNodeId& sessionId, void** sessionCont
 
 void OpcUaServer::execute()
 {
-    setThreadName("OpcUaServer");
+    setThreadName("OpenDAQOPCUAServerModule");
     while (!terminated)
     {
         UA_Server_run_iterate(server, true);

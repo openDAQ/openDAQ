@@ -14,10 +14,10 @@
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 AudioDeviceModule::AudioDeviceModule(const ContextPtr& context)
-    : Module("Audio device module",
+    : Module("AudioDeviceModule",
             daq::VersionInfo(AUDIO_DEVICE_MODULE_MAJOR_VERSION, AUDIO_DEVICE_MODULE_MINOR_VERSION, AUDIO_DEVICE_MODULE_PATCH_VERSION),
             context,
-            "AudioDevice")
+            "AudioDeviceModule")
     , maContext(std::make_shared<MiniaudioContext>())
     , deviceIndex(0)
 {
@@ -74,7 +74,7 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     std::scoped_lock lock(sync);
 
-    std::string localId = fmt::format("miniaudiodev{}", deviceIndex++);
+    std::string localId = fmt::format("MiniAudioDev{}", deviceIndex++);
 
     auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(maContext, id, context, parent, StringPtr(localId));
     return devicePtr;

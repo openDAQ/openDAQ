@@ -91,7 +91,7 @@ void PowerFbImpl::readProperties()
 
 FunctionBlockTypePtr PowerFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_power", "Power", "Calculates power");
+    return FunctionBlockType("RefFBModulePower", "Power", "Calculates power");
 }
 
 void PowerFbImpl::onPacketReceived(const InputPortPtr& port)
@@ -431,8 +431,8 @@ void PowerFbImpl::configure(bool resync)
 
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
 
-        start = voltageDomainRuleParams.get("start");
-        delta = voltageDomainRuleParams.get("delta");
+        start = voltageDomainRuleParams.get("Start");
+        delta = voltageDomainRuleParams.get("Delta");
     }
     catch (const std::exception& e)
     {

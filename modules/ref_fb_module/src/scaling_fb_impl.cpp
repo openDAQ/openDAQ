@@ -99,7 +99,7 @@ void ScalingFbImpl::readProperties()
 
 FunctionBlockTypePtr ScalingFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_scaling", "Scaling", "Signal scaling");
+    return FunctionBlockType("RefFBModuleScaling", "Scaling", "Signal scaling");
 }
 
 void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
@@ -269,7 +269,7 @@ void ScalingFbImpl::processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& 
 
 void ScalingFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::SchedulerQueueWasEmpty);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::SchedulerQueueWasEmpty);
 }
 
 void ScalingFbImpl::createSignals()

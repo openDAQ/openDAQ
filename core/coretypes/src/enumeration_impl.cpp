@@ -173,7 +173,7 @@ ErrCode EnumerationImpl::serialize(ISerializer* serializer)
     serializer->startTaggedObject(this);
 
     const StringPtr typeName = this->enumerationType.getName();
-    serializer->key("typeName");
+    serializer->key("TypeName");
     serializer->writeString(typeName.getCharPtr(), typeName.getLength());
 
     serializer->key("value");
@@ -205,7 +205,7 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
         return OPENDAQ_ERR_NO_TYPE_MANAGER;
 
     StringPtr typeName;
-    ErrCode errCode = ser->readString("typeName"_daq, &typeName);
+    ErrCode errCode = ser->readString("TypeName"_daq, &typeName);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

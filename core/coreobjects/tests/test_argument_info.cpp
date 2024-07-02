@@ -7,24 +7,24 @@ using namespace daq;
 
 TEST_F(ArgumentInfoTest, Create)
 {
-    ASSERT_NO_THROW(ArgumentInfo("name", CoreType::ctBool));
+    ASSERT_NO_THROW(ArgumentInfo("Name", CoreType::ctBool));
 }
 
 TEST_F(ArgumentInfoTest, Name)
 {
-    auto arg = ArgumentInfo("name", CoreType::ctBool);
-    ASSERT_EQ(arg.getName(), "name");
+    auto arg = ArgumentInfo("Name", CoreType::ctBool);
+    ASSERT_EQ(arg.getName(), "Name");
 }
 
 TEST_F(ArgumentInfoTest, Type)
 {
-    auto arg = ArgumentInfo("name", CoreType::ctBool);
+    auto arg = ArgumentInfo("Name", CoreType::ctBool);
     ASSERT_EQ(arg.getType(), CoreType::ctBool);
 }
 
 TEST_F(ArgumentInfoTest, Inspectable)
 {
-    auto obj = ArgumentInfo("name", CoreType::ctBool);
+    auto obj = ArgumentInfo("Name", CoreType::ctBool);
 
     auto ids = obj.asPtr<IInspectable>(true).getInterfaceIds();
     ASSERT_EQ(ids[0], IArgumentInfo::Id);
@@ -32,7 +32,7 @@ TEST_F(ArgumentInfoTest, Inspectable)
 
 TEST_F(ArgumentInfoTest, ImplementationName)
 {
-    auto obj = ArgumentInfo("name", CoreType::ctBool);
+    auto obj = ArgumentInfo("Name", CoreType::ctBool);
 
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::ArgumentInfoImpl");
@@ -48,8 +48,8 @@ TEST_F(ArgumentInfoTest, StructType)
 TEST_F(ArgumentInfoTest, StructFields)
 {
     const StructPtr structPtr = ArgumentInfo("test", ctString);
-    ASSERT_EQ(structPtr.get("name"), "test");
-    ASSERT_EQ(structPtr.get("type"), static_cast<Int>(ctString));
+    ASSERT_EQ(structPtr.get("Name"), "test");
+    ASSERT_EQ(structPtr.get("Type"), static_cast<Int>(ctString));
 }
 
 TEST_F(ArgumentInfoTest, StructNames)
@@ -61,7 +61,7 @@ TEST_F(ArgumentInfoTest, StructNames)
 
 TEST_F(ArgumentInfoTest, SerializeDeserialize)
 {
-    const auto argInfo1 = ArgumentInfo("name", CoreType::ctBool);
+    const auto argInfo1 = ArgumentInfo("Name", CoreType::ctBool);
 
     const auto serializer = JsonSerializer();
     argInfo1.serialize(serializer);

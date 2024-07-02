@@ -70,22 +70,22 @@ public:
         auto structureProtocolType = std::get<0>(GetParam());
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT + index);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT + index);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;
@@ -108,29 +108,29 @@ public:
         for (auto index = 1; index <= 2; index++)
         {
             auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
-                                            ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                            : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                            ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                            : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
             const auto config = createDeviceConfig(instance, streamingProtocolIds, MIN_CONNECTIONS);
             const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;
@@ -149,8 +149,8 @@ public:
         auto gatewayStreamingType = std::get<2>(GetParam());
 
         auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
-                                        ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                        : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
 

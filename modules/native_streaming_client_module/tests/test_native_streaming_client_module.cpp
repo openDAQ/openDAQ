@@ -34,7 +34,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateModule)
 TEST_F(NativeStreamingClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ native streaming client module");
+    ASSERT_EQ(module.getName(), "OpenDAQNativeStreamingClientModule");
 }
 
 TEST_F(NativeStreamingClientModuleTest, VersionAvailable)
@@ -139,7 +139,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingConnectionString)
     createModule(&module, context);
 
     StringPtr connectionString;
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming);
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");
@@ -161,7 +161,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionString)
     createModule(&module, context);
 
     StringPtr connectionString;
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
     ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 
     serverCapability.addAddress("123.123.123.123");
@@ -187,10 +187,10 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 2u);
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
-    ASSERT_EQ(deviceTypes.get("opendaq_native_streaming").getId(), "opendaq_native_streaming");
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
-    ASSERT_EQ(deviceTypes.get("opendaq_native_config").getId(), "opendaq_native_config");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getId(), "OpenDAQNativeConfiguration");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -205,13 +205,13 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 2u);
 
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
-    auto deviceConfig = deviceTypes.get("opendaq_native_config").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
+    auto deviceConfig = deviceTypes.get("OpenDAQNativeConfiguration").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.assigned());
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
 
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
-    auto pseudoDeviceConfig = deviceTypes.get("opendaq_native_streaming").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
+    auto pseudoDeviceConfig = deviceTypes.get("OpenDAQNativeStreaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://address", pseudoDeviceConfig));
 }

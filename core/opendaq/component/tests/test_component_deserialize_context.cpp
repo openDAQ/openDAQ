@@ -12,11 +12,11 @@ TEST_F(ComponentDeserializeContextTest, Create)
     daq::MockComponent::Strict parent;
     daq::IntfID intfID = daq::IBoolean::Id;
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "id", &intfID);
+    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "Id", &intfID);
 
     ASSERT_EQ(deserializeContext.getContext(), context.ptr);
     ASSERT_EQ(deserializeContext.getParent(), parent.ptr);
-    ASSERT_EQ(deserializeContext.getLocalId(), "id");
+    ASSERT_EQ(deserializeContext.getLocalId(), "Id");
     ASSERT_EQ(deserializeContext.getIntfID(), daq::IBoolean::Id);
 }
 
@@ -26,7 +26,7 @@ TEST_F(ComponentDeserializeContextTest, Clone)
     daq::MockComponent::Strict parent;
     daq::IntfID intfID = daq::IBoolean::Id;
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "id", &intfID);
+    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "Id", &intfID);
 
     daq::MockComponent::Strict newParent;
 
@@ -41,7 +41,7 @@ TEST_F(ComponentDeserializeContextTest, Clone)
 
 TEST_F(ComponentDeserializeContextTest, QueryInterfaceTypeManager)
 {
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "Id");
 
     const auto typeManager = deserializeContext.asPtr<daq::ITypeManager>();
     ASSERT_TRUE(typeManager.assigned());
@@ -49,7 +49,7 @@ TEST_F(ComponentDeserializeContextTest, QueryInterfaceTypeManager)
 
 TEST_F(ComponentDeserializeContextTest, BorrowInterfaceTypeManager)
 {
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "Id");
 
     const auto typeManager = deserializeContext.asPtr<daq::ITypeManager>(true);
     ASSERT_TRUE(typeManager.assigned());

@@ -8,12 +8,12 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
 NativeStreamingServerModule::NativeStreamingServerModule(ContextPtr context)
-    : Module("openDAQ native streaming server module",
+    : Module("OpenDAQNativeStreamingServerModule",
              daq::VersionInfo(NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION,
                               NATIVE_STREAM_SRV_MODULE_MINOR_VERSION,
                               NATIVE_STREAM_SRV_MODULE_PATCH_VERSION),
              std::move(context),
-             "NativeStreamingServer")
+             "OpenDAQNativeStreamingServerModule")
 {
 }
 

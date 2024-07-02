@@ -17,7 +17,7 @@ namespace detail
         if (ruleType == DataRuleType::Explicit)
             return Dict<IString, IBaseObject>({{"minExpectedDelta", param1}, {"maxExpectedDelta", param2}});
         if (ruleType == DataRuleType::Linear)
-            return Dict<IString, IBaseObject>({{"delta", param1}, {"start", param2}});
+            return Dict<IString, IBaseObject>({{"Delta", param1}, {"Start", param2}});
 
         throw InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."};
     }
@@ -35,7 +35,7 @@ namespace detail
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params)
     : GenericStructImpl<IDataRule, IStruct, IRulePrivate>(
-          detail::dataRuleStructType, Dict<IString, IBaseObject>({{"type", static_cast<Int>(ruleType)}, {"parameters", params}}))
+          detail::dataRuleStructType, Dict<IString, IBaseObject>({{"Type", static_cast<Int>(ruleType)}, {"Parameters", params}}))
     , ruleType(ruleType)
     , params(params)
 {
@@ -108,10 +108,10 @@ ErrCode DataRuleImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("ruleType");
+        serializer->key("RuleType");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("params");
+        serializer->key("Params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -136,8 +136,8 @@ ConstCharPtr DataRuleImpl::SerializeId()
 ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto ruleType = static_cast<DataRuleType>(serializedObj.readInt("ruleType"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
+    auto ruleType = static_cast<DataRuleType>(serializedObj.readInt("RuleType"));
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
 
     return createObject<IDataRule, DataRuleImpl>(reinterpret_cast<IDataRule**>(obj), ruleType, params);
 }
@@ -153,16 +153,16 @@ ErrCode DataRuleImpl::verifyParametersInternal()
         if (params.getCount() != 2)
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear rule has an invalid number of parameters. Required parameters are "delta" and "start")");
+                                 R"(Linear rule has an invalid number of parameters. Required parameters are "Delta" and "Start")");
         }
 
-        if (!params.hasKey("delta") || !params.hasKey("start"))
+        if (!params.hasKey("Delta") || !params.hasKey("Start"))
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear rule has invalid parameters. Required parameters are "delta" and "start")");
+                                 R"(Linear rule has invalid parameters. Required parameters are "Delta" and "Start")");
         }
 
-        if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned())
+        if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned())
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
         }

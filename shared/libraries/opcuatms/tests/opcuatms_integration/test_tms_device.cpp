@@ -304,13 +304,13 @@ TEST_F(TmsDeviceTest, DeviceDomain)
     ASSERT_EQ(ticksSinceOrigin, 789);
 
     auto origin = deviceDomain.getOrigin();
-    ASSERT_EQ(origin, "origin");
+    ASSERT_EQ(origin, "Origin");
 
     auto unit = deviceDomain.getUnit();
     ASSERT_EQ(unit.getId(), 987);
-    ASSERT_EQ(unit.getSymbol(), "unit_symbol");
-    ASSERT_EQ(unit.getName(), "unit_name");
-    ASSERT_EQ(unit.getQuantity(), "unit_quantity");
+    ASSERT_EQ(unit.getSymbol(), "UnitSymbol");
+    ASSERT_EQ(unit.getName(), "UnitName");
+    ASSERT_EQ(unit.getQuantity(), "UnitQuantity");
 
 }
 
@@ -523,7 +523,7 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     clientSubDevice.setName("new_name");
-    clientSubDevice.setPropertyValue("location", "new_location");
+    clientSubDevice.setPropertyValue("Location", "new_location");
     
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());

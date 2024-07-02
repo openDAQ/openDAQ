@@ -699,7 +699,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
 
     const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
 
-    const auto deserializedDomainSignalId = newSignal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    const auto deserializedDomainSignalId = newSignal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
     ASSERT_EQ(deserializedDomainSignalId, domainSignal.getGlobalId());
     newSignal.setDomainSignal(domainSignal);
 
@@ -839,9 +839,9 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
 TEST_F(SignalTest, GetLastValueInvisibleDisabled)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
     signal.setVisible(False);
-    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("Visible"));
 
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
 

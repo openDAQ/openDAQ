@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
             {
                 device = instance.addDevice(capability.getConnectionString());
                 break;
@@ -86,7 +86,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);

@@ -49,7 +49,7 @@ void TmsServer::start()
     tmsContext = std::make_shared<TmsServerContext>(context, device);
     auto signals = device.getSignals();
 
-    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+    auto serverCapability = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUA", ProtocolType::Configuration);
     serverCapability.setPrefix("daq.opcua");
     serverCapability.setConnectionType("TCP/IP");
     serverCapability.setPort(opcUaPort);

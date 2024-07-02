@@ -111,7 +111,7 @@ TEST_F(PropertyTest, SelectionValuesWithCustomClass)
     manager.addType(testClass);
 
     std::string json =
-        R"~({"__type":"Property","name":"TestProperty","valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":[{"__type":"PropertyObject","className":"TestClass","propValues":{"TestIntProp":5}}]})~";
+        R"~({"__type":"Property","name":"TestProperty","valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":[{"__type":"PropertyObject","className":"TestClass","PropValues":{"TestIntProp":5}}]})~";
 
     auto deserializer = JsonDeserializer();
     PropertyPtr ptr = deserializer.deserialize(json, manager);

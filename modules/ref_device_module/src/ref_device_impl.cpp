@@ -20,7 +20,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , stopAcq(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent("ReferenceDevice")
+                          ? this->logger.getOrAddComponent("ReferenceDeviceModule")
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initIoFolder();
@@ -73,8 +73,8 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
 
 DeviceTypePtr RefDeviceImpl::CreateType()
 {
-    return DeviceType("daqref",
-                      "Reference device",
+    return DeviceType("ReferenceDevice",
+                      "ReferenceDevice",
                       "Reference device");
 }
 
@@ -121,8 +121,8 @@ void RefDeviceImpl::initClock()
 
 void RefDeviceImpl::initIoFolder()
 {
-    aiFolder = this->addIoFolder("ai", ioFolder);
-    canFolder = this->addIoFolder("can", ioFolder);
+    aiFolder = this->addIoFolder("AI", ioFolder);
+    canFolder = this->addIoFolder("CAN", ioFolder);
 }
 
 void RefDeviceImpl::initSyncComponent()
@@ -243,7 +243,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     for (auto i = channels.size(); i < num; i++)
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("refch{}", i);
+        auto localId = fmt::format("RefCh{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
     }

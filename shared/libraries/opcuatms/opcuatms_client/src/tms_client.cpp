@@ -32,7 +32,7 @@ TmsClient::TmsClient(const ContextPtr& context,
     : context(context)
     , endpoint(endpoint)
     , parent(parent)
-    , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpcUaClient")
+    , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule")
                                                      : throw ArgumentNullException("Logger must not be null"))
 {
 }

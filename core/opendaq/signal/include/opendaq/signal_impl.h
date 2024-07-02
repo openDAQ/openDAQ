@@ -1030,18 +1030,18 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 {
     if (domainSignal.assigned())
     {
-        serializer.key("domainSignalId");
+        serializer.key("DomainSignalId");
         const auto domainSignalGlobalId = domainSignal.getGlobalId();
         serializer.writeString(domainSignalGlobalId);
     }
 
     if (dataDescriptor.assigned())
     {
-        serializer.key("dataDescriptor");
+        serializer.key("DataDescriptor");
         dataDescriptor.serialize(serializer);
     }
 
-    serializer.key("public");
+    serializer.key("Public");
     serializer.writeBool(isPublic);
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
@@ -1050,8 +1050,8 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
-    if (obj.hasKey("public"))
-        isPublic = obj.readBool("public");
+    if (obj.hasKey("Public"))
+        isPublic = obj.readBool("Public");
 
     Super::updateObject(obj);
 }
@@ -1108,7 +1108,7 @@ void SignalBase<TInterface, Interfaces...>::removed()
 template <typename TInterface, typename... Interfaces>
 BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
 {
-    if (parameter == "domainSignalId")
+    if (parameter == "DomainSignalId")
         return deserializedDomainSignalId;
 
     throw NotFoundException();
@@ -1120,12 +1120,12 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
                                                                     const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
-    if (serializedObject.hasKey("domainSignalId"))
-        deserializedDomainSignalId = serializedObject.readString("domainSignalId");
-    if (serializedObject.hasKey("dataDescriptor"))
-        dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
-    if (serializedObject.hasKey("public"))
-        isPublic = serializedObject.readBool("public");
+    if (serializedObject.hasKey("DomainSignalId"))
+        deserializedDomainSignalId = serializedObject.readString("DomainSignalId");
+    if (serializedObject.hasKey("DataDescriptor"))
+        dataDescriptor = serializedObject.readObject("DataDescriptor", context, factoryCallback);
+    if (serializedObject.hasKey("Public"))
+        isPublic = serializedObject.readBool("Public");
 }
 
 template <typename TInterface, typename... Interfaces>

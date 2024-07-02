@@ -42,8 +42,8 @@ inline ArgumentInfoPtr ArgumentInfo(StringPtr name, CoreType type)
  */
 inline StructTypePtr ArgumentInfoStructType()
 {
-    return StructType("argumentInfo",
-                      List<IString>("name", "type"),
+    return StructType("ArgumentInfo",
+                      List<IString>("Name", "Type"),
                       List<IBaseObject>("", static_cast<Int>(ctUndefined)),
                       List<IType>(SimpleType(ctString), SimpleType(ctInt)));
 }

@@ -25,24 +25,24 @@ protected:
 
 TEST_F(ComponentTest, ID)
 {
-    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("parent"), nullptr));
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("child"), nullptr));
+    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Parent"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("Child"), nullptr));
 
-    ASSERT_EQ(comp.getGlobalId(), "/parent/child");
-    ASSERT_EQ(comp.getLocalId(), "child");
+    ASSERT_EQ(comp.getGlobalId(), "/Parent/Child");
+    ASSERT_EQ(comp.getLocalId(), "Child");
 }
 
 TEST_F(ComponentTest, Parent)
 {
-    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("parent"), nullptr));
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("child"), nullptr));
+    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Parent"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("Child"), nullptr));
 
     ASSERT_EQ(comp.getParent(), parent);
 }
 
 TEST_F(ComponentTest, Active)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
     ASSERT_TRUE(comp.getActive());
     comp.setActive(false);
     ASSERT_FALSE(comp.getActive());
@@ -50,13 +50,13 @@ TEST_F(ComponentTest, Active)
 
 TEST_F(ComponentTest, Context)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
     ASSERT_EQ(context->getObject(), comp.getContext());
 }
 
 TEST_F(ComponentTest, NullPropertyClass)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
     ASSERT_EQ(comp.getClassName(), "");
 }
 
@@ -66,7 +66,7 @@ TEST_F(ComponentTest, PropertyClass)
     auto rangeItemClass = PropertyObjectClassBuilder("TestClass").build();
     context.getTypeManager().addType(rangeItemClass);
 
-    auto comp = ComponentPtr::Adopt(Component_Create(context, nullptr, StringPtr("child"), StringPtr("TestClass")));
+    auto comp = ComponentPtr::Adopt(Component_Create(context, nullptr, StringPtr("Child"), StringPtr("TestClass")));
     ASSERT_EQ(comp.getClassName(), "TestClass");
 }
 
@@ -88,7 +88,7 @@ TEST_F(ComponentTest, StandardProperties)
 {
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "Temp");
 
     component.setName(name);
     component.setDescription(desc);
@@ -101,7 +101,7 @@ TEST_F(ComponentTest, SerializeAndUpdate)
 {
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "Temp");
 
     component.setName(name);
     component.setDescription(desc);
@@ -110,7 +110,7 @@ TEST_F(ComponentTest, SerializeAndUpdate)
     component.serialize(serializer);
     const auto str1 = serializer.getOutput();
 
-    const auto newComponent = Component(NullContext(), nullptr, "temp");
+    const auto newComponent = Component(NullContext(), nullptr, "Temp");
     const auto deserializer = JsonDeserializer();
     const auto updatable = newComponent.asPtr<IUpdatable>();
 
@@ -131,20 +131,20 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     const auto ctx = NullContext();
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(ctx, nullptr, "temp");
+    const auto component = Component(ctx, nullptr, "Temp");
 
     const auto typeManager = component.getContext().getTypeManager();
     const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
     typeManager.addType(statusType);
     const auto statusValue = Enumeration("StatusType", "On", typeManager);
 
-    component.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("status", statusValue);
+    component.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("Status", statusValue);
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().asPtr<ITagsPrivate>().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("Tag");
 
-    component.addProperty(IntPropertyBuilder("prop", 2).build());
-    component.setPropertyValue("prop", 3);
+    component.addProperty(IntPropertyBuilder("Prop", 2).build());
+    component.setPropertyValue("Prop", 3);
 
     const auto serializer = JsonSerializer(True);
     component.serialize(serializer);
@@ -152,14 +152,14 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
     const auto deserializer = JsonDeserializer();
 
-    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "temp");
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "Temp");
 
     const ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
 
     ASSERT_EQ(newComponent.getName(), name);
     ASSERT_EQ(newComponent.getDescription(), desc);
     ASSERT_EQ(newComponent.getTags(), component.getTags());
-    ASSERT_EQ(newComponent.getPropertyValue("prop"), component.getPropertyValue("prop"));
+    ASSERT_EQ(newComponent.getPropertyValue("Prop"), component.getPropertyValue("Prop"));
     ASSERT_EQ(newComponent.getStatusContainer().getStatuses(), component.getStatusContainer().getStatuses());
 
     const auto serializer2 = JsonSerializer(True);
@@ -171,17 +171,17 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
 TEST_F(ComponentTest, LockedProperties)
 {
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "Temp");
 
     ASSERT_EQ(component.getLockedAttributes().getCount(), 1u);
 
-    ASSERT_NO_THROW(component.setName("name"));
-    ASSERT_NO_THROW(component.setDescription("desc"));
+    ASSERT_NO_THROW(component.setName("Name"));
+    ASSERT_NO_THROW(component.setDescription("Desc"));
     ASSERT_NO_THROW(component.setVisible(false));
     ASSERT_NO_THROW(component.setActive(false));
 
-    ASSERT_EQ(component.getName(), "name");
-    ASSERT_EQ(component.getDescription(), "desc");
+    ASSERT_EQ(component.getName(), "Name");
+    ASSERT_EQ(component.getDescription(), "Desc");
     ASSERT_EQ(component.getVisible(), true);
     ASSERT_EQ(component.getActive(), false);
 
@@ -192,8 +192,8 @@ TEST_F(ComponentTest, LockedProperties)
     ASSERT_NO_THROW(component.setVisible(false));
     ASSERT_NO_THROW(component.setActive(true));
 
-    ASSERT_EQ(component.getName(), "name");
-    ASSERT_EQ(component.getDescription(), "desc");
+    ASSERT_EQ(component.getName(), "Name");
+    ASSERT_EQ(component.getDescription(), "Desc");
     ASSERT_EQ(component.getVisible(), true);
     ASSERT_EQ(component.getActive(), false);
     
@@ -212,7 +212,7 @@ TEST_F(ComponentTest, LockedProperties)
 
 TEST_F(ComponentTest, StatusContainer)
 {
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "Temp");
 
     const auto componentStatusContainer = component.getStatusContainer();
 
@@ -222,7 +222,7 @@ TEST_F(ComponentTest, StatusContainer)
 TEST_F(ComponentTest, NonPropertyObjectObjectTypeProperty)
 {
     const auto obj = PropertyObject();
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "Temp");
     auto prop = ObjectProperty("Object1", component);
 
     ASSERT_THROW(obj.addProperty(prop), InvalidTypeException);
@@ -230,7 +230,7 @@ TEST_F(ComponentTest, NonPropertyObjectObjectTypeProperty)
 
 TEST_F(ComponentTest, Remove)
 {
-    auto component = Component(NullContext(), nullptr, "temp");
+    auto component = Component(NullContext(), nullptr, "Temp");
 
     ASSERT_NO_THROW(component.remove());
     ASSERT_TRUE(component.isRemoved());

@@ -146,7 +146,7 @@ namespace reader
         }
         else
         {
-            delta = rule.getParameters()["delta"];
+            delta = rule.getParameters()["Delta"];
         }
 
         double sampleRate = static_cast<double>(resolution.getDenominator()) / (static_cast<double>(resolution.getNumerator()) * delta.getFloatValue());

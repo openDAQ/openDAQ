@@ -226,7 +226,7 @@ void TmsServerDevice::populateServerCapabilities()
     if (deviceInfo == nullptr)
         return;
 
-    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
+    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("ServerCapabilities"); 
 
     auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
             nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");
@@ -280,7 +280,7 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
     params.outputArguments[1].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
     params.outputArguments[1].valueRank = UA_VALUERANK_SCALAR;
 
-    params.inputArguments[0].name = UA_STRING_ALLOC("typeId");
+    params.inputArguments[0].name = UA_STRING_ALLOC("TypeId");
     params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
     params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
 

@@ -60,7 +60,7 @@ static InstancePtr CreateTestInstance()
 
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
-    auto config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     return config;
 }
 
@@ -77,7 +77,7 @@ TEST_F(OpcUaServerModuleTest, CreateModule)
 TEST_F(OpcUaServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ OpcUa server module");
+    ASSERT_EQ(module.getName(), "OpenDAQOPCUAServerModule");
 }
 
 TEST_F(OpcUaServerModuleTest, VersionAvailable)
@@ -111,8 +111,8 @@ TEST_F(OpcUaServerModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 1u);
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ OpcUa"));
-    ASSERT_EQ(serverTypes.get("openDAQ OpcUa").getId(), "openDAQ OpcUa");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQOPCUA"));
+    ASSERT_EQ(serverTypes.get("OpenDAQOPCUA").getId(), "OpenDAQOPCUA");
 }
 
 TEST_F(OpcUaServerModuleTest, ServerConfig)
@@ -120,8 +120,8 @@ TEST_F(OpcUaServerModuleTest, ServerConfig)
     auto module = CreateModule();
 
     DictPtr<IString, IServerType> serverTypes = module.getAvailableServerTypes();
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ OpcUa"));
-    auto config = serverTypes.get("openDAQ OpcUa").createDefaultConfig();
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQOPCUA"));
+    auto config = serverTypes.get("OpenDAQOPCUA").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
     ASSERT_TRUE(config.hasProperty("Port"));
@@ -134,7 +134,7 @@ TEST_F(OpcUaServerModuleTest, CreateServer)
     auto module = CreateModule(device.getContext());
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(module.createServer("openDAQ OpcUa", device.getRootDevice(), config));
+    ASSERT_NO_THROW(module.createServer("OpenDAQOPCUA", device.getRootDevice(), config));
 }
 
 TEST_F(OpcUaServerModuleTest, CreateServerFromInstance)
@@ -142,14 +142,14 @@ TEST_F(OpcUaServerModuleTest, CreateServerFromInstance)
     auto device = CreateTestInstance();
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(device.addServer("openDAQ OpcUa", config));
+    ASSERT_NO_THROW(device.addServer("OpenDAQOPCUA", config));
 }
 
 TEST_F(OpcUaServerModuleTest, TestConnection)
 {
     auto device = CreateTestInstance();
     auto config = CreateServerConfig(device);
-    device.addServer("openDAQ OpcUa", config);
+    device.addServer("OpenDAQOPCUA", config);
 
     OpcUaClient client("opc.tcp://localhost/");
     ASSERT_NO_THROW(client.connect());
@@ -163,7 +163,7 @@ TEST_F(OpcUaServerModuleTest, TestConnectionDifferentPort)
 
     config.setPropertyValue("Port", 4841);
 
-    auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
+    auto serverPtr = module.createServer("OpenDAQOPCUA", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost:4841/");
     ASSERT_NO_THROW(client.connect());
@@ -175,7 +175,7 @@ TEST_F(OpcUaServerModuleTest, StopServer)
     auto module = CreateModule(device.getContext());
     auto config = CreateServerConfig(device);
 
-    auto serverPtr = module.createServer("openDAQ OpcUa", device.getRootDevice(), config);
+    auto serverPtr = module.createServer("OpenDAQOPCUA", device.getRootDevice(), config);
 
     OpcUaClient client("opc.tcp://localhost/");
     ASSERT_NO_THROW(client.connect());

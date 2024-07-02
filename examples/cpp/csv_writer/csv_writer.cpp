@@ -266,7 +266,7 @@ int main(int argc, const char* argv[])
     logger.setLevel(daq::LogLevel::Critical);
 
     auto serverTypes = instance.getAvailableServerTypes();
-    auto config = serverTypes.get("openDAQ LT Streaming").createDefaultConfig();
+    auto config = serverTypes.get("OpenDAQLTStreaming").createDefaultConfig();
 
     bool readTime = false;
     for (int i = 0; i < argc; ++i)
@@ -291,9 +291,9 @@ int main(int argc, const char* argv[])
     config.setPropertyValue("WebsocketStreamingPort", websocketPort);
 
     // Start a web-socket streaming server
-    instance.addServer("openDAQ LT Streaming", config);
+    instance.addServer("OpenDAQLTStreaming", config);
     // Start an OpcUa server
-    instance.addServer("openDAQ OpcUa", nullptr);
+    instance.addServer("OpenDAQOPCUA", nullptr);
 
     // Discover and connect to devices
     auto deviceInfoList = instance.getAvailableDevices();
@@ -314,7 +314,7 @@ int main(int argc, const char* argv[])
 
     daq::FunctionBlockPtr renderer;
     if (useRenderer)
-        renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+        renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Create readers and writers
     std::vector<RecordedDevicePtr> recordedDevices;

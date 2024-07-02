@@ -107,7 +107,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @param attributeName The name of the changed attribute.
  * @param attributeValue The new value of the attribute.
  *
- * An example of such attribute are the "active" and "visible" states of a component.
+ * An example of such attribute are the "Active" and "Visible" states of a component.
  *
  * The ID of the event is 100, and the event name is "AttributeChanged".
  */

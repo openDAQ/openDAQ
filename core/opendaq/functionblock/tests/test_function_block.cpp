@@ -23,22 +23,22 @@ TEST_F(FunctionBlockTest, Folders)
 TEST_F(FunctionBlockTest, FunctionBlockTypeStructType)
 {
     const auto structType = daq::FunctionBlockTypeStructType();
-    const daq::StructPtr structPtr = daq::FunctionBlockType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::FunctionBlockType("Id", "Name", "Desc");
     ASSERT_EQ(structType, structPtr.getStructType());
 }
 
 TEST_F(FunctionBlockTest, FunctionBlockTypeStructFields)
 {
-    const daq::StructPtr structPtr = daq::FunctionBlockType("id", "name", "desc");
-    ASSERT_EQ(structPtr.get("id"), "id");
-    ASSERT_EQ(structPtr.get("name"), "name");
-    ASSERT_EQ(structPtr.get("description"), "desc");
+    const daq::StructPtr structPtr = daq::FunctionBlockType("Id", "Name", "Desc");
+    ASSERT_EQ(structPtr.get("Id"), "Id");
+    ASSERT_EQ(structPtr.get("Name"), "Name");
+    ASSERT_EQ(structPtr.get("Description"), "Desc");
 }
 
 TEST_F(FunctionBlockTest, FunctionBlockTypeStructNames)
 {
     const auto structType = daq::FunctionBlockTypeStructType();
-    const daq::StructPtr structPtr = daq::FunctionBlockType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::FunctionBlockType("Id", "Name", "Desc");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
@@ -47,7 +47,7 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
     auto defConfig = daq::PropertyObject();
     defConfig.addProperty(daq::StringPropertyBuilder("cfg", "val").build());
 
-    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("id", "name", "desc", defConfig);
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("Id", "Name", "Desc", defConfig);
 
     const auto serializer = daq::JsonSerializer();
     fbType.serialize(serializer);

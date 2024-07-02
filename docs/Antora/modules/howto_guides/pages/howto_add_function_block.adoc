@@ -72,21 +72,21 @@ Cpp::
 [source,cpp]
 ----
 // Add Function Block on the host computer
-FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFBModuleStatistics");
 ----
 Python::
 +
 [source,python]
 ----
 # Add Function Block on the host computer
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block("RefFBModuleStatistics")
 ----
 C#::
 +
 [source,csharp]
 ----
 // Add Function Block on the host computer
-FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 ----
 ====
 
@@ -161,11 +161,11 @@ int main()
         std::cout << functionBlockType << std::endl;
 
     // If there is no Statistics Function Block available, exit with an error
-    if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
+    if (!functionBlockTypes.hasKey("RefFBModuleStatistics"))
         return 1;
 
     // Add Function Block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFBModuleStatistics");
 
     // Print Function Block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
@@ -194,12 +194,12 @@ for function_block_type in function_block_types.keys():
     print(function_block_type)
 
 # If there is no Statistics Function Block available, exit with an error
-if not "ref_fb_module_statistics" in function_block_types.keys():
+if not "RefFBModuleStatistics" in function_block_types.keys():
     print('Function block not found')
     exit(1)
 
 # Add Function Block on the host computer
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block("RefFBModuleStatistics")
 
 # Print Function Block type info
 function_block_type = function_block.function_block_type
@@ -227,11 +227,11 @@ foreach (string functionBlockTypeName in functionBlockTypes.Keys)
     Console.WriteLine(functionBlockTypeName);
 
 // If there is no Statistics Function Block available, exit with an error
-if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
+if (!functionBlockTypes.ContainsKey("RefFBModuleStatistics"))
     return 1;
 
 // Add Function Block on the host computer
-FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
 // Print Function Block type info
 FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;

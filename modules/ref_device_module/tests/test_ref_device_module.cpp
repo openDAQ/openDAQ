@@ -44,7 +44,7 @@ TEST_F(RefDeviceModuleTest, CreateModule)
 TEST_F(RefDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Reference device module");
+    ASSERT_EQ(module.getName(), "ReferenceDeviceModule");
 }
 
 TEST_F(RefDeviceModuleTest, VersionAvailable)
@@ -206,8 +206,8 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("daqref"));
-    ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
+    ASSERT_TRUE(deviceTypes.hasKey("ReferenceDevice"));
+    ASSERT_EQ(deviceTypes.get("ReferenceDevice").getId(), "ReferenceDevice");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -219,14 +219,14 @@ TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)
     auto module = CreateModule();
 
     FunctionBlockPtr functionBlock;
-    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "id"), ArgumentNullException);
+    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "Id"), ArgumentNullException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
+    ASSERT_THROW(module.createFunctionBlock("", nullptr, "Id"), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
@@ -423,14 +423,14 @@ TEST_F(RefDeviceModuleTest, Ids)
     auto valueSignal = channel.getSignals()[0];
     auto domainSignal = channel.getSignals(search::Any())[1];
 
-    ASSERT_EQ(channel.getLocalId(), "refch0");
-    ASSERT_EQ(channel.getGlobalId(), "/ref_dev1/IO/ai/refch0");
+    ASSERT_EQ(channel.getLocalId(), "RefCh0");
+    ASSERT_EQ(channel.getGlobalId(), "/RefDev1/IO/AI/RefCh0");
 
-    ASSERT_EQ(valueSignal.getLocalId(), "ai0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/ref_dev1/IO/ai/refch0/Sig/ai0");
+    ASSERT_EQ(valueSignal.getLocalId(), "AI0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0");
 
-    ASSERT_EQ(domainSignal.getLocalId(), "ai0_time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/ref_dev1/IO/ai/refch0/Sig/ai0_time");
+    ASSERT_EQ(domainSignal.getLocalId(), "AI0Time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0Time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -479,7 +479,7 @@ TEST_F(RefDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
     auto channel = channels[0];
     auto signals = channel.getSignals();
 
-    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    auto inputPort = InputPort(NullContext(), nullptr, "Input");
     inputPort.connect(signals[0]);
 
     ASSERT_EQ(inputPort.getSignal(), signals[0]);
@@ -496,7 +496,7 @@ TEST_F(RefDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
     auto channel = channels[1];
     auto signals = channel.getSignals();
 
-    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    auto inputPort = InputPort(NullContext(), nullptr, "Input");
     inputPort.connect(signals[0]);
 
     ASSERT_EQ(inputPort.getSignal(), signals[0]);
@@ -529,7 +529,7 @@ TEST_F(RefDeviceModuleTest, Folders)
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
     FolderPtr ioFolder = device.getItem("IO");
-    FolderPtr aiFolder = ioFolder.getItem("ai");
+    FolderPtr aiFolder = ioFolder.getItem("AI");
     ChannelPtr chX = aiFolder.getItems()[0];
 
     auto channels = device.getChannels();
@@ -589,7 +589,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
 
     device.setPropertyValue("EnableCANChannel", True);
 
-    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("CAN").asPtr<IFolder>().getItems()[0];
 
     const auto canSignal = canCh.getSignals()[0];
     const auto canTimeSignal = canSignal.getDomainSignal();
@@ -640,7 +640,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
 
     device.setPropertyValue("EnableCANChannel", True);
 
-    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("CAN").asPtr<IFolder>().getItems()[0];
 
     const auto canSignal = canCh.getSignals()[0];
     const auto canTimeSignal = canSignal.getDomainSignal();
@@ -852,7 +852,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
@@ -861,7 +861,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)

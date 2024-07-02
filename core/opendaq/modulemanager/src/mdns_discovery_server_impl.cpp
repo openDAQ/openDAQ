@@ -62,17 +62,17 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     if (configPtr.hasProperty("Path"))
         properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
 
-    properties["name"] = "";
-    properties["manufacturer"] = "";
-    properties["model"] = "";
-    properties["serialNumber"] = "";
+    properties["Name"] = "";
+    properties["Manufacturer"] = "";
+    properties["Model"] = "";
+    properties["SerialNumber"] = "";
 
     if (deviceInfoPtr.assigned())
     {
-        properties["name"] = deviceInfoPtr.getName().toStdString();
-        properties["manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
-        properties["model"] = deviceInfoPtr.getModel().toStdString();
-        properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
+        properties["Name"] = deviceInfoPtr.getName().toStdString();
+        properties["Manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
+        properties["Model"] = deviceInfoPtr.getModel().toStdString();
+        properties["SerialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
     }
 
     discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties);

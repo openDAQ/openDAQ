@@ -498,7 +498,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::removed()
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    serializer.key("typeId");
+    serializer.key("TypeId");
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
@@ -586,7 +586,7 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
                   const ComponentDeserializeContextPtr& deserializeContext,
                   const StringPtr& className) -> BaseObjectPtr
                {
-                   const auto typeId = serialized.readString("typeId");
+                   const auto typeId = serialized.readString("TypeId");
 
                    const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 

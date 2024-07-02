@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
     py::enum_<daq::ProtocolType>(m, "ProtocolType")

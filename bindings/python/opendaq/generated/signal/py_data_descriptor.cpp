@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IDataDescriptor, daq::IBaseObject> declareIDataDescriptor(pybind11::module_ m)
 {
     return wrapInterface<daq::IDataDescriptor, daq::IBaseObject>(m, "IDataDescriptor");

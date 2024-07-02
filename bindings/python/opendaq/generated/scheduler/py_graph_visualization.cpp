@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> declareIGraphVisualization(pybind11::module_ m)
 {
     return wrapInterface<daq::IGraphVisualization, daq::IBaseObject>(m, "IGraphVisualization");

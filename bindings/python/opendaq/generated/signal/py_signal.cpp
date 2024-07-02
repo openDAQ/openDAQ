@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::ISignal, daq::IComponent> declareISignal(pybind11::module_ m)
 {
     return wrapInterface<daq::ISignal, daq::IComponent>(m, "ISignal");

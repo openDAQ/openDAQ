@@ -28,6 +28,7 @@
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m)
 {
     return wrapInterface<daq::IComponentType, daq::IBaseObject>(m, "IComponentType");

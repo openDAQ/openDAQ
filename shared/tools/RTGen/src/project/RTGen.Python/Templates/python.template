@@ -27,6 +27,7 @@
 
 #include "$HeaderName$/$HeaderName$.h"
 #include "py_core_types/py_converter.h"
+$headers$
 
 PyDaqIntf<daq::$Interface$, daq::$BaseType$> declare$Interface$(pybind11::module_ m)
 {$EnumImplementations$

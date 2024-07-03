@@ -385,7 +385,18 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
                 builder.addProperty(prop);
             }
 
-            *obj = builder.build().detach();
+            PropertyObjectClassPtr serilizedObj = builder.build();
+
+            TypeManagerPtr typeManager;
+            if (context)
+            {
+                context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+            }
+            if (typeManager.assigned())
+            {
+                typeManager.addType(serilizedObj);
+            }
+            *obj = serilizedObj.detach();
         });
 }
 

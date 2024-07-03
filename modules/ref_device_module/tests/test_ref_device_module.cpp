@@ -101,7 +101,7 @@ TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringInvalidId)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daqref://devicett3axxr1", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createDevice("daqref://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringOutOfRange)

@@ -16,25 +16,30 @@
 
 #pragma once
 #include <ref_device_module/common.h>
-#include <opendaq/module_impl.h>
+#include <opendaq_module_template/module_template.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceModule final : public Module
+class RefDeviceModule final : public ModuleTemplate
 {
 public:
-    explicit RefDeviceModule(ContextPtr context);
+    explicit RefDeviceModule(const ContextPtr& context);
 
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
-    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
+protected:
+    std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options) override;
+    std::vector<DeviceTypePtr> getDeviceTypes() override;
+    DevicePtr getDevice(const std::string& typeId,
+                        const std::string& connectionAddress,
+                        const DeviceInfoPtr& info,
+                        const FolderPtr& parent,
+                        const PropertyObjectPtr& config,
+                        const DictPtr<IString, IBaseObject>& options) override;
 
 private:
-    std::vector<WeakRefPtr<IDevice>> devices;
-    std::mutex sync;
-    size_t maxNumberOfDevices;
+    static size_t getIdFromAddress(const std::string& address);
 
-    size_t getIdFromConnectionString(const std::string& connectionString) const;
+    std::unordered_map<std::string, WeakRefPtr<IDevice>> devices;
+    size_t maxNumberOfDevices;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

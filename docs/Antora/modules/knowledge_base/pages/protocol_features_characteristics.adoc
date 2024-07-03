@@ -1,6 +1,6 @@
 = Protocol features and characteristics
 
-This article features an overview of the different features of each server/client protocol currently supported in the main openDAQ(TM) repository. We aim to outline different capabilities and features made available by the SDK's core, as well as indicate which of the protocols support said feature. 
+This article provides an overview of the different features of each server/client protocol currently supported in the main openDAQ(TM) repository. We aim to outline different capabilities and features made available by the SDK's core, as well as indicate which of the protocols support said feature. 
 
 Additionally, we provide metrics for protocol compatibility within a given openDAQ(TM) system of devices, detailing which servers/clients can be used in conjunction with different system setups.
 
@@ -9,7 +9,7 @@ Additionally, we provide metrics for protocol compatibility within a given openD
 The SDK is structured in a manner where each device represents its structure in the form of a tree of components, with each component having a set of properties. We use a server-client architecture to forward the information about the device's tree structure from server to client. A device will start a server, advertising its capabilities over a discovery server, allowing clients to find the device, and connect to it via a corresponding client implementation. In general, server-client connections in openDAQ(TM) are split into two different types:
 
 * **Configuration**: The server sends information on its tree structure and properties to the client, allowing the client to produce a mirror of the device's component tree. This allows the client-side application to act as if the device was local to the client instance, traversing its tree, and modifying its property values. A configuration connection does not transfer signal data.
-* **Streaming**: The server sends information on what signals it has available to the client, and sends the data sent through the signals if the client is subscribed to said signals. This form of connection is usually combined with a configuration connection, allowing users to see the whole device structure, as well as read the device's signal data. If only a streaming connection is formed, the client will not see the full component tree, but will still be able to see a list of the device's signals directly underneath the device's "signals" folder.
+* **Streaming**: The server sends information on what signals it has available to the client. The client can subscribe to any available signal. If subscribed, the server forwards all signal data to the client. This form of connection is usually combined with a configuration connection, allowing users to see the whole device structure, as well as read the device's signal data. If only a streaming connection is formed, the client will not see the full component tree, but will still be able to see a list of the device's signals directly underneath the device's "signals" folder.
 
 NOTE: For more information on components and properties, you can refer to the xref:components.adoc[Components] and xref:property_system.adoc[Property System] articles.
 
@@ -19,7 +19,7 @@ Currently, openDAQ(TM) supports 3 different server/client protocols: Native, OPC
 
 === Native
 
-The main protocol that is used when an openDAQ(TM) instance is running both on the server and client. The protocol aims to support all core SDK features via the client and aims to minimize network traffic while optimizing performance when connecting openDAT(TM) to openDAQ(TM). It allows for both streaming and configuration connections to be formed. The Native protocol makes extensive use of the SDK's serialization mechanism, transferring the JSON strings obtained when serializing components to the client, which in turn deserializes/updates its own mirrored versions of the server components.
+The main protocol that is used when an openDAQ(TM) instance is running on both the server and client. The protocol aims to support all core SDK features via the client and aims to minimize network traffic while optimizing performance when connecting openDAQ(TM) to openDAQ(TM). It allows for both streaming and configuration connections to be formed. The Native protocol makes extensive use of the SDK's serialization mechanism, transferring the JSON strings obtained when serializing components to the client, which in turn deserializes/updates its own mirrored versions of the server components.
 
 The protocol uses a push-based approach, where the server notifies any clients of changes to the system. As such, the client does not need to poll the server for any changes. 
 

@@ -43,6 +43,7 @@ public:
     ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
 
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
+    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 

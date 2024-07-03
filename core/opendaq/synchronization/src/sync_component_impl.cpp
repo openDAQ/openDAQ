@@ -11,7 +11,8 @@ const char* SourceKey = "Source";
 const char* SyncronizationLockedKey = "SyncronizationLocked";
 
 SyncComponentImpl::SyncComponentImpl(const ContextPtr& context)
-    : Super(), context(context)
+    : Super()
+    , context(context)
 {
     Super::addProperty(ObjectProperty(InterfacesKey, PropertyObject()));
     Super::addProperty(ListProperty(InterfaceNamesKey, List<IString>()));
@@ -80,6 +81,15 @@ ErrCode SyncComponentImpl::getInterfaces(IList** interfaces)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode SyncComponentImpl::getInterfaceNames(IList** interfaceNames)
+{
+    OPENDAQ_PARAM_NOT_NULL(interfaceNames);
+    return daqTry([&]() {
+        *interfaceNames = getTypedProperty<IList>(InterfaceNamesKey).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
 {
     OPENDAQ_PARAM_NOT_NULL(interface);
@@ -131,8 +141,7 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
     return daqTry([&]() {
         ListPtr<IString> interfaceNames = getTypedProperty<IList>(InterfaceNamesKey);
         interfaceNames.pushBack(className);
-        checkErrorInfo(Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames));
-        return OPENDAQ_SUCCESS;
+        return Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames);
     });
 }
 
@@ -153,17 +162,31 @@ ErrCode SyncComponentImpl::removeInterface(IString* interfaceName)
         return err;
 
     return daqTry([&]() {
+        Int selectedSource = 0;
+        getSelectedSource(&selectedSource);
+
         ListPtr<IString> interfaceNames = getTypedProperty<IList>(InterfaceNamesKey);
-        for (size_t i = 0; i < interfaceNames.getCount(); i++)
+        for (SizeT i = 0; i < interfaceNames.getCount(); i++)
         {
-            if (interfaceNames[i] == interfaceName)
+            Bool equals;
+            interfaceNames[i]->equals(interfaceName, &equals);
+            if (equals)
             {
+                if (selectedSource == Int(i))
+                {
+                    auto loggerComponent = context.getLogger().getOrAddComponent("SyncComponent");
+                    LOG_W("The interface which was selected as source is removed. The source is set to 0.");
+                    setSelectedSource(0);
+                }
+                else if (selectedSource > Int(i))
+                {
+                    setSelectedSource(selectedSource - 1);
+                }
                 interfaceNames.removeAt(i);
                 break;
             }
         }
-        checkErrorInfo(Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames));
-        return OPENDAQ_SUCCESS;
+        return Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames);
     });
 }
 

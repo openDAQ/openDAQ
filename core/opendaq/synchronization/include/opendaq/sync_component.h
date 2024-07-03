@@ -87,6 +87,13 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) = 0;
 
+    // [elementType(interfaceNames, IString)]
+    /*!
+     * @brief Retrieves the list of interface names associated with this synchronization component.
+     * @param[out] interfaceNames List of interface names associated with this component.
+     */
+    virtual ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) = 0;
+
     // [elementType(interface, IPropertyObject)]
     /*!
      * @brief Adds an interface to the synchronization component.

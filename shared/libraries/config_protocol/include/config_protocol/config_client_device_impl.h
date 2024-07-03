@@ -232,7 +232,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     for (const auto& id : toRemove)
         this->removeComponentById(id);
     
-    const std::set<std::string> ignoredKeys{"__type", "DeviceInfo", "DeviceDomain", "DeviceUnit", "DeviceResolution", "Properties", "PropValues"};
+    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
 
     for (const auto& key : serialized.getKeys())
     {

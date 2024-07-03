@@ -1,6 +1,6 @@
 #include <opendaq/sync_component_impl.h>
 #include <opendaq/sync_component.h>
-#include <opendaq/context_factory.h>
+#include <coretypes/type_manager_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -10,9 +10,9 @@ const char* InterfaceNamesKey = "InterfaceNames";
 const char* SourceKey = "Source";
 const char* SyncronizationLockedKey = "SyncronizationLocked";
 
-SyncComponentImpl::SyncComponentImpl(const ContextPtr& context)
+SyncComponentImpl::SyncComponentImpl(const TypeManagerPtr& typeManager)
     : Super()
-    , context(context)
+    , typeManager(typeManager)
 {
     Super::addProperty(ObjectProperty(InterfacesKey, PropertyObject()));
     Super::addProperty(ListProperty(InterfaceNamesKey, List<IString>()));
@@ -100,7 +100,6 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
     StringPtr className = interfacePtr.getClassName();
     if (className != "SyncInterfaceBase")
     {
-        auto typeManager = context.getTypeManager();
         if (typeManager == nullptr)
         {
             return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
@@ -174,8 +173,6 @@ ErrCode SyncComponentImpl::removeInterface(IString* interfaceName)
             {
                 if (selectedSource == Int(i))
                 {
-                    auto loggerComponent = context.getLogger().getOrAddComponent("SyncComponent");
-                    LOG_W("The interface which was selected as source is removed. The source is set to 0.");
                     setSelectedSource(0);
                 }
                 else if (selectedSource > Int(i))
@@ -199,9 +196,27 @@ ErrCode SyncComponentImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode SyncComponentImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    if (idCount == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *idCount = InterfaceIds::Count() + 1;
+    if (ids == nullptr)
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    InterfaceIds::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
+}
+
 ConstCharPtr SyncComponentImpl::SerializeId()
 {
-    return "Synchronization";
+    return "SyncComponent";
 }
 
 ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
@@ -210,26 +225,34 @@ ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
                                                 IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
-    //
-    //return daqTry(
-    //    [&obj, &serialized, &context, &factoryCallback]()
-    //    {
-    //        *obj = Super::DeserializePropertyObject(
-    //                serialized,
-    //                context,
-    //                factoryCallback,
-    //                   [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
-    //                   {
-    //                       const auto sync = createWithImplementation<ISyncComponent, SyncComponentImpl>(NullContext());
-    //                       return sync;
-    //                   }).detach();
-    //    });
+    OPENDAQ_PARAM_NOT_NULL(context); 
+    
+    return daqTry(
+       [&obj, &serialized, &context, &factoryCallback]()
+       {
+           *obj = Super::DeserializePropertyObject(
+                serialized,
+                context,
+                factoryCallback,
+                [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& context, const StringPtr& /*className*/)
+                {
+                    auto typeManager = context.asPtr<ITypeManager>(true);
+                    const auto sync = createWithImplementation<ISyncComponent, SyncComponentImpl>(typeManager);
+                    return sync;
+                }).detach();
+       });
 }
+
+PropertyObjectPtr SyncComponentImpl::createCloneBase()
+{
+    const auto obj = createWithImplementation<ISyncComponent, SyncComponentImpl>(TypeManager());
+    return obj;
+}
+
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
-    IContext*, context
+    ITypeManager*, typeManager
 )
 
 END_NAMESPACE_OPENDAQ

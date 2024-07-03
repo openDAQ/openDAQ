@@ -21,7 +21,7 @@
 #include <coretypes/listobject_factory.h>
 #include <coretypes/listobject.h>
 #include <coreobjects/property_object.h>
-#include <opendaq/context_ptr.h>
+#include <coretypes/type_manager_ptr.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/sync_component_ptr.h>
@@ -33,7 +33,7 @@ class SyncComponentImpl : public GenericPropertyObjectImpl<ISyncComponent>
 public:
     using Super = GenericPropertyObjectImpl<ISyncComponent>;
 
-    explicit SyncComponentImpl(const ContextPtr& context);
+    explicit SyncComponentImpl(const TypeManagerPtr& typeManager);
 
     //ISyncComponent
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
@@ -47,7 +47,7 @@ public:
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
-    // ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -56,13 +56,13 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-    // PropertyObjectPtr createCloneBase() override;
+    PropertyObjectPtr createCloneBase() override;
 
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 
-    ContextPtr context;
+    TypeManagerPtr typeManager;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)

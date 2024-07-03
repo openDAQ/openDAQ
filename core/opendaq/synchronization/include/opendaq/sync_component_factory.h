@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/context_ptr.h>
+#include <coretypes/type_manager_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -26,11 +26,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates an input port.
- * @param context The Context. Most often the creating device passes its own Context to the Folder.
+ * @param typeManager The typeManager
  */
-inline SyncComponentPtr SyncComponent(const ContextPtr& context)
+inline SyncComponentPtr SyncComponent(const TypeManagerPtr& typeManager)
 {
-    return { SyncComponent_Create(context) };
+    return { SyncComponent_Create(typeManager) };
 }
 
 /*!@}*/

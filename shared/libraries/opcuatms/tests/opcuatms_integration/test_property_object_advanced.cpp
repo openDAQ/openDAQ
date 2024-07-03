@@ -183,9 +183,8 @@ public:
         const auto serverProp =
             std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context, nullptr));
         const auto nodeId = serverProp->registerOpcUaNode();
-        const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager,nullptr, nullptr), clientContext, nodeId);
+        const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager, nullptr, nullptr), clientContext, nodeId);
         return {serverProp, clientProp};
-
     }
 
     StringPtr getLastMessage()
@@ -430,7 +429,6 @@ TEST_F(TmsPropertyObjectAdvancedTest, IntListGetSet)
 
     for (SizeT i = 0; i < serverListObj.getCount(); ++i)
         ASSERT_EQ(serverListObj[i], clientListObj[i]);
-
 }
 
 TEST_F(TmsPropertyObjectAdvancedTest, RatioGetSet)

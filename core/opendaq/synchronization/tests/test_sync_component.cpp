@@ -13,7 +13,8 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(SyncComponentTest, testGetSyncLocked)
 {
     const auto ctx = daq::NullContext();
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    auto typeManager = ctx.getTypeManager();
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     Bool syncLocked = false;
     syncComponent->getSyncLocked(&syncLocked);
@@ -23,7 +24,8 @@ TEST_F(SyncComponentTest, testGetSyncLocked)
 TEST_F(SyncComponentTest, testSetSyncLocked)
 {
     const auto ctx = daq::NullContext();
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    auto typeManager = ctx.getTypeManager();
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     Bool syncLocked = false;
     syncComponent->getSyncLocked(&syncLocked);
@@ -37,7 +39,7 @@ TEST_F(SyncComponentTest, testAddInterface)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     PropertyObjectPtr interface = PropertyObject();
     ASSERT_EQ(syncComponent->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
@@ -50,7 +52,7 @@ TEST_F(SyncComponentTest, testRemoveInterface)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
@@ -64,9 +66,8 @@ TEST_F(SyncComponentTest, testRemoveInterface)
 TEST_F(SyncComponentTest, testAddInhertiedInterfaces)
 {
     const auto ctx = daq::NullContext();
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
-
     auto typeManager = ctx.getTypeManager();
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
 #ifdef TEST_DEBUG
     ListPtr<IString> typesList = typeManager.getTypes();
@@ -109,7 +110,7 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
 
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
@@ -139,7 +140,7 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
 
-    SyncComponentPtr syncComponent = SyncComponent(ctx);
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
@@ -167,6 +168,33 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     interfaceNames = syncComponent.getInterfaceNames();
     ASSERT_EQ(interfaceNames.getCount(), 1);
     ASSERT_EQ(interfaceNames[0], "PtpSyncInterface");
+}
+
+TEST_F(SyncComponentTest, Serialization)
+{
+    const auto ctx = daq::NullContext();
+    auto typeManager = ctx.getTypeManager();
+    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+
+    PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
+    PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
+    PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
+
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+
+    const auto serializer = JsonSerializer();
+
+    syncComponent.serialize(serializer);
+    const auto serializedJson = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const SyncComponentPtr syncComponentDeserialized = deserializer.deserialize(serializedJson, typeManager);
+
+    ASSERT_EQ(syncComponent.getSelectedSource(), syncComponentDeserialized.getSelectedSource());
+    ASSERT_EQ(syncComponent.getSyncLocked(), syncComponentDeserialized.getSyncLocked());
+    ASSERT_EQ(syncComponent.getInterfaceNames(), syncComponentDeserialized.getInterfaceNames());
 }
 
 

@@ -231,7 +231,7 @@ void ContextImpl::registerOpenDaqTypes()
     auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
                                     .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 0))
                                     .build();
-    typeManager.addType(syncInterfaceBase);
+    typeManager->addType(syncInterfaceBase);
 
     PropertyObjectPtr statusProperty = PropertyObject();
     statusProperty.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
@@ -241,7 +241,7 @@ void ContextImpl::registerOpenDaqTypes()
                                     .addProperty(ObjectProperty("Status", statusProperty))
                                     .build();
 
-    typeManager.addType(interfaceClockSync);
+    typeManager->addType(interfaceClockSync);
 
     PropertyObjectPtr statusProperty_2 = PropertyObject();
     statusProperty_2.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
@@ -259,11 +259,11 @@ void ContextImpl::registerOpenDaqTypes()
     const auto enumProfiles = EnumerationType(
         "PtpProfileEnumeration", List<IString>("I558", "802_IAS"));
 
-    typeManager.addType(enumClockType);
-    typeManager.addType(enumStepFlag);
-    typeManager.addType(enumTransportProtocol);
-    typeManager.addType(enumDelayMechanism);
-    typeManager.addType(enumProfiles);
+    typeManager->addType(enumClockType);
+    typeManager->addType(enumStepFlag);
+    typeManager->addType(enumTransportProtocol);
+    typeManager->addType(enumDelayMechanism);
+    typeManager->addType(enumProfiles);
 
     PropertyObjectPtr ports = PropertyObject();
     ports.addProperty(BoolProperty("Port1", true));
@@ -289,7 +289,7 @@ void ContextImpl::registerOpenDaqTypes()
                                     .addProperty(ObjectProperty("Parameters", parameters))
                                     .build();
 
-    typeManager.addType(ptpSyncInterface);
+    typeManager->addType(ptpSyncInterface);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

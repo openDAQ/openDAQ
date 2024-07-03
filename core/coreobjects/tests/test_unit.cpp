@@ -9,42 +9,42 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(UnitTest, UnitSetGet)
 {
     const auto unit = UnitBuilder()
-                      .setName("Unit")
+                      .setName("unit")
                       .setId(100)
-                      .setQuantity("Quantity")
-                      .setSymbol("Symbol")
+                      .setQuantity("quantity")
+                      .setSymbol("symbol")
                       .build();
 
-    ASSERT_EQ(unit.getName(), "Unit");
+    ASSERT_EQ(unit.getName(), "unit");
     ASSERT_EQ(unit.getId(), 100);
-    ASSERT_EQ(unit.getQuantity(), "Quantity");
-    ASSERT_EQ(unit.getSymbol(), "Symbol");
+    ASSERT_EQ(unit.getQuantity(), "quantity");
+    ASSERT_EQ(unit.getSymbol(), "symbol");
 }
 
 TEST_F(UnitTest, UnitNonBuilderFactory)
 {
-    auto unit = Unit("Symbol", 100, "Unit", "Quantity");
+    auto unit = Unit("symbol", 100, "unit", "quantity");
 
-    ASSERT_EQ(unit.getName(), "Unit");
+    ASSERT_EQ(unit.getName(), "unit");
     ASSERT_EQ(unit.getId(), 100);
-    ASSERT_EQ(unit.getQuantity(), "Quantity");
-    ASSERT_EQ(unit.getSymbol(), "Symbol");
+    ASSERT_EQ(unit.getQuantity(), "quantity");
+    ASSERT_EQ(unit.getSymbol(), "symbol");
 }
 
 TEST_F(UnitTest, UnitCopyFactory)
 {
-    auto unit = Unit("Symbol", 100, "Unit", "Quantity");
+    auto unit = Unit("symbol", 100, "unit", "quantity");
     auto unitCopy = UnitBuilderCopy(unit).build();
 
-    ASSERT_EQ(unitCopy.getName(), "Unit");
+    ASSERT_EQ(unitCopy.getName(), "unit");
     ASSERT_EQ(unitCopy.getId(), 100);
-    ASSERT_EQ(unitCopy.getQuantity(), "Quantity");
-    ASSERT_EQ(unitCopy.getSymbol(), "Symbol");
+    ASSERT_EQ(unitCopy.getQuantity(), "quantity");
+    ASSERT_EQ(unitCopy.getSymbol(), "symbol");
 }
 
 TEST_F(UnitTest, Equals)
 {
-    auto unit = Unit("Symbol", 100, "Unit", "Quantity");
+    auto unit = Unit("symbol", 100, "unit", "quantity");
     auto unitCopy = UnitBuilderCopy(unit);
 
     Bool eq{false};
@@ -59,8 +59,8 @@ TEST_F(UnitTest, Equals)
 
 TEST_F(UnitTest, Serialize)
 {
-    auto serString = String(R"({"__type":"Unit","Symbol":"Symbol","Id":100,"Name":"Unit","Quantity":"Quantity"})");
-    auto unit = Unit("Symbol", 100, "Unit", "Quantity");
+    auto serString = String(R"({"__type":"Unit","symbol":"symbol","id":100,"name":"unit","quantity":"quantity"})");
+    auto unit = Unit("symbol", 100, "unit", "quantity");
 
     auto serializer = JsonSerializer();
     unit.serialize(serializer);
@@ -70,8 +70,8 @@ TEST_F(UnitTest, Serialize)
 
 TEST_F(UnitTest, Deserialize)
 {
-    auto serString = String(R"({"__type":"Unit","Symbol":"Symbol","Id":100,"Name":"Unit","Quantity":"Quantity"})");
-    auto unit = Unit("Symbol", 100, "Unit", "Quantity");
+    auto serString = String(R"({"__type":"Unit","symbol":"symbol","id":100,"name":"unit","quantity":"quantity"})");
+    auto unit = Unit("symbol", 100, "unit", "quantity");
 
     auto deserializer = JsonDeserializer();
     auto unit1 = deserializer.deserialize(serString);
@@ -106,30 +106,30 @@ TEST_F(UnitTest, StructNames)
 TEST_F(UnitTest, UnitBuilderSetGet)
 {
     const auto unitBuilder = UnitBuilder()
-                                .setName("Unit")
+                                .setName("unit")
                                 .setId(100)
-                                .setQuantity("Quantity")
-                                .setSymbol("Symbol");
+                                .setQuantity("quantity")
+                                .setSymbol("symbol");
     
-    ASSERT_EQ(unitBuilder.getName(), "Unit");
+    ASSERT_EQ(unitBuilder.getName(), "unit");
     ASSERT_EQ(unitBuilder.getId(), 100);
-    ASSERT_EQ(unitBuilder.getQuantity(), "Quantity");
-    ASSERT_EQ(unitBuilder.getSymbol(), "Symbol");
+    ASSERT_EQ(unitBuilder.getQuantity(), "quantity");
+    ASSERT_EQ(unitBuilder.getSymbol(), "symbol");
 }
 
 TEST_F(UnitTest, UnitCreateFactory)
 {
     const auto unitBuilder = UnitBuilder()
-                                .setName("Unit")
+                                .setName("unit")
                                 .setId(100)
-                                .setQuantity("Quantity")
-                                .setSymbol("Symbol");
+                                .setQuantity("quantity")
+                                .setSymbol("symbol");
     const auto unit = UnitFromBuilder(unitBuilder);
 
-    ASSERT_EQ(unit.getName(), "Unit");
+    ASSERT_EQ(unit.getName(), "unit");
     ASSERT_EQ(unit.getId(), 100);
-    ASSERT_EQ(unit.getQuantity(), "Quantity");
-    ASSERT_EQ(unit.getSymbol(), "Symbol");
+    ASSERT_EQ(unit.getQuantity(), "quantity");
+    ASSERT_EQ(unit.getSymbol(), "symbol");
 }
 
 

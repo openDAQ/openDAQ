@@ -167,9 +167,9 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::compareTo(IBaseObject* other)
 ErrCode INTERFACE_FUNC ComplexNumberImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
-    serializer->key("Real");
+    serializer->key("real");
     serializer->writeFloat(value.real);
-    serializer->key("Imaginary");
+    serializer->key("imaginary");
     serializer->writeFloat(value.imaginary);
     serializer->endObject();
     return OPENDAQ_SUCCESS;

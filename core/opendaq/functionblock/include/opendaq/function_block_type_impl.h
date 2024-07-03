@@ -68,24 +68,24 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
         {
             serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
             {
-                serializerPtr.key("Id");
+                serializerPtr.key("id");
                 serializerPtr.writeString(id);
 
                 if (name.assigned())
                 {
-                    serializerPtr.key("Name");
+                    serializerPtr.key("name");
                     serializerPtr.writeString(name);
                 }
 
                 if (description.assigned())
                 {
-                    serializerPtr.key("Description");
+                    serializerPtr.key("description");
                     serializerPtr.writeString(description);
                 }
 
                 if (defaultConfig.assigned())
                 {
-                    serializerPtr.key("DefaultConfig");
+                    serializerPtr.key("defaultConfig");
                     defaultConfig.serialize(serializerPtr);
                 }
             }
@@ -122,19 +122,19 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
     return daqTry(
         [&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
         {
-            const auto id = serializedObj.readString("Id");
+            const auto id = serializedObj.readString("id");
 
             StringPtr name;
-            if (serializedObj.hasKey("Name"))
-                name = serializedObj.readString("Name");
+            if (serializedObj.hasKey("name"))
+                name = serializedObj.readString("name");
 
             StringPtr description;
-            if (serializedObj.hasKey("Description"))
-                description = serializedObj.readString("Description");
+            if (serializedObj.hasKey("description"))
+                description = serializedObj.readString("description");
 
             PropertyObjectPtr defaultConfig;
-            if (serializedObj.hasKey("DefaultConfig"))
-                defaultConfig = serializedObj.readObject("DefaultConfig", contextPtr, factoryCallbackPtr);
+            if (serializedObj.hasKey("defaultConfig"))
+                defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
             *obj = createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig).detach();
         });

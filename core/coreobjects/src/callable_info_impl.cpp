@@ -78,11 +78,11 @@ ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
             {
                 if (arguments.assigned() && !arguments.empty())
                 {
-                    serializerPtr.key("Arguments");
+                    serializerPtr.key("arguments");
                     arguments.serialize(serializerPtr);
                 }
 
-                serializerPtr.key("ReturnType");
+                serializerPtr.key("returnType");
                 serializerPtr.writeInt(static_cast<Int>(returnType));
             }
 
@@ -116,10 +116,10 @@ ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         [&serializedObj, &contextPtr, factoryCallbackPtr, &obj]
         {
             ListPtr<IArgumentInfo> arguments;
-            if(serializedObj.hasKey("Arguments"))
-                arguments = serializedObj.readObject("Arguments", contextPtr, factoryCallbackPtr);
+            if(serializedObj.hasKey("arguments"))
+                arguments = serializedObj.readObject("arguments", contextPtr, factoryCallbackPtr);
 
-            const auto returnType = static_cast<CoreType>(serializedObj.readInt("ReturnType"));
+            const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
 
             *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType).detach();
         });

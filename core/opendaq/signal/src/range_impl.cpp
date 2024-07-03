@@ -64,10 +64,10 @@ ErrCode RangeImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("Low");
+        serializer->key("low");
         low.serialize(serializer);
 
-        serializer->key("High");
+        serializer->key("high");
         high.serialize(serializer);
     }
     serializer->endObject();
@@ -93,26 +93,26 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     NumberPtr low, high;
-    const auto lowType = serializedObj.getType("Low");
+    const auto lowType = serializedObj.getType("low");
     switch (lowType)
     {
         case ctInt:
-            low = serializedObj.readInt("Low");
+            low = serializedObj.readInt("low");
             break;
         case ctFloat:
-            low = serializedObj.readFloat("Low");
+            low = serializedObj.readFloat("low");
             break;
         default:
             throw InvalidTypeException();
     }
-    const auto highType = serializedObj.getType("High");
+    const auto highType = serializedObj.getType("high");
     switch (highType)
     {
         case ctInt:
-            high = serializedObj.readInt("High");
+            high = serializedObj.readInt("high");
             break;
         case ctFloat:
-            high = serializedObj.readFloat("High");
+            high = serializedObj.readFloat("high");
             break;
         default:
             throw InvalidTypeException();

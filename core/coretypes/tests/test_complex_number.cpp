@@ -140,7 +140,7 @@ TEST_F(ComplexNumberTest, IsSerializable)
 
 TEST_F(ComplexNumberTest, Serialize)
 {
-    const std::string expected = R"({"__type":"ComplexNumber","Real":1.5,"Imaginary":2.5})";
+    const std::string expected = R"({"__type":"ComplexNumber","real":1.5,"imaginary":2.5})";
 
     auto deserializer = JsonDeserializer();
     auto complex = deserializer.deserialize(expected);

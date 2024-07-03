@@ -145,7 +145,7 @@ inline ErrCode ComponentStatusContainerImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("Statuses");
+        serializer->key("statuses");
         statuses.serialize(serializer);
     }
     serializer->endObject();
@@ -180,7 +180,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
-    DictPtr<IString, IEnumeration> statuses = serializedObj.readObject("Statuses", context, factoryCallback);
+    DictPtr<IString, IEnumeration> statuses = serializedObj.readObject("statuses", context, factoryCallback);
     for (const auto& [name, value] : statuses)
         statusContainer->addStatus(name, value);
 

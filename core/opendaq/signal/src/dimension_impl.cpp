@@ -209,16 +209,16 @@ ErrCode DimensionImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("Rule");
+        serializer->key("rule");
         rule.serialize(serializer);
 
         if (unit.assigned())
         {
-            serializer->key("Unit");
+            serializer->key("unit");
             unit.serialize(serializer);
         }
 
-        serializer->key("Name");
+        serializer->key("name");
         serializer->writeString(name.getCharPtr(), name.getLength());
     }
     serializer->endObject();
@@ -243,11 +243,11 @@ ConstCharPtr DimensionImpl::SerializeId()
 ErrCode DimensionImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto rule = serializedObj.readObject("Rule").asPtr<IDimensionRule>();
+    auto rule = serializedObj.readObject("rule").asPtr<IDimensionRule>();
     UnitPtr unit;
-    if (serializedObj.hasKey("Unit"))
-        unit = serializedObj.readObject("Unit").asPtr<IUnit>();
-    auto name = serializedObj.readString("Name");
+    if (serializedObj.hasKey("unit"))
+        unit = serializedObj.readObject("unit").asPtr<IUnit>();
+    auto name = serializedObj.readString("name");
 
     return createObject<IDimension, DimensionImpl>(reinterpret_cast<IDimension**>(obj), rule, unit, name);
 }

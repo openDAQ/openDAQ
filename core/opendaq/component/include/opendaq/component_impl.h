@@ -949,17 +949,17 @@ template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 {
     const auto flags = getSerializeFlags();
-    if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("Active"))
-        active = obj.readBool("Active");
+    if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))
+        active = obj.readBool("active");
 
-    if (obj.hasKey("Visible"))
-        visible = obj.readBool("Visible");
+    if (obj.hasKey("visible"))
+        visible = obj.readBool("visible");
 
-    if (obj.hasKey("Description"))
-        description = obj.readString("Description");
+    if (obj.hasKey("description"))
+        description = obj.readString("description");
 
-    if (obj.hasKey("Name"))
-        name = obj.readString("Name");
+    if (obj.hasKey("name"))
+        name = obj.readString("name");
 }
 
 template <class Intf, class ... Intfs>
@@ -974,37 +974,37 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
 
     if (flags & ComponentSerializeFlag_SerializeActiveProp && !active)
     {
-        serializer.key("Active");
+        serializer.key("active");
         serializer.writeBool(active);
     }
 
     if (!visible)
     {
-        serializer.key("Visible");
+        serializer.key("visible");
         serializer.writeBool(visible);
     }
 
     if (description != "")
     {
-        serializer.key("Description");
+        serializer.key("description");
         serializer.writeString(description);
     }
 
     if (name != localId)
     {
-        serializer.key("Name");
+        serializer.key("name");
         serializer.writeString(name);
     }
 
     if (!tags.asPtr<ITags>().getList().empty())
     {
-        serializer.key("Tags");
+        serializer.key("tags");
         tags.serialize(serializer);
     }
 
     if (statusContainer.getStatuses().getCount() > 0)
     {
-        serializer.key("Statuses");
+        serializer.key("statuses");
         statusContainer.serialize(serializer);
     }
 }
@@ -1077,21 +1077,21 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                                                             const BaseObjectPtr& context,
                                                             const FunctionPtr& /*factoryCallback*/)
 {
-    if (serializedObject.hasKey("Active"))
-        active = serializedObject.readBool("Active");
+    if (serializedObject.hasKey("active"))
+        active = serializedObject.readBool("active");
 
-    if (serializedObject.hasKey("Visible"))
-        visible = serializedObject.readBool("Visible");
+    if (serializedObject.hasKey("visible"))
+        visible = serializedObject.readBool("visible");
 
-    if (serializedObject.hasKey("Description"))
-        description = serializedObject.readString("Description");
+    if (serializedObject.hasKey("description"))
+        description = serializedObject.readString("description");
 
-    if (serializedObject.hasKey("Name"))
-        name = serializedObject.readString("Name");
+    if (serializedObject.hasKey("name"))
+        name = serializedObject.readString("name");
 
-    if (serializedObject.hasKey("Tags"))
+    if (serializedObject.hasKey("tags"))
         tags = serializedObject.readObject(
-            "Tags",
+            "tags",
             context,
             [this](const StringPtr& typeId,
                    const SerializedObjectPtr& object,
@@ -1110,7 +1110,7 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                     if (OPENDAQ_FAILED(errCode))
                         return errCode;
 
-                    const auto list = object.readList<IString>("List", context, factoryCallback);
+                    const auto list = object.readList<IString>("list", context, factoryCallback);
                     for (const auto& tag : list)
                         tags->add(tag);
 
@@ -1119,9 +1119,9 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                 return nullptr;
             });
 
-    if (serializedObject.hasKey("Statuses"))
+    if (serializedObject.hasKey("statuses"))
         statusContainer = serializedObject.readObject(
-            "Statuses",
+            "statuses",
             context,
             [this](const StringPtr& typeId,
                    const SerializedObjectPtr& object,
@@ -1137,7 +1137,7 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                                 triggerCoreEvent(args);
                         });
 
-                    DictPtr<IString, IEnumeration> statuses = object.readObject("Statuses", context, factoryCallback);
+                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
                     for (const auto& [name, value] : statuses)
                         container->addStatus(name, value);
                     return container;

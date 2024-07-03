@@ -14,7 +14,7 @@ ErrCode SimpleTypeImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
     
-    serializer->key("CoreType");
+    serializer->key("coreType");
     serializer->writeInt(static_cast<int>(this->coreType));
 
     serializer->endObject();
@@ -39,7 +39,7 @@ ConstCharPtr SimpleTypeImpl::SerializeId()
 ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     Int coreTypeInt;
-    ErrCode errCode = ser->readInt("CoreType"_daq, &coreTypeInt);
+    ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     

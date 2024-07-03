@@ -108,10 +108,10 @@ ErrCode DataRuleImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("RuleType");
+        serializer->key("ruleType");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("Params");
+        serializer->key("params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -136,8 +136,8 @@ ConstCharPtr DataRuleImpl::SerializeId()
 ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto ruleType = static_cast<DataRuleType>(serializedObj.readInt("RuleType"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
+    auto ruleType = static_cast<DataRuleType>(serializedObj.readInt("ruleType"));
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
 
     return createObject<IDataRule, DataRuleImpl>(reinterpret_cast<IDataRule**>(obj), ruleType, params);
 }

@@ -1044,13 +1044,13 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         checkErrorInfo(this->getInfo(&deviceInfo));
         if (deviceInfo.assigned())
         {
-            serializer.key("DeviceInfo");
+            serializer.key("deviceInfo");
             deviceInfo.serialize(serializer);
         }
 
         if (deviceDomain.assigned())
         {
-            serializer.key("DeviceDomain");
+            serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
         }
     }
@@ -1063,7 +1063,7 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
-        auto typeId = serializedFunctionBlock.readString("TypeId");
+        auto typeId = serializedFunctionBlock.readString("typeId");
 
         auto config = PropertyObject();
         config.addProperty(StringProperty("LocalId", fbId));
@@ -1140,16 +1140,16 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    if (serializedObject.hasKey("DeviceInfo"))
+    if (serializedObject.hasKey("deviceInfo"))
     {
-        deviceInfo = serializedObject.readObject("DeviceInfo");
+        deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
     }
 
-    if (serializedObject.hasKey("DeviceDomain"))
+    if (serializedObject.hasKey("deviceDomain"))
     {
-        deviceDomain = serializedObject.readObject("DeviceDomain");
+        deviceDomain = serializedObject.readObject("deviceDomain");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

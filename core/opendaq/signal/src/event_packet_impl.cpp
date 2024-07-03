@@ -72,10 +72,10 @@ ErrCode EventPacketImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("Id");
+        serializer->key("id");
         serializer->writeString(eventId.getCharPtr(), eventId.getLength());
 
-        serializer->key("Params");
+        serializer->key("params");
         parameters.serialize(serializer);
     }
     serializer->endObject();
@@ -103,8 +103,8 @@ ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto eventId = serializedObj.readString("Id");
-    DictPtr<IString, IBaseObject> parameters = serializedObj.readObject("Params");
+    auto eventId = serializedObj.readString("id");
+    DictPtr<IString, IBaseObject> parameters = serializedObj.readObject("params");
 
     EventPacketPtr eventPacket;
     auto errCode = createObject<IEventPacket, EventPacketImpl>(&eventPacket, eventId, parameters);

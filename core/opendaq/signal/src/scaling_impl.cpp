@@ -134,16 +134,16 @@ ErrCode ScalingImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("OutputDataType");
+        serializer->key("outputDataType");
         serializer->writeInt(static_cast<Int>(outputDataType));
 
-        serializer->key("InputDataType");
+        serializer->key("inputDataType");
         serializer->writeInt(static_cast<Int>(inputDataType));
 
-        serializer->key("RuleType");
+        serializer->key("ruleType");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("Params");
+        serializer->key("params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -168,10 +168,10 @@ ConstCharPtr ScalingImpl::SerializeId()
 ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
-    auto outputDataType = static_cast<ScaledSampleType>(serializedObj.readInt("OutputDataType"));
-    auto inputDataType = static_cast<SampleType>(serializedObj.readInt("InputDataType"));
-    auto ruleType = static_cast<ScalingType>(serializedObj.readInt("RuleType"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
+    auto outputDataType = static_cast<ScaledSampleType>(serializedObj.readInt("outputDataType"));
+    auto inputDataType = static_cast<SampleType>(serializedObj.readInt("inputDataType"));
+    auto ruleType = static_cast<ScalingType>(serializedObj.readInt("ruleType"));
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
 
     return createObject<IScaling, ScalingImpl>(reinterpret_cast<IScaling**>(obj), inputDataType, outputDataType, ruleType, params);
 }

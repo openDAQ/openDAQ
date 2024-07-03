@@ -204,7 +204,7 @@ inline ErrCode TagsImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        serializer->key("List");
+        serializer->key("list");
         serializer->startList();
         for (const auto& tag : tags)
             serializer->writeString(tag.c_str(), tag.size());
@@ -241,7 +241,7 @@ inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
-    const auto list = serializedObj.readList<IString>("List");
+    const auto list = serializedObj.readList<IString>("list");
     for (const auto& tag : list)
         tags->add(tag);
 

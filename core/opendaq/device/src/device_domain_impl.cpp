@@ -50,21 +50,21 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
         const RatioPtr resolution = this->fields.get("TickResolution");
         if (resolution.assigned())
         {
-            serializer->key("TickResolution");
+            serializer->key("tickResolution");
             resolution.serialize(serializer);
         }
         
         const StringPtr origin = this->fields.get("Origin");
         if (origin.assigned() && origin != "")
         {
-            serializer->key("Origin");
+            serializer->key("origin");
             serializer->writeString(origin.getCharPtr(), origin.getLength());
         }
         
         const UnitPtr unit = this->fields.get("Unit");
         if (unit.assigned())
         {
-            serializer->key("Unit");
+            serializer->key("unit");
             unit.serialize(serializer);
         }
     }
@@ -96,19 +96,19 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     StringPtr origin;
     UnitPtr unit;
     
-    if (serializedObj.hasKey("TickResolution"))
+    if (serializedObj.hasKey("tickResolution"))
     {
-        resolution = serializedObj.readObject("TickResolution");
+        resolution = serializedObj.readObject("tickResolution");
     }
     
-    if (serializedObj.hasKey("Origin"))
+    if (serializedObj.hasKey("origin"))
     {
-        origin = serializedObj.readString("Origin");
+        origin = serializedObj.readString("origin");
     }
 
-    if (serializedObj.hasKey("Unit"))
+    if (serializedObj.hasKey("unit"))
     {
-        unit = serializedObj.readObject("Unit");
+        unit = serializedObj.readObject("unit");
     }
 
     *obj = DeviceDomain(resolution, origin, unit).as<IBaseObject>();

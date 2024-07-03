@@ -68,11 +68,11 @@ ErrCode ArgumentInfoImpl::serialize(ISerializer* serializer)
     {
         if (name.assigned())
         {
-            serializer->key("Name");
+            serializer->key("name");
             serializer->writeString(name.getCharPtr(), name.getLength());
         }
 
-        serializer->key("Type");
+        serializer->key("type");
         serializer->writeInt(static_cast<Int>(argType));
     }
 
@@ -102,8 +102,8 @@ ErrCode ArgumentInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
     return daqTry([&serializedObj, &obj]
     {
-        const auto name = serializedObj.readString("Name");
-        const auto argType = static_cast<CoreType>(serializedObj.readInt("Type"));
+        const auto name = serializedObj.readString("name");
+        const auto argType = static_cast<CoreType>(serializedObj.readInt("type"));
 
         *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType).detach();
     });

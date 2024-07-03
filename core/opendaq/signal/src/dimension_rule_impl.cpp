@@ -221,7 +221,7 @@ ErrCode DimensionRuleImpl::serialize(ISerializer* serializer)
         serializer->key("rule_type");
         serializer->writeInt(static_cast<Int>(ruleType));
 
-        serializer->key("Params");
+        serializer->key("params");
         params.serialize(serializer);
     }
     serializer->endObject();
@@ -247,7 +247,7 @@ ErrCode DimensionRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     auto ruleType = static_cast<DimensionRuleType>(serializedObj.readInt("rule_type"));
-    DictPtr<IString, IBaseObject> params = serializedObj.readObject("Params");
+    DictPtr<IString, IBaseObject> params = serializedObj.readObject("params");
 
     return createObject<IDimensionRule, DimensionRuleImpl>(reinterpret_cast<IDimensionRule**>(obj), ruleType, params);
 }

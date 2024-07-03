@@ -144,7 +144,7 @@ ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
 
-    serializer->key("Types");
+    serializer->key("types");
     ISerializable* serializableFields;
 
     ErrCode errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
@@ -185,7 +185,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
         createTypeManager(&typeManagerPtr);
 
         BaseObjectPtr types;
-        ErrCode errCode = ser->readObject("Types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
+        ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
 

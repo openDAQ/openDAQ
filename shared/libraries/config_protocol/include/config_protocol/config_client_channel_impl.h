@@ -68,7 +68,7 @@ inline ErrCode ConfigClientChannelImpl::Deserialize(ISerializedObject* serialize
                                                    const auto configDeserializeContext =
                                                        deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                                                   const auto typeId = serialized.readString("TypeId");
+                                                   const auto typeId = serialized.readString("typeId");
 
                                                    const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 

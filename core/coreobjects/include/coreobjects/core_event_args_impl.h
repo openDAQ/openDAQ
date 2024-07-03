@@ -119,13 +119,13 @@ inline ErrCode CoreEventArgsImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
 
-    serializer->key("Id");
+    serializer->key("id");
     serializer->writeInt(this->eventId);
 
-    serializer->key("Name");
+    serializer->key("name");
     serializer->writeString(this->eventName.getCharPtr(), this->eventName.getLength());
 
-    serializer->key("Params");
+    serializer->key("params");
     ISerializable* serializableParams;
     ErrCode errCode = this->parameters->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableParams));
 
@@ -160,12 +160,12 @@ inline ConstCharPtr CoreEventArgsImpl::SerializeId()
 inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     Int id;
-    ErrCode errCode = ser->readInt("Id"_daq, &id);
+    ErrCode errCode = ser->readInt("id"_daq, &id);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     StringPtr name;
-    errCode = ser->readString("Name"_daq, &name);
+    errCode = ser->readString("name"_daq, &name);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         name = core_event_args_impl::getCoreEventName((CoreEventId) id);
@@ -176,7 +176,7 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
         return errCode;
 
     BaseObjectPtr params;
-    errCode = ser->readObject("Params"_daq, context, factoryCallback, &params);
+    errCode = ser->readObject("params"_daq, context, factoryCallback, &params);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

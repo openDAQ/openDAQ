@@ -81,28 +81,28 @@ ErrCode UnitImpl::serialize(ISerializer* serializer)
         const StringPtr symbol = this->fields.get("Symbol");
         if (symbol.assigned())
         {
-            serializer->key("Symbol");
+            serializer->key("symbol");
             serializer->writeString(symbol.getCharPtr(), symbol.getLength());
         }
         
         const Int id = this->fields.get("Id");
         if (id != -1)
         {
-            serializer->key("Id");
+            serializer->key("id");
             serializer->writeInt(id);
         }
         
         const StringPtr name = this->fields.get("Name");
         if (name.assigned())
         {
-            serializer->key("Name");
+            serializer->key("name");
             serializer->writeString(name.getCharPtr(), name.getLength());
         }
         
         const StringPtr quantity = this->fields.get("Quantity");
         if (quantity.assigned())
         {
-            serializer->key("Quantity");
+            serializer->key("quantity");
             serializer->writeString(quantity.getCharPtr(), quantity.getLength());
         }
     }
@@ -128,22 +128,22 @@ ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*cont
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 
     StringPtr symbol;
-    ErrCode err = serializedObj->readString(String("Symbol"), &symbol);
+    ErrCode err = serializedObj->readString(String("symbol"), &symbol);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     Int id = -1;
-    err = serializedObj->readInt(String("Id"), &id);
+    err = serializedObj->readInt(String("id"), &id);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     StringPtr name;
-    err = serializedObj->readString(String("Name"), &name);
+    err = serializedObj->readString(String("name"), &name);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
     StringPtr quantity;
-    err = serializedObj->readString(String("Quantity"), &quantity);
+    err = serializedObj->readString(String("quantity"), &quantity);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 

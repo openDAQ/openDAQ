@@ -131,13 +131,13 @@ inline void ConfigClientSignalImpl::onRemoteUpdate(const SerializedObjectPtr& se
 {
     ConfigClientComponentBaseImpl::onRemoteUpdate(serialized);
 
-    if (serialized.hasKey("DomainSignalId"))
-        deserializedDomainSignalId = serialized.readString("DomainSignalId");
+    if (serialized.hasKey("domainSignalId"))
+        deserializedDomainSignalId = serialized.readString("domainSignalId");
     else
         deserializedDomainSignalId.release();
 
-    if (serialized.hasKey("DataDescriptor"))
-        this->dataDescriptor = serialized.readObject("DataDescriptor");
+    if (serialized.hasKey("dataDescriptor"))
+        this->dataDescriptor = serialized.readObject("dataDescriptor");
 }
 
 inline bool ConfigClientSignalImpl::clearDescriptorOnUnsubscribe()

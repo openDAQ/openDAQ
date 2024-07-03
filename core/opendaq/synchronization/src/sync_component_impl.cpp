@@ -14,7 +14,7 @@ SyncComponentImpl::SyncComponentImpl(const ContextPtr& context)
     : Super(), context(context)
 {
     Super::addProperty(ObjectProperty(InterfacesKey, PropertyObject()));
-    Super::addProperty(ListProperty(InterfaceNamesKey, List<IString>("Interface1", "Interface2", "Interface3")));
+    Super::addProperty(ListProperty(InterfaceNamesKey, List<IString>()));
     Super::addProperty(SelectionProperty(SourceKey, EvalValue("$InterfaceNames"), 0));
     Super::addProperty(BoolProperty(SyncronizationLockedKey, false));
 }
@@ -88,7 +88,6 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
 
     //TBD: Check if interface inherits from SyncInterfaceBase
     StringPtr className = interfacePtr.getClassName();
-
     if (className != "SyncInterfaceBase")
     {
         auto typeManager = context.getTypeManager();
@@ -125,7 +124,16 @@ ErrCode SyncComponentImpl::addInterface(IPropertyObject* interface)
         return err;
 
     const auto interfacesPtr = Interfaces.asPtr<IPropertyObject>(true);
-    return interfacesPtr->addProperty(ObjectProperty(className, interface));
+    err = interfacesPtr->addProperty(ObjectProperty(className, interface));
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    return daqTry([&]() {
+        ListPtr<IString> interfaceNames = getTypedProperty<IList>(InterfaceNamesKey);
+        interfaceNames.pushBack(className);
+        checkErrorInfo(Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames));
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 
@@ -140,11 +148,23 @@ ErrCode SyncComponentImpl::removeInterface(IString* interfaceName)
         return err;
 
     const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
-    if (!InterfacesPtr.hasProperty(interfaceName))
-        return OPENDAQ_ERR_NOTFOUND;
+    err = InterfacesPtr->removeProperty(interfaceName);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
-
-    return InterfacesPtr->removeProperty(interfaceName);
+    return daqTry([&]() {
+        ListPtr<IString> interfaceNames = getTypedProperty<IList>(InterfaceNamesKey);
+        for (size_t i = 0; i < interfaceNames.getCount(); i++)
+        {
+            if (interfaceNames[i] == interfaceName)
+            {
+                interfaceNames.removeAt(i);
+                break;
+            }
+        }
+        checkErrorInfo(Super::setPropertyValue(String(InterfaceNamesKey), interfaceNames));
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode SyncComponentImpl::getSerializeId(ConstCharPtr* id) const

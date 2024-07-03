@@ -36,7 +36,17 @@ TEST_F(SyncComponentTest, test_setSyncLocked)
 TEST_F(SyncComponentTest, test_setSelectedSource)
 {
     const auto ctx = daq::NullContext();
+    auto typeManager = ctx.getTypeManager();
+
     SyncComponentPtr syncComponent = SyncComponent(ctx);
+
+    PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
+    PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
+    PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
+
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
 
     Int selectedSource = 0;
     syncComponent->getSelectedSource(&selectedSource);
@@ -44,6 +54,13 @@ TEST_F(SyncComponentTest, test_setSelectedSource)
     syncComponent->setSelectedSource(1);
     syncComponent->getSelectedSource(&selectedSource);
     ASSERT_EQ(selectedSource, 1);
+
+    ASSERT_NO_THROW(syncComponent.setSelectedSource(2));
+    ASSERT_EQ(syncComponent.getSelectedSource(), 2);
+
+    // out of range
+    ASSERT_ANY_THROW(syncComponent.setSelectedSource(3));
+    ASSERT_EQ(syncComponent.getSelectedSource(), 2);
 }
 
 TEST_F(SyncComponentTest, test_addInterfaceInvalidArgument)

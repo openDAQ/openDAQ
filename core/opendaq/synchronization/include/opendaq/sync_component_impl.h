@@ -46,6 +46,8 @@ public:
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
+    // ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -53,7 +55,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-    ListPtr<IPropertyObject> interfaces;
+    // PropertyObjectPtr createCloneBase() override;
 
 private:
     template <typename T>

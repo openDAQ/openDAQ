@@ -11,54 +11,54 @@ template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
 {
-    createAndSetDefaultStringProperty("Name", "");
-    createAndSetDefaultStringProperty("Manufacturer", "");
-    createAndSetDefaultStringProperty("ManufacturerUri", "");
-    createAndSetDefaultStringProperty("Model", "");
-    createAndSetDefaultStringProperty("ProductCode", "");
-    createAndSetDefaultStringProperty("DeviceRevision", "");
-    createAndSetDefaultStringProperty("HardwareRevision", "");
-    createAndSetDefaultStringProperty("SoftwareRevision", "");
-    createAndSetDefaultStringProperty("DeviceManual", "");
-    createAndSetDefaultStringProperty("DeviceClass", "");
-    createAndSetDefaultStringProperty("SerialNumber", "");
-    createAndSetDefaultStringProperty("ProductInstanceUri", "");
-    createAndSetDefaultIntProperty("RevisionCounter", 0);
-    createAndSetDefaultStringProperty("AssetId", "");
-    createAndSetDefaultStringProperty("MacAddress", "");
-    createAndSetDefaultStringProperty("ParentMacAddress", "");
-    createAndSetDefaultStringProperty("Platform", "");
-    createAndSetDefaultIntProperty("Position", 0);
-    createAndSetDefaultStringProperty("SystemType", "");
-    createAndSetDefaultStringProperty("SystemUuid", "");
-    createAndSetDefaultStringProperty("ConnectionString", "");
-    createAndSetDefaultStringProperty("SdkVersion", "");
-    createAndSetDefaultStringProperty("Location", "");
+    createAndSetDefaultStringProperty("name", "");
+    createAndSetDefaultStringProperty("manufacturer", "");
+    createAndSetDefaultStringProperty("manufacturerUri", "");
+    createAndSetDefaultStringProperty("model", "");
+    createAndSetDefaultStringProperty("productCode", "");
+    createAndSetDefaultStringProperty("deviceRevision", "");
+    createAndSetDefaultStringProperty("hardwareRevision", "");
+    createAndSetDefaultStringProperty("softwareRevision", "");
+    createAndSetDefaultStringProperty("deviceManual", "");
+    createAndSetDefaultStringProperty("deviceClass", "");
+    createAndSetDefaultStringProperty("serialNumber", "");
+    createAndSetDefaultStringProperty("productInstanceUri", "");
+    createAndSetDefaultIntProperty("revisionCounter", 0);
+    createAndSetDefaultStringProperty("assetId", "");
+    createAndSetDefaultStringProperty("macAddress", "");
+    createAndSetDefaultStringProperty("parentMacAddress", "");
+    createAndSetDefaultStringProperty("platform", "");
+    createAndSetDefaultIntProperty("position", 0);
+    createAndSetDefaultStringProperty("systemType", "");
+    createAndSetDefaultStringProperty("systemUuid", "");
+    createAndSetDefaultStringProperty("connectionString", "");
+    createAndSetDefaultStringProperty("sdkVersion", "");
+    createAndSetDefaultStringProperty("location", "");
     
-    Super::setProtectedPropertyValue(String("Name"), name);
-    Super::setProtectedPropertyValue(String("ConnectionString"), connectionString);
+    Super::setProtectedPropertyValue(String("name"), name);
+    Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 
-    Super::addProperty(ObjectProperty("ServerCapabilities", PropertyObject()));
-    defaultPropertyNames.insert("ServerCapabilities");
+    Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
+    defaultPropertyNames.insert("serverCapabilities");
 
-    Super::addProperty(ObjectProperty("ConfigurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
-    defaultPropertyNames.insert("ConfigurationConnectionInfo");
+    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
+    defaultPropertyNames.insert("configurationConnectionInfo");
 
     if (customSdkVersion.assigned())
-        Super::setProtectedPropertyValue(String("SdkVersion"), customSdkVersion);
+        Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
     else
-        Super::setProtectedPropertyValue(String("SdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
+        Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
 
-    this->objPtr.getOnPropertyValueRead("Location") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    this->objPtr.getOnPropertyValueRead("location") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {
         const PropertyObjectPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (ownerPtr.assigned())
         {
-            value.setValue(ownerPtr.getPropertyValue("Location"));
+            value.setValue(ownerPtr.getPropertyValue("location"));
         }
     };
 
-    this->objPtr.getOnPropertyValueRead("Name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {
         const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (ownerPtr.assigned())
@@ -77,14 +77,14 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setName(IString* name)
 {
-    return Super::setProtectedPropertyValue(String("Name"), name);
+    return Super::setProtectedPropertyValue(String("name"), name);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getName(IString** name)
 {
     return daqTry([&]() {
-        *name = getStringProperty("Name").detach();
+        *name = getStringProperty("name").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -92,14 +92,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getName(IString** name)
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setConnectionString(IString* connectionString)
 {
-    return Super::setProtectedPropertyValue(String("ConnectionString"), connectionString);
+    return Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectionString(IString** connectionString)
 {
     return daqTry([&]() {
-        *connectionString = getStringProperty("ConnectionString").detach();
+        *connectionString = getStringProperty("connectionString").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -129,14 +129,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceType(IDeviceTy
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturer(IString* manufacturer)
 {
-    return Super::setProtectedPropertyValue(String("Manufacturer"), manufacturer);
+    return Super::setProtectedPropertyValue(String("manufacturer"), manufacturer);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturer(IString** manufacturer)
 {
     return daqTry([&]() {
-        *manufacturer = getStringProperty("Manufacturer").detach();
+        *manufacturer = getStringProperty("manufacturer").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -144,14 +144,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturer(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturerUri(IString* manufacturerUri)
 {
-    return Super::setProtectedPropertyValue(String("ManufacturerUri"), manufacturerUri);
+    return Super::setProtectedPropertyValue(String("manufacturerUri"), manufacturerUri);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturerUri(IString** manufacturerUri)
 {
     return daqTry([&]() {
-        *manufacturerUri = getStringProperty("ManufacturerUri").detach();
+        *manufacturerUri = getStringProperty("manufacturerUri").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -159,14 +159,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturerUri(IStr
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setModel(IString* model)
 {
-    return Super::setProtectedPropertyValue(String("Model"), model);
+    return Super::setProtectedPropertyValue(String("model"), model);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getModel(IString** model)
 {
     return daqTry([&]() {
-        *model = getStringProperty("Model").detach();
+        *model = getStringProperty("model").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -174,14 +174,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getModel(IString** mode
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProductCode(IString* productCode)
 {
-    return Super::setProtectedPropertyValue(String("ProductCode"), productCode);
+    return Super::setProtectedPropertyValue(String("productCode"), productCode);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getProductCode(IString** productCode)
 {
     return daqTry([&]() {
-        *productCode = getStringProperty("ProductCode").detach();
+        *productCode = getStringProperty("productCode").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -190,7 +190,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceRevision(IString** deviceRevision)
 {
     return daqTry([&]() {
-        *deviceRevision = getStringProperty("DeviceRevision").detach();
+        *deviceRevision = getStringProperty("deviceRevision").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -198,14 +198,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceRevision(IStri
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceRevision(IString* deviceRevision)
 {
-    return Super::setProtectedPropertyValue(String("DeviceRevision"), deviceRevision);
+    return Super::setProtectedPropertyValue(String("deviceRevision"), deviceRevision);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getAssetId(IString** id)
 {
     return daqTry([&]() {
-        *id = getStringProperty("AssetId").detach();
+        *id = getStringProperty("assetId").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -213,14 +213,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getAssetId(IString** id
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setAssetId(IString* id)
 {
-    return Super::setProtectedPropertyValue(String("AssetId"), id);
+    return Super::setProtectedPropertyValue(String("assetId"), id);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getMacAddress(IString** macAddress)
 {
     return daqTry([&]() {
-        *macAddress = getStringProperty("MacAddress").detach();
+        *macAddress = getStringProperty("macAddress").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -228,14 +228,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getMacAddress(IString**
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setMacAddress(IString* macAddress)
 {
-    return Super::setProtectedPropertyValue(String("MacAddress"), macAddress);
+    return Super::setProtectedPropertyValue(String("macAddress"), macAddress);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getParentMacAddress(IString** macAddress)
 {
     return daqTry([&]() {
-        *macAddress = getStringProperty("ParentMacAddress").detach();
+        *macAddress = getStringProperty("parentMacAddress").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -243,14 +243,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getParentMacAddress(ISt
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setParentMacAddress(IString* macAddress)
 {
-    return Super::setProtectedPropertyValue(String("ParentMacAddress"), macAddress);
+    return Super::setProtectedPropertyValue(String("parentMacAddress"), macAddress);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPlatform(IString** platform)
 {
     return daqTry([&]() {
-        *platform = getStringProperty("Platform").detach();
+        *platform = getStringProperty("platform").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -258,14 +258,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPlatform(IString** p
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPlatform(IString* platform)
 {
-    return Super::setProtectedPropertyValue(String("Platform"), platform);
+    return Super::setProtectedPropertyValue(String("platform"), platform);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPosition(Int* position)
 {
     return daqTry([&]() {
-        *position = getIntProperty("Position");
+        *position = getIntProperty("position");
         return OPENDAQ_SUCCESS;
     });
 }
@@ -273,14 +273,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPosition(Int* positi
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPosition(Int position)
 {
-    return Super::setProtectedPropertyValue(String("Position"), Integer(position));
+    return Super::setProtectedPropertyValue(String("position"), Integer(position));
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemType(IString** type)
 {
     return daqTry([&]() {
-        *type = getStringProperty("SystemType").detach();
+        *type = getStringProperty("systemType").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -288,14 +288,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemType(IString**
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSystemType(IString* type)
 {
-    return Super::setProtectedPropertyValue(String("SystemType"), type);
+    return Super::setProtectedPropertyValue(String("systemType"), type);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemUuid(IString** uuid)
 {
     return daqTry([&]() {
-        *uuid = getStringProperty("SystemUuid").detach();
+        *uuid = getStringProperty("systemUuid").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -303,7 +303,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemUuid(IString**
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSystemUuid(IString* uuid)
 {
-    return Super::setProtectedPropertyValue(String("SystemUuid"), uuid);
+    return Super::setProtectedPropertyValue(String("systemUuid"), uuid);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -332,7 +332,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSdkVersion(IString**
     OPENDAQ_PARAM_NOT_NULL(version);
 
     return daqTry([&]() {
-        *version = getStringProperty("SdkVersion").detach();
+        *version = getStringProperty("sdkVersion").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -340,7 +340,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSdkVersion(IString**
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setLocation(IString* location)
 {
-    return Super::setProtectedPropertyValue(String("Location"), location);
+    return Super::setProtectedPropertyValue(String("location"), location);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -349,7 +349,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getLocation(IString** l
     OPENDAQ_PARAM_NOT_NULL(location);
 
     return daqTry([&]() {
-        *location = getStringProperty("Location").detach();
+        *location = getStringProperty("location").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -357,14 +357,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getLocation(IString** l
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setHardwareRevision(IString* hardwareRevision)
 {
-    return Super::setProtectedPropertyValue(String("HardwareRevision"), hardwareRevision);
+    return Super::setProtectedPropertyValue(String("hardwareRevision"), hardwareRevision);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getHardwareRevision(IString** hardwareRevision)
 {
     return daqTry([&]() {
-        *hardwareRevision = getStringProperty("HardwareRevision").detach();
+        *hardwareRevision = getStringProperty("hardwareRevision").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -372,14 +372,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getHardwareRevision(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSoftwareRevision(IString* softwareRevision)
 {
-    return Super::setProtectedPropertyValue(String("SoftwareRevision"), softwareRevision);
+    return Super::setProtectedPropertyValue(String("softwareRevision"), softwareRevision);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSoftwareRevision(IString** softwareRevision)
 {
     return daqTry([&]() {
-        *softwareRevision = getStringProperty("SoftwareRevision").detach();
+        *softwareRevision = getStringProperty("softwareRevision").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -387,14 +387,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSoftwareRevision(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceManual(IString* deviceManual)
 {
-    return Super::setProtectedPropertyValue(String("DeviceManual"), deviceManual);
+    return Super::setProtectedPropertyValue(String("deviceManual"), deviceManual);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceManual(IString** deviceManual)
 {
     return daqTry([&]() {
-        *deviceManual = getStringProperty("DeviceManual").detach();
+        *deviceManual = getStringProperty("deviceManual").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -402,14 +402,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceManual(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceClass(IString* deviceClass)
 {
-    return Super::setProtectedPropertyValue(String("DeviceClass"), deviceClass);
+    return Super::setProtectedPropertyValue(String("deviceClass"), deviceClass);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceClass(IString** deviceClass)
 {
     return daqTry([&]() {
-        *deviceClass = getStringProperty("DeviceClass").detach();
+        *deviceClass = getStringProperty("deviceClass").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -417,14 +417,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceClass(IString*
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSerialNumber(IString* serialNumber)
 {
-    return Super::setProtectedPropertyValue(String("SerialNumber"), serialNumber);
+    return Super::setProtectedPropertyValue(String("serialNumber"), serialNumber);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSerialNumber(IString** serialNumber)
 {
     return daqTry([&]() {
-        *serialNumber = getStringProperty("SerialNumber").detach();
+        *serialNumber = getStringProperty("serialNumber").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -432,14 +432,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSerialNumber(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProductInstanceUri(IString* productInstanceUri)
 {
-    return Super::setProtectedPropertyValue(String("ProductInstanceUri"), productInstanceUri);
+    return Super::setProtectedPropertyValue(String("productInstanceUri"), productInstanceUri);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getProductInstanceUri(IString** productInstanceUri)
 {
     return daqTry([&]() {
-        *productInstanceUri = getStringProperty("ProductInstanceUri").detach();
+        *productInstanceUri = getStringProperty("productInstanceUri").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -447,14 +447,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getProductInstanceUri(I
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setRevisionCounter(Int revisionCounter)
 {
-    return Super::setProtectedPropertyValue(String("RevisionCounter"), Integer(revisionCounter));
+    return Super::setProtectedPropertyValue(String("revisionCounter"), Integer(revisionCounter));
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getRevisionCounter(Int* revisionCounter)
 {
     return daqTry([&]() {
-        *revisionCounter = getIntProperty("RevisionCounter");
+        *revisionCounter = getIntProperty("revisionCounter");
         return OPENDAQ_SUCCESS;
     });
 }
@@ -468,7 +468,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3 && name != "ServerCapabilities" && name != "serverCapabilities")
+    if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "serverCapabilities")
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;
@@ -572,7 +572,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
         return err;
 
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "ServerCapabilities";
+    StringPtr str = "serverCapabilities";
     err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -598,7 +598,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     OPENDAQ_PARAM_NOT_NULL(protocolId);
 
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "ServerCapabilities";
+    StringPtr str = "serverCapabilities";
     const ErrCode err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -615,7 +615,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
 {
     BaseObjectPtr serverCapabilities;
-    StringPtr str = "ServerCapabilities";
+    StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &serverCapabilities);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -642,7 +642,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(ISt
     OPENDAQ_PARAM_NOT_NULL(protocolId);
     
     BaseObjectPtr obj;
-    StringPtr str = "ServerCapabilities";
+    StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -684,7 +684,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     ListPtr<IServerCapability> caps = List<IServerCapability>();
 
     BaseObjectPtr obj;
-    StringPtr str = "ServerCapabilities";
+    StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -711,7 +711,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 {
     BaseObjectPtr obj;
-    StringPtr str = "ConfigurationConnectionInfo";
+    StringPtr str = "configurationConnectionInfo";
     ErrCode err = this->getPropertyValue(str, &obj);
     if (OPENDAQ_FAILED(err))
         return err;

@@ -98,7 +98,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     else
         config = populateDefaultConfig(config);
 
-    if (!onAcceptsConnectionParameters(connectionString, config))
+    if (!acceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -209,7 +209,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     return OpcUaScheme + host + ":" + std::to_string(port) + "/" + path;
 }
 
-bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
+bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     std::string connStr = connectionString;
     auto found = connStr.find(DaqOpcUaDevicePrefix);

@@ -32,8 +32,8 @@ public:
         moduleManager.addModule(fbModule);
 
         auto instance = InstanceCustom(context, localId);
-        instance.addDevice("daq_client_device");
-        instance.addDevice("mock_phys_device");
+        instance.addDevice("daqmock://client_device");
+        instance.addDevice("daqmock://phys_device");
         instance.addFunctionBlock("mock_fb_uid");
 
         return instance;

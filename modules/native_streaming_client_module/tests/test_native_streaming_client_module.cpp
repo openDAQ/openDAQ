@@ -61,22 +61,6 @@ TEST_F(NativeStreamingClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://[::1]"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
-}
-
 TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();
@@ -91,25 +75,6 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
 
     ASSERT_THROW(module.createDevice("daq.ns://127.0.0.1", nullptr), NotFoundException);
     ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr), NotFoundException);
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsStreamingConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringEmpty)
-{
-    auto module = CreateModule();
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(""));
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ns://host"));
 }
 
 TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
@@ -208,38 +173,16 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
     auto deviceConfig = deviceTypes.get("opendaq_native_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
 
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
     auto pseudoDeviceConfig = deviceTypes.get("opendaq_native_streaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://address", pseudoDeviceConfig));
-}
-
-TEST_F(NativeStreamingClientModuleTest, InvalidDeviceConfig)
-{
-    auto module = CreateModule();
-    auto config = PropertyObject();
-
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.nd://device8", config));
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.ns://device8", config));
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,
                              public testing::WithParamInterface<StringPtr>
 {
 };
-
-TEST_P(ConnectionStringTest, ConnectionStringNotAccepted)
-{
-    auto module = CreateModule();
-
-    StringPtr connectionString = GetParam();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(connectionString));
-    ASSERT_FALSE(accepts);
-}
 
 TEST_P(ConnectionStringTest, CreateDeviceWrongConnectionString)
 {
@@ -248,17 +191,6 @@ TEST_P(ConnectionStringTest, CreateDeviceWrongConnectionString)
     StringPtr connectionString = GetParam();
 
     ASSERT_THROW(module.createDevice(connectionString, nullptr), InvalidParameterException);
-}
-
-TEST_P(ConnectionStringTest, StreamingConnectionStringNotAccepted)
-{
-    auto module = CreateModule();
-
-    StringPtr connectionString = GetParam();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsStreamingConnectionParameters(connectionString));
-    ASSERT_FALSE(accepts);
 }
 
 TEST_P(ConnectionStringTest, CreateStreamingWrongConnectionString)

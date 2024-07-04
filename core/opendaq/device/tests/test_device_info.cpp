@@ -144,7 +144,7 @@ TEST_F(DeviceInfoTest, SetGetDeviceType)
     DeviceInfoConfigPtr deviceInfoConfig = DeviceInfo("", "");
     DeviceInfoPtr deviceInfo = deviceInfoConfig;
 
-    auto deviceType = DeviceType("test", "", "");
+    auto deviceType = DeviceType("test", "", "", "prefix");
     deviceInfoConfig.setDeviceType(deviceType);
     ASSERT_EQ(deviceInfo.getDeviceType(), deviceType);
     ASSERT_EQ(deviceInfo.getDeviceType().getId(), "test");
@@ -174,7 +174,7 @@ TEST_F(DeviceInfoTest, Freezable)
 
     ASSERT_THROW(deviceInfoConfig.addProperty(StringProperty("test_key", "test_value")), FrozenException);
 
-    auto deviceType = DeviceType("test", "", "");
+    auto deviceType = DeviceType("test", "", "", "prefix");
     ASSERT_THROW(deviceInfoConfig.setDeviceType(deviceType), FrozenException);
 }
 

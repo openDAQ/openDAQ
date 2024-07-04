@@ -60,48 +60,6 @@ TEST_F(WebsocketStreamingClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringWrongPrefix)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("daq.opcua://device8"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://[::1]"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
-}
-
 TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();
@@ -139,49 +97,6 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionFailed)
     ASSERT_THROW(module.createDevice("daq.lt://127.0.0.1", nullptr), NotFoundException);
 }
 
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsStreamingConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsStreamingConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsStreamingConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringWrongPrefix)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsStreamingConnectionParameters("daq.opcua://device8"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.lt://device8"));
-    // check that old style conenction is also supported
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ws://device8"));
-}
-
 TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
 {
     auto context = NullContext();
@@ -208,7 +123,6 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
     ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
     ASSERT_EQ(connectionString, "daq.lt://123.123.123.123:1234/path");
 }
-
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingWithNullArguments)
 {
@@ -251,9 +165,11 @@ TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_lt_streaming"));
     ASSERT_EQ(deviceTypes.get("opendaq_lt_streaming").getId(), "opendaq_lt_streaming");
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_lt_streaming_old"));
+    ASSERT_EQ(deviceTypes.get("opendaq_lt_streaming_old").getId(), "opendaq_lt_streaming_old");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

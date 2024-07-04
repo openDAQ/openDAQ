@@ -335,7 +335,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else
         deviceConfig = populateDefaultConfig(config);
 
-    if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
+    if (!acceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -428,7 +428,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     return defaultConfig;
 }
 
-bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString,
+bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
                                                                 const PropertyObjectPtr& config)
 {
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
@@ -450,8 +450,8 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
     }
 }
 
-bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                   const PropertyObjectPtr& config)
+bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const StringPtr& connectionString,
+                                                                       const PropertyObjectPtr& /*config*/)
 {
     if (connectionString.assigned() && connectionString != "")
     {
@@ -526,10 +526,10 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
                                                             const PropertyObjectPtr& config)
 {
-    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
+    if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
-    PropertyObjectPtr transportLayerConfig;
 
+    PropertyObjectPtr transportLayerConfig;
     PropertyObjectPtr parsedConfig;
     if (config.assigned())
     {

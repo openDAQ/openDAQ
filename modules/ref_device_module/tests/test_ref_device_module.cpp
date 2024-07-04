@@ -75,37 +75,6 @@ TEST_F(RefDeviceModuleTest, EnumerateDevices)
     ASSERT_EQ(deviceInfo[1].getConnectionString(), "daqref://device1");
 }
 
-TEST_F(RefDeviceModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(RefDeviceModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(RefDeviceModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(RefDeviceModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daqref://device8"));
-}
-
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();

@@ -113,13 +113,13 @@ TEST_F(DeviceTest, DefaultProperties)
 TEST_F(DeviceTest, DeviceTypeStructType)
 {
     const auto structType = daq::DeviceTypeStructType();
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType, structPtr.getStructType());
 }
 
 TEST_F(DeviceTest, DeviceTypeStructFields)
 {
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structPtr.get("id"), "id");
     ASSERT_EQ(structPtr.get("name"), "name");
     ASSERT_EQ(structPtr.get("description"), "desc");
@@ -128,7 +128,7 @@ TEST_F(DeviceTest, DeviceTypeStructFields)
 TEST_F(DeviceTest, DeviceTypeStructNames)
 {
     const auto structType = daq::DeviceTypeStructType();
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 

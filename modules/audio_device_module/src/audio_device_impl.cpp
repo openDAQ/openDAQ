@@ -257,7 +257,7 @@ std::string AudioDeviceImpl::getConnectionStringFromId(ma_backend backend, ma_de
 
 DeviceTypePtr AudioDeviceImpl::createType()
 {
-    return DeviceType("miniaudio", "Audio device", "");
+    return DeviceType("miniaudio", "Audio device", "", "miniaudio");
 }
 
 ma_device_id AudioDeviceImpl::getIdFromConnectionString(std::string connectionString)

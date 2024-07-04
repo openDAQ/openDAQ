@@ -34,15 +34,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The unique type ID of the device.
  * @param name The name of the device type.
  * @param description A short description of the device type.
+ * @param prefix The prefix of the connection string used when adding the device (the part before  the "://" delimiter in the connection string)
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the device has its own configuration object.
  */
 inline DeviceTypePtr DeviceType(const StringPtr& id,
                                 const StringPtr& name,
                                 const StringPtr& description,
+                                const StringPtr& prefix,
                                 const PropertyObjectPtr& defaultConfig = PropertyObject())
 {
-    DeviceTypePtr obj(DeviceType_Create(id, name, description, defaultConfig));
+    DeviceTypePtr obj(DeviceType_Create(id, name, description, defaultConfig, prefix));
     return obj;
 }
 

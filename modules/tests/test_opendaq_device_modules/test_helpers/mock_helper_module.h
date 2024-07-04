@@ -36,7 +36,6 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
-    ErrCode INTERFACE_FUNC acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config) override;
 
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -45,7 +44,6 @@ public:
     ErrCode INTERFACE_FUNC getAvailableServerTypes(IDict** serverTypes) override;
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverType, IDevice* rootDevice, IPropertyObject* config) override;
 
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* /*config*/) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* /*config*/) override;
 
     ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override;

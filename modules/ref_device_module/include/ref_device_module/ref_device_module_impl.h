@@ -28,7 +28,6 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
     std::vector<WeakRefPtr<IDevice>> devices;

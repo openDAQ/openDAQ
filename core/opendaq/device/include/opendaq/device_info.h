@@ -253,7 +253,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @param[out] location The location of the device.
      *
      * If the info object is obtained from a device that is already added (not through discovery),
-     * the location string value matches that of the device's "Location" property.
+     * the location string value matches that of the device's "location" property.
      */
     virtual ErrCode INTERFACE_FUNC getLocation(IString** location) = 0;
 

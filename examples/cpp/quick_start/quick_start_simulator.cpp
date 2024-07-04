@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(StringProperty("Name", "Reference device simulator"));
     config.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    config.addProperty(StringProperty("SerialNumber", "sim01"));
+    config.addProperty(StringProperty("serialNumber", "sim01"));
 
     const InstancePtr instance = InstanceBuilder()
                                  .addModulePath(MODULE_PATH)

@@ -839,7 +839,7 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
     auto info = client.getDevices()[0].getInfo();
-    ASSERT_EQ(info.getPropertyValue("SdkVersion"), OPENDAQ_PACKAGE_VERSION);
+    ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
 }
 
 TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)

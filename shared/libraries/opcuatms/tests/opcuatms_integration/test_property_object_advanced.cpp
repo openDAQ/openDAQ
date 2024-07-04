@@ -647,7 +647,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, NestedObjTest)
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(clientObj.getPropertyValue("Child.Child.foo"), 10);
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), 10);
 }
 
 TEST_F(TmsPropertyObjectAdvancedTest, ObjectPropWithMetadata)

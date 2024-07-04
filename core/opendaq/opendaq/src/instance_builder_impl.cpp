@@ -23,7 +23,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
             })},
         {"RootDevice", Dict<IString, IBaseObject>({
                 {"DefaultLocalId", ""},
-                {"ConnectionString", ""}
+                {"connectionString", ""}
             })},   
         {"Modules", Dict<IString, IBaseObject>()}
     });
@@ -321,7 +321,7 @@ ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString, IPropertyO
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    getRootDevice().set("ConnectionString", connectionString);
+    getRootDevice().set("connectionString", connectionString);
     this->rootDeviceConfig = config;
     return OPENDAQ_SUCCESS;
 }
@@ -331,7 +331,7 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *connectionString = getRootDevice().get("ConnectionString").asPtr<IString>().addRefAndReturn();
+    *connectionString = getRootDevice().get("connectionString").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

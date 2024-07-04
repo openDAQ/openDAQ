@@ -98,7 +98,7 @@ TEST_F(ConfigCoreEventTest, PropertyChangedNested)
     int callCount = 0;
     
     const auto obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const auto obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const auto obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     clientContext.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
@@ -116,17 +116,17 @@ TEST_F(ConfigCoreEventTest, PropertyChangedNested)
         else
         {
             ASSERT_EQ(obj2, args.getParameters().get("Owner"));
-            ASSERT_EQ("ObjectWithMetadata.Child", args.getParameters().get("Path"));
+            ASSERT_EQ("ObjectWithMetadata.child", args.getParameters().get("Path"));
         }
 
         callCount++;
     };
 
     serverComponent.setPropertyValue("ObjectWithMetadata.String", "foo");
-    serverComponent.setPropertyValue("ObjectWithMetadata.Child.String", "bar");
+    serverComponent.setPropertyValue("ObjectWithMetadata.child.String", "bar");
 
     ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.String"), "foo");
-    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.Child.String"), "bar");
+    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.child.String"), "bar");
 
     ASSERT_EQ(callCount, 2);
 }
@@ -196,10 +196,10 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
 
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int updateCount = 0;
     
@@ -228,7 +228,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
 
     ASSERT_EQ(updateCount, 2);
     ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.String"), serverComponent.getPropertyValue("ObjectWithMetadata.String"));
-    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.Child.String"), serverComponent.getPropertyValue("ObjectWithMetadata.Child.String"));
+    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.child.String"), serverComponent.getPropertyValue("ObjectWithMetadata.child.String"));
 }
 
 TEST_F(ConfigCoreEventTest, PropertyAdded)
@@ -263,10 +263,10 @@ TEST_F(ConfigCoreEventTest, PropertyAddedNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
     
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int addCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -322,10 +322,10 @@ TEST_F(ConfigCoreEventTest, PropertyRemovedNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
     
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int removeCount = 0;
     clientContext.getOnCoreEvent() +=

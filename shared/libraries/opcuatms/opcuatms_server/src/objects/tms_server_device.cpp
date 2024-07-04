@@ -32,26 +32,26 @@ namespace detail
     }
 
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
-        {"AssetId", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getAssetId().getCharPtr()}; }},
-        {"ComponentName", [](const DeviceInfoPtr& info){ return createLocalizedTextVariant(info.getName().getCharPtr()); }},
-        {"DeviceClass", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceClass().getCharPtr()}; }},
-        {"DeviceManual", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceManual().getCharPtr()}; }},
-        {"DeviceRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceRevision().getCharPtr()}; }},
-        {"HardwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getHardwareRevision().getCharPtr()}; }},
-        {"Manufacturer", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getManufacturer().getCharPtr()); }},
-        {"ManufacturerUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getManufacturerUri().getCharPtr()}; }},
-        {"Model", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getModel().getCharPtr()); }},
-        {"ProductCode", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductCode().getCharPtr()}; }},
-        {"ProductInstanceUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductInstanceUri().getCharPtr()}; }},
-        {"RevisionCounter", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<int>(info.getRevisionCounter())}; }},
-        {"SerialNumber", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSerialNumber().getCharPtr()}; }},
-        {"SoftwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSoftwareRevision().getCharPtr()}; }},
-        {"MacAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getMacAddress().getCharPtr()}; }},
-        {"ParentMacAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getParentMacAddress().getCharPtr()}; }},
-        {"Platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
-        {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
-        {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
-        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
+        {"assetId", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getAssetId().getCharPtr()}; }},
+        {"componentName", [](const DeviceInfoPtr& info){ return createLocalizedTextVariant(info.getName().getCharPtr()); }},
+        {"deviceClass", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceClass().getCharPtr()}; }},
+        {"deviceManual", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceManual().getCharPtr()}; }},
+        {"deviceRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceRevision().getCharPtr()}; }},
+        {"hardwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getHardwareRevision().getCharPtr()}; }},
+        {"manufacturer", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getManufacturer().getCharPtr()); }},
+        {"manufacturerUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getManufacturerUri().getCharPtr()}; }},
+        {"model", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getModel().getCharPtr()); }},
+        {"productCode", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductCode().getCharPtr()}; }},
+        {"productInstanceUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductInstanceUri().getCharPtr()}; }},
+        {"revisionCounter", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<int>(info.getRevisionCounter())}; }},
+        {"serialNumber", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSerialNumber().getCharPtr()}; }},
+        {"softwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSoftwareRevision().getCharPtr()}; }},
+        {"macAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getMacAddress().getCharPtr()}; }},
+        {"parentMacAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getParentMacAddress().getCharPtr()}; }},
+        {"platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
+        {"position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
+        {"systemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
+        {"systemUuid", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
     };
 }
 
@@ -69,17 +69,17 @@ bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)
 {
     const auto name = server->readBrowseNameString(nodeId);
 
-    if (name == "AssetId" && object.getInfo().getAssetId() != "")
+    if (name == "assetId" && object.getInfo().getAssetId() != "")
         return true;
-    if (name == "ComponentName" && object.getInfo().getName() != "")
+    if (name == "componentName" && object.getInfo().getName() != "")
         return true;
-    if (name == "DeviceClass" && object.getInfo().getDeviceClass() != "")
+    if (name == "deviceClass" && object.getInfo().getDeviceClass() != "")
         return true;
-    if (name == "ManufacturerUri" && object.getInfo().getManufacturerUri() != "")
+    if (name == "manufacturerUri" && object.getInfo().getManufacturerUri() != "")
         return true;
-    if (name == "ProductCode" && object.getInfo().getProductCode() != "")
+    if (name == "productCode" && object.getInfo().getProductCode() != "")
         return true;
-    if (name == "ProductInstanceUri" && object.getInfo().getProductInstanceUri() != "")
+    if (name == "productInstanceUri" && object.getInfo().getProductInstanceUri() != "")
         return true;
 
     return Super::createOptionalNode(nodeId);
@@ -150,7 +150,7 @@ void TmsServerDevice::populateDeviceInfo()
 
     auto deviceInfo = object.getInfo();
 
-    createNode("OpenDaqPackageVersion", ctString);
+    createNode("openDaqPackageVersion", ctString);
 
     const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
     std::unordered_set<std::string> customInfoNamesSet;
@@ -182,7 +182,7 @@ void TmsServerDevice::populateDeviceInfo()
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
             server->writeValue(reference.nodeId.nodeId, *v);
         }
-        else if (browseName == "OpenDaqPackageVersion")
+        else if (browseName == "openDaqPackageVersion")
         {
             auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
             server->writeValue(reference.nodeId.nodeId, *v);
@@ -226,10 +226,10 @@ void TmsServerDevice::populateServerCapabilities()
     if (deviceInfo == nullptr)
         return;
 
-    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("ServerCapabilities"); 
+    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
 
     auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");
+            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "serverCapabilities");
     this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 

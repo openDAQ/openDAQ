@@ -66,9 +66,9 @@ daq::DevicePtr TmsClient::connect()
     auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId);
 
     const auto deviceInfo = device.getInfo();
-    if (deviceInfo.hasProperty("OpenDaqPackageVersion"))
+    if (deviceInfo.hasProperty("openDaqPackageVersion"))
     {
-        const std::string packageVersion = deviceInfo.getPropertyValue("OpenDaqPackageVersion");
+        const std::string packageVersion = deviceInfo.getPropertyValue("openDaqPackageVersion");
 
         if (packageVersion != OPENDAQ_PACKAGE_VERSION)
         {

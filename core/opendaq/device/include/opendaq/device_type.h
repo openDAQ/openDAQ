@@ -67,7 +67,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
-    IPropertyObject*, defaultConfig
+    IPropertyObject*, defaultConfig,
+    IString*, prefix
 )
 
 /*!@}*/

@@ -10,9 +10,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
-static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
-static const char* WebsocketDevicePrefix = "daq.lt://";
-static const char* OldWebsocketDevicePrefix = "daq.ws://";
+static std::string WebsocketDeviceTypeId = "opendaq_lt_streaming";
+static std::string OldWebsocketDeviceTypeId = "opendaq_lt_streaming_old";
+static std::string WebsocketDevicePrefix = "daq.lt";
+static std::string OldWebsocketDevicePrefix = "daq.ws";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -70,7 +71,7 @@ ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType());
+        device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
     }
     return availableDevices;
 }
@@ -79,9 +80,11 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto websocketDeviceType = createWebsocketDeviceType();
+    const auto websocketDeviceType = createWebsocketDeviceType(false);
+    const auto oldWebsocketDeviceType = createWebsocketDeviceType(true);
 
     result.set(websocketDeviceType.getId(), websocketDeviceType);
+    result.set(oldWebsocketDeviceType.getId(), oldWebsocketDeviceType);
 
     return result;
 }
@@ -104,7 +107,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsConnectionParameters(connectionString, config))
+    if (!acceptsConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -150,18 +153,18 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     return device;
 }
 
-bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
+bool WebsocketStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(WebsocketDevicePrefix) == 0 || connStr.find(OldWebsocketDevicePrefix) == 0;
+    auto found = connStr.find(WebsocketDevicePrefix + "://") == 0 || connStr.find(OldWebsocketDevicePrefix + "://") == 0;
     return found;
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
+bool WebsocketStreamingClientModule::acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        return onAcceptsConnectionParameters(connectionString, config);
+        return acceptsConnectionParameters(connectionString, config);
     }
     return false;
 }
@@ -171,7 +174,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
+    if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
     const StringPtr str = formConnectionString(connectionString, config);
@@ -216,13 +219,16 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
     return String(fmt::format("daq.lt://{}:{}{}", host, port, path));
 }
 
-DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
+DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType(bool useOldPrefix)
 {
+    const StringPtr prefix = useOldPrefix ? String(OldWebsocketDevicePrefix) : String(WebsocketDevicePrefix);
+    const StringPtr id = useOldPrefix ? String(OldWebsocketDeviceTypeId) : String(WebsocketDeviceTypeId);
+
     return DeviceTypeBuilder()
-        .setId(WebsocketDeviceTypeId)
+        .setId(id)
         .setName("Streaming LT enabled pseudo-device")
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
-        .setConnectionStringPrefix("daq.lt")
+        .setConnectionStringPrefix(prefix)
         .setDefaultConfig(createDefaultConfig())
         .build();
 }

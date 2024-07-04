@@ -106,24 +106,6 @@ public:
     }
 
     /*!
-     * @brief Checks if connection string can be used to connect to devices supported by this module.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `opc.tcp//`.
-     * Connection strings could simply be devices such as `obsidian` when openDAQ SDK is running on DAQ device hardware.
-     * @param accepted Whether this module supports the @p connectionString.
-     */
-    ErrCode INTERFACE_FUNC acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(accepted);
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-
-        bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsConnectionParameters, accepts, connectionString, config);
-
-        *accepted = accepts;
-        return errCode;
-    }
-
-    /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
      * @param connectionString Describes the connection info of the device to connect to. 
@@ -216,27 +198,6 @@ public:
     }
 
     /*!
-     * @brief Verifies whether the provided connection string and config object can be used to establish a streaming connection
-     * supported by this module.
-     * @param[out] accepted Whether this module supports the @p connectionString with provided @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
-     * @param config A config object that contains parameters used to configure a streaming connection.
-     * This object can contain properties like various connection timeouts or other streaming protocol specific settings.
-     * Can be created from its corresponding Streaming type object. In case of a null value, it will use the default configuration.
-     */
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(accepted);
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-
-        bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, config);
-
-        *accepted = accepts;
-        return errCode;
-    }
-
-    /*!
      * @brief Creates and returns a streaming object using the specified connection string and config object.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config A config object that contains parameters used to configure a streaming connection.
@@ -308,19 +269,6 @@ public:
     }
 
     /*!
-     * @brief Checks if connection string can be used to connect to devices supported by this module.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `opc.tcp//`.
-     * Connection strings could simply be devices such as `obsidian` when openDAQ SDK is running on DAQ device hardware.
-     * @param config A configuration object that contains connection parameters in the form of key-value pairs. The configuration
-     * is used and applied when connecting to a device. This method check if provided config object is valid.
-     * @returns Whether this module supports the @p connectionString and @p config is valid.
-     */
-    virtual bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
-    {
-        return false;
-    }
-
-    /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
      * @param connectionString Describes the connection info of the device to connect to.
@@ -371,11 +319,6 @@ public:
     virtual ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice)
     {
         return nullptr;
-    }
-
-    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
-    {
-        return false;
     }
 
     virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)

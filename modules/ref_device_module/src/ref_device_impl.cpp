@@ -75,7 +75,8 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 {
     return DeviceType("daqref",
                       "Reference device",
-                      "Reference device");
+                      "Reference device",
+                      "daqref");
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()

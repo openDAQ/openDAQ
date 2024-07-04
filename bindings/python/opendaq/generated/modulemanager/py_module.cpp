@@ -75,14 +75,6 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         },
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available device types this module can create.");
-    cls.def("accepts_connection_parameters",
-        [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
-        {
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.acceptsConnectionParameters(connectionString, config);
-        },
-        py::arg("connection_string"), py::arg("config") = nullptr,
-        "Checks if connection string can be used to connect to devices supported by this module and if the configuration object provided to this module is valid.");
     cls.def("create_device",
         [](daq::IModule *object, const std::string& connectionString, daq::IComponent* parent, daq::IPropertyObject* config)
         {
@@ -123,14 +115,6 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         },
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
         "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
-    cls.def("accepts_streaming_connection_parameters",
-        [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
-        {
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.acceptsStreamingConnectionParameters(connectionString, config);
-        },
-        py::arg("connection_string"), py::arg("config") = nullptr,
-        "Verifies whether the provided connection string and config object can be used to establish a streaming connection supported by this module.");
     cls.def("create_streaming",
         [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
         {

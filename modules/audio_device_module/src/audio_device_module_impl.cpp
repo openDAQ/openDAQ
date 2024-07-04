@@ -80,14 +80,6 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
     return devicePtr;
 }
 
-bool AudioDeviceModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
-{
-    LOG_T("Connection string: {}", connectionString);
-    std::string connStr = connectionString;
-    auto found = connStr.find("miniaudio://");
-    return (found == 0);
-}
-
 DictPtr<IString, IFunctionBlockType> AudioDeviceModule::onGetAvailableFunctionBlockTypes()
 {
     auto types = Dict<IString, IFunctionBlockType>();

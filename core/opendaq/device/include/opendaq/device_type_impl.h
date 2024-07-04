@@ -30,7 +30,7 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
-                            const StringPtr& prefix = "");
+                            const StringPtr& prefix);
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 

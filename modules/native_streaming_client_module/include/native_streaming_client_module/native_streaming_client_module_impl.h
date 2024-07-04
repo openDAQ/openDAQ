@@ -36,8 +36,6 @@ public:
     DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
@@ -81,6 +79,8 @@ private:
                                  const StringPtr& port,
                                  const StringPtr& path);
     PropertyObjectPtr createConnectionDefaultConfig();
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();

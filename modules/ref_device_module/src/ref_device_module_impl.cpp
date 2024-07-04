@@ -110,14 +110,6 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     return devicePtr;
 }
 
-bool RefDeviceModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
-{
-    LOG_T("Connection string: {}", connectionString);
-    std::string connStr = connectionString;
-    auto found = connStr.find("daqref://");
-    return (found == 0);
-}
-
 size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionString) const
 {
     std::string prefixWithDeviceStr = "daqref://device";

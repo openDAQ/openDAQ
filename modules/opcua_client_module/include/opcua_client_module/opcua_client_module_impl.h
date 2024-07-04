@@ -32,7 +32,7 @@ public:
     DevicePtr onCreateDevice(const StringPtr& connectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:

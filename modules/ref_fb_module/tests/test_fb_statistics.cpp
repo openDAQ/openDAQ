@@ -150,7 +150,7 @@ private:
     void createDomainPackets()
     {
         // Linear creation of domain packets
-        Int delta = rule.getParameters().get("Delta");
+        Int delta = rule.getParameters().get("delta");
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
             auto offset = 0;

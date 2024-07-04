@@ -140,14 +140,14 @@ void FFTFbImpl::configure()
             throw std::runtime_error("FFT: Domain signal descriptor has no Tick resolution configured");
         }
 
-        const int delta = domainRule.getParameters().get("Delta");
+        const int delta = domainRule.getParameters().get("delta");
         const double inverted = static_cast<double>(resolution.getDenominator()) / static_cast<double>(resolution.getNumerator()) / delta;
         const double dimensionDelta = inverted / static_cast<double>(blockSize);
         const auto rule = DimensionRuleBuilder()
                               .setType(DimensionRuleType::Linear)
-                              .addParameter("Delta", dimensionDelta)
-                              .addParameter("Start", 0)
-                              .addParameter("Size", blockSize / 2)
+                              .addParameter("delta", dimensionDelta)
+                              .addParameter("start", 0)
+                              .addParameter("size", blockSize / 2)
                               .build();
         dimensions.pushBack(Dimension(rule, Unit("Hz", -1, "Hertz"), "Frequency"));
         const auto labels = dimensions[0].getLabels();

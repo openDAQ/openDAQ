@@ -92,14 +92,14 @@ protected:
         const auto defaultObj1 = PropertyObject();
         defaultObj1.addProperty(StringProperty("MyString", "foo"));
         PropertyObjectClassPtr objectClass = PropertyObjectClassBuilder(objManager, "ObjectClass")
-                                                    .addProperty(ObjectProperty("Child", defaultObj1))
+                                                    .addProperty(ObjectProperty("child", defaultObj1))
                                                     .build();
          objManager.addType(objectClass);
 
         const auto defaultObj2 = PropertyObject();
-        defaultObj2.addProperty(ObjectProperty("Child", defaultObj1));
+        defaultObj2.addProperty(ObjectProperty("child", defaultObj1));
         PropertyObjectClassPtr nestedObjectClass = PropertyObjectClassBuilder(objManager, "NestedObjectClass")
-                                                    .addProperty(ObjectProperty("Child", PropertyObject(objManager, "ObjectClass")))
+                                                    .addProperty(ObjectProperty("child", PropertyObject(objManager, "ObjectClass")))
                                                     .build();
         objManager.addType(nestedObjectClass);
     }
@@ -111,8 +111,8 @@ protected:
         objManager.removeType("BaseClass");
         objManager.removeType("Test");
 
-        objManager->removeType(String("Parent"));
-        objManager->removeType(String("Base"));
+        objManager->removeType(String("parent"));
+        objManager->removeType(String("base"));
 
         propValue.release();
         propName.release();
@@ -215,7 +215,7 @@ TEST_F(PropertyObjectTest, Ownership)
     auto parent = PropertyObject(objManager, "Test");
     auto child = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", child);
+    const auto childProp = ObjectProperty("child", child);
     parent.addProperty(childProp);
 
     parent.dispose();
@@ -454,7 +454,7 @@ TEST_F(PropertyObjectTest, SelectionPropertiesInsertionOrder)
 {
     auto propObj = PropertyObject(objManager, "DerivedClass");
 
-    const auto childProp = ObjectProperty("Child", PropertyObject());
+    const auto childProp = ObjectProperty("child", PropertyObject());
     propObj.addProperty(childProp);
 
     auto props = propObj.getAllProperties();
@@ -484,7 +484,7 @@ TEST_F(PropertyObjectTest, SelectionPropertiesCustomOrder)
     auto propObj = PropertyObject(objManager, "DerivedClass");
     propObj.setPropertyOrder(List<IString>("Kind", "AdditionalProp"));
 
-    const auto childProp = ObjectProperty("Child", PropertyObject());
+    const auto childProp = ObjectProperty("child", PropertyObject());
     propObj.addProperty(childProp);
 
     auto props = propObj.getAllProperties();
@@ -546,7 +546,7 @@ TEST_F(PropertyObjectTest, EnumVisibleWithVisibleThroughRefs)
 {
     auto propObj = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", PropertyObject());
+    const auto childProp = ObjectProperty("child", PropertyObject());
     propObj.addProperty(childProp);
 
     ASSERT_EQ(propObj.getAllProperties().getCount(), NumAllProperties + 1);
@@ -709,11 +709,11 @@ TEST_F(PropertyObjectTest, ChildPropSet)
     auto propObj = PropertyObject(objManager, "Test");
     auto childObj = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", childObj);
+    const auto childProp = ObjectProperty("child", childObj);
     propObj.addProperty(childProp);
 
     propObj.setPropertyValue("Child.IntProperty", 1);
-    const PropertyObjectPtr childObjCloned = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObjCloned = propObj.getPropertyValue("child");
 
     ASSERT_EQ(childObjCloned.getPropertyValue("IntProperty"), 1);
 }
@@ -725,22 +725,22 @@ TEST_F(PropertyObjectTest, NestedChildPropSet)
     auto defaultObj2 = PropertyObject(objManager, "Test");
     auto defaultObj3 = PropertyObject(objManager, "Test");
 
-    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    const auto childProp3 = ObjectProperty("child", defaultObj3);
     defaultObj2.addProperty(childProp3);
     
-    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    const auto childProp2 = ObjectProperty("child", defaultObj2);
     defaultObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    const auto childProp1 = ObjectProperty("child", defaultObj1);
     propObj.addProperty(childProp1);
 
     propObj.setPropertyValue("Child.IntProperty", 1);
     propObj.setPropertyValue("Child.Child.IntProperty", 2);
     propObj.setPropertyValue("Child.Child.Child.IntProperty", 3);
 
-    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
-    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
-    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("Child");
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("child");
+    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("child");
 
     ASSERT_EQ(childObj1.getPropertyValue("IntProperty"), 1);
     ASSERT_EQ(childObj2.getPropertyValue("IntProperty"), 2);
@@ -753,10 +753,10 @@ TEST_F(PropertyObjectTest, ChildPropGet)
     auto childObj = PropertyObject(objManager, "Test");
 
     childObj.setPropertyValue("IntProperty", 2);
-    const auto childProp = ObjectProperty("Child", childObj);
+    const auto childProp = ObjectProperty("child", childObj);
 
     propObj.addProperty(childProp);
-    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", childObj);
+    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child", childObj);
 
     ASSERT_EQ(propObj.getPropertyValue("Child.IntProperty"), 2);
 }
@@ -767,10 +767,10 @@ TEST_F(PropertyObjectTest, ChildPropClear)
     auto defaultObj = PropertyObject(objManager, "Test");
 
     defaultObj.setPropertyValue("IntProperty", 2);
-    const auto childProp = ObjectProperty("Child", defaultObj);
+    const auto childProp = ObjectProperty("child", defaultObj);
     propObj.addProperty(childProp);
     
-    const PropertyObjectPtr childObj = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObj = propObj.getPropertyValue("child");
     ASSERT_NO_THROW(propObj.clearPropertyValue("Child.IntProperty"));
     ASSERT_EQ(childObj.getPropertyValue("IntProperty"), 10);
 }
@@ -786,13 +786,13 @@ TEST_F(PropertyObjectTest, NestedChildPropGet)
     childObj2.setPropertyValue("IntProperty", 2);
     childObj3.setPropertyValue("IntProperty", 3);
 
-    const auto childProp3 = ObjectProperty("Child", childObj3);
+    const auto childProp3 = ObjectProperty("child", childObj3);
     childObj2.addProperty(childProp3);
 
-    const auto childProp2 = ObjectProperty("Child", childObj2);
+    const auto childProp2 = ObjectProperty("child", childObj2);
     childObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", childObj1);
+    const auto childProp1 = ObjectProperty("child", childObj1);
     propObj.addProperty(childProp1);
 
     ASSERT_EQ(propObj.getPropertyValue("Child.IntProperty"), 1);
@@ -811,22 +811,22 @@ TEST_F(PropertyObjectTest, NestedChildPropClear)
     defaultObj2.setPropertyValue("IntProperty", 2);
     defaultObj3.setPropertyValue("IntProperty", 3);
 
-    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    const auto childProp3 = ObjectProperty("child", defaultObj3);
     defaultObj2.addProperty(childProp3);
 
-    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    const auto childProp2 = ObjectProperty("child", defaultObj2);
     defaultObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    const auto childProp1 = ObjectProperty("child", defaultObj1);
     propObj.addProperty(childProp1);
 
     ASSERT_NO_THROW(propObj.clearPropertyValue("Child.IntProperty"));
     ASSERT_NO_THROW(propObj.clearPropertyValue("Child.Child.IntProperty"));
     ASSERT_NO_THROW(propObj.clearPropertyValue("Child.Child.Child.IntProperty"));
     
-    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
-    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
-    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("Child");
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("child");
+    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("child");
 
     ASSERT_EQ(childObj1.getPropertyValue("IntProperty"), 10);
     ASSERT_EQ(childObj2.getPropertyValue("IntProperty"), 10);
@@ -838,11 +838,11 @@ TEST_F(PropertyObjectTest, ChildPropSetViaRefProp)
     auto propObj = PropertyObject(objManager, "Test");
     auto defaultObj = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", defaultObj);
+    const auto childProp = ObjectProperty("child", defaultObj);
     propObj.addProperty(childProp);
     propObj.setPropertyValue("Kind.IntProperty", 1);
     
-    const PropertyObjectPtr childObj = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObj = propObj.getPropertyValue("child");
     ASSERT_EQ(childObj.getPropertyValue("IntProperty"), 1);
 }
 
@@ -853,22 +853,22 @@ TEST_F(PropertyObjectTest, NestedChildPropSetViaRefProp)
     auto defaultObj2 = PropertyObject(objManager, "Test");
     auto defaultObj3 = PropertyObject(objManager, "Test");
     
-    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    const auto childProp3 = ObjectProperty("child", defaultObj3);
     defaultObj2.addProperty(childProp3);
 
-    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    const auto childProp2 = ObjectProperty("child", defaultObj2);
     defaultObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    const auto childProp1 = ObjectProperty("child", defaultObj1);
     propObj.addProperty(childProp1);
 
     propObj.setPropertyValue("Kind.IntProperty", 1);
     propObj.setPropertyValue("Kind.Kind.IntProperty", 2);
     propObj.setPropertyValue("Kind.Kind.Kind.IntProperty", 3);
     
-    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
-    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
-    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("Child");
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("child");
+    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("child");
 
     ASSERT_EQ(childObj1.getPropertyValue("IntProperty"), 1);
     ASSERT_EQ(childObj2.getPropertyValue("IntProperty"), 2);
@@ -881,10 +881,10 @@ TEST_F(PropertyObjectTest, ChildPropGetViaRefProp)
     auto defaultObj = PropertyObject(objManager, "Test");
     
     defaultObj.setPropertyValue("IntProperty", 2);
-    const auto childProp = ObjectProperty("Child", defaultObj);
+    const auto childProp = ObjectProperty("child", defaultObj);
     propObj.addProperty(childProp);
     
-    const PropertyObjectPtr childObj = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObj = propObj.getPropertyValue("child");
     ASSERT_EQ(propObj.getPropertyValue("Kind.IntProperty"), 2);
 }
 
@@ -894,10 +894,10 @@ TEST_F(PropertyObjectTest, ChildPropClearViaRefProp)
     auto defaultObj = PropertyObject(objManager, "Test");
     
     defaultObj.setPropertyValue("IntProperty", 1);
-    const auto childProp = ObjectProperty("Child", defaultObj);
+    const auto childProp = ObjectProperty("child", defaultObj);
     propObj.addProperty(childProp);
 
-    const PropertyObjectPtr childObj = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObj = propObj.getPropertyValue("child");
     ASSERT_NO_THROW(propObj.clearPropertyValue("Kind.IntProperty"));
     ASSERT_EQ(childObj.getPropertyValue("IntProperty"), 10);
 }
@@ -913,18 +913,18 @@ TEST_F(PropertyObjectTest, NestedChildPropGetViaRefProp)
     defaultObj2.setPropertyValue("IntProperty", 2);
     defaultObj3.setPropertyValue("IntProperty", 3);
     
-    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    const auto childProp3 = ObjectProperty("child", defaultObj3);
     defaultObj2.addProperty(childProp3);
 
-    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    const auto childProp2 = ObjectProperty("child", defaultObj2);
     defaultObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    const auto childProp1 = ObjectProperty("child", defaultObj1);
     propObj.addProperty(childProp1);
 
-    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
-    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
-    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("Child");
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("child");
+    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("child");
     
     ASSERT_EQ(propObj.getPropertyValue("Kind.IntProperty"), 1);
     ASSERT_EQ(propObj.getPropertyValue("Kind.Kind.IntProperty"), 2);
@@ -943,22 +943,22 @@ TEST_F(PropertyObjectTest, NestedChildPropClearViaRefProp)
     defaultObj2.setPropertyValue("IntProperty", 2);
     defaultObj3.setPropertyValue("IntProperty", 3);
 
-    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    const auto childProp3 = ObjectProperty("child", defaultObj3);
     defaultObj2.addProperty(childProp3);
 
-    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    const auto childProp2 = ObjectProperty("child", defaultObj2);
     defaultObj1.addProperty(childProp2);
 
-    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    const auto childProp1 = ObjectProperty("child", defaultObj1);
     propObj.addProperty(childProp1);
 
     ASSERT_NO_THROW(propObj.clearPropertyValue("Kind.IntProperty"));
     ASSERT_NO_THROW(propObj.clearPropertyValue("Kind.Kind.IntProperty"));
     ASSERT_NO_THROW(propObj.clearPropertyValue("Kind.Kind.Kind.IntProperty"));
     
-    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
-    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
-    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("Child");
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("child");
+    const PropertyObjectPtr childObj3 = childObj2.getPropertyValue("child");
     ASSERT_EQ(childObj1.getPropertyValue("IntProperty"), 10);
     ASSERT_EQ(childObj2.getPropertyValue("IntProperty"), 10);
     ASSERT_EQ(childObj3.getPropertyValue("IntProperty"), 10);
@@ -1018,7 +1018,7 @@ TEST_F(PropertyObjectTest, InheritedParent)
 
     auto propObj = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", PropertyObject());
+    const auto childProp = ObjectProperty("child", PropertyObject());
     propObj.addProperty(childProp);
 
     auto props = propObj.getVisibleProperties();
@@ -1032,7 +1032,7 @@ TEST_F(PropertyObjectTest, LocalProperties)
 {
     auto propObj = PropertyObject(objManager, "Test");
 
-    const auto childProp = ObjectProperty("Child", PropertyObject());
+    const auto childProp = ObjectProperty("child", PropertyObject());
     propObj.addProperty(childProp);
 
     ASSERT_EQ(propObj.getVisibleProperties().getCount(), NumVisibleProperties);
@@ -1164,7 +1164,7 @@ TEST_F(PropertyObjectTest, ChildPropGetArray)
     auto childObj = PropertyObject(objManager, "Test");
     
     childObj.setPropertyValue("ListProperty", List<Int>(1, 4));
-    const auto childProp = ObjectProperty("Child", childObj);
+    const auto childProp = ObjectProperty("child", childObj);
     propObj.addProperty(childProp);
 
     ASSERT_EQ(propObj.getPropertyValue("Child.ListProperty[1]"), 4);
@@ -1219,18 +1219,18 @@ TEST_F(PropertyObjectTest, HasPropertyOnClass)
 
 TEST_F(PropertyObjectTest, HasPropertyOnClassParent)
 {
-    auto parentClass = PropertyObjectClassBuilder(objManager, "Parent")
+    auto parentClass = PropertyObjectClassBuilder(objManager, "parent")
                        .addProperty(BoolProperty("IsTest", true))
                        .build();
 
-    auto baseClass = PropertyObjectClassBuilder(objManager, "Base")
-                     .setParentName("Parent")
+    auto baseClass = PropertyObjectClassBuilder(objManager, "base")
+                     .setParentName("parent")
                      .build();
 
     objManager.addType(parentClass);
     objManager.addType(baseClass);
 
-    auto propObj = PropertyObject(objManager, "Base");
+    auto propObj = PropertyObject(objManager, "base");
     ASSERT_TRUE(propObj.hasProperty("IsTest"));
 }
 
@@ -1588,7 +1588,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
     auto childObj = PropertyObject();
     childObj.addProperty(StringProperty("Foo", "Bar"));
 
-    auto prop = ObjectPropertyBuilder("Child", childObj)
+    auto prop = ObjectPropertyBuilder("child", childObj)
                 .setReadOnly(true)
                 .setVisible(false)
                 .build();
@@ -1596,7 +1596,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
     propObj.addProperty(prop);
 
     ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
-    ASSERT_THROW(propObj.setPropertyValue("Child", PropertyObject()), AccessDeniedException);
+    ASSERT_THROW(propObj.setPropertyValue("child", PropertyObject()), AccessDeniedException);
     ASSERT_THROW(childObj.setPropertyValue("Foo", "NotBar"), FrozenException);
 }
 
@@ -1790,11 +1790,11 @@ TEST_F(PropertyObjectTest, Clone)
     auto propObj2 = PropertyObject();
     propObj2.addProperty(StringProperty("foo", "bar"));
     
-    propObj1.addProperty(ObjectProperty("Child", propObj2));
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj1.addProperty(ObjectProperty("child", propObj2));
+    propObj.addProperty(ObjectProperty("child", propObj1));
 
-    PropertyObjectPtr clonedObj1 = propObj.getPropertyValue("Child");
-    PropertyObjectPtr clonedObj2 = clonedObj1.getPropertyValue("Child");
+    PropertyObjectPtr clonedObj1 = propObj.getPropertyValue("child");
+    PropertyObjectPtr clonedObj2 = clonedObj1.getPropertyValue("child");
 
     ASSERT_NO_THROW(propObj.asPtr<IPropertyObjectInternal>().clone());
 
@@ -1807,7 +1807,7 @@ TEST_F(PropertyObjectTest, NestedObjectsFrozen)
 {
     const auto propObj = PropertyObject();
     const auto propObj1 = PropertyObject();
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj.addProperty(ObjectProperty("child", propObj1));
     ASSERT_TRUE(propObj1.isFrozen());
 }
 
@@ -1816,9 +1816,9 @@ TEST_F(PropertyObjectTest, ClonedObjectSet)
     const auto propObj = PropertyObject();
     const auto propObj1 = PropertyObject();
     propObj1.addProperty(IntProperty("MyInt", 10));
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj.addProperty(ObjectProperty("child", propObj1));
 
-    const PropertyObjectPtr cloned = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr cloned = propObj.getPropertyValue("child");
     propObj.setPropertyValue("Child.MyInt", 15);
     ASSERT_EQ(cloned.getPropertyValue("MyInt"), 15);
 }
@@ -1828,12 +1828,12 @@ TEST_F(PropertyObjectTest, ClonedObjectsClear)
     const auto propObj = PropertyObject();
     const auto propObj1 = PropertyObject();
     propObj1.addProperty(IntProperty("MyInt", 10));
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj.addProperty(ObjectProperty("child", propObj1));
 
-    const auto cloned = propObj.getPropertyValue("Child");
+    const auto cloned = propObj.getPropertyValue("child");
     propObj.setPropertyValue("Child.MyInt", 15);
-    propObj.clearPropertyValue("Child");
-    ASSERT_NE(cloned, propObj.getPropertyValue("Child"));
+    propObj.clearPropertyValue("child");
+    ASSERT_NE(cloned, propObj.getPropertyValue("child"));
     ASSERT_EQ(propObj.getPropertyValue("Child.MyInt"), 10);
 }
 
@@ -1843,20 +1843,20 @@ TEST_F(PropertyObjectTest, BeginEndUpdateCloned)
     const auto propObj1 = PropertyObject();
     propObj1.addProperty(IntProperty("MyInt", 10));
     propObj1.addProperty(StringProperty("MyString", "foo"));
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj.addProperty(ObjectProperty("child", propObj1));
 
-    const auto oldChild = propObj.getPropertyValue("Child");
+    const auto oldChild = propObj.getPropertyValue("child");
 
     propObj.beginUpdate();
 
     const auto newChild = PropertyObject();
     newChild.addProperty(IntProperty("NewInt", 15));
-    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", newChild);
-    ASSERT_EQ(propObj.getPropertyValue("Child"), oldChild);
+    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child", newChild);
+    ASSERT_EQ(propObj.getPropertyValue("child"), oldChild);
 
     propObj.endUpdate();
 
-    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("child"), newChild);
 }
 
 TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
@@ -1865,50 +1865,50 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
     const auto propObj1 = PropertyObject();
     propObj1.addProperty(IntProperty("MyInt", 10));
     propObj1.addProperty(StringProperty("MyString", "foo"));
-    propObj.addProperty(ObjectProperty("Child", propObj1));
+    propObj.addProperty(ObjectProperty("child", propObj1));
 
-    const auto oldChild = propObj.getPropertyValue("Child");
+    const auto oldChild = propObj.getPropertyValue("child");
     const auto newChild = PropertyObject();
     newChild.addProperty(IntProperty("NewInt", 15));
-    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", newChild);
+    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child", newChild);
 
     propObj.beginUpdate();
 
-    propObj.clearPropertyValue("Child");
-    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
+    propObj.clearPropertyValue("child");
+    ASSERT_EQ(propObj.getPropertyValue("child"), newChild);
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
-    ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
+    ASSERT_NE(propObj.getPropertyValue("child"), newChild);
+    ASSERT_NE(propObj.getPropertyValue("child"), oldChild);
     ASSERT_EQ(propObj.getPropertyValue("Child.MyString"), "foo");
 }
 
 TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
 {
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
-    const auto oldChild = propObj.getPropertyValue("Child");
+    const auto oldChild = propObj.getPropertyValue("child");
 
     propObj.beginUpdate();
 
     const auto newChild = PropertyObject();
     newChild.addProperty(IntProperty("NewInt", 15));
-    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", newChild);
+    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child", newChild);
 
-    ASSERT_EQ(propObj.getPropertyValue("Child"), oldChild);
+    ASSERT_EQ(propObj.getPropertyValue("child"), oldChild);
 
     propObj.endUpdate();
-    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("child"), newChild);
 
     propObj.beginUpdate();
 
-    propObj.clearPropertyValue("Child");
-    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
+    propObj.clearPropertyValue("child");
+    ASSERT_EQ(propObj.getPropertyValue("child"), newChild);
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
-    ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
+    ASSERT_NE(propObj.getPropertyValue("child"), newChild);
+    ASSERT_NE(propObj.getPropertyValue("child"), oldChild);
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.MyString"), "foo");
 }
 
@@ -1916,9 +1916,9 @@ TEST_F(PropertyObjectTest, ClonedClassObjects)
 {
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
     const PropertyObjectClassPtr classObj = objManager.getType("NestedObjectClass");
-    ASSERT_NE(propObj.getPropertyValue("Child"), classObj.getProperty("Child").getDefaultValue());
-    ASSERT_TRUE(classObj.getProperty("Child").getDefaultValue().isFrozen());
-    ASSERT_FALSE(propObj.getPropertyValue("Child").isFrozen());
+    ASSERT_NE(propObj.getPropertyValue("child"), classObj.getProperty("child").getDefaultValue());
+    ASSERT_TRUE(classObj.getProperty("child").getDefaultValue().isFrozen());
+    ASSERT_FALSE(propObj.getPropertyValue("child").isFrozen());
 }
 
 // TODO: Enable once nested object property deserialization works without classes
@@ -1954,7 +1954,7 @@ TEST_F(PropertyObjectTest, DISABLED_ClonedObjectsSerialize)
 
 TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
 
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
     const auto serializer1 = JsonSerializer();

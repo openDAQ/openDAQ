@@ -401,7 +401,7 @@ LinearTimeSignalPtr OutputLinearDomainSignal::createSignalStream(
     }
 
     // from streaming library side, output rate is defined as nanoseconds between two samples
-    const auto outputRate = dataRule.getParameters().get("Delta");
+    const auto outputRate = dataRule.getParameters().get("delta");
     const auto resolution =
         descriptor.getTickResolution().getDenominator() / descriptor.getTickResolution().getNumerator();
 
@@ -505,7 +505,7 @@ void OutputSyncValueSignal::writeDataPacket(const DataPacketPtr& packet)
     {
         uint64_t timeStamp = domainPacket.getOffset();
         auto timeValueOffset = outputDomainSignal->calcStartTimeOffset(timeStamp);
-        Int deltaInTicks = packetDomainDescriptor.getRule().getParameters().get("Delta");
+        Int deltaInTicks = packetDomainDescriptor.getRule().getParameters().get("delta");
         uint64_t timeValueIndex = timeValueOffset / deltaInTicks;
         syncStream->setValueIndex(timeValueIndex);
         submitSignalChanges();
@@ -662,7 +662,7 @@ void OutputConstValueSignal::writeDataPacket(const DataPacketPtr& packet)
 
     uint64_t timeStamp = domainPacket.getOffset();
     auto timeValueOffset = outputDomainSignal->calcStartTimeOffset(timeStamp);
-    Int deltaInTicks = packetDomainDescriptor.getRule().getParameters().get("Delta");
+    Int deltaInTicks = packetDomainDescriptor.getRule().getParameters().get("delta");
     uint64_t firstValueIndex = timeValueOffset / deltaInTicks;
 
     auto sampleType = packet.getDataDescriptor().getSampleType();

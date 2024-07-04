@@ -82,7 +82,7 @@ ErrCode DimensionImpl::getSize(SizeT* size)
 
     if (rule.getType() == DimensionRuleType::Linear || rule.getType() == DimensionRuleType::Logarithmic)
     {
-        *size = rule.getParameters().get("Size");
+        *size = rule.getParameters().get("size");
     }
     else if (rule.getType() == DimensionRuleType::List)
     {
@@ -172,9 +172,9 @@ ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const
 // TODO: Allow ranges in rule
 ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 {
-    const SizeT size = rule.getParameters().get("Size");
-    const Float delta = rule.getParameters().get("Delta");
-    const Float start = rule.getParameters().get("Start");
+    const SizeT size = rule.getParameters().get("size");
+    const Float delta = rule.getParameters().get("delta");
+    const Float start = rule.getParameters().get("start");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
@@ -186,10 +186,10 @@ ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 // TODO: Allow ranges in rule
 ListPtr<IBaseObject> DimensionImpl::getLogLabels() const
 {
-    const SizeT size = rule.getParameters().get("Size");
-    const Float delta = rule.getParameters().get("Delta");
-    const Float start = rule.getParameters().get("Start");
-    const Float base = rule.getParameters().get("Base");
+    const SizeT size = rule.getParameters().get("size");
+    const Float delta = rule.getParameters().get("delta");
+    const Float start = rule.getParameters().get("start");
+    const Float base = rule.getParameters().get("base");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)

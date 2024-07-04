@@ -228,7 +228,7 @@ void InputConstantDataSignal::processSamples(const NumberPtr& absoluteStartDomai
 
 NumberPtr InputConstantDataSignal::getDomainRuleDelta()
 {
-    return inputDomainSignal->getSignalDescriptor().getRule().getParameters().get("Delta");
+    return inputDomainSignal->getSignalDescriptor().getRule().getParameters().get("delta");
 }
 
 uint32_t InputConstantDataSignal::calcPosition(const NumberPtr& startDomainValue, const NumberPtr& domainValue)

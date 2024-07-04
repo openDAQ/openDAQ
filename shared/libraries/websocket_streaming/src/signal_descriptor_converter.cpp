@@ -244,7 +244,7 @@ void SignalDescriptorConverter::SetLinearTimeRule(const daq::DataRulePtr& rule, 
     {
         throw ConversionFailedException();
     }
-    uint64_t delta = rule.getParameters().get("Delta");
+    uint64_t delta = rule.getParameters().get("delta");
     linearStream->setOutputRate(delta);
 }
 

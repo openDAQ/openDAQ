@@ -60,7 +60,7 @@ public:
 
     virtual void onEvent(BaseObjectPtr& /*sender*/, EventArgsPtr<IEventArgs>& /*args*/)
     {
-        ASSERT_FALSE(true) << "Base";
+        ASSERT_FALSE(true) << "base";
     }
 };
 

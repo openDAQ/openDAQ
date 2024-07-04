@@ -138,7 +138,7 @@ TEST(SignalConverter, synchronousSignal)
     ASSERT_EQ(timeSignal->getTimeDelta(), outputRateInTicks);
     ASSERT_EQ(timeSignal->getTableId(), "table1");
 
-    auto start = domainDescriptor.getRule().getParameters().get("Start");
+    auto start = domainDescriptor.getRule().getParameters().get("start");
     timeSignal->setTimeStart(start);
     ASSERT_EQ(timeSignal->getTimeStart(), start);
 }
@@ -395,8 +395,8 @@ TEST(SignalConverter, subscribedTimeSignal)
     ASSERT_EQ(daq::DataRuleType::Linear, rule.getType());
     DictPtr<IString, IBaseObject> params = rule.getParameters();
     ASSERT_EQ(params.getCount(), 2u);
-    uint64_t resultDelta = params.get("Delta");
-    uint64_t resultStart = params.get("Start");
+    uint64_t resultDelta = params.get("delta");
+    uint64_t resultStart = params.get("start");
     ASSERT_EQ(resultDelta, linearDelta);
     ASSERT_EQ(resultStart, 0);
 }

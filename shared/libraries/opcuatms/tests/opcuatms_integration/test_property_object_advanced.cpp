@@ -642,8 +642,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, NestedObjTest)
     auto obj1 = PropertyObject();
     auto obj2 = PropertyObject();
     obj2.addProperty(IntProperty("foo", 10));
-    obj1.addProperty(ObjectProperty("Child", obj2));
-    obj.addProperty(ObjectProperty("Child", obj1));
+    obj1.addProperty(ObjectProperty("child", obj2));
+    obj.addProperty(ObjectProperty("child", obj1));
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 

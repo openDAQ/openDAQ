@@ -42,7 +42,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     ASSERT_EQ(descriptor.getSampleType(), SampleType::Float64);
     ASSERT_EQ(descriptor.getDimensions().getCount(), static_cast<SizeT>(3));
     ASSERT_TRUE(descriptor.getUnit().assigned());
-    ASSERT_EQ(descriptor.getRule().getParameters().get("Delta"), 10);
+    ASSERT_EQ(descriptor.getRule().getParameters().get("delta"), 10);
     ASSERT_EQ(descriptor.getName(), "testName");
     ASSERT_EQ(descriptor.getMetadata().get("key"), "value");
 }

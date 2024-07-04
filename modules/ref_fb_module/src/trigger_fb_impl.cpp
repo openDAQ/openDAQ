@@ -159,8 +159,8 @@ void TriggerFbImpl::trigger(const DataPacketPtr& inputPacket, size_t triggerInde
     {
         // Use linear data rule to figure out when triggered
         auto dictionary = rule.getParameters();
-        auto delta = dictionary.get("Delta");
-        auto start = dictionary.get("Start");
+        auto delta = dictionary.get("delta");
+        auto start = dictionary.get("start");
         auto offset = inputDomainPacket.getOffset();
         triggeredAt = offset + delta * triggerIndex + start;
     }

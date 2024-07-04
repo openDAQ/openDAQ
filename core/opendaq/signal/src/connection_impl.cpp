@@ -525,9 +525,9 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
 
         domainSampleType = domainDescriptor.getSampleType();
         if (domainSampleType == SampleType::Float64)
-            delta.valueDouble = rule.getParameters()["Delta"];
+            delta.valueDouble = rule.getParameters()["delta"];
         else if (domainSampleType == SampleType::Int64 || domainSampleType == SampleType::UInt64)
-            delta.valueInt64_t = rule.getParameters()["Delta"];
+            delta.valueInt64_t = rule.getParameters()["delta"];
         else
         {
             LOGP_T("Gap check not available, invalid domain sample type.")

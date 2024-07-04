@@ -17,7 +17,7 @@ namespace detail
         if (ruleType == DataRuleType::Explicit)
             return Dict<IString, IBaseObject>({{"minExpectedDelta", param1}, {"maxExpectedDelta", param2}});
         if (ruleType == DataRuleType::Linear)
-            return Dict<IString, IBaseObject>({{"Delta", param1}, {"Start", param2}});
+            return Dict<IString, IBaseObject>({{"delta", param1}, {"start", param2}});
 
         throw InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."};
     }
@@ -153,16 +153,16 @@ ErrCode DataRuleImpl::verifyParametersInternal()
         if (params.getCount() != 2)
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear rule has an invalid number of parameters. Required parameters are "Delta" and "Start")");
+                                 R"(Linear rule has an invalid number of parameters. Required parameters are "delta" and "start")");
         }
 
-        if (!params.hasKey("Delta") || !params.hasKey("Start"))
+        if (!params.hasKey("delta") || !params.hasKey("start"))
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear rule has invalid parameters. Required parameters are "Delta" and "Start")");
+                                 R"(Linear rule has invalid parameters. Required parameters are "delta" and "start")");
         }
 
-        if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned())
+        if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned())
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
         }

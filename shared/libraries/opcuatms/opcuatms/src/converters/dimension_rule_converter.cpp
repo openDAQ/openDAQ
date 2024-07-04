@@ -36,9 +36,9 @@ template <>
 OpcUaObject<UA_LinearRuleDescriptionStructure> StructConverter<IDimensionRule, UA_LinearRuleDescriptionStructure>::ToTmsType(
     const DimensionRulePtr& object, const ContextPtr& /*context*/)
 {
-    const SizeT size = object.getParameters().get("Size");
-    const NumberPtr delta = object.getParameters().get("Delta");
-    const NumberPtr start = object.getParameters().get("Start");
+    const SizeT size = object.getParameters().get("size");
+    const NumberPtr delta = object.getParameters().get("delta");
+    const NumberPtr start = object.getParameters().get("start");
 
     OpcUaObject<UA_LinearRuleDescriptionStructure> uaRuleDescription;
 
@@ -69,10 +69,10 @@ template <>
 OpcUaObject<UA_LogRuleDescriptionStructure> StructConverter<IDimensionRule, UA_LogRuleDescriptionStructure>::ToTmsType(
     const DimensionRulePtr& object, const ContextPtr& /*context*/)
 {
-    const SizeT size = object.getParameters().get("Size");
-    const NumberPtr delta = object.getParameters().get("Delta");
-    const NumberPtr start = object.getParameters().get("Start");
-    const Int base = object.getParameters().get("Base");
+    const SizeT size = object.getParameters().get("size");
+    const NumberPtr delta = object.getParameters().get("delta");
+    const NumberPtr start = object.getParameters().get("start");
+    const Int base = object.getParameters().get("base");
 
     OpcUaObject<UA_LogRuleDescriptionStructure> uaRuleDescription;
 

@@ -25,7 +25,7 @@ protected:
                             .setReadOnly(true)
                             .build();
 
-        auto child = PropertyBuilder("Child")
+        auto child = PropertyBuilder("child")
                      .setValueType(ctObject)
                      .setDefaultValue(PropertyObject())
                      .build();
@@ -68,7 +68,7 @@ TEST_F(SerializationTest, ChildObject)
     auto childObject = PropertyObject(manager,"ChildClass");
     childObject.setPropertyValue("Name", "IamChild");
 
-    parentObject.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", childObject);
+    parentObject.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child", childObject);
 
     auto serializer = JsonSerializer();
     parentObject.serialize(serializer);
@@ -80,7 +80,7 @@ TEST_F(SerializationTest, ChildObject)
     ASSERT_EQ(parentObject1.getPropertyValue("Name"), "IamParent");
     ASSERT_EQ(parentObject1.getPropertyValue("ReadonlyName"), "ReadonlyValue");
 
-    PropertyObjectPtr childObject1 = parentObject1.getPropertyValue("Child");
+    PropertyObjectPtr childObject1 = parentObject1.getPropertyValue("child");
     ASSERT_EQ(childObject1.getPropertyValue("Name"), "IamChild");
 }
 

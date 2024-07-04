@@ -247,7 +247,7 @@ void ReadSignal::sendPacket()
     auto domainSignal = signal.getDomainSignal();
     auto domainDescriptor = domainSignal.getDescriptor();
 
-    Int delta = domainDescriptor.getRule().getParameters()["Delta"];
+    Int delta = domainDescriptor.getRule().getParameters()["delta"];
 
     auto offset = (packetSize * delta) * packetIndex;
     auto domainPacket = DataPacket(domainDescriptor, packetSize, offset);

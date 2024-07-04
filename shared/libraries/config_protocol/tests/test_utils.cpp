@@ -79,7 +79,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     obj2.addProperty(StringProperty("String", "test"));
     auto obj1 = PropertyObject();
     obj1.addProperty(StringProperty("String", "test"));
-    obj1.addProperty(ObjectProperty("Child", obj2));
+    obj1.addProperty(ObjectProperty("child", obj2));
 
     ComponentPtr component = Component(ctx, parent, localId);
     component.addProperty(IntPropertyBuilder("Integer", 1)

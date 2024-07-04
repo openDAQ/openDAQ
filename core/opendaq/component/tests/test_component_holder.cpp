@@ -42,14 +42,14 @@ TEST_F(ComponentHolderTest, SerializeDeserialize)
 {
     const auto ctx = NullContext();
     const auto sourceComponent = Component(ctx, nullptr, "Id");
-    const auto componentHolder = ComponentHolder("Id", "Parent", sourceComponent);
+    const auto componentHolder = ComponentHolder("Id", "parent", sourceComponent);
 
     const auto serializer = JsonSerializer();
     componentHolder.serialize(serializer);
     const auto serializedComponentHolder = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const auto parentComponent = Component(ctx, nullptr, "Parent");
+    const auto parentComponent = Component(ctx, nullptr, "parent");
 
 
     const auto deserializeContext = ComponentDeserializeContext(ctx, parentComponent, parentComponent, nullptr);

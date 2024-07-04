@@ -31,11 +31,11 @@ TEST_F(DimensionTest, DimensionGetSet)
 {
     const auto dim = DimensionBuilder()
                      .setRule(LinearDimensionRule(10, 10, 100))
-                     .setUnit(Unit("Symbol", 10))
+                     .setUnit(Unit("symbol", 10))
                      .build();
 
-    ASSERT_EQ(dim.getRule().getParameters().get("Start"), 10);
-    ASSERT_EQ(dim.getUnit().getSymbol(), "Symbol");
+    ASSERT_EQ(dim.getRule().getParameters().get("start"), 10);
+    ASSERT_EQ(dim.getUnit().getSymbol(), "symbol");
 }
 
 TEST_F(DimensionTest, DimensionGetSizeList)

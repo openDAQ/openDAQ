@@ -189,8 +189,8 @@ void StatisticsFbImpl::configure()
     overlappedBlockSize = static_cast<size_t>(std::trunc(blockSize * overlap) / 100.0);
     overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;
 
-    start = domainRuleParams.get("Start");
-    inputDeltaTicks = domainRuleParams.get("Delta");
+    start = domainRuleParams.get("start");
+    inputDeltaTicks = domainRuleParams.get("delta");
     outputDeltaTicks = inputDeltaTicks * (static_cast<Int>(blockSize) - overlappedBlockSize);
 
     const auto outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setName("StatisticsDomain");

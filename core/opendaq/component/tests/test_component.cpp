@@ -25,24 +25,24 @@ protected:
 
 TEST_F(ComponentTest, ID)
 {
-    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Parent"), nullptr));
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("Child"), nullptr));
+    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("parent"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("child"), nullptr));
 
-    ASSERT_EQ(comp.getGlobalId(), "/Parent/Child");
-    ASSERT_EQ(comp.getLocalId(), "Child");
+    ASSERT_EQ(comp.getGlobalId(), "/parent/child");
+    ASSERT_EQ(comp.getLocalId(), "child");
 }
 
 TEST_F(ComponentTest, Parent)
 {
-    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Parent"), nullptr));
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("Child"), nullptr));
+    auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("parent"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("child"), nullptr));
 
     ASSERT_EQ(comp.getParent(), parent);
 }
 
 TEST_F(ComponentTest, Active)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
     ASSERT_TRUE(comp.getActive());
     comp.setActive(false);
     ASSERT_FALSE(comp.getActive());
@@ -50,13 +50,13 @@ TEST_F(ComponentTest, Active)
 
 TEST_F(ComponentTest, Context)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
     ASSERT_EQ(context->getObject(), comp.getContext());
 }
 
 TEST_F(ComponentTest, NullPropertyClass)
 {
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("Child"), nullptr));
+    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
     ASSERT_EQ(comp.getClassName(), "");
 }
 
@@ -66,7 +66,7 @@ TEST_F(ComponentTest, PropertyClass)
     auto rangeItemClass = PropertyObjectClassBuilder("TestClass").build();
     context.getTypeManager().addType(rangeItemClass);
 
-    auto comp = ComponentPtr::Adopt(Component_Create(context, nullptr, StringPtr("Child"), StringPtr("TestClass")));
+    auto comp = ComponentPtr::Adopt(Component_Create(context, nullptr, StringPtr("child"), StringPtr("TestClass")));
     ASSERT_EQ(comp.getClassName(), "TestClass");
 }
 

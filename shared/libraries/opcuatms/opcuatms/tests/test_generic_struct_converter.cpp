@@ -113,8 +113,8 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsAssigned)
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
-                                                                                {{"Type", "linear"}, {"Start", 10}, {"Delta", 10},
-                                                                                 {"Size", 10}}),
+                                                                                {{"Type", "linear"}, {"start", 10}, {"delta", 10},
+                                                                                 {"size", 10}}),
                                                                                 context.getTypeManager())},
                                                                         {"Unit", Unit("Symbol", -1, "Name", "Quantity")}});
     const auto structure = Struct("DimensionDescriptorStructure", members, context.getTypeManager());
@@ -134,7 +134,7 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned1)
 {
     auto context = test_helpers::setupContext();
     context.getTypeManager().addType(StructType("LinearRuleDescriptionStructure",
-                                                List<IString>("Type", "Start", "Delta", "Size"),
+                                                List<IString>("Type", "start", "delta", "size"),
                                                 List<IType>(SimpleType(ctString),
                                                             SimpleType(ctInt),
                                                             SimpleType(ctInt),
@@ -143,8 +143,8 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned1)
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
-                                                                                {{"Type", "linear"}, {"Start", 10}, {"Delta", 10},
-                                                                                 {"Size", nullptr}}),
+                                                                                {{"Type", "linear"}, {"start", 10}, {"delta", 10},
+                                                                                 {"size", nullptr}}),
                                                                                 context.getTypeManager())},
                                                                         {"Unit", nullptr}});
     const auto structure = Struct("DimensionDescriptorStructure", members, context.getTypeManager());
@@ -166,8 +166,8 @@ TEST_F(GenericStructConverterTest, TestStructWithOptionalsUnassigned2)
                                                                         {"DimensionRule",
                                                                          Struct("LinearRuleDescriptionStructure",
                                                                                 Dict<IString, IBaseObject>(
-                                                                                {{"Type", "linear"}, {"Start", 10}, {"Delta", 10},
-                                                                                 {"Size", nullptr}}),
+                                                                                {{"Type", "linear"}, {"start", 10}, {"delta", 10},
+                                                                                 {"size", nullptr}}),
                                                                                 context.getTypeManager())},
                                                                         {"Unit", nullptr}});
     const auto structure = Struct("DimensionDescriptorStructure", members, context.getTypeManager());

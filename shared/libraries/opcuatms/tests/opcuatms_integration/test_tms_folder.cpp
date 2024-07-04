@@ -23,8 +23,8 @@ class TmsFolderTest : public TmsObjectIntegrationTest
 public:
     FolderPtr createTestFolder()
     {
-        auto folder1 = Folder(NullContext(), nullptr, "Parent");
-        auto folder2 = Folder(NullContext(), folder1, "Child");
+        auto folder1 = Folder(NullContext(), nullptr, "parent");
+        auto folder2 = Folder(NullContext(), folder1, "child");
         folder1.addItem(folder2);
         auto leafFolder = Folder(NullContext(), folder2, "folder");
         folder2.addItem(leafFolder);
@@ -42,8 +42,8 @@ public:
 
     FolderPtr createTestIOFolder()
     {
-        auto folder1 = IoFolder(NullContext(), nullptr, "Parent");
-        auto folder2 = IoFolder(NullContext(), folder1, "Child");
+        auto folder1 = IoFolder(NullContext(), nullptr, "parent");
+        auto folder2 = IoFolder(NullContext(), folder1, "child");
         folder1.addItem(folder2);
         auto channel = MockChannel(NullContext(), folder2, "channel");
         folder2.addItem(channel);
@@ -151,10 +151,10 @@ TEST_F(TmsFolderTest, IOFolder)
 
 TEST_F(TmsFolderTest, IOFolderNodeOrder)
 {
-    auto folder = IoFolder(NullContext(), nullptr, "Parent");
+    auto folder = IoFolder(NullContext(), nullptr, "parent");
     for (int i = 0; i < 100; ++i)
     {
-        folder.addItem(IoFolder(NullContext(), folder, "Child" + std::to_string(i)));
+        folder.addItem(IoFolder(NullContext(), folder, "child" + std::to_string(i)));
     }
 
     for (int i = 0; i < 10; ++i)
@@ -173,10 +173,10 @@ TEST_F(TmsFolderTest, IOFolderNodeOrder)
 
 TEST_F(TmsFolderTest, FolderNodeOrder)
 {
-    auto folder = Folder(NullContext(), nullptr, "Parent");
+    auto folder = Folder(NullContext(), nullptr, "parent");
     for (int i = 0; i < 100; ++i)
     {
-        folder.addItem(Folder(NullContext(), folder, "Child" + std::to_string(i)));
+        folder.addItem(Folder(NullContext(), folder, "child" + std::to_string(i)));
     }
 
     auto registered = registerTestFolder(folder);

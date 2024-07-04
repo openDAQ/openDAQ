@@ -22,9 +22,9 @@ TEST_F(DimensionRulesTest, LinearDimensionRuleSetGet)
     const auto rule = LinearDimensionRule(10, 20, 10);
 
     ASSERT_EQ(rule.getType(), DimensionRuleType::Linear);
-    ASSERT_EQ(rule.getParameters().get("Delta"), 10);
-    ASSERT_EQ(rule.getParameters().get("Start"), 20);
-    ASSERT_EQ(rule.getParameters().get("Size"), 10);
+    ASSERT_EQ(rule.getParameters().get("delta"), 10);
+    ASSERT_EQ(rule.getParameters().get("start"), 20);
+    ASSERT_EQ(rule.getParameters().get("size"), 10);
 }
 
 TEST_F(DimensionRulesTest, ListDimensionRuleSetGet)
@@ -39,18 +39,18 @@ TEST_F(DimensionRulesTest, LogarithmicDimensionRule)
 {
     const auto rule = LogarithmicDimensionRule(1, 0, 10, 10);
 
-    ASSERT_EQ(rule.getParameters().get("Delta"), 1);
-    ASSERT_EQ(rule.getParameters().get("Start"), 0);
-    ASSERT_EQ(rule.getParameters().get("Base"), 10);
-    ASSERT_EQ(rule.getParameters().get("Size"), 10);
+    ASSERT_EQ(rule.getParameters().get("delta"), 1);
+    ASSERT_EQ(rule.getParameters().get("start"), 0);
+    ASSERT_EQ(rule.getParameters().get("base"), 10);
+    ASSERT_EQ(rule.getParameters().get("size"), 10);
     ASSERT_EQ(rule.getType(), DimensionRuleType::Logarithmic);
 }
 
 TEST_F(DimensionRulesTest, DimensionRuleFreeze)
 {
     const auto rule = LinearDimensionRule(50, 50, 10);
-    ASSERT_THROW(rule.getParameters().set("Delta", 10), FrozenException);
-    ASSERT_THROW(rule.getParameters().set("Start", 10.5), FrozenException);
+    ASSERT_THROW(rule.getParameters().set("delta", 10), FrozenException);
+    ASSERT_THROW(rule.getParameters().set("start", 10.5), FrozenException);
 }
 
 TEST_F(DimensionRulesTest, LinearDimensionRuleCopyFactory)
@@ -58,9 +58,9 @@ TEST_F(DimensionRulesTest, LinearDimensionRuleCopyFactory)
     const auto rule = LinearDimensionRule(100, 50, 10);
     const auto ruleCopy = DimensionRuleBuilderCopy(rule).build();
 
-    ASSERT_EQ(ruleCopy.getParameters().get("Delta"), 100);
-    ASSERT_EQ(ruleCopy.getParameters().get("Start"), 50);
-    ASSERT_EQ(ruleCopy.getParameters().get("Size"), 10);
+    ASSERT_EQ(ruleCopy.getParameters().get("delta"), 100);
+    ASSERT_EQ(ruleCopy.getParameters().get("start"), 50);
+    ASSERT_EQ(ruleCopy.getParameters().get("size"), 10);
 }
 
 TEST_F(DimensionRulesTest, ListDimensionRuleCopyFactory)
@@ -76,10 +76,10 @@ TEST_F(DimensionRulesTest, LogarithmicDimensionRuleCopyFactory)
     const auto rule = LogarithmicDimensionRule(1, 0, 10, 10);
     const auto ruleCopy = DimensionRuleBuilderCopy(rule).build();
     
-    ASSERT_EQ(ruleCopy.getParameters().get("Delta"), 1);
-    ASSERT_EQ(ruleCopy.getParameters().get("Start"), 0);
-    ASSERT_EQ(ruleCopy.getParameters().get("Base"), 10);
-    ASSERT_EQ(ruleCopy.getParameters().get("Size"), 10);
+    ASSERT_EQ(ruleCopy.getParameters().get("delta"), 1);
+    ASSERT_EQ(ruleCopy.getParameters().get("start"), 0);
+    ASSERT_EQ(ruleCopy.getParameters().get("base"), 10);
+    ASSERT_EQ(ruleCopy.getParameters().get("size"), 10);
     ASSERT_EQ(ruleCopy.getType(), DimensionRuleType::Logarithmic);
 }
 
@@ -92,12 +92,12 @@ TEST_F(DimensionRulesTest, LinearDimensionRuleInvalidParameters)
     ruleBuilder.setParameters(params);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("Delta", "wrong");
+    params.set("delta", "wrong");
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("Delta", 10);
-    params.set("Start", 10);
-    params.set("Size", 10);
+    params.set("delta", 10);
+    params.set("start", 10);
+    params.set("size", 10);
     params.set("extra", 10);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
@@ -114,13 +114,13 @@ TEST_F(DimensionRulesTest, LogarithmicDimensionRuleInvalidParameters)
     ruleBuilder.setParameters(params);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("Delta", "wrong");
+    params.set("delta", "wrong");
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
-    params.set("Delta", 10);
-    params.set("Start", 10);
-    params.set("Size", 10);
-    params.set("Base", 10);
+    params.set("delta", 10);
+    params.set("start", 10);
+    params.set("size", 10);
+    params.set("base", 10);
     params.set("extra", 10);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 
@@ -174,9 +174,9 @@ TEST_F(DimensionRulesTest, StructFields)
     ASSERT_EQ(structPtr.get("RuleType"), static_cast<Int>(DimensionRuleType::Linear));
     
     const auto params = Dict<IString, IBaseObject>({
-            {"Delta", 10},
-            {"Start", 10},
-            {"Size", 10}
+            {"delta", 10},
+            {"start", 10},
+            {"size", 10}
         });
     ASSERT_EQ(structPtr.get("Parameters"), params);
 }
@@ -192,9 +192,9 @@ TEST_F(DimensionRulesTest, DimensionRuleBuilderSetGet)
 {
     const auto ruleType = DimensionRuleType::Linear;
     const auto params = Dict<IString, IBaseObject>({
-            {"Delta", 10},
-            {"Start", 10},
-            {"Size", 10}
+            {"delta", 10},
+            {"start", 10},
+            {"size", 10}
         });
     const auto dimensionRuleBuilder = DimensionRuleBuilder()
                                         .setType(ruleType)
@@ -208,9 +208,9 @@ TEST_F(DimensionRulesTest, DimensionRuleCreateFactory)
 {
     const auto ruleType = DimensionRuleType::Linear;
     const auto params = Dict<IString, IBaseObject>({
-            {"Delta", 10},
-            {"Start", 10},
-            {"Size", 10}
+            {"delta", 10},
+            {"start", 10},
+            {"size", 10}
         });
     const auto dimensionRuleBuilder = DimensionRuleBuilder()
                                         .setType(ruleType)

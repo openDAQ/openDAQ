@@ -195,7 +195,7 @@ void ClassifierFbImpl::configure()
         {
             const auto domainRuleParams = domainRule.getParameters();
 
-            inputDeltaTicks = domainRuleParams.get("Delta");
+            inputDeltaTicks = domainRuleParams.get("delta");
             // packets per second
             linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize

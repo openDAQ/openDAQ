@@ -79,7 +79,7 @@ protected:
 TEST_F(ConfigProtocolTest, Connect)
 {
     EXPECT_CALL(device.mock(), getLocalId(_)).WillOnce(Get(String("Id")));
-    EXPECT_CALL(device.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "Parent")));
+    EXPECT_CALL(device.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
     ASSERT_THROW(client->connect(), ConfigProtocolException);
 }
 

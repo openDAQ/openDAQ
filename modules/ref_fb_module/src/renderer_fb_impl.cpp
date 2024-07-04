@@ -366,8 +366,8 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     if (domainRuleType == DataRuleType::Linear)
     {
         firstDomainPacketValue = domainPacket.getOffset();
-        delta = domainRuleParams.get("Delta");
-        start = domainRuleParams.get("Start");
+        delta = domainRuleParams.get("delta");
+        start = domainRuleParams.get("start");
         curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
         gap = havePrevPacket && curDomainPacketValue != nextExpectedDomainPacketValue;
         nextExpectedDomainPacketValue = firstDomainPacketValue - delta + start;
@@ -1288,8 +1288,8 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             const auto domainRuleParams = domainRule.getParameters();
             try
             {
-                signalContext.domainDelta = domainRuleParams.get("Delta");
-                signalContext.domainStart = domainRuleParams.get("Start");
+                signalContext.domainDelta = domainRuleParams.get("delta");
+                signalContext.domainStart = domainRuleParams.get("start");
             }
             catch (const std::exception& e)
             {

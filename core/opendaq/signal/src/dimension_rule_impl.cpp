@@ -37,9 +37,9 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
     : DimensionRuleImpl(
         DimensionRuleType::Linear,
         Dict<IString, IBaseObject>({
-            {"Delta", delta},
-            {"Start", start},
-            {"Size", size},
+            {"delta", delta},
+            {"start", start},
+            {"size", size},
         }))
 {
 }
@@ -47,10 +47,10 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
 DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const NumberPtr& base, const SizeT& size)
     : DimensionRuleImpl(DimensionRuleType::Logarithmic,
                         Dict<IString, IBaseObject>({
-                            {"Delta", delta},
-                            {"Start", start},
-                            {"Base", base},
-                            {"Size", size},
+                            {"delta", delta},
+                            {"start", start},
+                            {"base", base},
+                            {"size", size},
                         }))
 {
 }
@@ -127,17 +127,17 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
     if (params.getCount() != 3)
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has an invalid number of parameters. Required parameters are "Delta", "Size" and "Start")");
+                             R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size" and "start")");
     }
 
-    if (!params.hasKey("Delta") || !params.hasKey("Start") || !params.hasKey("Size"))
+    if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size"))
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has invalid parameters. Required parameters are "Delta", "Size" and "Start")");
+                             R"(Linear rule has invalid parameters. Required parameters are "delta", "size" and "start")");
     }
 
-    if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("Size").asPtrOrNull<INumber>().assigned())
+    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
+        !params.get("size").asPtrOrNull<INumber>().assigned())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
@@ -167,17 +167,17 @@ ErrCode DimensionRuleImpl::checkLogRuleValidity() const
     {
         return makeErrorInfo(
             OPENDAQ_ERR_INVALID_PARAMETERS,
-            R"(Linear rule has an invalid number of parameters. Required parameters are "Delta", "Size", "Base" and "Start")");
+            R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size", "base" and "start")");
     }
 
-    if (!params.hasKey("Delta") || !params.hasKey("Start") || !params.hasKey("Size") || !params.hasKey("Base"))
+    if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size") || !params.hasKey("base"))
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                             R"(Linear rule has invalid parameters. Required parameters are "Delta", "Size", "Base" and "Start")");
+                             R"(Linear rule has invalid parameters. Required parameters are "delta", "size", "base" and "start")");
     }
 
-    if (!params.get("Delta").asPtrOrNull<INumber>().assigned() || !params.get("Start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("Size").asPtrOrNull<INumber>().assigned() || !params.get("Base").asPtrOrNull<INumber>().assigned())
+    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
+        !params.get("size").asPtrOrNull<INumber>().assigned() || !params.get("base").asPtrOrNull<INumber>().assigned())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }

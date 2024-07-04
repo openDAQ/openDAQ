@@ -77,7 +77,7 @@ struct ReadSignal
     template <typename ValueType = double>
     DataPacketPtr createAndSendPacket(Int packetIndex, bool log = false) const
     {
-        Int delta = getDomainDescriptor().getRule().getParameters()["Delta"];
+        Int delta = getDomainDescriptor().getRule().getParameters()["delta"];
 
         auto offset = packetOffset + ((packetSize * delta) * packetIndex);
         if (log)

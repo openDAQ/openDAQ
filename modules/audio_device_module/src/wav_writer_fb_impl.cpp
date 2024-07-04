@@ -72,7 +72,7 @@ bool WAVWriterFbImpl::validateDomainDescriptor() const
 bool WAVWriterFbImpl::initializeEncoder()
 {
     const auto domainRuleParams = inputTimeDataDescriptor.getRule().getParameters();
-    const auto inputDeltaTicks = domainRuleParams.get("Delta");
+    const auto inputDeltaTicks = domainRuleParams.get("delta");
     const auto tickResolution = inputTimeDataDescriptor.getTickResolution();
 
     const uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(tickResolution));

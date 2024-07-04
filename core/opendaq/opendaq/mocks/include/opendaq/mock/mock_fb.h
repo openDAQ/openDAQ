@@ -30,7 +30,6 @@ protected:
     void createFunctionBlocks();
     void createSignals();
     void createInputPorts();
-    void createReferencedSignals();
     void createTestConfigProperties();
 };
 

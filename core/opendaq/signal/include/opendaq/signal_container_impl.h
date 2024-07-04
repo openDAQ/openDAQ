@@ -302,6 +302,9 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& signal)
 {
+    if (signal.getParent() != this->signals)
+        throw InvalidParameterException("Invalid parent of signal");
+
     try
     {
         this->signals.addItem(signal);

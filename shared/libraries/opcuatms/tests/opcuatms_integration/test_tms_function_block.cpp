@@ -124,12 +124,11 @@ TEST_F(TmsFunctionBlockTest, MethodGetSignals)
     ASSERT_NO_THROW(signals = clientFunctionBlock.getSignals());
     ASSERT_TRUE(signals.assigned());
 
-    ASSERT_EQ(signals.getCount(), 5u);
+    ASSERT_EQ(signals.getCount(), 4u);
     ASSERT_EQ(signals[0].getDescriptor().getName(), "Signal1");
     ASSERT_EQ(signals[1].getDescriptor().getName(), "Signal2");
     ASSERT_EQ(signals[2].getDescriptor().getName(), "Signal3");
     ASSERT_EQ(signals[3].getDescriptor().getName(), "Signal4");
-    ASSERT_EQ(signals[4].getDescriptor().getName(), "NestedSignal1");
 }
 
 TEST_F(TmsFunctionBlockTest, SignalCheckGlobalId)

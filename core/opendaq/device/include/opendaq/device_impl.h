@@ -1126,7 +1126,7 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
         updatableFolder.update(serializedItem);
 
         this->updateFolder(serializedItem,
-                           "IOFolder",
+                           "IoFolder",
                            "",
                            [this, &item](const std::string& itemId, const SerializedObjectPtr& obj)
                            { updateIoFolderItem(item, itemId, obj); });
@@ -1191,10 +1191,10 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (obj.hasKey("IO"))
     {
         const auto ioFolder = obj.readSerializedObject("IO");
-        ioFolder.checkObjectType("IOFolder");
+        ioFolder.checkObjectType("IoFolder");
 
         this->updateFolder(ioFolder,
-                           "IOFolder",
+                           "IoFolder",
                            "",
                            [this](const std::string& localId, const SerializedObjectPtr& obj) { updateIoFolderItem(this->ioFolder, localId, obj); });
     }

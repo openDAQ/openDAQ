@@ -323,7 +323,7 @@ TEST_F(ConfigProtocolSerializationTest, IoFolderWithComponent)
                                                                 const BaseObjectPtr& context,
                                                                 const FunctionPtr& factoryCallback) -> BaseObjectPtr
                                  {
-                                     if (typeId == "IOFolder")
+                                     if (typeId == "IoFolder")
                                      {
                                          BaseObjectPtr obj;
                                          checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
@@ -734,7 +734,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
                                                                 const BaseObjectPtr& context,
                                                                 const FunctionPtr& factoryCallback) -> BaseObjectPtr
                                  {
-                                     if (typeId == "IOFolder")
+                                     if (typeId == "IoFolder")
                                      {
                                          BaseObjectPtr obj;
                                          checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));

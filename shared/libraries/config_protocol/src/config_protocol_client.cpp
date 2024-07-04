@@ -264,7 +264,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
             remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }
 
-    if (typeId == "IOFolder")
+    if (typeId == "IoFolder")
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));

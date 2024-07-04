@@ -386,49 +386,49 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
 {
     // put descriptor name into interpretation object
     if (dataDescriptor.getName().assigned())
-        extra["DescName"] = dataDescriptor.getName();
+        extra["desc_name"] = dataDescriptor.getName();
 
     if (dataDescriptor.getMetadata().assigned())
     {
-        auto meta = extra["Metadata"];
+        auto meta = extra["metadata"];
         for (const auto& [key, value] : dataDescriptor.getMetadata())
             meta[key.getCharPtr()] = value;
-        extra["Metadata"] = meta;
+        extra["metadata"] = meta;
     }
 
     if (dataDescriptor.getUnit().assigned())
     {
         auto unit1 = dataDescriptor.getUnit();
-        extra["Unit"]["Id"] = unit1.getId();
-        extra["Unit"]["Name"] = unit1.getName();
-        extra["Unit"]["Symbol"] = unit1.getSymbol();
-        extra["Unit"]["Quantity"] = unit1.getQuantity();
+        extra["unit"]["id"] = unit1.getId();
+        extra["unit"]["name"] = unit1.getName();
+        extra["unit"]["symbol"] = unit1.getSymbol();
+        extra["unit"]["quantity"] = unit1.getQuantity();
     }
 
     if (dataDescriptor.getValueRange().assigned())
     {
         auto range = dataDescriptor.getValueRange();
-        extra["Range"]["Low"] = range.getLowValue();
-        extra["Range"]["High"] = range.getHighValue();
+        extra["range"]["low"] = range.getLowValue();
+        extra["range"]["high"] = range.getHighValue();
     }
 
     if (dataDescriptor.getOrigin().assigned())
-        extra["Origin"] = dataDescriptor.getOrigin();
+        extra["origin"] = dataDescriptor.getOrigin();
 
     if (dataDescriptor.getRule().assigned())
     {
         auto rule = dataDescriptor.getRule();
-        extra["Rule"]["Type"] = rule.getType();
-        extra["Rule"]["Parameters"] = DictToJson(rule.getParameters());
+        extra["rule"]["type"] = rule.getType();
+        extra["rule"]["parameters"] = DictToJson(rule.getParameters());
     }
 
     if (dataDescriptor.getPostScaling().assigned())
     {
         auto scaling = dataDescriptor.getPostScaling();
-        extra["Scaling"]["InputType"] = scaling.getInputSampleType();
-        extra["Scaling"]["OutputType"] = scaling.getOutputSampleType();
-        extra["Scaling"]["ScalingType"] = scaling.getType();
-        extra["Scaling"]["Parameters"] = DictToJson(scaling.getParameters());
+        extra["scaling"]["inputType"] = scaling.getInputSampleType();
+        extra["scaling"]["outputType"] = scaling.getOutputSampleType();
+        extra["scaling"]["scalingType"] = scaling.getType();
+        extra["scaling"]["parameters"] = DictToJson(scaling.getParameters());
     }
 }
 
@@ -444,52 +444,52 @@ void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::j
 void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder)
 {
     // sets descriptor name when corresponding field is present in interpretation object
-    if (extra.count("DescName") > 0)
-        dataDescriptorBuilder.setName(extra["DescName"]);
+    if (extra.count("desc_name") > 0)
+        dataDescriptorBuilder.setName(extra["desc_name"]);
 
-    if (extra.count("Metadata") > 0)
+    if (extra.count("metadata") > 0)
     {
-        auto meta = JsonToDict(extra["Metadata"]);
+        auto meta = JsonToDict(extra["metadata"]);
         dataDescriptorBuilder.setMetadata(meta);
     }
 
-    if (extra.count("Unit") > 0)
+    if (extra.count("unit") > 0)
     {
-        auto unitObj = extra["Unit"];
-        auto unit = Unit(unitObj["Symbol"], unitObj["Id"], unitObj["Name"], unitObj["Quantity"]);
+        auto unitObj = extra["unit"];
+        auto unit = Unit(unitObj["symbol"], unitObj["id"], unitObj["name"], unitObj["quantity"]);
         dataDescriptorBuilder.setUnit(unit);
     }
 
-    if (extra.count("Range") > 0)
+    if (extra.count("range") > 0)
     {
-        auto rangeObj = extra["Range"];
-        auto low = std::stoi(std::string(rangeObj["Low"]));
-        auto high = std::stoi(std::string(rangeObj["High"]));
+        auto rangeObj = extra["range"];
+        auto low = std::stoi(std::string(rangeObj["low"]));
+        auto high = std::stoi(std::string(rangeObj["high"]));
         auto range = Range(low, high);
         dataDescriptorBuilder.setValueRange(range);
     }
 
-    if (extra.count("Origin") > 0)
-        dataDescriptorBuilder.setOrigin(extra["Origin"]);
+    if (extra.count("origin") > 0)
+        dataDescriptorBuilder.setOrigin(extra["origin"]);
 
-    if (extra.count("Rule") > 0)
+    if (extra.count("rule") > 0)
     {
-        auto params = JsonToDict(extra["Rule"]["Parameters"]);
+        auto params = JsonToDict(extra["rule"]["parameters"]);
         params.freeze();
 
-        auto rule = DataRuleBuilder().setType(extra["Rule"]["Type"]).setParameters(params).build();
+        auto rule = DataRuleBuilder().setType(extra["rule"]["type"]).setParameters(params).build();
         dataDescriptorBuilder.setRule(rule);
     }
 
-    if (extra.count("Scaling") > 0)
+    if (extra.count("scaling") > 0)
     {
-        auto params = JsonToDict(extra["Scaling"]["Parameters"]);
+        auto params = JsonToDict(extra["scaling"]["parameters"]);
         params.freeze();
 
         auto scaling = ScalingBuilder()
-                           .setInputDataType(extra["Scaling"]["InputType"])
-                           .setOutputDataType(extra["Scaling"]["OutputType"])
-                           .setScalingType(extra["Scaling"]["ScalingType"])
+                           .setInputDataType(extra["scaling"]["inputType"])
+                           .setOutputDataType(extra["scaling"]["outputType"])
+                           .setScalingType(extra["scaling"]["scalingType"])
                            .setParameters(params)
                            .build();
         dataDescriptorBuilder.setPostScaling(scaling);

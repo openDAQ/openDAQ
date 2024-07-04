@@ -14,6 +14,7 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/sync_component_ptr.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
@@ -296,4 +297,22 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientProcedureCall)
     ASSERT_THROW(proc1(0), InvalidParameterException);
     ASSERT_NO_THROW(proc2(5));
     ASSERT_THROW(proc2(0), InvalidParameterException);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
+{
+    auto typeManager = serverDevice.getContext().getTypeManager();
+    SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
+    syncComponent.addInterface(PropertyObject(typeManager, "SyncInterfaceBase"));
+    syncComponent.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
+    syncComponent.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
+    syncComponent.setSelectedSource(1);
+    syncComponent.setSyncLocked(true);
+
+    // SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
+    // ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
+    // ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 3);
+    // ASSERT_EQ(clientSyncComponent.getInterfaceNames().getCount(), 3);
+    // ASSERT_EQ(clientSyncComponent.getInterfaceNames(), syncComponent.getInterfaceNames());
+    // ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
 }

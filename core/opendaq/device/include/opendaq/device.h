@@ -23,6 +23,7 @@
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
+#include <opendaq/sync_component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -273,6 +274,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *     when calling `addDevice`.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
 };
 /*!@}*/
 

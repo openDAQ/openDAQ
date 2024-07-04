@@ -36,6 +36,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/sync_component_factory.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -85,6 +86,7 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -183,6 +185,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
+    this->defaultComponents.insert("Sync");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
@@ -196,6 +199,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 
     this->addProperty(StringProperty("userName", ""));
     this->addProperty(StringProperty("location", ""));
+    this->addProperty(ObjectProperty("sync", SyncComponent(ctx.getTypeManager())));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -859,6 +863,19 @@ ErrCode GenericDevice<TInterface, Interfaces...>::createDefaultAddDeviceConfig(I
 
     *defaultConfig = defaultConfigPtr.detach();
     return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponent** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+
+    BaseObjectPtr syncObj;
+    ErrCode errCode = this->getPropertyValue(String("sync"), &syncObj);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    *sync = syncObj.asPtr<ISyncComponent>().detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>

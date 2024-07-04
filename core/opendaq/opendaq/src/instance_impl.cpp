@@ -538,6 +538,11 @@ ErrCode InstanceImpl::addStreaming(IStreaming** streaming, IString* connectionSt
     return rootDevice->addStreaming(streaming, connectionString, config);
 }
 
+ErrCode InstanceImpl::getSyncComponent(ISyncComponent** syncComponent)
+{
+    return rootDevice->getSyncComponent(syncComponent);
+}
+
 ErrCode InstanceImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
 {
     return rootDevice->createDefaultAddDeviceConfig(defaultConfig);

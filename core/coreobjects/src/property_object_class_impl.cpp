@@ -75,7 +75,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         }
 
         StringPtr str = propertyName;
-        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not  found.)", str));
+        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
     }
 
     *property = res.value().addRefAndReturn();

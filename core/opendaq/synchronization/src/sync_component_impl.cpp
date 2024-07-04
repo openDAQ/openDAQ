@@ -236,7 +236,7 @@ ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
                 factoryCallback,
                 [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& context, const StringPtr& /*className*/)
                 {
-                    auto typeManager = context.asPtr<ITypeManager>(true);
+                    auto typeManager = context.asPtrOrNull<ITypeManager>(true);
                     const auto sync = createWithImplementation<ISyncComponent, SyncComponentImpl>(typeManager);
                     return sync;
                 }).detach();
@@ -245,10 +245,9 @@ ErrCode SyncComponentImpl::Deserialize(ISerializedObject* serialized,
 
 PropertyObjectPtr SyncComponentImpl::createCloneBase()
 {
-    const auto obj = createWithImplementation<ISyncComponent, SyncComponentImpl>(TypeManager());
+    const auto obj = createWithImplementation<ISyncComponent, SyncComponentImpl>(typeManager);
     return obj;
 }
-
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,

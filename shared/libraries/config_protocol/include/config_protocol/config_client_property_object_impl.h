@@ -25,7 +25,8 @@
 #include <opendaq/custom_log.h>
 
 #include "config_protocol_deserialize_context_impl.h"
-#include "opendaq/context_factory.h"
+#include <opendaq/context_factory.h>
+#include <opendaq/sync_component_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -574,9 +575,11 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
                                      {
                                          return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
                                      });
-        
-        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
-        impl->unfreeze();
+        if (!clientPropObj.supportsInterface<ISyncComponent>())
+        {
+            const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
+            impl->unfreeze();
+        }
         this->writeLocalValue(propName, clientPropObj);
         this->configureClonedObj(propName, clientPropObj);
     }

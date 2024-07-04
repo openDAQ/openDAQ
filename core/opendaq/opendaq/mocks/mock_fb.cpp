@@ -19,7 +19,6 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
     createFunctionBlocks();
     createSignals();
     createInputPorts();
-    createReferencedSignals();
     createTestConfigProperties();
 }
 
@@ -53,15 +52,6 @@ void MockFunctionBlockImpl::createSignals()
     createAndAddSignal("UniqueId_3", createDescriptor("Signal3"));
     createAndAddSignal("UniqueId_4", createDescriptor("Signal4"));
     createAndAddSignal("UniqueId_5", createDescriptor("Signal5"), true, false);
-}
-
-void MockFunctionBlockImpl::createReferencedSignals()
-{
-    auto thisPtr = this->borrowPtr<FunctionBlockPtr>();
-    assert(thisPtr.getFunctionBlocks().getCount() > 0);
-    assert(thisPtr.getFunctionBlocks()[0].getSignals().getCount() > 0);
-
-    addSignal(thisPtr.getFunctionBlocks()[0].getSignals()[0]); // add first signal from nested function block
 }
 
 void MockFunctionBlockImpl::createTestConfigProperties()

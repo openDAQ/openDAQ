@@ -108,6 +108,39 @@ TYPED_TEST(StreamReaderTest, ReadOneSample)
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
+TYPED_TEST(StreamReaderTest, ReadOneSampleRawValue)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64,
+                                               nullptr,
+                                               LinearScaling(4, 15, SampleType::Int32, ScaledSampleType::Float64)));
+
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal, ReadMode::RawValue);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
+
+    // Set the first sample
+    auto dataPtr = static_cast<int32_t*>(dataPacket.getRawData());
+    dataPtr[0] = 123;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    TypeParam samples[1]{};
+    reader.read((TypeParam*) &samples, &count);
+
+    ASSERT_EQ(count, 1u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(123)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(123));
+    }
+
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
 TYPED_TEST(StreamReaderTest, ReadOneSampleWithTimeout)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

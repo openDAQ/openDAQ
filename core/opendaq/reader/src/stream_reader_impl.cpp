@@ -325,12 +325,26 @@ bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPa
     return true;
 }
 
+void* StreamReaderImpl::getValuePacketData(const DataPacketPtr& packet) const
+{
+    switch (readMode)
+    {
+        case ReadMode::RawValue:
+        case ReadMode::Unscaled:
+            return packet.getRawData();
+        case ReadMode::Scaled:
+            return packet.getData();
+    }
+
+    throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+}
+
 ErrCode StreamReaderImpl::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     SizeT toRead = std::min(info.remainingToRead, remainingSampleCount);
 
-    ErrCode errCode = valueReader->readData(info.dataPacket.getData(), info.prevSampleIndex, &info.values, toRead);
+    ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;

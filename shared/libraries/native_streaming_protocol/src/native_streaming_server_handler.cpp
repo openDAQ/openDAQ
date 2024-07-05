@@ -297,8 +297,11 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
         if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
-    ProcessConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
+    ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb);
+    ProcessConfigProtocolPacketCb receiveConfigPacketCb = configServerCallbacks.first;
+    OnPacketBufferReceivedCallback clientToDeviceStreamingCb = configServerCallbacks.second;
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
+    sessionHandler->setPacketBufferReceivedHandler(clientToDeviceStreamingCb);
 }
 
 void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)

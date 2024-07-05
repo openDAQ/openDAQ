@@ -411,4 +411,9 @@ BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) 
     return typeManager;
 }
 
+void ConfigProtocolServer::processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
+{
+    // TODO
+}
+
 }

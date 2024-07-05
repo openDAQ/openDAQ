@@ -20,8 +20,6 @@
 
 #include <opendaq/data_descriptor_ptr.h>
 
-#include <packet_streaming/packet_streaming_client.h>
-
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 class ClientSessionHandler : public BaseSessionHandler
@@ -31,7 +29,6 @@ public:
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
-                         OnPacketBufferReceivedCallback packetBufferReceivedHandler,
                          OnStreamingInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
@@ -44,14 +41,12 @@ public:
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
 
-    daq::native_streaming::ReadTask readPacket(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalAvailable(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnavailable(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalSubscribedAck(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnsubscribedAck(const void* data, size_t size);
 
     OnSignalCallback signalReceivedHandler;
-    OnPacketBufferReceivedCallback packetBufferReceivedHandler;
     OnStreamingInitDoneCallback streamingInitDoneHandler;
     OnSubscriptionAckCallback subscriptionAckHandler;
 };

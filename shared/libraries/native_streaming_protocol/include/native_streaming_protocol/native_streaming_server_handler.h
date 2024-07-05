@@ -31,7 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
-using SetUpConfigProtocolServerCb = std::function<ProcessConfigProtocolPacketCb(SendConfigProtocolPacketCb cb)>;
+using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
+using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb)>;
 
 class NativeStreamingServerHandler
 {

@@ -344,10 +344,13 @@ ErrCode StreamReaderImpl::readPacketData()
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     SizeT toRead = std::min(info.remainingToRead, remainingSampleCount);
 
-    ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
-    if (OPENDAQ_FAILED(errCode))
+    if (info.values != nullptr)
     {
-        return errCode;
+        ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
     }
 
     if (info.domainValues != nullptr)
@@ -359,7 +362,7 @@ ErrCode StreamReaderImpl::readPacketData()
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
-        errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+        ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
@@ -559,6 +562,27 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
 
     if (status && *status == nullptr)
         *status = ReaderStatus(nullptr, !invalid).detach();
+    return errCode;
+}
+
+ErrCode StreamReaderImpl::skipSamples(SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    std::scoped_lock lock(mutex);
+
+    if (invalid)
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Invalid reader state", nullptr);
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    info.prepare(nullptr, *count, milliseconds(0));
+    if (info.dataPacket.assigned())
+        errCode = readPacketData();
+
+    if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count)
+        errCode = readPackets(nullptr);
+
+    *count = *count - info.remainingToRead;
     return errCode;
 }
 

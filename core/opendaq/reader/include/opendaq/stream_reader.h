@@ -78,6 +78,16 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReader, ISampleReader)
      * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
+
+    // [arrayArg(count, 1)]
+    /*!
+     * @brief Skips the specified amount of samples.
+     *
+     * @param[in,out] count The maximum amount of samples to be skipped. If the `count` is less than
+     * available the parameter value is set to the actual amount and only the available
+     * samples are skipped. The rest of the buffer is not modified or cleared.
+     */
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count) = 0;
 };
 
 /*!@}*/

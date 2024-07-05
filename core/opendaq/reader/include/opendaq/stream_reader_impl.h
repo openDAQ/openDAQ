@@ -78,6 +78,7 @@ public:
                                           SizeT* count,
                                           SizeT timeoutMs = 0,
                                           IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count) override;
 
     // IReaderConfig
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;

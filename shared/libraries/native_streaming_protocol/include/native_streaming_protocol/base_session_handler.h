@@ -23,6 +23,7 @@
 #include <coreobjects/property_object_ptr.h>
 
 #include <config_protocol/config_protocol.h>
+#include <packet_streaming/packet_streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -39,13 +40,17 @@ public:
     void startReading();
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
+    void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
 
     void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
+    void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);
+
     void startConnectionActivityMonitoring(Int period, Int timeout);
 
 protected:
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
     daq::native_streaming::ReadTask readConfigurationPacket(const void *data, size_t size);
+    daq::native_streaming::ReadTask readPacketBuffer(const void* data, size_t size);
 
     daq::native_streaming::ReadTask createReadHeaderTask();
     daq::native_streaming::ReadTask createReadStopTask();
@@ -69,6 +74,7 @@ protected:
 
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;
+    OnPacketBufferReceivedCallback packetBufferReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;

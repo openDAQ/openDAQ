@@ -65,6 +65,8 @@ public:
     void setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder);
     std::unique_ptr<IComponentFinder>& getComponentFinder();
 
+    void processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
+
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
 

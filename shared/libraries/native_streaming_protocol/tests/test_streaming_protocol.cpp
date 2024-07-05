@@ -162,7 +162,7 @@ public:
 
         setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
         {
-            return [](config_protocol::PacketBuffer&& packetBuffer) {};
+            return std::make_pair(nullptr, nullptr);
         };
 
         clientsCount = std::get<0>(GetParam());

@@ -233,6 +233,18 @@ void NativeStreamingClientHandler::sendStreamingRequest()
         sessionHandler->sendStreamingRequest();
 }
 
+void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+{
+    if (packetStreamingServerPtr && sessionHandler)
+    {
+        packetStreamingServerPtr->addDaqPacket(signalNumericId, packet);
+        while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        {
+            sessionHandler->sendPacketBuffer(packetBuffer);
+        }
+    }
+}
+
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
 {
     return ioContextPtr;
@@ -265,22 +277,6 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         handleSignal(signalNumericId, signalStringId, serializedSignal, available);
     };
 
-    OnPacketBufferReceivedCallback packetBufferReceivedHandler =
-        [this](const packet_streaming::PacketBufferPtr& packetBuffer)
-    {
-        if (packetStreamingClientPtr)
-        {
-            packetStreamingClientPtr->addPacketBuffer(packetBuffer);
-
-            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
-            while (packet.assigned())
-            {
-                packetHandler(signalIds.at(signalNumericId), packet);
-                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
-            }
-        }
-    };
-
     OnStreamingInitDoneCallback protocolInitDoneHandler =
         [this]()
     {
@@ -297,7 +293,6 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
                                                             ioContextPtr,
                                                             session,
                                                             signalReceivedHandler,
-                                                            packetBufferReceivedHandler,
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
                                                             errorHandler);
@@ -308,6 +303,26 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         configPacketHandler(std::move(packet));
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
+
+    OnPacketBufferReceivedCallback packetBufferReceivedHandler =
+        [this](const packet_streaming::PacketBufferPtr& packetBuffer)
+    {
+        if (packetStreamingClientPtr)
+        {
+            packetStreamingClientPtr->addPacketBuffer(packetBuffer);
+
+            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
+            while (packet.assigned())
+            {
+                packetHandler(signalIds.at(signalNumericId), packet);
+                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
+            }
+        }
+    };
+    sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
+
+    // FIXME keep and reuse packet server when packet retransmission feature will be enabled
+    packetStreamingServerPtr = std::make_shared<packet_streaming::PacketStreamingServer>();
 
     sessionHandler->sendTransportLayerProperties(transportLayerProperties);
     if (connectionMonitoringEnabled)

@@ -23,6 +23,7 @@ env:
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -461,7 +462,7 @@ jobs:
         run : git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |

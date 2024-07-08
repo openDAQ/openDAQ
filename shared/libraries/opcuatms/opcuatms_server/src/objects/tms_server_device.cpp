@@ -51,7 +51,7 @@ namespace detail
         {"Platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
         {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
         {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
-        {"SystemUuid", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
+        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
     };
 }
 
@@ -280,7 +280,7 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
     params.outputArguments[1].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
     params.outputArguments[1].valueRank = UA_VALUERANK_SCALAR;
 
-    params.inputArguments[0].name = UA_STRING_ALLOC("TypeId");
+    params.inputArguments[0].name = UA_STRING_ALLOC("typeId");
     params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
     params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
 

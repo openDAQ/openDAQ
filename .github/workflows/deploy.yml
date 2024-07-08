@@ -406,13 +406,6 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     steps:
-      # Addresses CentOS 7 EoL issue https://serverfault.com/questions/1161816/mirrorlist-centos-org-no-longer-resolve
-      - name: Update yum .repo files
-        run: |
-          sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
-          sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
-          sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
-          
       - name: Install basic dependencies
         run: |
           yum update -y

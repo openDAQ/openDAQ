@@ -488,8 +488,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeEventOverlapped)
 
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getReadSamples(), 2);
-    ASSERT_EQ(reader.getAvailableCount(), 0);
+    ASSERT_EQ(status.getReadSamples(), 2u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {
@@ -539,7 +539,7 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeTimeoutOverlapped)
 
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(status.getReadSamples(), 2);
+    ASSERT_EQ(status.getReadSamples(), 2u);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {
@@ -1428,8 +1428,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
         auto status = reader.read((TypeParam*) &samplesDouble, &tmpCount).template asPtrOrNull<IBlockReaderStatus>();
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_EQ(status.getReadSamples(), 0);
-        ASSERT_EQ(tmpCount, 0);
+        ASSERT_EQ(status.getReadSamples(), 0u);
+        ASSERT_EQ(tmpCount, 0u);
     }
 
     count = 1;
@@ -1490,8 +1490,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
         auto status = reader.read((TypeParam*) &samplesDouble, &tmpCount).template asPtrOrNull<IBlockReaderStatus>();
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_EQ(status.getReadSamples(), 1);
-        ASSERT_EQ(tmpCount, 0);
+        ASSERT_EQ(status.getReadSamples(), 1u);
+        ASSERT_EQ(tmpCount, 0u);
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);

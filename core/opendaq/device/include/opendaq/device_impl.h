@@ -1215,9 +1215,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         }
     }
 
-    if (obj.hasKey("DeviceDomain"))
+    if (obj.hasKey("deviceDomain"))
     {
-        deviceDomain = obj.readObject("DeviceDomain");
+        deviceDomain = obj.readObject("deviceDomain");
     }
 }
 

@@ -1384,6 +1384,31 @@ TYPED_TEST(StreamReaderTest, SkipSamplesNullParam)
     ASSERT_THROW(reader.skipSamples(nullptr), daq::ArgumentNullException);
 }
 
+TYPED_TEST(StreamReaderTest, SkipSamplesStatus)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+    this->signal.setDescriptor(setupDescriptor(SampleType::Invalid));
+
+    // First skip reads the descriptor event and puts reader to invalid state
+    SizeT count = 10;
+    auto status = reader.skipSamples(&count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getValid(), false);
+    ASSERT_TRUE(status.getEventPacket().assigned());
+
+    // Second time reader is already in invalid state
+    count = 10;
+    status = reader.skipSamples(&count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Fail);
+    ASSERT_EQ(status.getValid(), false);
+    ASSERT_FALSE(status.getEventPacket().assigned());
+}
+
 TYPED_TEST(StreamReaderTest, SkipSamplesNoData)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

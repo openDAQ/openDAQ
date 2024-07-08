@@ -87,7 +87,7 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are skipped. The rest of the buffer is not modified or cleared.
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus* * status) = 0;
 };
 
 /*!@}*/

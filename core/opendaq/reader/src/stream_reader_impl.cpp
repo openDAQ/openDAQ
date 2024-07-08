@@ -565,14 +565,20 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
     return errCode;
 }
 
-ErrCode StreamReaderImpl::skipSamples(SizeT* count)
+ErrCode StreamReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Invalid reader state", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     info.prepare(nullptr, *count, milliseconds(0));
@@ -580,7 +586,7 @@ ErrCode StreamReaderImpl::skipSamples(SizeT* count)
         errCode = readPacketData();
 
     if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count)
-        errCode = readPackets(nullptr);
+        errCode = readPackets(status);
 
     *count = *count - info.remainingToRead;
     return errCode;

@@ -150,7 +150,7 @@ TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
     ASSERT_TRUE(fb.assigned());
 }
 
-TEST_F(RefFBModuleTest, AddFunctionBlockBackwardsCompat)
+TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 {
     const auto instance = Instance();
 

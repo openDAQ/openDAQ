@@ -119,9 +119,10 @@ TEST_F(DeviceTest, DeviceTypeStructType)
 TEST_F(DeviceTest, DeviceTypeStructFields)
 {
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
-    ASSERT_EQ(structPtr.get("id"), "id");
-    ASSERT_EQ(structPtr.get("name"), "name");
-    ASSERT_EQ(structPtr.get("description"), "desc");
+    ASSERT_EQ(structPtr.get("Id"), "id");
+    ASSERT_EQ(structPtr.get("Name"), "name");
+    ASSERT_EQ(structPtr.get("Description"), "desc");
+    ASSERT_EQ(structPtr.get("Prefix"), "prefix");
 }
 
 TEST_F(DeviceTest, DeviceTypeStructNames)

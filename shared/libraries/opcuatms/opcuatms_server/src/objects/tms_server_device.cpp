@@ -150,7 +150,7 @@ void TmsServerDevice::populateDeviceInfo()
 
     auto deviceInfo = object.getInfo();
 
-    createNode("openDaqPackageVersion", ctString);
+    createNode("OpenDaqPackageVersion", ctString);
 
     const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
     std::unordered_set<std::string> customInfoNamesSet;
@@ -182,7 +182,7 @@ void TmsServerDevice::populateDeviceInfo()
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
             server->writeValue(reference.nodeId.nodeId, *v);
         }
-        else if (browseName == "openDaqPackageVersion")
+        else if (browseName == "OpenDaqPackageVersion")
         {
             auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
             server->writeValue(reference.nodeId.nodeId, *v);

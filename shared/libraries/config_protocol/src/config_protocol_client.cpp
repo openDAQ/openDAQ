@@ -314,6 +314,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
+    }    
+    
+    if (typeId == "SyncComponent")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
     }
 
     return nullptr;

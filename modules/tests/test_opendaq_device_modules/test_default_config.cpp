@@ -146,7 +146,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming"));
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
@@ -171,7 +171,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
@@ -191,7 +191,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
     generalConfig.setPropertyValue("AutomaticallyConnectStreaming", false);
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
@@ -222,7 +222,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_lt_streaming"));
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
@@ -258,5 +258,5 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
 }

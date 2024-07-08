@@ -2092,7 +2092,7 @@ TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
-    ASSERT_EQ(status.getEventPackets().getCount(), 1);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
     
     auto event = status.getEventPackets().get(sig0.signal);

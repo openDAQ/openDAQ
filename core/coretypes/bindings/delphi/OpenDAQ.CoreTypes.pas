@@ -41,13 +41,14 @@ type
       ctObject = Dewesoft_TLB.ctObject;
       ctBinaryData = Dewesoft_TLB.ctBinaryData;
       ctFunc = Dewesoft_TLB.ctFunc;
-      ctComplexNumber = ctFunc + 1;  ///< Complex number (real, imaginary)
-      ctStruct = ctFunc + 2;         ///< Constant structure with dictionary of fields and types
-      ctUndefined = Dewesoft_TLB.ctUndefined;
+      ctComplexNumber = ctFunc + 1;           ///< Complex number (real, imaginary)
+      ctStruct = ctFunc + 2;                  ///< Constant structure with dictionary of fields and types
+      ctEnumeration = ctFunc + 3;             ///< Enumeration representing a predefined set of named integral constants
+      ctUndefined = Dewesoft_TLB.ctUndefined; ///< Undefined
 
     type
   {$ELSE}
-    TCoreType = (ctBool = 0, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctProc, ctObject, ctBinaryData, ctFunc, ctComplexNumber, ctStruct, ctUndefined = $FFFF);
+    TCoreType = (ctBool = 0, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctProc, ctObject, ctBinaryData, ctFunc, ctComplexNumber, ctStruct, ctEnumeration, ctUndefined = $FFFF);
   {$ENDIF}
 
   TConfigurationMode = (cmNone=$0, cmStatic=$1, cmDynamic=$2, cmBoth);
@@ -56,8 +57,9 @@ type
   ISerializer = interface;
   ISerializedObject = interface;
   IBaseObject = interface;
+  IFunction = interface;
 
-  TDSRTDeserializerFactory = function(SerializedObject: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): Errcode; cdecl;
+  TDSRTDeserializerFactory = function(SerializedObject: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): Errcode; cdecl;
 
   IBaseObject = interface(IUnknown)
   ['{9C911F6D-1664-5AA2-97BD-90FE3143E881}']
@@ -166,6 +168,16 @@ type
     function IsFrozen(out IsFrozen: Boolean): ErrCode stdcall;
   end;
 
+  IFunction = interface(IBaseObject)
+  ['{2EEACD91-0883-5FC8-8EB8-4F4C80CD8131}']
+    function Call(Params : IBaseObject; out Result : IBaseObject) : ErrCode; stdcall;
+  end;
+
+  IProcedure = interface(IBaseObject)
+  ['{36247E6D-6BDD-5964-857D-0FD296EEB5C3}']
+    function Execute(Params : IBaseObject) : ErrCode; stdcall;
+  end;
+
   ISerializable = interface(IBaseObject)
   ['{831915F2-C42F-5520-A420-56524D2AC552}']
     function Serialize(Serializer: ISerializer): ErrCode stdcall;
@@ -200,8 +212,8 @@ type
   ['{A9E1FD59-8AD5-5F3C-B4F8-2A9CDE66E598}']
     function ReadSerializedObject(out PlainObj: ISerializedObject): ErrCode stdcall;
     function ReadSerializedList(out List: ISerializedList): ErrCode stdcall;
-    function ReadList(Context: IBaseObject; out List: IListObject): ErrCode stdcall;
-    function ReadObject(Context: IBaseObject; out Obj: IBaseObject): ErrCode stdcall;
+    function ReadList(Context: IBaseObject; FactoryCallback: IFunction; out List: IListObject): ErrCode; stdcall;
+    function ReadObject(Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
     function ReadString(out Str: IString): ErrCode stdcall;
     function ReadBool(out Bool: Boolean): ErrCode stdcall;
     function ReadFloat(out Real: RtFloat): ErrCode stdcall;
@@ -214,35 +226,31 @@ type
   ['{EC052FCE-7ADC-5335-9929-66731EA35698}']
     function ReadSerializedObject(Key: IString; out PlainObj: ISerializedObject): ErrCode stdcall;
     function ReadSerializedList(Key: IString; out List: ISerializedList): ErrCode stdcall;
-    function ReadList(Key: IString; Context: IBaseObject; out List: IListObject): ErrCode stdcall;
-    function ReadObject(Key: IString; Context: IBaseObject; out Obj: IBaseObject): ErrCode stdcall;
+    function ReadList(Key: IString; Context: IBaseObject; FactoryCallback: IFunction; out List: IListObject): ErrCode; stdcall;
+    function ReadObject(Key: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
     function ReadString(Key: IString; out Str: IString): ErrCode stdcall;
     function ReadBool(Key: IString; out Bool: Boolean): ErrCode stdcall;
     function ReadFloat(Key: IString; out Real: RtFloat): ErrCode stdcall;
     function ReadInt(Key: IString; out Int: RtInt): ErrCode stdcall;
     function HasKey(Key: IString; out HasKey: Boolean): ErrCode stdcall;
     function GetKeys(out List: IListObject): ErrCode stdcall;
+    function GetType(Key: IString; out AType: TCoreType): ErrCode stdcall;
+    function IsRoot(out Root: Boolean): ErrCode stdcall;
+    function ToJson(out JsonString: IString): ErrCode; stdcall;
   end;
 
   IUpdatable = interface(IBaseObject)
   ['{94BF8B0E-2868-51A2-8773-CBB98A4DD1BE}']
-    function Update(Mode: TConfigurationMode; Update: ISerializedObject): ErrCode; stdcall;
+    function Update(Update: ISerializedObject): ErrCode; stdcall;
+    function SerializeForUpdate(Serializer: ISerializer): ErrCode; stdcall;
+    function UpdateEnded(): ErrCode; stdcall;
   end;
 
   IDeserializer = interface(IBaseObject)
   ['{66DEEEF9-2B0D-5A49-A050-2820C4738AE7}']
-    function Deserialize(Serialized: IString; Context: IBaseObject; out Obj: IBaseObject): ErrCode stdcall;
-    function Update(Updatable: IUpdatable; Mode: TConfigurationMode; Serialized: IString): ErrCode stdcall;
-  end;
-
-  IFunction = interface(IBaseObject)
-  ['{2EEACD91-0883-5FC8-8EB8-4F4C80CD8131}']
-    function Call(Params : IBaseObject; out Result : IBaseObject) : ErrCode; stdcall;
-  end;
-  
-  IProcedure = interface(IBaseObject)
-  ['{36247E6D-6BDD-5964-857D-0FD296EEB5C3}']
-    function Execute(Params : IBaseObject) : ErrCode; stdcall;
+    function Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
+    function Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+    function CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;
   end;
 
   IBinaryData = interface(IBaseObject)
@@ -370,6 +378,7 @@ function RtToString(Value : IString) : string;
 function DaqBoxValue(Value: Boolean): IBoolean; overload;
 function DaqBoxValue(Value: RtInt): IInteger; overload;
 function DaqBoxValue(Value: RtFloat): IFloat; overload;
+function DaqBoxValue(Value: string): IString; overload;
 
 implementation
 
@@ -486,6 +495,11 @@ var
 begin
   Err := CreateFloat(Result, Value);
   CheckRtErrorInfo(Err);
+end;
+
+function DaqBoxValue(Value: string): IString; overload;
+begin
+  Result := CreateStringFromDelphiString(Value);
 end;
 
 function CreateStringFromDelphiString(const Value: string): IString;

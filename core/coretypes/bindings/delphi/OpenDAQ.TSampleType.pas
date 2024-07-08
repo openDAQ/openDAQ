@@ -21,7 +21,8 @@ type
     stComplexFloat32,
     stComplexFloat64,
     stBinary,
-    stString
+    stString,
+    stStruct
   );
 
   TScaledSampleType = (

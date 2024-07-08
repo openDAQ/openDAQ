@@ -9,6 +9,7 @@ type
   IStringPtr = interface(IObjectPtr<IString>)
   ['{EC4621A5-90B2-439E-AAB4-7AF27EE8C05F}']
     function ToString() : string;
+    function ToStringOrEmpty() : string;
     function GetLength() : SizeT;
   end;
 
@@ -20,6 +21,7 @@ type
     constructor Create(Obj : IBaseObject); overload; override;
 
     function ToString() : string; override;
+    function ToStringOrEmpty() : string;
     function GetLength() : SizeT; overload;
   private
     function GetCharPtr(Value: PPAnsiChar): ErrCode; overload; stdcall;
@@ -88,6 +90,14 @@ begin
   CheckRtErrorInfo(Err);
 
   Result := string(UTF8String(Ptr));
+end;
+
+function TStringPtr.ToStringOrEmpty(): string;
+begin
+  if not Assigned(FObject) then
+    Result := ''
+  else
+    Result := ToString;
 end;
 
 function TStringPtr.GetCharPtr(Value: PPAnsiChar): ErrCode;

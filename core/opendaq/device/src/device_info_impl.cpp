@@ -468,7 +468,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "serverCapabilities")
+    if (static_cast<int>(type) > 3 && name != "serverCapabilities")
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;

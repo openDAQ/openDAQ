@@ -119,7 +119,7 @@ xref:packets.adoc[Packets] will not contain any data.
 To obtain data from Packets of Signals with an `Implicit` Data Rule, the values are
 calculated depending on the Rule type. Currently, two rules are available in openDAQ:
 
-* **Linear Rule**: The Rule parameters include a `Delta` and `Start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * Delta + Start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
+* **Linear Rule**: The Rule parameters include a `delta` and `start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * delta + start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
 
 * **Constant Rule**: All values of the signal are equal to the `constant` defined in the packet.
 
@@ -151,13 +151,13 @@ To define the Labels, the following Rule types are available:
 [cols="1,4"]
 |===
 | Linear
-| The Rule parameters contain a `Delta`, `Start`, and `Size` parameters member. Calculated as: _index * Delta + Start_ for `Size` number of elements.
+| The Rule parameters contain a `delta`, `start`, and `size` parameters member. Calculated as: _index * delta + start_ for `size` number of elements.
 
 | Logarithmic
-| The Rule parameters contain a `Delta`, `Start`, `Base`, and `Size` parameters member. Calculated as: _Base ^ (index * Delta + Start)_ for `Size` number of elements.
+| The Rule parameters contain a `delta`, `start`, `base`, and `size` parameters member. Calculated as: _base ^ (index * delta + start)_ for `size` number of elements.
 
 | List
-| The Rule parameters contain a `List` parameters member. The list contains all dimension labels.
+| The Rule parameters contain a `list` parameters member. The list contains all dimension labels.
 |===
 
 // NOTE: To get more info on configuring Signal Dimensions, the following how-to guide illustrates
@@ -187,7 +187,7 @@ Currently, openDAQ(TM) provides only the Linear Post Scaling rule:
 |===
 
 | Linear Post Scaling
-| The parameters contain a `Scale` and `Offset`. Calculated as: _inputValue * Scale + Offset_
+| The parameters contain a `scale` and `offset`. Calculated as: _inputValue * scale + offset_
 
 |===
 

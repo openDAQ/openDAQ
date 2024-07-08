@@ -36,7 +36,7 @@ public:
 
     explicit StreamingTypeImpl(const ComponentTypeBuilderPtr& builder);
     
-    ErrCode getConnectionStringPrefix(IString** prefix) override;
+    ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
 };
 
 END_NAMESPACE_OPENDAQ

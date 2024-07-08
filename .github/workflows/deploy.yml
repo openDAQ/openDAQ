@@ -27,6 +27,7 @@ env:
   python_versions: 3.8 3.9 3.10 3.11 3.12
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   deploy_windows:
@@ -412,7 +413,7 @@ jobs:
           yum install -y git awscli
 
       - name: Checkout
-        uses: actions/checkout@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |

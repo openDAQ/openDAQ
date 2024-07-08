@@ -14,11 +14,13 @@ def configure_opendaq_config():
     with open(filename, "r") as json_file:
         data = json.load(json_file)
 
+    modules = data.setdefault("Modules", {})
+    
     # localId = manufacturer + _ + serial number
-    data.setdefault("ReferenceDevice", {})["LocalId"] = "opendaq_" + serial
+    modules.setdefault("ReferenceDevice", {})["LocalId"] = "opendaq_" + serial
     
     # serial number
-    data.setdefault("ReferenceDevice", {})["SerialNumber"] = serial
+    modules.setdefault("ReferenceDevice", {})["SerialNumber"] = serial
 
     with open(filename, "w") as json_file:
         json.dump(data, json_file, indent = 4)

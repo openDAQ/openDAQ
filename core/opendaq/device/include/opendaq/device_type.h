@@ -44,7 +44,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
      *
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
-    virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
+    virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/
 

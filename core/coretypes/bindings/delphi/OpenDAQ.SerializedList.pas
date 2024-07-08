@@ -11,14 +11,14 @@ uses
 type
   TSerializedListPtr = class(TObjectPtr<ISerializedList>, ISerializedListPtr, ISerializedList)
   public
-    constructor Create(Obj : IBaseObject); overload; override;
-    constructor Create(Obj : ISerializedList); overload;
+    constructor Create(Obj: IBaseObject); overload; override;
+    constructor Create(Obj: ISerializedList); overload;
 
     function ReadSerializedObject(): ISerializedObjectPtr;
     function ReadSerializedList(): ISerializedListPtr;
 
-    function ReadList(Context: IBaseObject = nil): IListPtr<IBaseObject>;
-    function ReadObject(Context: IBaseObject = nil): IObjectPtr;
+    function ReadList(Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IListPtr<IBaseObject>; overload;
+    function ReadObject(Context: IBaseObject = nil; FactoryCallback: IFunction  = nil): IObjectPtr;
 
     function ReadStringPtr(): IStringPtr; overload;
     function ReadString(): string; overload;
@@ -44,8 +44,8 @@ type
 
     function Interface_ReadSerializedObject(out PlainObj: ISerializedObject): ErrCode stdcall;
     function Interface_ReadSerializedList(out List: ISerializedList): ErrCode stdcall;
-    function Interface_ReadList(Context: IBaseObject; out List: IListObject): ErrCode stdcall;
-    function Interface_ReadObject(Context: IBaseObject; out Obj: IBaseObject): ErrCode stdcall;
+    function Interface_ReadList(Context: IBaseObject; FactoryCallback: IFunction; out List: IListObject): ErrCode; stdcall;
+    function Interface_ReadObject(Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
     function Interface_ReadString(out Str: IString): ErrCode stdcall;
     function Interface_ReadBool(out Bool: Boolean): ErrCode stdcall;
     function Interface_ReadFloat(out Real: Double): ErrCode stdcall;
@@ -114,7 +114,7 @@ begin
   Result := Value;
 end;
 
-function TSerializedListPtr.ReadList(Context: IBaseObject = nil): IListPtr<IBaseObject>;
+function TSerializedListPtr.ReadList(Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IListPtr<IBaseObject>;
 var
   Err : ErrCode;
   List : IListObject;
@@ -122,7 +122,7 @@ begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
-  Err := FObject.ReadList(Context, List);
+  Err := FObject.ReadList(Context, FactoryCallback, List);
   CheckRtErrorInfo(Err);
 
   Result := TListPtr<IBaseObject>.Create(List);
@@ -142,7 +142,7 @@ begin
   Result := TSerializedListPtr.Create(SerializedList);
 end;
 
-function TSerializedListPtr.ReadObject(Context: IBaseObject = nil): IObjectPtr;
+function TSerializedListPtr.ReadObject(Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IObjectPtr;
 var
   Err : ErrCode;
   Obj : IBaseObject;
@@ -150,7 +150,7 @@ begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
-  Err := FObject.ReadObject(Context, Obj);
+  Err := FObject.ReadObject(Context, FactoryCallback, Obj);
   CheckRtErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(Obj);
@@ -245,9 +245,9 @@ begin
   Result := FObject.ReadString(Str);
 end;
 
-function TSerializedListPtr.Interface_ReadList(Context: IBaseObject; out List: IListObject): ErrCode;
+function TSerializedListPtr.Interface_ReadList(Context: IBaseObject; FactoryCallback: IFunction; out List: IListObject): ErrCode;
 begin
-  Result := FObject.ReadList(Context, List);
+  Result := FObject.ReadList(Context, FactoryCallback, List);
 end;
 
 function TSerializedListPtr.Interface_ReadSerializedList(out List: ISerializedList): ErrCode;
@@ -260,9 +260,9 @@ begin
   Result := FObject.ReadSerializedObject(PlainObj);
 end;
 
-function TSerializedListPtr.Interface_ReadObject(Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function TSerializedListPtr.Interface_ReadObject(Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
-  Result := FObject.ReadObject(Context, Obj);
+  Result := FObject.ReadObject(Context, FactoryCallback, Obj);
 end;
 
 function TSerializedListPtr.Interface_GetCount(out Size: SizeT): ErrCode;

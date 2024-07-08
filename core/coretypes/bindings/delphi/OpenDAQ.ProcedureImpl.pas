@@ -45,7 +45,7 @@ end;
 
 function TProcedureImpl.GetCoreType(out CoreType: TCoreType): ErrCode;
 begin
-  CoreType := TCoreType.ctProc;
+  CoreType := ctProc;
   Result := OPENDAQ_SUCCESS;
 end;
 

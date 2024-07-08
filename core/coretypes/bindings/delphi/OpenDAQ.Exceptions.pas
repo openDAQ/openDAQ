@@ -353,28 +353,47 @@ type
 implementation
 
 uses
+  DS.Utils,
   OpenDAQ.CoreTypes.Errors;
 
 procedure CheckRtErrorInfo(Err: ErrCode);
 var
   ExceptionClass: RTExceptionClass;
+  Msg: string;
+  ErrorMsg: IString;
+  ErrorInfo: IErrorInfo;
 begin
   // TODO: Use ErrorInfo to get the exception message
   if not OPENDAQ_FAILED(Err) then
     Exit;
 
+  DaqGetErrorInfo(ErrorInfo);
+  if Assigned(ErrorInfo) then
+  begin
+    ErrorInfo.GetMessage(ErrorMsg);
+    ErrorInfo := nil;
+
+    if Assigned(ErrorMsg) then
+      Msg := RtToString(ErrorMsg);
+
+    DaqClearErrorInfo;
+  end;
+
   ExceptionClass := TRTExceptionRegistry.GetExceptionClass(Err);
   if not Assigned(ExceptionClass) then
-    raise ERTException.Create('RT Exception occured', Err)
+    raise ERTException.Create(IfThenStr(Length(Msg) = 0, 'openDAQ Exception occured', Msg), Err)
   else
-    raise ExceptionClass.Create(Err);
+    if Length(Msg) = 0 then
+      raise ExceptionClass.Create(Err)
+    else
+      raise ExceptionClass.Create(Msg, Err);
 end;
 
 { ERTException }
 
 constructor ERTException.Create();
 begin
-  inherited Create('RT Genneral error occured.');
+  inherited Create('openDAQ Genneral error occured.');
 end;
 
 constructor ERTException.Create(Msg: string);
@@ -385,7 +404,7 @@ end;
 
 constructor ERTException.Create(Msg: string; ErrorCode: ErrCode);
 begin
-  inherited Create('RT Error 0x' + IntToHex(ErrorCode, 8) + ': ' + Msg + '.');
+  inherited Create('openDAQ Error 0x' + IntToHex(ErrorCode, 8) + ': ' + Msg);
   Self.ErrorCode := ErrorCode;
 end;
 

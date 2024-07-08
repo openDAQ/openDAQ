@@ -88,4 +88,10 @@ begin
   Result := FObject.GetIntValue(Value);
 end;
 
+initialization
+  TSmartPtrRegistry.RegisterPtr(INumber, INumberPtr, TNumberPtr);
+
+finalization
+  TSmartPtrRegistry.UnregisterPtr(INumber);
+
 end.

@@ -202,7 +202,6 @@ end;
 
 class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): string;
 var
-  Err : ErrCode;
   RtStr: IString;
 begin
   if not Assigned(Proxy.FObject) then
@@ -227,14 +226,14 @@ end;
 class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): IObjectPtr<T>;
 var
   PtrClass : SmartPtrClass;
-  Ptr : ISmartPtr;
   Intf: T;
   IntfGuid: TGUID;
 begin
+  Intf := nil;
   IntfGuid := GetTypeData(TypeInfo(T))^.Guid;
   PtrClass := TSmartPtrRegistry.GetPtrClass(IntfGuid);
 
-  if not Supports(Proxy.FObject, IntfGuid, Intf) then
+  if Assigned(Proxy.FObject) and (not Supports(Proxy.FObject, IntfGuid, Intf)) then
     raise ERTNoInterfaceException.Create('Could not implicitly convert to IObjectPtr<T>.');
 
   Result := PtrClass.Create(Intf) as IObjectPtr<T>;
@@ -290,7 +289,6 @@ end;
 class operator TProxyValue<T>.Implicit(Value: string): TProxyValue<T>;
 var
   Str : IString;
-  Err : ErrCode;
 begin
   if (TypeInfo(T) <> TypeInfo(IString)) and (TypeInfo(T) <> TypeInfo(IBaseObject)) then
     raise ERTInvalidParameterException.Create('Interface is not IString or IBaseObject.');

@@ -126,9 +126,9 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
-        if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
+        if (ConnectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
             device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
-        else if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
+        else if (ConnectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
             device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;
@@ -322,16 +322,16 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");
 
-    auto host = getHost(connectionString);
-    auto port = getPort(connectionString, deviceConfig);
-    auto path = getPath(connectionString);
+    auto host = GetHost(connectionString);
+    auto port = GetPort(connectionString, deviceConfig);
+    auto path = GetPath(connectionString);
 
     DevicePtr device;
     StringPtr protocolId;
     StringPtr protocolName;
     StringPtr protocolPrefix;
     ProtocolType protocolType = ProtocolType::Unknown;
-    if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
+    if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::string localId;
         {
@@ -356,7 +356,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         protocolPrefix = "daq.ns";
         protocolType = ProtocolType::Streaming;
     }
-    else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
+    else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
         protocolId = NativeConfigurationDeviceTypeId;
@@ -412,10 +412,10 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
 bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
                                                                 const PropertyObjectPtr& config)
 {
-    auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
-    auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
+    auto pseudoDevicePrefixFound = ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
+    auto devicePrefixFound = ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
 
-    if ((!devicePrefixFound && !pseudoDevicePrefixFound) || !validateConnectionString(connectionString))
+    if ((!devicePrefixFound && !pseudoDevicePrefixFound) || !ValidateConnectionString(connectionString))
     {
         return false;
     }
@@ -436,7 +436,7 @@ bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const Str
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) && validateConnectionString(connectionString);
+        return ConnectionStringHasPrefix(connectionString, NativeStreamingPrefix) && ValidateConnectionString(connectionString);
     }
     return false;
 }
@@ -520,9 +520,9 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     else
         transportLayerConfig = createTransportLayerDefaultConfig();
 
-    StringPtr host = getHost(connectionString);
-    StringPtr port = getPort(connectionString, parsedConfig);
-    StringPtr path = getPath(connectionString);
+    StringPtr host = GetHost(connectionString);
+    StringPtr port = GetPort(connectionString, parsedConfig);
+    StringPtr path = GetPath(connectionString);
 
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
@@ -563,7 +563,7 @@ StringPtr NativeStreamingClientModule::onCreateConnectionString(const ServerCapa
     );
 }
 
-bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& connectionString,
+bool NativeStreamingClientModule::ConnectionStringHasPrefix(const StringPtr& connectionString,
                                                             const char* prefix)
 {
     std::string connStr = connectionString;
@@ -612,7 +612,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .build();
 }
 
-StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
+StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
@@ -627,7 +627,7 @@ StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
     throw InvalidParameterException("Host name not found in url: {}", url);
 }
 
-StringPtr NativeStreamingClientModule::getPort(const StringPtr& url, const PropertyObjectPtr& config)
+StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
 {
     std::string outPort;
     std::string urlString = url.toStdString();
@@ -635,7 +635,7 @@ StringPtr NativeStreamingClientModule::getPort(const StringPtr& url, const Prope
     auto regexPort = std::regex(":(\\d+)");
     std::smatch match;
 
-    std::string host = getHost(url).toStdString();
+    std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
     if (std::regex_search(suffix, match, regexPort))
@@ -653,11 +653,11 @@ StringPtr NativeStreamingClientModule::getPort(const StringPtr& url, const Prope
     return outPort;
 }
 
-StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)
+StringPtr NativeStreamingClientModule::GetPath(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
-    std::string host = getHost(url).toStdString();
+    std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
     auto pos = suffix.find("/");
 
@@ -698,9 +698,9 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 {
     try
     {
-        auto host = getHost(connectionString);
-        auto port = getPort(connectionString);
-        auto path = getPath(connectionString);
+        auto host = GetHost(connectionString);
+        auto port = GetPort(connectionString);
+        auto path = GetPath(connectionString);
         return true;
     }
     catch(...)

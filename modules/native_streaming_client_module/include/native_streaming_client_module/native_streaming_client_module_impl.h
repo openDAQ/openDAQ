@@ -41,13 +41,15 @@ public:
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
 private:
-    static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
-    static StringPtr getHost(const StringPtr& url);
-    static StringPtr getPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
-    static StringPtr getPath(const StringPtr& url);
+
+    static StringPtr GetHost(const StringPtr& url);
+    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    static StringPtr GetPath(const StringPtr& url);
+
+    static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
 
     static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);

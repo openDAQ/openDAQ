@@ -573,8 +573,7 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    std::thread t(
-        [this, &dataPacket]
+    std::thread t([this, &dataPacket]
     {
         using namespace std::chrono_literals;
 
@@ -753,9 +752,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicksTimeout)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    std::thread t(
-        [this, &dataPacket]
-        {
+    std::thread t([this, &dataPacket]
+    {
         using namespace std::chrono_literals;
 
         std::this_thread::sleep_for(30ms);
@@ -953,9 +951,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    std::thread t(
-        [this, &dataPacket]
-        {
+    std::thread t([this, &dataPacket]
+    {
         using namespace std::chrono_literals;
 
         std::this_thread::sleep_for(30ms);
@@ -1167,8 +1164,7 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
-    std::thread t(
-        [this]
+    std::thread t([this]
     {
         using namespace std::chrono_literals;
 
@@ -2259,9 +2255,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
 
-    reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
-        {
+    reader.setOnDataAvailable([&, promise = std::move(promise)]() mutable
+    {
         reader.read(&samples, &count);
         promise.set_value();
     });
@@ -2346,9 +2341,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
 
-    reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
-        {
+    reader.setOnDataAvailable([&, promise = std::move(promise)]() mutable
+    {
         count = tryRead(reader, samples, count);
         promise.set_value();
     });
@@ -2395,12 +2389,11 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
                       .setOverlap(OVERLAP)
                       .build();
 
-    reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
-        {
-            count = tryRead(reader, samples, count);
-            promise.set_value();
-        });
+    reader.setOnDataAvailable([&, promise = std::move(promise)]() mutable
+    {
+        count = tryRead(reader, samples, count);
+        promise.set_value();
+    });
 
     auto domainPacket1 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE - 1, 1);
     auto dataPacket1 = DataPacketWithDomain(domainPacket1, this->signal.getDescriptor(), BLOCK_SIZE - 1);
@@ -2445,9 +2438,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
                       .setBlockSize(BLOCK_SIZE)
                       .build();
 
-    reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
-        {
+    reader.setOnDataAvailable([&, promise = std::move(promise)]() mutable
+    {
         count = tryRead(reader, samples, count);
         promise.set_value();
     });
@@ -2487,9 +2479,8 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
 
     BlockReaderPtr newReader;
 
-    reader.setOnDataAvailable(
-        [&, promise = std::move(promise)]() mutable
-        {
+    reader.setOnDataAvailable([&, promise = std::move(promise)]() mutable
+    {
         if (!newReader.assigned())
         {
             SizeT tmpCount = 1;

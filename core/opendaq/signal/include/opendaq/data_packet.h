@@ -123,7 +123,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
     virtual ErrCode INTERFACE_FUNC getPacketId(Int* packetId) = 0;
 
     /*!
-     * @brief Gets the data packet last value
+     * @brief Gets the data packet last value.
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
      * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
      *

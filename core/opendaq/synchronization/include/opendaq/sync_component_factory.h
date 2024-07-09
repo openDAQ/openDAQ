@@ -30,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline SyncComponentPtr SyncComponent(const TypeManagerPtr& typeManager)
 {
-    return { SyncComponent_Create(typeManager) };
+    return { SyncComponent_Create(typeManager, nullptr) };
 }
 
 /*!@}*/

@@ -33,25 +33,25 @@ public:
     using Super = GenericPropertyObjectImpl<MainInterface, Interfaces...>;
 
     
-    explicit GenericSyncComponentImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent);
+    explicit GenericSyncComponentImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent = nullptr);
     explicit GenericSyncComponentImpl(const TypeManagerPtr& manager);
 
     //ISyncComponent
-    ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
-    ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
+    virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
+    virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
 
-    ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
-    ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
+    virtual ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
+    virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
 
-    ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
-    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
-    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
-    ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
+    virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
+    virtual ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
+    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
+    virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    virtual ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     // ISerializable
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    virtual ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -314,7 +314,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
                 [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& context, const StringPtr& /*className*/)
                 {
                     auto manager = context.asPtrOrNull<ITypeManager>(true);
-                    const auto sync = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager, nullptr, nullptr);
+                    const auto sync = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager);
                     return sync;
                 }).detach();
        });
@@ -323,7 +323,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 template <typename MainInterface, typename ... Interfaces>
 PropertyObjectPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::createCloneBase()
 {
-    const auto obj = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager, nullptr, nullptr);
+    const auto obj = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager);
     return obj;
 }
 

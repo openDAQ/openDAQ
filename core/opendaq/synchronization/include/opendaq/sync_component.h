@@ -111,7 +111,8 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
-    ITypeManager*, manager
+    ITypeManager*, manager,
+    IString*, className
 )
 
 END_NAMESPACE_OPENDAQ

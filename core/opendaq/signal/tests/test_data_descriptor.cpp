@@ -195,7 +195,7 @@ TEST_F(DataDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("Unit"), Unit("s", 10));
     ASSERT_EQ(descriptor.get("Name"), "testName");
     ASSERT_EQ(descriptor.get("Metadata"), metaData);
-    ASSERT_EQ(descriptor.get("structField"), nullptr);
+    ASSERT_EQ(descriptor.get("StructField"), nullptr);
     ASSERT_EQ(descriptor.get("Scaling"), nullptr);
     ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
 }

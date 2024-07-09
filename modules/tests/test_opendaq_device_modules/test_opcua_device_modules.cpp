@@ -799,8 +799,8 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
 
     auto instance = InstanceCustom(context, "local");
     instance.setRootDevice("daqref://device1");
-    instance.addServer("openDAQ Native Streaming", nullptr);
-    instance.addServer("openDAQ OpcUa", nullptr);
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
+    instance.addServer("OpenDAQOPCUA", nullptr);
 
     auto client = InstanceBuilder().build();
     auto clientDevice = client.addDevice("daq.opcua://127.0.0.1");

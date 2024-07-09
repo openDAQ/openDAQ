@@ -108,7 +108,7 @@ protected:
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
                                            {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
                                            {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
-                                           {"Modules", Dict<IString, IBaseObject>({{"ReferenceDeviceModule", referenceDeviceOptions}})}});
+                                           {"Modules", Dict<IString, IBaseObject>({{"ReferenceDevice", referenceDeviceOptions}})}});
     }
 
     std::set<std::string> filenames;

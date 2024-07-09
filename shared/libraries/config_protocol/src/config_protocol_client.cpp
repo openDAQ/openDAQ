@@ -400,7 +400,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
         component,
         [&dev, &topComponent](const SignalPtr& signal)
         {
-            const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
+            const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
             if (domainSignalId.assigned())
             {
                 SignalPtr domainSignal;

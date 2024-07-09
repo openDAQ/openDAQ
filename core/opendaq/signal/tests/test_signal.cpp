@@ -699,7 +699,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
 
     const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
 
-    const auto deserializedDomainSignalId = newSignal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("DomainSignalId");
+    const auto deserializedDomainSignalId = newSignal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
     ASSERT_EQ(deserializedDomainSignalId, domainSignal.getGlobalId());
     newSignal.setDomainSignal(domainSignal);
 

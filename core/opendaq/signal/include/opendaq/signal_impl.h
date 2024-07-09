@@ -1108,7 +1108,7 @@ void SignalBase<TInterface, Interfaces...>::removed()
 template <typename TInterface, typename... Interfaces>
 BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
 {
-    if (parameter == "DomainSignalId")
+    if (parameter == "domainSignalId")
         return deserializedDomainSignalId;
 
     throw NotFoundException();

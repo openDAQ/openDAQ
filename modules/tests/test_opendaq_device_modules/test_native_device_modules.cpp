@@ -218,7 +218,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("MDNS").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -249,7 +249,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
 {
     const auto info = DeviceInfo("", "foo");
     info.setMacAddress("custom_mac");
-    auto server = InstanceBuilder().addDiscoveryServer("MDNS")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .setDefaultRootDeviceInfo(info)
                                    .build();
@@ -283,7 +283,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
 
 TEST_F(NativeDeviceModulesTest, RemoveServer)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("MDNS")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .build();
     server.addDevice("daqref://device1");
@@ -388,7 +388,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryServer("MDNS").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 

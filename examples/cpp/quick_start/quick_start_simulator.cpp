@@ -19,7 +19,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     const InstancePtr instance = InstanceBuilder()
                                  .addModulePath(MODULE_PATH)
-                                 .addDiscoveryServer("MDNS")
+                                 .addDiscoveryServer("mdns")
                                  .setRootDevice("daqref://device1", config)
                                  .build();
 

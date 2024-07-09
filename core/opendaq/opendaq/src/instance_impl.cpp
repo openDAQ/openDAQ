@@ -83,7 +83,7 @@ static std::string defineLocalId(const std::string& localId)
 
 static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
 {
-    if (serviceName == "MDNS")
+    if (serviceName == "mdns")
         return MdnsDiscoveryServer(logger);
     return nullptr;
 }

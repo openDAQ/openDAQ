@@ -10,7 +10,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     const ConfigProviderPtr configProvider = JsonConfigProvider();
     const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider)
-                                                                .addDiscoveryServer("MDNS");
+                                                                .addDiscoveryServer("mdns");
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
     auto servers = instance.addStandardServers();

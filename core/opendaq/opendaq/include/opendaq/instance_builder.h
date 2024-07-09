@@ -338,7 +338,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @brief Adds a discovery server to the context
      * @param serverName The discovery server to add
      *
-     * openDAQ supports the "MDNS" server by default, but must be added to the instance builder to be enabled.
+     * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
      */
     virtual ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) = 0;
 };

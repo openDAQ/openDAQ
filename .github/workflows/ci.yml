@@ -106,7 +106,7 @@ jobs:
         run: |
           foreach($version in "${{ env.python_versions }}".split(" ")) {
             Write-Output "Installing numpy for Python $version"
-            Invoke-Expression "py -$version -m pip install numpy==1.26.4"
+            Invoke-Expression "py -$version -m pip install numpy"
           }
 
       - name: Configure
@@ -568,7 +568,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install numpy
-        run: python -m pip install numpy==1.26.4
+        run: python -m pip install numpy
 
       - name: Configure, fetch dependencies
         run: |

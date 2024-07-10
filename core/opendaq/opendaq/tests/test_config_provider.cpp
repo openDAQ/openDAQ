@@ -80,13 +80,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceDefaultLocalId)
 TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
 {
     std::string filename = "jsonConfigReadLoggingGlobalLogLevel.json";
-    std::string json = "{ \"RootDevice\": { \"connectionString\": \"dev://connectionString\" } }";
+    std::string json = "{ \"RootDevice\": { \"ConnectionString\": \"dev://connectionString\" } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("connectionString", "dev://connectionString");
+    getChildren(expectedOptions, "RootDevice").set("ConnectionString", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -169,13 +169,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadNull2)
 TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
 {
     std::string filename = "jsonConfigIncorrectType.json";
-    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 }, \"RootDevice\": { \"connectionString\": \"dev://connectionString\" } }";
+    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 }, \"RootDevice\": { \"ConnectionString\": \"dev://connectionString\" } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
 
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("connectionString", "dev://connectionString");
+    getChildren(expectedOptions, "RootDevice").set("ConnectionString", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_NO_THROW(provider.populateOptions(options));
@@ -297,12 +297,12 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_connectionString", "\"dev://connectionString\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_ConnectionString", "\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("connectionString", "dev://connectionString");
+    getChildren(expectedOptions, "RootDevice").set("ConnectionString", "dev://connectionString");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -424,12 +424,12 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceConnectionString)
 {
-    auto comandLineArgs = List<IString>("-CRootDevice_connectionString=\"dev://connectionString\"");
+    auto comandLineArgs = List<IString>("-CRootDevice_ConnectionString=\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("connectionString", "dev://connectionString");
+    getChildren(expectedOptions, "RootDevice").set("ConnectionString", "dev://connectionString");
 
     auto provider = CmdLineArgsConfigProvider(comandLineArgs);
     provider.populateOptions(options);

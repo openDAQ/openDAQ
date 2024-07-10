@@ -36,6 +36,7 @@
 
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/address_info_factory.h>
 
 #include <opendaq/server_ptr.h>
 #include <opendaq/server_type_ptr.h>

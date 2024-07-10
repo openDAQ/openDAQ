@@ -38,13 +38,14 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
 
+    static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
     static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
     static StringPtr GetPath(const StringPtr& url);
@@ -53,12 +54,6 @@ private:
     static bool ValidateConnectionString(const StringPtr& connectionString);
 
     static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
-
-    /// adds address to server capabilities
-    /// @param capabilities The list of device server capabilities
-    /// @param address IPv4 or IPv6 device address
-    static void CompleteServerCapabilities(const ListPtr<IServerCapability>& capabilities,
-                                           const StringPtr& address);
 
     static StringPtr CreateUrlConnectionString(std::string prefix,
                                                const StringPtr& host,

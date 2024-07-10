@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/context.h>
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
-#include <coretypes/enumeration.h>
-#include <coreobjects/property_object.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -126,6 +124,9 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] port The port of the device.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    
+    // [templateType(addressInfo, IAddressInfo)]
+    virtual ErrCode INTERFACE_FUNC getAddressInfo(IList** addressInfo) = 0;
 };
 /*!@}*/
 

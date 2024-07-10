@@ -37,16 +37,18 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
-    serverCapabilityStreaming.setPrefix("daq.ns");
-    serverCapabilityStreaming.setConnectionType("TCP/IP");
-    serverCapabilityStreaming.setPort(port);
+    ServerCapabilityConfigPtr serverCapabilityStreaming =
+        ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming)
+        .setPrefix("daq.ns")
+        .setConnectionType("TCP/IP")
+        .setPort(port);
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
-    ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
-    serverCapabilityConfig.setPrefix("daq.nd");
-    serverCapabilityConfig.setConnectionType("TCP/IP");
-    serverCapabilityConfig.setPort(port);
+    ServerCapabilityConfigPtr serverCapabilityConfig =
+        ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming)
+        .setPrefix("daq.nd")
+        .setConnectionType("TCP/IP")
+        .setPort(port);
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);

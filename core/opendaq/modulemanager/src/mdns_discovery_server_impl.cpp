@@ -97,9 +97,13 @@ ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
     return OPENDAQ_IGNORED;
 }
 
+#if !defined(BUILDING_STATIC_LIBRARY)
+
 extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger)
 {
     return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger);
 }
+
+#endif
 
 END_NAMESPACE_OPENDAQ

@@ -13,33 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/stringobject.h>
-#include <opendaq/device_info.h>
-#include <opendaq/logger.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_discovery_service Discovery service
- * @{
- */
-
-/*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- */
-
-DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IAddressInfoPrivate, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) = 0;
-    virtual ErrCode INTERFACE_FUNC unregisterService(IString* id) = 0;
+    /*!
+     * @brief Sets the reachability status of the address, ignoring the "Frozen" status of the address.
+     * @param addressReachability The reachability status of the address.
+     *
+     * This status is set to "Unknown" by default. For IPv4 address types, the module manager checks
+     * reachability when querying for available devices.
+     */
+    virtual ErrCode INTERFACE_FUNC setReachabilityStatusPrivate(AddressReachabilityStatus addressReachability) = 0;
 };
-/*!@}*/
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
-    MdnsDiscoveryServer, IDiscoveryServer, 
-    ILogger*, logger)
 
 END_NAMESPACE_OPENDAQ

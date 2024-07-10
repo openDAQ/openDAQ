@@ -6,6 +6,7 @@
 #include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/streaming_type_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/address_info_factory.h>
 #include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
@@ -39,6 +40,12 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                     );
                     cap.addConnectionString(connectionStringIpv4);
                     cap.addAddress(discoveredDevice.ipv4Address);
+                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                 .setType("IPv4")
+                                                                 .setConnectionString(connectionStringIpv4)
+                                                                 .build();
+                    cap.addAddressInfo(addressInfo);
                 }
 
                 if(!discoveredDevice.ipv6Address.empty())
@@ -50,6 +57,13 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                     );
                     cap.addConnectionString(connectionStringIpv6);
                     cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+
+                    const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                 .setType("IPv6")
+                                                                 .setConnectionString(connectionStringIpv6)
+                                                                 .build();
+                    cap.addAddressInfo(addressInfo);
                 }
 
                 cap.setConnectionType("TCP/IP");
@@ -181,35 +195,57 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     return WebsocketStreaming(str, context);
 }
 
-StringPtr WebsocketStreamingClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (serverCapability.getProtocolId() != "opendaq_lt_streaming")
-        return nullptr;
+    if (target.getProtocolId() != "opendaq_lt_streaming")
+        return false;
 
-    StringPtr connectionString = serverCapability.getConnectionString();
-    if (connectionString.getLength() != 0)
-        return connectionString;
+    if (target.getConnectionString().getLength() != 0)
+        return true;
 
-    StringPtr address;
-    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
+    if (source.getConnectionType() != "TCP/IP")
+        return false;
+
+    if (!source.getAddresses().assigned() || !source.getAddresses().getCount())
     {
-        address = addresses[0];
+        LOG_W("Source server capability address is not available when filling in missing LT streaming capability information.")
+        return false;
     }
-    if (!address.assigned() || address.toStdString().empty())
-        throw InvalidParameterException("Address is not set");
 
-    auto port = serverCapability.getPort();
+    const auto addrInfos = source.getAddressInfo();
+    if (!addrInfos.assigned() || !addrInfos.getCount())
+    {
+        LOG_W("Source server capability addressInfo is not available when filling in missing LT streaming capability information.")
+        return false;
+    }
+
+    auto port = target.getPort();
     if (port == -1)
     {
         port = 7414;
-        LOG_W("LT Streaming server capability is missing port. Defaulting to 7414.")
+        target.setPort(port);
+        LOG_W("LT server capability is missing port. Defaulting to 7414.")
     }
 
-    return WebsocketStreamingClientModule::createUrlConnectionString(
-        address,
-        port,
-        serverCapability.hasProperty("Path") ? serverCapability.getPropertyValue("Path") : ""
-    );
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    for (const auto& addrInfo : addrInfos)
+    {
+        const auto address = addrInfo.getAddress();
+        const auto prefix = WebsocketDevicePrefix;
+        const auto connectionString = createUrlConnectionString(address, port,path);
+        const auto targetAddrInfo = AddressInfoBuilder()
+                                        .setAddress(addrInfo.getAddress())
+                                        .setReachabilityStatus(addrInfo.getReachabilityStatus())
+                                        .setType(addrInfo.getType())
+                                        .setConnectionString(connectionString)
+                                        .build();
+
+        target.addAddressInfo(targetAddrInfo)
+              .setConnectionString(connectionString)
+              .addAddress(address);
+    }
+
+    return true;
 }
 
 StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const StringPtr& host,

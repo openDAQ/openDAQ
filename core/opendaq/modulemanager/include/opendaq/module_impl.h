@@ -29,6 +29,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 #include <opendaq/custom_log.h>
 
@@ -216,22 +217,15 @@ public:
         return errCode;
     }
 
-    /*!
-     * @brief Creates and returns a connection string from the specified server capability object.
-     * @param serverCapability Represents the connection parameters of supported streaming or configuration protocol.
-     * @param[out] connectionString The created connection string.
-     * @return A non-zero error code if the @p serverCapability is not supported by module and is not complete enough to
-     * generate a connection string.
-     */
-    ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override
+    ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) override
     {
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-        OPENDAQ_PARAM_NOT_NULL(serverCapability);
+        OPENDAQ_PARAM_NOT_NULL(target);
+        OPENDAQ_PARAM_NOT_NULL(source);
 
-        StringPtr createdConnectionString;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateConnectionString, createdConnectionString, serverCapability);
+        Bool succeededVal = false;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCompleteServerCapability, succeededVal, source, target);
 
-        *connectionString = createdConnectionString.detach();
+        *succeeded = succeededVal;
         return errCode;
     }
 
@@ -326,9 +320,9 @@ public:
         return nullptr;
     }
 
-    virtual StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+    virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
     {
-        return nullptr;
+        return false;
     }
 
 protected:

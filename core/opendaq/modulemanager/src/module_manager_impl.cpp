@@ -24,9 +24,10 @@
 #include <optional>
 #include <map>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/address_info_private_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -163,7 +164,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
 struct DevicePing
 {
-    DeviceInfoPtr info;
+    std::string address;
     std::shared_ptr<IcmpPing> ping;
 };
 
@@ -172,68 +173,85 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
     using namespace std::chrono_literals;
 
     std::vector<DevicePing> statuses;
+    std::map<std::string, bool> ipv4Addresses;
+    std::map<std::string, bool> ipv6Addresses;
 
     for (auto deviceInfo : list)
     {
-        std::string deviceIp;
-        if (deviceInfo.hasProperty("ipv4Address"))
+        for (const auto& cap : deviceInfo.getServerCapabilities())
         {
-            deviceIp = static_cast<std::string>(deviceInfo.getPropertyValue("ipv4Address"));
-        }
-        else
-        {
-            for (auto cap : deviceInfo.getServerCapabilities())
-            {
-                if (cap.getProtocolType() != ProtocolType::ConfigurationAndStreaming
-                    && cap.getConnectionType() != "TCP/IP")
-                    continue;
-
-                // ReSharper disable once CppTooWideScopeInitStatement
-                auto addresses = cap.getAddresses();
-                if (addresses.assigned() && addresses.getCount() > 0)
-                {
-                    auto ip = static_cast<std::string>(addresses[0]);
-                    if (ip.find('[') == 0)
-                    {
-                        continue;
-                    }
-
-                    deviceIp = ip;
-                    deviceInfo.addProperty(StringProperty("ipv4Address", deviceIp));
-                    break;
-                }
-            }
-
-            if (deviceIp.empty())
+            if (cap.getConnectionType() != "TCP/IP")
                 continue;
-        }
 
-        auto icmp = IcmpPing::Create(ioContext, logger);
+            const auto addressInfos = cap.getAddressInfo();
+            for (const auto& info : addressInfos)
+            {
+                const auto address = info.getAddress();
+                const auto addressType = info.getType();
+                if (addressType == "IPv4")
+                    ipv4Addresses.insert(std::make_pair(address.toStdString(), false));
+                else if (addressType == "IPv6")
+                    ipv6Addresses.insert(std::make_pair(address.toStdString(), false));
+            }
+        }
+    }
+
+    for (auto& address : ipv4Addresses)
+    {
+        const auto icmp = IcmpPing::Create(ioContext, logger);
         IcmpPing& ping = *icmp;
 
         ping.setMaxHops(1);
-        ping.start(boost::asio::ip::make_address_v4(deviceIp));
+        ping.start(boost::asio::ip::make_address_v4(address.first));
         if (ping.waitSend())
         {
-            deviceInfo.addProperty(BoolProperty("canPing", true));
+            address.second = true;
             continue;
         }
 
-        statuses.push_back({deviceInfo, icmp});
-
-        LOG_T("No replies received yet: waiting 1s\n");
+        statuses.push_back({address.first, icmp});
     }
 
     if (!statuses.empty())
     {
+        LOG_T("Missing ping replies: waiting 1s\n");
         std::this_thread::sleep_for(1s);
 
-        for (const auto& [info, ping] : statuses)
+        for (const auto& [address, ping] : statuses)
         {
             ping->stop();
-            info->addProperty(BoolProperty("canPing", ping->getNumReplies() > 0));
+            ipv4Addresses[address] = ping->getNumReplies() > 0;
         }
         statuses.clear();
+    }
+
+    setAddressesReachable(ipv4Addresses, "IPv4", list);
+
+    // TODO: Check ipv6 for reachability
+}
+
+void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info)
+{
+    for (const auto& devInfo : info)
+    {
+        for (const auto& cap : devInfo.getServerCapabilities())
+        {
+            const auto addressInfos = cap.getAddressInfo();
+            for (const auto& addressInfo : addressInfos)
+            {
+                const auto address = addressInfo.getAddress();
+                const auto addressType = addressInfo.getType();
+
+                if (addr.count(address) && addressType == type)
+                {
+                    AddressReachabilityStatus reachability = addr.at(address)
+                                                                 ? AddressReachabilityStatus::Reachable
+                                                                 : AddressReachabilityStatus::Unreachable;
+                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -335,6 +353,12 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     {
         LOG_W("Failed to check for network settings: {}", e.what());
         // ignore all errors
+    }
+
+    for (const auto& dev : availableDevicesPtr)
+    {
+        if (!dev.isFrozen())
+            dev.freeze();
     }
 
     *availableDevices = availableDevicesPtr.detach();
@@ -536,16 +560,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 }
             }
 
-            for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
-            {
-                // assigns missing connection strings for server capabilities
-                if (capability.getConnectionStrings().empty())
-                {
-                    auto capConnectionString = createConnectionString(capability);
-                    if (capConnectionString.assigned())
-                        capability.asPtr<IServerCapabilityConfig>().addConnectionString(capConnectionString);
-                }
-            }
+            const auto configConnectionInfo = connectedDeviceInfo.getConfigurationConnectionInfo();
+            if (configConnectionInfo.assigned())
+                completeServerCapabilities(configConnectionInfo, connectedDeviceInfo.getServerCapabilities());
 
             // automatically skips streaming connection for local and pseudo (streaming) devices
             auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true);
@@ -996,6 +1013,30 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     return streaming;
 }
 
+void ModuleManagerImpl::completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps)
+{
+    for (const auto& target : targetCaps)
+    {
+        for (const auto& library : libraries)
+        {
+            const auto module = library.module;
+            try
+            {
+                if (module.completeServerCapability(source, target))
+                    break;
+            }
+            catch (const NotImplementedException&)
+            {
+                LOG_D("{}: completeServerCapability not implemented", module.getName());
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: completeServerCapability failed: {}", module.getName(), e.what());
+            }
+        }
+    }
+}
+
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 {
     auto obj = PropertyObject();
@@ -1031,35 +1072,11 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     return "";
 }
 
-StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& serverCapability)
-{
-    StringPtr connectionString = nullptr;
-    for (const auto& library : libraries)
-    {
-        const auto module = library.module;
-        try
-        {
-            connectionString = module.createConnectionString(serverCapability);
-            if (connectionString.assigned())
-                return connectionString;
-        }
-        catch (const NotImplementedException&)
-        {
-            LOG_D("{}: createConnectionString not implemented", module.getName());
-        }
-        catch ([[maybe_unused]] const std::exception& e)
-        {
-            LOG_W("{}: createConnectionString failed: {}", module.getName(), e.what());
-        }
-    }
-    return connectionString;
-}
-
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap,
                                                                   const ServerCapabilityPtr& deviceCap)
 {
     auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
-    const auto caps = List<IServerCapability>(discoveryCap, deviceCap);
+    const auto caps = List<IServerCapability>(deviceCap, discoveryCap);
 
     for (const auto& cap : caps)
         for (const auto& prop : cap.getAllProperties())
@@ -1072,7 +1089,7 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCa
                 continue;
                 
             if (hasProp)
-                merged.setPropertyValue(name, val);
+                merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
             else
                 merged.addProperty(prop);
         }

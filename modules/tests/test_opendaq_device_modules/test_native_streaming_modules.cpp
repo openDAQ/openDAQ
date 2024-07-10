@@ -108,6 +108,44 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     ASSERT_TRUE(false);
 }
 
+TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
+{
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_streaming/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                const auto ipv4Info = capability.getAddressInfo()[0];
+                const auto ipv6Info = capability.getAddressInfo()[1];
+                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                
+                ASSERT_EQ(ipv4Info.getType(), "IPv4");
+                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+                
+                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            }
+        }      
+    }
+}
+
 TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";

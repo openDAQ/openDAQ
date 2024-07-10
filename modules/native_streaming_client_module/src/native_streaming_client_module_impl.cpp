@@ -183,27 +183,29 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
         [this, processingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Native device config processing thread finished");
         }
     );
+
     auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto reconnectionProcessingThread = std::thread(
         [this, reconnectionProcessingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(reconnectionProcessingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
             LOG_I("Native device reconnection processing thread finished");
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
+    auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
                                                              transportClient,
                                                              config.getPropertyValue("ConfigProtocolRequestTimeout"),
                                                              processingIOContextPtr,
                                                              reconnectionProcessingIOContextPtr,
                                                              reconnectionProcessingThread.get_id());
+    deviceHelper->setupProtocolClients(context);
     auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
     deviceHelper->subscribeToCoreEvent(context);
@@ -489,7 +491,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
         [this, processingIOContextPtr, connectionString]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Streaming {}: processing thread finished", connectionString);
         }
@@ -536,7 +538,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
                                                                 Int streamingInitTimeout)
 {
-    return createWithImplementation<IStreaming, NativeStreamingImpl>(
+    StreamingPtr nativeStreaming = createWithImplementation<IStreaming, NativeStreamingImpl>(
         connectionString,
         context,
         transportClientHandler,
@@ -546,6 +548,8 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
         nullptr,
         nullptr
     );
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+    return nativeStreaming;
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,

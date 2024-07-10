@@ -44,9 +44,8 @@ reader = opendaq.StreamReader(signal)
 start_time = time.time()
 while time.time() - start_time <= 10:
     # trys to read 100 samples every 0.1 second meaning around 10000 samples in 10 seconds
-    samples = reader.read(100)
+    samples = reader.read(100, 100)
     signal_values = np.concatenate((signal_values, samples))
-    time.sleep(0.1)
 
 # plot signal values over time graph
 time_axis = np.linspace(0, 10, len(signal_values))

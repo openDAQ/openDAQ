@@ -87,7 +87,7 @@ template <typename MainInterface, typename ... Interfaces>
 template <typename T>
 typename InterfaceToSmartPtr<T>::SmartPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::getTypedProperty(const StringPtr& name)
 {
-    return objPtr.getPropertyValue(name).template asPtr<T>();
+    return this->objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -126,13 +126,13 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IL
     OPENDAQ_PARAM_NOT_NULL(interfaces);
     ListPtr<IPropertyObject> interfacesList = List<IPropertyObject>();
 
-    BaseObjectPtr Interfaces;
+    BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
-    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    ErrCode err = this->getPropertyValue(str, &interfacesValue);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
+    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>();
     for (const auto& prop : InterfacesPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)
@@ -174,14 +174,14 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
         auto typeManager = this->manager.getRef();
         if (typeManager == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
+            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
         }
 
         TypePtr type;
         ErrCode errCode = typeManager->getType(className, &type);
         if (OPENDAQ_FAILED(errCode) || type == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
+            return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
         }
 
         if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
@@ -198,13 +198,13 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
         }
     }
 
-    BaseObjectPtr Interfaces;
+    BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
-    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    ErrCode err = this->getPropertyValue(str, &interfacesValue);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto interfacesPtr = Interfaces.asPtr<IPropertyObject>(true);
+    const auto interfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     err = interfacesPtr->addProperty(ObjectProperty(className, interface));
     if (OPENDAQ_FAILED(err))
         return err;
@@ -222,13 +222,13 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
 {
     OPENDAQ_PARAM_NOT_NULL(interfaceName);
 
-    BaseObjectPtr Interfaces;
+    BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
-    ErrCode err = this->getPropertyValue(str, &Interfaces);
+    ErrCode err = this->getPropertyValue(str, &interfacesValue);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto InterfacesPtr = Interfaces.asPtr<IPropertyObject>();
+    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>();
     err = InterfacesPtr->removeProperty(interfaceName);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -276,7 +276,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceIds(
     if (idCount == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *idCount = InterfaceIds::Count() + 1;
+    *idCount = Super::InterfaceIds::Count() + 1;
     if (ids == nullptr)
     {
         return OPENDAQ_SUCCESS;
@@ -285,7 +285,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceIds(
     **ids = IPropertyObject::Id;
     (*ids)++;
 
-    InterfaceIds::AddInterfaceIds(*ids);
+    Super::InterfaceIds::AddInterfaceIds(*ids);
     return OPENDAQ_SUCCESS;
 }
 
@@ -323,7 +323,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 template <typename MainInterface, typename ... Interfaces>
 PropertyObjectPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::createCloneBase()
 {
-    const auto obj = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager);
+    const auto obj = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(this->manager.getRef());
     return obj;
 }
 

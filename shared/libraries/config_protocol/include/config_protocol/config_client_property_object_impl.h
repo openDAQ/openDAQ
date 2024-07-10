@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coreobjects/property_object_impl.h>
+#include <opendaq/sync_component_impl.h>
 #include <config_protocol/config_client_object_impl.h>
 #include <config_protocol/config_client_function_impl.h>
 #include <config_protocol/config_client_procedure_impl.h>
@@ -26,8 +27,7 @@
 
 #include "config_protocol_deserialize_context_impl.h"
 #include <opendaq/context_factory.h>
-#include <opendaq/sync_component_ptr.h>
-#include <opendaq/sync_component_impl.h>
+
 
 namespace daq::config_protocol
 {
@@ -95,13 +95,12 @@ private:
     void checkCanSetPropertyValue(const StringPtr& propName);
 };
 
-template <typename PropertyObjectImpl>
-class GenericConfigClientPropertyObjectImpl : public ConfigClientPropertyObjectBaseImpl<PropertyObjectImpl>
+class ConfigClientPropertyObjectImpl : public ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-    using Super = ConfigClientPropertyObjectBaseImpl<PropertyObjectImpl>;
+    using Super = ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
 
-    GenericConfigClientPropertyObjectImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+    ConfigClientPropertyObjectImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                    const std::string& remoteGlobalId,
                                    const TypeManagerPtr& manager,
                                    const StringPtr& className);
@@ -126,8 +125,57 @@ public:
     void unfreeze();
 };
 
-using ConfigClientPropertyObjectImpl = GenericConfigClientPropertyObjectImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
-using ConfigClientSyncComponentImpl = GenericConfigClientPropertyObjectImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>>;
+
+class ConfigClientSyncComponentImpl : public ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>> {
+public:
+    using Super = ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>>;
+
+    ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                   const std::string& remoteGlobalId,
+                                   const TypeManagerPtr& manager,
+                                   const StringPtr& className);
+
+
+    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
+                                             IBaseObject* context,
+                                             IFunction* callbackFactory) override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC complete() override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    bool remoteUpdating;
+    void unfreeze()
+    {
+        // Implementation here
+    }
+};
+
+inline ConfigClientSyncComponentImpl::ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                                      const std::string& remoteGlobalId,
+                                                                      const TypeManagerPtr& manager,
+                                                                      const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, manager, className)
+    , remoteUpdating(false)
+{
+}
+
+
 
 template <class Impl>
 template <class ... Args>
@@ -580,8 +628,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
                                      {
                                          return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
                                      });
+        
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
-            impl->unfreeze();
+        impl->unfreeze();
         this->writeLocalValue(propName, clientPropObj);
         this->configureClonedObj(propName, clientPropObj);
     }
@@ -768,8 +817,8 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
             return;
     }
 }
-template <typename PropertyObjectImpl>
-inline GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::GenericConfigClientPropertyObjectImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+
+inline ConfigClientPropertyObjectImpl::ConfigClientPropertyObjectImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                                       const std::string& remoteGlobalId,
                                                                       const TypeManagerPtr& manager,
                                                                       const StringPtr& className)
@@ -778,86 +827,75 @@ inline GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::GenericConfigC
 {
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::setPropertyValue(IString* propertyName, IBaseObject* value)
+inline ErrCode ConfigClientPropertyObjectImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::setPropertyValue(propertyName, value);
-    return Super::setPropertyValue(propertyName, value);
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::setPropertyValue(propertyName, value);
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::setPropertyValue(propertyName, value);
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+inline ErrCode ConfigClientPropertyObjectImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::setProtectedPropertyValue(propertyName, value);
-    return Super::setProtectedPropertyValue(
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::setProtectedPropertyValue(propertyName, value);
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::setProtectedPropertyValue(
         propertyName,
         value);
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::clearPropertyValue(IString* propertyName)
+inline ErrCode ConfigClientPropertyObjectImpl::clearPropertyValue(IString* propertyName)
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::clearPropertyValue(propertyName);
-    return Super::clearPropertyValue(propertyName);
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::clearPropertyValue(propertyName);
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::clearPropertyValue(propertyName);
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::addProperty(IProperty* property)
+inline ErrCode ConfigClientPropertyObjectImpl::addProperty(IProperty* property)
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::addProperty(property);
-    return Super::addProperty(property);
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::addProperty(property);
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::addProperty(property);
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::removeProperty(IString* propertyName)
+inline ErrCode ConfigClientPropertyObjectImpl::removeProperty(IString* propertyName)
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::removeProperty(propertyName);
-    return Super::removeProperty(propertyName);
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::removeProperty(propertyName);
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::removeProperty(propertyName);
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::beginUpdate()
+inline ErrCode ConfigClientPropertyObjectImpl::beginUpdate()
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::beginUpdate();
-    return Super::beginUpdate();
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::beginUpdate();
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::beginUpdate();
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::endUpdate()
+inline ErrCode ConfigClientPropertyObjectImpl::endUpdate()
 {
     if (remoteUpdating)
-        return PropertyObjectImpl::endUpdate();
-    return Super::endUpdate();
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::endUpdate();
+    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::endUpdate();
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::deserializeValues(ISerializedObject* serializedObject,
+inline ErrCode ConfigClientPropertyObjectImpl::deserializeValues(ISerializedObject* serializedObject,
                                                                  IBaseObject* context,
                                                                  IFunction* callbackFactory)
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::complete()
+inline ErrCode ConfigClientPropertyObjectImpl::complete()
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+inline ErrCode ConfigClientPropertyObjectImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     return OPENDAQ_NOTFOUND;
 }
 
-template <typename PropertyObjectImpl>
-inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::Deserialize(ISerializedObject* serialized,
+inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* serialized,
     IBaseObject* context,
     IFunction* factoryCallback,
     IBaseObject** obj)
@@ -902,8 +940,7 @@ inline ErrCode GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::Deseri
         });
 }
 
-template <typename PropertyObjectImpl>
-inline void GenericConfigClientPropertyObjectImpl<PropertyObjectImpl>::unfreeze()
+inline void ConfigClientPropertyObjectImpl::unfreeze()
 {
     this->frozen = false;
 }

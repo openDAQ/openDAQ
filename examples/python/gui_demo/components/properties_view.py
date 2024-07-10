@@ -36,6 +36,7 @@ class PropertiesView(tk.Frame):
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)
 
+        tree.bind('<Button-3>', self.handle_right_click)
         self.tree = tree
         self.nodes_by_iids = {}
 
@@ -92,6 +93,52 @@ class PropertiesView(tk.Frame):
         sorted_list = sorted(new_list, key=cmp_to_key(compare_strings))
         return sorted_list
 
+    def handle_copy(self):
+        selected_item = treeview_get_first_selection(self.tree)
+        if selected_item is None:
+            return
+        item = self.tree.item(selected_item)
+        property_name = item['text']
+        node = self.nodes_by_iids.get(selected_item)
+        node = daq.IPropertyObject.cast_from(node)
+        if not node:
+            return
+        property_value = node.get_property_value(property_name)
+        self.clipboard_clear()
+        self.clipboard_append(property_value)
+
+    def handle_paste(self):
+        selected_item = treeview_get_first_selection(self.tree)
+
+        if selected_item is None:
+            return
+        item = self.tree.item(selected_item)
+        property_name = item['text']
+
+        node = self.nodes_by_iids.get(selected_item)
+
+        node = daq.IPropertyObject.cast_from(node)
+        if not node:
+            return
+        property_info = node.get_property(property_name)
+        if not property_info:
+            return
+        if property_info.read_only:
+            return
+        property_value = self.clipboard_get()
+        if property_value is None:
+            return
+        node.set_property_value(property_name, property_value)
+        self.refresh()
+        self.event_port.emit()
+
+    def handle_right_click(self, event):
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Copy", command=self.handle_copy)
+        menu.add_command(label="Paste",
+                         command=self.handle_paste)
+        menu.tk_popup(event.x_root, event.y_root)
+
     def handle_double_click(self, event):
         selected_item = treeview_get_first_selection(self.tree)
         if selected_item is None:
@@ -135,7 +182,8 @@ class PropertiesView(tk.Frame):
                 max_value = property_info.max_value
                 if min_value is not None and max_value is not None:
                     property_value = simpledialog.askinteger(
-                        property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.int_value, maxvalue=max_value.int_value)
+                        property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.int_value,
+                        maxvalue=max_value.int_value)
                 else:
                     property_value = simpledialog.askinteger(
                         property_name, prompt=prompt, initialvalue=property_value)
@@ -145,7 +193,8 @@ class PropertiesView(tk.Frame):
             max_value = property_info.max_value
             if min_value is not None and max_value is not None:
                 property_value = simpledialog.askfloat(
-                    property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.float_value, maxvalue=max_value.float_value)
+                    property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.float_value,
+                    maxvalue=max_value.float_value)
             else:
                 property_value = simpledialog.askfloat(
                     property_name, prompt=prompt, initialvalue=property_value)

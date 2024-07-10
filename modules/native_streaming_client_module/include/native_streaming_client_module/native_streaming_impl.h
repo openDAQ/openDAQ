@@ -32,6 +32,7 @@ public:
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+        std::future<void> processingCompletedFuture,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
@@ -53,8 +54,7 @@ protected:
 
     void prepareClientHandler();
 
-    void startTransportOperations();
-    void stopTransportOperations();
+    void stopProcessingOperations();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
 
@@ -67,6 +67,7 @@ protected:
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;
+    std::future<void> processingCompletedFuture;
 
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;

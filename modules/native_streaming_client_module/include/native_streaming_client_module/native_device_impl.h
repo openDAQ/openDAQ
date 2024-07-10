@@ -43,7 +43,9 @@ public:
                                 opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
-                                std::thread::id reconnectionProcessingThreadId);
+                                std::thread::id reconnectionProcessingThreadId,
+                                std::future<void> processingCompletedFuture,
+                                std::future<void> reconnectionProcessingCompletedFuture);
     ~NativeDeviceHelper();
 
     DevicePtr connectAndGetDevice(const ComponentPtr& parent);
@@ -77,6 +79,8 @@ private:
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
+    std::future<void> processingCompletedFuture;
+    std::future<void> reconnectionProcessingCompletedFuture;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)

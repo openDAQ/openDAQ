@@ -46,7 +46,7 @@ end;
 
 function TFunctionImpl.GetCoreType(out CoreType: TCoreType): ErrCode;
 begin
-  CoreType := TCoreType.ctFunc;
+  CoreType := ctFunc;
   Result := OPENDAQ_SUCCESS;
 end;
 

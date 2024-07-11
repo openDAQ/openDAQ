@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,11 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
-                            const StringPtr& prefix = "");
+                            const StringPtr& prefix);
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 
-    ErrCode getConnectionStringPrefix(IString** prefix) override;
+    ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
 };
 
 END_NAMESPACE_OPENDAQ

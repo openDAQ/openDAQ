@@ -23,6 +23,7 @@ env:
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -105,7 +106,7 @@ jobs:
         run: |
           foreach($version in "${{ env.python_versions }}".split(" ")) {
             Write-Output "Installing numpy for Python $version"
-            Invoke-Expression "py -$version -m pip install numpy==1.26.4"
+            Invoke-Expression "py -$version -m pip install numpy"
           }
 
       - name: Configure
@@ -461,7 +462,7 @@ jobs:
         run : git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |
@@ -567,7 +568,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install numpy
-        run: python -m pip install numpy==1.26.4
+        run: python -m pip install numpy
 
       - name: Configure, fetch dependencies
         run: |

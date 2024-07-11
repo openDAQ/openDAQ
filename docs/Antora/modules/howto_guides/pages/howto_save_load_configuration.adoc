@@ -11,7 +11,7 @@ the complete openDAQ tree. It consists of:
  * Signals and their properties,
  * Input Ports with connections to Signals.
  
-When loading a Configuration from JSON format all components except xref:background_info:function_blocks.adoc[Function Blocks] are 
+When loading a Configuration from JSON format all components except xref:knowledge_base:function_blocks.adoc[Function Blocks] are 
 matched by their local ID and the properties are applied from JSON to the objects themselves. Function Blocks are first constructed 
 from their type ID (if a module exists) and then the properties are applied from JSON. 
 
@@ -127,8 +127,8 @@ instance.LoadConfiguration(jsonStr);
 [NOTE]
 ====
 The current implementation of SDK does not add Devices that are described in the Configuration string. 
-xref:background_info:device.adoc[Devices] must be already mounted in the openDAQ tree. However, 
-xref:background_info:function_blocks.adoc[Function Blocks] present in the Configuration string will be 
+xref:knowledge_base:device.adoc[Devices] must be already mounted in the openDAQ tree. However, 
+xref:knowledge_base:function_blocks.adoc[Function Blocks] present in the Configuration string will be 
 instantiated and added under the Function Blocks folder before they are configured from JSON Configuration string.
 ====
 

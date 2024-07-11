@@ -41,12 +41,6 @@ ErrCode MockServerModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockServerModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* /*connectionString*/, IPropertyObject* /*config*/)
-{
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockServerModuleImpl::createDevice(IDevice** device,
                                            IString* /*connectionString*/,
                                            IComponent* /*parent*/,
@@ -108,16 +102,6 @@ ErrCode MockServerModuleImpl::getVersionInfo(IVersionInfo** version)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *version = nullptr;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockServerModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                                   IString* /*connectionString*/,
-                                                                   IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
     return OPENDAQ_SUCCESS;
 }
 

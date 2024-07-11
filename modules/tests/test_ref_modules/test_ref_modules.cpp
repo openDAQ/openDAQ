@@ -1184,7 +1184,7 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
     std::string options = R"(
     {
     "Modules": {
-        "RefDevice": {
+        "ReferenceDevice": {
             "NumberOfChannels": 5,
             "EnableCANChannel": false
             }

@@ -427,133 +427,96 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
-        bool accepted{false};
+        const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
+
+        DictPtr<IString, IDeviceType> types;
+        module->getAvailableDeviceTypes(&types);
+        if (!types.assigned())
+            continue;
+
+        StringPtr id;
+        for (auto const& [typeId, type] : types)
+        {
+            if (type.getConnectionStringPrefix()== prefix)
+            {
+                id = typeId;
+                break;
+            }
+        }
+
+        if (!id.assigned())
+            continue;
+            
         if (isDefaultAddDeviceConfigRes)
         {
-            const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
-            DictPtr<IString, IDeviceType> types;
-            module->getAvailableDeviceTypes(&types);
-            if (!types.assigned())
-                continue;
-            StringPtr id;
-            for (auto const& [typeId, type] : types)
-            {
-                if (type.getConnectionStringPrefix()== prefix)
-                {
-                    id = typeId;
-                    break;
-                }
-            }
-
-            if (!id.assigned())
-                continue;
-
-            PropertyObjectPtr typeConfig = devConfig.getPropertyValue(id);
-
-            try
-            {
-                accepted = module.acceptsConnectionParameters(connectionStringPtr, typeConfig);
-            }
-            catch (NotImplementedException&)
-            {
-                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-                accepted = false;
-            }
-            catch ([[maybe_unused]] const std::exception& e)
-            {
-                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-                accepted = false;
-            }
-
-            if (accepted)
-            {
-                devConfig = typeConfig;
-            }
-        }
-        else
-        {
-            try
-            {
-                accepted = module.acceptsConnectionParameters(connectionStringPtr, devConfig);
-            }
-            catch (NotImplementedException&)
-            {
-                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-                accepted = false;
-            }
-            catch ([[maybe_unused]] const std::exception& e)
-            {
-                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-                accepted = false;
-            }
+            if (devConfig.hasProperty(id))
+                devConfig = devConfig.getPropertyValue(id);
+            else
+                devConfig = nullptr;
         }
 
-        if (accepted)
+        auto errCode = module->createDevice(device, connectionStringPtr, parent, devConfig);
+
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        const auto devicePtr = DevicePtr::Borrow(*device);
+        if (devicePtr.assigned() && devicePtr.getInfo().assigned())
         {
-            auto errCode = module->createDevice(device, connectionStringPtr, parent, devConfig);
-
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-
-            const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned() && devicePtr.getInfo().assigned())
+            const auto connectedDeviceInfo = devicePtr.getInfo();
+            const auto connectedDeviceInfoInternal = connectedDeviceInfo.asPtr<IDeviceInfoInternal>();
+            if (discoveredDeviceInfo.assigned())
             {
-                const auto connectedDeviceInfo = devicePtr.getInfo();
-                const auto connectedDeviceInfoInternal = connectedDeviceInfo.asPtr<IDeviceInfoInternal>();
-                if (discoveredDeviceInfo.assigned())
+                // Replaces the default fields of capabilities retrieved from the config/structure protocol
+                // if a better alternative is available from the discovery results
+                for (const auto& capability : discoveredDeviceInfo.getServerCapabilities())
                 {
-                    // Replaces the default fields of capabilities retrieved from the config/structure protocol
-                    // if a better alternative is available from the discovery results
-                    for (const auto& capability : discoveredDeviceInfo.getServerCapabilities())
+                    const auto capId = capability.getProtocolId();
+                    ServerCapabilityPtr capPtr = capability;
+
+                    if (connectedDeviceInfo.hasServerCapability(capId))
                     {
-                        const auto capId = capability.getProtocolId();
-                        ServerCapabilityPtr capPtr = capability;
-
-                        if (connectedDeviceInfo.hasServerCapability(capId))
+                        try
                         {
-                            try
-                            {
-                                capPtr = mergeDiscoveryAndDeviceCap(capability, connectedDeviceInfo.getServerCapability(capId));
-                            }
-                            catch ([[maybe_unused]] const std::exception& e)
-                            {
-                                capPtr = capability;
-                                LOG_W("{}: Failed to merge discovery and device server capability with ID {}: {}", module.getName(), capId, e.what())
-                            }
-
-                            connectedDeviceInfoInternal.removeServerCapability(capability.getProtocolId());
+                            capPtr = mergeDiscoveryAndDeviceCap(capability, connectedDeviceInfo.getServerCapability(capId));
+                        }
+                        catch ([[maybe_unused]] const std::exception& e)
+                        {
+                            capPtr = capability;
+                            LOG_W("{}: Failed to merge discovery and device server capability with ID {}: {}", module.getName(), capId, e.what())
                         }
 
-                        connectedDeviceInfoInternal.addServerCapability(capPtr);
+                        connectedDeviceInfoInternal.removeServerCapability(capability.getProtocolId());
                     }
-                }
 
-                for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
-                {
-                    // assigns missing connection strings for server capabilities
-                    if (capability.getConnectionStrings().empty())
-                    {
-                        auto capConnectionString = createConnectionString(capability);
-                        if (capConnectionString.assigned())
-                            capability.asPtr<IServerCapabilityConfig>().addConnectionString(capConnectionString);
-                    }
-                }
-
-                // automatically skips streaming connection for local and pseudo (streaming) devices
-                auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>();
-                if (mirroredDeviceConfigPtr.assigned())
-                {
-                    errCode = daqTry([this, &mirroredDeviceConfigPtr, &configPtr]
-                        {
-                            configureStreamings(mirroredDeviceConfigPtr, configPtr);
-                            return OPENDAQ_SUCCESS;
-                        });
+                    connectedDeviceInfoInternal.addServerCapability(capPtr);
                 }
             }
 
-            return errCode;
+            for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
+            {
+                // assigns missing connection strings for server capabilities
+                if (capability.getConnectionStrings().empty())
+                {
+                    auto capConnectionString = createConnectionString(capability);
+                    if (capConnectionString.assigned())
+                        capability.asPtr<IServerCapabilityConfig>().addConnectionString(capConnectionString);
+                }
+            }
+
+            // automatically skips streaming connection for local and pseudo (streaming) devices
+            auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true);
+            if (mirroredDeviceConfigPtr.assigned())
+            {
+                errCode = daqTry([this, &mirroredDeviceConfigPtr, &configPtr]
+                    {
+                        configureStreamings(mirroredDeviceConfigPtr, configPtr);
+                        return OPENDAQ_SUCCESS;
+                    });
+            }
         }
+
+        return errCode;
     }
 
     return this->makeErrorInfo(
@@ -948,79 +911,42 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        bool accepted{false};
+    
+        const std::string prefix = getPrefixFromConnectionString(connectionString);
+        DictPtr<IString, IStreamingType> types;
+        module->getAvailableStreamingTypes(&types);
+        if (!types.assigned())
+            continue;
+
+        StringPtr id;
+        for (auto const& [typeId, type] : types)
+        {
+            if (type.getConnectionStringPrefix()== prefix)
+            {
+                id = typeId;
+                break;
+            }
+        }
+
+        if (!id.assigned())
+            continue;
+
         if (isDefaultAddDeviceConfig(config))
         {
-            const std::string prefix = getPrefixFromConnectionString(connectionString);
-            DictPtr<IString, IStreamingType> types;
-            module->getAvailableStreamingTypes(&types);
-            if (!types.assigned())
-                continue;
-
-            StringPtr id;
-            for (auto const& [typeId, type] : types)
-            {
-                if (type.getConnectionStringPrefix()== prefix)
-                {
-                    id = typeId;
-                    break;
-                }
-            }
-
-            if (!id.assigned())
-                continue;
-
-            PropertyObjectPtr typeConfig = streamingConfig.getPropertyValue(id);
-
-            try
-            {
-                accepted = module.acceptsConnectionParameters(connectionString, typeConfig);
-            }
-            catch (NotImplementedException&)
-            {
-                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-                accepted = false;
-            }
-            catch ([[maybe_unused]] const std::exception& e)
-            {
-                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-                accepted = false;
-            }
-
-            if (accepted)
-            {
-                streamingConfig = typeConfig;
-            }
-        }
-        else
-        {
-            try
-            {
-                accepted = module.acceptsStreamingConnectionParameters(connectionString, streamingConfig);
-            }
-            catch (const NotImplementedException&)
-            {
-                LOG_D("{}: acceptsStreamingConnectionParameters not implemented", module.getName());
-                accepted = false;
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W("{}: acceptsStreamingConnectionParameters failed: {}", module.getName(), e.what());
-                accepted = false;
-            }
+            if (streamingConfig.hasProperty(id))
+                streamingConfig = streamingConfig.getPropertyValue(id);
+            else
+                streamingConfig = nullptr;
         }
 
-        if (accepted)
+        try
         {
-            try
-            {
-                streaming = module.createStreaming(connectionString, streamingConfig);
-            }
-            catch ([[maybe_unused]] const std::exception& e)
-            {
-                LOG_E("{}: createStreaming failed: {}", module.getName(), e.what())
-                throw e;
-            }
+            streaming = module.createStreaming(connectionString, streamingConfig);
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_E("{}: createStreaming failed: {}", module.getName(), e.what())
+            throw;
         }
     }
 

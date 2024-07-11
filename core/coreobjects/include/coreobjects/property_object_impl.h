@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2476,7 +2476,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
 
     const auto keys = propValues.getKeys();
 
-    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>();
+    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>(true);
 
     for (const auto& key : keys)
     {

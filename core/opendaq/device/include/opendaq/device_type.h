@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
      *
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
-    virtual ErrCode getConnectionStringPrefix(IString** prefix) = 0;
+    virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/
 
@@ -67,7 +67,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
-    IPropertyObject*, defaultConfig
+    IPropertyObject*, defaultConfig,
+    IString*, prefix
 )
 
 /*!@}*/

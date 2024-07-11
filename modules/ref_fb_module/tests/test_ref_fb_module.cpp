@@ -62,30 +62,6 @@ TEST_F(RefFbModuleTest, EnumerateDevices)
     ASSERT_EQ(deviceInfoDict.getCount(), 0u);
 }
 
-TEST_F(RefFbModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(RefFbModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(RefFbModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
 TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();

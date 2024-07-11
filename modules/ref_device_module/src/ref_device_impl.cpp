@@ -20,7 +20,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , stopAcq(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent("ReferenceDevice")
+                          ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initIoFolder();
@@ -36,13 +36,12 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
         if (config.hasProperty("LocalId"))
             serialNumber = config.getPropertyValue("SerialNumber");
     }
-
-    const auto options = context.getOptions();
-    if (options.assigned() && options.hasKey("ReferenceDevice"))
+    
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (options.assigned())
     {
-        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
-        if (referenceDevice.hasKey("SerialNumber"))
-            serialNumber = referenceDevice.get("SerialNumber");
+        if (options.hasKey("SerialNumber"))
+            serialNumber = options.get("SerialNumber");
     }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
@@ -75,7 +74,8 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 {
     return DeviceType("daqref",
                       "Reference device",
-                      "Reference device");
+                      "Reference device",
+                      "daqref");
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
@@ -184,9 +184,9 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         if (config.hasProperty("EnableCANChannel"))
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
-
-    auto options = context.getModuleOptions("RefDevice");
-    if (options.getCount() > 0)
+    
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (options.assigned())
     {
         if (options.hasKey("NumberOfChannels"))
             numberOfChannels = options.get("NumberOfChannels");

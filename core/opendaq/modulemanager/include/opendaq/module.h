@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,17 +78,6 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) = 0;
 
     /*!
-     * @brief Checks if connection string can be used to connect to devices supported by this module and if the
-     * configuration object provided to this module is valid.
-     * @param[out] accepted Whether this module supports the @p connectionString and @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `opc.tcp//`.
-     * Connection strings could simply be devices such as `obsidian` when openDAQ SDK is running on DAQ device hardware.
-     * @param config A configuration object that contains connection parameters in the form of key-value pairs. The configuration
-     * is used and applied when connecting to a device. This method check if provided config object is valid.
-     */
-    virtual ErrCode INTERFACE_FUNC acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) = 0;
-
-    /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
      * @param[out] device The device object created to communicate with and control the device.
@@ -133,16 +122,6 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* config = nullptr) = 0;
 
-    /*!
-     * @brief Verifies whether the provided connection string and config object can be used to establish a streaming connection
-     * supported by this module.
-     * @param[out] accepted Whether this module supports the @p connectionString with provided @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
-     * @param config A config object that contains parameters used to configure a streaming connection.
-     * This object can contain properties like various connection timeouts or other streaming protocol specific settings.
-     * Can be created from its corresponding Streaming type object. In case of a null value, it will use the default configuration.
-     */
-    virtual ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
     /*!
      * @brief Creates and returns a streaming object using the specified connection string and config object.

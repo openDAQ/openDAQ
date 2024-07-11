@@ -15,12 +15,6 @@
         {
             "ConnectionString": "daqref://device1"
         },
-    "ReferenceDevice":
-        {
-            "LocalId": "falselocalid",
-            "SerialNumber": "falseserial",
-            "Name": "Reference device simulator"
-        },
     "Modules":
         {
             "NativeStreamingServer":
@@ -32,6 +26,12 @@
                 {
                     "Port": 4840,
                     "Path": "/"
+                },
+            "ReferenceDevice":
+                {
+                    "LocalId": "falselocalid",
+                    "SerialNumber": "falseserial",
+                    "Name": "Reference device simulator"
                 }
         }
 }

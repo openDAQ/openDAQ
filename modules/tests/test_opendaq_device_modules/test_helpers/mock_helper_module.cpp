@@ -49,12 +49,6 @@ ErrCode MockHelperModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockHelperModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* /*config*/)
-{
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockHelperModuleImpl::createDevice(IDevice** /*device*/,
                                            IString* /*connectionString*/,
                                            IComponent* /*parent*/,
@@ -98,16 +92,6 @@ ErrCode MockHelperModuleImpl::getVersionInfo(IVersionInfo** version)
     OPENDAQ_PARAM_NOT_NULL(version);
 
     *version = nullptr;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockHelperModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                                   IString* /*connectionString*/,
-                                                                   IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
     return OPENDAQ_SUCCESS;
 }
 

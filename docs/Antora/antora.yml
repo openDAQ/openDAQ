@@ -9,6 +9,6 @@ asciidoc:
 nav:
 - modules/getting_started/nav-getting_started.adoc
 - modules/howto_guides/nav-howto-guides.adoc
-- modules/background_info/nav-background_info.adoc
+- modules/knowledge_base/nav-knowledge_base.adoc
 - modules/glossary/nav-glossary.adoc
 

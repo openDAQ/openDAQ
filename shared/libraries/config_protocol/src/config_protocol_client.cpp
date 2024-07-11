@@ -259,7 +259,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
 
     if (typeId == "ComponentHolder")
     {
-        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>();
+        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>(true);
         if(serObj.hasKey("parentGlobalId") && context.assigned())
             remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }
@@ -401,7 +401,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
     const auto dev = getRootDevice();
     if (!dev.assigned())
         return;
-    const auto topComponent = component;
+    const auto topComponent = ComponentPtr::Borrow(component);
 
     forEachComponent<ISignal>(
         component,
@@ -416,7 +416,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
                 {
                     const auto domainSingalRemoteId = domainSignalId.toStdString();
                     StringPtr topComponentRemoteId;
-                    checkErrorInfo(topComponent.asPtr<IConfigClientObject>()->getRemoteGlobalId(&topComponentRemoteId));
+                    checkErrorInfo(topComponent.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&topComponentRemoteId));
                     if (domainSingalRemoteId.find(topComponentRemoteId.toStdString() + "/") == 0)
                     {
                         auto restStr = domainSingalRemoteId.substr(topComponentRemoteId.toStdString().size() + 1);
@@ -446,8 +446,8 @@ void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component,
         [&parentRemoteId](const ComponentPtr& comp)
         {
             StringPtr compRemoteId;
-            comp.asPtr<IConfigClientObject>()->getRemoteGlobalId(&compRemoteId);
-            comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + compRemoteId);
+            comp.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&compRemoteId);
+            comp.asPtr<IConfigClientObject>(true)->setRemoteGlobalId(parentRemoteId + compRemoteId);
         });
 }
 

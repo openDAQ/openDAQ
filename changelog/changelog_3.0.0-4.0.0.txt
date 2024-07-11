@@ -1,3 +1,13 @@
+04.07.2024
+Description
+	- Make device connection string prefix mandatory
+	- Remove "accepts connection string" methods from module
+	
+-m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
++m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
+- [function] IModule::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+- [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+
 21.06.2024
 - [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)

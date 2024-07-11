@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -236,7 +236,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
                 CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
          this->triggerCoreEvent(args);
-         component.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     return OPENDAQ_SUCCESS;
@@ -336,7 +336,7 @@ ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
 {
     for (const auto& child : items)
     {
-        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>()->enableCoreEventTrigger();
+        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
         if (OPENDAQ_FAILED(err))
             return err;
     }
@@ -349,7 +349,7 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
 {
     for (const auto& child : items)
     {
-        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>()->disableCoreEventTrigger();
+        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
         if (OPENDAQ_FAILED(err))
             return err;
     }
@@ -421,7 +421,7 @@ void FolderImpl<Intf, Intfs...>::clearInternal()
 {
     for (auto& item : items)
     {
-        item.second.template asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+        item.second.template asPtr<IPropertyObjectInternal>(true).disableCoreEventTrigger();
         item.second.remove();
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -531,7 +531,7 @@ void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
 
     for (const auto& item : items)
     {
-        const auto updatable = item.second.template asPtrOrNull<IUpdatable>();
+        const auto updatable = item.second.template asPtrOrNull<IUpdatable>(true);
         if (updatable.assigned())
             updatable.updateEnded();
     }
@@ -544,7 +544,7 @@ bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string
     if (it == items.end())
         return false;
 
-    it->second.template asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    it->second.template asPtr<IPropertyObjectInternal>(true).disableCoreEventTrigger();
     it->second.remove();
     items.erase(it);
     return true;

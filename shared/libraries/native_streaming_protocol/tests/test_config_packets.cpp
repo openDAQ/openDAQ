@@ -150,7 +150,7 @@ public:
                 this->configProtocolHandler->receivePacket(std::move(packetBuffer));
             };
             clientConnectedPromise.set_value();
-            return receivePacketCb;
+            return std::make_pair(receivePacketCb, nullptr);
         };
 
         client.setUp();

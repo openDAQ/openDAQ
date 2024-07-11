@@ -185,7 +185,6 @@ var
   IntfId : TGUID;
   PtrInstance : TSmartPtr;
   PtrClass : SmartPtrClass;
-  Count : Integer;
   NewInterface : IBaseObject;
 begin
   IntfId := TSmartPtrRegistry.GetInterfaceFromPtr(PtrId);

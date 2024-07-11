@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (DelphiGenerator v1.10.2) on 12.08.2019 14:50:07.
+//     RTGen (DelphiGenerator v4.0.1) on 08.03.2024 14:43:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 unit OpenDAQ.Updatable;
@@ -14,36 +14,45 @@ interface
 uses
   OpenDAQ.CoreTypes,
   OpenDAQ.ObjectPtr,
-  OpenDAQ.Serializer,
-  OpenDAQ.ProxyValue;
+  OpenDAQ.ProxyValue,
+  OpenDAQ.SerializedObject,
+  OpenDAQ.Serializer;
 
 type
   {$MINENUMSIZE 4}
 
-  IUpdatablePtr<T : IUpdatable> = interface;
-  IUpdatablePtr = IUpdatablePtr<IUpdatable>;
+  IUpdatablePtr = interface(IObjectPtr<IUpdatable>)
+  ['{18c188b4-27db-5d5e-a32a-538ebbbb5854}']
+    procedure Update(Update: ISerializedObject); overload;
+    procedure Update(Update: ISerializedObjectPtr); overload;
 
-  IUpdatablePtr<T : IUpdatable> = interface(IObjectPtr<T>)
-  ['{5754725c-7996-50cd-9098-8d94e9012dba}']
-    procedure Update(Mode: TConfigurationMode; Update: ISerializedObject); overload;
-    procedure Update(Mode: TConfigurationMode; Update: ISerializedObjectPtr); overload;
+    procedure SerializeForUpdate(Serializer: ISerializer); overload;
+    procedure SerializeForUpdate(Serializer: ISerializerPtr); overload;
+
+    procedure UpdateEnded();
   end;
 
-  TUpdatablePtr<T : IUpdatable> = class(TObjectPtr<T>, IUpdatablePtr<T>, IUpdatable)
+  TUpdatablePtr = class(TObjectPtr<IUpdatable>, IUpdatablePtr, IUpdatable)
   public
     constructor Create(Obj: IBaseObject); overload; override;
-    constructor Create(Obj: T); overload;
+    constructor Create(Obj: IUpdatable); overload;
 
-    procedure Update(Mode: TConfigurationMode; Update: ISerializedObject); overload;
-    procedure Update(Mode: TConfigurationMode; Update: ISerializedObjectPtr); overload;
+    procedure Update(Update: ISerializedObject); overload;
+    procedure Update(Update: ISerializedObjectPtr); overload;
+
+    procedure SerializeForUpdate(Serializer: ISerializer); overload;
+    procedure SerializeForUpdate(Serializer: ISerializerPtr); overload;
+
+    procedure UpdateEnded();
   private
     function IUpdatable.Update = Interface_Update;
+    function IUpdatable.SerializeForUpdate = Interface_SerializeForUpdate;
+    function IUpdatable.UpdateEnded = Interface_UpdateEnded;
 
-    function Interface_Update(Mode: TConfigurationMode; Update: ISerializedObject): ErrCode; stdcall;
+    function Interface_Update(Update: ISerializedObject): ErrCode; stdcall;
+    function Interface_SerializeForUpdate(Serializer: ISerializer): ErrCode; stdcall;
+    function Interface_UpdateEnded(): ErrCode; stdcall;
   end;
-
-  TUpdatable = TUpdatablePtr<IUpdatable>;
-  TUpdatablePtr = TUpdatablePtr<IUpdatable>;
 
 
 implementation
@@ -53,28 +62,28 @@ uses
   OpenDAQ.SmartPtrRegistry;
 
 
-constructor TUpdatablePtr<T>.Create(Obj: T);
+constructor TUpdatablePtr.Create(Obj: IUpdatable);
 begin
   inherited Create(Obj);
 end;
 
-constructor TUpdatablePtr<T>.Create(Obj: IBaseObject);
+constructor TUpdatablePtr.Create(Obj: IBaseObject);
 begin
   inherited Create(Obj);
 end;
 
-procedure TUpdatablePtr<T>.Update(Mode: TConfigurationMode; Update: ISerializedObject);
+procedure TUpdatablePtr.Update(Update: ISerializedObject);
 var
   Err: ErrCode;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
-  Err := FObject.Update(Mode, Update);
+  Err := FObject.Update(Update);
   CheckRtErrorInfo(Err);
 end;
 
-procedure TUpdatablePtr<T>.Update(Mode: TConfigurationMode; Update: ISerializedObjectPtr);
+procedure TUpdatablePtr.Update(Update: ISerializedObjectPtr);
 var
   Err: ErrCode;
   UpdateIntf: ISerializedObject;
@@ -87,15 +96,63 @@ begin
   else
     UpdateIntf := nil;
 
-  Err := FObject.Update(Mode, UpdateIntf);
+  Err := FObject.Update(UpdateIntf);
   CheckRtErrorInfo(Err);
 end;
 
-function TUpdatablePtr<T>.Interface_Update(Mode: TConfigurationMode; Update: ISerializedObject): ErrCode; stdcall;
+procedure TUpdatablePtr.SerializeForUpdate(Serializer: ISerializer);
+var
+  Err: ErrCode;
 begin
-  Result := FObject.Update(Mode, Update);
+  if not Assigned(FObject) then
+    raise ERTInvalidParameterException.Create('Interface object is nil.');
+
+  Err := FObject.SerializeForUpdate(Serializer);
+  CheckRtErrorInfo(Err);
 end;
 
+procedure TUpdatablePtr.SerializeForUpdate(Serializer: ISerializerPtr);
+var
+  Err: ErrCode;
+  SerializerIntf: ISerializer;
+begin
+  if not Assigned(FObject) then
+    raise ERTInvalidParameterException.Create('Interface object is nil.');
+
+  if Assigned(Serializer) then
+    SerializerIntf := Serializer.GetInterface()
+  else
+    SerializerIntf := nil;
+
+  Err := FObject.SerializeForUpdate(SerializerIntf);
+  CheckRtErrorInfo(Err);
+end;
+
+procedure TUpdatablePtr.UpdateEnded();
+var
+  Err: ErrCode;
+begin
+  if not Assigned(FObject) then
+    raise ERTInvalidParameterException.Create('Interface object is nil.');
+
+  Err := FObject.UpdateEnded();
+  CheckRtErrorInfo(Err);
+end;
+
+function TUpdatablePtr.Interface_Update(Update: ISerializedObject): ErrCode; stdcall;
+begin
+  Result := FObject.Update(Update);
+end;
+
+function TUpdatablePtr.Interface_SerializeForUpdate(Serializer: ISerializer): ErrCode; stdcall;
+begin
+  Result := FObject.SerializeForUpdate(Serializer);
+end;
+
+function TUpdatablePtr.Interface_UpdateEnded(): ErrCode; stdcall;
+begin
+  Result := FObject.UpdateEnded();
+end;
 
 initialization
   TSmartPtrRegistry.RegisterPtr(IUpdatable, IUpdatablePtr, TUpdatablePtr);

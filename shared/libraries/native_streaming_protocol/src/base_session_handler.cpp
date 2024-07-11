@@ -4,6 +4,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
+using namespace packet_streaming;
 
 BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
@@ -12,6 +13,7 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        ConstCharPtr loggerComponentName)
     : session(session)
     , configPacketReceivedHandler(nullptr)
+    , packetBufferReceivedHandler(nullptr)
     , errorHandler(errorHandler)
     , ioContextPtr(ioContextPtr)
     , connectionInactivityTimer(std::make_shared<boost::asio::steady_timer>(*(this->ioContextPtr)))
@@ -65,8 +67,16 @@ void BaseSessionHandler::setConfigPacketReceivedHandler(const ProcessConfigProto
     this->configPacketReceivedHandler = configPacketReceivedHandler;
 }
 
+void BaseSessionHandler::setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler)
+{
+    this->packetBufferReceivedHandler = packetBufferReceivedHandler;
+}
+
 ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t size)
 {
+    if (!configPacketReceivedHandler)
+        return discardPayload(data, size);
+
     size_t bytesDone = 0;
 
     config_protocol::PacketHeader* packetBufferHeader;
@@ -118,8 +128,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
                                          })
     );
 
-    if (configPacketReceivedHandler)
-        configPacketReceivedHandler(std::move(packet));
+    configPacketReceivedHandler(std::move(packet));
 
     return createReadHeaderTask();
 }
@@ -253,6 +262,97 @@ std::string BaseSessionHandler::getStringFromData(const void* source, size_t str
 
     const char* sourcePtr = static_cast<const char*>(source);
     return std::string(sourcePtr + sourceOffset, stringSize);
+}
+
+ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
+{
+    if (!packetBufferReceivedHandler)
+        return discardPayload(data, size);
+
+    size_t bytesDone = 0;
+
+    GenericPacketHeader* packetBufferHeader {};
+    void* packetBufferPayload;
+
+    try
+    {
+        decltype(GenericPacketHeader::size) headerSize;
+
+        // Get packet buffer header size from received buffer
+        copyData(&headerSize, data, sizeof(headerSize), bytesDone, size);
+        LOG_T("Received packet buffer header size: {}", headerSize);
+
+        if (headerSize < sizeof(GenericPacketHeader))
+        {
+            LOG_E("Unsupported streaming packet buffer header size: {}. Skipping payload.", headerSize);
+            return createReadHeaderTask();
+        }
+
+        // Get packet buffer header from received buffer
+        packetBufferHeader = static_cast<GenericPacketHeader*>(std::malloc(headerSize));
+        copyData(packetBufferHeader, data, headerSize, bytesDone, size);
+        LOG_T("Received packet buffer header: header size {}, payload size {}",
+              packetBufferHeader->size, packetBufferHeader->payloadSize);
+        bytesDone += headerSize;
+
+        // Get packet buffer payload from received buffer
+        if (packetBufferHeader->payloadSize > 0)
+        {
+            packetBufferPayload = std::malloc(packetBufferHeader->payloadSize);
+            copyData(packetBufferPayload, data, packetBufferHeader->payloadSize, bytesDone, size);
+        }
+        else
+        {
+            packetBufferPayload = nullptr;
+        }
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readPacket - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    auto recvPacketBuffer =
+        std::make_shared<PacketBuffer>(packetBufferHeader,
+                                       packetBufferPayload,
+                                       [packetBufferHeader, packetBufferPayload]()
+                                       {
+                                           std::free(packetBufferHeader);
+                                           if (packetBufferPayload != nullptr)
+                                               std::free(packetBufferPayload);
+                                       });
+
+    packetBufferReceivedHandler(recvPacketBuffer);
+
+    return createReadHeaderTask();
+}
+
+void BaseSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
+{
+    std::vector<WriteTask> tasks;
+
+    // create write task for packet buffer header
+    boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
+                                                 packetBuffer->packetHeader->size);
+    WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
+    tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
+
+    if (packetBuffer->packetHeader->payloadSize > 0)
+    {
+        // create write task for packet buffer payload
+        boost::asio::const_buffer packetBufferPayload(packetBuffer->payload,
+                                                      packetBuffer->packetHeader->payloadSize);
+        WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
+        tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
+    }
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(tasks);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -181,7 +181,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServer = std::get<0>(GetParam());
         instance.addServer(streamingServer, nullptr);
@@ -491,7 +491,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
         statisticsFb.setPropertyValue("DomainSignalType", 1);  // 1 - Explicit
@@ -558,7 +558,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServerName = std::get<0>(GetParam());
         streamingServer = instance.addServer(streamingServerName, nullptr);
@@ -647,7 +647,7 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
     auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
-    serverInstance.setRootDevice("mock_phys_device");
+    serverInstance.setRootDevice("daqmock://phys_device");
     serverInstance.addServer("openDAQ Native Streaming", nullptr);
 
     const auto channels = serverInstance.getChannelsRecursive();

@@ -3,15 +3,15 @@
 :tip-caption: Assumptions
 [TIP]
 ====
-This guide assumes that you've read the _background section_ about the  xref:background_info:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
+This guide assumes that you've read the _background section_ about the  xref:knowledge_base:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
 
 For brevity, in `C++` we also assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
 :iso-8601-url: https://www.iso.org/iso-8601-date-and-time-format.html
 
-In general, the openDAQ(TM) SDK supports any type of xref:background_info:signals.adoc[Signal] to act as a xref:glossary:glossary.adoc#domain[Domain], but most often this will be an xref:background_info:signals.adoc[_implicit_] Signal representing a time domain where the data will be in values called *_ticks_*.
-These ticks usually represent an integer counter from some starting-point called an xref:glossary:glossary.adoc#tick_resolution[Origin] and can be converted to a time-stamp or a time-point using the information provided in the Signal's xref:background_info:signals.adoc[Signal Descriptor].
+In general, the openDAQ(TM) SDK supports any type of xref:knowledge_base:signals.adoc[Signal] to act as a xref:glossary:glossary.adoc#domain[Domain], but most often this will be an xref:knowledge_base:signals.adoc[_implicit_] Signal representing a time domain where the data will be in values called *_ticks_*.
+These ticks usually represent an integer counter from some starting-point called an xref:glossary:glossary.adoc#tick_resolution[Origin] and can be converted to a time-stamp or a time-point using the information provided in the Signal's xref:knowledge_base:signals.adoc[Signal Descriptor].
 How this conversion is done is explained in xref:glossary:glossary.adoc#tick_resolution[Tick resolution and Origin].
 
 As this is a common practice, if you want to display the Signal data or perform some calculation, it can be automated by a new kind of Reader called appropriately a Time Reader as long as the following preconditions hold:
@@ -92,7 +92,7 @@ for (nuint i = 0; i < count; ++i)
 
 [WARNING]
 ====
-The Time Reader installs a xref:background_info:readers.adoc#custom_conversion[transform function] for domain values on the wrapped Reader and removes it when it is destroyed.
+The Time Reader installs a xref:knowledge_base:readers.adoc#custom_conversion[transform function] for domain values on the wrapped Reader and removes it when it is destroyed.
 This means that performing reads on the original Reader will still yield time-points as long as the Time Reader is alive. (no such installation applicable for _.NET Bindings_ / _C#_)
 ====
 

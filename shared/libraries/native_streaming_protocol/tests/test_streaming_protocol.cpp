@@ -194,7 +194,7 @@ public:
                                                                OnSignalAvailableCallback signalAvailableHandler)
     {
         auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            client.clientContext, ClientAttributesBase::createTransportLayerConfig());
+            client.clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         clientHandler->setStreamingHandlers(signalAvailableHandler,
                                             client.signalUnavailableHandler,

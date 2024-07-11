@@ -68,7 +68,7 @@ private:
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
     StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
     static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
-
+    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
 
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
     static PropertyObjectPtr createGeneralConfig();

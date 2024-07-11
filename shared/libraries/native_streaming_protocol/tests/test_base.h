@@ -57,6 +57,16 @@ public:
 
         return config;
     }
+
+    static daq::PropertyObjectPtr createAuthenticationConfig()
+    {
+        auto config = daq::PropertyObject();
+
+        config.addProperty(daq::StringProperty("Username", ""));
+        config.addProperty(daq::StringProperty("Password", ""));
+
+        return config;
+    }
 };
 
 class ProtocolTestBase : public testing::TestWithParam<std::tuple<ClientCountType, bool>>

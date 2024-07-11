@@ -61,12 +61,11 @@ protected:
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
-
-    void removeSignalInternal(SignalNumericIdType signalNumericId, const SignalPtr& signal);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
                                   const std::string& signalStringId,
                                   bool subscribe,
                                   const std::string& clientId);
+    bool onAuthenticate(const daq::native_streaming::Authentication& authentication);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;

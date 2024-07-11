@@ -5,15 +5,18 @@
 #include <opendaq/packet_factory.h>
 
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
 NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
-                                                           const PropertyObjectPtr& transportLayerProperties)
+                                                           const PropertyObjectPtr& transportLayerProperties,
+                                                           const PropertyObjectPtr& authenticationObject)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
+    , authenticationObject(normalizeAuthenticationObject(authenticationObject))
     , ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
@@ -28,6 +31,22 @@ NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
     reconnectionTimer->cancel();
     stopTransportOperations();
+}
+
+PropertyObjectPtr NativeStreamingClientHandler::normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+{
+    auto normalizedObject = PropertyObject();
+
+    normalizedObject.addProperty(StringProperty("Username", ""));
+    normalizedObject.addProperty(StringProperty("Password", ""));
+
+    if (authenticationObject.assigned())
+    {
+        normalizedObject.setPropertyValue("Username", authenticationObject.getPropertyValue("Username"));
+        normalizedObject.setPropertyValue("Password", authenticationObject.getPropertyValue("Password"));
+    }
+
+    return normalizedObject;
 }
 
 void NativeStreamingClientHandler::manageTransportLayerProps()
@@ -333,10 +352,23 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     connectedPromise.set_value(ConnectionResult::Connected);
 }
 
+Authentication NativeStreamingClientHandler::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+{
+    const StringPtr username = authenticationObject.getPropertyValue("Username");
+    const StringPtr password = authenticationObject.getPropertyValue("Password");
+
+    if (username.getLength() == 0)
+        return Authentication();
+
+    return Authentication(username, password);
+}
+
 void NativeStreamingClientHandler::initClient(std::string host,
                                               std::string port,
                                               std::string path)
 {
+    const auto clientAuth = initClientAuthenticationObject(authenticationObject);
+
     OnNewSessionCallback onNewSessionCallback =
         [this](SessionPtr session)
     {
@@ -371,6 +403,7 @@ void NativeStreamingClientHandler::initClient(std::string host,
     client = std::make_shared<Client>(host,
                                       port,
                                       path,
+                                      clientAuth,
                                       onNewSessionCallback,
                                       onResolveFailCallback,
                                       onConnectFailCallback,

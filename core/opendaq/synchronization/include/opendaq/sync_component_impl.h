@@ -302,7 +302,6 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
                                                 IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    OPENDAQ_PARAM_NOT_NULL(context); 
 
     return daqTry(
         [&obj, &serialized, &context, &factoryCallback]()

@@ -114,6 +114,11 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(audio_device_module)
 endif()
 
+#if (DAQMODULES_AUDIO_DEVICE_MODULE)
+message(STATUS "File writer module")
+add_subdirectory(file_writer_module)
+#endif()
+
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()

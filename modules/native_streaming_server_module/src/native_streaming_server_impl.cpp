@@ -285,7 +285,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
                         auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
                         while (packet.assigned())
                         {
-                            configServer->processClientToDeviceStreamingPacket(signalNumericId, packet);
+                            configServer->processClientToServerStreamingPacket(signalNumericId, packet);
                             std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
                         }
                     }

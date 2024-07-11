@@ -7,12 +7,14 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 
 namespace daq::config_protocol
 {
 
 ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
                                                    SendRequestCallback sendRequestCallback,
+                                                   const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                                    ComponentDeserializeCallback rootDeviceDeserializeCallback)
         : daqContext(daqContext)
         , id(0)
@@ -21,6 +23,7 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , serializer(JsonSerializer())
         , deserializer(JsonDeserializer())
         , connected(false)
+        , streamingProducerRef(streamingProducer)
 {
 }
 
@@ -317,6 +320,81 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     }
 
     return nullptr;
+}
+
+bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGlobalId)
+{
+    const auto dev = getRootDevice();
+    if (!dev.assigned())
+        return false;
+
+    return IdsParser::isNestedComponentId(dev.getGlobalId().toStdString(), componentGlobalId.toStdString());
+}
+
+std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternalSignalParams(
+    const SignalPtr& signal,
+    const ConfigProtocolStreamingProducerPtr& streamingProducer)
+{
+    serializer.reset();
+    signal.serialize(serializer);
+
+    return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),
+                           signal.getGlobalId(),
+                           serializer.getOutput());
+}
+
+void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                                           const StringPtr& inputPortRemoteGlobalId)
+{
+    if (!signal.template asPtrOrNull<IMirroredExternalSignalPrivate>().assigned())
+    {
+        if (const auto streamingProducer = streamingProducerRef.lock(); streamingProducer)
+            streamingProducer->removeConnection(signal, inputPortRemoteGlobalId);
+        else
+            throw NotAssignedException("StreamingProducer is not assigned.");
+    }
+}
+
+void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                                      const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        throw NotAssignedException("StreamingProducer is not assigned.");
+
+    auto domainSignal = signal.getDomainSignal();
+    const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
+        (domainSignal.assigned())
+            ? getExternalSignalParams(domainSignal, streamingProducer)
+            : std::make_tuple(0, nullptr, nullptr);
+
+    const auto [signalNumericId, signalGlobalId, serializedSignal] = getExternalSignalParams(signal, streamingProducer);
+
+    auto params = ParamsDict({{"DomainSignalNumericId", domainSignalNumericId},
+                              {"DomainSignalStringId", domainSignalGlobalId},
+                              {"DomainSerializedSignal", serializedDomainSignal},
+                              {"SignalNumericId", signalNumericId},
+                              {"SignalStringId", signal.getGlobalId()},
+                              {"SerializedSignal", serializedSignal}});
+
+    sendComponentCommand(inputPortRemoteGlobalId, "ConnectExternalSignal", params, nullptr);
+
+    streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
+}
+
+SignalPtr ConfigProtocolClientComm::resolveConnectedExternalSignal(const StringPtr& signalId, const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        throw NotAssignedException("StreamingProducer is not assigned.");
+
+    const auto signal = streamingProducer->findRegisteredSignal(signalId);
+    if (signal.assigned())
+        return signal;
+
+    // connected external signal does not belong to openDAQ instance which runs config client
+    // create stub signal only accessible within input port connection
+    return createWithImplementation<ISignal, ConfigMirroredExternalSignalImpl>(daqContext, nullptr, signalId);
 }
 
 ComponentDeserializeContextPtr ConfigProtocolClientComm::createDeserializeContext(const std::string& remoteGlobalId,

@@ -47,7 +47,7 @@ protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
     ConnectionPtr createConnection(const SignalPtr& signal) override;
-    bool isConnected(const SignalPtr& signal);
+    SignalPtr getConnectedSignal();
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -74,22 +74,28 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             {
                 std::scoped_lock lock(this->sync);
 
-                if (isConnected(signalPtr))
+                const auto connectedSignal = getConnectedSignal();
+                if (connectedSignal == signalPtr)
                     return OPENDAQ_IGNORED;
+                if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+                    clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
             }
 
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-            if (!configObject.assigned())
-                throw InvalidParameterException("Not a remote signal");
+            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+            {
+                StringPtr signalRemoteGlobalId;
+                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
 
-             // TODO check that signal actually belongs to this device
+                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
 
-            StringPtr signalRemoteGlobalId;
-            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
+            }
+            else
+            {
+                clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+            }
 
-            auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-            clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
             return Super::connect(signal);
         });
 }
@@ -109,17 +115,22 @@ inline ErrCode ConfigClientInputPortImpl::disconnect()
 inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
 {
     if (signal == nullptr)
+    {
+        const auto connectedSignal = getConnectedSignal();
+        if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+            clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
         return Super::disconnect();
+    }
     return Super::connect(signal);
 }
 
-inline bool ConfigClientInputPortImpl::isConnected(const SignalPtr& signal)
+inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {
     const auto conn = this->getConnectionNoLock();
-    if (conn.assigned() && conn.getSignal() == signal)
-        return true;
+    if (conn.assigned())
+        return conn.getSignal();
 
-    return false;
+    return nullptr;
 }
 
 inline ErrCode ConfigClientInputPortImpl::Deserialize(ISerializedObject* serialized,

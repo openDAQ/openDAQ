@@ -1582,3 +1582,36 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
     EXPECT_GT(client1SamplesRead, 0u);
     EXPECT_GT(client2SamplesRead, 0u);
 }
+
+TEST_F(NativeDeviceModulesTest, DISABLED_Client2DeviceStreaming)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal0 = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto clientLocalSignal1 = clientRefDevice.getSignals(search::Recursive(search::Visible()))[1];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    const auto rendererFb = client.addFunctionBlock("RefFBModuleRenderer");
+    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
+    rendererInputPort0.connect(mirroredDevice.getFunctionBlocks()[0].getSignals(search::Recursive(search::Visible()))[0]);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    mirroredInputPort.connect(clientLocalSignal0);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    mirroredInputPort.disconnect();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    mirroredInputPort.connect(clientLocalSignal1);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    mirroredInputPort.connect(clientLocalSignal0);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    mirroredInputPort.disconnect();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+}

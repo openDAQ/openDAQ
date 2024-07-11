@@ -33,7 +33,9 @@ public:
             clientContext, [this](const PacketBuffer& requestPacket) -> PacketBuffer
             {
                 return server->processRequestAndGetReply(requestPacket);
-            }, nullptr);
+            },
+            nullptr,
+            nullptr);
     }
 
 
@@ -61,6 +63,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
         {
             return server.processRequestAndGetReply(requestPacket);
         },
+        nullptr,
         nullptr);
 
     const auto clientDevice = client.connect();

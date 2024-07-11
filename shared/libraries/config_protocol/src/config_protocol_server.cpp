@@ -7,6 +7,8 @@
 #include <config_protocol/config_server_signal.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 
 namespace daq::config_protocol
 {
@@ -154,7 +156,26 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
                                  const SignalPtr signal = findComponent(signalId);
                                  return ConfigServerInputPort::connect(inputPort, signal);
                              });
-    addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
+    addHandler<InputPortPtr>("ConnectExternalSignal",
+                             [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
+                             {
+                                 const SignalPtr signal = addOrUpdateMirroredExternalSignal(params);
+                                 return ConfigServerInputPort::connect(inputPort, signal);
+                             });
+    addHandler<InputPortPtr>("DisconnectSignal",
+                             [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
+                             {
+                                 const auto connectedSignal = inputPort.getSignal();
+                                 auto result = ConfigServerInputPort::disconnect(inputPort);
+                                 if (connectedSignal.assigned())
+                                 {
+                                     if (connectedSignal.template asPtrOrNull<IMirroredExternalSignalPrivate>().assigned())
+                                     {
+
+                                     }
+                                 }
+                                 return result;
+                             });
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -406,15 +427,83 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
 }
 
+SignalPtr ConfigProtocolServer::addOrUpdateMirroredExternalSignal(const ParamsDictPtr& params)
+{
+    SignalPtr domainSignal;
+    const uint32_t domainSignalNumericId = params.get("DomainSignalNumericId");
+    if (domainSignalNumericId != 0)
+    {
+        if (const auto iter = mirroredExternalSignals.find(domainSignalNumericId); iter == mirroredExternalSignals.end())
+        {
+            const StringPtr domainSignalStringId = params.get("DomainSignalStringId");
+            const StringPtr domainSerializedSignal = params.get("DomainSerializedSignal");
+            domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal);
+            mirroredExternalSignals.insert({domainSignalNumericId, domainSignal});
+        }
+        else
+        {
+            domainSignal = iter->second;
+        }
+    }
+
+    const uint32_t signalNumericId = params.get("SignalNumericId");
+    SignalPtr signal;
+    if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter == mirroredExternalSignals.end())
+    {
+        const StringPtr signalStringId = params.get("SignalStringId");
+        const StringPtr serializedSignal = params.get("SerializedSignal");
+        signal = createMirroredExternalSignal(signalStringId, serializedSignal);
+        if (domainSignal.assigned())
+            signal.asPtr<IMirroredExternalSignalPrivate>()->assignDomainSignal(domainSignal);
+        mirroredExternalSignals.insert({signalNumericId, signal});
+    }
+    else
+    {
+        signal = iter->second;
+    }
+
+    return signal;
+}
+
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
 {
     const auto typeManager = rootDevice.getContext().getTypeManager();
     return typeManager;
 }
 
-void ConfigProtocolServer::processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
+void ConfigProtocolServer::processClientToServerStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
 {
-    // TODO
+    if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter != mirroredExternalSignals.end())
+    {
+        if (const auto signal = iter->second; signal.assigned())
+        {
+            Bool forwardPacket = True;
+            if (const auto eventPacket = packet.asPtrOrNull<IEventPacket>(); eventPacket.assigned())
+                forwardPacket = signal.template asPtr<IMirroredSignalPrivate>().triggerEvent(eventPacket);
+            if (forwardPacket)
+                signal.sendPacket(packet);
+        }
+    }
+}
+
+SignalPtr ConfigProtocolServer::createMirroredExternalSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal)
+{
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(daqContext, nullptr, nullptr, signalStringId);
+
+    auto signal = deserializer.deserialize(
+        serializedSignal,
+        deserializeContext,
+        [](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback) -> BaseObjectPtr
+        {
+            if (typeId != "Signal")
+                return nullptr;
+            BaseObjectPtr obj;
+            checkErrorInfo(ConfigMirroredExternalSignalImpl::Deserialize(object, context, factoryCallback, &obj));
+            return obj;
+        });
+
+    return signal;
 }
 
 }

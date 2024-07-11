@@ -3,8 +3,6 @@ set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(MODULE_BINARY_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include/${TARGET_FOLDER_NAME})
 
 
-#find_package(Arrow REQUIRED)
-
 set(SRC_Include common.h
                 module_dll.h
                 file_writer_module_impl.h
@@ -34,9 +32,9 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 )
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
-
-# PRIVATE Arrow::arrow_static
+ 
 target_link_libraries(${LIB_NAME}   PUBLIC daq::opendaq
+                                    Arrow::arrow_static
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

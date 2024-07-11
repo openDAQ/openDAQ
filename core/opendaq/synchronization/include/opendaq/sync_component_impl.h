@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,16 +27,19 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename MainInterface, typename ... Interfaces>
-class GenericSyncComponentImpl : public GenericPropertyObjectImpl<MainInterface, Interfaces...>
+class GenericSyncComponentImpl : public ComponentImpl<MainInterface, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<MainInterface, Interfaces...>;
+    using Super = ComponentImpl<MainInterface, Interfaces...>;
 
     
-    explicit GenericSyncComponentImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent = nullptr);
-    explicit GenericSyncComponentImpl(const TypeManagerPtr& manager);
+    GenericSyncComponentImpl(const ContextPtr& context,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const StringPtr& className = nullptr,
+                             const StringPtr& name = nullptr);
 
-    //ISyncComponent
+    // ISyncComponent
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
     ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
 
@@ -56,9 +59,6 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-protected:
-    PropertyObjectPtr createCloneBase() override;
-
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
@@ -67,20 +67,20 @@ private:
 
 using SyncComponentImpl = GenericSyncComponentImpl<ISyncComponent>;
 
+
 template <typename MainInterface, typename ... Interfaces>
-GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent)
-    : Super(manager, className, triggerCoreEvent)
+GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl(const ContextPtr& context,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const StringPtr& className,
+                             const StringPtr& name)
+    : Super(context, parent, localId, className, name)
 {
     Super::addProperty(ObjectProperty("Interfaces", PropertyObject()));
     Super::addProperty(ListProperty("InterfaceNames", List<IString>()));
     Super::addProperty(SelectionProperty("Source", EvalValue("$InterfaceNames"), 0));
     Super::addProperty(BoolProperty("SyncronizationLocked", false));
-}
 
-template <typename MainInterface, typename ... Interfaces>
-GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl(const TypeManagerPtr& manager)
-    : GenericSyncComponentImpl(manager, nullptr, nullptr)
-{
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -171,7 +171,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
     StringPtr className = interfacePtr.getClassName();
     if (className != "SyncInterfaceBase")
     {
-        auto typeManager = this->manager.getRef();
+        auto typeManager = this->context.getTypeManager();
         if (typeManager == nullptr)
         {
             return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
@@ -273,17 +273,17 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSerializeId(C
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
 {
-    if (idCount == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    // if (idCount == nullptr)
+    //     return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *idCount = Super::InterfaceIds::Count() + 1;
-    if (ids == nullptr)
-    {
-        return OPENDAQ_SUCCESS;
-    }
+    // *idCount = Super::InterfaceIds::Count() + 1;
+    // if (ids == nullptr)
+    // {
+    //     return OPENDAQ_SUCCESS;
+    // }
 
-    **ids = IPropertyObject::Id;
-    (*ids)++;
+    // **ids = IPropertyObject::Id;
+    // (*ids)++;
 
     Super::InterfaceIds::AddInterfaceIds(*ids);
     return OPENDAQ_SUCCESS;
@@ -303,29 +303,25 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_PARAM_NOT_NULL(context); 
-    
+
     return daqTry(
-       [&obj, &serialized, &context, &factoryCallback]()
-       {
-           *obj = Super::DeserializePropertyObject(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeComponent(
                 serialized,
                 context,
-                factoryCallback,
-                [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& context, const StringPtr& /*className*/)
+                factoryCallback, 
+                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
                 {
-                    auto manager = context.asPtrOrNull<ITypeManager>(true);
-                    const auto sync = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(manager);
-                    return sync;
+                    return createWithImplementation<ISyncComponent, GenericSyncComponentImpl>(
+                        deserializeContext.getContext(),
+                        deserializeContext.getParent(),
+                        deserializeContext.getLocalId(),
+                        className);
                 }).detach();
-       });
+        });
 }
 
-template <typename MainInterface, typename ... Interfaces>
-PropertyObjectPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::createCloneBase()
-{
-    const auto obj = createWithImplementation<ISyncComponent, GenericSyncComponentImpl<MainInterface, Interfaces...>>(this->manager.getRef());
-    return obj;
-}
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)
 

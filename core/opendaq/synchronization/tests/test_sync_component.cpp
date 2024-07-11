@@ -5,6 +5,7 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
 
 using SyncComponentTest = testing::Test;
 
@@ -13,8 +14,7 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(SyncComponentTest, testGetSyncLocked)
 {
     const auto ctx = daq::NullContext();
-    auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     Bool syncLocked = false;
     syncComponent->getSyncLocked(&syncLocked);
@@ -24,8 +24,7 @@ TEST_F(SyncComponentTest, testGetSyncLocked)
 TEST_F(SyncComponentTest, testSetSyncLocked)
 {
     const auto ctx = daq::NullContext();
-    auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     Bool syncLocked = false;
     syncComponent->getSyncLocked(&syncLocked);
@@ -39,7 +38,7 @@ TEST_F(SyncComponentTest, testAddInterface)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface = PropertyObject();
     ASSERT_EQ(syncComponent->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
@@ -52,7 +51,7 @@ TEST_F(SyncComponentTest, testRemoveInterface)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
@@ -67,7 +66,7 @@ TEST_F(SyncComponentTest, testAddInhertiedInterfaces)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
 #ifdef TEST_DEBUG
     ListPtr<IString> typesList = typeManager.getTypes();
@@ -110,7 +109,7 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
 
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
@@ -140,7 +139,7 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
 
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
@@ -174,7 +173,7 @@ TEST_F(SyncComponentTest, Serialization)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
-    SyncComponentPtr syncComponent = SyncComponent(typeManager);
+    SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
@@ -190,7 +189,8 @@ TEST_F(SyncComponentTest, Serialization)
     const auto serializedJson = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const SyncComponentPtr syncComponentDeserialized = deserializer.deserialize(serializedJson, typeManager);
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "temp");
+    const SyncComponentPtr syncComponentDeserialized = deserializer.deserialize(serializedJson, deserializeContext);
 
     ASSERT_EQ(syncComponent.getSelectedSource(), syncComponentDeserialized.getSelectedSource());
     ASSERT_EQ(syncComponent.getSyncLocked(), syncComponentDeserialized.getSyncLocked());

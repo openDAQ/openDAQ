@@ -5,8 +5,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
-    ITypeManager*, manager,
-    IString*, className
+    IContext*, context,
+    IComponent*, ParseFailedException,
+    IString*, localId
 )
 
 END_NAMESPACE_OPENDAQ

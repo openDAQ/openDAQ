@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
  */
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include <coretypes/type_manager_ptr.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/component_ptr.h>
+#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -28,9 +30,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Creates an input port.
  * @param typeManager The typeManager
  */
-inline SyncComponentPtr SyncComponent(const TypeManagerPtr& typeManager)
+inline SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 {
-    return { SyncComponent_Create(typeManager, nullptr) };
+    return { SyncComponent_Create(context, parent, localId) };
 }
 
 /*!@}*/

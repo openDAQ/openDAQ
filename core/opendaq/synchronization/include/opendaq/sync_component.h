@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
  */
 
 #pragma once
-#include <coreobjects/property_object.h>
-#include <coretypes/listobject.h>
+
 #include <opendaq/component.h>
+#include <coretypes/listobject.h>
 #include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
+ * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: SyncComponentPtr)]
  * [interfaceSmartPtr(ISyncComponent, GenericSyncComponentPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
@@ -54,7 +55,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
+DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 {
     /*!
      * @brief Retrieves the synchronization lock status.
@@ -111,8 +112,9 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IPropertyObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
-    ITypeManager*, manager,
-    IString*, className
+    IContext*, context,
+    IComponent*, ParseFailedException,
+    IString*, localId
 )
 
 END_NAMESPACE_OPENDAQ

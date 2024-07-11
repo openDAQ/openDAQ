@@ -122,6 +122,7 @@ protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
+    SyncComponentPtr syncComponent;
     LoggerComponentPtr loggerComponent;
     bool isRootDevice;
 
@@ -190,6 +191,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, nullptr, "Sync"));
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -199,7 +201,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 
     this->addProperty(StringProperty("userName", ""));
     this->addProperty(StringProperty("location", ""));
-    this->addProperty(ObjectProperty("sync", SyncComponent(ctx.getTypeManager())));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -869,12 +870,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponent** sync)
 {
     OPENDAQ_PARAM_NOT_NULL(sync);
-
-    BaseObjectPtr syncObj;
-    ErrCode errCode = this->getPropertyValue(String("sync"), &syncObj);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    *sync = syncObj.asPtr<ISyncComponent>().detach();
+    *sync = syncComponent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1071,6 +1067,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             deviceDomain.serialize(serializer);
         }
     }
+
+    if (syncComponent.assigned())
+    {
+        serializer.key("Sync");
+        syncComponent.serialize(serializer);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1167,6 +1169,11 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceDomain"))
     {
         deviceDomain = serializedObject.readObject("deviceDomain");
+    }
+
+    if (serializedObject.hasKey("Sync"))
+    {
+        syncComponent = serializedObject.readObject("Sync");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

@@ -1,4 +1,4 @@
-# openDAQ.Net ![openDAQ](./openDAQ-logo-orange-blue-rgb128x35.png)
+# openDAQ.Net ![openDAQ](.\openDAQ-NuGet_128.png)
 
 This NuGet package contains the .NET-Bindings to the openDAQ<sup>TM</sup> SDK as well as
 the SDK itself.

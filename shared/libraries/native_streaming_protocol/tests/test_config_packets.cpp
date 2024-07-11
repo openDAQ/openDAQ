@@ -103,7 +103,7 @@ public:
         ClientAttributesBase::setUp();
 
         clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            clientContext, ClientAttributesBase::createTransportLayerConfig());
+            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(
             [this](const PacketBuffer& packetBuffer)

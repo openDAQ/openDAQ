@@ -65,7 +65,7 @@ private:
         const StringPtr& host,
         const StringPtr& port,
         const StringPtr& path,
-        const PropertyObjectPtr& transportLayerConfig);
+        const PropertyObjectPtr& config);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,

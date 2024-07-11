@@ -125,58 +125,6 @@ public:
     void unfreeze();
 };
 
-
-class ConfigClientSyncComponentImpl : public ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>> {
-public:
-    using Super = ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>>;
-
-    ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                   const std::string& remoteGlobalId,
-                                   const TypeManagerPtr& manager,
-                                   const StringPtr& className);
-
-
-    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
-                                             IBaseObject* context,
-                                             IFunction* callbackFactory) override {
-        // Implementation here
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC complete() override {
-        // Implementation here
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override {
-        // Implementation here
-        return OPENDAQ_SUCCESS;
-    }
-
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
-    {
-        // Implementation here
-        return OPENDAQ_SUCCESS;
-    }
-
-    bool remoteUpdating;
-    void unfreeze()
-    {
-        // Implementation here
-    }
-};
-
-inline ConfigClientSyncComponentImpl::ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                                      const std::string& remoteGlobalId,
-                                                                      const TypeManagerPtr& manager,
-                                                                      const StringPtr& className)
-    : Super(configProtocolClientComm, remoteGlobalId, manager, className)
-    , remoteUpdating(false)
-{
-}
-
-
-
 template <class Impl>
 template <class ... Args>
 ConfigClientPropertyObjectBaseImpl<Impl>::ConfigClientPropertyObjectBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -944,4 +892,67 @@ inline void ConfigClientPropertyObjectImpl::unfreeze()
 {
     this->frozen = false;
 }
+
+class ConfigClientSyncComponentImpl : public ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>> {
+public:
+    using Super = ConfigClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, IConfigClientObject, IDeserializeComponent>>;
+
+    ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                   const std::string& remoteGlobalId,
+                                   const TypeManagerPtr& manager,
+                                   const StringPtr& className);
+
+
+    ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override
+    {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
+                                             IBaseObject* context,
+                                             IFunction* callbackFactory) override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC complete() override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    {
+        // Implementation here
+        return OPENDAQ_SUCCESS;
+    }
+
+    bool remoteUpdating;
+    void unfreeze()
+    {
+        // Implementation here
+    }
+
+    
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override
+    {}
+
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override
+    {}
+};
+
+inline ConfigClientSyncComponentImpl::ConfigClientSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                                      const std::string& remoteGlobalId,
+                                                                      const TypeManagerPtr& manager,
+                                                                      const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, manager, className)
+    , remoteUpdating(false)
+{
+}
+
 }

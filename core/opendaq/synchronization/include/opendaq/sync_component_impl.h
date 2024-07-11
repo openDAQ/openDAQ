@@ -37,21 +37,21 @@ public:
     explicit GenericSyncComponentImpl(const TypeManagerPtr& manager);
 
     //ISyncComponent
-    virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
-    virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
+    ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override;
+    ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) override;
 
-    virtual ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
+    ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
     virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
 
-    virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
-    virtual ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
-    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
-    virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
+    ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
+    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
+    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
+    ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
 
-    virtual ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     // ISerializable
-    virtual ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 27.05.2024 12:23:58.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -116,7 +116,7 @@ public class FloatObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.FloatObject"/> to <see cref="double"/>.</summary>
     /// <param name="value">The SDK <c>FloatObject</c>.</param>
     /// <returns>The managed <c>double</c> value.</returns>
-    public static implicit operator double(FloatObject value) => value.Value;
+    public static implicit operator double(FloatObject value) => value?.Value ?? default(double);
 
     /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
     /// <param name="other">The other <c>double</c> to compare to this instance.</param>

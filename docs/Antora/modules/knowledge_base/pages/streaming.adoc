@@ -1,21 +1,21 @@
 = Streaming
 
 Streaming in the openDAQ(TM) architecture refers to the transport layer mechanism for continuous and real-time
-receiving of data from a data acquisition xref:background_info:device.adoc[Device], often facilitated by
+receiving of data from a data acquisition xref:knowledge_base:device.adoc[Device], often facilitated by
 the use of protocols like xref:glossary:glossary.adoc#streaming_lt_protocol[Streaming LT], or
 xref:glossary:glossary.adoc#native_streaming_protocol[openDAQ(TM) native streaming]. The data transmission
-follows a subscription-based model, where the client subscribes to xref:background_info:signals.adoc[Signals]'
+follows a subscription-based model, where the client subscribes to xref:knowledge_base:signals.adoc[Signals]'
 data produced by the Device. Streaming mechanism involves the receiving data in binary format over a
 communication channel (e.g. network), and deserialization it into openDAQ(TM)
-xref:background_info:packets.adoc[Packets]. The Packets are added to <<mirrored_signals,Mirrored Signal>>
-which may be connected to xref:background_info:data_path.adoc#input_port[Input Port]s.
+xref:knowledge_base:packets.adoc[Packets]. The Packets are added to <<mirrored_signals,Mirrored Signal>>
+which may be connected to xref:knowledge_base:data_path.adoc#input_port[Input Port]s.
 
 [#streaming_and_structure_modules]
 == Data Streaming and Device structure Modules
 
 The main purpose of the generalized Streaming mechanism is to decouple data streaming from the Device's
 structure information and configuration transfer mechanisms. The separation is achieved by assigning specific
-responsibilities to different openDAQ(TM) xref:background_info:opendaq_architecture.adoc#module[Modules].
+responsibilities to different openDAQ(TM) xref:knowledge_base:opendaq_architecture.adoc#module[Modules].
 Modules such as the xref:glossary:glossary.adoc#opendaq_opcua[OPC UA] server/client Modules manage the
 transfer of structural information, while data streaming is overseen by diverse Streaming server/client
 modules.
@@ -35,7 +35,7 @@ xref:howto_guides:howto_configure_streaming.adoc#streaming_autoconfig_per_device
 [#streaming_connection_string]
 == Streaming connection string
 
-A specific Streaming protocol implementation is associated with an openDAQ(TM) xref:background_info:modules.adoc[Module].
+A specific Streaming protocol implementation is associated with an openDAQ(TM) xref:knowledge_base:modules.adoc[Module].
 The SDK handles the routing and delegation of Streaming object instantiation to the appropriate Module
 through the use of a connection string. The connection string always starts with the protocol
 prefix, followed by a set of parameters unique to the protocol type. Some parameters, such as the IP address,
@@ -53,15 +53,15 @@ address `"192.168.1.3"`, employing the specified values for the port number (`74
 
 == Instantiating Streaming
 
-The openDAQ(TM) SDK supports two categories of xref:background_info:device.adoc[Device]s characterized by
+The openDAQ(TM) SDK supports two categories of xref:knowledge_base:device.adoc[Device]s characterized by
 their approach to Streaming utilization:
 
 * Devices exclusively built on the Streaming protocol, commonly referred to as pseudo-devices. These
 Devices do not provide full structural information, but only offer a flat list of
-xref:background_info:signals.adoc[Signals]. Such Devices are created through the Module responsible
+xref:knowledge_base:signals.adoc[Signals]. Such Devices are created through the Module responsible
 for establishing the relevant Streaming connection.
 * Devices equipped with comprehensive tree structure information (e.g. available
-xref:background_info:function_blocks.adoc[Function Blocks], Subdevices, etc.) obtained from structure
+xref:knowledge_base:function_blocks.adoc[Function Blocks], Subdevices, etc.) obtained from structure
 transfer Modules. For those, Streaming is integrated with <<mirrored_signals,Mirrored Signals>> and is
 only used for data transfer purposes.
 
@@ -94,8 +94,8 @@ The Device's <<mirrored_signals,Mirrored Signal>>s can then be associated with t
 [#mirrored_signals]
 == Mirrored signals
 
-A Mirrored Signal serves as a mirrored representation of the xref:background_info:signals.adoc[Signal]
-originating from a remote xref:background_info:device.adoc[Device]. It allows for the inspection
+A Mirrored Signal serves as a mirrored representation of the xref:knowledge_base:signals.adoc[Signal]
+originating from a remote xref:knowledge_base:device.adoc[Device]. It allows for the inspection
 of the structure of the remote device and modification of its configuration. Additionally, a Mirrored signal
 acts as the medium for receiving device data on a client. Each mirrored signal has a list of streaming
 sources based on established streaming connections. Among these sources, users can individually select
@@ -115,8 +115,8 @@ Streaming source to / from list of available Streaming sources for signal.
 == Automatic Signal subscription
 
 To minimize network traffic and overall load, the openDAQ™ Streaming mechanism incorporates the automatic
-deactivation of data streaming for xref:background_info:signals.adoc[Signals] that are not in use.
-A signal is considered in use only if it is connected to an xref:background_info:data_path.adoc#input_port[Input Port].
+deactivation of data streaming for xref:knowledge_base:signals.adoc[Signals] that are not in use.
+A signal is considered in use only if it is connected to an xref:knowledge_base:data_path.adoc#input_port[Input Port].
 The client automatically sends a subscribe request to the streaming server when a signal is connected to
 an Input Port, and an unsubscribe request is sent when the Signal is disconnected from Input Port.
 The Streaming server handles these requests, facilitating the enabling or disabling of data transmission.

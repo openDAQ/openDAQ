@@ -13,6 +13,10 @@
 #include <regex>
 #include <string>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <config_protocol/config_protocol_client.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -29,6 +33,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             std::move(context),
             "NativeStreamingClient")
     , pseudoDeviceIndex(0)
+    , transportClientIndex(0)
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
@@ -102,6 +107,11 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     )
 {
     loggerComponent = this->context.getLogger().getOrAddComponent("NativeClient");
+
+    boost::uuids::random_generator gen;
+    const auto uuidBoost = gen();
+    transportClientUuidBase = boost::uuids::to_string(uuidBoost);
+
     discoveryClient.initMdnsClient(List<IString>("_opendaq-streaming-native._tcp.local."));
 }
 
@@ -206,8 +216,8 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 
     deviceHelper->subscribeToCoreEvent(context);
 
-    device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
+    device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
+    device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
 
     processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
                                                     std::move(processingThread),
@@ -325,7 +335,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else
         deviceConfig = populateDefaultConfig(config);
 
-    if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
+    if (!acceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -342,9 +352,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     ProtocolType protocolType = ProtocolType::Unknown;
     if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
-        std::scoped_lock lock(sync);
-
-        std::string localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
+        std::string localId;
+        {
+            std::scoped_lock lock(sync);
+            localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
+        }
 
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
@@ -416,7 +428,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     return defaultConfig;
 }
 
-bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString,
+bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
                                                                 const PropertyObjectPtr& config)
 {
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
@@ -438,8 +450,8 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
     }
 }
 
-bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                   const PropertyObjectPtr& config)
+bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const StringPtr& connectionString,
+                                                                       const PropertyObjectPtr& /*config*/)
 {
     if (connectionString.assigned() && connectionString != "")
     {
@@ -478,6 +490,12 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     {
         modifiedHost = modifiedHost.toStdString().substr(1, modifiedHost.getLength() - 2);
     }
+
+    {
+        std::scoped_lock lock(sync);
+        transportLayerConfig.addProperty(StringProperty("ClientId", fmt::format("{}/{}", transportClientUuidBase, transportClientIndex++)));
+    }
+
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
     if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
     {
@@ -508,10 +526,10 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
                                                             const PropertyObjectPtr& config)
 {
-    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
+    if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
-    PropertyObjectPtr transportLayerConfig;
 
+    PropertyObjectPtr transportLayerConfig;
     PropertyObjectPtr parsedConfig;
     if (config.assigned())
     {

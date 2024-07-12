@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/signal_ptr.h>
 
-#include <packet_streaming/packet_streaming_server.h>
-
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 class ServerSessionHandler : public BaseSessionHandler
@@ -31,18 +29,24 @@ public:
     ServerSessionHandler(const ContextPtr& daqContext,
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
-                         OnStreamingRequestCallback streamingInitHandler,
+                         const std::string& clientId,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
-    void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr &signal);
+    void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendStreamingInitDone();
-    void sendPacket(const SignalNumericIdType signalId, const PacketPtr& packet);
     void sendSubscribingDone(const SignalNumericIdType signalNumericId);
     void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
 
     void setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler);
+    void setStreamingInitHandler(const OnStreamingRequestCallback& streamingInitHandler);
+
+    void setClientId(const std::string& clientId);
+    std::string getClientId();
+
+    void setReconnected(bool reconnected);
+    bool getReconnected();
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
@@ -51,12 +55,11 @@ private:
     daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readTransportLayerProperties(const void* data, size_t size);
 
-    void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
-
     OnStreamingRequestCallback streamingInitHandler;
     OnSignalSubscriptionCallback signalSubscriptionHandler;
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 
-    packet_streaming::PacketStreamingServer packetStreamingServer;
+    std::string clientId;
+    bool reconnected;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

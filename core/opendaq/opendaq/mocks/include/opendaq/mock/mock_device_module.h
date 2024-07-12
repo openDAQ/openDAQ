@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ public:
 
     daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override;
     daq::ErrCode INTERFACE_FUNC getAvailableDeviceTypes(daq::IDict** deviceTypes) override;
-    daq::ErrCode INTERFACE_FUNC acceptsConnectionParameters(daq::Bool* accepted, daq::IString* connectionString, daq::IPropertyObject* config) override;
     daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** device, daq::IString* connectionString, daq::IComponent* parent, daq::IPropertyObject* config) override;
 
     daq::ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(daq::IDict** functionBlockTypes) override;
@@ -39,7 +38,6 @@ public:
     daq::ErrCode INTERFACE_FUNC getAvailableServerTypes(daq::IDict** serverTypes) override;
     daq::ErrCode INTERFACE_FUNC createServer(daq::IServer** server, daq::IString* serverType, daq::IDevice* rootDevice, daq::IPropertyObject* config) override;
 
-    daq::ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(daq::Bool* accepted, daq::IString* connectionString, daq::IPropertyObject* /*config*/) override;
     daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming** streaming, daq::IString* connectionString, daq::IPropertyObject* /*config*/) override;
     daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict** streamingTypes) override;
 

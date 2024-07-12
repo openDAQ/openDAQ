@@ -4,7 +4,7 @@ $CSCastToType$
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.$NonInterfaceType$"/> to <see cref="$CSCastType$"/>.</summary>
     /// <param name="value">The SDK <c>$NonInterfaceType$</c>.</param>
     /// <returns>The managed <c>$CSCastType$</c> value.</returns>
-    public static implicit operator $CSCastType$($NonInterfaceType$ value) => value.$CSValueGetter$;
+    public static implicit operator $CSCastType$($NonInterfaceType$ value) => value?.$CSValueGetter$ ?? default($CSCastType$);
 
     /// <summary>Determines whether this instance and a specified <c>$CSCastType$</c>, have the same value.</summary>
     /// <param name="other">The other <c>$CSCastType$</c> to compare to this instance.</param>

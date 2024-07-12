@@ -827,7 +827,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             {
                 string valueString = (samplesCount == 0)
                                      ? string.Empty
-                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;±0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
+                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;±0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fffffff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fffffff})";
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
             }

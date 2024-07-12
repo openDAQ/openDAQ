@@ -58,37 +58,6 @@ TEST_F(AudioDeviceModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(AudioDeviceModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(AudioDeviceModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(AudioDeviceModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(AudioDeviceModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("miniaudio://wasapi/...."));
-}
-
 TEST_F(AudioDeviceModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();

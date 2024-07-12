@@ -191,7 +191,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 1);
+        ASSERT_EQ(deviceFound, 1u);
     }
 
     // remove device and check that server now is not discoverable
@@ -213,7 +213,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 0);
+        ASSERT_EQ(deviceFound, 0u);
     }
 
     // add server again and check that server is discoverable
@@ -239,7 +239,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 1);
+        ASSERT_EQ(deviceFound, 1u);
     }
 }
 

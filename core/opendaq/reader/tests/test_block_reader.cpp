@@ -461,8 +461,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeEventOverlapped)
     ASSERT_EQ(count, 0u);
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getReadSamples(), 2);
-    ASSERT_EQ(reader.getAvailableCount(), 0);
+    ASSERT_EQ(status.getReadSamples(), 2u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {
@@ -1487,8 +1487,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
         BlockReaderStatusPtr status = reader.read(&samplesDouble, &tmpCount);
         ASSERT_TRUE(status.assigned());
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_EQ(status.getReadSamples(), 1);
-        ASSERT_EQ(tmpCount, 0);
+        ASSERT_EQ(status.getReadSamples(), 1u);
+        ASSERT_EQ(tmpCount, 0u);
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);

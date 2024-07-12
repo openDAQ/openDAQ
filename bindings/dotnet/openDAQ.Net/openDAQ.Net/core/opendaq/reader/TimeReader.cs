@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
  */
 
 
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
-
 using Daq.Core.Types;
 
 
@@ -28,6 +25,10 @@ namespace Daq.Core.OpenDAQ;
 //[Guid("4D44E982-7658-4B79-8B6B-F3D918E18596")] //manually created
 public class TimeReader
 {
+    private const  long TICKS_PER_MICROSECOND  = 10L; //from DateTime struct
+    private const  long TICKS_PER_SECOND       = TICKS_PER_MICROSECOND * 1000000L;
+    //private static long TICKS_PER_SECOND_POWER = (long)Math.Log10(TICKS_PER_SECOND);
+
     private const string BLOCK_READER_NAME           = nameof(BlockReader<double, Int64>);
     private const string MULTI_READER_NAME           = nameof(MultiReader<double, Int64>);
     private const string PACKET_READER_NAME          = nameof(PacketReader);
@@ -40,6 +41,7 @@ public class TimeReader
     private readonly DateTimeOffset                     _origin;
     private readonly string                             _unitSymbol;
     private readonly nuint                              _blockSize; //BlockReader only
+    private readonly double                             _secondsToTicksFactorFloat;
 
     private TimeReader()
     {
@@ -97,6 +99,14 @@ public class TimeReader
         else
         {
             _blockSize = 1;
+        }
+
+        _secondsToTicksFactorFloat = 0D; //if it is 0, the raw value already contains ticks, no calculation necessary
+
+        if ((_resolution.Numerator != 1) || (_resolution.Denominator != TICKS_PER_SECOND))
+        {
+            //get the factor for ticks from seconds calculation (_resolution calculates raw value to seconds)
+            _secondsToTicksFactorFloat = (double)TICKS_PER_SECOND * _resolution.Numerator / _resolution.Denominator;
         }
     }
 
@@ -277,21 +287,25 @@ public class TimeReader
         where TDomain : struct
     {
         //transform domain values to DateTime
+        //use AddTicks() to get the full microseconds resolution (should be even 100ns) as all other Add functions always round full integer number, cutting fractions away
+        //AddMicroseconds() is only available starting .NET 8
 
-        if ((_resolution.Numerator == 1) && (_resolution.Denominator == 100000))
+        if (_secondsToTicksFactorFloat != 0D)
         {
-            //ticks resolution, just add the values to the origin to get the local date-time
+            //calculate (rounded) ticks
             for (nuint index = 0; index < sampleCount; ++index)
             {
-                timeStamps[index] = _origin.AddTicks(Convert.ToInt64(domainValues[index])).LocalDateTime;
+                long ticks = (long)(Convert.ToDouble(domainValues[index]) * _secondsToTicksFactorFloat + 0.5D); //conversion needed due to generic array
+                timeStamps[index] = _origin.AddTicks(ticks).LocalDateTime;
             }
         }
         else
         {
-            //calculate using resolution and add to the origin to get the local date-time
+            //raw values are already ticks (100 nanoseconds resolution)
             for (nuint index = 0; index < sampleCount; ++index)
             {
-                timeStamps[index] = _origin.AddSeconds(Convert.ToDouble(domainValues[index]) * _resolution.Numerator / _resolution.Denominator).LocalDateTime;
+                long ticks = Convert.ToInt64(domainValues[index]); //conversion needed due to generic array
+                timeStamps[index] = _origin.AddTicks(ticks).LocalDateTime;
             }
         }
     }

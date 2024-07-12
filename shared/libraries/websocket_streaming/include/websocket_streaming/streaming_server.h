@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,6 @@ public:
     void onUnsubscribe(const OnUnsubscribeCallback& callback);
     void unicastPacket(const std::string& streamId, const std::string& signalId, const PacketPtr& packet);
     void broadcastPacket(const std::string& signalId, const PacketPtr &packet);
-    void sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet);
 
 protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;

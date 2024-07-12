@@ -33,8 +33,8 @@ public:
         moduleManager.addModule(fbModule);
 
         auto instance = InstanceCustom(context, "localInstance");
-        instance.addDevice("daq_client_device");
-        const auto device = instance.addDevice("mock_phys_device");
+        instance.addDevice("daqmock://client_device");
+        const auto device = instance.addDevice("daqmock://phys_device");
         const auto infoInternal = device.getInfo().asPtr<IDeviceInfoInternal>();
         infoInternal.addServerCapability(ServerCapability("protocol_1", "protocol 1", ProtocolType::Streaming));
         infoInternal.addServerCapability(ServerCapability("protocol_2", "protocol 2", ProtocolType::Configuration));

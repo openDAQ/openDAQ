@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ public:
     DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
 
@@ -81,6 +79,8 @@ private:
                                  const StringPtr& port,
                                  const StringPtr& path);
     PropertyObjectPtr createConnectionDefaultConfig();
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
@@ -89,6 +89,8 @@ private:
 
     std::mutex sync;
     size_t pseudoDeviceIndex;
+    size_t transportClientIndex;
+    std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;

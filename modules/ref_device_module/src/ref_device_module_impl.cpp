@@ -10,10 +10,10 @@ RefDeviceModule::RefDeviceModule(ContextPtr context)
     : Module("Reference device module",
              daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
-             "ReferenceDevice")
+             REF_MODULE_NAME)
     , maxNumberOfDevices(2)
 {
-    auto options = this->context.getModuleOptions("RefDevice");
+    auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.hasKey("MaxNumberOfDevices"))
         maxNumberOfDevices = options.get("MaxNumberOfDevices");
     devices.resize(maxNumberOfDevices);
@@ -23,13 +23,12 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 {
     StringPtr serialNumber;
 
-    const auto options = context.getOptions();
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
 
-    if (options.assigned() && options.hasKey("ReferenceDevice"))
+    if (options.assigned())
     {
-        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
-        if (referenceDevice.hasKey("SerialNumber"))
-            serialNumber = referenceDevice.get("SerialNumber");
+        if (options.hasKey("SerialNumber"))
+            serialNumber = options.get("SerialNumber");
     }
 
     auto availableDevices = List<IDeviceInfo>();
@@ -80,18 +79,25 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
         LOG_W("Device with id \"{}\" already exist", id);
         throw AlreadyExistsException();
     }
-
-    const auto options = context.getOptions();
+    
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     StringPtr localId;
     StringPtr name = fmt::format("Device {}", id);
 
-    if (options.assigned() && options.hasKey("ReferenceDevice"))
+    if (config.assigned())
     {
-        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
-        if (referenceDevice.hasKey("LocalId"))
-            localId = referenceDevice.get("LocalId");
-        if (referenceDevice.hasKey("Name"))
-            name = referenceDevice.get("Name");
+        if (config.hasProperty("LocalId"))
+            localId = config.getPropertyValue("LocalId");
+        if (config.hasProperty("Name"))
+            name = config.getPropertyValue("Name");
+    }
+
+    if (options.assigned())
+    {
+        if (options.hasKey("LocalId"))
+            localId = options.get("LocalId");
+        if (options.hasKey("Name"))
+            name = options.get("Name");
     }
 
     if (!localId.assigned())
@@ -100,14 +106,6 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
-}
-
-bool RefDeviceModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
-{
-    LOG_T("Connection string: {}", connectionString);
-    std::string connStr = connectionString;
-    auto found = connStr.find("daqref://");
-    return (found == 0);
 }
 
 size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionString) const

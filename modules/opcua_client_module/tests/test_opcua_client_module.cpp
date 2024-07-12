@@ -84,39 +84,6 @@ TEST_F(OpcUaClientModuleTest, CreateConnectionString)
     ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
 }
 
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[::1]"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
-}
-
 TEST_F(OpcUaClientModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();

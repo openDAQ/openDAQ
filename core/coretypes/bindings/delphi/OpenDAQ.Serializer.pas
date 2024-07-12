@@ -48,11 +48,11 @@ type
     function ReadSerializedList(Key : IString): ISerializedListPtr; overload;
     function ReadSerializedList(Key : string): ISerializedListPtr; overload;
 
-    function ReadList(Key : IString; Context: IBaseObject = nil): IListPtr<IBaseObject>; overload;
-    function ReadList(Key : string; Context: IBaseObject = nil): IListPtr<IBaseObject>; overload;
+    function ReadList(Key : IString; Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IListPtr<IBaseObject>; overload;
+    function ReadList(Key : string; Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IListPtr<IBaseObject>; overload;
 
-    function ReadObject(Key : IString; Context: IBaseObject = nil): IObjectPtr; overload;
-    function ReadObject(Key : string; Context: IBaseObject = nil): IObjectPtr; overload;
+    function ReadObject(Key : IString; Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IObjectPtr; overload;
+    function ReadObject(Key : string; Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IObjectPtr; overload;
 
     function ReadStringPtr(Key : IString): IStringPtr; overload;
     function ReadString(Key : IString): string; overload;
@@ -73,14 +73,23 @@ type
     function HasKey(Key : string): Boolean; overload;
 
     function GetKeys() : IListPtr<IString>;
+
+    function GetType(Key: IString): TCoreType; overload;
+    function GetType(Key: IStringPtr): TCoreType; overload;
+    function GetType(Key: string): TCoreType; overload;
+
+    function IsRoot(): Boolean;
+
+    function ToJsonStr(): string;
+    function ToJson(): IStringPtr;
   end;
 
   ISerializedListPtr = interface(IObjectPtr<ISerializedList>)
   ['{F7896FC1-BD92-4988-9BDA-23253EE58CC7}']
     function ReadSerializedObject(): ISerializedObjectPtr;
     function ReadSerializedList(): ISerializedListPtr;
-    function ReadList(Context: IBaseObject = nil): IListPtr<IBaseObject>;
-    function ReadObject(Context: IBaseObject = nil): IObjectPtr;
+    function ReadList(Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IListPtr<IBaseObject>;
+    function ReadObject(Context: IBaseObject = nil; FactoryCallback: IFunction = nil): IObjectPtr;
     function ReadStringPtr(): IStringPtr; overload;
     function ReadString(): string; overload;
     function ReadBool(): Boolean;

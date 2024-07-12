@@ -39,7 +39,7 @@ public:
         moduleManager.addModule(fbModule);
 
         instance = InstanceCustom(context, "test");
-        instance.addDevice("mock_phys_device");
+        instance.addDevice("daqmock://phys_device");
         instance.addFunctionBlock("mock_fb_uid");
     }
 
@@ -806,18 +806,18 @@ TEST_F(CoreEventTest, DeviceAdded)
             addCount++;
         };
 
-    instance.addDevice("mock_phys_device");
-    instance.addDevice("mock_phys_device");
-    instance.addDevice("mock_phys_device");
+    instance.addDevice("daqmock://phys_device");
+    instance.addDevice("daqmock://phys_device");
+    instance.addDevice("daqmock://phys_device");
 
     ASSERT_EQ(addCount, 3);
 }
 
 TEST_F(CoreEventTest, DeviceRemoved)
 {
-    const auto dev1 = instance.addDevice("mock_phys_device");
-    const auto dev2 = instance.addDevice("mock_phys_device");
-    const auto dev3 = instance.addDevice("mock_phys_device");
+    const auto dev1 = instance.addDevice("daqmock://phys_device");
+    const auto dev2 = instance.addDevice("daqmock://phys_device");
+    const auto dev3 = instance.addDevice("daqmock://phys_device");
 
     int removeCount = 0;
     getOnCoreEvent() +=
@@ -848,11 +848,11 @@ TEST_F(CoreEventTest, DeviceAddedRemovedMuted)
             callCount++;
         };
 
-    const auto dev1 = instance.addDevice("mock_phys_device");
-    const auto dev2 = instance.addDevice("mock_phys_device");
+    const auto dev1 = instance.addDevice("daqmock://phys_device");
+    const auto dev2 = instance.addDevice("daqmock://phys_device");
     
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    const auto dev3 = instance.addDevice("mock_phys_device");
+    const auto dev3 = instance.addDevice("daqmock://phys_device");
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
 
     instance.removeDevice(dev1);

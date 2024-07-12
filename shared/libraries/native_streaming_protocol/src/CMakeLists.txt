@@ -7,7 +7,7 @@ set(SRC_Cpp native_streaming_client_handler.cpp
             server_session_handler.cpp
             client_session_handler.cpp
             base_session_handler.cpp
-            subscribers_registry.cpp
+            streaming_manager.cpp
 )
 
 set(SRC_PublicHeaders native_streaming_protocol.h
@@ -17,7 +17,7 @@ set(SRC_PublicHeaders native_streaming_protocol.h
                       server_session_handler.h
                       client_session_handler.h
                       base_session_handler.h
-                      subscribers_registry.h
+                      streaming_manager.h
 )
 
 set(INCLUDE_DIR ../include/native_streaming_protocol)

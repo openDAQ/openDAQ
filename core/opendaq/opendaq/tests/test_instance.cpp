@@ -49,7 +49,7 @@ TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
-    instance.setRootDevice("daq_client_device");
+    instance.setRootDevice("daqmock://client_device");
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -60,7 +60,7 @@ TEST_F(InstanceTest, SetRootDeviceWithConfig)
     auto config = deviceTypes.get("mock_phys_device").createDefaultConfig();
     config.setPropertyValue("message", "Hello from config.");
 
-    ASSERT_NO_THROW(instance.setRootDevice("mock_phys_device", config));
+    ASSERT_NO_THROW(instance.setRootDevice("daqmock://phys_device", config));
 
     auto rootDevice = instance.getRootDevice();
     ASSERT_TRUE(rootDevice.hasProperty("message"));
@@ -71,7 +71,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
-    instance.setRootDevice("mock_phys_device");
+    instance.setRootDevice("daqmock://phys_device");
 
     auto fbs = instance.getFunctionBlocks();
     ASSERT_EQ(fbs.getCount(), 0u);
@@ -95,7 +95,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     fbs = instance.getFunctionBlocks();
     ASSERT_EQ(fbs.getCount(), 0u);
 
-    ASSERT_THROW(instance.setRootDevice("mock_phys_device"), InvalidStateException);
+    ASSERT_THROW(instance.setRootDevice("daqmock://phys_device"), InvalidStateException);
 
 }
 
@@ -128,9 +128,9 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     auto deviceTypes = instance.getAvailableDeviceTypes();
     ASSERT_EQ(deviceTypes.getCount(), 2u);
 
-    ASSERT_TRUE(deviceTypes.hasKey("daq_client_device"));
-    auto mockDevice = deviceTypes.get("daq_client_device");
-    ASSERT_EQ(mockDevice.getId(), "daq_client_device");
+    ASSERT_TRUE(deviceTypes.hasKey("mock_client_device"));
+    auto mockDevice = deviceTypes.get("mock_client_device");
+    ASSERT_EQ(mockDevice.getId(), "mock_client_device");
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");
@@ -144,7 +144,7 @@ TEST_F(InstanceTest, AddDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daq_client_device")
+        if (deviceInfo.getConnectionString() != "daqmock://client_device")
             instance.addDevice(deviceInfo.getConnectionString());
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
@@ -157,7 +157,7 @@ TEST_F(InstanceTest, RemoveDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daq_client_device")
+        if (deviceInfo.getConnectionString() != "daqmock://client_device")
             instance.addDevice(deviceInfo.getConnectionString());
 
     const auto devices = instance.getDevices();
@@ -173,12 +173,12 @@ TEST_F(InstanceTest, AddNested)
 {
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices[0].getConnectionString(), "daq_client_device");
+    ASSERT_EQ(availableDevices[0].getConnectionString(), "daqmock://client_device");
 
     DevicePtr device1, device2, device3;
-    ASSERT_NO_THROW(device1 = instance.addDevice("mock_phys_device"));
-    ASSERT_NO_THROW(device2 = device1.addDevice("mock_phys_device"));
-    ASSERT_NO_THROW(device3 = device2.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device1 = instance.addDevice("daqmock://phys_device"));
+    ASSERT_NO_THROW(device2 = device1.addDevice("daqmock://phys_device"));
+    ASSERT_NO_THROW(device3 = device2.addDevice("daqmock://phys_device"));
 }
 
 TEST_F(InstanceTest, AddFunctionBlock)
@@ -241,9 +241,9 @@ TEST_F(InstanceTest, GetChannels)
 {
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices[1].getConnectionString(), "mock_phys_device");
+    ASSERT_EQ(availableDevices[1].getConnectionString(), "daqmock://phys_device");
 
-    auto device = instance.addDevice("mock_phys_device");
+    auto device = instance.addDevice("daqmock://phys_device");
     ASSERT_EQ(device.getChannels().getCount(), 4u);
 }
 
@@ -340,7 +340,7 @@ TEST_F(InstanceTest, Serialize)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daq_client_device")
+        if (deviceInfo.getConnectionString() != "daqmock://client_device")
             instance.addDevice(deviceInfo.getConnectionString());
 
     auto serializer = JsonSerializer(True);
@@ -414,7 +414,7 @@ TEST_F(InstanceTest, InstanceBuilderSetContext)
     ASSERT_EQ(instance.getContext().getLogger(), logger);
     ASSERT_EQ(instance.getContext().getScheduler(), context.getScheduler());
     ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
-    ASSERT_NO_THROW(instance.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(instance.addDevice("daqmock://phys_device"));
 }
 
 TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
@@ -428,7 +428,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);
 
-    auto instance = InstanceBuilder().setContext(context).setRootDevice("mock_phys_device", config).build();
+    auto instance = InstanceBuilder().setContext(context).setRootDevice("daqmock://phys_device", config).build();
 
     auto rootDevice = instance.getRootDevice();
     ASSERT_TRUE(rootDevice.hasProperty("message"));
@@ -499,7 +499,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
     moduleManager.addModule(deviceModule);
 
-    instance.setRootDevice("mock_phys_device");
+    instance.setRootDevice("daqmock://phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
     ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
 }

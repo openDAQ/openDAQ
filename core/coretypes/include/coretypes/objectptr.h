@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -208,6 +208,8 @@ public:
     static typename InterfaceToSmartPtr<U>::SmartPtr Borrow(T*& obj);
 
     static ObjectPtr<T> Borrow(T*&& obj) = delete;
+
+    static ObjectPtr<T> Borrow(const ObjectPtr<T>& ptr);
 
     /*!
      * @brief Adopts an interface.
@@ -1395,6 +1397,16 @@ typename InterfaceToSmartPtr<V>::SmartPtr ObjectPtr<T>::Borrow(U*& obj)
     objPtr.borrowed = true;
     return objPtr;
 }
+
+template <typename T>
+ObjectPtr<T> ObjectPtr<T>::Borrow(const ObjectPtr<T>& ptr)
+{
+    ObjectPtr<T> objPtr;
+    objPtr.object = ptr.getObject();
+    objPtr.borrowed = true;
+    return objPtr;
+}
+
 
 template <typename T>
 bool ObjectPtr<T>::equals(ObjectPtr<IBaseObject> other) const

@@ -445,7 +445,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [TestCase(eDesiredReader.Tail, double.MinValue)]
     [TestCase(eDesiredReader.Block, double.MinValue)]
     //[TestCase(eDesiredReader.Multi, double.MinValue)]
-    public void TimeReaderTest<TValueType>(eDesiredReader desiredReader, TValueType _)
+    public void Test_0411_TimeReaderTest<TValueType>(eDesiredReader desiredReader, TValueType _)
         where TValueType : struct
     {
         //Hint: below it makes no sense checking objects for null since the functions throw 'OpenDaqException' in case of an error ( Result.Failed(errorCode) )

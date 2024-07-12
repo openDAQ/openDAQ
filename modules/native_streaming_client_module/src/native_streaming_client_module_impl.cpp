@@ -279,13 +279,8 @@ PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const Prope
             if (name == "TransportLayerConfig")
             {
                 const PropertyObjectPtr transportLayerConfig = config.getPropertyValue(name);
-                const PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
-                for (const auto& transportLayerProp : defTransportLayerConfig.getAllProperties())
-                {
-                    const auto transportLayerName = transportLayerProp.getName();
-                    if (transportLayerConfig.hasProperty(name))
-                        defTransportLayerConfig.setPropertyValue(name, config.getPropertyValue(name));
-                }
+                PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
+                populateDefaultTransportLayerConfig(defTransportLayerConfig, transportLayerConfig);
             }
             else
             {
@@ -295,6 +290,17 @@ PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const Prope
     }
 
     return defConfig;
+}
+
+void NativeStreamingClientModule::populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig,
+                                                                      const PropertyObjectPtr& config)
+{
+    for (const auto& prop : defaultConfig.getAllProperties())
+    {
+        const auto propName = prop.getName();
+        if (config.hasProperty(propName))
+            defaultConfig.setPropertyValue(propName, config.getPropertyValue(propName));
+    }
 }
 
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,

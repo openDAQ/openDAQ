@@ -428,7 +428,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         borrowedConfigPtr.asPtr<IPropertyObjectInternal>()->clone(&configPtr);
 
     const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configPtr);
-    PropertyObjectPtr generalConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("General") : PropertyObject();
+    PropertyObjectPtr generalConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
     PropertyObjectPtr devConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("Device").asPtr<IPropertyObject>() : configPtr;
 
     for (const auto& library : libraries)
@@ -919,7 +919,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 {
     const bool isDefaultDeviceConfig = isDefaultAddDeviceConfig(config);
     StreamingPtr streaming = nullptr;
-    PropertyObjectPtr generalConfig = isDefaultDeviceConfig ? config.getPropertyValue("General") : PropertyObject();
+    PropertyObjectPtr generalConfig = isDefaultDeviceConfig ? config.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
     PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("Streaming").asPtr<IPropertyObject>() : config;
 
     for (const auto& library : libraries)

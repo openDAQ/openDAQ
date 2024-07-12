@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IContext, daq::IBaseObject> declareIContext(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
 {
     cls.doc() = "The Context serves as a container for the Scheduler and Logger. It originates at the instance, and is passed to the root device, which forwards it to components such as function blocks and signals.";
 
-    m.def("Context", &daq::Context_Create);
+    m.def("Context", [](daq::IScheduler* Scheduler, daq::ILogger* Logger, daq::ITypeManager* typeManager, daq::IModuleManager* moduleManager, daq::IAuthenticationProvider* authenticationProvider, std::variant<daq::IDict*, py::dict>& options, std::variant<daq::IDict*, py::dict>& discoveryServers){
+        return daq::Context_Create(Scheduler, Logger, typeManager, moduleManager, authenticationProvider, getVariantValue<daq::IDict*>(options), getVariantValue<daq::IDict*>(discoveryServers));
+    }, py::arg("scheduler"), py::arg("logger"), py::arg("type_manager"), py::arg("module_manager"), py::arg("authentication_provider"), py::arg("options"), py::arg("discovery_servers"));
+
 
     cls.def_property_readonly("scheduler",
         [](daq::IContext *object)
@@ -98,10 +102,10 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         py::return_value_policy::take_ownership,
         "Gets the dictionary of options");
     cls.def("get_module_options",
-        [](daq::IContext *object, const std::string& moduleId)
+        [](daq::IContext *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& moduleId)
         {
             const auto objectPtr = daq::ContextPtr::Borrow(object);
-            return objectPtr.getModuleOptions(moduleId).detach();
+            return objectPtr.getModuleOptions(getVariantValue<daq::IString*>(moduleId)).detach();
         },
         py::arg("module_id"),
         "Retrieves the options associated with the specified module ID.");

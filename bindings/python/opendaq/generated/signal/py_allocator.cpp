@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IAllocator, daq::IBaseObject> declareIAllocator(pybind11::module_ m)
 {
     return wrapInterface<daq::IAllocator, daq::IBaseObject>(m, "IAllocator");

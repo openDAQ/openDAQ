@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IUnit, daq::IBaseObject> declareIUnit(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
 {
     cls.doc() = "Describes a measurement unit with IDs as defined in <a href=\"https://unece.org/trade/cefact/UNLOCODE-Download\">Codes for Units of Measurement used in International Trade</a>.";
 
-    m.def("Unit", &daq::Unit_Create);
+    m.def("Unit", [](daq::Int id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& symbol, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& quantity){
+        return daq::Unit_Create(id, getVariantValue<daq::IString*>(symbol), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(quantity));
+    }, py::arg("id"), py::arg("symbol"), py::arg("name"), py::arg("quantity"));
+
 
     cls.def_property_readonly("id",
         [](daq::IUnit *object)

@@ -214,7 +214,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         amplitude_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
             'amplitude'), opendaq.Float(1.0))
         amplitude_property_builder.visible = opendaq.Boolean(True)
-        amplitude_property_builder.unit = opendaq.EvalValue(opendaq.String('%amplitude_unit:SelectedValue'))
+        amplitude_property_builder.unit = opendaq.EvalValue(
+            opendaq.String('%amplitude_unit:SelectedValue'))
 
         sine_settings.add_property(amplitude_property_builder.build())
 
@@ -224,7 +225,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         scaling_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
             'scaling'), opendaq.Float(1.0))
         scaling_property_builder.visible = opendaq.Boolean(True)
-        scaling_property_builder.visible = opendaq.EvalValue(opendaq.String('%enable_scaling'))
+        scaling_property_builder.visible = opendaq.EvalValue(
+            opendaq.String('%enable_scaling'))
         simulated_channel.add_property(scaling_property_builder.build())
 
         simulated_channel.add_property(opendaq.ObjectProperty(
@@ -245,7 +247,8 @@ class TestPropertySystem(opendaq_test.TestCase):
             'loop_threshold'), opendaq.Integer(100))
         loop_threshold_property_builder.visible = opendaq.Boolean(True)
         loop_threshold_property_builder.min_value = 1
-        loop_threshold_property_builder.visible = opendaq.EvalValue(opendaq.String('%mode == 1'))
+        loop_threshold_property_builder.visible = opendaq.EvalValue(
+            opendaq.String('%mode == 1'))
         counter_settings.add_property(loop_threshold_property_builder.build())
 
         # TODO: function property is not finished yet
@@ -438,6 +441,74 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         self.assertEqual(property_object.get_property_value('prop'), 2)
         self.assertEqual(property_object.get_property_value('inh_prop'), 1)
+
+    def test_native_types_in_factories(self):
+        property_object = opendaq.PropertyObject()
+
+        daq_list = opendaq.List()
+        daq_list.push_back('Banana')
+        daq_list.push_back('Apple')
+        daq_list.push_back('Kiwi')
+        property_object.add_property(opendaq.ListProperty(
+            'list', ['Banana', 'Apple', 'Kiwi'], True))
+        self.assertEqual(property_object.get_property_value('list'), daq_list)
+
+        daq_dict = opendaq.Dict()
+        daq_dict['Banana'] = 1
+        daq_dict['Apple'] = 2
+        property_object.add_property(opendaq.DictProperty(
+            'dict', {'Banana': 1, 'Apple': 2}, True))
+        self.assertEqual(property_object.get_property_value('dict'), daq_dict)
+
+        property_object.add_property(opendaq.BoolProperty('bool', True, True))
+        self.assertEqual(property_object.get_property_value(
+            'bool'), opendaq.Boolean(True))
+
+        property_object.add_property(opendaq.IntProperty('int', 1, True))
+        self.assertEqual(property_object.get_property_value(
+            'int'), opendaq.Integer(1))
+
+        property_object.add_property(opendaq.FloatProperty('float', 1.0, True))
+        self.assertEqual(property_object.get_property_value(
+            'float'), opendaq.Float(1.0))
+
+        property_object.add_property(
+            opendaq.StringProperty('string', 'string', True))
+        self.assertEqual(property_object.get_property_value(
+            'string'), opendaq.String('string'))
+
+        property_object.add_property(
+            opendaq.RatioProperty('ratio', (1, 2), True))
+        self.assertEqual(property_object.get_property_value(
+            'ratio'), Fraction(1, 2))
+
+    def test_native_types_in_factories_nested(self):
+        property_object = opendaq.PropertyObject()
+
+        native_dict = {
+            'bool': True,
+            'int': 1,
+            'float': 1.0,
+            'string': 'string',
+            'ratio': (1, 2),
+            'complex': complex(1, 1),
+        }
+
+        property_object.add_property(
+            opendaq.DictProperty('dict', native_dict, True))
+
+        self.assertEqual(property_object.get_property_value(
+            'dict')['bool'], opendaq.Boolean(True))
+        self.assertEqual(property_object.get_property_value(
+            'dict')['int'], opendaq.Integer(1))
+        self.assertEqual(property_object.get_property_value(
+            'dict')['float'], opendaq.Float(1.0))
+        self.assertEqual(property_object.get_property_value(
+            'dict')['string'], opendaq.String('string'))
+        self.assertEqual(property_object.get_property_value(
+            'dict')['ratio'], Fraction(1, 2))
+        self.assertEqual(property_object.get_property_value(
+            'dict')['complex'], complex(1, 1))
 
 
 if __name__ == '__main__':

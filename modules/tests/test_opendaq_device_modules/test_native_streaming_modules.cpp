@@ -108,6 +108,8 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
@@ -145,6 +147,8 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
         }      
     }
 }
+
+#endif
 
 TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
 {

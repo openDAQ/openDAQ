@@ -287,7 +287,8 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
+
+        std::string connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(addrInfo.getAddress())
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())

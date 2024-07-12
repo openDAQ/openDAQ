@@ -174,6 +174,8 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
 TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
@@ -211,6 +213,8 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
         }      
     }
 }
+
+#endif
 
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {

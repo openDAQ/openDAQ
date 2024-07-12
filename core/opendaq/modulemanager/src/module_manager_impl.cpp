@@ -26,6 +26,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -561,7 +562,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             }
 
             const auto configConnectionInfo = connectedDeviceInfo.getConfigurationConnectionInfo();
-            if (configConnectionInfo.assigned())
+            if (configConnectionInfo.assigned() && configConnectionInfo.getProtocolType() != ProtocolType::Unknown)
                 completeServerCapabilities(configConnectionInfo, connectedDeviceInfo.getServerCapabilities());
 
             // automatically skips streaming connection for local and pseudo (streaming) devices
@@ -1035,6 +1036,32 @@ void ModuleManagerImpl::completeServerCapabilities(const ServerCapabilityPtr& so
             }
         }
     }
+
+    const auto addressInfo = source.getAddressInfo();
+    if (!addressInfo.assigned() || !addressInfo.getCount())
+        return;
+
+    const auto connectionType = source.getConnectionType();
+    const auto address = addressInfo[0].getAddress();
+    const auto addressType = addressInfo[0].getType();
+
+    for (const auto& target : targetCaps)
+    {
+        if (target.getConnectionType() != connectionType)
+            continue;
+
+        const auto targetAddressInfo = target.getAddressInfo();
+        if (!targetAddressInfo.assigned() || !targetAddressInfo.getCount())
+            continue;
+        
+        for (const auto& info : targetAddressInfo)
+        {
+            if (address == info.getAddress() && addressType == info.getType())
+            {
+                info.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
+            }
+        }
+    }
 }
 
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
@@ -1084,10 +1111,10 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCa
             const auto name = prop.getName();
             const auto val = cap.getPropertyValue(name);
             const bool hasProp = merged.hasProperty(name);
-
+            
             if (val == prop.getDefaultValue() && hasProp)
                 continue;
-                
+
             if (hasProp)
                 merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
             else

@@ -23,5 +23,5 @@ add_test(NAME ${TEST_APP}
 )
 
 if (OPENDAQ_ENABLE_COVERAGE)
-    setup_target_for_coverage(${MODULE_NAME} ${TEST_APP} ${MODULE_NAME}coverage)
+    setup_target_for_coverage(${MODULE_NAME}coverage ${TEST_APP} ${MODULE_NAME}coverage)
 endif()

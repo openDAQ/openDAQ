@@ -573,7 +573,8 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     {
         const auto address = addrInfo.getAddress();
         const auto prefix = target.getProtocolId() == "opendaq_native_streaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix;
-        const auto connectionString = CreateUrlConnectionString(prefix,address, port,path);
+        
+        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port,path);
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(addrInfo.getAddress())
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
@@ -662,7 +663,7 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
     std::smatch match;
 
     if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return String(match[2]);
+        return String("[" + std::string(match[2]) + "]");
     if (std::regex_search(urlString, match, regexIpv4Hostname))
         return String(match[1]);
     throw InvalidParameterException("Host name not found in url: {}", url);

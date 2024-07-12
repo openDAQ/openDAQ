@@ -232,7 +232,8 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     {
         const auto address = addrInfo.getAddress();
         const auto prefix = WebsocketDevicePrefix;
-        const auto connectionString = createUrlConnectionString(address, port,path);
+        StringPtr connectionString = createUrlConnectionString(address, port,path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(addrInfo.getAddress())
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
@@ -252,7 +253,7 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
                                                                     const IntegerPtr& port,
                                                                     const StringPtr& path)
 {
-    return String(fmt::format("daq.lt://{}:{}{}", host, port, path));
+    return String(std::string(WebsocketDevicePrefix) + fmt::format("://{}:{}{}", host, port, path));
 }
 
 DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType(bool useOldPrefix)

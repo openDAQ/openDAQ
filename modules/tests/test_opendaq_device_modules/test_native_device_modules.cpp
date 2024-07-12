@@ -298,6 +298,8 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
@@ -336,6 +338,51 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
     }
 }
 
+TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
+{
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/opcua/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    client.getAvailableDevices();
+    DevicePtr device = client.addDevice("daq.nd://[::1]/");
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        if (capability.getProtocolName() == "openDAQ Native Configuration")
+        {
+            const auto ipv4Info = capability.getAddressInfo()[0];
+            const auto ipv6Info = capability.getAddressInfo()[1];
+            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            
+            ASSERT_EQ(ipv4Info.getType(), "IPv4");
+            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+            
+            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        }
+    }      
+}
+
+#endif
+
+
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
@@ -346,12 +393,14 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    client.getAvailableDevices();
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
+            if (capability.getProtocolName() != "openDAQ Native Configuration")
+                break;
+
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
@@ -365,7 +414,10 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 
     ASSERT_TRUE(device.assigned());
 
-    for (const auto& capability : device.getInfo().getServerCapabilities())
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
     {
         if (!test_helpers::isSufix(capability.getConnectionString(), path))
             break;

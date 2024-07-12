@@ -72,7 +72,6 @@ private:
     void completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps);
     static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
 
-
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
     static PropertyObjectPtr createGeneralConfig();
 

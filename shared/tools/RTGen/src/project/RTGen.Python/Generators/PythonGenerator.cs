@@ -14,6 +14,7 @@ namespace RTGen.Python.Generators
         public PythonGenerator()
         {
             GenerateMethods = false;
+            VariantUsed = false;
         }
 
         public override IVersionInfo Version => new VersionInfo
@@ -21,6 +22,24 @@ namespace RTGen.Python.Generators
             Major = 2,
             Minor = 0,
             Patch = 0
+        };
+
+        private static readonly Dictionary<string, string> DaqToPythonMapping = new Dictionary<string, string>
+        {
+            { "IBoolean" , "bool" },
+            { "IInteger", "int64_t" },
+            { "IFloat", "double" },
+            { "INumber", "double" },
+            { "IRatio", "std::pair<int64_t, int64_t>" },
+            { "IComplexNumber", "std::complex<double>" },
+            { "IList", "py::list" },
+            { "IDict", "py::dict" },
+            { "IString", "py::str" }
+        };
+
+        private static readonly HashSet<string> EvalTypes = new HashSet<string>
+        {
+            "IBoolean", "IInteger", "IFloat", "INumber", "IList", "IString"
         };
 
         public override IRTFile RtFile
@@ -39,6 +58,8 @@ namespace RTGen.Python.Generators
             }
         }
 
+        private bool VariantUsed;
+
         private static string GetBriefDocumentationString(IDocComment documentation)
         {
             if (documentation == null || documentation.Brief == null)
@@ -51,6 +72,15 @@ namespace RTGen.Python.Generators
             briefDocumentation.Length -= 1;
 
             return briefDocumentation.ToString().Replace("\"", "\\\"");
+        }
+
+        protected override string GetIncludes(IRTFile rtFile)
+        {
+            if (VariantUsed)
+            {
+                return "#include \"py_core_objects/py_variant_extractor.h\"";
+            }
+            return base.GetIncludes(rtFile);
         }
 
         protected override void SetCustomVariables()
@@ -143,6 +173,124 @@ namespace RTGen.Python.Generators
             return enumsImpl.ToString();
         }
 
+        private bool CheckArgumentTypeCouldBeMapped(IArgument argument)
+        {
+            var ret = DaqToPythonMapping.ContainsKey(argument.Type.Name);
+            VariantUsed |= ret;
+            return ret;
+        }
+
+        private bool CheckArgumentTypeCouldBeEval(IArgument argument)
+        {
+            var ret = EvalTypes.Contains(argument.Type.Name);
+            VariantUsed |= ret;
+            return ret;
+        }
+
+        private string GetMappedTypeForArgument(IArgument argument)
+        {
+            return DaqToPythonMapping[argument.Type.Name];
+        }
+
+        private string GenerateVariantForArgument(IArgument argument)
+        {
+            StringBuilder variant = new StringBuilder();
+            variant.Append(String.Format("std::variant<{0}{1}", argument.Type.FullName(false), argument.Type.Modifiers));
+            if (CheckArgumentTypeCouldBeMapped(argument))
+            {
+                variant.Append(String.Format(", {0}", GetMappedTypeForArgument(argument)));
+            }
+
+            if (argument.IsPolymorphic || CheckArgumentTypeCouldBeEval(argument))
+            {
+                variant.Append(", daq::IEvalValue*");
+            }
+            variant.Append(String.Format(">& {0}", argument.Name));
+            return variant.ToString();
+        }
+
+        private string GenerateVariantExtractorForArgument(IArgument argument)
+        {
+            string extractorFunctionName = "getVariantValue";
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append(String.Format("{0}<{1}{2}>({3})", extractorFunctionName, argument.Type.FullName(false), argument.Type.Modifiers, argument.Name));
+            return stringBuilder.ToString();
+        }
+
+        private string GenerateFactoryLambda(IRTFactory factory)
+        {
+            StringBuilder factoryLambda = new StringBuilder();
+            string leadingSpaces4 = "".PadRight(4);
+            string leadingSpaces8 = "".PadRight(8);
+
+            //name and lambda signature
+            factoryLambda.Append(String.Format(leadingSpaces4 + "m.def(\"{0}\", [](", factory.PrettyName));
+            for (int argumentIndex = 0; argumentIndex < factory.Arguments.Length; argumentIndex++)
+            {
+                IArgument argument = factory.Arguments[argumentIndex];
+                if (argument.IsOutParam)
+                {
+                    continue;
+                }
+                if (CheckArgumentTypeCouldBeMapped(argument))
+                {
+                    factoryLambda.Append(GenerateVariantForArgument(argument));
+                }
+                else
+                {
+                    factoryLambda.Append(String.Format("{0} {1}", GetPyBind11TypeName(argument), argument.Name));
+                }
+                if (argumentIndex < factory.Arguments.Length - 1)
+                {
+                    factoryLambda.Append(", ");
+                }
+            }
+            factoryLambda.AppendLine("){");
+
+            //lambda internals
+            factoryLambda.Append(leadingSpaces8 + String.Format("return daq::{0}_Create(", factory.PrettyName));
+            for (int argumentIndex = 0; argumentIndex < factory.Arguments.Length; argumentIndex++)
+            {
+                IArgument argument = factory.Arguments[argumentIndex];
+                if (argument.IsOutParam)
+                {
+                    continue;
+                }
+                if (CheckArgumentTypeCouldBeMapped(argument))
+                {
+                    factoryLambda.Append(GenerateVariantExtractorForArgument(argument));
+                }
+                else
+                {
+                    factoryLambda.Append(argument.Name);
+                }
+                if (argumentIndex < factory.Arguments.Length - 1)
+                {
+                    factoryLambda.Append(", ");
+                }
+            }
+            factoryLambda.AppendLine(");");
+
+            //python args
+            factoryLambda.Append(leadingSpaces4 + "}, ");
+            for (int argumentIndex = 0; argumentIndex < factory.Arguments.Length; argumentIndex++)
+            {
+                IArgument argument = factory.Arguments[argumentIndex];
+                if (argument.IsOutParam)
+                {
+                    continue;
+                }
+                factoryLambda.Append(String.Format("py::arg(\"{0}\")", argument.Name.ToLowerSnakeCase()));
+                if (argumentIndex < factory.Arguments.Length - 1)
+                {
+                    factoryLambda.Append(", ");
+                }
+            }
+            factoryLambda.AppendLine(");");
+
+            return factoryLambda.ToString();
+        }
+
         private string GenerateFactoryConstructors()
         {
             StringBuilder factoriesImpl = new StringBuilder();
@@ -162,7 +310,22 @@ namespace RTGen.Python.Generators
                 if (mimallocNeeded)
                     factoriesImpl.AppendLine("#ifdef OPENDAQ_MIMALLOC_SUPPORT");
 
-                factoriesImpl.AppendLine(String.Format("    m.def(\"{0}\", &daq::{0}_Create);", factory.PrettyName));
+                bool needLambdaForFactory = false;
+                foreach (IArgument argument in factory.Arguments)
+                {
+                    needLambdaForFactory |= CheckArgumentTypeCouldBeMapped(argument);
+                    needLambdaForFactory |= argument.IsPolymorphic;
+                    if (needLambdaForFactory) break;
+                }
+
+                if (needLambdaForFactory)
+                {
+                    factoriesImpl.AppendLine(GenerateFactoryLambda(factory));
+                }
+                else
+                {
+                    factoriesImpl.AppendLine(String.Format("    m.def(\"{0}\", &daq::{0}_Create);", factory.PrettyName));
+                }
 
                 if (win32Only || mimallocNeeded)
                     factoriesImpl.AppendLine("#endif");
@@ -236,8 +399,16 @@ namespace RTGen.Python.Generators
                 }
                 else
                 {
-                    argumentsListIn.Add(GetPyBind11TypeName(argument) + " " + argument.Name);
-                    argumentsListPass.Add(GetPyBind11WrappedName(argument));
+                    if (CheckArgumentTypeCouldBeMapped(argument))
+                    {
+                        argumentsListIn.Add(GenerateVariantForArgument(argument));
+                        argumentsListPass.Add(GenerateVariantExtractorForArgument(argument));
+                    }
+                    else
+                    {
+                        argumentsListIn.Add(GetPyBind11TypeName(argument) + " " + argument.Name);
+                        argumentsListPass.Add(GetPyBind11WrappedName(argument));
+                    }
                     if (generateArgumentAnnotations)
                     {
                         string defaultArgumentValueAssignment = "";

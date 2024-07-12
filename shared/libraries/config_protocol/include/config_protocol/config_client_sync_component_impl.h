@@ -32,6 +32,7 @@ class ConfigClientBaseSyncComponentImpl : public ConfigClientComponentBaseImpl<I
 {
 public:
 
+    using Super = ConfigClientComponentBaseImpl<Impl>;
     ConfigClientBaseSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                const std::string& remoteGlobalId,
                                const ContextPtr& ctx,
@@ -40,6 +41,11 @@ public:
                                const StringPtr& className = nullptr);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override
+    {
+        return Super::setPropertyValue(String("Source"), Integer(selectedSource));
+    }
 
 protected:
     template <class Interface, class Implementation>
@@ -58,7 +64,7 @@ ConfigClientBaseSyncComponentImpl<Impl>::ConfigClientBaseSyncComponentImpl(const
                                                              const StringPtr& localId,
                                                              const StringPtr& className)
 
-    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 

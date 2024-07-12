@@ -322,6 +322,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // update the sync component in the client side
     clientSyncComponent.setSelectedSource(2);
 
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 2); 
+
     // check that the server side has the same sync component
     ASSERT_EQ(syncComponent.getSelectedSource(), 2);    
 }

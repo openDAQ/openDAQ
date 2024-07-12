@@ -47,7 +47,7 @@ public:
     }
 };
 
-TEST_F(StreamingTest, Connect)
+TEST_F(StreamingTest, ConnectAndDisconnect)
 {
     auto server = std::make_shared<StreamingServer>(context);
     server->start(StreamingPort, ControlPort);
@@ -61,6 +61,20 @@ TEST_F(StreamingTest, Connect)
 
     client.disconnect();
     ASSERT_FALSE(client.isConnected());
+}
+
+TEST_F(StreamingTest, StopServer)
+{
+    auto server = std::make_shared<StreamingServer>(context);
+    server->start(StreamingPort, ControlPort);
+
+    auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
+
+    client.connect();
+    ASSERT_TRUE(client.isConnected());
+
+    server->stop();
+    server.reset();
 }
 
 TEST_F(StreamingTest, ConnectTimeout)

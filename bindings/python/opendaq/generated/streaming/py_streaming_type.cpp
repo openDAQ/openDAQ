@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IStreamingType, daq::IComponentType> declareIStreamingType(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, da
 {
     cls.doc() = "Provides information on what streaming type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device, or establishing a new streaming connection.";
 
-    m.def("StreamingType", &daq::StreamingType_Create);
+    m.def("StreamingType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix, daq::IPropertyObject* defaultConfig){
+        return daq::StreamingType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), getVariantValue<daq::IString*>(prefix), defaultConfig);
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("prefix"), py::arg("default_config"));
+
 
     cls.def_property_readonly("connection_string_prefix",
         [](daq::IStreamingType *object)

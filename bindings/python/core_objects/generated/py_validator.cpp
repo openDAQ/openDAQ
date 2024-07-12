@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IValidator, daq::IBaseObject> declareIValidator(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIValidator(pybind11::module_ m, PyDaqIntf<daq::IValidator, daq::IBase
 {
     cls.doc() = "Used by openDAQ properties to validate whether a value fits the value restrictions of the Property.";
 
-    m.def("Validator", &daq::Validator_Create);
+    m.def("Validator", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& eval){
+        return daq::Validator_Create(getVariantValue<daq::IString*>(eval));
+    }, py::arg("eval"));
+
 
     cls.def("validate",
         [](daq::IValidator *object, const py::object& propObj, const py::object& value)

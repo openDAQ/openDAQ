@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IConnection, daq::IBaseObject> declareIConnection(pybind11::module_ m)
 {
@@ -114,10 +115,10 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
         },
         "Returns true if the type of connection is remote.");
     cls.def("enqueue_multiple",
-        [](daq::IConnection *object, daq::IList* packets)
+        [](daq::IConnection *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& packets)
         {
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
-            objectPtr.enqueueMultiple(packets);
+            objectPtr.enqueueMultiple(getVariantValue<daq::IList*>(packets));
         },
         py::arg("packets"),
         "Places multiple packets at the back of the queue.");

@@ -61,6 +61,13 @@ protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;
     using ClientMap = std::unordered_map<std::string, std::pair<daq::streaming_protocol::StreamWriterPtr, SignalMap>>;
 
+    void doRead(const std::string& clientId, const stream::StreamPtr& stream);
+    void onReadDone(const std::string& clientId,
+                    const stream::StreamPtr& stream,
+                    const boost::system::error_code& ec,
+                    std::size_t bytesRead);
+    void removeClient(const std::string& clientId);
+
     void addToOutputSignals(const SignalPtr& signal,
                             SignalMap& outputSignals,
                             const streaming_protocol::StreamWriterPtr& writer);

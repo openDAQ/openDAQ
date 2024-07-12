@@ -176,7 +176,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
 
     switch (authentication.getType())
     {
-        case AuthenticationType::ANONYMOUS:
+        case AuthenticationType::Anonymous:
         {
             if (authProvider.isAnonymousAllowed())
                 return true;
@@ -184,7 +184,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
             LOG_W("Anonymous authentication rejected");
             break;
         }
-        case AuthenticationType::BASIC:
+        case AuthenticationType::Basic:
         {
             try
             {

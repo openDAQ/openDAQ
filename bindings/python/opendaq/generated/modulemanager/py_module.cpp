@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IModule, daq::IBaseObject> declareIModule(pybind11::module_ m)
 {
@@ -76,10 +77,10 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available device types this module can create.");
     cls.def("create_device",
-        [](daq::IModule *object, const std::string& connectionString, daq::IComponent* parent, daq::IPropertyObject* config)
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IComponent* parent, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createDevice(connectionString, parent, config).detach();
+            return objectPtr.createDevice(getVariantValue<daq::IString*>(connectionString), parent, config).detach();
         },
         py::arg("connection_string"), py::arg("parent"), py::arg("config") = nullptr,
         "Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference.");
@@ -92,10 +93,10 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available function block types this module can create.");
     cls.def("create_function_block",
-        [](daq::IModule *object, const std::string& id, daq::IComponent* parent, const std::string& localId, daq::IPropertyObject* config)
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createFunctionBlock(id, parent, localId, config).detach();
+            return objectPtr.createFunctionBlock(getVariantValue<daq::IString*>(id), parent, getVariantValue<daq::IString*>(localId), config).detach();
         },
         py::arg("id"), py::arg("parent"), py::arg("local_id"), py::arg("config") = nullptr,
         "Creates and returns a function block with the specified id. The function block is not automatically added to the FB list of the caller.");
@@ -108,18 +109,18 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available servers types that this module can create.");
     cls.def("create_server",
-        [](daq::IModule *object, const std::string& serverTypeId, daq::IDevice* rootDevice, daq::IPropertyObject* config)
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverTypeId, daq::IDevice* rootDevice, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createServer(serverTypeId, rootDevice, config).detach();
+            return objectPtr.createServer(getVariantValue<daq::IString*>(serverTypeId), rootDevice, config).detach();
         },
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
         "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
     cls.def("create_streaming",
-        [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createStreaming(connectionString, config).detach();
+            return objectPtr.createStreaming(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Creates and returns a streaming object using the specified connection string and config object.");

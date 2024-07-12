@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IPacketReader, daq::IReader> declareIPacketReader(pybind11::module_ m)
 {
     return wrapInterface<daq::IPacketReader, daq::IReader>(m, "IPacketReader");

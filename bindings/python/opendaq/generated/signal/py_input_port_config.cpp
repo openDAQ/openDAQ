@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IInputPortConfig, daq::IInputPort> declareIInputPortConfig(pybind11::module_ m)
 {
@@ -43,7 +44,10 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
 {
     cls.doc() = "The configuration component of input ports. Provides access to Input port owners to internal components of the input port.";
 
-    m.def("InputPort", &daq::InputPort_Create);
+    m.def("InputPort", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, const bool gapChecking){
+        return daq::InputPort_Create(context, parent, getVariantValue<daq::IString*>(localId), gapChecking);
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("gap_checking"));
+
 
     cls.def_property("notification_method",
         nullptr,

@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::module_ m)
 {
@@ -49,8 +50,14 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 
     m.def("StdErrLoggerSink", &daq::StdErrLoggerSink_Create);
     m.def("StdOutLoggerSink", &daq::StdOutLoggerSink_Create);
-    m.def("RotatingFileLoggerSink", &daq::RotatingFileLoggerSink_Create);
-    m.def("BasicFileLoggerSink", &daq::BasicFileLoggerSink_Create);
+    m.def("RotatingFileLoggerSink", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& fileName, const size_t maxFileByteSize, const size_t maxFiles){
+        return daq::RotatingFileLoggerSink_Create(getVariantValue<daq::IString*>(fileName), maxFileByteSize, maxFiles);
+    }, py::arg("file_name"), py::arg("max_file_byte_size"), py::arg("max_files"));
+
+    m.def("BasicFileLoggerSink", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& fileName){
+        return daq::BasicFileLoggerSink_Create(getVariantValue<daq::IString*>(fileName));
+    }, py::arg("file_name"));
+
 #ifdef _WIN32
     m.def("WinDebugLoggerSink", &daq::WinDebugLoggerSink_Create);
 #endif
@@ -77,10 +84,10 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
         "Checks whether the messages with given log severity level will be written to the target or not.");
     cls.def_property("pattern",
         nullptr,
-        [](daq::ILoggerSink *object, const std::string& pattern)
+        [](daq::ILoggerSink *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& pattern)
         {
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
-            objectPtr.setPattern(pattern);
+            objectPtr.setPattern(getVariantValue<daq::IString*>(pattern));
         },
         "Sets the custom formatter pattern for the sink.");
     cls.def("flush",

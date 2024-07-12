@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IProperty, daq::IBaseObject> declareIProperty(pybind11::module_ m)
 {
@@ -37,20 +38,62 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
 {
     cls.doc() = "Defines a set of metadata that describes the values held by a Property object stored under the key equal to the property's name.";
 
-    m.def("BoolProperty", &daq::BoolProperty_Create);
-    m.def("IntProperty", &daq::IntProperty_Create);
-    m.def("FloatProperty", &daq::FloatProperty_Create);
-    m.def("StringProperty", &daq::StringProperty_Create);
-    m.def("ListProperty", &daq::ListProperty_Create);
-    m.def("DictProperty", &daq::DictProperty_Create);
-    m.def("RatioProperty", &daq::RatioProperty_Create);
-    m.def("ObjectProperty", &daq::ObjectProperty_Create);
-    m.def("ReferenceProperty", &daq::ReferenceProperty_Create);
-    m.def("FunctionProperty", &daq::FunctionProperty_Create);
-    m.def("SelectionProperty", &daq::SelectionProperty_Create);
-    m.def("SparseSelectionProperty", &daq::SparseSelectionProperty_Create);
-    m.def("StructProperty", &daq::StructProperty_Create);
-    m.def("EnumerationProperty", &daq::EnumerationProperty_Create);
+    m.def("BoolProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::BoolProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IBoolean*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("IntProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::IntProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IInteger*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("FloatProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IFloat*, double, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::FloatProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IFloat*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("StringProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::StringProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("ListProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::ListProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("DictProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IDict*, py::dict>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::DictProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IDict*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("RatioProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IRatio*, std::pair<int64_t, int64_t>>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::RatioProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IRatio*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("ObjectProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IPropertyObject* defaultValue){
+        return daq::ObjectProperty_Create(getVariantValue<daq::IString*>(name), defaultValue);
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("ReferenceProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEvalValue* referencedPropertyEval){
+        return daq::ReferenceProperty_Create(getVariantValue<daq::IString*>(name), referencedPropertyEval);
+    }, py::arg("name"), py::arg("referenced_property_eval"));
+
+    m.def("FunctionProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::ICallableInfo* callableInfo, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::FunctionProperty_Create(getVariantValue<daq::IString*>(name), callableInfo, getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("callable_info"), py::arg("visible"));
+
+    m.def("SelectionProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& selectionValues, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::SelectionProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(selectionValues), getVariantValue<daq::IInteger*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("selection_values"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("SparseSelectionProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IDict*, py::dict>& selectionValues, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::SparseSelectionProperty_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IDict*>(selectionValues), getVariantValue<daq::IInteger*>(defaultValue), getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("selection_values"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("StructProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IStruct* defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::StructProperty_Create(getVariantValue<daq::IString*>(name), defaultValue, getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
+    m.def("EnumerationProperty", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* defaultValue, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible){
+        return daq::EnumerationProperty_Create(getVariantValue<daq::IString*>(name), defaultValue, getVariantValue<daq::IBoolean*>(visible));
+    }, py::arg("name"), py::arg("default_value"), py::arg("visible"));
+
 
     cls.def_property_readonly("value_type",
         [](daq::IProperty *object)

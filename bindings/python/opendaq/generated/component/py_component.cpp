@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
 {
     cls.doc() = "Acts as a base interface for components, such as device, function block, channel and signal.";
 
-    m.def("Component", &daq::Component_Create);
+    m.def("Component", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
+        return daq::Component_Create(context, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className));
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"));
+
 
     cls.def_property_readonly("local_id",
         [](daq::IComponent *object)
@@ -87,10 +91,10 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IComponent *object, const std::string& name)
+        [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the name of the component. / Sets the name of the component.");
     cls.def_property("description",
@@ -99,10 +103,10 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
-        [](daq::IComponent *object, const std::string& description)
+        [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description)
         {
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
-            objectPtr.setDescription(description);
+            objectPtr.setDescription(getVariantValue<daq::IString*>(description));
         },
         "Gets the description of the component. / Sets the description of the component.");
     cls.def_property_readonly("tags",
@@ -152,10 +156,10 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         py::return_value_policy::take_ownership,
         "Gets the container of Component statuses.");
     cls.def("find_component",
-        [](daq::IComponent *object, const std::string& id)
+        [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
-            return objectPtr.findComponent(id).detach();
+            return objectPtr.findComponent(getVariantValue<daq::IString*>(id)).detach();
         },
         py::arg("id"),
         "Finds the component (signal/device/function block) with the specified (global) id.");

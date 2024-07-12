@@ -5,6 +5,7 @@
 #include <ref_fb_module/module_dll.h>
 #include <testutils/memcheck_listener.h>
 #include <gmock/gmock.h>
+#include <thread>
 
 using namespace daq;
 

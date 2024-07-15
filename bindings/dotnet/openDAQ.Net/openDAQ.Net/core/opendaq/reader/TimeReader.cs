@@ -22,6 +22,7 @@ namespace Daq.Core.OpenDAQ;
 
 
 /// <summary>A reader wrapper that can convert domain clock-ticks to time stamps when the domain is time.</summary>
+/// <remarks>For a <see cref="MultiReader{TValue, TDomain}"/> use the specific function with jagged arrays (<c>TValue[][]</c>).</remarks>
 //[Guid("4D44E982-7658-4B79-8B6B-F3D918E18596")] //manually created
 public class TimeReader
 {
@@ -32,11 +33,22 @@ public class TimeReader
     private const string BLOCK_READER_NAME           = nameof(BlockReader<double, Int64>);
     private const string MULTI_READER_NAME           = nameof(MultiReader<double, Int64>);
     private const string PACKET_READER_NAME          = nameof(PacketReader);
-    private const string STEAM_READER_NAME           = nameof(StreamReader<double, Int64>);
+    private const string STREAM_READER_NAME          = nameof(StreamReader<double, Int64>);
     private const string TAIL_READER_NAME            = nameof(TailReader<double, Int64>);
     private const string BLOCK_READER_BLOCKSIZE_NAME = nameof(BlockReader<double, Int64>.BlockSize);
 
+    public enum eReaderType
+    {
+        Unknown = 0,
+        BlockReader,
+        MultiReader,
+        PacketReader,
+        StreamReader,
+        TailReader
+    }
+
     private readonly SampleReader                       _reader;
+    private readonly eReaderType                        _readerType;
     private readonly (long Numerator, long Denominator) _resolution;
     private readonly DateTimeOffset                     _origin;
     private readonly string                             _unitSymbol;
@@ -57,6 +69,17 @@ public class TimeReader
     internal TimeReader(SampleReader reader, DataDescriptor domainDescriptor)
     {
         _reader = reader;
+
+        string readerTypeName = reader.GetType().Name.Split('`')[0];
+        _readerType = readerTypeName switch
+        {
+            BLOCK_READER_NAME  => eReaderType.BlockReader,
+            MULTI_READER_NAME  => eReaderType.MultiReader,
+            PACKET_READER_NAME => eReaderType.PacketReader,
+            STREAM_READER_NAME => eReaderType.StreamReader,
+            TAIL_READER_NAME   => eReaderType.TailReader,
+            _                  => eReaderType.Unknown,
+        };
 
         using Ratio resolution = domainDescriptor.TickResolution;
 
@@ -81,11 +104,10 @@ public class TimeReader
             Console.Error.WriteLine("*** domain signal unit not in seconds"); //ToDo: handle non-seconds domain
 
         //need to get block-size from BlockReader; use 1 for other readers
-        if ((reader.GetType() is Type readerType)
-            && readerType.Name.Equals(BLOCK_READER_NAME + "`2")) //"BlockReader`2" <-> "BlockReader"
+        if (_readerType == eReaderType.BlockReader)
         {
             //use reflection to get the block-size
-            System.Reflection.PropertyInfo blockSizeGetter = readerType.GetProperty(BLOCK_READER_BLOCKSIZE_NAME);
+            System.Reflection.PropertyInfo blockSizeGetter = _reader.GetType().GetProperty(BLOCK_READER_BLOCKSIZE_NAME);
             if (blockSizeGetter == null)
             {
                 //should never come here
@@ -120,9 +142,9 @@ public class TimeReader
         switch (reader.GetType().Name.Split('`')[0]) //e.g. "BlockReader`2" -> "BlockReader"
         {
             case BLOCK_READER_NAME:
-          //case MULTI_READER_NAME:
+            case MULTI_READER_NAME:
           //case PACKET_READER_NAME:
-            case STEAM_READER_NAME:
+            case STREAM_READER_NAME:
             case TAIL_READER_NAME:
                 return true;
 
@@ -166,6 +188,12 @@ public class TimeReader
     public ReaderStatus ReadWithDomain<TValue>(TValue[] samples, DateTime[] timeStamps, ref nuint count, nuint timeoutMs = 0)
         where TValue : struct
     {
+        if (_readerType == eReaderType.MultiReader)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION,
+                                       $"TimeReader error: For {_readerType} use the {nameof(ReadWithDomain)} function with jagged arrays.");
+        }
+
         if (samples.Length < (int)count)
         {
             throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_SIZETOOSMALL,
@@ -176,6 +204,61 @@ public class TimeReader
         {
             throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_SIZETOOSMALL,
                                        $"TimeReader error: The {nameof(timeStamps)} array has to have a minimum length of {nameof(count)} ({timeStamps.Length} < {count}).");
+        }
+
+        switch (_reader.DomainReadType)
+        {
+            case SampleType.Float32:            return ReadWithDomainByReaderType<TValue, float>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.Float64:            return ReadWithDomainByReaderType<TValue, double>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.UInt8:              return ReadWithDomainByReaderType<TValue, byte>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.Int8:               return ReadWithDomainByReaderType<TValue, sbyte>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.UInt16:             return ReadWithDomainByReaderType<TValue, UInt16>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.Int16:              return ReadWithDomainByReaderType<TValue, Int16>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.UInt32:             return ReadWithDomainByReaderType<TValue, UInt32>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.Int32:              return ReadWithDomainByReaderType<TValue, Int32>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.UInt64:             return ReadWithDomainByReaderType<TValue, UInt64>(samples, ref count, timeoutMs, timeStamps);
+            case SampleType.Int64:              return ReadWithDomainByReaderType<TValue, Int64>(samples, ref count, timeoutMs, timeStamps);
+
+            //case SampleType.RangeInt64:
+            //    break;
+            //case SampleType.ComplexFloat32:
+            //    break;
+            //case SampleType.ComplexFloat64:
+            //    break;
+            //case SampleType.Binary:
+            //    break;
+            //case SampleType.String:
+            //    break;
+            //case SampleType.Struct:
+            //    break;
+
+            default:
+                count = 0;
+                return null;
+        }
+    }
+
+    public ReaderStatus ReadWithDomain<TValue>(TValue[][] samples, DateTime[][] timeStamps, ref nuint count, nuint timeoutMs = 0)
+        where TValue : struct
+    {
+        if (_readerType != eReaderType.MultiReader)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION,
+                                       $"TimeReader error: For {_readerType} use the {nameof(ReadWithDomain)} function with one-dimensional arrays.");
+        }
+
+        int smallestSamplesArrayLength = CoreTypesHelper.GetSmallestArrayLength(samples);
+        if (smallestSamplesArrayLength < (int)count)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_SIZETOOSMALL,
+                                       $"TimeReader error: The smallest array of the {nameof(samples)} arrays has to have a minimum length of {nameof(count)} ({smallestSamplesArrayLength} < {count}).");
+        }
+
+        int smallestTimeStampsArrayLength = CoreTypesHelper.GetSmallestArrayLength(timeStamps);
+        if (smallestTimeStampsArrayLength < (int)count)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_SIZETOOSMALL,
+                                       $"TimeReader error: The smallest array of the {nameof(timeStamps)} arrays has to have a minimum length of {nameof(count)} ({smallestTimeStampsArrayLength} < {count}).");
         }
 
         switch (_reader.DomainReadType)
@@ -240,9 +323,7 @@ public class TimeReader
                     status = blockReader.ReadWithDomain(samples, domain, ref count, timeoutMs);
                     break;
 
-                case MultiReader<TValue, TDomain> multiReader:
-                    status = multiReader.ReadWithDomain(samples, domain, ref count, timeoutMs);
-                    break;
+                //case MultiReader<TValue, TDomain> multiReader: // not supported (needs jagged arrays)
 
                 //case PacketReader packetReader: // not supported
 
@@ -255,7 +336,7 @@ public class TimeReader
                     break;
 
                 default: //should never come here due to check in factory below
-                    throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_NOT_SUPPORTED, $"TimeReader error: Reader type '{_reader.GetType().Name}' not supported");
+                    throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_NOT_SUPPORTED, $"TimeReader error: Reader type '{_reader.GetType().Name}' not supported one-dimensional arrays");
             }
 
             if (status?.ReadStatus == ReadStatus.Ok)
@@ -271,6 +352,48 @@ public class TimeReader
         {
             // return the buffer for the domain values
             domainPool.Return(domain);
+        }
+
+        return status;
+    }
+
+    private ReaderStatus ReadWithDomainByReaderType<TValue, TDomain>(TValue[][] samples, ref nuint count, nuint timeoutMs, DateTime[][] timeStamps)
+        where TValue : struct
+        where TDomain : struct
+    {
+        // get a buffer for the domain values (no ArrayPool for jagged array)
+        TDomain[][] domains = new TDomain[timeStamps.Length][];
+        for (int i = 0; i < domains.Length; ++i)
+            domains[i] = new TDomain[timeStamps[i].Length];
+
+        // Result
+        ReaderStatus status;
+
+        switch (_reader)
+        {
+            //case BlockReader<TValue, TDomain> blockReader: // not supported (needs one-dimensional arrays)
+
+            case MultiReader<TValue, TDomain> multiReader:
+                status = multiReader.ReadWithDomain(samples, domains, ref count, timeoutMs);
+                break;
+
+            //case PacketReader packetReader: // not supported
+
+            //case StreamReader<TValue, TDomain> streamReader: // not supported (needs one-dimensional arrays)
+
+            //case TailReader<TValue, TDomain> tailReader: // not supported (needs one-dimensional arrays)
+
+            default: //should never come here due to check in factory below
+                throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_NOT_SUPPORTED, $"TimeReader error: Reader type '{_reader.GetType().Name}' not supported with jagged arrays");
+        }
+
+        if (status?.ReadStatus == ReadStatus.Ok)
+        {
+            Transform(domains, timeStamps, sampleCount: count * _blockSize); //_blockSize is only relevant for BlockReader (see constructor)
+        }
+        else
+        {
+            Console.Error.WriteLine($"ReadWithDomain error: {status?.ReadStatus}");
         }
 
         return status;
@@ -309,6 +432,39 @@ public class TimeReader
             }
         }
     }
+
+    private void Transform<TDomain>(TDomain[][] domainValues, DateTime[][] timeStamps, nuint sampleCount)
+        where TDomain : struct
+    {
+        //transform domain values to DateTime
+        //use AddTicks() to get the full microseconds resolution (should be even 100ns) as all other Add functions always round full integer number, cutting fractions away
+        //AddMicroseconds() is only available starting .NET 8
+
+        if (_secondsToTicksFactorFloat != 0D)
+        {
+            //calculate (rounded) ticks
+            for (nuint signalNo = 0; signalNo < (nuint)domainValues.GetLength(0); ++signalNo)
+            {
+                for (nuint index = 0; index < sampleCount; ++index)
+                {
+                    long ticks = (long)(Convert.ToDouble(domainValues[signalNo][index]) * _secondsToTicksFactorFloat + 0.5D); //conversion needed due to generic array
+                    timeStamps[signalNo][index] = _origin.AddTicks(ticks).LocalDateTime;
+                }
+            }
+        }
+        else
+        {
+            //raw values are already ticks (100 nanoseconds resolution)
+            for (nuint signalNo = 0; signalNo < (nuint)domainValues.GetLength(0); ++signalNo)
+            {
+                for (nuint index = 0; index < sampleCount; ++index)
+                {
+                    long ticks = Convert.ToInt64(domainValues[signalNo][index]); //conversion needed due to generic array
+                    timeStamps[signalNo][index] = _origin.AddTicks(ticks).LocalDateTime;
+                }
+            }
+        }
+    }
 }
 
 
@@ -323,6 +479,7 @@ public static partial class OpenDAQFactory
     /// <param name="reader">The <see cref="SampleReader"/> to read the data from.</param>
     /// <param name="signal">The signal with a <see cref="Signal.DomainSignal"/> or domain-signal itself, for the domain configuration.</param>
     /// <returns>The <c>TimeReader</c> instance, when the domain signal is a time signal; otherwise <c>null</c>.</returns>
+    /// <remarks>For a <see cref="MultiReader{TValue, TDomain}"/> give the first <see cref="Signal"/> or <see cref="Signal.DomainSignal"/>.</remarks>
     public static TimeReader CreateTimeReader(SampleReader reader, Signal signal)
     {
         if (!TimeReader.IsReaderTypeSupported(reader))

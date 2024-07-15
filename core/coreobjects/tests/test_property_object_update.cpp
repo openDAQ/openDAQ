@@ -20,8 +20,8 @@ protected:
         const PropertyObjectPtr child1_2_1 = PropertyObject();
         const PropertyObjectPtr child2_1 = PropertyObject();
 
-        child1_2_1.addProperty(StringProperty("String", "String"));
-        child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "String").setReadOnly(true).build());
+        child1_2_1.addProperty(StringProperty("String", "string"));
+        child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
 
         child1_2.addProperty(ObjectProperty("child1_2_1", child1_2_1));
         child1_2.addProperty(IntProperty("Int", 1));
@@ -141,13 +141,13 @@ TEST_F(UpdateObjectTest, UpdateObjReset)
     deserializer.update(parentObj1, serializer.getOutput());
 
     const auto dict = Dict<IInteger, IString>({{1, "foo"}, {2, "bar"}});
-    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.String"), "string");
     ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_1.Float"), 1.1);
     ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.Int"), 1);
     ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.List"), List<IString>("foo", "bar"));
     ASSERT_EQ(parentObj1.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
     ASSERT_EQ(parentObj1.getPropertyValue("child2.child2_1.Dict"), dict);
-    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "String");
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "string");
 }
 
 TEST_F(UpdateObjectTest, UpdateClassObjReset)
@@ -167,11 +167,11 @@ TEST_F(UpdateObjectTest, UpdateClassObjReset)
     deserializer.update(objWithClass1, serializer.getOutput());
 
     const auto dict = Dict<IInteger, IString>({{1, "foo"}, {2, "bar"}});
-    ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.child1_2_1.String"), "string");
     ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_1.Float"), 1.1);
     ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.Int"), 1);
     ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.List"), List<IString>("foo", "bar"));
     ASSERT_EQ(objWithClass1.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
     ASSERT_EQ(objWithClass1.getPropertyValue("child2.child2_1.Dict"), dict);
-    ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "String");
+    ASSERT_EQ(objWithClass1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "string");
 }

@@ -84,8 +84,7 @@ class TimeReader final : public WrappedReaderPtr
                        , public TimeReaderBase
 {
 public:
-    using ReaderStatusType = typename ReaderStatusType<WrappedReaderPtr>::Type;
-    using IReaderStatusType = typename ReaderStatusType::DeclaredInterface;
+    using IReaderStatusType = typename ReaderStatusType<WrappedReaderPtr>::IType;
 
     explicit TimeReader(const WrappedReaderPtr& reader)
         : WrappedReaderPtr(reader)
@@ -141,7 +140,6 @@ class TimeReader<TailReaderPtr> final : public TailReaderPtr
                                       , public TimeReaderBase
 {
 public:
-    using ReaderStatusType = TailReaderStatusPtr;
     using IReaderStatusType = ITailReaderStatus;
 
     explicit TimeReader(TailReaderPtr reader)

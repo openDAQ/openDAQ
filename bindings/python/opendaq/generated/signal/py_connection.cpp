@@ -128,6 +128,20 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.dequeueAll().detach();
         },
         "Removes all packets from the queue.");
+    cls.def_property_readonly("samples_until_next_event_packet",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.getSamplesUntilNextEventPacket();
+        },
+        "Gets the number of samples available in the queued packets until the next event packet. The returned value is up-to the next Event packet if any.");
+    cls.def_property_readonly("samples_until_next_gap_packet",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.getSamplesUntilNextGapPacket();
+        },
+        "Gets the number of samples available in the queued packets until the next gap packet. The returned value is up-to the next Gap packet if any.");
     cls.def("has_event_packet",
         [](daq::IConnection *object)
         {
@@ -135,4 +149,11 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.hasEventPacket();
         },
         "Queries if the connection has an event packet.");
+    cls.def("has_gap_packet",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.hasGapPacket();
+        },
+        "Queries if the connection has a gap packet.");
 }

@@ -50,15 +50,30 @@ using DomainTypeVariant = SampleTypeVariant;
 struct PyTypedReader
 {
     template <typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, daq::IReaderStatus*> readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, size_t timeoutMs)
+    {
+        using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
+        StatusType status;
+        size_t tmpCount = 0;
+        if constexpr (ReaderHasReadWithTimeout<ReaderType, void>::value)
+        {
+            reader->read(nullptr, &tmpCount, timeoutMs, &status);
+        }
+        else
+        {
+            reader->read(nullptr, &tmpCount, &status);
+        }
+        return status;
+    }
+
+    template <typename ReaderType>
+    static inline std::tuple<SampleTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
     {
         if (count == 0)
         {
-            size_t tmpCount = 0;
-            reader->read(nullptr, &tmpCount);
-            return SampleTypeVariant{};
+            auto status = readZeroValues(reader, timeoutMs);
+            return {SampleTypeVariant{}, status.detach()};
         }
-
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
         switch (valueType)
@@ -95,15 +110,14 @@ struct PyTypedReader
     }
 
     template <typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> readValuesWithDomain(const ReaderType& reader,
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readValuesWithDomain(const ReaderType& reader,
                                                                                                              size_t count,
                                                                                                              size_t timeoutMs)
     {
         if (count == 0)
         {
-            size_t tmpCount = 0;
-            reader->read(nullptr, &tmpCount);
-            return std::make_tuple(SampleTypeVariant{}, DomainTypeVariant{});
+            auto status = readZeroValues(reader, timeoutMs);
+            return {SampleTypeVariant{}, DomainTypeVariant{}, status.detach()};
         }
 
         daq::SampleType valueType = daq::SampleType::Undefined;
@@ -150,7 +164,7 @@ struct PyTypedReader
 
 private:
     template <typename ValueType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> readWithDomain(const ReaderType& reader,
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readWithDomain(const ReaderType& reader,
                                                                                                        size_t count,
                                                                                                        size_t timeoutMs)
     {
@@ -197,7 +211,7 @@ private:
     }
 
     template <typename ValueType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, daq::IReaderStatus*> read(const ReaderType& reader,
+    static inline std::tuple<SampleTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> read(const ReaderType& reader,
                                                                           size_t count,
                                                                           [[maybe_unused]] size_t timeoutMs)
     {
@@ -214,7 +228,8 @@ private:
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
-        daq::ReaderStatusPtr status;
+        using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
+        StatusType status;
         std::vector<ValueType> values(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
         {
@@ -260,7 +275,7 @@ private:
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> read(const ReaderType& reader,
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> read(const ReaderType& reader,
                                                                                              size_t count,
                                                                                              [[maybe_unused]] size_t timeoutMs)
     {
@@ -281,7 +296,8 @@ private:
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
-        daq::ReaderStatusPtr status;
+        using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
+        StatusType status;
         std::vector<ValueType> values(count * blockSize);
         DomainVectorType domain(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
@@ -348,7 +364,7 @@ private:
         if (!domainDtype.empty())
             domainArray.attr("dtype") = domainDtype;
 
-        return {std::move(valuesArray), std::move(domainArray), status.detach()};
+        return {std::move(valuesArray), std::move(domainArray), status};
     }
 
     static inline void checkSampleType(daq::SampleType type)

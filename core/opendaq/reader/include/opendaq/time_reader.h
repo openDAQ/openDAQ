@@ -51,25 +51,29 @@ protected:
 template <typename WrappedReaderPtr>
 struct ReaderStatusType
 {
-    using Type = ReaderStatusPtr;
+    using Type = daq::ReaderStatusPtr;
+    using IType = daq::IReaderStatus;
 };
 
 template<>
 struct ReaderStatusType<BlockReaderPtr>
 {
-    using Type = BlockReaderStatusPtr;
+    using Type = daq::BlockReaderStatusPtr;
+    using IType = daq::IBlockReaderStatus;
 };
 
 template<>
 struct ReaderStatusType<TailReaderPtr>
 {
-    using Type = TailReaderStatusPtr;
+    using Type = daq::TailReaderStatusPtr;
+    using IType = daq::ITailReaderStatus;
 };
 
 template <>
 struct ReaderStatusType<MultiReaderPtr>
 {
-    using Type = MultiReaderStatusPtr;
+    using Type = daq::MultiReaderStatusPtr;
+    using IType = daq::IMultiReaderStatus;
 };
 
 /*!
@@ -81,6 +85,8 @@ class TimeReader final : public WrappedReaderPtr
 {
 public:
     using ReaderStatusType = typename ReaderStatusType<WrappedReaderPtr>::Type;
+    using IReaderStatusType = typename ReaderStatusType::DeclaredInterface;
+
     explicit TimeReader(const WrappedReaderPtr& reader)
         : WrappedReaderPtr(reader)
     {
@@ -117,15 +123,13 @@ public:
      * segments are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
      */
-    ReaderStatusType readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0) const
+    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        ReaderStatusType status;
-        auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, &status);
+        auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, status);
         daq::checkErrorInfo(errCode);
-        return status;
     }
 };
 
@@ -137,7 +141,8 @@ class TimeReader<TailReaderPtr> final : public TailReaderPtr
                                       , public TimeReaderBase
 {
 public:
-    using ReaderStatusType = typename ReaderStatusType<TailReaderPtr>::Type;
+    using ReaderStatusType = TailReaderStatusPtr;
+    using IReaderStatusType = ITailReaderStatus;
 
     explicit TimeReader(TailReaderPtr reader)
         : TailReaderPtr(std::move(reader))
@@ -170,16 +175,21 @@ public:
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      */
-    ReaderStatusType readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count) const
+    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        ReaderStatusType status;
-        auto errCode = this->object->readWithDomain(values, domain, count, &status);
+        auto errCode = this->object->readWithDomain(values, domain, count, status);
         daq::checkErrorInfo(errCode);
-        return status;
     }
+};
+
+template<typename WrappedReaderPtr>
+struct ReaderStatusType<TimeReader<WrappedReaderPtr>>
+{
+    using Type = typename ReaderStatusType<WrappedReaderPtr>::Type;
+    using IType = typename ReaderStatusType<WrappedReaderPtr>::IType;
 };
 
 template <typename ReadType>

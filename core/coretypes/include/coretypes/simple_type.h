@@ -33,7 +33,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 /*!
  * @brief Simple type created from a CoreType. The name of the type matches that of the CoreType
- * used for its construction (eg. ctInt == "Int"
+ * used for its construction (eg. ctInt == "int"
  */
 DECLARE_OPENDAQ_INTERFACE(ISimpleType, IType)
 {

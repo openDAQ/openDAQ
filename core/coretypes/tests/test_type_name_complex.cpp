@@ -131,14 +131,14 @@ TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3Arg)
 {
     constexpr auto testingName = typeName<GlobalNamespaceTemplatedClass>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "TemplateClass<int32, bool, float>");
 }
 
 TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<GlobalNamespaceTemplatedClass>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "TemplateClass<int32, bool, float>");
 }
 
 // Ex1
@@ -148,14 +148,14 @@ TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3ArgEx1)
 {
     constexpr auto testingName = typeName<GlobalNamespaceTemplatedClassEx1>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int64, UInt32, Int16>");
+    ASSERT_EQ(testingName, "TemplateClass<int64, uint32, int16>");
 }
 
 TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3ArgQualifiedEx1)
 {
     constexpr auto testingName = typeNameQualified<GlobalNamespaceTemplatedClassEx1>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int64, UInt32, Int16>");
+    ASSERT_EQ(testingName, "TemplateClass<int64, uint32, int16>");
 }
 
 // Ex2
@@ -165,21 +165,21 @@ TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3ArgEx2)
 {
     constexpr auto testingName = typeName<GlobalNamespaceTemplatedClassEx2>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int8, UInt64, UInt16>");
+    ASSERT_EQ(testingName, "TemplateClass<int8, uint64, uint16>");
 }
 
 TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedClass3ArgQualifiedEx3)
 {
     constexpr auto testingName = typeNameQualified<GlobalNamespaceTemplatedClassEx2>();
 
-    ASSERT_EQ(testingName, "TemplateClass<Int8, UInt64, UInt16>");
+    ASSERT_EQ(testingName, "TemplateClass<int8, uint64, uint16>");
 }
 
 TEST_F(TypeNameComplexTest, GlobalTemplatedClassWithTemplateArgs)
 {
     constexpr auto testingName = typeNameQualified<TemplatedGlobal<GlobalNamespaceTemplatedClassEx2>>();
 
-    ASSERT_EQ(testingName, "TemplatedGlobal<TemplateClass<Int8, UInt64, UInt16>>");
+    ASSERT_EQ(testingName, "TemplatedGlobal<TemplateClass<int8, uint64, uint16>>");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -192,14 +192,14 @@ TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedStruct3Arg)
 {
     constexpr auto testingName = typeName<GlobalNamespaceTemplatedStruct>();
 
-    ASSERT_EQ(testingName, "TemplateStruct<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "TemplateStruct<int32, bool, float>");
 }
 
 TEST_F(TypeNameComplexTest, GlobalNamespaceTemplatedStruct3ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<GlobalNamespaceTemplatedStruct>();
 
-    ASSERT_EQ(testingName, "TemplateStruct<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "TemplateStruct<int32, bool, float>");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -234,42 +234,42 @@ TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct1Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedStruct1Arg>();
 
-    ASSERT_EQ(testingName, "RecordStruct<Int32>");
+    ASSERT_EQ(testingName, "RecordStruct<int32>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct1ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedStruct1Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::RecordStruct<Int32>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::RecordStruct<int32>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct2Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedStruct2Arg>();
 
-    ASSERT_EQ(testingName, "Struct<Int32, Bool>");
+    ASSERT_EQ(testingName, "Struct<int32, bool>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct2ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedStruct2Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::Struct<Int32, Bool>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::Struct<int32, bool>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct3Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedStruct3Arg>();
 
-    ASSERT_EQ(testingName, "StructRecord<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "StructRecord<int32, bool, float>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedStruct3ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedStruct3Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::StructRecord<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::StructRecord<int32, bool, float>");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -304,42 +304,42 @@ TEST_F(TypeNameComplexTest, NamespacedTemplatedClass3Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedClass3Arg>();
 
-    ASSERT_EQ(testingName, "BarFoo<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "BarFoo<int32, bool, float>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedClass3ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedClass3Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::BarFoo<Int32, Bool, Float>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::BarFoo<int32, bool, float>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedClass2Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedClass2Arg>();
 
-    ASSERT_EQ(testingName, "FooBar<Int32, Bool>");
+    ASSERT_EQ(testingName, "FooBar<int32, bool>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedClass2ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedClass2Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::FooBar<Int32, Bool>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::FooBar<int32, bool>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedClass1Arg)
 {
     constexpr auto testingName = typeName<NamespacedTemplatedClass1Arg>();
 
-    ASSERT_EQ(testingName, "Foo<Int32>");
+    ASSERT_EQ(testingName, "Foo<int32>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedClass1ArgQualified)
 {
     constexpr auto testingName = typeNameQualified<NamespacedTemplatedClass1Arg>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::Foo<Int32>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::Foo<int32>");
 }
 
 
@@ -367,7 +367,7 @@ TEST_F(TypeNameComplexTest, NamespacedTemplatedWithGlobalTemplate)
     using namespace ::Test::Foo;
     constexpr auto testingName = typeName<Bar::Foo<TemplatedGlobal<int32_t>>>();
 
-    ASSERT_EQ(testingName, "Foo<TemplatedGlobal<Int32>>");
+    ASSERT_EQ(testingName, "Foo<TemplatedGlobal<int32>>");
 }
 
 TEST_F(TypeNameComplexTest, NamespacedTemplatedWithGlobalTemplateQualified)
@@ -375,5 +375,5 @@ TEST_F(TypeNameComplexTest, NamespacedTemplatedWithGlobalTemplateQualified)
     using namespace ::Test::Foo;
     constexpr auto testingName = typeNameQualified<Bar::Foo<TemplatedGlobal<int32_t>>>();
 
-    ASSERT_EQ(testingName, "Test::Foo::Bar::Foo<TemplatedGlobal<Int32>>");
+    ASSERT_EQ(testingName, "Test::Foo::Bar::Foo<TemplatedGlobal<int32>>");
 }

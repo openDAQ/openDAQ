@@ -69,7 +69,7 @@ TEST_F(IntfIdTest, BaseObjectGuid)
 
 TEST_F(IntfIdTest, TemplatedTest)
 {
-    constexpr IntfID id = IntfID::FromTypeName("ITemplatedInterface<Int32>.daq");
+    constexpr IntfID id = IntfID::FromTypeName("ITemplatedInterface<int32>.daq");
 
 #if !(defined(__GNUC__) && defined(NDEBUG))
     /* does not compile with GCC on release mode: http://eel.is/c++draft/temp#res-8
@@ -89,8 +89,8 @@ TEST_F(IntfIdTest, TemplatedTest)
 
 TEST_F(IntfIdTest, Templated2Test)
 {
-    constexpr IntfID id1 = IntfID::FromTypeName("ITemplated2Interface<Int32,UInt16>.daq");
-    constexpr IntfID id2 = IntfID::FromTypeName("ITemplated2Interface<Float,Double>.daq");
+    constexpr IntfID id1 = IntfID::FromTypeName("ITemplated2Interface<int32,uint16>.daq");
+    constexpr IntfID id2 = IntfID::FromTypeName("ITemplated2Interface<float,double>.daq");
 
 #if !(defined(__GNUC__) && defined(NDEBUG))
 

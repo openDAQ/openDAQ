@@ -26,7 +26,7 @@ TEST_F(TypeManagerTest, AddTypeSameTwiceStruct)
     auto fieldNames = List<IString>();
     auto fieldTypes = List<IType>();
 
-    fieldNames.pushBack("Int");
+    fieldNames.pushBack("int");
     fieldTypes.pushBack(SimpleType(CoreType::ctInt));
 
     const auto type = StructType("test", fieldNames, fieldTypes);
@@ -42,7 +42,7 @@ TEST_F(TypeManagerTest, AddTypeDifferentSameNameTwiceStruct)
     auto fieldNames1 = List<IString>();
     auto fieldTypes1 = List<IType>();
 
-    fieldNames1.pushBack("Int");
+    fieldNames1.pushBack("int");
     fieldTypes1.pushBack(SimpleType(CoreType::ctInt));
 
     const auto type1 = StructType("test", fieldNames1, fieldTypes1);
@@ -50,7 +50,7 @@ TEST_F(TypeManagerTest, AddTypeDifferentSameNameTwiceStruct)
     auto fieldNames2 = List<IString>();
     auto fieldTypes2 = List<IType>();
 
-    fieldNames2.pushBack("Float");
+    fieldNames2.pushBack("float");
     fieldTypes2.pushBack(SimpleType(CoreType::ctFloat));
 
     const auto type2 = StructType("test", fieldNames2, fieldTypes2);
@@ -66,13 +66,13 @@ TEST_F(TypeManagerTest, RemoveType)
 {
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
-    ASSERT_NO_THROW(manager.removeType("Int"));
+    ASSERT_NO_THROW(manager.removeType("int"));
 }
 
 TEST_F(TypeManagerTest, RemoveTypeNotExisting)
 {
     auto manager = TypeManager();
-    ASSERT_THROW(manager.removeType("Int"), NotFoundException);
+    ASSERT_THROW(manager.removeType("int"), NotFoundException);
 }
 
 TEST_F(TypeManagerTest, GetType)
@@ -80,21 +80,21 @@ TEST_F(TypeManagerTest, GetType)
     auto manager = TypeManager();
     auto type = SimpleType(ctInt);
     manager.addType(type);
-    ASSERT_EQ(manager.getType("Int"), type);
+    ASSERT_EQ(manager.getType("int"), type);
 }
 
 TEST_F(TypeManagerTest, GetTypeNotExisting)
 {
     auto manager = TypeManager();
-    ASSERT_THROW(manager.getType("Int"), NotFoundException);
+    ASSERT_THROW(manager.getType("int"), NotFoundException);
 }
 
 TEST_F(TypeManagerTest, HasType)
 {
     auto manager = TypeManager();
-    ASSERT_FALSE(manager.hasType("Int"));
+    ASSERT_FALSE(manager.hasType("int"));
     manager.addType(SimpleType(ctInt));
-    ASSERT_TRUE(manager.hasType("Int"));
+    ASSERT_TRUE(manager.hasType("int"));
 }
 
 TEST_F(TypeManagerTest, GetTypes)
@@ -111,7 +111,7 @@ TEST_F(TypeManagerTest, Serialization)
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
     manager.addType(SimpleType(ctString));
-    manager.addType(StructType("foo", List<IString>("String"), List<IBaseObject>("foo"), List<IType>(SimpleType(ctString))));
+    manager.addType(StructType("foo", List<IString>("string"), List<IBaseObject>("foo"), List<IType>(SimpleType(ctString))));
 
     const auto serializer = JsonSerializer();
 

@@ -66,38 +66,38 @@ std::string SimpleTypeImpl::coreTypeToString(CoreType coreType)
     switch(coreType)
     {
         case ctBool:
-            return "Bool";
+            return "bool";
         case ctInt:
-            return "Int";
+            return "int";
         case ctFloat:
-            return "Float";
+            return "float";
         case ctString:
-            return "String";
+            return "string";
         case ctList:
-            return "List";
+            return "list";
         case ctDict:
-            return "Dict";
+            return "dict";
         case ctRatio:
-            return "Ratio";
+            return "ratio";
         case ctProc:
-            return "Proc";
+            return "proc";
         case ctObject:
-            return "Object";
+            return "object";
         case ctBinaryData:
-            return "BinaryData";
+            return "binaryData";
         case ctFunc:
-            return "Func";
+            return "func";
         case ctComplexNumber:
-            return "ComplexNumber";
+            return "complexNumber";
         case ctStruct:
-            return "Struct";
+            return "struct";
         case ctEnumeration:
-            return "Enumeration";
+            return "enumeration";
         case ctUndefined:
-            return "Undefined";
+            return "undefined";
     }
 
-    return "Undefined";
+    return "undefined";
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

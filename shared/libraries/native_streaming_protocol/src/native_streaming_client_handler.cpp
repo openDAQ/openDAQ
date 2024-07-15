@@ -42,8 +42,11 @@ PropertyObjectPtr NativeStreamingClientHandler::normalizeAuthenticationObject(co
 
     if (authenticationObject.assigned())
     {
-        normalizedObject.setPropertyValue("Username", authenticationObject.getPropertyValue("Username"));
-        normalizedObject.setPropertyValue("Password", authenticationObject.getPropertyValue("Password"));
+        if (authenticationObject.hasProperty("Username"))
+            normalizedObject.setPropertyValue("Username", authenticationObject.getPropertyValue("Username"));
+
+        if (authenticationObject.hasProperty("Password"))
+            normalizedObject.setPropertyValue("Password", authenticationObject.getPropertyValue("Password"));
     }
 
     return normalizedObject;

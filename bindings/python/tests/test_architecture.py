@@ -14,10 +14,10 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         # Add a reference device and set it as root
         instance.set_root_device('daqref://device0')
 
-        # start a web-socket streaming server
+        # Start a web-socket streaming server
         instance.add_server('OpenDAQLTStreaming', None)
 
-        # start an openDAQ OPC UA and native streaming servers
+        # Start an openDAQ OPC UA and native streaming servers
         instance.add_standard_servers()
 
     def test_discovering_devices(self):

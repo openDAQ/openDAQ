@@ -163,7 +163,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentFloat)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","floating":1.0})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Floating":1.0})";
     ASSERT_THROW(deserializer.deserialize(json.data()), NotFoundException);
 }
 
@@ -209,7 +209,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentBool)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","boolean":true})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Boolean":true})";
     ASSERT_THROW(deserializer.deserialize(json.data()), NotFoundException);
 }
 

@@ -25,6 +25,8 @@ namespace RTGen.CSharp.Generators
     class CSharpGenerator : TemplateGenerator
     {
         private const string SAMPLE_READER    = "ISampleReader";
+        private const string MULTI_READER     = "IMultiReader";
+        private const string BLOCK_READER     = "IBlockReader";
         private const string START_INDEX      = "startIndex";
         private const string START_INDEX_DECL = " nuint " + START_INDEX;
 
@@ -33,6 +35,8 @@ namespace RTGen.CSharp.Generators
         private bool              _useArgumentPointers; //to decorate argument variables with cast and native pointer getter
         private bool              _isFactory;
         private bool              _isBasedOnSampleReader;
+        private bool              _isMultiReader;
+        private bool              _isBlockReader;
         private ITypeName         _currentClassType;
         private string            _currentBaseClassName;
         private string            _currentMethodName;
@@ -135,6 +139,8 @@ namespace RTGen.CSharp.Generators
                 _currentClassType      = currentClass.Type;
                 _currentBaseClassName  = currentClass.BaseType.UnmappedName;
                 _isBasedOnSampleReader = (_currentBaseClassName == SAMPLE_READER);
+                _isMultiReader         = _isBasedOnSampleReader && (_currentClassType.UnmappedName == MULTI_READER);
+                _isBlockReader         = _isBasedOnSampleReader && (_currentClassType.UnmappedName == BLOCK_READER);
             }
         }
 
@@ -421,6 +427,7 @@ namespace RTGen.CSharp.Generators
             bool      isReaderFunction = IsReaderFunction(method);
             bool      isProperty       = IsProperty(method);
             IArgument lastOutParam     = isProperty ? GetPropertyAsArgument(method) : method.GetLastByRefArgument();
+            string[]  voidArgNames     = isReaderFunction ? GetVoidArgumentNames(method).ToArray() : System.Array.Empty<string>();
 
             switch (variable)
             {
@@ -527,6 +534,15 @@ namespace RTGen.CSharp.Generators
 
                 case "CSCheckArrayTypeAndThrow":
                     return GetCheckArrayTypeAndThrowCode();
+
+                case "CSDeclareJaggedArrayPointers":
+                    return GetDeclareJaggedArrayPointersCode();
+
+                case "CSPinJaggedArrays":
+                    return GetPinJaggedArraysCode();
+
+                case "CSFreeJaggedArrays":
+                    return GetFreeJaggedArraysCode();
 
                 case "CSFixedArrays":
                     return GetFixedArrayCode();
@@ -694,12 +710,13 @@ namespace RTGen.CSharp.Generators
 
                 if (isReaderFunction)
                 {
-                    //for SampleReaders: decorate the void pointer argument names with "ArrayPtr"
+                    //for SampleReaders: decorate the void pointer argument names with "ArrayPtr" and cast to IntPtr
 
                     List<string> names = argumentNames.Split(',').ToList();
 
                     int voidArgumentCount = GetVoidArgumentCount(method);
 
+                    //the first n arguments are the void pointers
                     for (int i = 0; i < voidArgumentCount; ++i)
                     {
                         names[i] = $" (IntPtr){names[i].Trim()}ArrayPtr";
@@ -779,7 +796,7 @@ namespace RTGen.CSharp.Generators
 
             string GetReaderArguments(string arguments)
             {
-                if (!isReaderFunction)
+                if (!isReaderFunction || _isMultiReader)
                 {
                     return arguments;
                 }
@@ -799,7 +816,7 @@ namespace RTGen.CSharp.Generators
 
             string GetReaderArgumentNames(string argumentNames)
             {
-                if (!isReaderFunction)
+                if (!isReaderFunction || _isMultiReader)
                 {
                     return argumentNames;
                 }
@@ -825,9 +842,9 @@ namespace RTGen.CSharp.Generators
 
             string GetDocCommentReader()
             {
-                string docComment = GetDocComment(method.Name, method.Documentation).TrimStart();
+                string docComment = GetDocComment(method.Name, method.Documentation).TrimStart(); //remove first indentation as variable is already indented in template
 
-                if (!isReaderFunction)
+                if (!isReaderFunction || _isMultiReader)
                 {
                     return docComment;
                 }
@@ -853,14 +870,27 @@ namespace RTGen.CSharp.Generators
                     return string.Empty;
                 }
 
-                string[] voidArgCodeLines = GetVoidArgumentNames(method)
-                                            .Select(name => $"(nuint){name}.Length").ToArray();
+                Func<string, string> getLengthCode;
+                if (!_isMultiReader)
+                {
+                    string lengthProperty = string.Empty;
+                    if (_isBlockReader)
+                        lengthProperty += " / this.BlockSize";
+
+                    getLengthCode = name => $"(nuint){name}.Length" + lengthProperty;
+                }
+                else
+                {
+                    getLengthCode = name => $"(nuint)CoreTypesHelper.GetSmallestArrayLength({name})";
+                }
+
+                string[] voidArgCodeLines = voidArgNames.Select(name => getLengthCode(name)).ToArray();
 
                 string code = string.Join(", ", voidArgCodeLines);
 
                 if (voidArgCodeLines.Length == 2)
                 {
-                    code = $"(nuint)Math.Min({code})";
+                    code = $"Math.Min({code})";
                 }
 
                 return code;
@@ -873,13 +903,21 @@ namespace RTGen.CSharp.Generators
                     return string.Empty;
                 }
 
+                /*
+                 *  string errorMsg;
+                 *  if (!OpenDAQFactory.CheckSampleType<TValue>(base.ValueReadType, out errorMsg))
+                 *  {
+                 *      throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALIDTYPE,
+                 *                                 $"The samples-array type does not match the reader setting ({errorMsg}).");
+                 *  }
+                 */
+
                 string[] genericParams = default;
                 string[] _ = default;
 
                 //get from stored list
                 GetGenericParametersAndConstraints(_currentBaseClassName + "Base",
                                                    ref genericParams, ref _);
-                string[] voidArgNames = GetVoidArgumentNames(method).ToArray();
                 string indentation = base.Indentation + base.Indentation;
 
                 string[] checkCodeLines = new string[] //array of format strings so escape '{' and '}' when needed
@@ -909,7 +947,51 @@ namespace RTGen.CSharp.Generators
                     codeLines.Add(string.Empty);
                 }
 
-                return string.Join(Environment.NewLine, codeLines).TrimStart();
+                return string.Join(Environment.NewLine, codeLines).TrimStart(); //remove first indentation as variable is already indented in template
+            }
+
+            string GetDeclareJaggedArrayPointersCode()
+            {
+                if (!_isMultiReader)
+                {
+                    return string.Empty;
+                }
+
+                /*
+                 * GCHandle[] pinnedSampleArrayHandles  = null;
+                 * IntPtr[]   pinnedSampleArrayPointers = null;
+                 */
+                return GetCodeUsingVoidArgNames(base.Indentation + base.Indentation,
+                                                arg => $"GCHandle[] pinned{arg.Capitalize()}ArrayHandles  = null;",
+                                                arg => $"IntPtr[]   pinned{arg.Capitalize()}ArrayPointers = null;");
+            }
+
+            string GetPinJaggedArraysCode()
+            {
+                if (!_isMultiReader)
+                {
+                    return string.Empty;
+                }
+
+                /*
+                 * CoreTypesHelper.PinJaggedArray(samples, out pinnedSampleArrayHandles, out pinnedSampleArrayPointers);
+                 */
+                return GetCodeUsingVoidArgNames(base.Indentation + base.Indentation + base.Indentation,
+                                                arg => $"CoreTypesHelper.PinJaggedArray({arg}, out pinned{arg.Capitalize()}ArrayHandles, out pinned{arg.Capitalize()}ArrayPointers);");
+            }
+
+            string GetFreeJaggedArraysCode()
+            {
+                if (!_isMultiReader)
+                {
+                    return string.Empty;
+                }
+
+                /*
+                 * CoreTypesHelper.FreeJaggedArray(ref pinnedSampleArrayHandles, ref pinnedSampleArrayPointers);
+                 */
+                return GetCodeUsingVoidArgNames(base.Indentation + base.Indentation + base.Indentation,
+                                                arg => $"CoreTypesHelper.FreeJaggedArray(ref pinned{arg.Capitalize()}ArrayHandles, ref pinned{arg.Capitalize()}ArrayPointers);");
             }
 
             string GetFixedArrayCode()
@@ -922,21 +1004,47 @@ namespace RTGen.CSharp.Generators
                 string[] genericParams = default;
                 string[] _ = default;
 
-                //get from stored list
-                GetGenericParametersAndConstraints(_currentBaseClassName + "Base",
-                                                   ref genericParams, ref _);
-                string[] voidArgNames = GetVoidArgumentNames(method).ToArray();
                 string indentation = base.Indentation + base.Indentation + base.Indentation;
 
-                List<string> codeLines = new List<string>();
+                if (_isMultiReader)
+                    indentation += base.Indentation;
 
-                for (int index = 0; index < voidArgNames.Length; ++index)
+                //fixed statement - pin a variable for pointer operations
+                //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/fixed
+
+                if (!_isMultiReader)
                 {
-                    string code = $"fixed ({genericParams[index]}* {voidArgNames[index]}ArrayPtr = &{voidArgNames[index]}[{START_INDEX}])";
-                    codeLines.Add(indentation + code);
-                }
+                    /*
+                     * fixed (TValue* samplesArrayPtr = &samples[0, 0])
+                     */
 
-                return string.Join(Environment.NewLine, codeLines).TrimStart();
+                    //get from stored list
+                    GetGenericParametersAndConstraints(_currentBaseClassName + "Base",
+                                                       ref genericParams, ref _);
+
+                    List<string> codeLines = new List<string>();
+
+                    for (int index = 0; index < voidArgNames.Length; ++index)
+                    {
+                        string startIndex = START_INDEX;
+                        if (_isBlockReader)
+                            startIndex += " * this.BlockSize";
+
+                        string code = $"fixed ({genericParams[index]}* {voidArgNames[index]}ArrayPtr = &{voidArgNames[index]}[{startIndex}])";
+                        codeLines.Add(indentation + code);
+                    }
+
+                    return string.Join(Environment.NewLine, codeLines).TrimStart(); //remove first indentation as variable is already indented in template
+                }
+                else
+                {
+                    /*
+                     * fixed (IntPtr* samplesArrayPtr = &jaggedSampleArrayPointers[0])
+                     */
+
+                    return GetCodeUsingVoidArgNames(indentation,
+                                                    arg => $"fixed (IntPtr* {arg}ArrayPtr = &pinned{arg.Capitalize()}ArrayPointers[0])");
+                }
             }
 
             string GetCastTypeName(ITypeName lastOutParamType)
@@ -1024,6 +1132,19 @@ namespace RTGen.CSharp.Generators
                 }
 
                 return code.ToString();
+            }
+
+            string GetCodeUsingVoidArgNames(string indentation, params Func<string, string>[] getCodeFunctions)
+            {
+                List<string> codeLines = new List<string>();
+
+                foreach (var voidArgName in voidArgNames)
+                {
+                    foreach (var getCode in getCodeFunctions)
+                        codeLines.Add(indentation + getCode(voidArgName));
+                }
+
+                return string.Join(Environment.NewLine, codeLines).TrimStart(); //remove first indentation as variable is already indented in template
             }
         }
 
@@ -2258,7 +2379,8 @@ namespace RTGen.CSharp.Generators
                     int voidArgumentNumber = GetVoidArguments(method)
                                              .IndexOf(arg => arg.Name == argument.Name);
 
-                    typeName = $"{genericParams[voidArgumentNumber]}[]";
+                    string arrayKind = !_isMultiReader ? "[]" : "[][]";
+                    typeName = genericParams[voidArgumentNumber] + arrayKind;
                 }
                 else
                 {
@@ -2678,7 +2800,10 @@ namespace RTGen.CSharp.Generators
                 //special cases
                 if (isSampleReader)
                 {
-                    templatePath = Utility.GetTemplate(Options.Language + ".method.impl.samplereader.template");
+                    if (!_isMultiReader)
+                        templatePath = Utility.GetTemplate(Options.Language + ".method.impl.samplereader.template");
+                    else
+                        templatePath = Utility.GetTemplate(Options.Language + ".method.impl.multireader.template");
                 }
                 else if (hasRetVal)
                 {

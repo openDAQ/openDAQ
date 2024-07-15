@@ -112,7 +112,7 @@ SizeT BlockReaderImpl::getAvailableSamples() const
     if (info.currentDataPacketIter != info.dataPacketsQueue.end())
         count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
     if (connection.assigned())
-        count += skipEvents ? connection.getAvailableSamples() : connection.getSamplesUntilNextDescriptor();
+        count += skipEvents ? connection.getSamplesUntilNextGapPacket() : connection.getSamplesUntilNextEventPacket();
     return count;
 }
 
@@ -269,9 +269,19 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
                 return false;
             }
 
-            if (!skipEvents && connection.hasEventPacket())
+            if (skipEvents)
             {
-                return true;
+                if (connection.hasGapPacket())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (connection.hasEventPacket())
+                {
+                    return true;
+                }
             }
 
             if (!notify.dataReady)

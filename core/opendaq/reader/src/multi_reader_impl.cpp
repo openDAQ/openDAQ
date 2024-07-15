@@ -900,8 +900,8 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     std::unique_lock lock(notify.mutex);
     if (portDisconnected)
     {
-            notify.packetReady = false;
-            return OPENDAQ_SUCCESS;
+        notify.packetReady = false;
+        return OPENDAQ_SUCCESS;
     }
 
     for (auto& signal : signals)

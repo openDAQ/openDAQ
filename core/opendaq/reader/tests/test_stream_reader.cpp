@@ -703,7 +703,7 @@ TYPED_TEST(StreamReaderTest, GapDetected)
 
     this->sendPacket(dataPacketDouble);
 
-    ASSERT_EQ(reader.getAvailableCount(), 4u);
+    ASSERT_EQ(reader.getAvailableCount(), 2u);
 
     SizeT count{4};
     TypeParam samplesDouble[4]{};

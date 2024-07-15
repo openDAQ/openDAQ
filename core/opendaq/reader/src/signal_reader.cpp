@@ -110,8 +110,8 @@ SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
     if (connection.assigned())
     {
         count += acrossDescriptorChanges
-            ? connection.getAvailableSamples()
-            : connection.getSamplesUntilNextDescriptor();
+            ? connection.getSamplesUntilNextGapPacket()
+            : connection.getSamplesUntilNextEventPacket();
     }
     return count * sampleRateDivider;
 }
@@ -289,12 +289,21 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
 
-    PacketPtr packet = connection.dequeue();
-    while (packet.assigned())
+    PacketPtr packet;
+    while (true)
     {
-        if (packet.getType() == PacketType::Data)
+        packet = connection.peek();
+        if (!packet.assigned())
+        {
             break;
-        
+        }
+
+        if (packet.getType() == PacketType::Data)
+        {
+            connection.dequeue();
+            break;
+        }
+
         if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
@@ -318,13 +327,13 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
             {
                 if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
                 {
+                    connection.dequeue();
                     packetToReturn = packet;
                 }
                 break;
             }
         }
-
-        packet = connection.dequeue();
+        connection.dequeue();
     }
 
     if (packet.assigned() && packet.getType() == PacketType::Data)

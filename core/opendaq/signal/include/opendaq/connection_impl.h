@@ -55,7 +55,10 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC getSamplesUntilNextGapPacket(SizeT* samples) override;
     ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override;
+    ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
 
@@ -128,6 +131,7 @@ private:
 protected:
     SizeT samplesCnt{};
     SizeT eventPacketsCnt{};
+    SizeT gapPacketsCnt{};
     std::deque<PacketPtr> packets;
 };
 

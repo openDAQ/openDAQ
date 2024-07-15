@@ -264,7 +264,9 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
         }
         if (connection.assigned())
         {
-            *count += skipEvents ? connection.getAvailableSamples() : connection.getSamplesUntilNextDescriptor();
+            *count += skipEvents 
+                ? connection.getSamplesUntilNextGapPacket()
+                : connection.getSamplesUntilNextEventPacket();
         }
     });
 }
@@ -442,11 +444,21 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 return false;
             }
 
-            if (!skipEvents && connection.hasEventPacket())
+            if (skipEvents)
             {
-                return true;
+                if (connection.hasGapPacket())
+                {
+                    return true;
+                }
             }
-    
+            else
+            {
+                if (connection.hasEventPacket())
+                {
+                    return true;
+                }
+            }
+
             auto samples = connection.getAvailableSamples();
             if (timeoutType == ReadTimeoutType::Any)
             {
@@ -497,7 +509,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             }
             if (!offset.assigned())
             {
-                const auto domainPacket =  info.dataPacket.getDomainPacket();
+                const auto domainPacket = info.dataPacket.getDomainPacket();
                 if (domainPacket.assigned())
                 {
                     const auto domainRule = domainPacket.getDataDescriptor().getRule();

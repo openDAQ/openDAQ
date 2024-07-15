@@ -292,6 +292,46 @@ ErrCode ConnectionImpl::getAvailableSamples(SizeT* samples)
     });
 }
 
+ErrCode ConnectionImpl::getSamplesUntilNextEventPacket(SizeT* samples)
+{
+    OPENDAQ_PARAM_NOT_NULL(samples);
+
+    return withLock([samples, this]() {
+        if (eventPacketsCnt == 0 && gapPacketsCnt == 0)
+        {
+            *samples = samplesCnt;
+            LOG_T("Samples until next event packet = {}.", *samples)
+            return OPENDAQ_SUCCESS;
+        }
+        *samples = 0;
+        for (const auto& packet : packets)
+        {
+            switch (packet.getType())
+            {
+                case PacketType::Data:
+                {
+                    auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
+                    if (dataPacket.assigned())
+                    {
+                        *samples += dataPacket.getSampleCount();
+                    }
+                    break;
+                }
+                case PacketType::Event:
+                {
+                    LOG_T("Samples until next event packet = {}.", *samples)
+                    return OPENDAQ_SUCCESS;
+                }
+                case PacketType::None:
+                    break;
+            }
+        }
+
+        LOG_T("Samples until next event packet = {}.", *samples)
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
@@ -337,14 +377,71 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
     });
 }
 
+ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
+{
+        OPENDAQ_PARAM_NOT_NULL(samples);
+
+    return withLock([samples, this]() {
+        if (gapPacketsCnt == 0)
+        {
+            *samples = samplesCnt;
+            LOG_T("Samples until next gap packet = {}.", *samples)
+            return OPENDAQ_SUCCESS;
+        }
+        *samples = 0;
+        for (const auto& packet : packets)
+        {
+            switch (packet.getType())
+            {
+                case PacketType::Data:
+                {
+                    auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
+                    if (dataPacket.assigned())
+                    {
+                        *samples += dataPacket.getSampleCount();
+                    }
+                    break;
+                }
+                case PacketType::Event:
+                {
+                    auto eventPacket = packet.template asPtrOrNull<IEventPacket>(true);
+                    if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+                    {
+                        LOG_T("Samples until next gap packet = {}.", *samples)
+                        return OPENDAQ_SUCCESS;
+                    }
+                    break;
+                }
+                case PacketType::None:
+                    break;
+            }
+        }
+
+        LOG_T("Samples until next gap packet = {}.", *samples)
+        return OPENDAQ_SUCCESS;
+    });    
+}
+
 ErrCode ConnectionImpl::hasEventPacket(Bool* hasEventPacket)
 {
     OPENDAQ_PARAM_NOT_NULL(hasEventPacket);
 
     return withLock([hasEventPacket, this]()
     {
-        *hasEventPacket = eventPacketsCnt > 0;
+        *hasEventPacket = eventPacketsCnt != 0 || gapPacketsCnt != 0;
         LOG_T("Has event packet = {}.", *hasEventPacket)
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ConnectionImpl::hasGapPacket(Bool* hasGapPacket)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasGapPacket);
+
+    return withLock([hasGapPacket, this]()
+    {
+        *hasGapPacket = gapPacketsCnt != 0;
+        LOG_T("Has gap packet = {}.", *hasGapPacket)
         return OPENDAQ_SUCCESS;
     });
 }
@@ -461,6 +558,7 @@ void ConnectionImpl::enqueueGapPacket(const DomainValue& diff)
         diffNumber = diff.valueInt64_t;
 
     const auto gapPacket = ImplicitDomainGapDetectedEventPacket(diffNumber);
+    gapPacketsCnt += 1;
     packets.emplace_back(gapPacket);
     LOGP_T("Gap packet enqueued.")
 }
@@ -595,7 +693,15 @@ void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)
     }
     else if (packet.getType() == PacketType::Event)
     {
-        eventPacketsCnt--;
+        auto eventPacket = packet.asPtr<IEventPacket>(true);
+        if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+        {
+            eventPacketsCnt--;
+        }
+        else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+        {
+            gapPacketsCnt--;
+        }  
     }
 }
 

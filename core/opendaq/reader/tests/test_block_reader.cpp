@@ -1547,7 +1547,7 @@ TYPED_TEST(BlockReaderTest, GapDetected)
 
     this->sendPacket(dataPacketDouble);
 
-    ASSERT_EQ(reader.getAvailableCount(), 3u);
+    ASSERT_EQ(reader.getAvailableCount(), 1u);
 
     SizeT count{3};
     TypeParam samplesDouble[3 * blockSize]{};

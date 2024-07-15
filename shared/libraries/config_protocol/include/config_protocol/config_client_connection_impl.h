@@ -42,7 +42,11 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) override;
+    ErrCode INTERFACE_FUNC getSamplesUntilNextGapPacket(SizeT* samples) override;
+
     ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override;
+    ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
 
@@ -159,11 +163,35 @@ inline ErrCode ConfigClientConnectionImpl::getSamplesUntilNextDescriptor(SizeT* 
     return OPENDAQ_SUCCESS;
 }
 
+inline ErrCode ConfigClientConnectionImpl::getSamplesUntilNextEventPacket(SizeT* samples)
+{
+    OPENDAQ_PARAM_NOT_NULL(samples);
+
+    *samples = 0;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ConfigClientConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
+{
+    OPENDAQ_PARAM_NOT_NULL(samples);
+
+    *samples = 0;
+    return OPENDAQ_SUCCESS;
+}
+
 inline ErrCode ConfigClientConnectionImpl::hasEventPacket(Bool* hasEventPacket)
 {
     OPENDAQ_PARAM_NOT_NULL(hasEventPacket);
 
     *hasEventPacket = false;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ConfigClientConnectionImpl::hasGapPacket(Bool* hasGapPacket)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasGapPacket);
+
+    *hasGapPacket = false;
     return OPENDAQ_SUCCESS;
 }
 

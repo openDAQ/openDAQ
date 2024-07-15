@@ -104,8 +104,6 @@ TEST_F(PowerReaderTest, ConnectOneSignal)
         const auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
         currentSignal.sendPacket(currentPacket);
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
 TEST_F(PowerReaderTest, Simple)
@@ -439,6 +437,10 @@ TEST_F(PowerReaderTest, Gap)
     SizeT count = 200;
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
     ASSERT_EQ(count, 100);
+
+    // to make comparing 100 samples
+    data.resize(100);
+    time.resize(100);
 
     std::vector<double> expectedData(100);
     std::generate(expectedData.begin(),

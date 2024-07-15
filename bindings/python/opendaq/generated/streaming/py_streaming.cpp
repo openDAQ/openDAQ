@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m)
 {
@@ -50,18 +51,18 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
         },
         "Gets the active state of the Streaming. / Sets the Streaming to be either active or inactive.");
     cls.def("add_signals",
-        [](daq::IStreaming *object, daq::IList* signals)
+        [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
-            objectPtr.addSignals(signals);
+            objectPtr.addSignals(getVariantValue<daq::IList*>(signals));
         },
         py::arg("signals"),
         "Adds signals to the Streaming.");
     cls.def("remove_signals",
-        [](daq::IStreaming *object, daq::IList* signals)
+        [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
-            objectPtr.removeSignals(signals);
+            objectPtr.removeSignals(getVariantValue<daq::IList*>(signals));
         },
         py::arg("signals"),
         "Removes signals from the Streaming.");

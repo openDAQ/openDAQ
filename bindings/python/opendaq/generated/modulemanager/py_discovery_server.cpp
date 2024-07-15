@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDiscoveryServer, daq::IBaseObject> declareIDiscoveryServer(pybind11::module_ m)
 {
@@ -40,18 +41,18 @@ void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer
     m.def("MdnsDiscoveryServer", &daq::MdnsDiscoveryServer_Create);
 
     cls.def("register_service",
-        [](daq::IDiscoveryServer *object, const std::string& id, daq::IPropertyObject* config, daq::IDeviceInfo* deviceInfo)
+        [](daq::IDiscoveryServer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::IPropertyObject* config, daq::IDeviceInfo* deviceInfo)
         {
             const auto objectPtr = daq::DiscoveryServerPtr::Borrow(object);
-            objectPtr.registerService(id, config, deviceInfo);
+            objectPtr.registerService(getVariantValue<daq::IString*>(id), config, deviceInfo);
         },
         py::arg("id"), py::arg("config"), py::arg("device_info"),
         "");
     cls.def("unregister_service",
-        [](daq::IDiscoveryServer *object, const std::string& id)
+        [](daq::IDiscoveryServer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
             const auto objectPtr = daq::DiscoveryServerPtr::Borrow(object);
-            objectPtr.unregisterService(id);
+            objectPtr.unregisterService(getVariantValue<daq::IString*>(id));
         },
         py::arg("id"),
         "");

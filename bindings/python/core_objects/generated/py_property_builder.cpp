@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IPropertyBuilder, daq::IBaseObject> declareIPropertyBuilder(pybind11::module_ m)
 {
@@ -37,21 +38,66 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
 {
     cls.doc() = "The builder interface of Properties. Allows for construction of Properties through the `build` method.";
 
-    m.def("PropertyBuilder", &daq::PropertyBuilder_Create);
-    m.def("BoolPropertyBuilder", &daq::BoolPropertyBuilder_Create);
-    m.def("IntPropertyBuilder", &daq::IntPropertyBuilder_Create);
-    m.def("FloatPropertyBuilder", &daq::FloatPropertyBuilder_Create);
-    m.def("StringPropertyBuilder", &daq::StringPropertyBuilder_Create);
-    m.def("ListPropertyBuilder", &daq::ListPropertyBuilder_Create);
-    m.def("DictPropertyBuilder", &daq::DictPropertyBuilder_Create);
-    m.def("RatioPropertyBuilder", &daq::RatioPropertyBuilder_Create);
-    m.def("ObjectPropertyBuilder", &daq::ObjectPropertyBuilder_Create);
-    m.def("ReferencePropertyBuilder", &daq::ReferencePropertyBuilder_Create);
-    m.def("FunctionPropertyBuilder", &daq::FunctionPropertyBuilder_Create);
-    m.def("SelectionPropertyBuilder", &daq::SelectionPropertyBuilder_Create);
-    m.def("SparseSelectionPropertyBuilder", &daq::SparseSelectionPropertyBuilder_Create);
-    m.def("StructPropertyBuilder", &daq::StructPropertyBuilder_Create);
-    m.def("EnumerationPropertyBuilder", &daq::EnumerationPropertyBuilder_Create);
+    m.def("PropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name){
+        return daq::PropertyBuilder_Create(getVariantValue<daq::IString*>(name));
+    }, py::arg("name"));
+
+    m.def("BoolPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& defaultValue){
+        return daq::BoolPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IBoolean*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("IntPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue){
+        return daq::IntPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IInteger*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("FloatPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IFloat*, double, daq::IEvalValue*>& defaultValue){
+        return daq::FloatPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IFloat*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("StringPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& defaultValue){
+        return daq::StringPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("ListPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& defaultValue){
+        return daq::ListPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("DictPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IDict*, py::dict>& defaultValue){
+        return daq::DictPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IDict*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("RatioPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IRatio*, std::pair<int64_t, int64_t>>& defaultValue){
+        return daq::RatioPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IRatio*>(defaultValue));
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("ObjectPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IPropertyObject* defaultValue){
+        return daq::ObjectPropertyBuilder_Create(getVariantValue<daq::IString*>(name), defaultValue);
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("ReferencePropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEvalValue* referencedPropertyEval){
+        return daq::ReferencePropertyBuilder_Create(getVariantValue<daq::IString*>(name), referencedPropertyEval);
+    }, py::arg("name"), py::arg("referenced_property_eval"));
+
+    m.def("FunctionPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::ICallableInfo* callableInfo){
+        return daq::FunctionPropertyBuilder_Create(getVariantValue<daq::IString*>(name), callableInfo);
+    }, py::arg("name"), py::arg("callable_info"));
+
+    m.def("SelectionPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& selectionValues, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue){
+        return daq::SelectionPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(selectionValues), getVariantValue<daq::IInteger*>(defaultValue));
+    }, py::arg("name"), py::arg("selection_values"), py::arg("default_value"));
+
+    m.def("SparseSelectionPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IDict*, py::dict>& selectionValues, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& defaultValue){
+        return daq::SparseSelectionPropertyBuilder_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IDict*>(selectionValues), getVariantValue<daq::IInteger*>(defaultValue));
+    }, py::arg("name"), py::arg("selection_values"), py::arg("default_value"));
+
+    m.def("StructPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IStruct* defaultValue){
+        return daq::StructPropertyBuilder_Create(getVariantValue<daq::IString*>(name), defaultValue);
+    }, py::arg("name"), py::arg("default_value"));
+
+    m.def("EnumerationPropertyBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* defaultValue){
+        return daq::EnumerationPropertyBuilder_Create(getVariantValue<daq::IString*>(name), defaultValue);
+    }, py::arg("name"), py::arg("default_value"));
+
 
     cls.def("build",
         [](daq::IPropertyBuilder *object)
@@ -78,10 +124,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IPropertyBuilder *object, const std::string& name)
+        [](daq::IPropertyBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the Name of the Property. / Sets the Name of the Property. The names of Properties in a Property object must be unique. The name is used as the key to the corresponding Property value when getting/setting the value.");
     cls.def_property("description",
@@ -90,10 +136,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
-        [](daq::IPropertyBuilder *object, const std::string& description)
+        [](daq::IPropertyBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setDescription(description);
+            objectPtr.setDescription(getVariantValue<daq::IString*>(description));
         },
         "Gets the short string Description of the Property. / Sets the short string Description of the Property.");
     cls.def_property("unit",
@@ -115,10 +161,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMinValue().detach();
         },
-        [](daq::IPropertyBuilder *object, const py::object& min)
+        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& min)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setMinValue(pyObjectToBaseObject(min));
+            objectPtr.setMinValue(getVariantValue<daq::INumber*>(min));
         },
         py::return_value_policy::take_ownership,
         "Gets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`. / Sets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.");
@@ -128,10 +174,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMaxValue().detach();
         },
-        [](daq::IPropertyBuilder *object, const py::object& max)
+        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& max)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setMaxValue(pyObjectToBaseObject(max));
+            objectPtr.setMaxValue(getVariantValue<daq::INumber*>(max));
         },
         py::return_value_policy::take_ownership,
         "Gets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`. / Sets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.");
@@ -154,10 +200,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getSuggestedValues().detach();
         },
-        [](daq::IPropertyBuilder *object, const py::object& values)
+        [](daq::IPropertyBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& values)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setSuggestedValues(pyObjectToBaseObject(values));
+            objectPtr.setSuggestedValues(getVariantValue<daq::IList*>(values));
         },
         py::return_value_policy::take_ownership,
         "Gets the list of Suggested values. Contains values that are the optimal gettings for the corresponding Property value. These values, however, are not enforced when getting a new Property value. / Sets the list of Suggested values. Contains values that are the optimal settings for the corresponding Property value. These values, however, are not enforced when setting a new Property value.");
@@ -167,10 +213,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getVisible().detach();
         },
-        [](daq::IPropertyBuilder *object, const py::object& visible)
+        [](daq::IPropertyBuilder *object, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& visible)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setVisible(pyObjectToBaseObject(visible));
+            objectPtr.setVisible(getVariantValue<daq::IBoolean*>(visible));
         },
         py::return_value_policy::take_ownership,
         "Used to determine whether the property is visible or not. / Used to determine whether the property is visible or not.");
@@ -180,10 +226,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getReadOnly().detach();
         },
-        [](daq::IPropertyBuilder *object, const py::object& readOnly)
+        [](daq::IPropertyBuilder *object, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& readOnly)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setReadOnly(pyObjectToBaseObject(readOnly));
+            objectPtr.setReadOnly(getVariantValue<daq::IBoolean*>(readOnly));
         },
         py::return_value_policy::take_ownership,
         "Used to determine whether the Property is a read-only property or not. / Used to determine whether the Property is a read-only property or not.");

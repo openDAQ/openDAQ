@@ -28,6 +28,7 @@
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IOwnable, daq::IBaseObject> declareIOwnable(pybind11::module_ m)
 {
     return wrapInterface<daq::IOwnable, daq::IBaseObject>(m, "IOwnable");

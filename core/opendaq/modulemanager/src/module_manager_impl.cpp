@@ -24,6 +24,7 @@
 #include <optional>
 #include <map>
 #include <opendaq/device_info_factory.h>
+#include <coreobjects/property_object_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -420,8 +421,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         }
     }
 
-    const auto configPtr = PropertyObjectPtr::Borrow(config);
+    auto borrowedConfigPtr = PropertyObjectPtr::Borrow(config);
+
+    PropertyObjectPtr configPtr;
+    if (borrowedConfigPtr.assigned())
+        borrowedConfigPtr.asPtr<IPropertyObjectInternal>()->clone(&configPtr);
+
     const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configPtr);
+    PropertyObjectPtr generalConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
     PropertyObjectPtr devConfig = isDefaultAddDeviceConfigRes ? configPtr.getPropertyValue("Device").asPtr<IPropertyObject>() : configPtr;
 
     for (const auto& library : libraries)
@@ -450,9 +457,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (isDefaultAddDeviceConfigRes)
         {
             if (devConfig.hasProperty(id))
+            {
                 devConfig = devConfig.getPropertyValue(id);
+                copyGeneralProperties(generalConfig, devConfig);
+            }
             else
+            {
                 devConfig = nullptr;
+            }
         }
 
         auto errCode = module->createDevice(device, connectionStringPtr, parent, devConfig);
@@ -905,7 +917,9 @@ void ModuleManagerImpl::configureStreamings(MirroredDeviceConfigPtr& topDevice, 
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
+    const bool isDefaultDeviceConfig = isDefaultAddDeviceConfig(config);
     StreamingPtr streaming = nullptr;
+    PropertyObjectPtr generalConfig = isDefaultDeviceConfig ? config.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
     PropertyObjectPtr streamingConfig = isDefaultAddDeviceConfig(config) ? config.getPropertyValue("Streaming").asPtr<IPropertyObject>() : config;
 
     for (const auto& library : libraries)
@@ -934,9 +948,14 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (isDefaultAddDeviceConfig(config))
         {
             if (streamingConfig.hasProperty(id))
+            {
                 streamingConfig = streamingConfig.getPropertyValue(id);
+                copyGeneralProperties(generalConfig, streamingConfig);
+            }
             else
+            {
                 streamingConfig = nullptr;
+            }
         }
 
         try
@@ -970,6 +989,9 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
 
     obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
+    obj.addProperty(StringProperty("Username", ""));
+    obj.addProperty(StringProperty("Password", ""));
 
     return obj.detach();
 }
@@ -1036,6 +1058,22 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCa
 
     merged.freeze();
     return merged.detach();
+}
+
+void ModuleManagerImpl::copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj)
+{
+    if (!general.assigned())
+        return;
+
+    for (const auto& prop : general.getAllProperties())
+    {
+        const auto name = prop.getName();
+        const auto value = general.getPropertyValue(name);
+        const auto defaultValue = prop.getDefaultValue();
+
+        if (tartgetObj.hasProperty(name) && tartgetObj.getPropertyValue(name) == defaultValue)
+            tartgetObj.setPropertyValue(name, value);
+    }
 }
 
 bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config)

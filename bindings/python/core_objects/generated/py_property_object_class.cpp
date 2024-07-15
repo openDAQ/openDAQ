@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IPropertyObjectClass, daq::IType> declareIPropertyObjectClass(pybind11::module_ m)
 {
@@ -47,18 +48,18 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
         },
         "Gets the name of the parent of the property class.");
     cls.def("get_property",
-        [](daq::IPropertyObjectClass *object, const std::string& propertyName)
+        [](daq::IPropertyObjectClass *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
-            return objectPtr.getProperty(propertyName).detach();
+            return objectPtr.getProperty(getVariantValue<daq::IString*>(propertyName)).detach();
         },
         py::arg("property_name"),
         "Gets the class's property with the given name.");
     cls.def("has_property",
-        [](daq::IPropertyObjectClass *object, const std::string& propertyName)
+        [](daq::IPropertyObjectClass *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
-            return objectPtr.hasProperty(propertyName);
+            return objectPtr.hasProperty(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Checks if the property is registered.");

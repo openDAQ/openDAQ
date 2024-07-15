@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IScalingBuilder, daq::IBaseObject> declareIScalingBuilder(pybind11::module_ m)
 {
@@ -89,26 +90,26 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },
-        [](daq::IScalingBuilder *object, daq::IDict* parameters)
+        [](daq::IScalingBuilder *object, std::variant<daq::IDict*, py::dict>& parameters)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
-            objectPtr.setParameters(parameters);
+            objectPtr.setParameters(getVariantValue<daq::IDict*>(parameters));
         },
         py::return_value_policy::take_ownership,
         "Gets the list of parameters that are used to calculate the scaling in conjunction with the input data. / Gets the list of parameters that are used to calculate the scaling in conjunction with the input data.");
     cls.def("add_parameter",
-        [](daq::IScalingBuilder *object, const std::string& name, const py::object& parameter)
+        [](daq::IScalingBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const py::object& parameter)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
-            objectPtr.addParameter(name, pyObjectToBaseObject(parameter));
+            objectPtr.addParameter(getVariantValue<daq::IString*>(name), pyObjectToBaseObject(parameter));
         },
         py::arg("name"), py::arg("parameter"),
         "Adds a string-object pair parameter to the Dictionary of Scaling parameters.");
     cls.def("remove_parameter",
-        [](daq::IScalingBuilder *object, const std::string& name)
+        [](daq::IScalingBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
-            objectPtr.removeParameter(name);
+            objectPtr.removeParameter(getVariantValue<daq::IString*>(name));
         },
         py::arg("name"),
         "Removes the parameter with the given name from the Dictionary of Scaling parameters.");

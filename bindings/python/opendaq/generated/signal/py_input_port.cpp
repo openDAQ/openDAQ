@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IInputPort, daq::IComponent> declareIInputPort(pybind11::module_ m)
 {
     return wrapInterface<daq::IInputPort, daq::IComponent>(m, "IInputPort");

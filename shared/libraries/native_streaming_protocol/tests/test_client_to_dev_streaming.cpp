@@ -19,7 +19,7 @@ public:
         ClientAttributesBase::setUp();
 
         clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            clientContext, ClientAttributesBase::createTransportLayerConfig());
+            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         connectionStatusPromise = std::promise< ClientConnectionStatus >();
         connectionStatusFuture = connectionStatusPromise.get_future();

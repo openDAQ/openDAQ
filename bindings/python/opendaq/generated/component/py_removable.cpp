@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IRemovable, daq::IBaseObject> declareIRemovable(pybind11::module_ m)
 {
     return wrapInterface<daq::IRemovable, daq::IBaseObject>(m, "IRemovable");

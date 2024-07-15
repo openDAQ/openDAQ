@@ -69,7 +69,8 @@ class NativeStreamingClientHandler
 {
 public:
     explicit NativeStreamingClientHandler(const ContextPtr& context,
-                                          const PropertyObjectPtr& transportLayerProperties);
+                                          const PropertyObjectPtr& transportLayerProperties,
+                                          const PropertyObjectPtr& authenticationObject);
 
     ~NativeStreamingClientHandler();
 
@@ -99,8 +100,10 @@ public:
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
+    PropertyObjectPtr normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
+    daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void initClient(std::string host,
                     std::string port,
                     std::string path);
@@ -126,6 +129,7 @@ protected:
 
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
+    PropertyObjectPtr authenticationObject;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     std::thread ioThread;
     LoggerPtr logger;

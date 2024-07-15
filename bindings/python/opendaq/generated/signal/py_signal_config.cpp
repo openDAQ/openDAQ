@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ISignalConfig, daq::ISignal> declareISignalConfig(pybind11::module_ m)
 {
@@ -37,8 +38,14 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
 {
     cls.doc() = "The configuration component of a Signal. Allows for configuration of its properties, managing its streaming sources, and sending packets through its connections.";
 
-    m.def("Signal", &daq::Signal_Create);
-    m.def("SignalWithDescriptor", &daq::SignalWithDescriptor_Create);
+    m.def("Signal", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
+        return daq::Signal_Create(context, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className));
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"));
+
+    m.def("SignalWithDescriptor", [](daq::IContext* context, daq::IDataDescriptor* descriptor, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
+        return daq::SignalWithDescriptor_Create(context, descriptor, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className));
+    }, py::arg("context"), py::arg("descriptor"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"));
+
 
     cls.def_property("descriptor",
         nullptr,
@@ -58,10 +65,10 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         "Sets the domain signal reference.");
     cls.def_property("related_signals",
         nullptr,
-        [](daq::ISignalConfig *object, daq::IList* signals)
+        [](daq::ISignalConfig *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            objectPtr.setRelatedSignals(signals);
+            objectPtr.setRelatedSignals(getVariantValue<daq::IList*>(signals));
         },
         "Sets the list of related signals.");
     cls.def("add_related_signal",
@@ -96,10 +103,10 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         py::arg("packet"),
         "Sends a packet through all connections of the signal.");
     cls.def("send_packets",
-        [](daq::ISignalConfig *object, daq::IList* packets)
+        [](daq::ISignalConfig *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& packets)
         {
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            objectPtr.sendPackets(packets);
+            objectPtr.sendPackets(getVariantValue<daq::IList*>(packets));
         },
         py::arg("packets"),
         "Sends multiple packets through all connections of the signal.");

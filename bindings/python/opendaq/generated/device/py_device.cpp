@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDevice, daq::IFolder> declareIDevice(pybind11::module_ m)
 {
@@ -166,10 +167,10 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         py::return_value_policy::take_ownership,
         "Get a dictionary of available device types as <IString, IDeviceType> pairs");
     cls.def("add_device",
-        [](daq::IDevice *object, const std::string& connectionString, daq::IPropertyObject* config)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            return objectPtr.addDevice(connectionString, config).detach();
+            return objectPtr.addDevice(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Connects to a device at the given connection string and returns it.");
@@ -206,10 +207,10 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         py::return_value_policy::take_ownership,
         "Gets all function block types that are supported by the device, containing their description.");
     cls.def("add_function_block",
-        [](daq::IDevice *object, const std::string& typeId, daq::IPropertyObject* config)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            return objectPtr.addFunctionBlock(typeId, config).detach();
+            return objectPtr.addFunctionBlock(getVariantValue<daq::IString*>(typeId), config).detach();
         },
         py::arg("type_id"), py::arg("config") = nullptr,
         "Creates and adds a function block to the device with the provided unique ID and returns it.");
@@ -229,10 +230,10 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         "Saves the configuration of the device to string.");
     cls.def("load_configuration",
-        [](daq::IDevice *object, const std::string& configuration)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration)
         {
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            objectPtr.loadConfiguration(configuration);
+            objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration));
         },
         py::arg("configuration"),
         "Loads the configuration of the device from string.");
@@ -244,10 +245,10 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         "Gets the number of ticks passed since the device's absolute origin.");
     cls.def("add_streaming",
-        [](daq::IDevice *object, const std::string& connectionString, daq::IPropertyObject* config)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            return objectPtr.addStreaming(connectionString, config).detach();
+            return objectPtr.addStreaming(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Connects to a streaming at the given connection string, adds it as a streaming source of device and returns created streaming object.");

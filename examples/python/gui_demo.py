@@ -163,14 +163,6 @@ class App(tk.Tk):
         except Exception as e:
             print(f"Error pasting from clipboard: {e}")
 
-    def menu_bar_right_side_panel_create(self):
-        menu_bar = tk.Menu(self)
-        self.config(menu=menu_bar)
-
-        edit_menu = tk.Menu(menu_bar, tearoff=0)
-        edit_menu.add_command(label='Copy', command=self.copy_from_clipboard)
-        edit_menu.add_command(label='Paste', command=self.paste_to_clipboard)
-
     def init_opendaq(self):
 
         # add the first device if connection string is provided once on start
@@ -258,8 +250,7 @@ class App(tk.Tk):
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
-            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW,
-            None) or component.parent is None else component.parent.global_id
+            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
 
         if folder is None or folder.items:
             if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):
@@ -384,7 +375,6 @@ class App(tk.Tk):
     # MARK: - Add device dialog
     def add_device_dialog_show(self):
         dialog = AddDeviceDialog(self, self.context, None)
-        print(self.context)
         dialog.show()
 
     # MARK: - Add function block dialog

@@ -142,27 +142,6 @@ class App(tk.Tk):
 
         self.init_opendaq()
 
-    # Copy and paste functions
-    def copy_from_clipboard(self):
-        try:
-            widget = self.focus_get()
-            if isinstance(widget, (tk.Entry, tk.Text)):
-                clipboard_text = self.clipboard_get()
-                if clipboard_text:
-                    widget.insert(tk.INSERT, clipboard_text)
-        except Exception as e:
-            print(f"Error copying to clipboard: {e}")
-
-    def paste_to_clipboard(self):
-        try:
-            widget = self.focus_get()
-            if isinstance(widget, (tk.Entry, tk.Text)):
-                selected_text = widget.selection_get()
-                self.clipboard_clear()
-                self.clipboard_append(selected_text)
-        except Exception as e:
-            print(f"Error pasting from clipboard: {e}")
-
     def init_opendaq(self):
 
         # add the first device if connection string is provided once on start

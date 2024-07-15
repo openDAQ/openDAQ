@@ -135,7 +135,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentInt)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":")" + factoryId + R"(","integer":1})";
+    std::string json = R"({"__type":")" + factoryId + R"(","Integer":1})";
     ASSERT_THROW(deserializer.deserialize(json.data()), NotFoundException);
 }
 

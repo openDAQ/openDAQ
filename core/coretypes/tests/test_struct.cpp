@@ -35,7 +35,7 @@ TEST_F(StructObjectTest, SimpleStruct)
 {
     const auto manager = TypeManager();
 
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Float", 5.123}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}});
     const auto simpleStruct = Struct("foo", structMembers, manager);
 
     ASSERT_EQ(manager.getTypes().getCount(), 1u);
@@ -50,7 +50,7 @@ TEST_F(StructObjectTest, NestedStructCustom)
 {
     const auto manager = TypeManager();
     const auto innerStruct = Struct("bar", Dict<IString, IBaseObject>({{"Float", 5.123}}), manager);
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Struct", innerStruct}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Struct", innerStruct}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
     ASSERT_EQ(manager.getTypes().getCount(), 2u);
@@ -63,7 +63,7 @@ TEST_F(StructObjectTest, NestedStructPredefined)
     const auto manager = TypeManager();
     const auto ratio = Ratio(10, 15);
     const auto complexNumber = ComplexNumber(1.123, 2.234);
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Ratio", ratio},
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Ratio", ratio},
                                                            {"ComplexNumber", complexNumber}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
@@ -136,7 +136,7 @@ TEST_F(StructObjectTest, RegisteredStructInvalidNames)
                                  List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
 
     manager.addType(type);
-    ASSERT_THROW(Struct("foo", Dict<IString, IBaseObject>({{"String", "foo"}, {"integer", 10}, {"Float", 1.123}}), manager),
+    ASSERT_THROW(Struct("foo", Dict<IString, IBaseObject>({{"String", "foo"}, {"Integer", 10}, {"Float", 1.123}}), manager),
                  InvalidParameterException);
 }
 
@@ -181,7 +181,7 @@ TEST_F(StructObjectTest, SimpleStructSerialization)
 {
     const auto manager = TypeManager();
 
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Float", 5.123}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}});
     const auto simpleStruct = Struct("foo", structMembers, manager);
 
     const auto serializer = JsonSerializer();
@@ -200,7 +200,7 @@ TEST_F(StructObjectTest, ComplexStructSerialization)
 {
     const auto manager = TypeManager();
     const auto innerStruct = Struct("bar", Dict<IString, IBaseObject>({{"Float", 5.123}}), manager);
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Struct", innerStruct}, {"Ratio", Ratio(10, 5)}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Struct", innerStruct}, {"Ratio", Ratio(10, 5)}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
     const auto serializer = JsonSerializer();
@@ -218,7 +218,7 @@ TEST_F(StructObjectTest, ComplexStructSerializationEmptyManager)
 {
     const auto manager = TypeManager();
     const auto innerStruct = Struct("bar", Dict<IString, IBaseObject>({{"Float", 5.123}}), manager);
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}, {"Struct", innerStruct}, {"Ratio", Ratio(10, 5)}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Struct", innerStruct}, {"Ratio", Ratio(10, 5)}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
     const auto serializer = JsonSerializer();
@@ -392,7 +392,7 @@ TEST_F(StructObjectTest, PrintTrackedObjectWithoutDeadlock)
 
     const auto manager = TypeManager();
 
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"integer", 10}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}});
     const auto simpleStruct = Struct("foo", structMembers, manager);
 
     daqPrintTrackedObjects();  // Struct::ToString should not create any new objects (deadlock)

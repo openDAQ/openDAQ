@@ -365,7 +365,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
 
 TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
 {
-    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar1"}, {"integer", 11}, {"Float", 5.223}});
+    const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar1"}, {"Integer", 11}, {"Float", 5.223}});
     const auto structVal = Struct("FooStruct", structMembers, serverDevice.getContext().getTypeManager());
     serverDevice.setPropertyValue("StructProp", structVal);
 

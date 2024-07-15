@@ -38,9 +38,9 @@ void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderSt
 {
     cls.doc() = "IMultiReaderStatus inherits from IReaderStatus to expand information returned read function";
 
-    m.def("MultiReaderStatus", [](std::variant<daq::IDict*, py::dict>& eventPackets, const bool valid){
-        return daq::MultiReaderStatus_Create(getVariantValue<daq::IDict*>(eventPackets), valid);
-    }, py::arg("event_packets"), py::arg("valid"));
+    m.def("MultiReaderStatus", [](std::variant<daq::IDict*, py::dict>& eventPackets, const bool valid, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset){
+        return daq::MultiReaderStatus_Create(getVariantValue<daq::IDict*>(eventPackets), valid, getVariantValue<daq::INumber*>(offset));
+    }, py::arg("event_packets"), py::arg("valid"), py::arg("offset"));
 
 
     cls.def_property_readonly("event_packets",

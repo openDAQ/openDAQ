@@ -217,7 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu 20.04 gcc-10 Release
+          - name: Ubuntu 20.04 gcc-10 Release x86_64
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
@@ -227,7 +227,16 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
-
+          - name: Ubuntu 20.04 gcc-10 Release arm64
+            image: ubuntu:20.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
+            build_documentation: true
+            cpack: DEB
+            apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc-10
+            cxx: aarch64-linux-gnu-g++-10
     container:
       image: ${{ matrix.image }}
       env:
@@ -296,6 +305,7 @@ jobs:
         if: github.ref != 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
+          rename 's/_arm64/-ubuntu20.04-arm64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
       - name: Read openDAQ version

@@ -198,15 +198,15 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     auto authProvider = StaticAuthenticationProvider(false, users);
 
     auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
-    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     auto clientInstance = Instance();
 
     auto config = clientInstance.createDefaultAddDeviceConfig();
     PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
-    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("opendaq_native_streaming");
+    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
 
     nativeDeviceConfig.setPropertyValue("Username", "jure");
     nativeDeviceConfig.setPropertyValue("Password", "jure123");

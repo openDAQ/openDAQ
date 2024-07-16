@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,12 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 struct IAddressInfoBuilder;
+
+/*!
+ * @ingroup opendaq_server_capability
+ * @addtogroup opendaq_address_info Address info
+ * @{
+ */
 
 enum class AddressReachabilityStatus: uint32_t
 {
@@ -65,6 +71,14 @@ DECLARE_OPENDAQ_INTERFACE(IAddressInfo, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getReachabilityStatus(AddressReachabilityStatus* addressReachability) = 0;
 };
 
+/*!@}*/
+
+/*!
+ * @ingroup opendaq_address_info
+ * @addtogroup opendaq_address_info_factories Factories
+ * @{
+ */
+
 /*!
  * @brief Creates an Address with no parameters configured.
  */
@@ -81,5 +95,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, AddressInfoFromBuilder, IAddressInfo,
     IAddressInfoBuilder*, builder
 )
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

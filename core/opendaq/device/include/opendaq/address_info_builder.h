@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@
 #include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @ingroup opendaq_server_capability
+ * @addtogroup opendaq_address_info Address info
+ * @{
+ */
 
 DECLARE_OPENDAQ_INTERFACE(IAddressInfoBuilder, IBaseObject)
 {
@@ -91,10 +97,19 @@ DECLARE_OPENDAQ_INTERFACE(IAddressInfoBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setReachabilityStatus(AddressReachabilityStatus addressReachability) = 0;
 };
 
+/*!@}*/
+
+/*!
+ * @ingroup opendaq_address_info
+ * @addtogroup opendaq_address_info_factories Factories
+ * @{
+ */
 
 /*!
  * @brief Creates an Address builder with no parameters configured.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, AddressInfoBuilder, IAddressInfoBuilder)
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

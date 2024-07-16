@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,29 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_address_info
+ * @addtogroup opendaq_address_info_factories Factories
+ * @{
+ */
+    
+/*!
+ * @brief Creates an Address with no parameters configured.
+ */
 inline AddressInfoPtr AddressInfo()
 {
     AddressInfoPtr obj(AddressInfo_Create());
     return obj;
 }
 
+/*!
+ * @brief Creates an Address builder with no parameters configured.
+ */
 inline AddressInfoBuilderPtr AddressInfoBuilder()
 {
     AddressInfoBuilderPtr obj(AddressInfoBuilder_Create());
     return obj;
 }
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

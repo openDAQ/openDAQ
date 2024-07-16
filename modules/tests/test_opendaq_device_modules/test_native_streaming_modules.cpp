@@ -116,11 +116,11 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -131,7 +131,7 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
             {
                 const auto ipv4Info = capability.getAddressInfo()[0];
                 const auto ipv6Info = capability.getAddressInfo()[1];

@@ -182,11 +182,11 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/lt/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -197,7 +197,7 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 const auto ipv4Info = capability.getAddressInfo()[0];
                 const auto ipv6Info = capability.getAddressInfo()[1];

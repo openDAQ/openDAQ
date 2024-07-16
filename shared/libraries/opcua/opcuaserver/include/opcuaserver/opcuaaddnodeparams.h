@@ -53,7 +53,8 @@ class AddObjectNodeParams : public GenericAddNodeParams<UA_ObjectAttributes>
 public:
     AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId);
     AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId);
-    
+    AddObjectNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId);
+
     OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEOBJECTTYPE);
 };
 

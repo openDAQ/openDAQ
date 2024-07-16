@@ -253,7 +253,7 @@ void ContextImpl::registerOpenDaqTypes()
     const auto enumStepFlag = EnumerationType(
         "PtpStepFlagEnumeration", List<IString>("One", "Two"));
     const auto enumTransportProtocol = EnumerationType(
-        "PtpProtocolEnumeration", List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6", "UDP6_ SCOPE"));
+        "PtpProtocolEnumeration", List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6", "UDP6_SCOPE"));
     const auto enumDelayMechanism = EnumerationType(
         "PtpDelayMechanismEnumeration", List<IString>("P2P", "E2E"));
     const auto enumProfiles = EnumerationType(

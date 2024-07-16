@@ -191,7 +191,7 @@ ErrCode InstanceImpl::getAvailableServerTypes(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
-StringPtr InstanceImpl::convertIfOldId(const StringPtr& id)
+StringPtr InstanceImpl::convertIfOldIdProtocol(const StringPtr& id)
 {
     if (id == "openDAQ LT Streaming")
         return "OpenDAQLTStreaming";
@@ -207,7 +207,7 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
     OPENDAQ_PARAM_NOT_NULL(serverTypeId);
     OPENDAQ_PARAM_NOT_NULL(server);
 
-    auto typeId = convertIfOldId(toStdString(serverTypeId));
+    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
 
     for (const auto module : moduleManager.getModules())
     {

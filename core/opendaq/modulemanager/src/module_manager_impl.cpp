@@ -545,6 +545,24 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         {
             const auto connectedDeviceInfo = devicePtr.getInfo();
             const auto connectedDeviceInfoInternal = connectedDeviceInfo.asPtr<IDeviceInfoInternal>();
+
+            using namespace search;
+            auto devices = devicePtr.getDevices(Recursive(Any()));
+            devices.pushBack(devicePtr);
+
+            for (const auto& dev : devices)
+            {
+                const auto devInfo = dev.getInfo();
+                const auto devInfoInternal = devInfo.asPtr<IDeviceInfoInternal>();
+
+                for (const auto& cap : devInfo.getServerCapabilities())
+                {
+                    const auto newCap = replaceOldProtocolIds(cap);
+                    devInfoInternal.removeServerCapability(cap.getProtocolId());
+                    devInfoInternal.addServerCapability(newCap);
+                }
+            }
+
             if (discoveredDeviceInfo.assigned())
             {
                 // Replaces the default fields of capabilities retrieved from the config/structure protocol
@@ -1140,6 +1158,39 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     }
 
     return "";
+}
+
+ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabilityPtr& cap)
+{
+    const auto oldProtocolId = cap.getProtocolId();
+    const auto newProtocolId = convertIfOldIdProtocol(oldProtocolId);
+
+    if (oldProtocolId == newProtocolId)
+        return cap;
+
+    auto newCap = ServerCapability(newProtocolId, cap.getProtocolName(), cap.getProtocolType());
+
+    for (const auto& prop : cap.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (name == "protocolId")
+            continue;
+
+        const auto val = cap.getPropertyValue(name);
+        const bool hasProp = newCap.hasProperty(name);
+
+        if (val == prop.getDefaultValue() && hasProp)
+            continue;
+
+        if (hasProp)
+            newCap.setPropertyValue(name, val);
+        else
+            newCap.addProperty(prop.asPtr<IPropertyInternal>().clone());
+    }
+
+    newCap.freeze();
+    return newCap.detach();
 }
 
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap,

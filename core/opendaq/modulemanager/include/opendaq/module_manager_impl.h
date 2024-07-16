@@ -71,13 +71,15 @@ private:
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps);
     static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
+    static ServerCapabilityPtr replaceOldProtocolIds(const ServerCapabilityPtr& cap);
     static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
     static PropertyObjectPtr createGeneralConfig();
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
 
-    StringPtr convertIfOldId(const StringPtr& id);
+    static StringPtr convertIfOldIdFB(const StringPtr& id);
+    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

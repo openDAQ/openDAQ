@@ -510,16 +510,16 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
             if (!offset.assigned())
             {
                 const auto domainPacket = info.dataPacket.getDomainPacket();
-                if (domainPacket.assigned())
+                if (domainPacket.assigned() && domainPacket.getOffset().assigned())
                 {
-                    NumberPtr delta = 0;
+                    Int delta = 0;
                     const auto domainRule = domainPacket.getDataDescriptor().getRule();
                     if (domainRule.getType() == DataRuleType::Linear)
                     {
                         const auto domainRuleParams = domainRule.getParameters();
                         delta = domainRuleParams.get("delta");
                     }
-                    offset = domainPacket.getOffset() + (info.prevSampleIndex * delta.getIntValue());
+                    offset = domainPacket.getOffset().getIntValue() + (info.prevSampleIndex * delta);
                 }
                 if (!offset.assigned())
                 {

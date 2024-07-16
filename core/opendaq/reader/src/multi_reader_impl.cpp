@@ -746,14 +746,14 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         }
     }
 
-    NumberPtr offset;
+    NumberPtr offset = 0;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
     {
         auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
-        if (domainPacket.assigned())
+        if (domainPacket.assigned() && domainPacket.getOffset().assigned())
         {
-            auto delta = signals[0].packetDelta;
-            offset = domainPacket.getOffset().getIntValue() + (signals[0].info.prevSampleIndex * delta.getIntValue());
+            Int delta = signals[0].packetDelta;
+            offset = domainPacket.getOffset().getIntValue() + (signals[0].info.prevSampleIndex * delta);
         }
 
         SizeT toRead = std::min(remainingSamplesToRead, availableSamples);

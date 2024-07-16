@@ -484,18 +484,18 @@ protected:
     NumberPtr calculateOffset(const DataPacketPtr& packet, SizeT offset) const 
     {
         const auto domainPacket = packet.getDomainPacket();
-        if (domainPacket.assigned())
+        if (domainPacket.assigned() && domainPacket.getOffset().assigned())
         {
-            NumberPtr delta = 0;
+            Int delta = 0;
             const auto domainRule = domainPacket.getDataDescriptor().getRule();
             if (domainRule.assigned() && domainRule.getType() == DataRuleType::Linear)
             {
                 const auto domainRuleParams = domainRule.getParameters();
                 delta = domainRuleParams.get("delta");
             }
-            return {domainPacket.getOffset() + (offset * delta.getIntValue())};
+            return NumberPtr(domainPacket.getOffset().getIntValue() + (offset * delta));
         }
-        return {0};
+        return NumberPtr(0);
     }
 
     bool invalid{};

@@ -172,7 +172,13 @@ jobs:
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=OFF -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64
+            cmake_defines: >
+              -DOPENDAQ_BUILD_DOCUMENTATION=OFF 
+              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF 
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF 
+              -DCMAKE_SYSTEM_NAME=Linux
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64
+              -DDAQMODULES_REF_FB_MODULE=OFF
             build_documentation: false
             cpack: DEB
             apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu

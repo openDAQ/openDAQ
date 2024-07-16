@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ICallableInfo, daq::IBaseObject> declareICallableInfo(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq:
 {
     cls.doc() = "Provides information about the argument count and types, as well as the return type of Function/Procedure-type properties.";
 
-    m.def("CallableInfo", &daq::CallableInfo_Create);
+    m.def("CallableInfo", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& argumentInfo, daq::CoreType returnType){
+        return daq::CallableInfo_Create(getVariantValue<daq::IList*>(argumentInfo), returnType);
+    }, py::arg("argument_info"), py::arg("return_type"));
+
 
     cls.def_property_readonly("return_type",
         [](daq::ICallableInfo *object)

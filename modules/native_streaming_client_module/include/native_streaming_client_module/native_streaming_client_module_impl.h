@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ private:
         const StringPtr& host,
         const StringPtr& port,
         const StringPtr& path,
-        const PropertyObjectPtr& transportLayerConfig);
+        const PropertyObjectPtr& config);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,

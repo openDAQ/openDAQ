@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,12 +103,12 @@ protected:
 
     static DictPtr<IString, IBaseObject> GetOptionsWithReferenceDevice()
     {
+        auto referenceDeviceOptions = Dict<IString, IBaseObject>({{"LocalId", ""}});
         return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ModulesPath", ""}})},
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
                                            {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
                                            {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
-                                           {"ReferenceDevice", Dict<IString, IBaseObject>({{"LocalId", ""}})},
-                                           {"Modules", Dict<IString, IBaseObject>()}});
+                                           {"Modules", Dict<IString, IBaseObject>({{"ReferenceDevice", referenceDeviceOptions}})}});
     }
 
     std::set<std::string> filenames;

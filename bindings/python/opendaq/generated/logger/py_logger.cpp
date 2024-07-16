@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ILogger, daq::IBaseObject> declareILogger(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
 {
     cls.doc() = "Represents a collection of @ref ILoggerComponent \"Logger Components\" with multiple";
 
-    m.def("Logger", &daq::Logger_Create);
+    m.def("Logger", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& sinks, daq::LogLevel level){
+        return daq::Logger_Create(getVariantValue<daq::IList*>(sinks), level);
+    }, py::arg("sinks"), py::arg("level"));
+
 
     cls.def_property("level",
         [](daq::ILogger *object)
@@ -52,26 +56,26 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
         },
         "Gets the default log severity level. / Sets the default log severity level.");
     cls.def("get_or_add_component",
-        [](daq::ILogger *object, const std::string& name)
+        [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
-            return objectPtr.getOrAddComponent(name).detach();
+            return objectPtr.getOrAddComponent(getVariantValue<daq::IString*>(name)).detach();
         },
         py::arg("name"),
         "Gets an added component by name or creates a new one with a given name and adds it to the Logger object.");
     cls.def("add_component",
-        [](daq::ILogger *object, const std::string& name)
+        [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
-            return objectPtr.addComponent(name).detach();
+            return objectPtr.addComponent(getVariantValue<daq::IString*>(name)).detach();
         },
         py::arg("name"),
         "Creates a component with a given name and adds it to the Logger object.");
     cls.def("remove_component",
-        [](daq::ILogger *object, const std::string& name)
+        [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
-            objectPtr.removeComponent(name);
+            objectPtr.removeComponent(getVariantValue<daq::IString*>(name));
         },
         py::arg("name"),
         "Removes the component with a given name from the Logger object.");
@@ -84,10 +88,10 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
         py::return_value_policy::take_ownership,
         "Gets a list of added components.");
     cls.def("get_component",
-        [](daq::ILogger *object, const std::string& name)
+        [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
-            return objectPtr.getComponent(name).detach();
+            return objectPtr.getComponent(getVariantValue<daq::IString*>(name)).detach();
         },
         py::arg("name"),
         "Gets an added component by name.");

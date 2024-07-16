@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDimensionBuilder, daq::IBaseObject> declareIDimensionBuilder(pybind11::module_ m)
 {
@@ -53,10 +54,10 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IDimensionBuilder *object, const std::string& name)
+        [](daq::IDimensionBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the name of the dimension. / Sets the name of the dimension.");
     cls.def_property("unit",

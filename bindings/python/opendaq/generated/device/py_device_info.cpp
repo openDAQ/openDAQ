@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m)
 {
@@ -231,18 +232,18 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         py::return_value_policy::take_ownership,
         "Retrieves the configuration connection information of the server to which the client is connected.");
     cls.def("has_server_capability",
-        [](daq::IDeviceInfo *object, const std::string& protocolId)
+        [](daq::IDeviceInfo *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& protocolId)
         {
             const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
-            return objectPtr.hasServerCapability(protocolId);
+            return objectPtr.hasServerCapability(getVariantValue<daq::IString*>(protocolId));
         },
         py::arg("protocol_id"),
         "Checks whether the server capability with a given ID is available.");
     cls.def("get_server_capability",
-        [](daq::IDeviceInfo *object, const std::string& protocolId)
+        [](daq::IDeviceInfo *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& protocolId)
         {
             const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
-            return objectPtr.getServerCapability(protocolId).detach();
+            return objectPtr.getServerCapability(getVariantValue<daq::IString*>(protocolId)).detach();
         },
         py::arg("protocol_id"),
         "Gets the server capability with a given ID.");

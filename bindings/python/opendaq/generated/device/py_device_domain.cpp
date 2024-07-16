@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> declareIDeviceDomain(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
 {
     cls.doc() = "Contains information about the domain of the device.";
 
-    m.def("DeviceDomain", &daq::DeviceDomain_Create);
+    m.def("DeviceDomain", [](std::variant<daq::IRatio*, std::pair<int64_t, int64_t>>& tickResolution, std::variant<daq::IString*, py::str, daq::IEvalValue*>& origin, daq::IUnit* unit){
+        return daq::DeviceDomain_Create(getVariantValue<daq::IRatio*>(tickResolution), getVariantValue<daq::IString*>(origin), unit);
+    }, py::arg("tick_resolution"), py::arg("origin"), py::arg("unit"));
+
 
     cls.def_property_readonly("tick_resolution",
         [](daq::IDeviceDomain *object)

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IPropertyObjectClassBuilder, daq::IBaseObject> declareIPropertyObjectClassBuilder(pybind11::module_ m)
 {
@@ -37,8 +38,14 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
 {
     cls.doc() = "The builder interface of Property object classes. Allows for their modification and building of Property object classes.";
 
-    m.def("PropertyObjectClassBuilder", &daq::PropertyObjectClassBuilder_Create);
-    m.def("PropertyObjectClassBuilderWithManager", &daq::PropertyObjectClassBuilderWithManager_Create);
+    m.def("PropertyObjectClassBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name){
+        return daq::PropertyObjectClassBuilder_Create(getVariantValue<daq::IString*>(name));
+    }, py::arg("name"));
+
+    m.def("PropertyObjectClassBuilderWithManager", [](daq::ITypeManager* manager, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name){
+        return daq::PropertyObjectClassBuilderWithManager_Create(manager, getVariantValue<daq::IString*>(name));
+    }, py::arg("manager"), py::arg("name"));
+
 
     cls.def("build",
         [](daq::IPropertyObjectClassBuilder *object)
@@ -53,10 +60,10 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IPropertyObjectClassBuilder *object, const std::string& className)
+        [](daq::IPropertyObjectClassBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
-            objectPtr.setName(className);
+            objectPtr.setName(getVariantValue<daq::IString*>(className));
         },
         "Gets the name of the property class. / Sets the name of the property class.");
     cls.def_property("parent_name",
@@ -65,10 +72,10 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             return objectPtr.getParentName().toStdString();
         },
-        [](daq::IPropertyObjectClassBuilder *object, const std::string& parentName)
+        [](daq::IPropertyObjectClassBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& parentName)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
-            objectPtr.setParentName(parentName);
+            objectPtr.setParentName(getVariantValue<daq::IString*>(parentName));
         },
         "Gets the name of the parent of the property class. / Gets the name of the parent of the property class.");
     cls.def("add_property",
@@ -88,10 +95,10 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
         py::return_value_policy::take_ownership,
         "Gets the dictionary of properties");
     cls.def("remove_property",
-        [](daq::IPropertyObjectClassBuilder *object, const std::string& propertyName)
+        [](daq::IPropertyObjectClassBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
-            objectPtr.removeProperty(propertyName);
+            objectPtr.removeProperty(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Removes a property with the given name from the class.");
@@ -101,10 +108,10 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             return objectPtr.getPropertyOrder().detach();
         },
-        [](daq::IPropertyObjectClassBuilder *object, daq::IList* orderedPropertyNames)
+        [](daq::IPropertyObjectClassBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& orderedPropertyNames)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
-            objectPtr.setPropertyOrder(orderedPropertyNames);
+            objectPtr.setPropertyOrder(getVariantValue<daq::IList*>(orderedPropertyNames));
         },
         py::return_value_policy::take_ownership,
         "Gets a custom order of properties as defined in the list of property names. / Sets a custom order of properties as defined in the list of property names.");

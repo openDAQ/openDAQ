@@ -235,8 +235,10 @@ void NativeStreamingServerImpl::prepareServerHandler()
         removeReader(signal);
     };
 
-    // The Callback establishes a new native configuration server for each connected client
-    // and transfers ownership of the configuration server to the transport layer session
+    // The Callback establishes two objects for each connected client:
+    // a new native configuration server and
+    // a new packet streaming client (used for client to device streaming);
+    // and transfers ownership of these objects to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
         [this](SendConfigProtocolPacketCb sendConfigPacketCb)
     {
@@ -256,7 +258,30 @@ void NativeStreamingServerImpl::prepareServerHandler()
                 )
             );
         };
-        return processConfigRequestCb;
+
+        auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();
+        OnPacketBufferReceivedCallback packetBufferReceivedHandler =
+            [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
+        {
+            boost::asio::dispatch(
+                processingIOContext,
+                processingStrand.wrap(
+                    [configServer, packetStreamingClient, packetBufferPtr]()
+                    {
+                        packetStreamingClient->addPacketBuffer(packetBufferPtr);
+
+                        auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
+                        while (packet.assigned())
+                        {
+                            configServer->processClientToDeviceStreamingPacket(signalNumericId, packet);
+                            std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
+                        }
+                    }
+                )
+            );
+        };
+
+        return std::make_pair(processConfigRequestCb, packetBufferReceivedHandler);
     };
 
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,

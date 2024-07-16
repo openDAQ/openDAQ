@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ICoercer, daq::IBaseObject> declareICoercer(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineICoercer(pybind11::module_ m, PyDaqIntf<daq::ICoercer, daq::IBaseObje
 {
     cls.doc() = "Used by openDAQ properties to coerce a value to match the restrictions imposed by the Property.";
 
-    m.def("Coercer", &daq::Coercer_Create);
+    m.def("Coercer", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& eval){
+        return daq::Coercer_Create(getVariantValue<daq::IString*>(eval));
+    }, py::arg("eval"));
+
 
     cls.def("coerce",
         [](daq::ICoercer *object, const py::object& propObj, const py::object& value)

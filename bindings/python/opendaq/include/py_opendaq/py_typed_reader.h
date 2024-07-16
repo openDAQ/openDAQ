@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "opendaq/block_reader_ptr.h"
 #include "opendaq/multi_reader_ptr.h"
 #include "opendaq/reader_config_ptr.h"
+#include "opendaq/reader_status_ptr.h"
 #include "opendaq/time_reader.h"
 #include "py_core_types/py_converter.h"
 
@@ -49,7 +50,7 @@ using DomainTypeVariant = SampleTypeVariant;
 struct PyTypedReader
 {
     template <typename ReaderType>
-    static inline SampleTypeVariant readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, daq::IReaderStatus*> readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
     {
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
@@ -87,9 +88,9 @@ struct PyTypedReader
     }
 
     template <typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> readValuesWithDomain(const ReaderType& reader,
-                                                                                        size_t count,
-                                                                                        size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> readValuesWithDomain(const ReaderType& reader,
+                                                                                                             size_t count,
+                                                                                                             size_t timeoutMs)
     {
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
@@ -134,7 +135,9 @@ struct PyTypedReader
 
 private:
     template <typename ValueType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> readWithDomain(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> readWithDomain(const ReaderType& reader,
+                                                                                                       size_t count,
+                                                                                                       size_t timeoutMs)
     {
         if constexpr (std::is_base_of<daq::TimeReaderBase, ReaderType>::value)
         {
@@ -179,7 +182,9 @@ private:
     }
 
     template <typename ValueType, typename ReaderType>
-    static inline py::array_t<ValueType> read(const ReaderType& reader, size_t count, [[maybe_unused]] size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, daq::IReaderStatus*> read(const ReaderType& reader,
+                                                                          size_t count,
+                                                                          [[maybe_unused]] size_t timeoutMs)
     {
         size_t blockSize = 1, initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
@@ -194,6 +199,7 @@ private:
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
+        daq::ReaderStatusPtr status;
         std::vector<ValueType> values(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
         {
@@ -204,16 +210,16 @@ private:
                 {
                     ptrs[i] = values.data() + i * count;
                 }
-                reader->read(ptrs.data(), &count, timeoutMs);
+                reader->read(ptrs.data(), &count, timeoutMs, &status);
             }
             else
             {
-                reader->read(values.data(), &count, timeoutMs, nullptr);
+                reader->read(values.data(), &count, timeoutMs, &status);
             }
         }
         else
         {
-            reader->read(values.data(), &count, nullptr);
+            reader->read(values.data(), &count, &status);
         }
 
         py::array::ShapeContainer shape;
@@ -235,13 +241,13 @@ private:
         if (blockSize > 1 && isMultiReader)
             strides = {sizeof(ValueType) * initialCount, sizeof(ValueType)};
 
-        return toPyArray(std::move(values), shape, strides);
+        return {toPyArray(std::move(values), shape, strides), status.detach()};
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> read(const ReaderType& reader,
-                                                                        size_t count,
-                                                                        [[maybe_unused]] size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, daq::IReaderStatus*> read(const ReaderType& reader,
+                                                                                             size_t count,
+                                                                                             [[maybe_unused]] size_t timeoutMs)
     {
         static_assert(sizeof(std::chrono::system_clock::time_point::rep) == sizeof(int64_t));
         using DomainVectorType = typename std::conditional<std::is_same<DomainType, std::chrono::system_clock::time_point>::value,
@@ -260,6 +266,7 @@ private:
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
+        daq::ReaderStatusPtr status;
         std::vector<ValueType> values(count * blockSize);
         DomainVectorType domain(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
@@ -272,16 +279,16 @@ private:
                     valuesPtrs[i] = values.data() + i * count;
                     domainPtrs[i] = domain.data() + i * count;
                 }
-                reader->readWithDomain(valuesPtrs.data(), domainPtrs.data(), &count, timeoutMs);
+                reader->readWithDomain(valuesPtrs.data(), domainPtrs.data(), &count, timeoutMs, &status);
             }
             else
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
+                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, &status);
             }
         }
         else
         {
-            reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
+            reader->readWithDomain(values.data(), domain.data(), &count, &status);
         }
 
         py::array::ShapeContainer shape;
@@ -326,7 +333,7 @@ private:
         if (!domainDtype.empty())
             domainArray.attr("dtype") = domainDtype;
 
-        return {std::move(valuesArray), std::move(domainArray)};
+        return {std::move(valuesArray), std::move(domainArray), status.detach()};
     }
 
     static inline void checkSampleType(daq::SampleType type)

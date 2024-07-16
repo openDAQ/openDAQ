@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m)
 {
@@ -38,10 +39,10 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.doc() = "Provides access to private methods of the component.";
 
     cls.def("lock_attributes",
-        [](daq::IComponentPrivate *object, daq::IList* attributes)
+        [](daq::IComponentPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& attributes)
         {
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
-            objectPtr.lockAttributes(attributes);
+            objectPtr.lockAttributes(getVariantValue<daq::IList*>(attributes));
         },
         py::arg("attributes"),
         "Locks the attributes contained in the provided list.");
@@ -53,10 +54,10 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
         },
         "Locks all attributes of the component.");
     cls.def("unlock_attributes",
-        [](daq::IComponentPrivate *object, daq::IList* attributes)
+        [](daq::IComponentPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& attributes)
         {
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
-            objectPtr.unlockAttributes(attributes);
+            objectPtr.unlockAttributes(getVariantValue<daq::IList*>(attributes));
         },
         py::arg("attributes"),
         "Unlocks the attributes contained in the provided list.");

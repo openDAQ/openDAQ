@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
-using SetUpConfigProtocolServerCb = std::function<ProcessConfigProtocolPacketCb(SendConfigProtocolPacketCb cb)>;
+using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
+using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb)>;
 
 class NativeStreamingServerHandler
 {
@@ -60,12 +61,11 @@ protected:
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
-
-    void removeSignalInternal(SignalNumericIdType signalNumericId, const SignalPtr& signal);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
                                   const std::string& signalStringId,
                                   bool subscribe,
                                   const std::string& clientId);
+    bool onAuthenticate(const daq::native_streaming::Authentication& authentication);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;

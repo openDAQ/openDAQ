@@ -175,8 +175,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& port,
                                                           const StringPtr& path)
 {
-    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-    auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
+    auto transportClient = createAndConnectTransportClient(host, port, path, config);
 
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
@@ -334,9 +333,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
         }
 
+        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig);
+
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
-        auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
+
         device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
@@ -410,6 +411,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
     defaultConfig.addProperty(IntProperty("Port", 7420));
+    defaultConfig.addProperty(StringProperty("Username", ""));
+    defaultConfig.addProperty(StringProperty("Password", ""));
 
     return defaultConfig;
 }
@@ -469,8 +472,11 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const StringPtr& host,
     const StringPtr& port,
     const StringPtr& path,
-    const PropertyObjectPtr& transportLayerConfig)
+    const PropertyObjectPtr& config)
 {
+    const PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+    const PropertyObjectPtr authenticationConfig = config;  // root config also has a flat lsit of authentication properties
+
     StringPtr modifiedHost = host;
     if (modifiedHost.assigned() && modifiedHost.getLength() > 1 && modifiedHost.getCharPtr()[0] == '[' && modifiedHost.getCharPtr()[modifiedHost.getLength() - 1] == ']')
     {
@@ -482,7 +488,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
         transportLayerConfig.addProperty(StringProperty("ClientId", fmt::format("{}/{}", transportClientUuidBase, transportClientIndex++)));
     }
 
-    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
+    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
     if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
     {
         auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
@@ -515,23 +521,16 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
-    PropertyObjectPtr transportLayerConfig;
-    PropertyObjectPtr parsedConfig;
-    if (config.assigned())
-    {
-        parsedConfig = populateDefaultConfig(config);
-        transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
-    }
-    else
-        transportLayerConfig = createTransportLayerDefaultConfig();
+    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config) : createConnectionDefaultConfig();
 
     StringPtr host = GetHost(connectionString);
     StringPtr port = GetPort(connectionString, parsedConfig);
     StringPtr path = GetPath(connectionString);
 
+    PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-    auto transportClient = createAndConnectTransportClient(host, port, path, transportLayerConfig);
+    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig);
     return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 

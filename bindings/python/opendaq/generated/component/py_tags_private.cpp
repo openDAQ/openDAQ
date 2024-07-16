@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::module_ m)
 {
@@ -38,26 +39,26 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
     cls.doc() = "Private interface to component tags. Allows for adding/removing tags.";
 
     cls.def("add",
-        [](daq::ITagsPrivate *object, const std::string& name)
+        [](daq::ITagsPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
-            objectPtr.add(name);
+            objectPtr.add(getVariantValue<daq::IString*>(name));
         },
         py::arg("name"),
         "Adds a new tag to the list.");
     cls.def("remove",
-        [](daq::ITagsPrivate *object, const std::string& name)
+        [](daq::ITagsPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
-            objectPtr.remove(name);
+            objectPtr.remove(getVariantValue<daq::IString*>(name));
         },
         py::arg("name"),
         "Removes a new tag from the list.");
     cls.def("replace",
-        [](daq::ITagsPrivate *object, daq::IList* tags)
+        [](daq::ITagsPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& tags)
         {
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
-            objectPtr.replace(tags);
+            objectPtr.replace(getVariantValue<daq::IList*>(tags));
         },
         py::arg("tags"),
         "Replaces all tags.");

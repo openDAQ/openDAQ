@@ -1,0 +1,12 @@
+= Overview
+
+The openDAQ(TM) provides the following native protocols:
+
+* xref:native_communication_protocol:introduction.adoc[**Native communication protocol specification**]: 
+The native communication protocol facilitates data transfer between data acquisition devices and client programs
+or gateway devices, minimizing data conversion and optimizing network traffic.
+* xref:packet_streaming:overview.adoc[**Packet streaming protocol specification**]: 
+The packet streaming protocol encodes openDAQ(TM) packets into a binary format for transmission
+across various transport protocols, establishing rules for decoding back into openDAQ(TM) packets on the receiver’s end.
+
+The listed specifications help developers understand the structure, functionality, and implementation details of these protocols.

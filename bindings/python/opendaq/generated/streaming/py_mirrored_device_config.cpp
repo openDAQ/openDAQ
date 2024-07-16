@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> declareIMirroredDeviceConfig(pybind11::module_ m)
 {
@@ -46,10 +47,10 @@ void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDe
         py::arg("streaming_source"),
         "Adds streaming source for device.");
     cls.def("remove_streaming_source",
-        [](daq::IMirroredDeviceConfig *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredDeviceConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredDeviceConfigPtr::Borrow(object);
-            objectPtr.removeStreamingSource(streamingConnectionString);
+            objectPtr.removeStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         py::arg("streaming_connection_string"),
         "Removes streaming source for device e.g. when the streaming source is no longer available.");

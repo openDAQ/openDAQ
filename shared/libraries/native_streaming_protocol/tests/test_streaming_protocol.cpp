@@ -162,7 +162,7 @@ public:
 
         setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
         {
-            return [](config_protocol::PacketBuffer&& packetBuffer) {};
+            return std::make_pair(nullptr, nullptr);
         };
 
         clientsCount = std::get<0>(GetParam());
@@ -194,7 +194,7 @@ public:
                                                                OnSignalAvailableCallback signalAvailableHandler)
     {
         auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            client.clientContext, ClientAttributesBase::createTransportLayerConfig());
+            client.clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         clientHandler->setStreamingHandlers(signalAvailableHandler,
                                             client.signalUnavailableHandler,

@@ -1,0 +1,63 @@
+= Introduction
+
+== Document scope
+
+The main goal of the document is to provide developers in need of protocol support with substantial insights into the openDAQ(TM) native communication protocol.
+The document primarily focuses on the specifics of the openDAQ(TM) native communication protocol's transport/network layer. However, it does not extensively cover the serialization mechanisms
+for measured data or the serialization of the internal structure, topology, and properties of the acquisition device.
+
+== Protocol overview
+
+The openDAQ(TM) native communication protocol is intended to enable the transfer of data from data acquisition devices to client programs or intermediate devices, often referred to as gateway devices. 
+The protocol is designed to transfer data with a focus on minimizing conversions of native data structures utilized in the openDAQ(TM) SDK, and optimizing network traffic.
+
+The protocol involves two main entities: the server and the client. The server typically runs as a service on an acquisition device, while the client is part of a client program or embedded software
+on a gateway device.
+
+The native communication service is presented as a WebSocket service, accessible via three parameters: IPv4 or IPv6 address, port number (defaulting to 7420), and service path (e.g. "/").
+Each connected client is associated with a corresponding WebSocket endpoint from the server's perspective. The server's responsibilities include handling incoming WebSocket connections,
+processing incoming data packages from clients through WebSocket endpoints, and encoding outgoing packages to send through the same endpoint.
+
+On the client side, connection to the server is established using the known address, port, and path. The client sends request packages and processes responses and notifications from the server. 
+
+The mentioned data packages might be xref:streaming.adoc[streaming-related] - such as information about available signals, notifications when signals become unavailable, serialized signal packets;
+also these might be configuration protocol-related packages, or protocol xref:service.adoc[service packages].
+
+== Protocol package structure
+
+Each data package within the protocol comprises a 4-byte header, followed by a binary payload with a size of up to 268435455 bytes.
+
+=== Header
+
+The header of the data package is a 32-bit value in little-endian format. The least significant 28 bits represent the payload size as an unsigned integer value in little-endian format,
+while the most significant 4 bits represent the digital code of the package type.
+
+|===
+||4 bits (31 - 28)|28 bits (27 - 0)
+
+| 4 bytes
+| Package type code
+| Payload size in bytes
+
+| 0 - 268435455 bytes
+2+^| Payload (optional)
+|===
+
+=== Payload
+
+The payload of the data package can be up to 268435455 bytes in size. In cases where the payload is not present for header-only packages, the payload size is set to 0 by the corresponding bits
+of the package header. For other cases, the structure of the payload is specific to the package type and is encoded/decoded based on the package type code.
+
+== Error handling
+
+The openDAQ(TM) server and client-side implementations of the native communication protocol require every package to begin with the correct header, followed by a payload that matches that header.
+There isn't a specific mechanism for recovering from data corruption, so developers need to ensure the coherence and validity of the transmitted data.
+
+== Establishing a connection
+
+The connection procedure adheres to the standard process for establishing a WebSocket connection, involving several steps to transition from an HTTP connection to a WebSocket connection.
+
+The connection starts with the client establishing a TCP connection to the server. Then, it sends a WebSocket handshake HTTP upgrade request to the server.
+Upon receiving both the TCP connection and upgrade request, the server accepts them and responds to the client with a WebSocket handshake HTTP upgrade response.
+Once the client receives this response, the HTTP connection transitions to a WebSocket connection. From there, data can flow bidirectionally over this single connection in full-duplex mode,
+allowing both the client and server to send data independently at any time.

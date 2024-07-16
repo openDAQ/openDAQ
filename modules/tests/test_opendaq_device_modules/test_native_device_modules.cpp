@@ -6,6 +6,7 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <coretypes/json_serializer_factory.h>
+#include <coreobjects/user_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -95,6 +96,124 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
     server->releaseRef();
     client.detach();
     server.detach();
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectUsername)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+    auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceJure.assigned());
+    clientInstance.removeDevice(deviceJure);
+
+    generalConfig.setPropertyValue("Username", "tomaz");
+    generalConfig.setPropertyValue("Password", "tomaz123");
+    auto deviceTomaz = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceTomaz.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+
+    auto authProvider = StaticAuthenticationProvider(true, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1");
+    ASSERT_TRUE(deviceAnonymous.assigned());
+    clientInstance.removeDevice(deviceAnonymous);
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+    auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceJure.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
+    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("opendaq_native_streaming");
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    nativeStreamingConfig.setPropertyValue("Username", "tomaz");
+    nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
 }
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)

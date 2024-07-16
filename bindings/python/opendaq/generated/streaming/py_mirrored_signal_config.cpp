@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m)
 {
@@ -58,10 +59,10 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getActiveStreamingSource().toStdString();
         },
-        [](daq::IMirroredSignalConfig *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredSignalConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
-            objectPtr.setActiveStreamingSource(streamingConnectionString);
+            objectPtr.setActiveStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         "Gets a connection strings of the active streaming source of the signal. / Sets the active streaming source of the signal.");
     cls.def("deactivate_streaming",

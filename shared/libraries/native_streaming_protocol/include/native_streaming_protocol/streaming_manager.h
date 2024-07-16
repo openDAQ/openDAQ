@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/signal_ptr.h>
+
+#include <packet_streaming/packet_streaming_server.h>
+#include <packet_streaming/packet_streaming_client.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 

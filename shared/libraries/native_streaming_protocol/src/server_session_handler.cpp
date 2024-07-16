@@ -8,7 +8,6 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
-using namespace packet_streaming;
 
 ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
@@ -109,33 +108,6 @@ void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signa
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
-    tasks.insert(tasks.begin(), writeHeaderTask);
-
-    session->scheduleWrite(tasks);
-}
-
-void ServerSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
-{
-    std::vector<WriteTask> tasks;
-
-    // create write task for packet buffer header
-    boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
-                                            packetBuffer->packetHeader->size);
-    WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
-    tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
-
-    if (packetBuffer->packetHeader->payloadSize > 0)
-    {
-        // create write task for packet buffer payload
-        boost::asio::const_buffer packetBufferPayload(packetBuffer->payload,
-                                                     packetBuffer->packetHeader->payloadSize);
-        WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
-        tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
-    }
-
-    // create write task for transport header
-    size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -307,6 +279,16 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             [this](const void* data, size_t size)
             {
                 return readTransportLayerProperties(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PACKET)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readPacketBuffer(data, size);
             },
             payloadSize
         );

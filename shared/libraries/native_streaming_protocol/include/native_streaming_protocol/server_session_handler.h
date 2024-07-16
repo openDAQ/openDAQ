@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/signal_ptr.h>
 
-#include <packet_streaming/packet_streaming_server.h>
-
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 class ServerSessionHandler : public BaseSessionHandler
@@ -38,7 +36,6 @@ public:
     void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendStreamingInitDone();
-    void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
     void sendSubscribingDone(const SignalNumericIdType signalNumericId);
     void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
 

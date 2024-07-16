@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IFolder, daq::IComponent> declareIFolder(pybind11::module_ m)
 {
@@ -61,18 +62,18 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
         },
         "Returns True if the folder is empty.");
     cls.def("has_item",
-        [](daq::IFolder *object, const std::string& localId)
+        [](daq::IFolder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
             const auto objectPtr = daq::FolderPtr::Borrow(object);
-            return objectPtr.hasItem(localId);
+            return objectPtr.hasItem(getVariantValue<daq::IString*>(localId));
         },
         py::arg("local_id"),
         "Returns True if the folder has an item with local ID.");
     cls.def("get_item",
-        [](daq::IFolder *object, const std::string& localId)
+        [](daq::IFolder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
             const auto objectPtr = daq::FolderPtr::Borrow(object);
-            return objectPtr.getItem(localId).detach();
+            return objectPtr.getItem(getVariantValue<daq::IString*>(localId)).detach();
         },
         py::arg("local_id"),
         "Gets the item component with the specified localId.");

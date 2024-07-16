@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IInstance, daq::IDevice> declareIInstance(pybind11::module_ m)
 {
@@ -37,9 +38,15 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
 {
     cls.doc() = "The top-level openDAQ object. It acts as container for the openDAQ context and the base module manager.";
 
-    m.def("Instance", &daq::Instance_Create);
+    m.def("Instance", [](daq::IContext* context, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::Instance_Create(context, getVariantValue<daq::IString*>(localId));
+    }, py::arg("context"), py::arg("local_id"));
+
     m.def("InstanceFromBuilder", &daq::InstanceFromBuilder_Create);
-    m.def("Client", &daq::Client_Create);
+    m.def("Client", [](daq::IContext* ctx, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, daq::IDeviceInfo* defaultDeviceInfo, daq::IComponent* parent){
+        return daq::Client_Create(ctx, getVariantValue<daq::IString*>(localId), defaultDeviceInfo, parent);
+    }, py::arg("ctx"), py::arg("local_id"), py::arg("default_device_info"), py::arg("parent"));
+
 
     cls.def_property_readonly("module_manager",
         [](daq::IInstance *object)
@@ -58,10 +65,10 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
         py::return_value_policy::take_ownership,
         "Gets the current root device.");
     cls.def("set_root_device",
-        [](daq::IInstance *object, const std::string& connectionString, daq::IPropertyObject* config)
+        [](daq::IInstance *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::InstancePtr::Borrow(object);
-            objectPtr.setRootDevice(connectionString, config);
+            objectPtr.setRootDevice(getVariantValue<daq::IString*>(connectionString), config);
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Adds a device with the connection string as root device.");
@@ -74,10 +81,10 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
         py::return_value_policy::take_ownership,
         "Get a dictionary of available server types as <IString, IServerType> pairs");
     cls.def("add_server",
-        [](daq::IInstance *object, const std::string& serverTypeId, daq::IPropertyObject* serverConfig)
+        [](daq::IInstance *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverTypeId, daq::IPropertyObject* serverConfig)
         {
             const auto objectPtr = daq::InstancePtr::Borrow(object);
-            return objectPtr.addServer(serverTypeId, serverConfig).detach();
+            return objectPtr.addServer(getVariantValue<daq::IString*>(serverTypeId), serverConfig).detach();
         },
         py::arg("server_type_id"), py::arg("server_config"),
         "Creates and adds a server with the provided serverType and configuration.");

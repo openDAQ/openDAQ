@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m)
 {
@@ -38,10 +39,19 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
     cls.doc() = "Search filter that can be passed as an optional parameter to openDAQ tree traversal functions to filter out unwanted results. Allows for recursive searches.";
 
     m.def("VisibleSearchFilter", &daq::VisibleSearchFilter_Create);
-    m.def("RequiredTagsSearchFilter", &daq::RequiredTagsSearchFilter_Create);
-    m.def("ExcludedTagsSearchFilter", &daq::ExcludedTagsSearchFilter_Create);
+    m.def("RequiredTagsSearchFilter", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& requiredTags){
+        return daq::RequiredTagsSearchFilter_Create(getVariantValue<daq::IList*>(requiredTags));
+    }, py::arg("required_tags"));
+
+    m.def("ExcludedTagsSearchFilter", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& excludedTags){
+        return daq::ExcludedTagsSearchFilter_Create(getVariantValue<daq::IList*>(excludedTags));
+    }, py::arg("excluded_tags"));
+
     m.def("InterfaceIdSearchFilter", &daq::InterfaceIdSearchFilter_Create);
-    m.def("LocalIdSearchFilter", &daq::LocalIdSearchFilter_Create);
+    m.def("LocalIdSearchFilter", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::LocalIdSearchFilter_Create(getVariantValue<daq::IString*>(localId));
+    }, py::arg("local_id"));
+
     m.def("AnySearchFilter", &daq::AnySearchFilter_Create);
     m.def("AndSearchFilter", &daq::AndSearchFilter_Create);
     m.def("OrSearchFilter", &daq::OrSearchFilter_Create);

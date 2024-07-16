@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,9 @@
 #include <opendaq/packet_ptr.h>
 
 #include <native_streaming/client.hpp>
+
+#include <packet_streaming/packet_streaming_client.h>
+#include <packet_streaming/packet_streaming_server.h>
 
 #include <future>
 
@@ -66,7 +69,8 @@ class NativeStreamingClientHandler
 {
 public:
     explicit NativeStreamingClientHandler(const ContextPtr& context,
-                                          const PropertyObjectPtr& transportLayerProperties);
+                                          const PropertyObjectPtr& transportLayerProperties,
+                                          const PropertyObjectPtr& authenticationObject);
 
     ~NativeStreamingClientHandler();
 
@@ -79,6 +83,7 @@ public:
 
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
+    void sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
 
     std::shared_ptr<boost::asio::io_context> getIoContext();
 
@@ -95,8 +100,10 @@ public:
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
+    PropertyObjectPtr normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
+    daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void initClient(std::string host,
                     std::string port,
                     std::string path);
@@ -122,6 +129,7 @@ protected:
 
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
+    PropertyObjectPtr authenticationObject;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     std::thread ioThread;
     LoggerPtr logger;
@@ -143,7 +151,13 @@ protected:
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;
+
+    // device to client streaming consumer
     std::shared_ptr<packet_streaming::PacketStreamingClient> packetStreamingClientPtr;
+
+    // client to device streaming streaming producer
+    std::shared_ptr<packet_streaming::PacketStreamingServer> packetStreamingServerPtr;
+
     std::promise<ConnectionResult> connectedPromise;
     std::future<ConnectionResult> connectedFuture;
 

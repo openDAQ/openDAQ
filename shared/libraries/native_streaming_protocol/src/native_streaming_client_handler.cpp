@@ -5,15 +5,18 @@
 #include <opendaq/packet_factory.h>
 
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
 NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
-                                                           const PropertyObjectPtr& transportLayerProperties)
+                                                           const PropertyObjectPtr& transportLayerProperties,
+                                                           const PropertyObjectPtr& authenticationObject)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
+    , authenticationObject(normalizeAuthenticationObject(authenticationObject))
     , ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
@@ -28,6 +31,25 @@ NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
     reconnectionTimer->cancel();
     stopTransportOperations();
+}
+
+PropertyObjectPtr NativeStreamingClientHandler::normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+{
+    auto normalizedObject = PropertyObject();
+
+    normalizedObject.addProperty(StringProperty("Username", ""));
+    normalizedObject.addProperty(StringProperty("Password", ""));
+
+    if (authenticationObject.assigned())
+    {
+        if (authenticationObject.hasProperty("Username"))
+            normalizedObject.setPropertyValue("Username", authenticationObject.getPropertyValue("Username"));
+
+        if (authenticationObject.hasProperty("Password"))
+            normalizedObject.setPropertyValue("Password", authenticationObject.getPropertyValue("Password"));
+    }
+
+    return normalizedObject;
 }
 
 void NativeStreamingClientHandler::manageTransportLayerProps()
@@ -233,6 +255,18 @@ void NativeStreamingClientHandler::sendStreamingRequest()
         sessionHandler->sendStreamingRequest();
 }
 
+void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+{
+    if (packetStreamingServerPtr && sessionHandler)
+    {
+        packetStreamingServerPtr->addDaqPacket(signalNumericId, packet);
+        while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        {
+            sessionHandler->sendPacketBuffer(packetBuffer);
+        }
+    }
+}
+
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
 {
     return ioContextPtr;
@@ -265,22 +299,6 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         handleSignal(signalNumericId, signalStringId, serializedSignal, available);
     };
 
-    OnPacketBufferReceivedCallback packetBufferReceivedHandler =
-        [this](const packet_streaming::PacketBufferPtr& packetBuffer)
-    {
-        if (packetStreamingClientPtr)
-        {
-            packetStreamingClientPtr->addPacketBuffer(packetBuffer);
-
-            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
-            while (packet.assigned())
-            {
-                packetHandler(signalIds.at(signalNumericId), packet);
-                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
-            }
-        }
-    };
-
     OnStreamingInitDoneCallback protocolInitDoneHandler =
         [this]()
     {
@@ -297,7 +315,6 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
                                                             ioContextPtr,
                                                             session,
                                                             signalReceivedHandler,
-                                                            packetBufferReceivedHandler,
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
                                                             errorHandler);
@@ -309,6 +326,26 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 
+    OnPacketBufferReceivedCallback packetBufferReceivedHandler =
+        [this](const packet_streaming::PacketBufferPtr& packetBuffer)
+    {
+        if (packetStreamingClientPtr)
+        {
+            packetStreamingClientPtr->addPacketBuffer(packetBuffer);
+
+            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
+            while (packet.assigned())
+            {
+                packetHandler(signalIds.at(signalNumericId), packet);
+                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
+            }
+        }
+    };
+    sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
+
+    // FIXME keep and reuse packet server when packet retransmission feature will be enabled
+    packetStreamingServerPtr = std::make_shared<packet_streaming::PacketStreamingServer>();
+
     sessionHandler->sendTransportLayerProperties(transportLayerProperties);
     if (connectionMonitoringEnabled)
         sessionHandler->startConnectionActivityMonitoring(heartbeatPeriod, connectionInactivityTimeout);
@@ -318,10 +355,23 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     connectedPromise.set_value(ConnectionResult::Connected);
 }
 
+Authentication NativeStreamingClientHandler::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+{
+    const StringPtr username = authenticationObject.getPropertyValue("Username");
+    const StringPtr password = authenticationObject.getPropertyValue("Password");
+
+    if (username.getLength() == 0)
+        return Authentication();
+
+    return Authentication(username, password);
+}
+
 void NativeStreamingClientHandler::initClient(std::string host,
                                               std::string port,
                                               std::string path)
 {
+    const auto clientAuth = initClientAuthenticationObject(authenticationObject);
+
     OnNewSessionCallback onNewSessionCallback =
         [this](SessionPtr session)
     {
@@ -356,6 +406,7 @@ void NativeStreamingClientHandler::initClient(std::string host,
     client = std::make_shared<Client>(host,
                                       port,
                                       path,
+                                      clientAuth,
                                       onNewSessionCallback,
                                       onResolveFailCallback,
                                       onConnectFailCallback,

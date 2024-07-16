@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ITask, daq::IBaseObject> declareITask(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineITask(pybind11::module_ m, PyDaqIntf<daq::ITask, daq::IBaseObject> cl
 {
     cls.doc() = "A packaged callback with possible continuations and dependencies that can be arranged in a dependency graph (directed acyclic graph). The task is not executed directly but only when the graph is scheduled for execution and all dependencies have been satisfied.";
 
-    m.def("Task", &daq::Task_Create);
+    m.def("Task", [](daq::IProcedure* work, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name){
+        return daq::Task_Create(work, getVariantValue<daq::IString*>(name));
+    }, py::arg("work"), py::arg("name"));
+
 
     cls.def_property("name",
         [](daq::ITask *object)
@@ -45,10 +49,10 @@ void defineITask(pybind11::module_ m, PyDaqIntf<daq::ITask, daq::IBaseObject> cl
             const auto objectPtr = daq::TaskPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::ITask *object, const std::string& name)
+        [](daq::ITask *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::TaskPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the task name. / Sets the task name that is used in diagnostics.");
     cls.def("then",

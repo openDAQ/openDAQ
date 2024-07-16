@@ -44,7 +44,7 @@ TEST_F(OpcUaEndpointTest, RegisterCustomTypes)
     endpoint.registerCustomTypes(UA_TYPES_COUNT, UA_TYPES);
     auto typeList = endpoint.getCustomDataTypes();
 
-    ASSERT_EQ(typeList[0].typesSize, UA_TYPES_COUNT);
+    ASSERT_EQ(typeList[0].typesSize, static_cast<std::size_t>(UA_TYPES_COUNT));
     ASSERT_EQ(typeList[0].types, UA_TYPES);
 }
 

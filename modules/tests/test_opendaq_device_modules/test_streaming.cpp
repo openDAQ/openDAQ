@@ -342,8 +342,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         if (usingNativePseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2u);
 
             for (int j = 0; j < 2; ++j)
             {
@@ -369,8 +369,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else if (usingWSPseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3u);
 
             for (int j = 0; j < 3; ++j)
             {
@@ -401,8 +401,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
             const auto packet = clientReceivedPackets[0];
             const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
             ASSERT_TRUE(eventPacket.assigned());
@@ -704,8 +704,8 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         const int packetsToRead = i + 3;
         serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
 
-        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1);
-        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1u);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
         const auto packet = clientReceivedPackets[0];
         const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
         ASSERT_TRUE(eventPacket.assigned());

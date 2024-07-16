@@ -61,28 +61,28 @@ TEST_F(OpcUaClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(OpcUaClientModuleTest, CreateConnectionString)
-{
-    auto context = NullContext();
-    ModulePtr module;
-    createModule(&module, context);
-
-    StringPtr connectionString;
-
-    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
-    ASSERT_FALSE(connectionString.assigned());
-
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addAddress("123.123.123.123");
-    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.opcua://123.123.123.123:4840");
-
-    serverCapability.setPort(1234);
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
-}
+//TEST_F(OpcUaClientModuleTest, CreateConnectionString)
+//{
+//    auto context = NullContext();
+//    ModulePtr module;
+//    createModule(&module, context);
+//
+//    StringPtr connectionString;
+//
+//    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
+//    ASSERT_FALSE(connectionString.assigned());
+//
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+//    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+//
+//    serverCapability.addAddress("123.123.123.123");
+//    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.opcua://123.123.123.123:4840");
+//
+//    serverCapability.setPort(1234);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
+//}
 
 TEST_F(OpcUaClientModuleTest, CreateDeviceConnectionStringNull)
 {

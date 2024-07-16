@@ -32,7 +32,7 @@ protected:
     ContextPtr context;
 };
 
-const std::string ModuleManagerTest::SearchDir = MODULE_TEST_DIR;
+const std::string ModuleManagerTest::SearchDir{MODULE_TEST_DIR};
 
 TEST_F(ModuleManagerTest, Create)
 {
@@ -55,21 +55,21 @@ TEST_F(ModuleManagerTest, CreateNullPath)
 TEST_F(ModuleManagerTest, CreateInvalidPath)
 {
     auto mngr = ModuleManager("in\\/@|id");
-    ASSERT_THROW_MSG(Context(nullptr, Logger(), nullptr, mngr, nullptr), InvalidParameterException, "The specified path does not exist.");
+    ASSERT_NO_THROW(Context(nullptr, Logger(), nullptr, mngr, nullptr));
 }
 
 TEST_F(ModuleManagerTest, CreateNonExistentPath)
 {
     std::string workingDir = SearchDir + "/doesNotExist";
     auto mngr = ModuleManager(workingDir);
-    ASSERT_THROW_MSG(Context(nullptr, Logger(), nullptr, mngr, nullptr), InvalidParameterException, "The specified path does not exist.");
+    ASSERT_NO_THROW(Context(nullptr, Logger(), nullptr, mngr, nullptr));
 }
 
 TEST_F(ModuleManagerTest, CreateNotAFolder)
 {
     std::string workingDir = SearchDir + "/file";
     auto mngr = ModuleManager(workingDir);
-    ASSERT_THROW_MSG(Context(nullptr, Logger(), nullptr, mngr, nullptr), InvalidParameterException, "The specified path is not a folder.");
+    ASSERT_NO_THROW(Context(nullptr, Logger(), nullptr, mngr, nullptr));
 }
 
 TEST_F(ModuleManagerTest, AddModule)

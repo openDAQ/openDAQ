@@ -7,6 +7,12 @@ include(opendaq_dependency.cmake)
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
+if (MSVC)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/WX->)
+else()
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-Wno-error>)
+endif()
+
 if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
     set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT} googletest)
 

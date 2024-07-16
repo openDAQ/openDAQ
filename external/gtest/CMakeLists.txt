@@ -2,18 +2,9 @@
 
 set(GTest_REQUIREDVERSION "1.12.1")
 
-find_package(GTest ${GTest_REQUIREDVERSION})
+find_package(GTest ${GTest_REQUIREDVERSION} GLOBAL)
 if(GTest_FOUND)
     message(STATUS "Found GTest: ${GTest_VERSION} ${GTest_CONFIG}")
-
-    set_target_properties(
-        GTest::gtest
-        GTest::gtest_main
-        GTest::gmock
-        GTest::gmock_main
-        PROPERTIES
-            IMPORTED_GLOBAL TRUE
-    )
 else()
     message(STATUS "Fetching GTest version ${GTest_REQUIREDVERSION}")
 

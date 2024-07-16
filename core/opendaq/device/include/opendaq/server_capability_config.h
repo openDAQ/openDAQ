@@ -97,6 +97,9 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param port The port of the device
      */
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
+    
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

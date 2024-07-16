@@ -16,8 +16,8 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
 )
 
 add_test(NAME ${TEST_APP}
-         COMMAND $<TARGET_FILE:${TEST_APP}>
-         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+         COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
+         WORKING_DIRECTORY bin
 )
 
 if (MSVC) # Ignoring warning for the Taskflow

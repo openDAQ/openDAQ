@@ -174,6 +174,51 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
+TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto path = "/test/lt/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                const auto ipv4Info = capability.getAddressInfo()[0];
+                const auto ipv6Info = capability.getAddressInfo()[1];
+                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                
+                ASSERT_EQ(ipv4Info.getType(), "IPv4");
+                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+                
+                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            }
+        }      
+    }
+}
+
+#endif
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

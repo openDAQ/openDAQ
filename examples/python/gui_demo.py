@@ -78,7 +78,7 @@ class App(tk.Tk):
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1400*self.context.ui_scaling_factor, 1000*self.context.ui_scaling_factor))
+            1400 * self.context.ui_scaling_factor, 1000 * self.context.ui_scaling_factor))
 
         main_frame_top = tk.Frame(self)
         main_frame_top.pack(fill=tk.constants.X)
@@ -132,10 +132,10 @@ class App(tk.Tk):
         self.right_side_panel_create(frame_navigator_for_properties)
 
         # High DPI workaround for now
-        ttk.Style().configure('Treeview', rowheight=30*self.context.ui_scaling_factor)
+        ttk.Style().configure('Treeview', rowheight=30 * self.context.ui_scaling_factor)
 
         default_font = tkfont.nametofont("TkDefaultFont")
-        default_font.configure(size=9*self.context.ui_scaling_factor)
+        default_font.configure(size=9 * self.context.ui_scaling_factor)
 
         self.context.load_icons(os.path.join(
             os.path.dirname(__file__), 'gui_demo', 'icons'))
@@ -184,7 +184,7 @@ class App(tk.Tk):
         tree.pack(fill="both", expand=True, side="left")
 
         # layout
-        tree.column('#0', width=350*self.context.ui_scaling_factor)
+        tree.column('#0', width=350 * self.context.ui_scaling_factor)
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
 
@@ -384,6 +384,7 @@ class App(tk.Tk):
             return
         config_string = file.read()
         file.close()
+
         self.context.instance.load_configuration(config_string)
         self.tree_update()
 
@@ -427,6 +428,7 @@ class App(tk.Tk):
     # MARK: - Right hand side panel
 
     def find_fb_or_device(self, node):
+
         if node is None:
             return None
         elif daq.IChannel.can_cast_from(node):
@@ -487,13 +489,13 @@ class App(tk.Tk):
                     fb = daq.IFunctionBlock.cast_from(fb)
                     b = BlockView(self.right_side_panel, fb,
                                   self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5 + 10*level, 5), pady=5)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
 
                 if fb.has_item('FB'):
                     fb_folder = fb.get_item('FB')
                     fb_folder = daq.IFolder.cast_from(fb_folder)
                     for fb in fb_folder.items:
-                        draw_sub_fbs(fb, level+1)
+                        draw_sub_fbs(fb, level + 1)
 
             draw_sub_fbs(found)
 

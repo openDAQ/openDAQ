@@ -25,6 +25,7 @@
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/address_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -388,7 +389,7 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         for (const auto& [browseName, ref] : serverCapabilitiesReferences.byBrowseName)
         {
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, "", clientContext, optionNodeId);
+            auto clientServerCapability = TmsClientPropertyObject(daqContext, clientContext, optionNodeId);
 
             auto capabilityCopy = ServerCapability("", "", ProtocolType::Unknown);
             for (const auto& prop : clientServerCapability.getAllProperties())
@@ -396,7 +397,32 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
                 const auto name = prop.getName();
                 if (!capabilityCopy.hasProperty(name))
                     capabilityCopy.addProperty(prop.asPtr<IPropertyInternal>().clone());
-                capabilityCopy.setPropertyValue(name, clientServerCapability.getPropertyValue(name));
+
+                // AddressInfo is a special case, add it as a child object property of type IAddressInfo
+                if  (name == "AddressInfo")
+                {
+                    const auto addrInfoId = clientContext->getReferenceBrowser()->getChildNodeId(optionNodeId, "AddressInfo");
+                    const auto& addrInfoRefs = getChildReferencesOfType(addrInfoId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
+                    
+                    for (const auto& [addrInfoBrowseName, addrInfoRef] : addrInfoRefs.byBrowseName)
+                    {
+                        auto clientAddressInfo = TmsClientPropertyObject(daqContext, clientContext, OpcUaNodeId(addrInfoRef->nodeId.nodeId));
+                        auto addrInfoCopy = AddressInfo();
+                        for (const auto& addrProp : clientAddressInfo.getAllProperties())
+                        {
+                            const auto addrName = addrProp.getName();
+                            if (!addrInfoCopy.hasProperty(addrName))
+                                addrInfoCopy.addProperty(addrProp.asPtr<IPropertyInternal>().clone());
+                            addrInfoCopy.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(addrName, clientAddressInfo.getPropertyValue(addrName));
+                        }
+
+                        capabilityCopy.addAddressInfo(addrInfoCopy);
+                    }
+                }
+                else
+                {
+                    capabilityCopy.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, clientServerCapability.getPropertyValue(name));
+                }
             }
 
             auto numberInList = this->tryReadChildNumberInList(optionNodeId);

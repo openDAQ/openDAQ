@@ -13,33 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/stringobject.h>
-#include <opendaq/device_info.h>
-#include <opendaq/logger.h>
+#include <opendaq/address_info_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_discovery_service Discovery service
+ * @ingroup opendaq_address_info
+ * @addtogroup opendaq_address_info_factories Factories
  * @{
  */
-
-/*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
+    
+/*!
+ * @brief Creates an Address with no parameters configured.
  */
-
-DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
+inline AddressInfoPtr AddressInfo()
 {
-    virtual ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) = 0;
-    virtual ErrCode INTERFACE_FUNC unregisterService(IString* id) = 0;
-};
-/*!@}*/
+    AddressInfoPtr obj(AddressInfo_Create());
+    return obj;
+}
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
-    MdnsDiscoveryServer, IDiscoveryServer, 
-    ILogger*, logger)
+/*!
+ * @brief Creates an Address builder with no parameters configured.
+ */
+inline AddressInfoBuilderPtr AddressInfoBuilder()
+{
+    AddressInfoBuilderPtr obj(AddressInfoBuilder_Create());
+    return obj;
+}
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

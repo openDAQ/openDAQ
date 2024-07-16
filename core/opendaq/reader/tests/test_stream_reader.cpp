@@ -710,7 +710,7 @@ TYPED_TEST(StreamReaderTest, GapDetected)
     int64_t domainSamples[4]{};
 
     auto status = reader.readWithDomain(&samplesDouble, &domainSamples, &count);
-    ASSERT_EQ(count, 2);
+    ASSERT_EQ(count, 2u);
     ASSERT_THAT(samplesDouble, ElementsAre(static_cast<TypeParam>(1), static_cast<TypeParam>(2), _, _));
     ASSERT_THAT(domainSamples, ElementsAre(0, 1, _, _));
     ASSERT_EQ(reader.getAvailableCount(), 2u);
@@ -724,7 +724,7 @@ TYPED_TEST(StreamReaderTest, GapDetected)
 
     count = 4;
     status = reader.readWithDomain(reinterpret_cast<TypeParam*>(&samplesDouble), reinterpret_cast<int64_t*>(&domainSamples), &count);
-    ASSERT_EQ(count, 2);
+    ASSERT_EQ(count, 2u);
     ASSERT_THAT(samplesDouble, ElementsAre(static_cast<TypeParam>(8), static_cast<TypeParam>(9), _, _));
     ASSERT_THAT(domainSamples, ElementsAre(8, 9, _, _));
     ASSERT_EQ(reader.getAvailableCount(), 0u);

@@ -45,8 +45,8 @@ public:
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverType, IDevice* rootDevice, IPropertyObject* config) override;
 
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* /*config*/) override;
-
-    ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override;
+    
+    ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) override;
     ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
 
 private:

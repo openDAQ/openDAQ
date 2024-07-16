@@ -1463,7 +1463,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 if (OPENDAQ_FAILED(err) || !obj.assigned())
                     continue;
 
-                this->propValues.insert(std::make_pair(val.first, obj));
+                auto it = this->propValues.find(val.first);
+                if (it != this->propValues.end())
+                    it->second = obj;
+                else
+                    this->propValues.insert(std::make_pair(val.first, obj));
             }
         }
         else
@@ -2210,7 +2214,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
+        auto implPtr = static_cast<GenericPropertyObjectImpl<PropObjInterface, Interfaces...>*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,
                                         valueReadEvents,
                                         endUpdateEvent,

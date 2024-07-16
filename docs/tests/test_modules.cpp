@@ -18,9 +18,9 @@ TEST_F(ModulesTest, ModuleManager)
     daq::ModuleManagerPtr manager2 = daq::ModuleManager(".");
     ASSERT_NO_THROW(manager2.loadModules(NullContext()));
     daq::ModuleManagerPtr manager3 = daq::ModuleManager("./dir1/dir2");
-    ASSERT_THROW(manager3.loadModules(NullContext()), InvalidParameterException);
+    ASSERT_NO_THROW(manager3.loadModules(NullContext()));
     daq::ModuleManagerPtr manager4 = daq::ModuleManager("/invalid_dir/dir1/dir2");
-    ASSERT_THROW(manager4.loadModules(NullContext()), InvalidParameterException);
+    ASSERT_NO_THROW(manager4.loadModules(NullContext()));
     daq::ModuleManagerPtr manager5 = daq::ModuleManager("[[none]]");
     ASSERT_NO_THROW(manager5.loadModules(NullContext()));
 }

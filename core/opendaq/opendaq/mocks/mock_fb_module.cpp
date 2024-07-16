@@ -114,7 +114,7 @@ ErrCode MockFunctionBlockModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockFunctionBlockModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockFunctionBlockModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

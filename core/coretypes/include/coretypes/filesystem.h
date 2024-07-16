@@ -35,6 +35,12 @@
                 #pragma message "Experimental std::filesystem does not have `relative()`."
                 return p;
             }
+
+            inline path proximate(const path& p)
+            {
+                #pragma message "Experimental std::filesystem does not have `proximate()`."
+                return p;
+            }
         }
     #endif
 #else

@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> declareIMirroredSignalPrivate(pybind11::module_ m)
 {
@@ -54,34 +55,34 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
         py::arg("streaming"),
         "Adds streaming source for signal.");
     cls.def("remove_streaming_source",
-        [](daq::IMirroredSignalPrivate *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
-            objectPtr.removeStreamingSource(streamingConnectionString);
+            objectPtr.removeStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         py::arg("streaming_connection_string"),
         "Removes streaming source for signal.");
     cls.def("subscribe_completed",
-        [](daq::IMirroredSignalPrivate *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
-            objectPtr.subscribeCompleted(streamingConnectionString);
+            objectPtr.subscribeCompleted(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         py::arg("streaming_connection_string"),
         "Handles the completion of subscription acknowledged by the specified streaming source.");
     cls.def("unsubscribe_completed",
-        [](daq::IMirroredSignalPrivate *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
-            objectPtr.unsubscribeCompleted(streamingConnectionString);
+            objectPtr.unsubscribeCompleted(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         py::arg("streaming_connection_string"),
         "Handles the completion of unsubscription acknowledged by the specified streaming source.");
     cls.def("unsubscribe_completed_no_lock",
-        [](daq::IMirroredSignalPrivate *object, const std::string& streamingConnectionString)
+        [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
-            objectPtr.unsubscribeCompletedNoLock(streamingConnectionString);
+            objectPtr.unsubscribeCompletedNoLock(getVariantValue<daq::IString*>(streamingConnectionString));
         },
         py::arg("streaming_connection_string"),
         "Acts the same as unsubscribeCompleted() but does not enter a critical section.");

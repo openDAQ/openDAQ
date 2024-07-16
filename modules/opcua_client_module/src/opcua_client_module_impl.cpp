@@ -11,13 +11,14 @@
 #include <regex>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
 static const char* DaqOpcUaDeviceTypeId = "opendaq_opcua_config";
-static const char* DaqOpcUaDevicePrefix = "daq.opcua://";
-static const char* OpcUaScheme = "opc.tcp://";
+static const char* DaqOpcUaDevicePrefix = "daq.opcua";
+static const char* OpcUaScheme = "opc.tcp";
 
 using namespace discovery;
 using namespace daq::opcua;
@@ -34,26 +35,40 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
                 if (!discoveredDevice.ipv4Address.empty())
                 {
-                    auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
+                    auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
                                     DaqOpcUaDevicePrefix,
                                     discoveredDevice.ipv4Address,
                                     discoveredDevice.servicePort,
                                     discoveredDevice.getPropertyOrDefault("path", "/"));
                     cap.addConnectionString(connectionStringIpv4);
                     cap.addAddress(discoveredDevice.ipv4Address);
+
+                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                 .setType("IPv4")
+                                                                 .setConnectionString(connectionStringIpv4)
+                                                                 .build();
+                    cap.addAddressInfo(addressInfo);
                 }
                 if(!discoveredDevice.ipv6Address.empty())
                 {
-                    auto connectionStringIpv6 = fmt::format("{}[{}]:{}{}",
+                    auto connectionStringIpv6 = fmt::format("{}://[{}]:{}{}",
                                     DaqOpcUaDevicePrefix,
                                     discoveredDevice.ipv6Address,
                                     discoveredDevice.servicePort,
                                     discoveredDevice.getPropertyOrDefault("path", "/"));
                     cap.addConnectionString(connectionStringIpv6);
                     cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+
+                    const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                 .setType("IPv6")
+                                                                 .setConnectionString(connectionStringIpv6)
+                                                                 .build();
+                    cap.addAddressInfo(addressInfo);
                 }
                 cap.setConnectionType("TCP/IP");
-                cap.setPrefix("daq.opcua");
+                cap.setPrefix(DaqOpcUaDevicePrefix);
                 if (discoveredDevice.servicePort > 0)
                     cap.setPort(discoveredDevice.servicePort);
                 return cap;
@@ -105,8 +120,9 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         throw InvalidParameterException{"Context is not available."};
 
     std::string host;
+    std::string hostType;
     int port;
-    auto formedConnectionString = formConnectionString(connectionString, config, host, port);
+    auto formedConnectionString = formConnectionString(connectionString, config, host, port, hostType);
 
     std::scoped_lock lock(sync);
 
@@ -126,15 +142,24 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    
+    
+    const auto addressInfo = AddressInfoBuilder().setAddress(host)
+                                                 .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                                 .setType(hostType)
+                                                 .setConnectionString(connectionString)
+                                                 .build();
 
-    connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId);
-    connectionInfo.setProtocolName("openDAQ OpcUa");
-    connectionInfo.setProtocolType(ProtocolType::Configuration);
-    connectionInfo.setConnectionType("TCP/IP");
-    connectionInfo.addAddress(host);
-    connectionInfo.setPort(port);
-    connectionInfo.setPrefix("daq.opcua");
-    connectionInfo.setConnectionString(connectionString);
+    connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId)
+                  .setProtocolName("openDAQ OpcUa")
+                  .setProtocolType(ProtocolType::Configuration)
+                  .setConnectionType("TCP/IP")
+                  .addAddress(host)
+                  .setPort(port)
+                  .setPrefix(DaqOpcUaDevicePrefix)
+                  .setConnectionString(connectionString)
+                  .addAddressInfo(addressInfo)
+                  .freeze();
 
     return device;
 }
@@ -165,13 +190,8 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
     return defConfig;
 }
 
-StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port)
+StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType)
 {
-    if (config.assigned() && config.hasProperty("Port"))
-    {
-        port = config.getPropertyValue("Port");
-    }
-
     std::string urlString = connectionString.toStdString();
 
     auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
@@ -182,11 +202,23 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     std::string prefix = "";
     std::string path = "";
 
+    if (config.assigned() )
+    {
+        if (config.hasProperty("Port"))
+            port = config.getPropertyValue("Port");
+
+        if (config.hasProperty("Path"))
+            path = String(config.getPropertyValue("Path")).toStdString();
+    }
+
     bool parsed = false;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    hostType = "IPv6";
+
     if (!parsed)
     {
         parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+        hostType = "IPv4";
     }
 
     if (parsed)
@@ -203,20 +235,73 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     else
         throw InvalidParameterException("Host name not found in url: {}", connectionString);
 
-    if (prefix != DaqOpcUaDevicePrefix)
+    if (prefix != std::string(DaqOpcUaDevicePrefix) + "://")
         throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
 
-    return OpcUaScheme + host + ":" + std::to_string(port) + "/" + path;
+    return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + "/" + path;
 }
 
 bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(DaqOpcUaDevicePrefix);
+    auto found = connStr.find(std::string(DaqOpcUaDevicePrefix) + "://");
     if (found == 0)
         return true;
     else
         return false;
+}
+
+Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
+{
+    if (target.getProtocolId() != "opendaq_opcua_config")
+        return false;
+
+    if (target.getConnectionString().getLength() != 0)
+        return true;
+    
+    if (source.getConnectionType() != "TCP/IP")
+        return false;
+
+    if (!source.getAddresses().assigned() || !source.getAddresses().getCount())
+    {
+        LOG_W("Source server capability address is not available when filling in missing OPC UA capability information.")
+        return false;
+    }
+
+    const auto addrInfos = source.getAddressInfo();
+    if (!addrInfos.assigned() || !addrInfos.getCount())
+    {
+        LOG_W("Source server capability addressInfo is not available when filling in missing OPC UA capability information.")
+        return false;
+    }
+
+    auto port = target.getPort();
+    if (port == -1)
+    {
+        port = 4840;
+        target.setPort(port);
+        LOG_W("OPC UA server capability is missing port. Defaulting to 7420.")
+    }
+
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    for (const auto& addrInfo : addrInfos)
+    {
+        const auto address = addrInfo.getAddress();
+
+        std::string connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
+        const auto targetAddrInfo = AddressInfoBuilder()
+                                        .setAddress(addrInfo.getAddress())
+                                        .setReachabilityStatus(addrInfo.getReachabilityStatus())
+                                        .setType(addrInfo.getType())
+                                        .setConnectionString(connectionString)
+                                        .build();
+
+        target.addAddressInfo(targetAddrInfo)
+              .setConnectionString(connectionString)
+              .addAddress(address);
+    }
+
+    return true;
 }
 
 DeviceTypePtr OpcUaClientModule::createDeviceType()
@@ -225,7 +310,7 @@ DeviceTypePtr OpcUaClientModule::createDeviceType()
         .setId(DaqOpcUaDeviceTypeId)
         .setName("OpcUa enabled device")
         .setDescription("Network device connected over OpcUa protocol")
-        .setConnectionStringPrefix("daq.opcua")
+        .setConnectionStringPrefix(DaqOpcUaDevicePrefix)
         .setDefaultConfig(createDefaultConfig())
         .build();
 }
@@ -239,33 +324,6 @@ PropertyObjectPtr OpcUaClientModule::createDefaultConfig()
     config.addProperty(IntProperty("Port", 4840));
 
     return config;
-}
-
-StringPtr OpcUaClientModule::onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
-{
-    if (serverCapability.getProtocolId() != "opendaq_opcua_config")
-        return nullptr;
-
-    StringPtr connectionString = serverCapability.getConnectionString();
-    if (connectionString.getLength() != 0)
-        return connectionString;
-
-    StringPtr address;
-    if (ListPtr<IString> addresses = serverCapability.getAddresses(); addresses.getCount() > 0)
-    {
-        address = addresses[0];
-    }
-    if (!address.assigned() || address.toStdString().empty())
-        throw InvalidParameterException("Address is not set");
-
-    auto port = serverCapability.getPort();
-    if (port == -1)
-    {
-        port = 4840;
-        LOG_W("OPC UA server capability is missing port. Defaulting to 4840.")
-    }
-
-    return fmt::format("{}{}:{}", DaqOpcUaDevicePrefix, address, port);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE

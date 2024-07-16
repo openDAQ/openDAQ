@@ -41,6 +41,12 @@ void NativeStreamingServerHandler::startServer(uint16_t port)
     {
         initSessionHandler(session);
     };
+
+    OnAuthenticateCallback onAuthenticateCallback = [this](const daq::native_streaming::Authentication& authentication)
+    {
+        return onAuthenticate(authentication);
+    };
+
     daq::native_streaming::LogCallback logCallback =
         [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)
     {
@@ -48,7 +54,8 @@ void NativeStreamingServerHandler::startServer(uint16_t port)
                                    msg,
                                    static_cast<LogLevel>(level));
     };
-    server = std::make_shared<daq::native_streaming::Server>(onNewSessionCallback, ioContextPtr, logCallback);
+
+    server = std::make_shared<daq::native_streaming::Server>(onNewSessionCallback, onAuthenticateCallback, ioContextPtr, logCallback);
     server->start(port);
 }
 
@@ -161,6 +168,38 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
         }
     }
     return true;
+}
+
+bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::Authentication& authentication)
+{
+    const auto authProvider = context.getAuthenticationProvider();
+
+    switch (authentication.getType())
+    {
+        case AuthenticationType::Anonymous:
+        {
+            if (authProvider.isAnonymousAllowed())
+                return true;
+
+            LOG_W("Anonymous authentication rejected");
+            break;
+        }
+        case AuthenticationType::Basic:
+        {
+            try
+            {
+                authProvider.authenticate(authentication.getUsername(), authentication.getPassword());
+                return true;
+            }
+            catch (const DaqException& e)
+            {
+                LOG_W("Username authentication rejected: {}", e.what());
+            }
+            break;
+        }
+    }
+
+    return false;
 }
 
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)

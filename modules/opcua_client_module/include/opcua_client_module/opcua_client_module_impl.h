@@ -33,10 +33,10 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port);
+    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
     static void completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);

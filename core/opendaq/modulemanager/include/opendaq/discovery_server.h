@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/device_info.h>
+#include <opendaq/logger.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

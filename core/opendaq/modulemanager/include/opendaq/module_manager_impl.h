@@ -25,6 +25,8 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
+
+#include <map>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -56,6 +58,7 @@ private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
+    static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
     static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
@@ -66,10 +69,9 @@ private:
                                   const PropertyObjectPtr& config);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
+    void completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps);
     static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
-
-
+    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
     static PropertyObjectPtr createGeneralConfig();
 

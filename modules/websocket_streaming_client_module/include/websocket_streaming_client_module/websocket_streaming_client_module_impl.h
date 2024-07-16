@@ -35,7 +35,7 @@ public:
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
     static DeviceTypePtr createWebsocketDeviceType(bool useOldPrefix);

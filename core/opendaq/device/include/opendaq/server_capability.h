@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/context.h>
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
-#include <coretypes/enumeration.h>
-#include <coreobjects/property_object.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_devices
- * @addtogroup opendaq_server_capbility Server capbility
+ * @addtogroup opendaq_server_capability Server capability
  * @{
  */
 
@@ -126,6 +124,16 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] port The port of the device.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    
+    // [templateType(addressInfo, IAddressInfo)]
+    /*!
+     * @brief Gets the list of address information objects.
+     * @param[out] addressInfo The list of address information objects.
+     *
+     * Address information duplicates the connection string and address as available on the Server Capability object.
+     * Additionally, it provides information on what type of address it is (e.g., IPv4, IPv6), as well as whether the address is reachable.
+     */
+    virtual ErrCode INTERFACE_FUNC getAddressInfo(IList** addressInfo) = 0;
 };
 /*!@}*/
 

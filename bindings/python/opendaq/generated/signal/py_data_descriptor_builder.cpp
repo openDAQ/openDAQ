@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDataDescriptorBuilder, daq::IBaseObject> declareIDataDescriptorBuilder(pybind11::module_ m)
 {
@@ -53,10 +54,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IDataDescriptorBuilder *object, const std::string& name)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets a descriptive name for the signal's value. / Sets a descriptive name for the signal's value.");
     cls.def_property("dimensions",
@@ -65,10 +66,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getDimensions().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, daq::IList* dimensions)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& dimensions)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setDimensions(dimensions);
+            objectPtr.setDimensions(getVariantValue<daq::IList*>(dimensions));
         },
         py::return_value_policy::take_ownership,
         "Gets the list of the descriptor's dimension's. / Sets the list of the descriptor's dimension's.");
@@ -129,10 +130,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getOrigin().toStdString();
         },
-        [](daq::IDataDescriptorBuilder *object, const std::string& origin)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& origin)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setOrigin(origin);
+            objectPtr.setOrigin(getVariantValue<daq::IString*>(origin));
         },
         "Gets the absolute origin of a signal value component. / Sets the absolute origin of a signal value component.");
     cls.def_property("tick_resolution",
@@ -141,10 +142,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getTickResolution().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, daq::IRatio* tickResolution)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IRatio*, std::pair<int64_t, int64_t>>& tickResolution)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setTickResolution(tickResolution);
+            objectPtr.setTickResolution(getVariantValue<daq::IRatio*>(tickResolution));
         },
         py::return_value_policy::take_ownership,
         "Gets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`. / Sets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.");
@@ -167,10 +168,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getStructFields().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, daq::IList* structFields)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& structFields)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setStructFields(structFields);
+            objectPtr.setStructFields(getVariantValue<daq::IList*>(structFields));
         },
         py::return_value_policy::take_ownership,
         "Gets the fields of the struct, forming a recursive value descriptor definition. / Sets the fields of the struct, forming a recursive value descriptor definition.");
@@ -180,10 +181,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getMetadata().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, daq::IDict* metadata)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IDict*, py::dict>& metadata)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setMetadata(metadata);
+            objectPtr.setMetadata(getVariantValue<daq::IDict*>(metadata));
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");

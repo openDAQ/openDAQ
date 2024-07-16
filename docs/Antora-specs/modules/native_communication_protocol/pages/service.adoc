@@ -1,0 +1,29 @@
+= Protocol service packages
+
+[#properties]
+== Transport layer properties
+
+Once connected to the server, the client can send a package that contains a serialized openDAQ(TM) property object outlining a variety of protocol service parameters:
+
+[cols="1,1"]
+|===
+|Package type
+|_Transport layer properties_
+
+|Package type code
+|0xA
+
+|Direction
+|client → server
+|===
+
+_Payload structure_:
+
+|===
+|Bytes group |Start position offset (in bytes) |Value type |Size in bytes
+
+|Serialized property object string
+|0
+|String
+|Payload size
+|===

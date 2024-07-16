@@ -1,0 +1,123 @@
+= Protocol internal messages
+
+In addition to packet buffer types representing openDAQ(TM) packets, the protocol also encompasses additional types interpreted as internal protocol messages,
+which may not be associated with a specific signal.
+
+[#release]
+== Packets release
+
+When the server detects that one or more xref:data_packet.adoc[data packets], previously encoded into packet buffers and sent to the client, are no longer referenced by any subsequent data packets,
+it generates a "packets release" internal protocol message. This message includes a xref:format.adoc#generic_header[generic header] and payload containing the IDs of the packets no longer needed.
+It notifies the client that the corresponding packet copies it has recreated are no longer required and can be released.
+
+|===
+||Bytes group |Start position offset (in bytes) |Value type |Size in bytes |Value
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0
+|unsigned 8 bit integer
+|1
+|12
+
+|Packet buffer type code
+|1
+|unsigned 8 bit integer
+|1
+|0x2
+
+|Packet streaming protocol version
+|2
+|unsigned 8 bit integer
+|1
+|-
+
+|xref:format.adoc#flags[Flags]
+|3
+|unsigned 8 bit integer
+|1
+|0x0
+
+|Signal numeric ID
+|4
+|unsigned 32 bit integer
+|4
+|0xFFFFFFFF
+
+|Payload size
+|8
+|unsigned 32 bit integer
+|4
+|-
+
+|Payload
+|IDs of data packets to release
+|12
+|Array of unsigned 64 bit integers
+|-
+|-
+|===
+
+[#already_sent]
+== Already sent packet buffer
+
+A single openDAQ(TM) xref:data_packet.adoc[data packet] can be used/shared by multiple signals. The packet streaming server will only transmit the data packet for the first signal.
+The data packet buffer does not include the “Can release” flag, therefor the client needs to keep/cache the packet buffer for subsequent (already sent) packet buffers.
+Other signals will then send “Already sent” packet buffers to notify the client that it should reuse the cached packet buffer for the new signal.
+
+|===
+||Bytes group |Start position offset (in bytes) |Value type |Size in bytes |Value
+
+.6+.^|xref:format.adoc#generic_header[Generic header]
+
+|Header size
+|0
+|unsigned 8 bit integer
+|1
+|28
+
+|Packet buffer type code
+|1
+|unsigned 8 bit integer
+|1
+|0x3
+
+|Packet streaming protocol version
+|2
+|unsigned 8 bit integer
+|1
+|-
+
+|xref:format.adoc#flags[Flags]
+|3
+|unsigned 8 bit integer
+|1
+|-
+
+|Related signal numeric ID
+|4
+|unsigned 32 bit integer
+|4
+|-
+
+|Payload size
+|8
+|unsigned 32 bit integer
+|4
+|0
+
+.2+.^|Extra header
+
+|Packet ID
+|12
+|unsigned 64 bit integer
+|8
+|-
+
+|Domain packet ID
+|20
+|unsigned 64 bit integer
+|8
+|-
+|===

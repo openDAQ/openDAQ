@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IMultiReaderStatus, daq::IReaderStatus> declareIMultiReaderStatus(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderSt
 {
     cls.doc() = "IMultiReaderStatus inherits from IReaderStatus to expand information returned read function";
 
-    m.def("MultiReaderStatus", &daq::MultiReaderStatus_Create);
+    m.def("MultiReaderStatus", [](std::variant<daq::IDict*, py::dict>& eventPackets, const bool valid){
+        return daq::MultiReaderStatus_Create(getVariantValue<daq::IDict*>(eventPackets), valid);
+    }, py::arg("event_packets"), py::arg("valid"));
+
 
     cls.def_property_readonly("event_packets",
         [](daq::IMultiReaderStatus *object)

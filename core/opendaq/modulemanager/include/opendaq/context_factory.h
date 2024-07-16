@@ -40,7 +40,7 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
                           const LoggerPtr& logger,
                           const TypeManagerPtr& typeManager,
                           const ModuleManagerPtr& moduleManager,
-                          const AuthenticationProviderPtr& authenticationProvider,
+                          const AuthenticationProviderPtr& authenticationProvider = nullptr,
                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
                           const DictPtr<IString, IDiscoveryServer> discoveryServers = Dict<IString, IDiscoveryServer>())
 {

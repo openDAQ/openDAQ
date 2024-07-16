@@ -1,12 +1,9 @@
 #include <opendaq/server_capability_impl.h>
-#include <coretypes/type_manager_factory.h>
-#include <coretypes/enumeration_type_factory.h>
-#include <coretypes/enumeration_factory.h>
+
+#include "opendaq/address_info_ptr.h"
 
 
 BEGIN_NAMESPACE_OPENDAQ
-
-const char* EnumerationName = "ProtocolType_v1";
 
 const char* PrimaryConnectionString = "PrimaryConnectionString";
 const char* ConnectionStrings = "ConnectionStrings";
@@ -17,6 +14,7 @@ const char* CoreEventsEnabled = "CoreEventsEnabled";
 const char* ProtocolId = "protocolId";
 const char* Prefix = "prefix";
 const char* Addresses = "Addresses";
+const char* AddressInfo = "AddressInfo";
 const char* Port = "Port";
 
 StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
@@ -59,6 +57,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(Prefix, ""));
     Super::addProperty(ListProperty(Addresses, List<IString>()));
     Super::addProperty(IntProperty(Port, -1));
+    Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -282,6 +281,70 @@ ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
 ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
 {
     return Super::setPropertyValue(String(Port), port);
+}
+
+ErrCode ServerCapabilityConfigImpl::getAddressInfo(IList** addressesInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(addressesInfo);
+    ListPtr<IAddressInfo> infos = List<IAddressInfo>();
+
+    BaseObjectPtr obj;
+    StringPtr str = "AddressInfo";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto addressInfoPtr = obj.asPtr<IPropertyObject>();
+    for (const auto& prop : addressInfoPtr.getAllProperties())
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            BaseObjectPtr cap;
+            err = addressInfoPtr->getPropertyValue(prop.getName(), &cap);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            infos.pushBack(cap.detach());
+        }
+    }
+
+    *addressesInfo = infos.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ServerCapabilityConfigImpl::addAddressInfo(IAddressInfo* addressInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(addressInfo);
+    
+    StringPtr address;
+    ErrCode err = addressInfo->getAddress(&address);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    BaseObjectPtr obj;
+    StringPtr str = "AddressInfo";
+    err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto addressInfoPtr = obj.asPtr<IPropertyObject>();
+    for (const auto& prop : addressInfoPtr.getAllProperties())
+    {
+        if (prop.getValueType() != ctObject)
+            continue;
+
+        const AddressInfoPtr addr = addressInfoPtr.getPropertyValue(prop.getName());
+        if (addr.getAddress() == address)
+            return OPENDAQ_ERR_DUPLICATEITEM;
+    }
+    std::string addressStr = address;
+    addressStr.erase(std::remove_if(
+            addressStr.begin(),
+            addressStr.end(),
+            [](char c) { return c == '/' || c == '.' || c == '[' || c == ']'; }),
+            addressStr.end());
+    addressInfoPtr.addProperty(ObjectProperty(addressStr, addressInfo));
+    return OPENDAQ_SUCCESS;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

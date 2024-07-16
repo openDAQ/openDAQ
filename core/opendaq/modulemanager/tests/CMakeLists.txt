@@ -20,7 +20,12 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_SOURCES}
 )
 
-target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test"
+target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
+)
+
+set_target_properties(${TEST_APP}
+    PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 ##############################
@@ -37,7 +42,7 @@ opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
                                ${TEST_SOURCES_INTERNAL}
 )
 
-target_compile_definitions(${TEST_APP_INTERNAL} PRIVATE MODULE_TEST_DIR="$<TARGET_FILE_DIR:empty_dll>"
+target_compile_definitions(${TEST_APP_INTERNAL} PRIVATE MODULE_TEST_DIR="mock"
                                                         BOOST_DLL_USE_STD_FS
                                                         BOOST_ALL_NO_LIB
                                                         EMPTY_MODULE_FILE_NAME="$<TARGET_FILE_NAME:empty_dll>"
@@ -77,8 +82,15 @@ add_dependencies(${TEST_APP_INTERNAL} empty_dll
                                       dependencies_succeeded
 )
 
+set_target_properties(${TEST_APP_INTERNAL}
+    PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP_INTERNAL}>
+)
+
 ##############################
 # CTest setup
+
+
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

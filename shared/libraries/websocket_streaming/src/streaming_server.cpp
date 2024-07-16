@@ -239,6 +239,50 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
     }
 }
 
+void StreamingServer::doRead(const std::string& clientId, const daq::stream::StreamPtr& stream)
+{
+    std::weak_ptr<daq::stream::Stream> stream_weak = stream;
+
+    // The callback is to be called in the thread that remains active as long as this object exists,
+    // ensuring that the captured 'this' pointer is always valid.
+    auto readDoneCallback = [this, stream_weak, clientId](const boost::system::error_code& ec, std::size_t bytesRead)
+    {
+        if (auto stream = stream_weak.lock())
+            this->onReadDone(clientId, stream, ec, bytesRead);
+    };
+    stream->asyncReadSome(readDoneCallback);
+}
+
+void StreamingServer::onReadDone(const std::string& clientId,
+                                 const daq::stream::StreamPtr& stream,
+                                 const boost::system::error_code& ec,
+                                 std::size_t bytesRead)
+{
+    if (ec) {
+        removeClient(clientId);
+        return;
+    }
+
+    // any incoming data is ignored
+    stream->consume(bytesRead);
+    doRead(clientId, stream);
+}
+
+void StreamingServer::removeClient(const std::string& clientId)
+{
+    LOG_I("client with id {} disconnected", clientId);
+
+    if (auto iter = clients.find(clientId); iter != clients.end())
+    {
+        auto outputSignals = iter->second.second;
+        for (const auto& [signalId, outputSignal] : outputSignals)
+        {
+            unsubscribeHandler(signalId, outputSignal);
+        }
+        clients.erase(iter);
+    }
+}
+
 void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
 {
     auto writer = std::make_shared<StreamWriter>(stream);
@@ -268,10 +312,13 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
         }
     }
 
-    LOG_I("New client connected. Stream Id: {}", writer->id());
-    clients.insert({writer->id(), {writer, outputSignals}});
+    auto clientId = stream->endPointUrl();
+    LOG_I("New client connected. Stream Id: {}", clientId);
+    clients.insert({clientId, {writer, outputSignals}});
 
     writeSignalsAvailable(writer, filteredSignals);
+
+    doRead(clientId, stream);
 }
 
 int StreamingServer::onControlCommand(const std::string& streamId,

@@ -74,6 +74,7 @@ struct PyTypedReader
             auto status = readZeroValues(reader, timeoutMs);
             return {SampleTypeVariant{}, status.detach()};
         }
+
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
         switch (valueType)
@@ -364,7 +365,7 @@ private:
         if (!domainDtype.empty())
             domainArray.attr("dtype") = domainDtype;
 
-        return {std::move(valuesArray), std::move(domainArray), status};
+        return {std::move(valuesArray), std::move(domainArray), status.detach()};
     }
 
     static inline void checkSampleType(daq::SampleType type)

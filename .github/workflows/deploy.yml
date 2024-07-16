@@ -298,6 +298,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
+          rename 's/_arm64/-ubuntu20.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
       - name: Rename package

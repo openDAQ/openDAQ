@@ -1197,7 +1197,7 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
             continue;
 
         if (hasProp)
-            newCap.setPropertyValue(name, val);
+            newCap.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
         else
             newCap.addProperty(prop.asPtr<IPropertyInternal>().clone());
     }

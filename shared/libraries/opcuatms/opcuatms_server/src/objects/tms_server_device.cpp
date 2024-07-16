@@ -229,7 +229,7 @@ void TmsServerDevice::populateServerCapabilities()
     const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
 
     auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "serverCapabilities");
+            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");
     this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 

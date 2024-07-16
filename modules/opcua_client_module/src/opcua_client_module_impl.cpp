@@ -253,7 +253,7 @@ bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionS
 
 Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (target.getProtocolId() != "opendaq_opcua_config")
+    if (target.getProtocolId() != "OpenDAQOPCUAConfiguration")
         return false;
 
     if (target.getConnectionString().getLength() != 0)

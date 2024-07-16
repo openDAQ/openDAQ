@@ -21,7 +21,7 @@ using namespace opcua;
 
 namespace detail
 {
-    std::unordered_set<std::string> ignoredPropertyNames{"serverCapabilities"};
+    std::unordered_set<std::string> ignoredPropertyNames{"ServerCapabilities"};
 }
 
 template <class Impl>

@@ -189,11 +189,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -204,7 +204,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            if (capability.getProtocolName() == "openDAQ OpcUa")
+            if (capability.getProtocolName() == "OpenDAQOPCUA")
             {
                 const auto ipv4Info = capability.getAddressInfo()[0];
                 const auto ipv6Info = capability.getAddressInfo()[1];
@@ -230,11 +230,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
     client.getAvailableDevices();
@@ -250,7 +250,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         if (!test_helpers::isSufix(capability.getConnectionString(), path))
             break;
 
-        if (capability.getProtocolName() == "openDAQ OpcUa")
+        if (capability.getProtocolName() == "OpenDAQOPCUA")
         {
             const auto ipv4Info = capability.getAddressInfo()[0];
             const auto ipv6Info = capability.getAddressInfo()[1];
@@ -277,11 +277,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     auto client = Instance();
 
     DevicePtr device;
@@ -289,7 +289,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() != "openDAQ OpcUa")
+            if (capability.getProtocolName() != "OpenDAQOPCUA")
                 continue;
 
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
@@ -313,7 +313,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         if (!test_helpers::isSufix(capability.getConnectionString(), path))
             break;
 
-        if (capability.getProtocolName() == "openDAQ OpcUa")
+        if (capability.getProtocolName() == "OpenDAQOPCUA")
         {
             const auto ipv4Info = capability.getAddressInfo()[0];
             const auto ipv6Info = capability.getAddressInfo()[1];
@@ -960,9 +960,9 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
 {
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
-    server.addServer("OpenDAQNativeConfiguration", nullptr);
+    server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
-    server.addServer("openDAQ OpcUa", nullptr);
+    server.addServer("OpenDAQOPCUA", nullptr);
 
     auto client = Instance();
     const auto dev = client.addDevice("daq.opcua://127.0.0.1");
@@ -1005,9 +1005,9 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         return;
 
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
-    server.addServer("OpenDAQNativeConfiguration", nullptr);
+    server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
-    server.addServer("openDAQ OpcUa", nullptr);
+    server.addServer("OpenDAQOPCUA", nullptr);
 
     auto client = Instance();
     const auto dev = client.addDevice("daq.opcua://[::1]");
@@ -1047,15 +1047,15 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoGatewayDevice)
 {
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
-    server.addServer("OpenDAQNativeConfiguration", nullptr);
+    server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
-
+    
     auto gateway = Instance();
     auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     serverConfig.setPropertyValue("Port", 4841);
     gateway.addDevice("daq.opcua://127.0.0.1");
-    gateway.addServer("openDAQ OpcUa", serverConfig);
+    gateway.addServer("OpenDAQOPCUA", serverConfig);
 
     auto client = Instance();
     const auto dev = client.addDevice("daq.opcua://127.0.0.1:4841/");

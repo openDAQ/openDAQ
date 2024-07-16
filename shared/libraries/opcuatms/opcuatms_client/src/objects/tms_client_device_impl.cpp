@@ -32,7 +32,7 @@ using namespace daq::opcua;
 
 namespace detail
 {
-    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "serverCapabilities"};
+    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities"};
 
     static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
@@ -381,7 +381,7 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
     std::map<uint32_t, PropertyObjectPtr> orderedCaps;
     std::vector<PropertyObjectPtr> unorderedCaps;
 
-    auto serverCapabilitiesNodeId = getNodeId("serverCapabilities");
+    auto serverCapabilitiesNodeId = getNodeId("ServerCapabilities");
 
     try
     {

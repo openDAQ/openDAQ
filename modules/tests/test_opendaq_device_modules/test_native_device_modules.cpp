@@ -169,7 +169,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
     auto authProvider = StaticAuthenticationProvider(false, users);
 
     auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
-    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     auto clientInstance = Instance();
 
@@ -177,7 +177,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
 
     auto config = clientInstance.createDefaultAddDeviceConfig();
     PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
 
     nativeDeviceConfig.setPropertyValue("Username", "jure");
     nativeDeviceConfig.setPropertyValue("Password", "wrongPass");

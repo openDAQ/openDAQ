@@ -66,10 +66,11 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         "is returned through the `count` parameter.");
     cls.def(
         "skip_samples",
-        [](daq::IStreamReader* object, const size_t count)
+        [](daq::IStreamReader* object, size_t count)
         {
             const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
-            return objectPtr.skipSamples(count).detach();
+            objectPtr.skipSamples(&count);
+            return count;
         },
         py::arg("count"),
         "Skips the specified amount of samples.");

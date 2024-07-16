@@ -9,11 +9,11 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 
-#include "coreobjects/unit_factory.h"
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/packet_factory.h"
-#include "opendaq/range_factory.h"
-#include "opendaq/sample_type_traits.h"
+#include <coreobjects/unit_factory.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
 

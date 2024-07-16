@@ -486,13 +486,14 @@ protected:
         const auto domainPacket = packet.getDomainPacket();
         if (domainPacket.assigned())
         {
+            NumberPtr delta = 0;
             const auto domainRule = domainPacket.getDataDescriptor().getRule();
-            if (domainRule.getType() == DataRuleType::Linear)
+            if (domainRule.assigned() && domainRule.getType() == DataRuleType::Linear)
             {
                 const auto domainRuleParams = domainRule.getParameters();
-                NumberPtr packetDelta = domainRuleParams.get("delta");
-                return {(domainPacket.getOffset() + offset) * packetDelta.getIntValue()};
+                delta = domainRuleParams.get("delta");
             }
+            return {domainPacket.getOffset() + (offset * delta.getIntValue())};
         }
         return {0};
     }

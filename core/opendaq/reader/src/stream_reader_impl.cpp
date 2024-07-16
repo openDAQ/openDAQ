@@ -512,13 +512,14 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 const auto domainPacket = info.dataPacket.getDomainPacket();
                 if (domainPacket.assigned())
                 {
+                    NumberPtr delta = 0;
                     const auto domainRule = domainPacket.getDataDescriptor().getRule();
                     if (domainRule.getType() == DataRuleType::Linear)
                     {
                         const auto domainRuleParams = domainRule.getParameters();
-                        NumberPtr packetDelta = domainRuleParams.get("delta");
-                        offset = (domainPacket.getOffset() + info.prevSampleIndex) * packetDelta.getIntValue();
+                        delta = domainRuleParams.get("delta");
                     }
+                    offset = domainPacket.getOffset() + (info.prevSampleIndex * delta.getIntValue());
                 }
                 if (!offset.assigned())
                 {

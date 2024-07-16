@@ -748,12 +748,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
     NumberPtr offset;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
-    {        
-        auto delta = signals[0].packetDelta;
-        if (delta.assigned())
+    {
+        auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
+        if (domainPacket.assigned())
         {
-            auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
-            offset = (domainPacket.getOffset().getIntValue() + signals[0].info.prevSampleIndex) * delta.getIntValue();
+            auto delta = signals[0].packetDelta;
+            offset = domainPacket.getOffset().getIntValue() + (signals[0].info.prevSampleIndex * delta.getIntValue());
         }
 
         SizeT toRead = std::min(remainingSamplesToRead, availableSamples);

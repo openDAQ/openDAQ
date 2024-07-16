@@ -185,6 +185,9 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
@@ -223,6 +226,9 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
@@ -267,6 +273,9 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     auto path = "/test/opcua/discovery_reachability/";
@@ -992,6 +1001,9 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
     server.addServer("openDAQ Native Streaming", nullptr);
     server.addServer("openDAQ LT Streaming", nullptr);

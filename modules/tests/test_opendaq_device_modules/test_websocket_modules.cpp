@@ -178,6 +178,9 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
 
 TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
     auto path = "/test/lt/discovery_reachability/";

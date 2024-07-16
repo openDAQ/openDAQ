@@ -112,6 +112,9 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery_reachability/";

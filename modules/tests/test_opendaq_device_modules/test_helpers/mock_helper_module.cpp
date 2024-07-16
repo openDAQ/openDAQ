@@ -6,7 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace test_helpers
 {
 
-MockHelperModuleImpl::MockHelperModuleImpl(daq::ContextPtr ctx, FunctionPtr availableDevicesCb)
+MockHelperModuleImpl::MockHelperModuleImpl(ContextPtr ctx, FunctionPtr availableDevicesCb)
     : ctx(std::move(ctx))
     , availableDevicesCb(std::move(availableDevicesCb))
 {
@@ -102,12 +102,12 @@ ErrCode MockHelperModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockHelperModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockHelperModuleImpl::completeServerCapability(Bool* /*succeeded*/, IServerCapability* /*source*/, IServerCapabilityConfig* /*target*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockHelperModuleImpl::getAvailableStreamingTypes(IDict** streamingTypes)
+ErrCode MockHelperModuleImpl::getAvailableStreamingTypes(IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

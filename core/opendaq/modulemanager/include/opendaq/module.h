@@ -23,7 +23,7 @@
 #include <coretypes/listobject.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/version_info.h>
-#include <opendaq/streaming_type.h>
+#include <opendaq/server_capability_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -132,14 +132,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
-    /*!
-     * @brief Creates and returns a connection string from the specified server capability object.
-     * @param serverCapability Represents the connection parameters of supported streaming or configuration protocol.
-     * @param[out] connectionString The created connection string.
-     * @return A non-zero error code if the @p serverCapability object is not complete enough to
-     * generate a connection string.
-     */
-    virtual ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) = 0;
+    virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 
     /*!
      * @brief Returns a dictionary of known and available streaming types that this module (client) can create.

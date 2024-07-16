@@ -10,6 +10,9 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ServerCapabilityConfig server_capability_config.h)
     rtgen(SRC_IoFolderConfig io_folder_config.h)
     rtgen(SRC_DeviceType device_type.h)
+    rtgen(SRC_AddressInfo address_info.h)
+    rtgen(SRC_AddressInfoBuilder address_info_builder.h)
+    rtgen(SRC_AddressInfoPrivate address_info_private.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
@@ -21,6 +24,9 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PublicHeaders}
         ${SRC_IoFolderConfig_PublicHeaders}
         ${SRC_DeviceType_PublicHeaders}
+        ${SRC_AddressInfo_PublicHeaders}
+        ${SRC_AddressInfoBuilder_PublicHeaders}
+        ${SRC_AddressInfoPrivate_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -34,6 +40,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PrivateHeaders}
         ${SRC_IoFolderConfig_PrivateHeaders}
         ${SRC_DeviceType_PrivateHeaders}
+        ${SRC_AddressInfo_PrivateHeaders}
+        ${SRC_AddressInfoBuilder_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -47,6 +55,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_Cpp}
         ${SRC_IoFolderConfig_Cpp}
         ${SRC_DeviceType_Cpp}
+        ${SRC_AddressInfo_Cpp}
+        ${SRC_AddressInfoBuilder_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -65,10 +75,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/device_info_impl.h
         ${SDK_HEADERS_DIR}/device_info_factory.h
         ${SDK_HEADERS_DIR}/device_private.h
-        ${SDK_HEADERS_DIR}/server_capability_config.h
-        ${SDK_HEADERS_DIR}/server_capability_impl.h
         ${SDK_SRC_DIR}/device_info_impl.cpp
-        ${SDK_SRC_DIR}/server_capability_impl.cpp
     )
     
     source_group("device//device_domain" FILES 
@@ -103,7 +110,13 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/server_capability.h
         ${SDK_HEADERS_DIR}/server_capability_config.h
         ${SDK_HEADERS_DIR}/server_capability_impl.h
-        ${SDK_SRC_DIR}/server_capability_impl.cpp
+        ${SDK_HEADERS_DIR}/address_info.h
+        ${SDK_HEADERS_DIR}/address_info_private.h
+        ${SDK_HEADERS_DIR}/address_info_builder.h
+        ${SDK_HEADERS_DIR}/address_info_impl.h
+        ${SDK_HEADERS_DIR}/address_info_builder_impl.h
+        ${SDK_SRC_DIR}/address_info_impl.cpp
+        ${SDK_SRC_DIR}/address_info_builder_impl.cpp
     )
     
     source_group("device" FILES 
@@ -128,6 +141,7 @@ set(SRC_PublicHeaders_Component
     server_capability_config.h
     server_capability_impl.h
     device_domain_factory.h
+    address_info_factory.h
     PARENT_SCOPE
 )
 
@@ -135,6 +149,8 @@ set(SRC_PrivateHeaders_Component
     device_info_impl.h
     device_type_impl.h
     device_domain_impl.h
+    address_info_impl.h
+    address_info_builder_impl.h
     PARENT_SCOPE
 )
 
@@ -145,6 +161,8 @@ set(SRC_Cpp_Component
     core_opendaq_event_args_impl.cpp
     server_capability_impl.cpp
     device_domain_impl.cpp
+    address_info_impl.cpp
+    address_info_builder_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

@@ -45,6 +45,7 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          program_options
                          uuid
                          locale
+                         align
     )
 
     set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
@@ -69,30 +70,23 @@ if (Boost_FETCHED)
         boost_container
         boost_thread
     )
-    foreach(TARGET ${BOOST_TARGETS})
-        if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-            target_compile_options(${TARGET} PRIVATE /WX-)
-        else()
-            target_compile_options(${TARGET} PRIVATE -Wno-error)
+    foreach(BOOST_TARGET ${BOOST_TARGETS})
+        if (TARGET ${BOOST_TARGET})
+            if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+                target_compile_options(${BOOST_TARGET} PRIVATE /WX-)
+            else()
+                target_compile_options(${BOOST_TARGET} PRIVATE -Wno-error)
+            endif()
         endif()
     endforeach()
 
 endif()
 
 if (Boost_FOUND)
-    set(BOOST_TARGETS
-        Boost::dll
-        Boost::algorithm
-        Boost::uuid
-        Boost::locale
-        Boost::beast
-        Boost::align
-        Boost::asio
-    )
 
-    foreach(TARGET ${BOOST_TARGETS})
-        if (NOT TARGET ${TARGET})
-            add_library(${TARGET} ALIAS Boost::headers)
+    foreach(BOOST_TARGET ${BOOST_INCLUDE_LIBRARIES})
+        if (NOT TARGET Boost::${BOOST_TARGET} AND NOT TARGET boost_${BOOST_TARGET})
+            add_library(Boost::${BOOST_TARGET} ALIAS Boost::headers)
         endif()
     endforeach()
 endif()

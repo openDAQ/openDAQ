@@ -1,8 +1,30 @@
+10.07.2024
+Description
+	- Add address type and address reachability status to server capability
+	- Allows easier identification of what address is used, and checks if device is available
+	- Reachability is currently only available for ipv4
+	- "canPing" and "ipv4Address" properties have been removed from discovered device info
+
+Required integeration changes:
+	- If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
+	- "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
+	
++ [function] IServerCapability::getAddressTypes(IList** addressTypes)
++ [function] IServerCapability::getAddressReachabilityStatus(IList** addressReachability)
++ [function] IServerCapabilityConfig::addAddressType(IString* addressType)
++ [function] IServerCapabilityConfig::addAddressReachabilityStatus(AddressReachabilityStatus addressReachability)
++ [function] IServerCapabilityConfig::setAddressReachabilityStatus(IList* addressReachability)
+
 04.07.2024
 Description
 	- Make device connection string prefix mandatory
 	- Remove "accepts connection string" methods from module
 	
+Required integration changes:
+	- onGetAvailableDeviceTypes() override in modules now has to add a "prefix" to its device type
+	- onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
+	- Connection strings must now always start with a prefix, followed by "://"
+  
 -m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 +m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
 - [function] IModule::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)

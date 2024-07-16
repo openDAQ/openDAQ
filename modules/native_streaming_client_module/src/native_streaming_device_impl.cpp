@@ -97,11 +97,8 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
             connectionStatusChangedHandler(status);
         };
 
-    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
-                                                               std::regex(NativeStreamingDevicePrefix),
-                                                               NativeStreamingPrefix);
     nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+        createWithImplementation<IStreaming, NativeStreamingImpl>(connectionString,
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,

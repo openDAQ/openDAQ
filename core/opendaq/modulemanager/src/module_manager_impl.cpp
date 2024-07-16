@@ -24,10 +24,12 @@
 #include <optional>
 #include <map>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/address_info_private_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -135,10 +137,27 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
-    return daqTry([&](){
-        for(const auto& path: paths) {
-            auto localLibraries = enumerateModules(loggerComponent, path, context);
-            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());
+    return daqTry([&]()
+    {
+        for (const auto& path: paths)
+        {
+            try
+            {
+                auto localLibraries = enumerateModules(loggerComponent, path, context);
+                libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
+            }
+            catch (const daq::DaqException& e)
+            {
+                LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+            }
+            catch (const std::exception& e)
+            {
+                LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
+            }
+            catch (...)
+            {
+                LOG_W(R"(Unknown error occured scanning directory "{}")", path)
+            }
         }
         modulesLoaded = true;
         return OPENDAQ_SUCCESS;
@@ -147,7 +166,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
 struct DevicePing
 {
-    DeviceInfoPtr info;
+    std::string address;
     std::shared_ptr<IcmpPing> ping;
 };
 
@@ -156,42 +175,85 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
     using namespace std::chrono_literals;
 
     std::vector<DevicePing> statuses;
+    std::map<std::string, bool> ipv4Addresses;
+    std::map<std::string, bool> ipv6Addresses;
 
     for (auto deviceInfo : list)
     {
-        if (!deviceInfo.hasProperty("ipv4Address"))
+        for (const auto& cap : deviceInfo.getServerCapabilities())
         {
-            continue;
-        }
+            if (cap.getConnectionType() != "TCP/IP")
+                continue;
 
-        auto icmp = IcmpPing::Create(ioContext, logger);
+            const auto addressInfos = cap.getAddressInfo();
+            for (const auto& info : addressInfos)
+            {
+                const auto address = info.getAddress();
+                const auto addressType = info.getType();
+                if (addressType == "IPv4")
+                    ipv4Addresses.insert(std::make_pair(address.toStdString(), false));
+                else if (addressType == "IPv6")
+                    ipv6Addresses.insert(std::make_pair(address.toStdString(), false));
+            }
+        }
+    }
+
+    for (auto& address : ipv4Addresses)
+    {
+        const auto icmp = IcmpPing::Create(ioContext, logger);
         IcmpPing& ping = *icmp;
 
-        std::string deviceIp = deviceInfo.getPropertyValue("ipv4Address");
-
         ping.setMaxHops(1);
-        ping.start(boost::asio::ip::make_address_v4(deviceIp));
+        ping.start(boost::asio::ip::make_address_v4(address.first));
         if (ping.waitSend())
         {
-            deviceInfo.addProperty(BoolProperty("canPing", true));
+            address.second = true;
             continue;
         }
 
-        statuses.push_back({deviceInfo, icmp});
-
-        LOG_T("No replies received yet: waiting 1s\n");
+        statuses.push_back({address.first, icmp});
     }
 
     if (!statuses.empty())
     {
+        LOG_T("Missing ping replies: waiting 1s\n");
         std::this_thread::sleep_for(1s);
 
-        for (const auto& [info, ping] : statuses)
+        for (const auto& [address, ping] : statuses)
         {
             ping->stop();
-            info->addProperty(BoolProperty("canPing", ping->getNumReplies() > 0));
+            ipv4Addresses[address] = ping->getNumReplies() > 0;
         }
         statuses.clear();
+    }
+
+    setAddressesReachable(ipv4Addresses, "IPv4", list);
+
+    // TODO: Check ipv6 for reachability
+}
+
+void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info)
+{
+    for (const auto& devInfo : info)
+    {
+        for (const auto& cap : devInfo.getServerCapabilities())
+        {
+            const auto addressInfos = cap.getAddressInfo();
+            for (const auto& addressInfo : addressInfos)
+            {
+                const auto address = addressInfo.getAddress();
+                const auto addressType = addressInfo.getType();
+
+                if (addr.count(address) && addressType == type)
+                {
+                    AddressReachabilityStatus reachability = addr.at(address)
+                                                                 ? AddressReachabilityStatus::Reachable
+                                                                 : AddressReachabilityStatus::Unreachable;
+                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -293,6 +355,12 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     {
         LOG_W("Failed to check for network settings: {}", e.what());
         // ignore all errors
+    }
+
+    for (const auto& dev : availableDevicesPtr)
+    {
+        if (!dev.isFrozen())
+            dev.freeze();
     }
 
     *availableDevices = availableDevicesPtr.detach();
@@ -505,16 +573,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 }
             }
 
-            for (const auto& capability : devicePtr.getInfo().getServerCapabilities())
-            {
-                // assigns missing connection strings for server capabilities
-                if (capability.getConnectionStrings().empty())
-                {
-                    auto capConnectionString = createConnectionString(capability);
-                    if (capConnectionString.assigned())
-                        capability.asPtr<IServerCapabilityConfig>().addConnectionString(capConnectionString);
-                }
-            }
+            const auto configConnectionInfo = connectedDeviceInfo.getConfigurationConnectionInfo();
+            if (configConnectionInfo.assigned() && configConnectionInfo.getProtocolType() != ProtocolType::Unknown)
+                completeServerCapabilities(configConnectionInfo, connectedDeviceInfo.getServerCapabilities());
 
             // automatically skips streaming connection for local and pseudo (streaming) devices
             auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true);
@@ -972,6 +1033,56 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     return streaming;
 }
 
+void ModuleManagerImpl::completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps)
+{
+    for (const auto& target : targetCaps)
+    {
+        for (const auto& library : libraries)
+        {
+            const auto module = library.module;
+            try
+            {
+                if (module.completeServerCapability(source, target))
+                    break;
+            }
+            catch (const NotImplementedException&)
+            {
+                LOG_D("{}: completeServerCapability not implemented", module.getName());
+            }
+            catch ([[maybe_unused]] const std::exception& e)
+            {
+                LOG_W("{}: completeServerCapability failed: {}", module.getName(), e.what());
+            }
+        }
+    }
+
+    const auto addressInfo = source.getAddressInfo();
+    if (!addressInfo.assigned() || !addressInfo.getCount())
+        return;
+
+    const auto connectionType = source.getConnectionType();
+    const auto address = addressInfo[0].getAddress();
+    const auto addressType = addressInfo[0].getType();
+
+    for (const auto& target : targetCaps)
+    {
+        if (target.getConnectionType() != connectionType)
+            continue;
+
+        const auto targetAddressInfo = target.getAddressInfo();
+        if (!targetAddressInfo.assigned() || !targetAddressInfo.getCount())
+            continue;
+        
+        for (const auto& info : targetAddressInfo)
+        {
+            if (address == info.getAddress() && addressType == info.getType())
+            {
+                info.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
+            }
+        }
+    }
+}
+
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 {
     auto obj = PropertyObject();
@@ -1010,35 +1121,11 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     return "";
 }
 
-StringPtr ModuleManagerImpl::createConnectionString(const ServerCapabilityPtr& serverCapability)
-{
-    StringPtr connectionString = nullptr;
-    for (const auto& library : libraries)
-    {
-        const auto module = library.module;
-        try
-        {
-            connectionString = module.createConnectionString(serverCapability);
-            if (connectionString.assigned())
-                return connectionString;
-        }
-        catch (const NotImplementedException&)
-        {
-            LOG_D("{}: createConnectionString not implemented", module.getName());
-        }
-        catch ([[maybe_unused]] const std::exception& e)
-        {
-            LOG_W("{}: createConnectionString failed: {}", module.getName(), e.what());
-        }
-    }
-    return connectionString;
-}
-
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap,
                                                                   const ServerCapabilityPtr& deviceCap)
 {
     auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
-    const auto caps = List<IServerCapability>(discoveryCap, deviceCap);
+    const auto caps = List<IServerCapability>(deviceCap, discoveryCap);
 
     for (const auto& cap : caps)
         for (const auto& prop : cap.getAllProperties())
@@ -1046,12 +1133,12 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCa
             const auto name = prop.getName();
             const auto val = cap.getPropertyValue(name);
             const bool hasProp = merged.hasProperty(name);
-
+            
             if (val == prop.getDefaultValue() && hasProp)
                 continue;
-                
+
             if (hasProp)
-                merged.setPropertyValue(name, val);
+                merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
             else
                 merged.addProperty(prop);
         }
@@ -1117,17 +1204,20 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
         throw InvalidParameterException("The specified path is not a folder.");
     }
 
+    auto loadPath = fs::absolute(searchFolder).string();
     LOG_I("Loading modules from '{}'", fs::absolute(searchFolder).string())
+
+    std::vector<ModuleLibrary> moduleDrivers;
+    fs::recursive_directory_iterator dirIterator(searchFolder);
 
     [[maybe_unused]]
     Finally onExit([workingDir = fs::current_path()]()
     {
         fs::current_path(workingDir);
     });
-    fs::current_path(searchFolder);
 
-    std::vector<ModuleLibrary> moduleDrivers;
-    fs::recursive_directory_iterator dirIterator(searchFolder);
+    fs::current_path(searchFolder);
+    auto currPath = fs::current_path().string();
 
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)
@@ -1200,7 +1290,8 @@ static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPt
 
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
-    auto relativePath = fs::relative(path).string();
+    auto currDir = fs::current_path();
+    auto relativePath = fs::proximate(path).string();
     LOG_T("Loading module \"{}\".", relativePath);
 
     std::error_code libraryErrCode;

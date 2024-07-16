@@ -100,9 +100,9 @@ TEST_F(ConnectionTest, DequeueAll)
     }
 
     const auto packetsOut = connection.dequeueAll();
-    ASSERT_EQ(packetsOut.getCount(), 3);
+    ASSERT_EQ(packetsOut.getCount(), 3u);
     ASSERT_FALSE(connection.dequeue().assigned());
-    ASSERT_EQ(connection.dequeueAll().getCount(),0);
+    ASSERT_EQ(connection.dequeueAll().getCount(), 0u);
 }
 
 TEST_F(ConnectionTest, EnqueueAndSteal)
@@ -152,7 +152,7 @@ TEST_F(ConnectionTest, EnqueueAndStealRefCount1)
         });
 
     ASSERT_NO_THROW(connection.enqueue(std::move(packet)));
-    ASSERT_EQ(packetRefCount, 1);
+    ASSERT_EQ(packetRefCount, 1u);
 }
 
 TEST_F(ConnectionTest, EnqueueQueueWasEmpty)
@@ -227,7 +227,7 @@ TEST_F(ConnectionTest, EnqueueAndStealMultipleRefCount1)
             });
 
     checkErrorInfo(connection->enqueueMultipleAndStealRef(packets.detach()));
-    ASSERT_EQ(packetRefCount, 3);
+    ASSERT_EQ(packetRefCount, 3u);
 
     EXPECT_CALL(inputPort.mock(), notifyPacketEnqueued(True)).Times(1);
     connection.enqueue(createWithImplementation<IPacket, MockPacket>());

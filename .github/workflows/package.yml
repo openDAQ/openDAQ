@@ -232,6 +232,7 @@ jobs:
       - name: Rename
         working-directory: ${{ env.package_path_rel }}
         run: |
+          ls ${{ env.package_path_rel }}
           rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
           rename 's/_arm64/-ubuntu20.04-arm64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb

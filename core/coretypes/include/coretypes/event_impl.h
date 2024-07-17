@@ -95,7 +95,11 @@ private:
     std::atomic<bool> frozen{};
     std::vector<Handler> handlers;
 
+#ifndef OPENDAQ_THREAD_SAFE
     mutable daq::mutex sync;
+#else
+    mutable std::recursive_mutex sync;
+#endif
 };
 
 END_NAMESPACE_OPENDAQ

@@ -72,6 +72,10 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "openDAQ SDK")
 # TODO: Properly define when we split the packages again
 #set(CPACK_DEBIAN_PACKAGE_DEPENDS "libxxhash-dev (>= 0.8.1)")
 
+if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+    set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
+endif()
+
 ##
 ## Finally ...
 ##

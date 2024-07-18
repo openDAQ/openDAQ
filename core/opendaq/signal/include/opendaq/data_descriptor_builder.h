@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [include(ISampleType)]
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -211,6 +212,40 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * @param[out] metadata Additional metadata of the descriptor as a dictionary.
      */
     virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the domain id.
+     * @param domainId The domain id.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC setDomainId(IString* domainId) = 0;
+
+    /*!
+     * @brief Gets the domain id.
+     * @param[out] domainId The domain id.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getDomainId(IString** domainId) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the grandmaster offset.
+     * @param grandmasterOffset The grandmaster offset.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC setGrandmasterOffset(IInteger* grandmasterOffset) = 0;
+
+    /*!
+     * @brief Gets the grandmaster offset.
+     * @param[out] grandmasterOffset The grandmaster offset.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) = 0;
 };
 /*!@}*/
 

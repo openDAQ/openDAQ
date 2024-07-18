@@ -79,8 +79,8 @@ TEST_P(SiggenTest, SyncPostScalingSignalDescriptors)
     EXPECT_EQ(dataDescriptor.getValueRange(), Range(-15, 15));
 
     ASSERT_TRUE(dataDescriptor.getPostScaling().assigned());
-    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("Scale"), 2);
-    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("Offset"), 5);
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("scale"), 2);
+    EXPECT_EQ(dataDescriptor.getPostScaling().getParameters().get("offset"), 5);
 
     EXPECT_EQ(dataDescriptor.getDimensions().getCount(), 0u);
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);

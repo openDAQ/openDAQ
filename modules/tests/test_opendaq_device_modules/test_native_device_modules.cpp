@@ -1526,3 +1526,55 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoGatewayDevice)
     ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
     ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
 }
+
+TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+
+    // Set up first client
+    auto client1 = CreateClientInstance();
+    auto client1Signal = client1.getDevices()[0].getDevices()[0].getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    std::promise<StringPtr> client1SignalSubscribePromise;
+    std::future<StringPtr> client1SignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
+
+    StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal);
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(client1SignalSubscribeFuture));
+
+    // change samplerate to trigger signal changes
+    auto serverRefDevice = server.getDevices()[0];
+    serverRefDevice.setPropertyValue("GlobalSampleRate", 2000);
+
+    // Set up second client
+    auto client2 = CreateClientInstance();
+    auto client2Signal = client2.getDevices()[0].getDevices()[0].getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    std::promise<StringPtr> client2SignalSubscribePromise;
+    std::future<StringPtr> client2SignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
+
+    StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal);
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(client2SignalSubscribeFuture));
+
+    // read some
+    daq::SizeT client1SamplesRead = 0;
+    daq::SizeT client2SamplesRead = 0;
+    double samples[100];
+    for (int i = 0; i < 3; ++i)
+    {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(100ms);
+
+        daq::SizeT count = 100;
+        client1Reader.read(samples, &count);
+        client1SamplesRead += count;
+
+        count = 100;
+        client2Reader.read(samples, &count);
+        client2SamplesRead += count;
+    }
+    EXPECT_GT(client1SamplesRead, 0u);
+    EXPECT_GT(client2SamplesRead, 0u);
+}

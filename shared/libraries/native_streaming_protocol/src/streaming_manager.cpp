@@ -1,6 +1,8 @@
 #include <native_streaming_protocol/streaming_manager.h>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/event_packet_params.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -24,16 +26,28 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
 
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
     {
-        const auto& registeredSignal = iter->second;
+        auto& registeredSignal = iter->second;
+
+        if (packet.getType() == PacketType::Event)
+        {
+            auto eventPacket = packet.asPtr<IEventPacket>();
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                auto dataDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                if (dataDescriptor.assigned())
+                {
+                    registeredSignal.lastDataDescriptor = dataDescriptor;
+                }
+            }
+        }
+
         for (const auto& subscribedClientId : registeredSignal.subscribedClientsIds)
         {
-            auto packetStreamingServerPtr = packetStreamingServers.at(subscribedClientId);
-
-            packetStreamingServerPtr->addDaqPacket(registeredSignal.numericId, packet);
-            while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
-            {
-                sendPacketBufferCb(subscribedClientId, packetBuffer);
-            }
+            sendDaqPacket(sendPacketBufferCb,
+                          packetStreamingServers.at(subscribedClientId),
+                          packet,
+                          subscribedClientId,
+                          registeredSignal.numericId);
         }
     }
     else
@@ -42,34 +56,16 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::sendPacketToClient(const std::string& signalStringId,
-                                          const PacketPtr& packet,
-                                          const SendPacketBufferCallback& sendPacketBufferCb,
-                                          const std::string& clientId)
+void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
+                                     const PacketStreamingServerPtr& packetStreamingServerPtr,
+                                     const PacketPtr& packet,
+                                     const std::string& clientId,
+                                     SignalNumericIdType singalNumericId)
 {
-    std::scoped_lock lock(sync);
-
-    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
+    packetStreamingServerPtr->addDaqPacket(singalNumericId, packet);
+    while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
     {
-        const auto& registeredSignal = iter->second;
-        if (auto it = packetStreamingServers.find(clientId); it != packetStreamingServers.end())
-        {
-            auto packetStreamingServerPtr = it->second;
-
-            packetStreamingServerPtr->addDaqPacket(registeredSignal.numericId, packet);
-            while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
-            {
-                sendPacketBufferCb(clientId, packetBuffer);
-            }
-        }
-        else
-        {
-            throw NativeStreamingProtocolException(fmt::format("Client {} is not registered in streaming", signalStringId));
-        }
-    }
-    else
-    {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        sendPacketBufferCb(clientId, packetBuffer);
     }
 }
 
@@ -174,7 +170,9 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
     return signalsToUnsubscribe;
 }
 
-bool StreamingManager::registerSignalSubscriber(const std::string& signalStringId, const std::string& subscribedClientId)
+bool StreamingManager::registerSignalSubscriber(const std::string& signalStringId,
+                                                const std::string& subscribedClientId,
+                                                const SendPacketBufferCallback& sendPacketBufferCb)
 {
     bool doSignalSubscribe = false;
 
@@ -182,7 +180,8 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
 
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
     {
-        auto& subscribers = iter->second.subscribedClientsIds;
+        auto& registeredSignal = iter->second;
+        auto& subscribers = registeredSignal.subscribedClientsIds;
 
         if (auto subscribersIter = subscribers.find(subscribedClientId); subscribersIter == subscribers.end())
         {
@@ -190,6 +189,22 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
             {
                 LOG_D("Signal: {} has first subscriber", signalStringId);
                 doSignalSubscribe = true;
+                // should trigger creating a reader,
+                // which automatically generates first event packet that will initialize packet streaming
+            }
+            else
+            {
+                // does not trigger creating a reader
+                // so create and send event packet to initialize packet streaming
+                // dataDescriptor not assigned means initial event packet is not yet processed by streaming
+                if (registeredSignal.lastDataDescriptor.assigned())
+                {
+                    sendDaqPacket(sendPacketBufferCb,
+                                  packetStreamingServers.at(subscribedClientId),
+                                  DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptor, nullptr),
+                                  subscribedClientId,
+                                  registeredSignal.numericId);
+                }
             }
             subscribers.insert(subscribedClientId);
         }
@@ -228,26 +243,6 @@ bool StreamingManager::removeSignalSubscriber(const std::string& signalStringId,
     }
 
     return doSignalUnsubscribe;
-}
-
-void StreamingManager::setLastEventPacket(const std::string& signalStringId, const EventPacketPtr& packet)
-{
-    std::scoped_lock lock(sync);
-
-    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
-        iter->second.lastEventPacket = packet;
-    else
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
-}
-
-EventPacketPtr StreamingManager::getLastEventPacket(const std::string& signalStringId)
-{
-    std::scoped_lock lock(sync);
-
-    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
-        return iter->second.lastEventPacket;
-    else
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
 }
 
 SignalNumericIdType StreamingManager::findSignalNumericId(const SignalPtr& signal)

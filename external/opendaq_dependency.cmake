@@ -19,7 +19,7 @@ macro(opendaq_check_dependency)
         ""
         ${ARGN}
     )
-
+    message(STATUS ${TARGET})
     # assume it's there
     set(${OPENDAQ_CHECK_DEP_VAR} 1)
 

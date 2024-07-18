@@ -422,8 +422,8 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingRenderer)
     rendererFb.setPropertyValue("ShowLastValue", True);
 
     const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
-    scalingFb.setPropertyValue("Scale", 2.0);
-    scalingFb.setPropertyValue("Offset", 1.0);
+    scalingFb.setPropertyValue("scale", 2.0);
+    scalingFb.setPropertyValue("offset", 1.0);
 
     scalingFb.getInputPorts()[0].connect(deviceSignal);
     const auto scaledSignal = scalingFb.getSignals()[0];
@@ -1126,29 +1126,29 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
         deviceSignal.setPublic(false);
 
         const auto scalingFb1 = instance.addFunctionBlock("RefFBModuleScaling");
-        scalingFb1.setPropertyValue("Scale", 2.0);
-        scalingFb1.setPropertyValue("Offset", 1.0);
+        scalingFb1.setPropertyValue("scale", 2.0);
+        scalingFb1.setPropertyValue("offset", 1.0);
         scalingFb1.getInputPorts()[0].connect(deviceSignal);
         const auto scaledSignal1 = scalingFb1.getSignals()[0];
         scaledSignal1.setPublic(false);
 
         const auto scalingFb2 = instance.addFunctionBlock("RefFBModuleScaling");
-        scalingFb2.setPropertyValue("Scale", 2.0);
-        scalingFb2.setPropertyValue("Offset", 1.0);
+        scalingFb2.setPropertyValue("scale", 2.0);
+        scalingFb2.setPropertyValue("offset", 1.0);
         scalingFb2.getInputPorts()[0].connect(scaledSignal1);
         const auto scaledSignal2 = scalingFb2.getSignals()[0];
         scaledSignal2.setPublic(false);
 
         const auto scalingFb3 = instance.addFunctionBlock("RefFBModuleScaling");
-        scalingFb3.setPropertyValue("Scale", 2.0);
-        scalingFb3.setPropertyValue("Offset", 1.0);
+        scalingFb3.setPropertyValue("scale", 2.0);
+        scalingFb3.setPropertyValue("offset", 1.0);
         scalingFb3.getInputPorts()[0].connect(scaledSignal2);
         const auto scaledSignal3 = scalingFb3.getSignals()[0];
         scaledSignal3.setPublic(false);
 
         const auto scalingFb4 = instance.addFunctionBlock("RefFBModuleScaling");
-        scalingFb4.setPropertyValue("Scale", 2.0);
-        scalingFb4.setPropertyValue("Offset", 1.0);
+        scalingFb4.setPropertyValue("scale", 2.0);
+        scalingFb4.setPropertyValue("offset", 1.0);
         scalingFb4.getInputPorts()[0].connect(scaledSignal3);
         const auto scaledSignal4 = scalingFb4.getSignals()[0];
         scaledSignal4.setPublic(false);

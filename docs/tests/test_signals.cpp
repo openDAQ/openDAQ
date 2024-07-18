@@ -77,8 +77,8 @@ TEST_F(SignalsTest, Dimensions)
 TEST_F(SignalsTest, PostScaling)
 {
     auto scaling = LinearScaling(2, 10);
-    ASSERT_EQ(scaling.getParameters()["Scale"], 2);
-    ASSERT_EQ(scaling.getParameters()["Offset"], 10);
+    ASSERT_EQ(scaling.getParameters()["scale"], 2);
+    ASSERT_EQ(scaling.getParameters()["offset"], 10);
 }
 
 // Corresponding document: Antora/modules/explanation/pages/signals.adoc

@@ -43,7 +43,7 @@ ScalingBuilderImpl::ScalingBuilderImpl( NumberPtr scale,
     : ScalingBuilderImpl(   inputType, 
                             outputType, 
                             ScalingType::Linear, 
-                            Dict<IString, IBaseObject>({{"Scale", scale}, {"Offset", offset}}))
+                            Dict<IString, IBaseObject>({{"scale", scale}, {"offset", offset}}))
 {
 }
 

@@ -41,7 +41,7 @@ ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, Scal
 }
 
 ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType, ScaledSampleType outputType)
-    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({{"Scale", scale}, {"Offset", offset}}))
+    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({{"scale", scale}, {"offset", offset}}))
 {
 }
 
@@ -190,16 +190,16 @@ ErrCode ScalingImpl::verifyParametersInternal() const
         if (params.getCount() != 2)
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear Scaling has an invalid number of parameters. Required parameters are "Scale" and "Offset".)");
+                                 R"(Linear Scaling has an invalid number of parameters. Required parameters are "scale" and "offset".)");
         }
 
-        if (!params.hasKey("Scale") || !params.hasKey("Offset"))
+        if (!params.hasKey("scale") || !params.hasKey("offset"))
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Linear scaling has invalid parameters. Required parameters are "Scale" and "Offset".)");
+                                 R"(Linear scaling has invalid parameters. Required parameters are "scale" and "offset".)");
         }
 
-        if (!params.get("Scale").asPtrOrNull<INumber>().assigned() || !params.get("Offset").asPtrOrNull<INumber>().assigned())
+        if (!params.get("scale").asPtrOrNull<INumber>().assigned() || !params.get("offset").asPtrOrNull<INumber>().assigned())
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
 

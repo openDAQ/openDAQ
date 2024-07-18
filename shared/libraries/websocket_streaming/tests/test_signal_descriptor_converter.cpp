@@ -275,8 +275,8 @@ TEST(SignalConverter, subscribedDataSignal)
     postScaling = dataDescriptor.getPostScaling();
     ASSERT_TRUE(postScaling.assigned());
     ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
-    ASSERT_EQ(postScaling.getParameters().get("Scale"), 2.0);
-    ASSERT_EQ(postScaling.getParameters().get("Offset"), 3.0);
+    ASSERT_EQ(postScaling.getParameters().get("scale"), 2.0);
+    ASSERT_EQ(postScaling.getParameters().get("offset"), 3.0);
 }
 
 TEST(SignalConverter, subscribedBitfieldSignal)

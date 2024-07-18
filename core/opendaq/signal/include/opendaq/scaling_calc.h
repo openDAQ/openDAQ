@@ -63,8 +63,8 @@ ScalingCalcTyped<T, U>::ScalingCalcTyped(const ScalingPtr& scaling)
     type = scaling.getType();
     if (type == ScalingType::Linear)
     {
-        U scale = scaling.getParameters().get("Scale");
-        U offset = scaling.getParameters().get("Offset");
+        U scale = scaling.getParameters().get("scale");
+        U offset = scaling.getParameters().get("offset");
         params.push_back(scale);
         params.push_back(offset);
     }

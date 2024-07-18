@@ -792,11 +792,11 @@ TEST_F(TmsPropertyObjectAdvancedTest, PropertyOrder)
 TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
 {
     const auto typeManager = TypeManager();
-    const auto type = StructType("GainScalingStructure", List<IString>("Factor", "Offset"), List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
+    const auto type = StructType("GainScalingStructure", List<IString>("Factor", "offset"), List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
     typeManager.addType(type);
 
     const auto obj = PropertyObject();
-    const auto structBuilder = StructBuilder("GainScalingStructure", typeManager).set("Factor", 0.5).set("Offset", 2.5);
+    const auto structBuilder = StructBuilder("GainScalingStructure", typeManager).set("Factor", 0.5).set("offset", 2.5);
     obj.addProperty(StructProperty("Gain", structBuilder.build()));
     
 
@@ -809,7 +809,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
     
     const auto structObj = obj.getPropertyValue("Gain");
     const auto newBuilder = StructBuilder(structObj);
-    clientObj.setPropertyValue("Gain", newBuilder.set("Factor", 2.0).set("Offset", 10.0).build());
+    clientObj.setPropertyValue("Gain", newBuilder.set("Factor", 2.0).set("offset", 10.0).build());
 }
 
 TEST_F(TmsPropertyObjectAdvancedTest, BeginEndUpdate)

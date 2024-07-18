@@ -147,8 +147,8 @@ void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valu
     if (daqPostScaling.assigned() && daqPostScaling.getType() == daq::ScalingType::Linear)
     {
         daq::streaming_protocol::PostScaling streamingLinearPostScaling;
-        streamingLinearPostScaling.scale = daqPostScaling.getParameters().get("Scale");
-        streamingLinearPostScaling.offset = daqPostScaling.getParameters().get("Offset");
+        streamingLinearPostScaling.scale = daqPostScaling.getParameters().get("scale");
+        streamingLinearPostScaling.offset = daqPostScaling.getParameters().get("offset");
         valueStream->setPostScaling(streamingLinearPostScaling);
     }
     // *** meta "definition" end ***

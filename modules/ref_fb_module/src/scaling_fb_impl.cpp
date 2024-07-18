@@ -40,14 +40,14 @@ ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 
 void ScalingFbImpl::initProperties()
 {
-    const auto scaleProp = FloatProperty("Scale", 1.0);
+    const auto scaleProp = FloatProperty("scale", 1.0);
     objPtr.addProperty(scaleProp);
-    objPtr.getOnPropertyValueWrite("Scale") +=
+    objPtr.getOnPropertyValueWrite("scale") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto offsetProp = FloatProperty("Offset", 0.0);
+    const auto offsetProp = FloatProperty("offset", 0.0);
     objPtr.addProperty(offsetProp);
-    objPtr.getOnPropertyValueWrite("Offset") +=
+    objPtr.getOnPropertyValueWrite("offset") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     const auto useCustomOutputRangeProp = BoolProperty("UseCustomOutputRange", False);
@@ -88,8 +88,8 @@ void ScalingFbImpl::propertyChanged(bool configure)
 
 void ScalingFbImpl::readProperties()
 {
-    scale = objPtr.getPropertyValue("Scale");
-    offset = objPtr.getPropertyValue("Offset");
+    scale = objPtr.getPropertyValue("scale");
+    offset = objPtr.getPropertyValue("offset");
     useCustomOutputRange = objPtr.getPropertyValue("UseCustomOutputRange");
     outputHighValue = objPtr.getPropertyValue("OutputHighValue");
     outputLowValue = objPtr.getPropertyValue("OutputLowValue");

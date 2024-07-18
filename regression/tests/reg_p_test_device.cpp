@@ -240,7 +240,7 @@ TEST_F(RegressionTestDevice, getServerCapabilities)
     std::set<std::string> allowed = {
         "OpenDAQNativeConfiguration", "OpenDAQOPCUAConfiguration", "OpenDAQNativeStreaming", "OpenDAQLTStreaming"};
 
-    for (auto& cap : caps)
+    for (const auto& cap : caps)
     {
         ASSERT_EQ(allowed.find(cap.getProtocolId()) != allowed.end(), true);
     }

@@ -140,7 +140,9 @@ std::vector<std::string> SubscribersRegistry::unregisterClient(SessionPtr sessio
     return toUnsubscribe;
 }
 
-bool SubscribersRegistry::registerSignalSubscriber(const std::string& signalStringId, SessionPtr session)
+bool SubscribersRegistry::registerSignalSubscriber(const std::string& signalStringId,
+                                                   SessionPtr session,
+                                                   InitPacketStreamingCallback sendCallback)
 {
     bool doSignalSubscribe = false;
     auto signalKey = signalStringId;
@@ -170,6 +172,11 @@ bool SubscribersRegistry::registerSignalSubscriber(const std::string& signalStri
                                                     });
             if (sessionHandlersIter != sessionHandlers.end())
             {
+                // if it is a secondary subscriber send last event packet to initialize packet streaming
+                // packet not assigned means initial event packet is not yet processed by streaming
+                auto initialEventPacket = std::get<1>(iter->second);
+                if (initialEventPacket.assigned() && !doSignalSubscribe)
+                    sendCallback(*sessionHandlersIter, initialEventPacket);
                 subscribers.push_back(*sessionHandlersIter);
             }
         }

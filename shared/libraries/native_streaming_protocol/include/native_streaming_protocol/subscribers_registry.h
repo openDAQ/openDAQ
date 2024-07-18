@@ -26,6 +26,8 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using DoForClientCallback = std::function<void(std::shared_ptr<ServerSessionHandler>& sessionHandler)>;
+using InitPacketStreamingCallback = std::function<void(std::shared_ptr<ServerSessionHandler>& sessionHandler,
+                                                       const EventPacketPtr& packet)>;
 
 class SubscribersRegistry
 {
@@ -42,7 +44,9 @@ public:
     void registerClient(std::shared_ptr<ServerSessionHandler> sessionHandler);
     std::vector<std::string> unregisterClient(SessionPtr session);
 
-    bool registerSignalSubscriber(const std::string& signalStringId, SessionPtr session);
+    bool registerSignalSubscriber(const std::string& signalStringId,
+                                  SessionPtr session,
+                                  InitPacketStreamingCallback sendCallback);
     bool removeSignalSubscriber(const std::string& signalStringId, SessionPtr session);
 
     void setLastEventPacket(const std::string& signalStringId, const EventPacketPtr& packet);

@@ -2,6 +2,7 @@
 
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/event_packet_params.h>
 #include <opendaq/search_filter_factory.h>
 #include <config_protocol/config_protocol_server.h>
 
@@ -127,28 +128,21 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
               signalStringId, signalNumericId);
         try
         {
-            if (subscribersRegistry.registerSignalSubscriber(signalStringId, session))
-            {
-                // creates reader
-                // automatically generates first event packet that will initialize packet streaming
-                signalSubscribedHandler(findRegisteredSignal(signalStringId));
-            }
-            else
-            {
-                // does not create reader
-                // so send last event packet to initialize packet streaming
-                // packet not assigned means initial event packet is not yet processed by streaming
-                auto packet = subscribersRegistry.getLastEventPacket(signalStringId);
-                if (packet.assigned())
+            // if result of 'registerSignalSubscriber' is true then 'signalSubscribedHandler' creates reader,
+            // which automatically generates first event packet that will initialize packet streaming;
+            // otherwise, no reader created and 'registerSignalSubscriber' sends a last event packet
+            // using callback passed as its parameter
+            bool doSignalSubscribe = subscribersRegistry.registerSignalSubscriber(
+                signalStringId,
+                session,
+                [&signalNumericId](std::shared_ptr<ServerSessionHandler>& sessionHandler, const EventPacketPtr& packet)
                 {
-                    subscribersRegistry.doForSingleClient(
-                        session,
-                        [&signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
-                        {
-                            sessionHandler->sendPacket(signalNumericId, packet);
-                        }
-                    );
+                    sessionHandler->sendPacket(signalNumericId, packet);
                 }
+            );
+            if (doSignalSubscribe)
+            {
+                signalSubscribedHandler(findRegisteredSignal(signalStringId));
             }
         }
         catch (const std::exception& e)
@@ -184,9 +178,14 @@ void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const Pac
     auto signalNumericId = findSignalNumericId(signal);
     auto signalStringId = signal.getGlobalId().toStdString();
 
-    if (packet.getType() == PacketType::Event && packet.supportsInterface<IEventPacket>())
+    if (packet.getType() == PacketType::Event)
     {
-        subscribersRegistry.setLastEventPacket(signalStringId, packet.asPtr<IEventPacket>(true));
+        auto eventPacket = packet.asPtr<IEventPacket>(true);
+        if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
+            eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
+        {
+            subscribersRegistry.setLastEventPacket(signalStringId, eventPacket);
+        }
     }
 
     subscribersRegistry.doForSubscribedClients(

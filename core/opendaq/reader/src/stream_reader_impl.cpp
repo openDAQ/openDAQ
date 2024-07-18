@@ -277,13 +277,23 @@ ErrCode StreamReaderImpl::empty(Bool* empty)
 
     std::scoped_lock lock(mutex);
 
-    if (!skipEvents && connection.assigned() && connection.hasEventPacket())
+    if (connection.assigned())
     {
         *empty = false;
-        return OPENDAQ_SUCCESS;
+        if (!skipEvents && connection.hasEventPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (skipEvents && connection.hasGapPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
     }
 
-    *empty = connection.getAvailableSamples() == 0;
+    SizeT count;
+    getAvailableCount(&count); 
+    *empty = count == 0;
     return OPENDAQ_SUCCESS;
 }
 

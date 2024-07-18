@@ -184,14 +184,21 @@ ErrCode BlockReaderImpl::empty(Bool* empty)
     OPENDAQ_PARAM_NOT_NULL(empty);
 
     std::scoped_lock lock(mutex);
-    if (connection.hasEventPacket())
+    if (connection.assigned())
     {
         *empty = false;
+        if (!skipEvents && connection.hasEventPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (skipEvents && connection.hasGapPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
     }
-    else
-    {
-        *empty = calculateBlockCount(getTotalSamples()) == 0;
-    }
+
+    *empty = calculateBlockCount(getTotalSamples()) == 0;
     return OPENDAQ_SUCCESS;
 }
 

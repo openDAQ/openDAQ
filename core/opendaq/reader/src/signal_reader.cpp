@@ -347,6 +347,7 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
 
     if (packetToReturn.assigned())
     {
+        synced = SyncStatus::Unsynchronized;
         bool firstData {false};
         handlePacket(packetToReturn, firstData);
     }

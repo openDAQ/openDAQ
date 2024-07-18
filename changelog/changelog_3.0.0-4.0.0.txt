@@ -1,3 +1,98 @@
+18.07.2024
+Description
+  - Reader improvement
+  - Implementing rader builder for all Readers
+  - Populate connection methods 
+Required integeration changes:
+  - Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exeption)
+  - In first read, reader returns first event packet
+  - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
+  - reader::getAvailableSamples returns available samples untill event packet if skipEvents == false, or until gap packet if skipEvents == true. 
+  To check if reader has data to handle, was implemented method IReader::empty(Bool* empty), which returns true if there is data packet to read or there is an event packet
+
++ [function] IReader::empty(Bool* empty)
+
++ [function] IBlockReaderBuilder::setSkipEvents(Bool skipEvents)
++ [function] IBlockReaderBuilder::getSkipEvents(Bool* skipEvents)
+
+-m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
++m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr)
+-m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
++m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr)
+
+-m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
++m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr)
+-m [function] IMultiReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
++m [function] IMultiReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr)
+-m [function] IMultiReader::skipSamples(SizeT* count, IReaderStatus** status)
++m [function] IMultiReader::skipSamples(SizeT* count, IMultiReaderStatus** status)
+
+-m [function] ITailReader::read(void* values, SizeT* count, IReaderStatus** status = nullptr)
++m [function] ITailReader::read(void* values, SizeT* count, ITailReaderStatus** status = nullptr)
+-m [function] ITailReader::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status = nullptr)
++m [function] ITailReader::readWithDomain(void* values, void* domain, SizeT* count, ITailReaderStatus** status = nullptr)
+
+m [function] IReaderStatus::getOffset(INumber** offset)
+
+-m [factory] ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
++m [factory] ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const NumberPtr& offset = 0)
+-m [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
++m [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const NumberPtr& offset = 0, SizeT readSamples = 0)
+-m [factory] TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
++m [factory] TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const NumberPtr& offset = 0, Bool sufficientHistory = true)
+-m [factory] MultiReaderStatusPtr MultiReaderStatus(const DictPtr<ISignal, IEventPacket>& eventPackets = nullptr, Bool valid = true)
++m [factory] MultiReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, Bool valid = true, const NumberPtr& offset = 0)
+
++ [factory] StreamReaderBuilderPtr StreamReaderBuilder()
++ [factory] StreamReaderPtr StreamReaderFromBuilder(const StreamReaderBuilderPtr& builder)
++ [factory] TailReaderBuilderPtr TailReaderBuilder()
++ [factory] TailReaderPtr TailReaderFromBuilder(const TailReaderBuilderPtr& builder)
+
+-m [factory] StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
++m [factory] TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
+
++ [interface] IStreamReaderBuilder : public IBaseObject
++ [function] IStreamReaderBuilder::build(IStreamReader** streamReader)
++ [function] IStreamReaderBuilder::setSignal(ISignal* signal)
++ [function] IStreamReaderBuilder::getSignal(ISignal** signal)
++ [function] IStreamReaderBuilder::setInputPort(IInputPort* port)
++ [function] IStreamReaderBuilder::getInputPort(IInputPort** port)
++ [function] IStreamReaderBuilder::setValueReadType(SampleType type)
++ [function] IStreamReaderBuilder::getValueReadType(SampleType* type)
++ [function] IStreamReaderBuilder::setDomainReadType(SampleType type)
++ [function] IStreamReaderBuilder::getDomainReadType(SampleType* type)
++ [function] IStreamReaderBuilder::setReadMode(ReadMode mode)
++ [function] IStreamReaderBuilder::getReadMode(ReadMode* mode)
++ [function] IStreamReaderBuilder::setReadTimeoutType(ReadTimeoutType type)
++ [function] IStreamReaderBuilder::getReadTimeoutType(ReadTimeoutType* type)
++ [function] IStreamReaderBuilder::setSkipEvents(Bool skipEvents)
++ [function] IStreamReaderBuilder::getSkipEvents(Bool* skipEvents)
+
++ [interface] ITailReaderBuilder : public IBaseObject
++ [function] ITailReaderBuilder::build(ITailReader** tailReader)
++ [function] ITailReaderBuilder::setSignal(ISignal* signal)
++ [function] ITailReaderBuilder::getSignal(ISignal** signal)
++ [function] ITailReaderBuilder::setInputPort(IInputPort* port)
++ [function] ITailReaderBuilder::getInputPort(IInputPort** port)
++ [function] ITailReaderBuilder::setValueReadType(SampleType type)
++ [function] ITailReaderBuilder::getValueReadType(SampleType* type)
++ [function] ITailReaderBuilder::setDomainReadType(SampleType type)
++ [function] ITailReaderBuilder::getDomainReadType(SampleType* type)
++ [function] ITailReaderBuilder::setReadMode(ReadMode mode)
++ [function] ITailReaderBuilder::getReadMode(ReadMode* mode)
++ [function] ITailReaderBuilder::setHistorySize(SizeT historySize)
++ [function] ITailReaderBuilder::getHistorySize(SizeT* historySize)
++ [function] ITailReaderBuilder::setSkipEvents(Bool skipEvents)
++ [function] ITailReaderBuilder::getSkipEvents(Bool* skipEvents)
+
+-m [function] TimeReader::readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatus** status = nullptr) const
++m [function] TimeReader::readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatusType** status = nullptr) <- IReaderStatusType is type of internal reader
+
++ [function] IConnection::getSamplesUntilNextEventPacket(SizeT* samples)
++ [function] IConnection::getSamplesUntilNextGapPacket(SizeT* samples)
++ [function] IConnection::hasEventPacket(Bool* hasEventPacket)
++ [function] IConnection::hasGapPacket(Bool* hasGapPacket)
+
 10.07.2024
 Description
 	- Add address type and address reachability status to server capability

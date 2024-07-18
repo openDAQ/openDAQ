@@ -229,23 +229,23 @@ void ContextImpl::registerOpenDaqTypes()
 
     //Sync Component Interfaces
     auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
-                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 0))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
                                     .build();
     typeManager->addType(syncInterfaceBase);
 
-    PropertyObjectPtr statusProperty = PropertyObject();
-    statusProperty.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
+    PropertyObjectPtr InterfaceClockSyncStatusProperty = PropertyObject();
+    InterfaceClockSyncStatusProperty.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
 
     auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
                                     .setParentName("SyncInterfaceBase")
-                                    .addProperty(ObjectProperty("Status", statusProperty))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
+                                    .addProperty(ObjectProperty("Status", InterfaceClockSyncStatusProperty))
                                     .build();
-
     typeManager->addType(interfaceClockSync);
 
-    PropertyObjectPtr statusProperty_2 = PropertyObject();
-    statusProperty_2.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
-    statusProperty_2.addProperty(StringPropertyBuilder("Grandmaster", "").build());
+    PropertyObjectPtr PtpSyncInterfaceStatus = PropertyObject();
+    PtpSyncInterfaceStatus.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
+    PtpSyncInterfaceStatus.addProperty(StringProperty("Grandmaster", ""));
 
     //Ptp Enumerations
     const auto enumClockType = EnumerationType(
@@ -257,7 +257,7 @@ void ContextImpl::registerOpenDaqTypes()
     const auto enumDelayMechanism = EnumerationType(
         "PtpDelayMechanismEnumeration", List<IString>("P2P", "E2E"));
     const auto enumProfiles = EnumerationType(
-        "PtpProfileEnumeration", List<IString>("I558", "802_IAS"));
+        "PtpProfileEnumeration", List<IString>("I558", "802_1AS"));
 
     typeManager->addType(enumClockType);
     typeManager->addType(enumStepFlag);
@@ -266,11 +266,11 @@ void ContextImpl::registerOpenDaqTypes()
     typeManager->addType(enumProfiles);
 
     PropertyObjectPtr ports = PropertyObject();
-    ports.addProperty(BoolProperty("Port1", true));
+    // ports.addProperty(BoolProperty("Port1", true));
 
     PropertyObjectPtr parameters = PropertyObject();
-    parameters.addProperty(StructProperty("Configuration",
-                                        Struct("Configuration",
+    parameters.addProperty(StructProperty("PtpConfigurationStructure",
+                                        Struct("PtpConfigurationStructure",
                                                 Dict<IString, IBaseObject>({{"ClockType", Enumeration("PtpClockTypeEnumeration", "Transparent", typeManager)},
                                                             {"TransportProtocol", Enumeration("PtpProtocolEnumeration", "IEEE802_3", typeManager)},
                                                             {"StepFlag", Enumeration("PtpStepFlagEnumeration", "One", typeManager)},
@@ -285,7 +285,8 @@ void ContextImpl::registerOpenDaqTypes()
 
     auto ptpSyncInterface = PropertyObjectClassBuilder(typeManager, "PtpSyncInterface")
                                     .setParentName("SyncInterfaceBase")
-                                    .addProperty(ObjectProperty("Status", statusProperty_2))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
+                                    .addProperty(ObjectProperty("Status", PtpSyncInterfaceStatus))
                                     .addProperty(ObjectProperty("Parameters", parameters))
                                     .build();
 

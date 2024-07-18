@@ -65,7 +65,6 @@ protected:
     std::unordered_map<opcua::OpcUaNodeId, TmsServerObjectPtr> childEvalValues;
     std::unordered_map<opcua::OpcUaNodeId, std::pair<std::string, CoreType>> methodProps;
 
-private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback);
     void addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList);
     void bindMethodCallbacks();

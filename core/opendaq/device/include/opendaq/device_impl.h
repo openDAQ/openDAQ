@@ -186,12 +186,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
-    this->defaultComponents.insert("Sync");
+    this->defaultComponents.insert("Synchronization");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
-    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Sync"));
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();

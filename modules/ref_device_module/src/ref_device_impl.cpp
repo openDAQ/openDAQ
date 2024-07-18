@@ -127,11 +127,13 @@ void RefDeviceImpl::initIoFolder()
 
 void RefDeviceImpl::initSyncComponent()
 {
-    syncComponent = this->addComponent("sync");
-
-    syncComponent.addProperty(BoolProperty("UseSync", False));
-    syncComponent.getOnPropertyValueWrite("UseSync") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { };
+    SyncComponentPtr syncComponent;
+    this->getSyncComponent(&syncComponent);
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "SyncInterfaceBase"));
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
+    syncComponent.setSelectedSource(1);
+    syncComponent.setSyncLocked(true);
 }
 
 void RefDeviceImpl::acqLoop()

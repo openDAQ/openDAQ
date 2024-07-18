@@ -95,6 +95,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto altDataDesc = DataDescriptorBuilder().setPostScaling(LinearScaling(2, 1)).setSampleType(SampleType::Float64).build();
     auto altDataDescProp = PropertyBuilder("TestAltDataDescProp").setDefaultValue(altDataDesc).setValueType(CoreType::ctStruct).build();
     instance.addProperty(altDataDescProp);
+    // Add Device Domain Property
+    auto deviceDomain = DeviceDomain_Create(Ratio(3, 4), String("1997"), unit);
+    auto deviceDomainProp = PropertyBuilder("TestDeviceDomainProp").setDefaultValue(deviceDomain).setValueType(CoreType::ctStruct).build();
+    instance.addProperty(deviceDomainProp);
 
     // Create an empty file named "ready" to let regression test suite know
     // the simulator is up and running and ready for tests

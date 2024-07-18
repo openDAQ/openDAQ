@@ -240,6 +240,17 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getDomainId(IString** domainId) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
 };
 
 TEST_F(SignalTest, IsComponent)

@@ -23,6 +23,7 @@
 #include <opendaq/data_rule.h>
 #include <opendaq/scaling.h>
 #include <opendaq/sample_type.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +32,7 @@ struct IDataDescriptorBuilder;
 /*#
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -230,6 +232,22 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      * implicitly generated samples, the actual sample size is less than sample size.
      */
     virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) = 0;
+
+    /*!
+     * @brief Gets the domain id.
+     * @param[out] domainId The domain id.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getDomainId(IString** domainId) = 0;
+
+    /*!
+     * @brief Gets the grandmaster offset.
+     * @param[out] grandmasterOffset The grandmaster offset.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) = 0;
 };
 /*!@}*/
 

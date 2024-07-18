@@ -32,6 +32,8 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("TickResolution", builderPtr.getTickResolution());
     params.set("StructFields", builderPtr.getStructFields());
     params.set("Metadata", builderPtr.getMetadata());
+    params.set("domainId", builderPtr.getDomainId());
+    params.set("grandmasterOffset", builderPtr.getGrandmasterOffset());
 
     return params;
 }
@@ -53,6 +55,8 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
+    this->domainId = dataDescriptorBuilderPtr.getDomainId();
+    this->grandmasterOffset = dataDescriptorBuilderPtr.getGrandmasterOffset();
     checkErrorInfo(validate());
     calculateSampleMemSize();
 }
@@ -160,6 +164,24 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
     OPENDAQ_PARAM_NOT_NULL(rawSampleSize);
 
     *rawSampleSize = this->rawSampleSize;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getDomainId(IString** domainId)
+{
+    OPENDAQ_PARAM_NOT_NULL(domainId);
+
+    *domainId = this->domainId.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
+
+    *grandmasterOffset = this->grandmasterOffset.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -313,6 +335,11 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         if (!BaseObjectPtr::Equals(metadata, descriptor.getMetadata()))
             return OPENDAQ_SUCCESS;
 
+        if (!BaseObjectPtr::Equals(domainId, descriptor.getDomainId()))
+            return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(grandmasterOffset, descriptor.getGrandmasterOffset()))
+            return OPENDAQ_SUCCESS;
+
         *equals = true;
         return OPENDAQ_SUCCESS;
     });
@@ -420,6 +447,12 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
 
         serializer->key("structFields");
         structFields.serialize(serializer);
+
+        serializer->key("domainId");
+        serializer->writeString(domainId.getCharPtr(), domainId.getLength());
+
+        serializer->key("grandmasterOffset");
+        serializer->writeInt(grandmasterOffset);
     }
     serializer->endObject();
 

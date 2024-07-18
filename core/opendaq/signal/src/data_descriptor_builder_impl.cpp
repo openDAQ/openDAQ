@@ -20,6 +20,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
     , resolution(nullptr)
     , structFields(List<IDataDescriptor>())
     , metadata(Dict<IString, IString>())
+    , domainId(nullptr)
+    , grandmasterOffset(nullptr)
 {
 }
 
@@ -35,6 +37,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , resolution(descriptorCopy.getTickResolution())
     , structFields(descriptorCopy.getStructFields())
     , metadata(descriptorCopy.getMetadata())
+    , domainId(descriptorCopy.getDomainId())
+    , grandmasterOffset(descriptorCopy.getGrandmasterOffset())
 {
 }
 
@@ -200,6 +204,32 @@ ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
 {
     OPENDAQ_PARAM_NOT_NULL(structFields);
     *structFields = this->structFields.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setDomainId(IString* domainId)
+{
+    this->domainId = domainId;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getDomainId(IString** domainId)
+{
+    OPENDAQ_PARAM_NOT_NULL(domainId);
+    *domainId = this->domainId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setGrandmasterOffset(IInteger* grandmasterOffset)
+{
+    this->grandmasterOffset = grandmasterOffset;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
+    *grandmasterOffset = this->grandmasterOffset.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

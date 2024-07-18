@@ -53,10 +53,10 @@ protected:
                 .addProperty(SelectionProperty("Measurement", List<IString>("Voltage", "FullBridge", "HalfBridge", "QuarterBridge"), 0))
                 .addProperty(StructProperty("AdjustmentPoint",
                                             Struct("AdjustmentPointScalingStructure",
-                                                   Dict<IString, IBaseObject>({{"Index", 1}, {"Factor", 2.1}, {"offset", 3.0}}),
+                                                   Dict<IString, IBaseObject>({{"Index", 1}, {"Factor", 2.1}, {"Offset", 3.0}}),
                                                    objManager)))
                 .addProperty(StructProperty(
-                    "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"offset", 3.0}}), objManager)))
+                    "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"Offset", 3.0}}), objManager)))
                 .addProperty(EnumerationProperty("ExcitationType", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)))
                 .addProperty(StructProperty(
                     "FullBridge",
@@ -128,12 +128,12 @@ TEST_F(TmsFusionDevice, StructTest)
     // Test struct with double values
     const auto scaler = StructBuilder(fusionAmp.getPropertyValue("Scaler"));
     scaler.set("Factor", 3.62);
-    scaler.set("offset", 3.1);
+    scaler.set("Offset", 3.1);
     fusionAmp.setPropertyValue("Scaler", scaler.build());
 
     const auto scalerManipulated = StructBuilder(fusionAmp.getPropertyValue("Scaler"));
     ASSERT_DOUBLE_EQ(scalerManipulated.get("Factor"), (double) 3.62);
-    ASSERT_DOUBLE_EQ(scalerManipulated.get("offset"), (double) 3.1);
+    ASSERT_DOUBLE_EQ(scalerManipulated.get("Offset"), (double) 3.1);
 }
 
 TEST_F(TmsFusionDevice, FullBridge)

@@ -223,3 +223,25 @@ TEST_F(RegressionTestDevice, getTicksSinceOrigin)
 {
     ASSERT_NO_THROW(device.getTicksSinceOrigin());
 }
+
+TEST_F(RegressionTestDevice, getServerCapabilities)
+{
+    // We changed the names of Server Capabilities to PascalCase, hence this test
+
+    PROTOCOLS("opcua", "nd")
+
+    auto caps = device.getInfo().getServerCapabilities();
+
+    if (protocol == "opcua")
+        ASSERT_EQ(caps.getCount(), 1);
+    else if (protocol == "nd")
+        ASSERT_EQ(caps.getCount(), 4);
+
+    std::set<std::string> allowed = {
+        "OpenDAQNativeConfiguration", "OpenDAQOPCUAConfiguration", "OpenDAQNativeStreaming", "OpenDAQLTStreaming"};
+
+    for (auto& cap : caps)
+    {
+        ASSERT_EQ(allowed.find(cap.getProtocolId()) != allowed.end(), true);
+    }
+}

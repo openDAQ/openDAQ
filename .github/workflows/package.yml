@@ -172,7 +172,7 @@ jobs:
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: >
+            cmake_defines:
               -DOPENDAQ_BUILD_DOCUMENTATION=OFF
               -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
               -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF

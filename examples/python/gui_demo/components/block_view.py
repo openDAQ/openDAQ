@@ -87,7 +87,7 @@ class BlockView(tk.Frame):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.label_icon.config(image=self.device_img)
+                self.label_icon.config(image=self.component_img)
         self.on_expand()
 
     def handle_expand_toggle(self):

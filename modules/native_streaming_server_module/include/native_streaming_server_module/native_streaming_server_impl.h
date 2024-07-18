@@ -55,6 +55,8 @@ protected:
     void startProcessingOperations();
     void stopProcessingOperations();
 
+    void stopServerInternal();
+
     void addSignalsOfComponent(ComponentPtr& component);
     void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
@@ -79,6 +81,7 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     std::mutex readersSync;
+    bool serverStopped;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

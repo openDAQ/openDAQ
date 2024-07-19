@@ -227,6 +227,7 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
+            arch: x86_64
           - name: Ubuntu 20.04 gcc-10 Release arm64
             image: ubuntu:20.04
             cmake_generator: Ninja
@@ -243,6 +244,7 @@ jobs:
             apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc-10
             cxx: aarch64-linux-gnu-g++-10
+            arch: arm64
 
     container:
       image: ${{ matrix.image }}
@@ -338,7 +340,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*.deb'
+          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*${{ matrix.arch }}.deb'
           aws s3 cp . s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/ --recursive
 
       - name: Upload package

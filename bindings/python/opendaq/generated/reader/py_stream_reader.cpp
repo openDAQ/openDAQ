@@ -64,4 +64,14 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         py::arg("timeout_ms") = 0,
         "Copies at maximum the next `count` unread samples and clock-stamps to the `values` and `stamps` buffers. The amount actually read "
         "is returned through the `count` parameter.");
+    cls.def(
+        "skip_samples",
+        [](daq::IStreamReader* object, size_t count)
+        {
+            const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
+            objectPtr.skipSamples(&count);
+            return count;
+        },
+        py::arg("count"),
+        "Skips the specified amount of samples.");
 }

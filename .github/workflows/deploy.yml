@@ -231,12 +231,19 @@ jobs:
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
-            build_documentation: true
+            cmake_defines:
+              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DCMAKE_SYSTEM_NAME=Linux
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64
+              -DDAQMODULES_REF_FB_MODULE=OFF
+            build_documentation: false
             cpack: DEB
             apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc-10
             cxx: aarch64-linux-gnu-g++-10
+
     container:
       image: ${{ matrix.image }}
       env:
@@ -329,6 +336,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload package to S3
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         working-directory: ${{ env.package_path_rel }}
         run: |
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*.deb'
@@ -349,6 +357,7 @@ jobs:
           aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
       - name: Upload API reference
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: API Reference
@@ -356,6 +365,7 @@ jobs:
           retention-days: 7
 
       - name: Upload examples to S3
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         working-directory: examples
         run: |
           zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
@@ -363,12 +373,14 @@ jobs:
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
 
       - name: Upload temporary package for simulator
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.package_path_rel }}
 
       - name: Upload simulator app
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
@@ -376,7 +388,7 @@ jobs:
 
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
-        if: matrix.name == 'Ubuntu 20.04 gcc-10 Release'
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}

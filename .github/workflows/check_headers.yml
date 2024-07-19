@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install license-header-checker to ./shared/tools/license-header-checker/bin
         working-directory: ./shared/tools/license-header-checker

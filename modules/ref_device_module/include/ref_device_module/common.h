@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,4 +18,7 @@
 #include <coretypes/common.h>
 
 #define BEGIN_NAMESPACE_REF_DEVICE_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(ref_device_module)
+
+static const std::string REF_MODULE_NAME = "ReferenceDevice";
+
 #define END_NAMESPACE_REF_DEVICE_MODULE END_NAMESPACE_OPENDAQ_MODULE

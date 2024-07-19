@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,18 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Provides information about the device type.
+ * @brief Provides information on what device type can be created by a given module. Can be used
+ * to obtain the default configuration used when either adding/creating a new device.
  */
-
 DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
 {
+    /*
+     * @brief Gets the prefix found in connection strings used to create a device of the given type.
+     * @param[out] prefix The connection string prefix.
+     *
+     * The prefix is always found at the start of the connection string, before the "://" delimiter.
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
 };
 /*!@}*/
 
@@ -60,7 +67,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, id,
     IString*, name,
     IString*, description,
-    IPropertyObject*, defaultConfig
+    IPropertyObject*, defaultConfig,
+    IString*, prefix
 )
 
 /*!@}*/

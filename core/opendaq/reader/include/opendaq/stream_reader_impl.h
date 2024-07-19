@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,6 +78,7 @@ public:
                                           SizeT* count,
                                           SizeT timeoutMs = 0,
                                           IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
 
     // IReaderConfig
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
@@ -105,6 +106,7 @@ private:
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
+    void* getValuePacketData(const DataPacketPtr& packet) const;
     ErrCode readPackets(IReaderStatus** status);
     ErrCode readPacketData();
 

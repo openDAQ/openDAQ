@@ -1,0 +1,1974 @@
+= Property system
+
+openDAQ(TM) provides a Property system that allows for custom Properties with metadata
+descriptions to be added to data acquisition components represented in its architecture.
+It allows for Properties such as a xref:knowledge_base:device.adoc[Device]'s sampling
+rate or an FFT xref:knowledge_base:function_blocks.adoc[Function Block]'s line count to
+be customized by users. Any Property on a component can be read/written (if the 
+Property is not read-only) by openDAQ(TM) applications. The Properties are the main
+building blocks of any user interface implementation that wishes to interact with openDAQ(TM)
+devices.
+
+== Simple Property Object example
+
+Property Objects are containers of Properties.
+Each Property Object holds the metadata describing a Property as well as its value.
+As each Component is also a Property Object, it inherits all its features and uses.
+
+Let's start with a simple Property Object example.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <coreobjects/Property_object_factory.h>
+#include <coreobjects/Property_factory.h>
+#include <iostream>
+
+using namespace daq;
+
+PropertyObjectPtr createSimplePropertyObject()
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(StringProperty("MyString", "foo"));
+    propObj.addProperty(IntProperty("MyInteger", 0));
+    return propObj;
+}
+
+int main()
+{
+    auto propObj = createSimplePropertyObject();
+    std::cout << propObj.getPropertyValue("MyString") << std::endl;
+    std::cout << propObj.getPropertyValue("MyInteger") << std::endl;
+
+    propObj.setPropertyValue("MyString", "bar");
+    std::cout << propObj.getPropertyValue("MyString") << std::endl;
+}
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'MyString'), opendaq.String('foo'), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
+    'MyInteger'), opendaq.Integer(0), opendaq.Boolean(True)))
+
+prop_obj.set_property_value('MyString', opendaq.String('bar'))
+print(prop_obj.get_property_value('MyString'))
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.Objects;
+
+PropertyObject CreateSimplePropertyObject()
+{
+    var propObj = CoreObjectsFactory.CreatePropertyObject();
+    propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+    propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("MyInteger", 0, true));
+    return propObj;
+}
+
+var propObj = CreateSimplePropertyObject();
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
+Console.WriteLine((long)propObj.GetPropertyValue("MyInteger"));
+
+propObj.SetPropertyValue("MyString", "bar");
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
+----
+====
+
+
+The above snippet creates a simple Property Object with two Properties:
+ 
+ * `"MyString"` with a default value `"foo"`
+ * `"MyInteger"` with a default value `0`
+
+Within our `main` function, we print out the two default values, change the string Property to
+`"bar"`, and retrieve and print the new value. With this, we have created a simple Property
+object with two Properties and default values.  
+
+Looking back at the statement that each openDAQ(TM) component is a Property Object, the same
+Property Object methods are also available on any Device, Function Block, Channel... we might
+encounter in the SDK.
+
+== Property
+
+The above example was a crude and simple example of a Property Object. However, the 
+Property system allows for the description of far more complex and intricate 
+structures than the one created above. This is accomplished through the use of Properties (the 
+metadata structures that describe what a Property can contain and how it should be 
+interpreted) in combination with Property Objects that act as containers for Properties and
+their associated values.
+
+A Property always describes the value located in a Property Object associated with the key
+equal to the name of the Property. In other words, a Property's metadata describes the
+Property Value in an object with the key that is the same as the name of the Property.
+
+NOTE: Non-builder factories for basic Properties of each type exist, but they only allow users to specify
+a minimal set of metadata fields.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo"));
+propObj.SetPropertyValue("MyString", "bar");
+std::cout << propObj.getPropertyValue("MyString") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'MyString'), opendaq.String('foo'), opendaq.Boolean(True)))
+prop_obj.set_property_value('MyString', opendaq.String('bar'))
+print(prop_obj.get_property_value('MyString'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+propObj.SetPropertyValue("MyString", "bar");
+Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
+----
+====
+
+In the above example, a Property Value of "bar" is set to the key `"MyString"`. The contents
+of the value are described by the String Property `"MyString"` that was added to the Property
+Object. In the case above, the Property defines two metadata fields:
+
+ * *Value type:* Defined by the factory (`StringProperty`) to be a string. This means that
+   any value written to the key `"MyString"` needs to be of a string type.
+ * *Default value:* the 2nd argument of the constructor defines a default value of the
+   Property. This defines the value that is read if no Property Value under the key
+   `"MyString"` is present in the PropertyObject.
+
+=== Property metadata fields
+
+There are several metadata fields available for Properties. They range from simple ones such
+as _Visible_ and _Read-only_, to significantly more complex ones such as Referenced Property or
+Selection values. Depending on different combinations of Properties set, a Property is 
+interpreted differently. The table below provides a brief description of each field, while
+the next section lists and describes different Property types that can be created depending
+on what fields are configured.
+
+The Property metadata fields can be configured by using the Property Builder object. The Property
+Builder contains setter methods for each of the fields, and the `build` method that allows
+us to build the Property with the configured metadata.
+
+[cols="1,4"]
+|===
+
+| Name
+| The name of the Property. Within a Property Object, no two Properties can have the same name. A Property describes the metadata of a Property Value with a key equal to the Property's name.
+
+| Description
+| A short string description of the Property.
+
+| Value type
+| The type of the corresponding Property Value stored in a Property Object.
+
+| Item type
+| If the Property has a <<container,list or dictionary Value type>>, the Item type field specifies the types of values stored in the container. The Item type is deduced automatically from the Default value of the Property.
+
+| Key type
+| If the Property has a <<container,dictionary Value type>>, the Key type field specifies the types of keys present in the dictionary. The key type is deduced automatically from the Default value of the Property.
+
+| Default value
+| The default value of the Property. If no Property Value with the corresponding key is set on the Property Object, the Property Value getter will return the default value.
+
+| Read-only
+| Property Values of Properties with Read-only set to true cannot be changed. This can be circumvented by using a protected value write function. 
+
+| Visible
+| Properties that aren't visible will not appear when listing all visible Properties of a Property Object. Invisible Properties still exist, but should be hidden from the user interface that displays Properties.
+
+| Unit
+| The Property's unit. E.g., second, meter, volt. The Unit metadata field uses the openDAQ(TM) Unit type.
+
+| Min value
+| The minimum value of the Property's corresponding value. Available only for <<numerical,numerical Properties>>.
+
+| Max value
+| The maximum value of the Property's corresponding value. Available only for numerical Properties.
+
+| Suggested values
+| A list of suggested values for the Property. The list allows a user to see what values are expected for the Property. Those values, however, are not enforced. The Suggested values field is only available for numerical Properties.
+
+| Selection values
+| A list or dictionary of selection values. If the Selection values field is configured, the value of the Property must be an integer that is used to index into the list/dictionary of selection values. The Value type field corresponds to the type of values in the list/dictionary of selection values. Available for <<selection,selection Properties>>.
+
+| Referenced Property
+| Reference to another Property on the Property Object. When the Referenced Property field is set, all getter/setter methods except for those referencing the Name, Referenced Property, Value type, Item type, and Key type fields will be invoked on the referenced Property instead. This field contains an `EvalValue` object that evaluates to the Property being referenced. The referenced Property must be part of the same Property Object. Available for <<reference,reference Properties>>.
+
+| Is referenced
+| If true, the Property is referenced by another. Properties, where the _Is referenced_ field is true, are visible only through the Property referencing them and will not be included in the list of visible Properties available on the Property Object.
+
+| Validator
+| <<validation_coercion, Validator object>> that contains an `EvalValue` expression that checks whether the value is valid. On value write, all instances of `value` in the evaluation string are replaced with the written value, and the expression is evaluated. The write call fails if the expression is not true.
+
+| Coercer
+| <<validation_coercion, Coercer object>> that contains an `EvalValue` expression that coerces a written value to conform to the expression. On value write, all instances of `value` in the coercion string are replaced with the written value, and the expression is evaluated. The written value is changed to the result of the expression evaluation.
+
+| Callable info
+| Contains information about the parameter and return types of the function / procedure stored as the Property Value. Available only for <<function,function- and procedure-type Properties>>.
+
+| On Property Value write
+| Event triggered when the corresponding Property Value is written to. Contains a reference to the Property Object and allows for overriding the written value.
+
+| On Property Value read
+| Event triggered when the corresponding Property Value is read. Contains a reference to the Property Object and allows for overriding the read value.
+
+|===
+
+=== Types of Properties
+
+A Property can be split into several different kinds of Property types. In openDAQ(TM), we
+provide a separate factory method for each Property type that automatically pre-configures
+the minimal set of required fields for a said type. In this section, we list and describe
+the available type, referencing the relevant Property fields outlined in the above table.
+
+[#numerical]
+==== Numerical Properties
+
+Numerical Properties represent numbers. Their values can be either Integers or Floating
+point numbers, depending on the configured Value type. Numerical Properties can have
+the Min and Max value fields configured to limit the range of values accepted. 
+
+Additionally, Numerical Properties can have a list of Suggested values, indicating the
+expected values for the Property. Note that the Property system does not enforce that a
+Property value matches a number in the list of Suggested values.
+
+Numerical Properties must have a default value.
+
+.Numerical Properties example
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+auto intProp = IntPropertyBuilder("Integer", 10).setMinValue(0).setMaxValue(15);
+propObj.addProperty(intProp.build()));
+
+auto floatProp = FloatPropertyBuilder("Float", 3.21).setSuggestedValues(List<IFloat>(1.23, 3.21, 5.67));
+propObj.addProperty(floatProp.build());
+
+// "Integer" is set to 15 due to the max value
+propObj.setPropertyValue("Integer", 20);
+std::cout << propObj.getPropertyValue("Integer") << std::endl;
+
+// "Float" is set to 2.34 in despite the suggested values not containing the value 2.34
+propObj.setPropertyValue("Float", 2.34);
+std::cout << propObj.getPropertyValue("Float") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+int_prop = opendaq.IntPropertyBuilder(opendaq.String('Integer'), opendaq.Integer(10))
+# Unsupported in the current version
+# int_prop.min_value = 0
+# int_prop.max_value = 15
+prop_obj.add_property(int_prop.build())
+
+float_prop = opendaq.FloatPropertyBuilder(opendaq.String('Float'), opendaq.Float(3.21))
+
+suggested_values = opendaq.List()
+suggested_values.push_back(opendaq.Float(1.23))
+suggested_values.push_back(opendaq.Float(3.21))
+suggested_values.push_back(opendaq.Float(5.67))
+float_prop.suggested_values = suggested_values
+
+prop_obj.add_property(float_prop.build())
+# "Integer" is set to 15 due to the max value
+prop_obj.set_property_value('Integer', opendaq.Integer(20))
+print(prop_obj.get_property_value('Integer'))
+# "Float" is set to 2.34 in despite the suggested values not containing the value 2.34
+prop_obj.set_property_value('Float', opendaq.Float(2.34))
+print(prop_obj.get_property_value('Float'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var intProp = CoreObjectsFactory.CreateIntPropertyBuilder("Integer", 10);
+intProp.MinValue = 0;
+intProp.MaxValue = 15;
+propObj.AddProperty(intProp.Build());
+
+var suggestedValues = CoreTypesFactory.CreateList<BaseObject>();
+suggestedValues.Add((FloatObject)1.23);
+suggestedValues.Add((FloatObject)3.21);
+suggestedValues.Add((FloatObject)5.67);
+var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
+floatProp.SuggestedValues = suggestedValues;
+
+propObj.AddProperty(floatProp.Build());
+
+// "Integer" is set to 15 due to the max value
+propObj.SetPropertyValue("Integer", 20);
+Console.WriteLine((long)propObj.GetPropertyValue("Integer"));
+
+// "Float" is set to 2.34 despite the suggested values not containing the value 2.34
+propObj.SetPropertyValue("Float", 2.34);
+Console.WriteLine((double)propObj.GetPropertyValue("Float"));
+----
+====
+
+[#selection]
+==== Selection Properties
+
+Selection Properties are those that have the Selection values field configured with either a 
+list, or dictionary, and its Value type must be Integer. The values of the list / dictionary
+match the Item type of the Property, while the keys of the dictionary must be integers. 
+(matching the Value type).
+
+The Property Value of a selection Property represents the index or key used to retrieve the
+Selection value from the list / dictionary. As such, the values written to corresponding
+Property Values are always integers, but the selected value can be of any type.
+
+To obtain the selected value, we get the corresponding Property Value, and use it as the
+index / key to obtain the value from our list / dictionary of selection values. Alternatively,
+the Property Object provides a Selection Property getter method that automatically performs
+the above steps. 
+
+Selection Properties must have a default value assigned.
+
+.Selection Properties example
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(SelectionProperty("ListSelection", List<IString>("Apple", "Banana", "Kiwi"), 1));
+
+auto dict = Dict<Int, IString>();
+dict.set(0, "foo");
+dict.set(10, "bar");
+propObj.addProperty(SparseSelectionProperty("DictSelection", dict, 10));
+
+// Prints "1"
+std::cout << propObj.getPropertyValue("ListSelection") << std::endl;
+// Prints "Banana"
+std::cout << propObj.getPropertySelectionValue("ListSelection") << std::endl;
+// Selects "Kiwi"
+propObj.setPropertyValue("ListSelection", 2);
+
+// Prints "bar"
+std::cout << propObj.getPropertySelectionValue("DictSelection") << std::endl;
+// Selects "foo"
+propObj.setPropertyValue("DictSelection", 0);
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+
+list = opendaq.List()
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
+
+prop_obj.add_property(opendaq.SelectionProperty(opendaq.String(
+    'ListSelection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
+dict = opendaq.Dict()
+dict[0] = opendaq.String('foo')
+dict[10] = opendaq.String('bar')
+prop_obj.add_property(opendaq.SparseSelectionProperty(opendaq.String(
+    'DictSelection'), dict, opendaq.Integer(10), opendaq.Boolean(True)))
+
+# Prints "1"
+print(prop_obj.get_property_value('ListSelection'))
+# Prints "Banana"
+print(prop_obj.get_property_selection_value('ListSelection'))
+prop_obj.set_property_value('ListSelection', opendaq.Integer(2))
+
+# Prints "bar"
+print(prop_obj.get_property_selection_value('DictSelection'))
+# Selects "foo"
+prop_obj.set_property_value('DictSelection', opendaq.Integer(0))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Apple");
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("ListSelection", list, 0, true));
+
+var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict.Add(0, "foo");
+dict.Add(10, "bar");
+propObj.AddProperty(CoreObjectsFactory.CreateSparseSelectionProperty("DictSelection", dict, 10, true));
+
+// Prints "1"
+Console.WriteLine((long)propObj.GetPropertyValue("ListSelection"));
+// Prints "Banana"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("ListSelection"));
+// Selects "Kiwi"
+propObj.SetPropertyValue("ListSelection", 2);
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("DictSelection"));
+// Selects "foo"
+propObj.SetPropertyValue("DictSelection", 0);
+----
+====
+
+[#object]
+==== Object Properties
+
+Object type Properties have the Value type _Object_. These kinds of Properties allow for
+Properties to be grouped and represented in a hierarchy of nested Property Objects. A value 
+of an object-type Property can only be a base Property Object. Objects such as Devices or 
+Function blocks that are descendants of the Property Object Class cannot be set as the
+Property Value.
+
+Accessing the Properties of an object Property can be done from its parent using "dot"
+notation as shown in the example below.
+
+WARNING: The Selection Property getter cannot use the "dot" notation at this moment.
+
+Object type Properties can only have their Name, Description, Visible, Read-only and Default
+value configured, where the Default value is mandatory.
+
+IMPORTANT: Object properties, as all other Property types get frozen once added to a Property
+Object. The notable exception is that locally, the object (default value) is cloned and cached. 
+When the Property value of the Object-type Property is read, the cloned object is returned instead 
+of the default value. This cloned object is not frozen, allowing for the any Properties of 
+the child Property Object to be modified. The same behaviour is applied when a Property Object 
+is created from a Property Object Class - all Object-type properties of the class are cloned.
+
+Notably, a object-type property cannot be replaced via `set property value` (unless using `set protected property value`), but calling
+`clear property value` will reset all of its properties to their default values. `clear property value`
+cannot be called of the object-type property is read-only.
+
+.Object Properties example
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+auto child1 = PropertyObject();
+auto child2 = PropertyObject();
+
+// The order below is important, as "child1" and "child2" are frozen once 
+// used as default property values.
+child2.addProperty(StringProperty("String", "foo"));
+child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
+
+// Prints out the value of the "String" Property of child2
+std::cout << propObj.getPropertyValue("Child.Child.String") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+child1 = opendaq.PropertyObject()
+child2 = opendaq.PropertyObject()
+
+# The order below is important, as "child1" and "child2" are frozen once 
+# used as default property values.
+
+child2.add_property(opendaq.StringProperty(opendaq.String(
+    'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+child1.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child2))
+prop_obj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
+
+# Prints out the value of the "String" Property of child2
+print(prop_obj.get_property_value('Child.Child.String'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var child1 = CoreObjectsFactory.CreatePropertyObject();
+var child2 = CoreObjectsFactory.CreatePropertyObject();
+
+// The order below is important, as "child1" and "child2" are frozen once
+// used as default property values.
+child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2));
+propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1));
+
+// Prints out the value of the "String" Property of child2
+Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
+----
+====
+
+[#container]
+==== Container Properties
+
+Container type Properties have the Value type _List_ or _Dictionary_ and must be homogenous -
+they can only have the keys and values of the same type. Their Key and Item types are
+configured to match that of the Property's Default value. Any new Property Value must 
+adhere to the original key and item type. 
+
+Containers can't contain Object-type values, Container-type values (List, Dictionary),
+or Function-type values. The same applies for the Key type of dictionary objects.
+
+IMPORTANT: Container-type Properties cannot have empty default values as of now. If the 
+default values are empty, the Key and Item type deduction will not work properly, 
+evaluating the types to be undefined.
+
+Container Properties must have a default value.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(ListProperty("List", List<IString>("Banana", "Apple", "Kiwi")));
+
+auto dict = Dict<Int, IString>();
+dict.set(0, "foo");
+dict.set(10, "bar");
+propObj.addProperty(DictProperty("Dict", dict));
+
+// Prints out "Banana"
+std::cout << propObj.getPropertyValue("List").asPtr<IList>()[0] << std::endl;
+// Prints out "bar"
+std::cout << propObj.getPropertyValue("Dict").asPtr<IDict>().get(10) << std::endl;
+
+// Sets a new value for the List Property
+propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+
+list = opendaq.List()
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.ListProperty(
+    opendaq.String('List'), list, opendaq.Boolean(True)))
+
+dict = opendaq.Dict()
+dict[0] = opendaq.String('foo')
+dict[10] = opendaq.String('bar')
+prop_obj.add_property(opendaq.DictProperty(
+    opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+print(prop_obj.get_property_value('List')[0])
+print(prop_obj.get_property_value('Dict')[10])
+
+list1 = opendaq.List()
+list1.push_back(opendaq.String('Pear'))
+list1.push_back(opendaq.String('Strawberry'))
+prop_obj.set_property_value('List', list1)
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+
+var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict.Add(0, "foo");
+dict.Add(10, "bar");
+propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict, true));
+
+// Prints out "Banana"
+Console.WriteLine((string)propObj.GetPropertyValue("List").CastList<StringObject>()[0]);
+// Prints out "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>()[10]);
+
+var list2 = CoreTypesFactory.CreateList<BaseObject>();
+list2.Add("Pear");
+list2.Add("Strawberry");
+
+// Sets a new value for the List Property
+propObj.SetPropertyValue("List", (BaseObject)list2);
+----
+====
+
+[#reference]
+==== Reference Properties
+
+Reference Properties have the _Referenced Property_ field configured. The Referenced Property
+contains a pointer to another Property that is part of the same Property Object. On such 
+Properties, all Property field getters except for the _Name_, _Is referenced_, _Referenced
+Property_, _Value type_, _Key type_, and _Item type_ return the metadata fields of the referenced
+Property. Similarly, the Property Object value getters and setters get/set the value of the 
+referenced Property.
+
+The Referenced Property field is configured with an EvalValue that most often switches 
+between different Properties depending on the value of another Property. For example, the
+`EvalValue` string `"switch($switchProp, 0, %prop1, 1, %prop2)"` reads the value of the
+Property named `"switchProp"` and references the Property named `"prop1"` if the value is `0`. If
+the value is `1`, it references `"prop2"` instead.
+
+IMPORTANT: A Property can be referenced by only one Property within a Property Object.
+
+For more information on the interaction between `EvalValue` and Properties see the section on
+<<eval_value,Properties and EvalValues>> below.
+
+Reference Properties can only have the _Name_ and _Referenced Property_ fields configured. Their
+Value type is always undefined.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(IntProperty("Integer", 0));
+propObj.addProperty(StringProperty("Prop1", "foo"));
+propObj.addProperty(StringProperty("Prop2", "bar"));
+
+propObj.addProperty(ReferenceProperty("RefProp", EvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
+
+// Prints "foo"
+std::cout << propObj.getPropertyValue("RefProp") << std::endl;
+
+propObj.setPropertyValue("Integer", 1);
+
+// Prints "bar"
+std::cout << propObj.getPropertyValue("RefProp") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
+    'Integer'), opendaq.Integer(0), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'Prop1'), opendaq.String('foo'), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'Prop2'), opendaq.String('bar'), opendaq.Boolean(True)))
+
+prop_obj.add_property(opendaq.ReferenceProperty(opendaq.String(
+    'RefProp'), opendaq.EvalValue(opendaq.String('switch($Integer, 0, %Prop1, 1, %Prop2)'))))
+
+# Prints "foo"
+print(prop_obj.get_property_value('RefProp'))
+
+prop_obj.set_property_value('Integer', opendaq.Integer(1))
+
+# Prints "bar"
+print(prop_obj.get_property_value('RefProp'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 0, true));
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop1", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop2", "bar", true));
+
+propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
+
+propObj.SetPropertyValue("Integer", 1);
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
+----
+====
+
+[#function]
+==== Function / Procedure Properties
+
+Function Properties have the Value type of _Function_ or _Procedure_. Functions are callable methods
+that have an optional return type, while procedures don't return anything. The Property
+value of a Function / Procedure Property is a callable object.
+
+To determine the parameter count and types, as well as the return type, the Callable info 
+field must be configured. Callable info contains a list of argument types that need to
+be passed as arguments when invoking the callable object. If the Property is a Function,
+the Callable info field also contains the type of the variable returned by the function.
+
+IMPORTANT: Function and Procedure type Properties are currently not accessible through the
+OPC UA layer. Thus, they will not appear on connected-to devices.
+
+Function and Procedure type Properties can't have a default value.
+
+.Function and Procedure Properties example
+[source,cpp]
+----
+auto propObj = PropertyObject();
+
+auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt));
+propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments)));
+
+auto func = Function([](IntegerPtr val1, IntegerPtr val2)
+{
+    return val1 + val2;
+});
+propObj.setPropertyValue("SumFunction", func);
+
+FunctionPtr sumFunc = propObj.getPropertyValue("SumFunction");
+
+// Prints out 42
+std::cout << sumFunc(12, 30) << std::endl;
+----
+
+==== Struct Properties
+
+// TODO
+
+NOTE: Struct Properties can currently not be transmitted over OPC UA unless their Struct type name matches 
+a Structure type and key names/value types in the imported OPC UA nodesets.  
+
+==== Remaining Property types
+
+We've now covered all special kinds of Properties and are left with three remaining ones
+that have no special fields / behavior. Those are:
+
+ * *String Property:* Its associated Property Value must be a _String_
+ * *Ratio Property:* Its associated Property Value must be a _Ratio_
+ * *Bool Property:* Its associated Property Value must be a _Boolean_
+
+All of these must have a default value configured.
+
+.String, Ratio, Bool Properties example
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(StringProperty("String", "foo"));
+propObj.addProperty(RatioProperty("Ratio", Ratio(1, 10)));
+propObj.addProperty(BoolProperty("Bool", true));
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.RatioProperty(opendaq.String(
+    'Ratio'), opendaq.Ratio(1, 10), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.BoolProperty(opendaq.String(
+    'Bool'), opendaq.Boolean(True), opendaq.Boolean(True)))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateRatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10), true));
+propObj.AddProperty(CoreObjectsFactory.CreateBoolProperty("Bool", true, true));
+----
+====
+
+=== Creating and configuring a Property
+
+Properties follow a builder pattern pervasive across the SDK. When constructing a new factory,
+the obtained object is a `Builder`-type object. `Builder` objects contain setter methods in addition
+to a `build` function. The `build` function validates the current configuration of the Property
+and returns the built Property with the configured fields.
+
+Both Builder and non-Builder factories for Properties exist, but the non-Builder ones provide only
+the basic metadata field parameters, while the Builder ones allow for more customization. Note
+that the metadata fields of a Property cannot be changed once built.
+
+In the example below, we create a Float Property, configuring some of its metadata fields, and
+freeze it by adding it to a Property Object.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+
+PropertyBuilderPtr floatProp = FloatPropertyBuilder("MyFloat", 1.123).setMinValue(0.0).setMaxValue(10.0);
+
+propObj.addProperty(floatProp.build());
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+float_prop = opendaq.FloatPropertyBuilder(opendaq.String('MyFloat'), opendaq.Float(1.123))
+float_prop.min_value = 0.0
+float_prop.max_value = 10.0
+
+prop_obj.add_property(float_prop.build())
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+PropertyBuilder floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("MyFloat", 1.123);
+floatProp.MinValue = 0.0;
+floatProp.MaxValue = 10.0;
+
+propObj.AddProperty(floatProp.Build());
+----
+====
+
+[#eval_value]
+=== Properties and EvalValue
+
+We've now seen the different kinds of Properties supported in openDAQ(TM), as well as short
+descriptions of the metadata fields available to each of them. As of now, we're able to describe
+simple Properties of which Property Values can be read or changed at will. Where this system 
+truly comes to life, however, is when `EvalValue` objects are part of the equation. We've seen
+a small example of `EvalValue` usage above in the <<reference,Reference Properties>> example
+where it was used to determine which Property is referenced, depending on the value of another
+Property. 
+
+`EvalValue` objects allow us to define Property metadata fields that are dependent on the 
+state / value of another Property within the same Property Object. They're expressions that are
+evaluated every time their corresponding metadata field is read, returning the evaluated value.
+// The xref:eval_value.adoc[Eval value article] describes the ins and outs of `EvalValue` behavior.
+
+In this article, we'll focus on how `EvalValue` objects are used to set up
+a Property Object describing a configuration of dependent Properties. Below, we see an example
+of a simulated channel that can output either a "Sine" or "Counter" signal.
+
+[source,cpp]
+----
+PropertyObjectPtr simulatedChannel = PropertyObject();
+simulatedChannel.addProperty(SelectionProperty("Waveform", List<IString>("Sine", "Counter"), 0));
+simulatedChannel.addProperty(ReferenceProperty("Settings", EvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+
+PropertyBuilderPtr freqProp = FloatProperty("Frequency", 10.0)
+                                 .setUnit(Unit("Hz"))
+                                 .setMinValue(0.1)
+                                 .setMaxValue(1000.0)
+                                 .setSuggestedValues(List<IFloat>(0.1, 10.0, 100.0, 1000.0));
+
+simulatedChannel.addProperty(freqProp.build());
+
+// Sine settings
+
+PropertyObjectPtr sineSettings = PropertyObject();
+
+sineSettings.addProperty(SelectionProperty("AmplitudeUnit", List<IString>("V", "mV"), 0));
+
+PropertyBuilderPtr amplitudeProp = FloatProperty("Amplitude", 5).setUnit(EvalValue("Unit(%AmplitudeUnit:SelectedValue)"));
+sineSettings.addProperty(amplitudeProp.build());
+
+sineSettings.addProperty(BoolProperty("EnableScaling", false));
+
+PropertyBuilderPtr scalingFactor = FloatProperty("ScalingFactor", 1.0).setVisible(EvalValue("$EnableScaling"));
+sineSettings.addProperty(scalingFactor.build());
+
+simulatedChannel.addProperty(ObjectProperty("SineSettings", sineSettings));
+
+// Counter settings
+
+PropertyObjectPtr counterSettings = PropertyObject();
+
+counterSettings.addProperty(IntProperty("Increment", 1));
+
+counterSettings.addProperty(SelectionProperty("Mode", List<IString>("Infinite", "Loop"), 0));
+
+PropertyBuilderPtr loopThreshold = IntProperty("LoopThreshold", 100).setMinValue(1).setVisible(EvalValue("$Mode == 1"));
+counterSettings.addProperty(loopThreshold.build());
+
+PropertyBuilderPtr resetProp = FunctionProperty("Reset", ProcedureInfo()).setReadOnly(true).setVisible(EvalValue("$Mode == 0"));
+counterSettings.addProperty(resetProp.build());
+counterSettings.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Reset", Procedure([](){ this->reset(); }));
+
+simulatedChannel.addProperty(ObjectProperty("CounterSettings", counterSettings));
+----
+
+==== Referencing another Property
+
+When a Property is added to a Property Object, it gains access to the metadata fields and 
+values of other Properties that are part of the object. `EvalValue` objects are created with an evaluation
+expression that evaluates to an openDAQ(TM) object when read. As part of the evaluation expression
+of a Property metadata field, we can reference either another Property (with the symbol `%`), or
+the value associated with that Property (with the symbol `$`). By doing so, we can create dependent
+Property metadata that differs depending on the state of the Property Object. To illustrate this behavior, 
+let's refer to the above Simulated Channel Property Object example.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+PropertyObjectPtr simulatedChannel = PropertyObject();
+simulatedChannel.addProperty(SelectionProperty("Waveform", List<IString>("Sine", "Counter"), 0));
+simulatedChannel.addProperty(ReferenceProperty("Settings", EvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+
+...
+
+simulatedChannel.addProperty(ObjectProperty("SineSettings", sineSettings));
+
+...
+
+simulatedChannel.addProperty(ObjectProperty("CounterSettings", counterSettings));
+----
+Python::
++
+[source,python]
+----
+simulated_channel = opendaq.PropertyObject()
+list = opendaq.List()
+list.push_back(opendaq.String('Sine'))
+list.push_back(opendaq.String('Counter'))
+simulated_channel.add_property(opendaq.SelectionProperty(opendaq.String(
+    'Waveform'), list, opendaq.Integer(0), opendaq.Boolean(True)))
+simulated_channel.add_property(opendaq.ReferenceProperty(opendaq.String(
+    'Settings'), opendaq.EvalValue(opendaq.String('if($Waveform == 0, %SineSettings, %CounterSettings)'))))
+
+...
+
+simulated_channel.add_property(opendaq.ObjectProperty(
+    opendaq.String('SineSettings'), sineSettings))
+
+...
+
+simulated_channel.add_property(opendaq.ObjectProperty(
+    opendaq.String('CounterSettings'), counterSettings))
+----
+C#::
++
+[source,csharp]
+----
+PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Sine");
+list.Add("Counter");
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Waveform", list, 0, true));
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+
+...
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("SineSettings", sineSettings));
+
+...
+
+simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("CounterSettings", counterSettings));
+----
+====
+
+The core of our Simulated channel configuration is formed by the `"Waveform"` Selection Property. It
+provides the option of choosing between the `"Sine"` and `"Counter"` modes. Both of the modes have different
+settings available. To hide / show different settings, we add a Reference Property `"Settings"` that
+references either the Sine or Counter settings Object Property. By changing the `"Waveform"` Property Value,
+the `EvalValue` `if` check evaluates to a different Property:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
+// "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property. 
+ReferenceProperty("Settings", EvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
+----
+Python::
++
+[source,python]
+----
+# If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
+# "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property. 
+opendaq.ReferenceProperty(opendaq.String('Settings'), opendaq.EvalValue(opendaq.String('if($Waveform == 0, %SineSettings, %CounterSettings)')))
+----
+C#::
++
+[source,csharp]
+----
+// If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
+// "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property.
+CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
+----
+====
+
+Reference Properties, however, aren't the only use case for `EvalValue` expressions. Any configurable
+Property metadata fields except for _Name_, _Description_, and _Value type_ can make use of the `EvalValue`
+system. In the example below, Properties are hidden depending on the state of other Property Values:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+...
+
+// The ScalingFactor Property is shown if EnableScaling is true.
+scalingFactor.setVisible(EvalValue("$EnableScaling"));
+
+...
+
+// The LoopThreshold Property is shown if the "Mode" Property is set to 1.
+loopThreshold.setVisible(EvalValue("$Mode == 1"));
+----
+Python::
++
+[source,python]
+----
+
+...
+
+# The ScalingFactor Property is shown if EnableScaling is true.
+# Unsupported in the current version
+scaling_factor.visible = opendaq.EvalValue(opendaq.String('$EnableScaling'))
+
+...
+
+# The LoopThreshold Property is shown if the "Mode" Property is set to 1.
+# Unsupported in the current version
+loop_threshold.visible = opendaq.EvalValue(opendaq.String('$Mode == 1'))
+----
+C#::
++
+[source,csharp]
+----
+// Not supported in .NET
+----
+====
+
+We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit"` selected value, using
+the `Unit` token in our expression to indicate we're creating a xref:glossary:glossary.adoc#unit[Unit], and accessing the currently
+selected value of our `"AmplitudeUnit"` Selection Property.
+
+NOTE: The `%Prop:Value` notation is equivalent to `$Prop`, while `%Prop:SelectedValue` uses the
+value of the Property to retrieve the corresponding _Selection_ value from the list / dictionary
+of Selection values.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+sineSettings.addProperty(SelectionProperty("AmplitudeUnit", List<IString>("V", "mV"), 0));
+
+...
+
+amplitudeProp.setUnit(EvalValue("Unit(%AmplitudeUnit:SelectedValue)"));
+----
+Python::
++
+[source,python]
+----
+list = opendaq.List()
+list.push_back(opendaq.String('V'))
+list.push_back(opendaq.String('mV'))
+sine_settings.add_property(opendaq.SelectionProperty(opendaq.String(
+    'AmplitudeUnit'), list, opendaq.Integer(0), opendaq.Boolean(True)))
+
+...
+
+# Unsupported in the current version
+amplitude_prop.unit = opendaq.EvalValue(opendaq.String('Unit(%AmplitudeUnit:SelectedValue)'))
+----
+C#::
++
+[source,csharp]
+----
+// Not supported in .NET
+----
+====
+
+As showcased above, the combination of the `EvalValue` system with the option of 
+referencing other Properties of a Property Object offers a powerful tool for describing the 
+configuration of a system.
+
+[#validation_coercion]
+=== Validation and Coercion
+
+`EvalValue` objects can also be used to define coercion/validation expressions.
+Each Property has a _Validator_ and _Coercer_ field. The Validator checks whether a Property Value
+written to the object is valid, and produces a validation error when it is not. The Coercer checks
+whether the value is valid, and if not, coerces the value to adhere to the requirements of the
+coercion expression.
+
+The Validator / Coercer uses an evaluation expression where each instance of the token `Value`
+in the expression is replaced by the written value. For example the validation expression
+`"Value < 10"` will check whether the written value is smaller than `10`. The coercion
+expression `"if(Value < 10, Value, 10)"` will first check whether the value is smaller than `10`,
+and change it to `10` if it is not.
+
+The Validator / Coercer fields are most often configured for numerical Properties but can be
+used for most standard Property types.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+auto coercedProp = IntProperty("CoercedProp", 5).setCoercer(Coercer("if(Value < 10, Value, 10)"));
+propObj.addProperty(coercedProp.build());
+
+auto validatedProp = IntProperty("ValidatedProp", 5).setValidator(Validator("Value < 10"));
+propObj.addProperty(validatedProp.build());
+
+// Sets the value to 10
+propObj.setPropertyValue("CoercedProp", 15);
+
+// Throws a validation error
+propObj.setPropertyValue("ValidatedProp", 15);
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+coerced_prop = opendaq.IntPropertyBuilder(opendaq.String('CoercedProp'), opendaq.Integer(5))
+coerced_prop.coercer = opendaq.Coercer(opendaq.String('if(Value < 10, Value, 10)'))
+prop_obj.add_property(coerced_prop.build())
+
+validated_prop = opendaq.IntPropertyBuilder(opendaq.String('ValidatedProp'), opendaq.Integer(5))
+validated_prop.validator = opendaq.Validator(opendaq.String('Value < 10'))
+prop_obj.add_property(validated_prop.build())
+
+# Sets the value to 10
+prop_obj.set_property_value('CoercedProp', opendaq.Integer(15))
+# Throws a validation error
+prop_obj.set_property_value('ValidatedProp', opendaq.Integer(15))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var coercedProp = CoreObjectsFactory.CreateIntPropertyBuilder("CoercedProp", 5);
+coercedProp.Coercer = CoreObjectsFactory.CreateCoercer("if(Value < 10, Value, 10)");
+propObj.AddProperty(coercedProp.Build());
+
+var validatedProp = CoreObjectsFactory.CreateIntPropertyBuilder("ValidatedProp", 5);
+validatedProp.Validator = CoreObjectsFactory.CreateValidator("Value < 10");
+propObj.AddProperty(validatedProp.Build());
+
+// Sets the value to 10
+propObj.SetPropertyValue("CoercedProp", 15);
+
+// Throws a validation error
+propObj.SetPropertyValue("ValidatedProp", 15);
+----
+====
+
+== Property Object
+
+Having tackled all the different kinds of available Properties, we now take
+a look at the Property Object - the container of Properties and their corresponding Property
+Values.
+
+We've often referred to Property Objects while describing the Properties, as they're fundamental
+to the usage of `EvalValue` expressions and writing / reading values of Properties. In essence,
+a Property Object has a dictionary of Property names as keys and the Properties themselves as
+values. A Property Object can have at most one Property with any given name, and will not allow
+for duplicates. For each Property, a separate dictionary of names and Property Values is maintained
+in a Property Object. When setting a new value, the old value is overridden, and when reading the
+value, that dictionary is queried (if no value is present, the Property's Default value is read 
+instead).
+
+=== Adding/Removing Properties
+
+Adding or removing Properties in a Property Object is simple. We add them via the `add` method, 
+and remove them via `remove`. As mentioned above, when a Property is added to a Property Object
+it is frozen and can no longer be configured. 
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(StringProperty("foo", "bar"));
+propObj.removeProperty("foo");
+
+// Retrieves the String Property "foo" added in the 2nd line
+auto fooProp = propObj.getProperty("foo");
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'foo'), opendaq.String('bar'), opendaq.Boolean(True)))
+prop_obj.remove_property('foo')
+
+foo_prop = prop_obj.get_property('foo') # Throws runtime error
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("foo", "bar", true));
+propObj.RemoveProperty("foo");
+
+// Throws a not found error
+var fooProp = propObj.GetProperty("foo");
+----
+====
+
+=== Listing Properties
+
+Property Objects allow for listing all Properties, or all visible Properties. As one might 
+imagine, the list of visible Properties contains a subset of Properties that are visible.
+A Property is visible if its Visible metadata field is set to `true`, and its IsReferenced field
+is `false`. 
+
+NOTE: Remember that IsReferenced is true for Properties that are referenced by another 
+Reference Property.
+
+Properties are listed in the order they're added to the Property Object if no custom order
+is specified. At any given point, a new order can be specified by providing an ordered
+list of Property names.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(StringProperty("String", "foo"));
+propObj.addProperty(IntProperty("Int", 10, false));
+propObj.addProperty(FloatProperty("Float", 15.0));
+propObj.addProperty(ReferenceProperty("FloatRef", EvalValue("%Float")));
+
+// Contains the Properties "String", "Int", "Float", "FloatRef"
+auto allProps = propObj.getAllProperties();
+// Contains the Properties "String", "FloatRef"
+auto visibleProps = propObj.getVisibleProperties();
+
+auto order = List<IString>("FloatRef", "Float", "Int", "String");
+propObj.setPropertyOrder(order);
+
+// Contains the Properties in the order "FloatRef", "Float", "Int", String"
+auto allPropsReverseOrder = propObj.getAllProperties();
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
+    'Int'), opendaq.Integer(10), opendaq.Boolean(False)))
+prop_obj.add_property(opendaq.FloatProperty(opendaq.String(
+    'Float'), opendaq.Float(15.0), opendaq.Boolean(True)))
+prop_obj.add_property(opendaq.ReferenceProperty(opendaq.String(
+    'FloatRef'), opendaq.EvalValue(opendaq.String('%Float'))))
+
+all_props = prop_obj.all_properties
+visible_props = prop_obj.visible_properties
+
+order = opendaq.List()
+order.push_back(opendaq.String('String')) 
+order.push_back(opendaq.String('Int'))
+order.push_back(opendaq.String('Float'))
+order.push_back(opendaq.String('FloatRef'))
+prop_obj.property_order = order
+
+all_props_reversed_order = prop_obj.all_properties
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Int", 10, false));
+propObj.AddProperty(CoreObjectsFactory.CreateFloatProperty("Float", 15.0, true));
+propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
+
+// Contains the Properties "String", "Int", "Float", "FloatRef"
+var allProps = propObj.AllProperties;
+// Contains the Properties "String", "FloatRef"
+var visibleProps = propObj.VisibleProperties;
+
+var order = CoreTypesFactory.CreateList<StringObject>();
+order.Add("FloatRef");
+order.Add("Float");
+order.Add("Int");
+order.Add("String");
+propObj.SetPropertyOrder(order);
+
+// Contains the Properties in the order "FloatRef", "Float", "Int", String"
+var allPropsReverseOrder = propObj.AllProperties;
+----
+====
+
+=== Reading / Writing Property Values
+
+Reading and writing Property Values is done by the value getter/setter methods that take
+the Property name as the first input argument.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(StringProperty("String", "foo"));
+
+// Prints "foo"
+std::cout << propObj.getPropertyValue("String") << std::endl;
+propObj.setPropertyValue("String", "bar");
+// Prints "bar"
+std::cout << propObj.getPropertyValue("String") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
+    'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+
+# Prints "foo"
+print(prop_obj.get_property_value('String'))
+prop_obj.set_property_value('String', opendaq.String('bar'))
+
+# Prints "bar"
+print(prop_obj.get_property_value('String'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", false));
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("String"));
+
+propObj.SetPropertyValue("String", "bar");
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("String"));
+----
+====
+
+==== Nested Property Objects
+
+When accessing Object-type Properties, "dot" notation can be used, where the Object Property's
+name is followed by a dot and the name of the accessed Property.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+auto child1 = PropertyObject();
+auto child2 = PropertyObject();
+
+child2.addProperty(StringProperty("String", "foo"));
+child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
+
+propObj.setPropertyValue("Child.Child.String", "bar");
+
+// Prints "bar"
+std::cout << propObj.getPropertyValue("Child.Child.String") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+child1 = opendaq.PropertyObject()
+child2 = opendaq.PropertyObject()
+
+child2.add_property(opendaq.StringProperty(opendaq.String(
+    'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+child1.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child2))
+prop_obj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
+
+prop_obj.set_property_value(
+    'Child.Child.String', opendaq.String('bar'))
+
+# Prints "bar"
+print(prop_obj.get_property_value('Child.Child.String'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+var child1 = CoreObjectsFactory.CreatePropertyObject();
+var child2 = CoreObjectsFactory.CreatePropertyObject();
+
+child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
+child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2, true));
+propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1, true));
+
+propObj.SetPropertyValue("Child.Child.String", "bar");
+
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
+----
+====
+
+==== Selection Properties
+
+Selection Properties always have a Value type of _Integer_. As such, the value getter will always
+return the integer key/index into the list/dictionary of Selection values. To directly obtain
+the selected value, a Selection value getter is available.
+
+NOTE: The "dot" notation used to get/set values of nested objects does not work on the Selection
+value getter function.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(SelectionProperty("Selection", List<IString>("Banana", "Kiwi"), 1));
+
+// Prints "Kiwi"
+std::cout << propObj.getPropertySelectionValue("Selection") << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+list = opendaq.List()
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.SelectionProperty(opendaq.String(
+    'Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
+
+# Prints "Kiwi"
+print(prop_obj.get_property_selection_value('Selection'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+
+// Prints "Kiwi"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
+----
+====
+
+==== List Properties
+
+When reading List Properties, the getter string can already contain a subscript token in the form
+of `"propName[index]"`.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(ListProperty("List", List<IString>("Banana", "Kiwi")));
+
+// Prints "Banana"
+std::cout << propObj.getPropertyValue("List[0]") << std::endl;
+
+// Sets a new value to the List Property. 
+propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
+
+// Prints "Pear" and "Strawberry"
+std::cout << propObj.getPropertyValue("List").toString() << std::endl;
+----
+Python::
++
+[source,python]
+----
+prop_obj = opendaq.PropertyObject()
+list = opendaq.List()
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.ListProperty(
+    opendaq.String('List'), list, opendaq.Boolean(True)))
+
+# Prints "Banana"
+print(prop_obj.get_property_value('List[0]'))
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Kiwi");
+
+propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+
+// Prints "Banana"
+Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
+
+var list2 = CoreTypesFactory.CreateList<BaseObject>();
+list2.Add("Pear");
+list2.Add("Strawberry");
+
+// Sets a new value to the List Property.
+propObj.SetPropertyValue("List", (BaseObject)list2);
+
+// Prints "[ Pear, Strawberry ]"
+Console.WriteLine(propObj.GetPropertyValue("List").ToString());
+----
+====
+
+When retrieving a list-type property value, the list object is cloned, and can be modified without
+side effects to the Property object. As such, we can extend the Property defined in the above
+code snippet as follows:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+ListPtr<IString> list = propObj.getPropertyValue("List");
+list.pushBack("Blueberry");
+propObj.setPropertyValue("List", list);
+
+// Prints "Banana", "Kiwi", and "Blueberry"
+std::cout << propObj.getPropertyValue("List").toString() << std::endl;
+----
+Python::
++
+[source,python]
+----
+list = prop_obj.get_property_value("List")
+list.push_back('Blueberry')
+prop_obj.set_property_value('List', list)
+
+# Prints "Banana", "Kiwi", and "Blueberry"
+print(prop_obj.get_property_value('List'))
+----
+C#::
++
+[source,csharp]
+----
+IListObject<BaseObject> list = propObj.GetPropertyValue("List").CastList<BaseObject>();
+list.Add("Blueberry");
+propObj.SetPropertyValue("List", (BaseObject)list);
+
+// Prints "[ Banana, Kiwi, Blueberry ]"
+Console.WriteLine(propObj.GetPropertyValue("List").ToString());
+----
+====
+
+==== Dictionary properties
+
+As with list-type properties, when retrieving a dictionary property value, the dictionary object
+is cloned, and can be modified without side effects to the Property object:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(DictProperty("Dict", Dict<IInteger, IString>({{1, "Banana"}, {2, "Kiwi"}})));
+
+DictPtr<IInteger, IString> dict = propObj.getPropertyValue("Dict");
+dict.set(3, "Blueberry");
+
+// The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.setPropertyValue("Dict", dict);
+----
+Python::
++
+[source,python]
+----
+dict = opendaq.Dict()
+dict[1] = 'Banana'
+dict[2] = 'Kiwi'
+prop_obj.add_property(opendaq.DictProperty(
+    opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+dict = prop_obj.get_property_value("Dict")
+dict[3] = 'Blueberry'
+
+# The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+prop_obj.set_property_value('Dict', dict)
+----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
+dict0.Add(1, "Banana");
+dict0.Add(12, "Kiwi");
+propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict0, true));
+
+IDictObject<IntegerObject, StringObject> dict = propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>();
+dict[3] = "Blueberry";
+
+// The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.SetPropertyValue("Dict", (BaseObject)dict);
+----
+====
+
+=== Read/Write Events
+
+Property Objects and Properties trigger events when reading/writing a Property Value. This allows
+custom callback functions to be implemented that react to the value being written/read. The events
+can be obtained on the Property Object via the appropriate getters.
+
+The event calls all functions of subscribers when triggered with a reference to the Property Object
+and an `Event arguments` object as function arguments. The Event arguments allow for overriding the
+read/written value.
+
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(IntProperty("IntReadCount", 0));
+
+propObj.addProperty(IntProperty("Int", 10));
+
+// Coerce the value of "Int" to a maximum of 20.
+propObj.getOnPropertyValueWrite("Int") += 
+  [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+  {
+    Int writtenValue = args.getValue();
+    if (writtenValue > 20)
+    {
+      args.setValue(20);
+    }
+  };
+
+// Increment IntReadCount whenever the "Int" Property Value is read.
+propObj.getOnPropertyValueRead("Int") +=
+  [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+  {
+    IntegerPtr readCount = sender.getPropertyValue("IntReadCount");
+    sender.setPropertyValue("IntReadCount", readCount + 1);
+  };
+
+
+propObj.setPropertyValue("Int", 30);
+// Prints out 20
+std::cout << propObj.getPropertyValue("Int") << std::endl;
+// Prints out 1
+std::cout << propObj.getPropertyValue("IntReadCount") << std::endl;
+----
+
+Keen-eyed readers might observe that the same getters/metadata fields also exist on Properties. 
+The events on Properties function the exact same as on Property Objects but should be used with care
+when a Property instance is used on multiple different Property Objects. An event of a Property will
+trigger for every value write/read of all Property Objects the Property is part of.
+
+A Property can be part of multiple Property Objects if both objects are instantiated from a 
+Property Object Class.
+
+[#object_class]
+== Property Object Class
+
+To round out the openDAQ(TM) Property system we introduce the Property Object Classes. 
+Property Object Classes allow us to specify a set of Properties without values that represent
+a commonly occurring set of Properties from which multiple Property Objects can be instantiated.
+Each Property Object created with a specific Class name will inherit all the Properties
+of the class with that name. 
+
+Classes are created in a manner similar to Property Objects with the difference that they cannot
+contain Property Values. Property Object Classes follow the same `Builder` pattern as Properties,
+providing all methods of modifying the class on the `Builder` interface.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+PropertyObjectClassBuilderPtr propClass = PropertyObjectClassBuilder("MyClass")
+                                              .addProperty(IntProperty("Integer", 10))
+                                              .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1));
+----
+Python::
++
+[source,python]
+----
+prop_class = opendaq.PropertyObjectClassBuilder(opendaq.String('MyClass'))
+prop_class.add_property(opendaq.IntProperty(opendaq.String(
+    'Integer'), opendaq.Integer(10), opendaq.Boolean(True)))
+list = opendaq.List()
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
+prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
+----
+C#::
++
+[source,csharp]
+----
+PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
+
+propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+----
+====
+
+=== Manager
+
+To add then instantiate a Property Object with a given Property Object Class name, the class must be 
+added to a Type manager instance. Most often within a given openDAQ(TM) instance, a
+single manager will exist that will contain a collection of all registered Classes (and other types). Once the
+Class is registered with the manager, any openDAQ(TM) component with access to the manager can create
+a Property Object with the given class.
+
+A Property Object Class is frozen once it's added to the manager, preventing any new Properties from
+being added to it, or any old ones removed.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+TypeManagerPtr manager = TypeManager();
+
+PropertyObjectClassBuilderPtr propClass = PropertyObjectClassBuilder("MyClass")
+                                              .addProperty(IntProperty("Integer", 10))
+                                              .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1));
+
+manager.addType(propClass.build());
+
+PropertyObjectPtr propObj = PropertyObject(manager, "MyClass");
+
+// Prints "Apple"
+std::cout << propObj.getPropertySelectionValue("Selection") << std::endl;
+----
+Python::
++
+[source,python]
+----
+manager = opendaq.TypeManager()
+prop_class = opendaq.PropertyObjectClassBuilder(opendaq.String('MyClass'))
+prop_class.add_property(opendaq.IntProperty(opendaq.String('Integer'), opendaq.Integer(10), opendaq.Boolean(True)))
+list = opendaq.List()
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
+prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
+
+manager.add_type(prop_class.build())
+
+prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
+
+# Prints "Apple"
+print(prop_obj.get_property_selection_value('Selection'))
+----
+C#::
++
+[source,csharp]
+----
+TypeManager manager = CoreTypesFactory.CreateTypeManager();
+
+PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
+
+propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+
+var list = CoreTypesFactory.CreateList<BaseObject>();
+list.Add("Banana");
+list.Add("Apple");
+list.Add("Kiwi");
+
+propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+
+manager.AddType(propClass.Build());
+
+PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+
+// Prints "Apple"
+Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
+----
+====
+
+=== Class inheritance
+
+As with normal `OOP` classes, Property Object Classes also allow for inheritance. A
+Property Object Class can inherit another that is registered within the manager. A Property Object
+created with such a Class contains both the Class's Properties, as well as all the Properties of
+its inherited Classes.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+TypeManagerPtr manager = TypeManager();
+
+PropertyObjectClassBuilderPtr propClass1 = PropertyObjectClassBuilder(manager, "InheritedClass").addProperty(StringProperty("InheritedProp", "foo"));
+manager.addType(propClass1.build());
+
+PropertyObjectClassBuilderPtr propClass2 = PropertyObjectClassBuilder(manager, "MyClass")
+                                              .addProperty(StringProperty("OwnProp", "bar"))
+                                              .setParentName("InheritedClass");
+manager.addType(propClass2.build());
+
+auto propObj = PropertyObject(manager, "MyClass");
+
+// Prints "foo"
+std::cout << propObj.getPropertyValue("InheritedProp") << std::endl;
+// Prints "bar"
+std::cout << propObj.getPropertyValue("OwnProp") << std::endl;
+----
+Python::
++
+[source,python]
+----
+manager = opendaq.TypeManager()
+
+prop_class1 = opendaq.PropertyObjectClassBuilderWithManager(manager, opendaq.String('InheritedClass'))
+prop_class1.add_property(opendaq.StringProperty(opendaq.String('InheritedProp'), opendaq.String('foo'), opendaq.Boolean(True)))
+manager.add_type(prop_class1.build())
+
+prop_class2 = opendaq.PropertyObjectClassBuilderWithManager(manager, opendaq.String('MyClass'))
+prop_class2.add_property(opendaq.StringProperty(opendaq.String('OwnProp'), opendaq.String('bar'), opendaq.Boolean(True)))
+prop_class2.parent_name = 'InheritedClass'
+manager.add_type(prop_class2.build())
+
+prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
+
+# Prints "foo"
+print(prop_obj.get_property_value('InheritedProp'))
+
+# Prints "bar"
+print(prop_obj.get_property_value('OwnProp'))
+----
+C#::
++
+[source,csharp]
+----
+TypeManager manager = CoreTypesFactory.CreateTypeManager();
+
+PropertyObjectClassBuilder propClass1 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "InheritedClass");
+propClass1.AddProperty(CoreObjectsFactory.CreateStringProperty("InheritedProp", "foo", true));
+manager.AddType(propClass1.Build());
+
+PropertyObjectClassBuilder propClass2 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "MyClass");
+propClass2.AddProperty(CoreObjectsFactory.CreateStringProperty("OwnProp", "bar", true));
+propClass2.ParentName = "InheritedClass";
+manager.AddType(propClass2.Build());
+
+PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+
+// Prints "foo"
+Console.WriteLine((string)propObj.GetPropertyValue("InheritedProp"));
+// Prints "bar"
+Console.WriteLine((string)propObj.GetPropertyValue("OwnProp"));
+----
+====
+
+=== Property events on classes
+
+As stated in the events section, users should be careful when adding events to Properties
+that are part of classes, as the same callback will be invoked independently of the Property
+object that triggered the event.
+
+The example below illustrates a possible case of error-prone behaviour.
+
+[source,cpp]
+----
+int readCount = 0;
+
+auto intProp = IntProperty("ReadCount", 0);
+intProp.getOnPropertyValueRead() +=
+  [&](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+  {
+    readCount++;
+    sender.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("ReadCount", readCount + 1);
+    args.setValue(readCount);
+  };
+
+TypeManagerPtr manager = TypeManager();
+PropertyObjectClassBuilderPtr propClass = PropertyObjectClassBuilder(manager, "MyClass").addProperty(intProp);
+
+manager.addClass(propClass.build());
+
+auto propObj1 = PropertyObject(manager, "MyClass");
+auto propObj2 = PropertyObject(manager, "MyClass");
+
+// Prints out 1
+std::cout << propObj1.getPropertyValue("ReadCount") << std::endl;
+// Prints out 2
+std::cout << propObj2.getPropertyValue("ReadCount") << std::endl;
+----

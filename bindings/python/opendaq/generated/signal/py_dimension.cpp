@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDimension, daq::IBaseObject> declareIDimension(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
 {
     cls.doc() = "Describes a dimension of the signal's data. Eg. a column/row in a matrix.";
 
-    m.def("Dimension", &daq::Dimension_Create);
+    m.def("Dimension", [](daq::IDimensionRule* rule, daq::IUnit* unit, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name){
+        return daq::Dimension_Create(rule, unit, getVariantValue<daq::IString*>(name));
+    }, py::arg("rule"), py::arg("unit"), py::arg("name"));
+
     m.def("DimensionFromBuilder", &daq::DimensionFromBuilder_Create);
 
     cls.def_property_readonly("name",

@@ -41,12 +41,6 @@ ErrCode MockServerModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockServerModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* /*connectionString*/, IPropertyObject* /*config*/)
-{
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockServerModuleImpl::createDevice(IDevice** device,
                                            IString* /*connectionString*/,
                                            IComponent* /*parent*/,
@@ -111,16 +105,6 @@ ErrCode MockServerModuleImpl::getVersionInfo(IVersionInfo** version)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockServerModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                                   IString* /*connectionString*/,
-                                                                   IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockServerModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
@@ -128,13 +112,22 @@ ErrCode MockServerModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockServerModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockServerModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, MockServerModule, IModule,
-    IContext*, ctx,
-    IModuleManager*, manager
-)
+    INTERNAL_FACTORY,
+    MockServerModule,
+    IModule,
+    IContext*,
+    ctx,
+    IModuleManager*,
+    manager
+    )

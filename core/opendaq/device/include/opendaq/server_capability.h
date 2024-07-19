@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/context.h>
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
-#include <coretypes/enumeration.h>
-#include <coreobjects/property_object.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_devices
- * @addtogroup opendaq_server_capbility Server capbility
+ * @addtogroup opendaq_server_capability Server capability
  * @{
  */
 
@@ -42,6 +40,7 @@ enum class ProtocolType: uint32_t
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -119,6 +118,22 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] addresses The device's list of addresses (hosts)
      */
     virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
+
+    /*!
+     * @brief Gets the port of the device with the current protocol.
+     * @param[out] port The port of the device.
+     */
+    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    
+    // [templateType(addressInfo, IAddressInfo)]
+    /*!
+     * @brief Gets the list of address information objects.
+     * @param[out] addressInfo The list of address information objects.
+     *
+     * Address information duplicates the connection string and address as available on the Server Capability object.
+     * Additionally, it provides information on what type of address it is (e.g., IPv4, IPv6), as well as whether the address is reachable.
+     */
+    virtual ErrCode INTERFACE_FUNC getAddressInfo(IList** addressInfo) = 0;
 };
 /*!@}*/
 

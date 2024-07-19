@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
-
 #include <thread>
 #include <condition_variable>
 
@@ -32,7 +31,7 @@ public:
     explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(size_t id);
+    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
     static DeviceTypePtr CreateType();
 
     // IDevice
@@ -55,6 +54,7 @@ private:
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
     size_t id;
+    StringPtr serialNumber;
 
     std::thread acqThread;
     std::condition_variable cv;

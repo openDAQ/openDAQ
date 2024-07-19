@@ -13,6 +13,8 @@
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/permission_manager_impl.h>
 
 
 using namespace daq;
@@ -34,7 +36,7 @@ public:
         moduleManager.addModule(fbModule);
 
         auto instance = InstanceCustom(context, "localInstance");
-        instance.addDevice("mock_phys_device");
+        instance.addDevice("daqmock://phys_device");
         instance.addFunctionBlock("mock_fb_uid");
 
         return instance;
@@ -146,4 +148,83 @@ TEST_F(AccessControlTest, ComponentAndObjectInherit)
     ASSERT_TRUE(objectManager.isAuthorized(user, Permission::Read));
     ASSERT_TRUE(objectManager.isAuthorized(user, Permission::Write));
     ASSERT_TRUE(objectManager.isAuthorized(user, Permission::Execute));
+}
+
+TEST_F(AccessControlTest, DefaultValueClone)
+{
+    const auto user = User("user", "psswordHash", List<IString>("user", "guest"));
+
+    auto childObject = PropertyObject();
+    childObject.getPermissionManager().setPermissions(
+        PermissionsBuilder().inherit(true).allow("guest", PermissionMaskBuilder().write()).build());
+
+    auto object = PropertyObject();
+    object.addProperty(ObjectProperty("TestObject", childObject));
+    object.getPermissionManager().setPermissions(PermissionsBuilder().allow("guest", PermissionMaskBuilder().read()).build());
+
+    auto defObj = object.getProperty("TestObject").getDefaultValue().asPtr<IPropertyObject>();
+    auto valueObj = object.getPropertyValue("TestObject").asPtr<IPropertyObject>();
+
+    ASSERT_NE(defObj.getPermissionManager(), valueObj.getPermissionManager());
+
+    ASSERT_TRUE(defObj.getPermissionManager().isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(defObj.getPermissionManager().isAuthorized(user, Permission::Write));
+    ASSERT_FALSE(defObj.getPermissionManager().isAuthorized(user, Permission::Execute));
+
+    ASSERT_TRUE(valueObj.getPermissionManager().isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(valueObj.getPermissionManager().isAuthorized(user, Permission::Write));
+    ASSERT_FALSE(valueObj.getPermissionManager().isAuthorized(user, Permission::Execute));
+}
+
+TEST_F(AccessControlTest, ClassDefaultValueClone)
+{
+    const auto user = User("user", "psswordHash", List<IString>("user", "guest"));
+
+    auto typeManager = TypeManager();
+
+    auto childObject = PropertyObject();
+    childObject.getPermissionManager().setPermissions(
+        PermissionsBuilder().inherit(true).allow("guest", PermissionMaskBuilder().write()).build());
+
+    auto cls = PropertyObjectClassBuilder("TestClass").addProperty(ObjectProperty("TestObject", childObject)).build();
+    typeManager.addType(cls);
+
+    auto object = PropertyObject(typeManager, "TestClass");
+    object.getPermissionManager().setPermissions(PermissionsBuilder().allow("guest", PermissionMaskBuilder().read()).build());
+
+    auto defObj = object.getProperty("TestObject").getDefaultValue().asPtr<IPropertyObject>();
+    auto valueObj = object.getPropertyValue("TestObject").asPtr<IPropertyObject>();
+
+    ASSERT_NE(childObject.getPermissionManager(), defObj.getPermissionManager());
+    ASSERT_NE(childObject.getPermissionManager(), valueObj.getPermissionManager());
+    ASSERT_NE(defObj.getPermissionManager(), valueObj.getPermissionManager());
+
+    ASSERT_TRUE(defObj.getPermissionManager().isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(defObj.getPermissionManager().isAuthorized(user, Permission::Write));
+    ASSERT_FALSE(defObj.getPermissionManager().isAuthorized(user, Permission::Execute));
+
+    ASSERT_TRUE(valueObj.getPermissionManager().isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(valueObj.getPermissionManager().isAuthorized(user, Permission::Write));
+    ASSERT_FALSE(valueObj.getPermissionManager().isAuthorized(user, Permission::Execute));
+}
+
+TEST_F(AccessControlTest, RemoveChildPermissionManager)
+{
+    auto typeManager = TypeManager();
+
+    auto childObject = PropertyObject();
+    auto cls = PropertyObjectClassBuilder("TestClass").addProperty(ObjectProperty("TestObject", childObject)).build();
+    typeManager.addType(cls);
+
+    auto object = PropertyObject(typeManager, "TestClass");
+
+    WeakRefPtr<IPermissionManager> permissionManager;
+
+    {
+        auto prop = object.getProperty("TestObject");
+        permissionManager = prop.getDefaultValue().asPtr<IPropertyObject>().getPermissionManager();
+        ASSERT_TRUE(permissionManager.getRef().assigned());
+    }
+
+    ASSERT_FALSE(permissionManager.getRef().assigned());
 }

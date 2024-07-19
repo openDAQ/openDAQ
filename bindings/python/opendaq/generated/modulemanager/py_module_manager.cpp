@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IModuleManager, daq::IBaseObject> declareIModuleManager(pybind11::module_ m)
 {
@@ -37,8 +38,14 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
 {
     cls.doc() = "Loads all available modules in a implementation-defined manner. User can also side-load custom modules via `addModule` call.";
 
-    m.def("ModuleManager", &daq::ModuleManager_Create);
-    m.def("ModuleManagerMultiplePaths", &daq::ModuleManagerMultiplePaths_Create);
+    m.def("ModuleManager", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& path){
+        return daq::ModuleManager_Create(getVariantValue<daq::IString*>(path));
+    }, py::arg("path"));
+
+    m.def("ModuleManagerMultiplePaths", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& paths){
+        return daq::ModuleManagerMultiplePaths_Create(getVariantValue<daq::IList*>(paths));
+    }, py::arg("paths"));
+
 
     cls.def_property_readonly("modules",
         [](daq::IModuleManager *object)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,9 +97,13 @@ ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
     return OPENDAQ_IGNORED;
 }
 
+#if !defined(BUILDING_STATIC_LIBRARY)
+
 extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger)
 {
     return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger);
 }
+
+#endif
 
 END_NAMESPACE_OPENDAQ

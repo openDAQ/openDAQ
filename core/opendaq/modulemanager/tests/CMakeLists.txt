@@ -20,7 +20,12 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_SOURCES}
 )
 
-target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test"
+target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
+)
+
+set_target_properties(${TEST_APP}
+    PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 ##############################
@@ -37,24 +42,38 @@ opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
                                ${TEST_SOURCES_INTERNAL}
 )
 
-target_compile_definitions(${TEST_APP_INTERNAL} PRIVATE MODULE_TEST_DIR="$<TARGET_FILE_DIR:empty_dll>"
+target_compile_definitions(${TEST_APP_INTERNAL} PRIVATE MODULE_TEST_DIR="mock"
                                                         BOOST_DLL_USE_STD_FS
+                                                        BOOST_ALL_NO_LIB
                                                         EMPTY_MODULE_FILE_NAME="$<TARGET_FILE_NAME:empty_dll>"
                                                         CRASHING_MODULE_FILE_NAME="$<TARGET_FILE_NAME:crashing_module>"
                                                         DEPENDENCIES_FAILED_MODULE_NAME="$<TARGET_FILE_NAME:dependencies_failed>"
                                                         DEPENDENCIES_SUCCEEDED_MODULE_NAME="$<TARGET_FILE_NAME:dependencies_succeeded>"
 )
 
-target_link_libraries(${TEST_APP_INTERNAL} PRIVATE daq::device
-                                                   daq::function_block
-                                                   ${Boost_LIBRARIES}
-)
-
-target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects
-)
-
 # we shouldn't link everything, only the necessary bits Boost::dll
-target_link_libraries(${TEST_APP_INTERNAL} PRIVATE $<BUILD_INTERFACE:Boost::dll>)
+target_link_libraries(${TEST_APP_INTERNAL} 
+    PRIVATE 
+        $<BUILD_INTERFACE:Boost::dll>
+        $<BUILD_INTERFACE:Boost::asio>
+        $<BUILD_INTERFACE:Threads::Threads>
+        $<BUILD_INTERFACE:fmt::fmt>
+)
+
+if (WIN32)
+    target_compile_definitions(${TEST_APP_INTERNAL}
+            PUBLIC  _WIN32_WINNT=${MIN_WINDOWS_VERSION}
+                    WINVER=${MIN_WINDOWS_VERSION}
+                    WIN32_LEAN_AND_MEAN
+            )
+
+    target_link_libraries(${TEST_APP_INTERNAL}
+        PUBLIC
+            Ws2_32
+            IPHLPAPI
+    )
+endif()
+
 
 # Do not link to these targets only make sure they are built
 add_dependencies(${TEST_APP_INTERNAL} empty_dll
@@ -63,8 +82,15 @@ add_dependencies(${TEST_APP_INTERNAL} empty_dll
                                       dependencies_succeeded
 )
 
+set_target_properties(${TEST_APP_INTERNAL}
+    PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP_INTERNAL}>
+)
+
 ##############################
 # CTest setup
+
+
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

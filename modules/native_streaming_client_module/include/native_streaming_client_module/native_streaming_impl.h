@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-static const char* NativeStreamingPrefix = "daq.ns://";
+static const char* NativeStreamingPrefix = "daq.ns";
 static const char* NativeStreamingID = "opendaq_native_streaming";
 
 class NativeStreamingImpl : public Streaming

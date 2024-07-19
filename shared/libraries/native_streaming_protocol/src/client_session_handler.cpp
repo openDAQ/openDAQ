@@ -13,13 +13,11 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
                                            const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
-                                           OnPacketReceivedCallback packetReceivedHandler,
                                            OnStreamingInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
-    , packetReceivedHandler(packetReceivedHandler)
     , streamingInitDoneHandler(protocolInitDoneHandler)
     , subscriptionAckHandler(subscriptionAckHandler)
 {
@@ -86,79 +84,6 @@ void ClientSessionHandler::sendStreamingRequest()
     tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST, 0));
 
     session->scheduleWrite(tasks);
-}
-
-ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)
-{
-    size_t bytesDone = 0;
-
-    GenericPacketHeader* packetBufferHeader {};
-    void* packetBufferPayload;
-
-    try
-    {
-        decltype(GenericPacketHeader::size) headerSize;
-
-        // Get packet buffer header size from received buffer
-        copyData(&headerSize, data, sizeof(headerSize), bytesDone, size);
-        LOG_T("Received packet buffer header size: {}", headerSize);
-
-        if (headerSize < sizeof(GenericPacketHeader))
-        {
-            LOG_E("Unsupported streaming packet buffer header size: {}. Skipping payload.", headerSize);
-            return createReadHeaderTask();
-        }
-
-        // Get packet buffer header from received buffer
-        packetBufferHeader = static_cast<GenericPacketHeader*>(std::malloc(headerSize));
-        copyData(packetBufferHeader, data, headerSize, bytesDone, size);
-        LOG_T("Received packet buffer header: header size {}, payload size {}",
-              packetBufferHeader->size, packetBufferHeader->payloadSize);
-        bytesDone += headerSize;
-
-        // Get packet buffer payload from received buffer
-        if (packetBufferHeader->payloadSize > 0)
-        {
-            packetBufferPayload = std::malloc(packetBufferHeader->payloadSize);
-            copyData(packetBufferPayload, data, packetBufferHeader->payloadSize, bytesDone, size);
-        }
-        else
-        {
-            packetBufferPayload = nullptr;
-        }
-    }
-    catch (const DaqException& e)
-    {
-        LOG_E("Protocol error: {}", e.what());
-        errorHandler(std::string("Protocol error - readPacket - ") + e.what(), session);
-        return createReadStopTask();
-    }
-
-    auto recvPacketBuffer =
-        std::make_shared<PacketBuffer>(packetBufferHeader,
-                                       packetBufferPayload,
-                                       [packetBufferHeader, packetBufferPayload]()
-                                       {
-                                           std::free(packetBufferHeader);
-                                           if (packetBufferPayload != nullptr)
-                                               std::free(packetBufferPayload);
-                                       });
-
-    packetStreamingClient.addPacketBuffer(recvPacketBuffer);
-
-    processReceivedPackets();
-
-    return createReadHeaderTask();
-}
-
-void ClientSessionHandler::processReceivedPackets()
-{
-    auto [signalId, packet] = packetStreamingClient.getNextDaqPacket();
-    while (packet.assigned())
-    {
-        packetReceivedHandler(signalId, packet);
-        std::tie(signalId, packet) = packetStreamingClient.getNextDaqPacket();
-    }
 }
 
 ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size)
@@ -307,7 +232,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
         return ReadTask(
             [this](const void* data, size_t size)
             {
-                return readPacket(data, size);
+                return readPacketBuffer(data, size);
             },
             payloadSize
         );

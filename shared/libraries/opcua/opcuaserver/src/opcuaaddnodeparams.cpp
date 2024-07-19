@@ -54,13 +54,19 @@ AddObjectNodeParams::AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId, 
 {
 }
 
+AddObjectNodeParams::AddObjectNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId)
+    : GenericAddNodeParams<UA_ObjectAttributes>(
+          RequestedNodeIdBaseOnName(name, parentNodeId), parentNodeId, OpcUaNodeId(UA_NS0ID_HASCOMPONENT), UA_ObjectAttributes_default)
+{
+}
+
+/*AddVariableNodeParams*/
+
 AddVariableNodeParams::AddVariableNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId)
     : GenericAddNodeParams<UA_VariableAttributes>(
                   RequestedNodeIdBaseOnName(name, parentNodeId), parentNodeId, OpcUaNodeId(UA_NS0ID_HASPROPERTY), UA_VariableAttributes_default)
 {
 }
-
-/*AddVariableNodeParams*/
 
 AddVariableNodeParams::AddVariableNodeParams(const OpcUaNodeId& requestedNewNodeId)
     : AddVariableNodeParams(requestedNewNodeId, OpcUaNodeId())

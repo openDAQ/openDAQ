@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
 
 protected:
+    void removed() override;
+
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
@@ -147,6 +149,15 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::removed()
+{
+    // disconnects all streaming connections
+    streamingSources.clear();
+
+    Super::removed();
 }
 
 template <typename... Interfaces>

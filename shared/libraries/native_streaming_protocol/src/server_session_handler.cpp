@@ -8,19 +8,18 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
-using namespace packet_streaming;
 
 ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
-                                           OnStreamingRequestCallback streamingInitHandler,
+                                           const std::string& clientId,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolServerSessionHandler")
-    , streamingInitHandler(streamingInitHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , transportLayerPropsHandler(nullptr)
-    , packetStreamingServer(10)
+    , clientId(clientId)
+    , reconnected(false)
 {
 }
 
@@ -84,15 +83,6 @@ void ServerSessionHandler::sendStreamingInitDone()
     session->scheduleWrite(tasks);
 }
 
-void ServerSessionHandler::sendPacket(const SignalNumericIdType signalId, const PacketPtr& packet)
-{
-    packetStreamingServer.addDaqPacket(signalId, packet);
-    while (const auto packetBuffer = packetStreamingServer.getNextPacketBuffer())
-    {
-        sendPacketBuffer(packetBuffer);
-    }
-}
-
 void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalNumericId)
 {
     std::vector<WriteTask> tasks;
@@ -123,34 +113,7 @@ void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signa
     session->scheduleWrite(tasks);
 }
 
-void ServerSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
-{
-    std::vector<WriteTask> tasks;
-
-    // create write task for packet buffer header
-    boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
-                                            packetBuffer->packetHeader->size);
-    WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
-    tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
-
-    if (packetBuffer->packetHeader->payloadSize > 0)
-    {
-        // create write task for packet buffer payload
-        boost::asio::const_buffer packetBufferPayload(packetBuffer->payload,
-                                                     packetBuffer->packetHeader->payloadSize);
-        WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
-        tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
-    }
-
-    // create write task for transport header
-    size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
-    tasks.insert(tasks.begin(), writeHeaderTask);
-
-    session->scheduleWrite(tasks);
-}
-
-ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size)
+ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size)
 {
     size_t bytesDone = 0;
 
@@ -175,12 +138,12 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size
         return createReadStopTask();
     }
 
-    if (signalSubscriptionHandler(signalNumericId, signalIdString, true, session))
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, true, clientId))
         sendSubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 
-ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t size)
+ReadTask ServerSessionHandler::readSignalUnsubscribe(const void* data, size_t size)
 {
     size_t bytesDone = 0;
 
@@ -205,7 +168,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t si
         return createReadStopTask();
     }
 
-    if (signalSubscriptionHandler(signalNumericId, signalIdString, false, session))
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, false, clientId))
         sendUnsubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
@@ -245,6 +208,31 @@ ReadTask ServerSessionHandler::readTransportLayerProperties(const void* data, si
 void ServerSessionHandler::setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler)
 {
     this->transportLayerPropsHandler = transportLayerPropsHandler;
+}
+
+void ServerSessionHandler::setStreamingInitHandler(const OnStreamingRequestCallback& streamingInitHandler)
+{
+    this->streamingInitHandler = streamingInitHandler;
+}
+
+void ServerSessionHandler::setReconnected(bool reconnected)
+{
+    this->reconnected = reconnected;
+}
+
+bool ServerSessionHandler::getReconnected()
+{
+    return this->reconnected;
+}
+
+void ServerSessionHandler::setClientId(const std::string& clientId)
+{
+    this->clientId = clientId;
+}
+
+std::string ServerSessionHandler::getClientId()
+{
+    return clientId;
 }
 
 ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
@@ -295,9 +283,20 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PACKET)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readPacketBuffer(data, size);
+            },
+            payloadSize
+        );
+    }
     else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST)
     {
-        streamingInitHandler(session);
+        if (streamingInitHandler)
+            streamingInitHandler();
         return createReadHeaderTask();
     }
     else

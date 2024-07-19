@@ -7,6 +7,7 @@
 
 #include <opendaq/ids_parser.h>
 #include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/component_exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -34,9 +35,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
-    transportClientHandler->resetConfigHandlers();
-    processingIOContextPtr->stop();
-    reconnectionProcessingIOContextPtr->stop();
+    closeConnectionOnRemoval();
 }
 
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
@@ -54,6 +53,20 @@ void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
 void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 {
     context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
+}
+
+void NativeDeviceHelper::closeConnectionOnRemoval()
+{
+    if (transportClientHandler)
+    {
+        transportClientHandler->resetConfigHandlers();
+    }
+
+    processingIOContextPtr->stop();
+    reconnectionProcessingIOContextPtr->stop();
+
+    configProtocolClient.reset();
+    transportClientHandler.reset();
 }
 
 void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
@@ -269,6 +282,11 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 
 PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
 {
+    if (!transportClientHandler)
+    {
+        throw ComponentRemovedException();
+    }
+
     // using a thread id is a hacky way to disable all config requests
     // except those related to reconnection until reconnection is finished
     if (connectionStatus != ClientConnectionStatus::Connected &&
@@ -412,6 +430,17 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
                   {
                       *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
                   });
+}
+
+void NativeDeviceImpl::removed()
+{
+    if (this->deviceHelper)
+    {
+        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
+        this->deviceHelper->closeConnectionOnRemoval();
+    }
+
+    Super::removed();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

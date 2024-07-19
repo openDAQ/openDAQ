@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,13 @@ public:
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig);
 
+    explicit GenericComponentTypeImpl(const StructTypePtr& type,
+                                      const StringPtr& id,
+                                      const StringPtr& name,
+                                      const StringPtr& description,
+                                      const StringPtr& prefix,
+                                      const PropertyObjectPtr& defaultConfig);
+
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
@@ -45,6 +52,7 @@ protected:
     StringPtr id;
     StringPtr name;
     StringPtr description;
+    StringPtr prefix;
     PropertyObjectPtr defaultConfig;
 };
 
@@ -59,6 +67,24 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , id(id)
     , name(name)
     , description(description)
+    , prefix("")
+    , defaultConfig(defaultConfig)
+{
+}
+
+template <typename Intf, typename... Interfaces>
+GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
+                                                                        const StringPtr& id,
+                                                                        const StringPtr& name,
+                                                                        const StringPtr& description,
+                                                                        const StringPtr& prefix,
+                                                                        const PropertyObjectPtr& defaultConfig)
+    : GenericStructImpl<Intf, IStruct, Interfaces...>(
+          type, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}, {"prefix", prefix}}))
+    , id(id)
+    , name(name)
+    , description(description)
+    , prefix(prefix)
     , defaultConfig(defaultConfig)
 {
 }

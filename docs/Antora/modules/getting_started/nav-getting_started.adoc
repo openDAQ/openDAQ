@@ -1,7 +1,7 @@
 * xref:quick_start.adoc[**Getting started**]
 
 ** Setting up openDAQ(TM)
-*** xref:quick_start_setting_up_cpp.adoc[Setting up ({cpp})]
-*** xref:quick_start_setting_up_python.adoc[Setting up (Python)]
-*** xref:quick_start_building_opendaq.adoc[Building openDAQ(TM) from source]
-** xref:quick_start_application.adoc[openDAQ(TM) Quick Start guide]
+*** xref:quick_start_setting_up_cpp.adoc[{cpp}]
+*** xref:quick_start_setting_up_python.adoc[Python]
+*** xref:quick_start_building_opendaq.adoc[Building from source]
+** xref:quick_start_application.adoc[Application Quick Start]

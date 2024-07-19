@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 static const char* NativeConfigurationDeviceTypeId = "opendaq_native_config";
-static const char* NativeConfigurationDevicePrefix = "daq.nd://";
+static const char* NativeStreamingTypeId = "opendaq_native_streaming";
+static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;
 
@@ -49,6 +50,8 @@ public:
 
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
+
+    void closeConnectionOnRemoval();
 
 private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
@@ -103,6 +106,9 @@ public:
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void removed() override;
 
 private:
     void initStatuses(const ContextPtr& ctx);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include <native_streaming/session.hpp>
 #include <config_protocol/config_protocol.h>
+#include <packet_streaming/packet_streaming.h>
 
 #include <functional>
 
@@ -43,17 +44,16 @@ using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNum
 using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdType& signalNumericId,
                                                         const std::string& signalStringId,
                                                         bool subscribed,
-                                                        SessionPtr session)>;
+                                                        const std::string& clientId)>;
 
-using OnStreamingRequestCallback = std::function<void(SessionPtr session)>;
+using OnStreamingRequestCallback = std::function<void()>;
 
 using OnStreamingInitDoneCallback = std::function<void()>;
 
 using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                      bool subscribed)>;
 
-using OnPacketReceivedCallback = std::function<void(const SignalNumericIdType& signalNumericId,
-                                                    const PacketPtr& packet)>;
+using OnPacketBufferReceivedCallback = std::function<void(const packet_streaming::PacketBufferPtr& packetBuffer)>;
 
 using SendConfigProtocolPacketCb = std::function<void(const config_protocol::PacketBuffer& packetBuffer)>;
 using ProcessConfigProtocolPacketCb = std::function<void(config_protocol::PacketBuffer&& packetBuffer)>;

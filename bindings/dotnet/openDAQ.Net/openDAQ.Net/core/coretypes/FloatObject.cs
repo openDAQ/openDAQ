@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:31.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ public class FloatObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawFloatObject.GetValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -95,7 +95,7 @@ public class FloatObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawFloatObject.EqualsValue(base.NativePointer, value, out equals);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -116,7 +116,7 @@ public class FloatObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.FloatObject"/> to <see cref="double"/>.</summary>
     /// <param name="value">The SDK <c>FloatObject</c>.</param>
     /// <returns>The managed <c>double</c> value.</returns>
-    public static implicit operator double(FloatObject value) => value.Value;
+    public static implicit operator double(FloatObject value) => value?.Value ?? default(double);
 
     /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
     /// <param name="other">The other <c>double</c> to compare to this instance.</param>
@@ -147,7 +147,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloat(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new FloatObject(objPtr, incrementReference: false);
@@ -164,7 +164,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloat(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -189,7 +189,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloatObject(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new FloatObject(objPtr, incrementReference: false);
@@ -206,7 +206,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFloatObject(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

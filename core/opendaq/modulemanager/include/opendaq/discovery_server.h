@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/device_info.h>
+#include <opendaq/logger.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

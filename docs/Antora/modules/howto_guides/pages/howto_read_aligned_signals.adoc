@@ -3,7 +3,7 @@
 :tip-caption: Assumptions
 [TIP]
 ====
-This guide assumes that you've read the _background section_ about the  xref:background_info:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
+This guide assumes that you've read the _background section_ about the  xref:knowledge_base:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
 
 For brevity, in `C++` we also assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
@@ -34,7 +34,7 @@ Some of the above limitations might be lifted in the future.
 
 == Using the Multi-Reader
 
-Using the Multi-Reader is largely the same as any other Reader and is basically a xref:background_info:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
+Using the Multi-Reader is largely the same as any other Reader and is basically a xref:knowledge_base:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
 
 [#create]
 .Creating a default Multi-Reader with list of Signals

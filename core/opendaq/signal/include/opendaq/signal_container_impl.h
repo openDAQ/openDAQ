@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -302,6 +302,9 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& signal)
 {
+    if (signal.getParent() != this->signals)
+        throw InvalidParameterException("Invalid parent of signal");
+
     try
     {
         this->signals.addItem(signal);

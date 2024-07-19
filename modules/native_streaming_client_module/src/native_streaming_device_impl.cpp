@@ -37,6 +37,12 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
 }
 
+void NativeStreamingDeviceImpl::removed()
+{
+    nativeStreaming.release();
+    Device::removed();
+}
+
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
 {
     const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable"));
@@ -91,11 +97,8 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
             connectionStatusChangedHandler(status);
         };
 
-    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
-                                                               std::regex(NativeStreamingDevicePrefix),
-                                                               NativeStreamingPrefix);
     nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+        createWithImplementation<IStreaming, NativeStreamingImpl>(connectionString,
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,

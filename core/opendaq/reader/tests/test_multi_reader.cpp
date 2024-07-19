@@ -2,6 +2,7 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/time_reader.h>
 #include "reader_common.h"
+#include <opendaq/event_packet_params.h>
 #include <opendaq/input_port_factory.h>
 
 #include <gmock/gmock-matchers.h>
@@ -181,12 +182,12 @@ public:
     }
 
     [[nodiscard]]
-    ListPtr<IInputPortConfig> signalsToPortsList() const
+    ListPtr<IInputPortConfig> signalsToPortsList(bool enableGapDetection = false) const
     {
         ListPtr<IInputPortConfig> ports = List<IInputPortConfig>();
         for (const auto& read : readSignals)
         {
-            auto port = InputPort(read.signal.getContext(), nullptr, "readsig");
+            auto port = InputPort(read.signal.getContext(), nullptr, "readsig", enableGapDetection);
             port.connect(read.signal);
             ports.pushBack(port);
         }
@@ -1149,7 +1150,7 @@ TEST_F(MultiReaderTest, EpochChanged)
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 632u);
 
-    // Read over the signal-descriptor change
+    // Read over the signal-descriptor change (it will stop on event so maximim read samples will be still 632)
     constexpr const SizeT SAMPLES = SIG1_PACKET_SIZE + 1;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1160,12 +1161,10 @@ TEST_F(MultiReaderTest, EpochChanged)
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(count, available);
 
-    available = multi.getAvailableCount();
-
-    printData(SAMPLES, time, values);
-    roundData<std::chrono::microseconds>(SAMPLES, time);
+    printData(count, time, values);
+    roundData<std::chrono::microseconds>(count, time);
 
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
@@ -1201,9 +1200,6 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
 
-    available = multi.getAvailableCount();
-    ASSERT_EQ(available, 458u);
-
     constexpr const SizeT SAMPLES = 5u;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1212,7 +1208,19 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count{SAMPLES};
+    SizeT count{1};
+    MultiReaderStatusPtr status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_TRUE(status.getEventPackets().assigned());
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig1.signal));
+    ASSERT_NE(status.getEventPackets().get(sig1.signal), nullptr);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 458u);
+
+
+    count = SAMPLES;
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
 
     ASSERT_EQ(count, SAMPLES);
@@ -1276,7 +1284,8 @@ TEST_F(MultiReaderTest, Signal2Invalidated)
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     ASSERT_EQ(count, SIG2_PACKET_SIZE);
 
-    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count), InvalidDataException);
+    auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_FALSE(status.getValid());
 
     printData(SAMPLES, time, values);
     roundData<std::chrono::microseconds>(SAMPLES, time);
@@ -1333,7 +1342,7 @@ TEST_F(MultiReaderTest, ResolutionChanged)
     // 732 - 100 needed to sync before descriptor changed
     ASSERT_EQ(available, 632u);
 
-    // Read over the signal-descriptor change
+    // Read over the signal-descriptor change. it will stops on event. so it will read 632 as getAvailableCount return synced samples until event
     constexpr const SizeT SAMPLES = SIG1_PACKET_SIZE + 1;
 
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
@@ -1344,10 +1353,10 @@ TEST_F(MultiReaderTest, ResolutionChanged)
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(count, available);
 
-    printData(SAMPLES, time, values);
-    roundData<std::chrono::microseconds>(SAMPLES, time);
+    printData(available, time, values);
+    roundData<std::chrono::microseconds>(available, time);
 
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
@@ -1408,10 +1417,8 @@ TEST_F(MultiReaderTest, SampleRateChanged)
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     ASSERT_EQ(count, 632u);
 
-    ASSERT_THROW_MSG(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count),
-                     InvalidDataException,
-                     "Signal no longer compatible with the reader or other signals"
-    );
+    auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    ASSERT_FALSE(status.getValid());
 
     printData(SAMPLES, time, values);
     roundData<std::chrono::microseconds>(SAMPLES, time);
@@ -1474,7 +1481,8 @@ TEST_F(MultiReaderTest, ReuseReader)
         multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         ASSERT_EQ(count, SIG2_PACKET_SIZE);
 
-        ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count), InvalidDataException);
+        auto status = multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+        ASSERT_FALSE(status.getValid());
 
         roundData<std::chrono::microseconds>(SAMPLES, time);
         ASSERT_THAT(time[1], ElementsAreArray(time[0]));
@@ -1680,10 +1688,14 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReader(signalsToList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+
+    reader.setOnDataAvailable([&, promise = &promise] () mutable {
+        if (reader.getAvailableCount() < count)
+            return;
+
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
-        promise.set_value();
+        promise->set_value();
     });
 
     auto available = reader.getAvailableCount();
@@ -1736,10 +1748,14 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReaderFromPort(signalsToPortsList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+
+    reader.setOnDataAvailable([&, promise = &promise] () mutable {
+        if (reader.getAvailableCount() < count)
+            return;
+
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
-        promise.set_value();
+        promise->set_value();
     });
 
     auto available = reader.getAvailableCount();
@@ -2015,4 +2031,85 @@ TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
     {
         sig0.createAndSendPacket(i);
     }
+}
+
+TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
+{
+    readSignals.reserve(2);
+
+    auto sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    const MultiReaderPtr multiReader = MultiReader(signalsToList(), SampleType::Float64, SampleType::Int64);
+
+    constexpr size_t numberOfSamplesToRead = 8;
+    double dataFirstSignal[numberOfSamplesToRead];
+    double dataSecondSignal[numberOfSamplesToRead];
+    double* data[2] { dataFirstSignal, dataSecondSignal };
+
+    size_t count = numberOfSamplesToRead;
+    auto a1 = std::async (std::launch::async, [&] {
+        multiReader.read(data, &count, 10000);
+    });
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    a1.wait();
+
+    ASSERT_EQ(count, numberOfSamplesToRead);
+}
+
+TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
+{
+    constexpr const auto NUM_SIGNALS = 2;
+    readSignals.reserve(NUM_SIGNALS);
+
+    // time different between the two signals is 0.01s which is 10 samples
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(1, 0)));
+    auto& sig1 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03.01+00:00", nullptr, LinearDataRule(1, 0)));
+
+    auto multi = MultiReader(signalsToPortsList(true));
+
+    // for signal 0 writes first packet with 10 samples, and then second packet with 10 samples and offset of 5
+    // in signal will be generated 3 packets
+    // data packet with 10 samples
+    // event packet with gap in 5 samples
+    // data packet with 10 samples
+    sig0.createAndSendPacket(0);
+    sig0.packetOffset = 5;
+    sig0.createAndSendPacket(1);
+
+    // for signal 1 - write 20 samples
+    // in signal will be generated 1 packet with 20 samples
+    sig1.createAndSendPacket(0);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    SizeT count{0};
+    MultiReaderStatusPtr status = multi.read(nullptr, &count);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_TRUE(status.getEventPackets().assigned());
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
+    ASSERT_TRUE(status.getEventPackets().hasKey(sig0.signal));
+    
+    auto event = status.getEventPackets().get(sig0.signal);
+    ASSERT_EQ(event.getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_EQ(event.getParameters().get(event_packet_param::GAP_DIFF), 5);
+
+    constexpr const SizeT SAMPLES = 10;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1]};
+
+    count = SAMPLES;
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    // bacause the was no shifting in time
+    ASSERT_EQ(count, 10u);
 }

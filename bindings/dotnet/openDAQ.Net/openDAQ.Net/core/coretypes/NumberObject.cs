@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:34.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ public class NumberObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetFloatValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -96,7 +96,7 @@ public class NumberObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawNumberObject.GetIntValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -120,7 +120,7 @@ public class NumberObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="double"/>.</summary>
     /// <param name="value">The SDK <c>NumberObject</c>.</param>
     /// <returns>The managed <c>double</c> value.</returns>
-    public static implicit operator double(NumberObject value) => value.FloatValue;
+    public static implicit operator double(NumberObject value) => value?.FloatValue ?? default(double);
 
     /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
     /// <param name="other">The other <c>double</c> to compare to this instance.</param>
@@ -137,7 +137,7 @@ public class NumberObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.NumberObject"/> to <see cref="long"/>.</summary>
     /// <param name="value">The SDK <c>NumberObject</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
-    public static implicit operator long(NumberObject value) => value.IntValue;
+    public static implicit operator long(NumberObject value) => value?.IntValue ?? default(long);
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>

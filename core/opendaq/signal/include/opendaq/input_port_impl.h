@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include <opendaq/input_port_private.h>
 #include <opendaq/input_port_notifications_ptr.h>
 #include <opendaq/input_port_ptr.h>
-#include <opendaq/utility_sync.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/signal_errors.h>
 #include <opendaq/signal_events_ptr.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/device_type.h>
 #include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,7 +29,12 @@ public:
     explicit DeviceTypeImpl(const StringPtr& id,
                             const StringPtr& name,
                             const StringPtr& description,
-                            const PropertyObjectPtr& defaultConfig);
+                            const PropertyObjectPtr& defaultConfig,
+                            const StringPtr& prefix);
+
+    explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
+
+    ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
 };
 
 END_NAMESPACE_OPENDAQ

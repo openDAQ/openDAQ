@@ -9,7 +9,7 @@ $CSStealRefHandling$
             {
                 return false;
             }
-            else if (Daq.Core.Types.Result.Failed(errorCode))
+            else if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }

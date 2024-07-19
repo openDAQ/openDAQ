@@ -20,7 +20,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , stopAcq(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent("ReferenceDevice")
+                          ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initIoFolder();
@@ -30,6 +30,20 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("LocalId"))
+            serialNumber = config.getPropertyValue("SerialNumber");
+    }
+    
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (options.assigned())
+    {
+        if (options.hasKey("SerialNumber"))
+            serialNumber = options.get("SerialNumber");
+    }
+
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
 
@@ -44,13 +58,13 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id)
+DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
     auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(fmt::format("dev_ser_{}", id));
+    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
@@ -60,12 +74,13 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 {
     return DeviceType("daqref",
                       "Reference device",
-                      "Reference device");
+                      "Reference device",
+                      "daqref");
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
+    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
     deviceInfo.freeze();
     return deviceInfo;
 }
@@ -169,9 +184,9 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         if (config.hasProperty("EnableCANChannel"))
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
-
-    auto options = context.getModuleOptions("RefDevice");
-    if (options.getCount() > 0)
+    
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (options.assigned())
     {
         if (options.hasKey("NumberOfChannels"))
             numberOfChannels = options.get("NumberOfChannels");

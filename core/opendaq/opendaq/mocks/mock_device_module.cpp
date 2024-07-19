@@ -29,12 +29,12 @@ ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
 
-    auto daqClientDeviceInfo = DeviceInfo("daq_client_device");
-    daqClientDeviceInfo.setDeviceType(DeviceType("daq_client_device", "Client", "Client device"));
+    auto daqClientDeviceInfo = DeviceInfo("daqmock://client_device");
+    daqClientDeviceInfo.setDeviceType(DeviceType("mock_client_device", "Client", "Client device", "daqmock"));
     availableDevicesPtr.pushBack(daqClientDeviceInfo);
 
-    auto mockPhysDeviceInfo = DeviceInfo("mock_phys_device");
-    mockPhysDeviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock"));
+    auto mockPhysDeviceInfo = DeviceInfo("daqmock://phys_device");
+    mockPhysDeviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock"));
     availableDevicesPtr.pushBack(mockPhysDeviceInfo);
 
     *availableDevices = availableDevicesPtr.detach();
@@ -49,21 +49,10 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     mockConfig.addProperty(StringProperty("message", ""));
 
     auto types = Dict<IString, IDeviceType>();
-    types.set("daq_client_device", DeviceType("daq_client_device", "Client", "Client device"));
-    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", mockConfig));
+    types.set("mock_client_device", DeviceType("mock_client_device", "Client", "Client device", "daqmock"));
+    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock", mockConfig));
 
     *deviceTypes = types.detach();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockDeviceModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* /*config*/)
-{
-    const StringPtr connStr = connectionString;
-
-    *accepted = false;
-    if (connStr == "daq_client_device" || connStr == "mock_phys_device")
-        *accepted = true;
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -73,7 +62,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IPropertyObject* config)
 {
     StringPtr connStr = connectionString;
-    if (connStr == "daq_client_device")
+    if (connStr == "daqmock://client_device")
     {
         const ModulePtr deviceModule(MockDeviceModule_Create(ctx));
         const ModulePtr fbModule(MockFunctionBlockModule_Create(ctx));
@@ -85,7 +74,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         auto clientDevice = Client(ctx, "client", nullptr, parent);
         *device = clientDevice.detach();
     }
-    else if (connStr == "mock_phys_device")
+    else if (connStr == "daqmock://phys_device")
     {
         std::string id = "mockdev";
         if (cnt != 0)
@@ -136,16 +125,6 @@ ErrCode MockDeviceModuleImpl::getVersionInfo(IVersionInfo** version)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                                   IString* /*connectionString*/,
-                                                                   IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
@@ -153,7 +132,12 @@ ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockDeviceModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockDeviceModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

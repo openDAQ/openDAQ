@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m)
 {
@@ -37,5 +38,8 @@ void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::ICo
 {
     cls.doc() = "Provides information about the server.";
 
-    m.def("ServerType", &daq::ServerType_Create);
+    m.def("ServerType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, daq::IPropertyObject* defaultConfig){
+        return daq::ServerType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
+
 }

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> declareIComponentStatusContainer(pybind11::module_ m)
 {
@@ -40,10 +41,10 @@ void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::ICompon
     m.def("ComponentStatusContainer", &daq::ComponentStatusContainer_Create);
 
     cls.def("get_status",
-        [](daq::IComponentStatusContainer *object, const std::string& name)
+        [](daq::IComponentStatusContainer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::ComponentStatusContainerPtr::Borrow(object);
-            return objectPtr.getStatus(name).detach();
+            return objectPtr.getStatus(getVariantValue<daq::IString*>(name)).detach();
         },
         py::arg("name"),
         "Gets the the current value of Component status with a given name.");

@@ -38,17 +38,17 @@ fsdsssdfsdfs
 
 ****
 titles sidebar
-xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+xref:knowledge_base:function_blocks.adoc#channel[More in the architecture section]
 ****
 
 .Example title
 ====
-xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+xref:knowledge_base:function_blocks.adoc#channel[More in the architecture section]
 ====
 
 .Title delimited (verbatim)
 ....
-xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+xref:knowledge_base:function_blocks.adoc#channel[More in the architecture section]
 ....
 
 .Titled code block

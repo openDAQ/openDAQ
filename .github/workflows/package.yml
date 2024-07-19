@@ -20,6 +20,7 @@ env:
   python_versions: 3.8 3.9 3.10 3.11 3.12
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   package_windows:
@@ -61,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
@@ -117,7 +118,7 @@ jobs:
           Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Upload package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Package (${{ matrix.name }})
           path: ${{ env.package_path }}
@@ -125,7 +126,7 @@ jobs:
 
       - name: Upload Wheels
         if: matrix.cmake_generator_platform != 'Win32'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
@@ -136,7 +137,7 @@ jobs:
         if: matrix.name == 'Windows VS 2022 x64 Release'
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.windows_x64_artifact }}
           path: |
@@ -187,7 +188,7 @@ jobs:
           apt-get install -y git openssh-client rename
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -238,27 +239,27 @@ jobs:
         run: zip -r "../../opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip" .
 
       - name: Upload package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Package (${{ matrix.name }})
           path: ${{ env.package_path_rel }}
           retention-days: 7
 
       - name: Upload API reference
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: API Reference
           path: "build/opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip"
           retention-days: 7
 
       - name: Upload temporary package for simulator
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.package_path_rel }}
 
       - name: Upload simulator app
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
           path: build/bin/application_simulator
@@ -266,7 +267,7 @@ jobs:
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
         if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
           path: |
@@ -313,7 +314,7 @@ jobs:
           yum install -y git
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3 
 
       - name: Install build dependencies
         run: |
@@ -343,7 +344,7 @@ jobs:
           done
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
@@ -367,7 +368,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install tools
         run: |
@@ -375,13 +376,13 @@ jobs:
           sudo apt-get install -y virtualbox vagrant
 
       - name: Download package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.simulator_directory }}
 
       - name: Download simulator app
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
           path: ${{ env.simulator_directory }}
@@ -425,14 +426,14 @@ jobs:
           ls -hl ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
 
       - name: Upload OVA image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}-ova-image
           path: simulator/${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
           retention-days: 7
 
       - name: Delete unused artifacts
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             ${{ env.simulator_app_artifact }}

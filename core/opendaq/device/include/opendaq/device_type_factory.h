@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,15 +34,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The unique type ID of the device.
  * @param name The name of the device type.
  * @param description A short description of the device type.
+ * @param prefix The prefix of the connection string used when adding the device (the part before  the "://" delimiter in the connection string)
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the device has its own configuration object.
  */
 inline DeviceTypePtr DeviceType(const StringPtr& id,
                                 const StringPtr& name,
                                 const StringPtr& description,
+                                const StringPtr& prefix,
                                 const PropertyObjectPtr& defaultConfig = PropertyObject())
 {
-    DeviceTypePtr obj(DeviceType_Create(id, name, description, defaultConfig));
+    DeviceTypePtr obj(DeviceType_Create(id, name, description, defaultConfig, prefix));
     return obj;
 }
 
@@ -51,9 +54,9 @@ inline DeviceTypePtr DeviceType(const StringPtr& id,
 inline StructTypePtr DeviceTypeStructType()
 {
     return StructType("deviceType",
-                      List<IString>("id", "name", "description"),
-                      List<IString>("", "", ""),
-                      List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString)));
+                      List<IString>("id", "name", "description", "prefix"),
+                      List<IString>("", "", "", ""),
+                      List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }
 
 /*!@}*/

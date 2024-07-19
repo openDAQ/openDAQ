@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,17 @@ public:
         config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
         config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
         config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+        config.addProperty(daq::StringProperty("ClientId", "123456"));
+
+        return config;
+    }
+
+    static daq::PropertyObjectPtr createAuthenticationConfig()
+    {
+        auto config = daq::PropertyObject();
+
+        config.addProperty(daq::StringProperty("Username", ""));
+        config.addProperty(daq::StringProperty("Password", ""));
 
         return config;
     }

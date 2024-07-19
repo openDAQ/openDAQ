@@ -181,7 +181,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServer = std::get<0>(GetParam());
         instance.addServer(streamingServer, nullptr);
@@ -342,8 +342,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         if (usingNativePseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2u);
 
             for (int j = 0; j < 2; ++j)
             {
@@ -369,8 +369,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else if (usingWSPseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3u);
 
             for (int j = 0; j < 3; ++j)
             {
@@ -401,8 +401,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
-            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1u);
+            ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
             const auto packet = clientReceivedPackets[0];
             const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
             ASSERT_TRUE(eventPacket.assigned());
@@ -491,7 +491,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
         statisticsFb.setPropertyValue("DomainSignalType", 1);  // 1 - Explicit
@@ -558,7 +558,7 @@ protected:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto mockDevice = instance.addDevice("mock_phys_device");
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServerName = std::get<0>(GetParam());
         streamingServer = instance.addServer(streamingServerName, nullptr);
@@ -647,7 +647,7 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
     auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
-    serverInstance.setRootDevice("mock_phys_device");
+    serverInstance.setRootDevice("daqmock://phys_device");
     serverInstance.addServer("openDAQ Native Streaming", nullptr);
 
     const auto channels = serverInstance.getChannelsRecursive();
@@ -704,8 +704,8 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         const int packetsToRead = i + 3;
         serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
 
-        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1);
-        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1u);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
         const auto packet = clientReceivedPackets[0];
         const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
         ASSERT_TRUE(eventPacket.assigned());

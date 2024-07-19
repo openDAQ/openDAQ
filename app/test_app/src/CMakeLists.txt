@@ -12,17 +12,9 @@ target_include_directories(${MODULE_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/>
         $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(${MODULE_NAME} daq::opendaq)
 
-if (WIN32)
-    set(BCRYPT_LIB bcrypt.dll)
-endif()
-
-target_link_libraries(${MODULE_NAME}
-    PUBLIC
-        daq::opcuatms_server
-        daq::opcuatms_client
-        daq::signal
-        daq::opcuatms
-        daq::opendaq_mocks
-        ${BCRYPT_LIB}
+add_dependencies(${MODULE_NAME}
+        daq::opcua_client_module
+        daq::opcua_server_module
 )

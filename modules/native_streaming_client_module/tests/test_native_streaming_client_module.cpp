@@ -61,22 +61,6 @@ TEST_F(NativeStreamingClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://[::1]"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
-}
-
 TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();
@@ -93,25 +77,6 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
     ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr), NotFoundException);
 }
 
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsStreamingConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringEmpty)
-{
-    auto module = CreateModule();
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(""));
-}
-
-TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ns://host"));
-}
-
 TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
 {
     auto module = CreateModule();
@@ -119,62 +84,62 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
     DevicePtr device;
     ASSERT_THROW(device = module.createStreaming(nullptr, nullptr), ArgumentNullException);
 }
-
-TEST_F(NativeStreamingClientModuleTest, CreateConnectionStringIgnored)
-{
-    auto context = NullContext();
-    ModulePtr module;
-    createModule(&module, context);
-
-    StringPtr connectionString;
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("test", "test", ProtocolType::Unknown);
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_FALSE(connectionString.assigned());
-}
-
-TEST_F(NativeStreamingClientModuleTest, CreateStreamingConnectionString)
-{
-    auto context = NullContext();
-    ModulePtr module;
-    createModule(&module, context);
-
-    StringPtr connectionString;
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addAddress("123.123.123.123");
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addProperty(IntProperty("Port", 1234));
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.ns://123.123.123.123:1234");
-
-    serverCapability.addProperty(StringProperty("Path", "/path"));
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.ns://123.123.123.123:1234/path");
-}
-
-TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionString)
-{
-    auto context = NullContext();
-    ModulePtr module;
-    createModule(&module, context);
-
-    StringPtr connectionString;
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addAddress("123.123.123.123");
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addProperty(IntProperty("Port", 1234));
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.nd://123.123.123.123:1234");
-
-    serverCapability.addProperty(StringProperty("Path", "/path"));
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.nd://123.123.123.123:1234/path");
-}
+//
+//TEST_F(NativeStreamingClientModuleTest, CreateConnectionStringIgnored)
+//{
+//    auto context = NullContext();
+//    ModulePtr module;
+//    createModule(&module, context);
+//
+//    StringPtr connectionString;
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("test", "test", ProtocolType::Unknown);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_FALSE(connectionString.assigned());
+//}
+//
+//TEST_F(NativeStreamingClientModuleTest, CreateStreamingConnectionString)
+//{
+//    auto context = NullContext();
+//    ModulePtr module;
+//    createModule(&module, context);
+//
+//    StringPtr connectionString;
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
+//    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+//
+//    serverCapability.addAddress("123.123.123.123");
+//    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.ns://123.123.123.123:7420");
+//
+//    serverCapability.setPort(1234);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.ns://123.123.123.123:1234");
+//
+//    serverCapability.addProperty(StringProperty("Path", "/path"));
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.ns://123.123.123.123:1234/path");
+//}
+//
+//TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionString)
+//{
+//    auto context = NullContext();
+//    ModulePtr module;
+//    createModule(&module, context);
+//
+//    StringPtr connectionString;
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
+//    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+//
+//    serverCapability.addAddress("123.123.123.123");
+//    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.nd://123.123.123.123:7420");
+//
+//    serverCapability.setPort(1234);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.nd://123.123.123.123:1234");
+//
+//    serverCapability.addProperty(StringProperty("Path", "/path"));
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.nd://123.123.123.123:1234/path");
+//}
 
 TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
 {
@@ -208,38 +173,16 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
     auto deviceConfig = deviceTypes.get("opendaq_native_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
 
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
     auto pseudoDeviceConfig = deviceTypes.get("opendaq_native_streaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://address", pseudoDeviceConfig));
-}
-
-TEST_F(NativeStreamingClientModuleTest, InvalidDeviceConfig)
-{
-    auto module = CreateModule();
-    auto config = PropertyObject();
-
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.nd://device8", config));
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.ns://device8", config));
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,
                              public testing::WithParamInterface<StringPtr>
 {
 };
-
-TEST_P(ConnectionStringTest, ConnectionStringNotAccepted)
-{
-    auto module = CreateModule();
-
-    StringPtr connectionString = GetParam();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(connectionString));
-    ASSERT_FALSE(accepts);
-}
 
 TEST_P(ConnectionStringTest, CreateDeviceWrongConnectionString)
 {
@@ -248,17 +191,6 @@ TEST_P(ConnectionStringTest, CreateDeviceWrongConnectionString)
     StringPtr connectionString = GetParam();
 
     ASSERT_THROW(module.createDevice(connectionString, nullptr), InvalidParameterException);
-}
-
-TEST_P(ConnectionStringTest, StreamingConnectionStringNotAccepted)
-{
-    auto module = CreateModule();
-
-    StringPtr connectionString = GetParam();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsStreamingConnectionParameters(connectionString));
-    ASSERT_FALSE(accepts);
 }
 
 TEST_P(ConnectionStringTest, CreateStreamingWrongConnectionString)

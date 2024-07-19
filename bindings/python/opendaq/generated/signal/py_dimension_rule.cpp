@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDimensionRule, daq::IBaseObject> declareIDimensionRule(pybind11::module_ m)
 {
@@ -43,10 +44,22 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
 {
     cls.doc() = "Rule that defines the labels (alternatively called bins, ticks) of a dimension.";
 
-    m.def("LinearDimensionRule", &daq::LinearDimensionRule_Create);
-    m.def("ListDimensionRule", &daq::ListDimensionRule_Create);
-    m.def("LogarithmicDimensionRule", &daq::LogarithmicDimensionRule_Create);
-    m.def("DimensionRule", &daq::DimensionRule_Create);
+    m.def("LinearDimensionRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start, const size_t size){
+        return daq::LinearDimensionRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start), size);
+    }, py::arg("delta"), py::arg("start"), py::arg("size"));
+
+    m.def("ListDimensionRule", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& list){
+        return daq::ListDimensionRule_Create(getVariantValue<daq::IList*>(list));
+    }, py::arg("list"));
+
+    m.def("LogarithmicDimensionRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start, std::variant<daq::INumber*, double, daq::IEvalValue*>& base, const size_t size){
+        return daq::LogarithmicDimensionRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start), getVariantValue<daq::INumber*>(base), size);
+    }, py::arg("delta"), py::arg("start"), py::arg("base"), py::arg("size"));
+
+    m.def("DimensionRule", [](daq::DimensionRuleType type, std::variant<daq::IDict*, py::dict>& parameters){
+        return daq::DimensionRule_Create(type, getVariantValue<daq::IDict*>(parameters));
+    }, py::arg("type"), py::arg("parameters"));
+
     m.def("DimensionRuleFromBuilder", &daq::DimensionRuleFromBuilder_Create);
 
     cls.def_property_readonly("type",

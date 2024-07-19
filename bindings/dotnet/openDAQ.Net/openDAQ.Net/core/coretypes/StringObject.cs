@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:36.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ public class StringObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStringObject.GetCharPtr(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -99,7 +99,7 @@ public class StringObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStringObject.GetLength(base.NativePointer, out size);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -123,7 +123,7 @@ public class StringObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.StringObject"/> to <see cref="string"/>.</summary>
     /// <param name="value">The SDK <c>StringObject</c>.</param>
     /// <returns>The managed <c>string</c> value.</returns>
-    public static implicit operator string(StringObject value) => value.CharPtr;
+    public static implicit operator string(StringObject value) => value?.CharPtr ?? default(string);
 
     /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>
@@ -154,7 +154,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -171,7 +171,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createString(out objPtr, str);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -196,7 +196,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StringObject(objPtr, incrementReference: false);
@@ -213,7 +213,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStringN(out objPtr, str, length);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

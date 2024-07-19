@@ -141,6 +141,7 @@ option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
 option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
+option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
 
 # Additional build options
 option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
@@ -475,6 +476,10 @@ if (MSVC)
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
 
+	# Maintain binary compatibilty with older msvc runtime environments
+	# https://github.com/microsoft/STL/wiki/Changelog
+	add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+	
     if (NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
         # Build with multiple processes
         # https://learn.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes
@@ -530,19 +535,21 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 if(OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
-    set(PYTHON_VERSION 3.6)
-    set(COMPONENTS Interpreter)
+    set(OPENDAQ_PYTHON_VERSION_INTERNAL 3.8)
+    set(OPENDAQ_PYTHON_COMPONENTS Interpreter)
     if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
-        list(APPEND COMPONENTS Development.Module)
+        list(APPEND OPENDAQ_PYTHON_COMPONENTS Development.Module)
     endif()
     set(OPENDAQ_PYTHON_VERSION "" CACHE STRING "Exact Python version to use for bindings generation")
     if(OPENDAQ_PYTHON_VERSION)
-        set(PYTHON_VERSION ${OPENDAQ_PYTHON_VERSION})
-        set(PYTHON_EXACT EXACT)
-        set(PYTHON_REQUIRED REQUIRED)
+        set(OPENDAQ_PYTHON_VERSION_INTERNAL ${OPENDAQ_PYTHON_VERSION})
+        set(OPENDAQ_PYTHON_EXACT EXACT)
+        set(OPENDAQ_PYTHON_REQUIRED REQUIRED)
     endif()
 
-    find_package(Python ${PYTHON_VERSION} ${PYTHON_EXACT} ${PYTHON_REQUIRED} COMPONENTS ${COMPONENTS})
+    find_package(Python ${OPENDAQ_PYTHON_VERSION_INTERNAL} ${OPENDAQ_PYTHON_EXACT} ${OPENDAQ_PYTHON_REQUIRED} COMPONENTS ${OPENDAQ_PYTHON_COMPONENTS})
+    #help pybind11 find the correct python version
+    set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
 endif()
 
 if (MSVC)
@@ -680,6 +687,10 @@ add_subdirectory(app)
 add_subdirectory(examples)
 add_subdirectory(docs)
 add_subdirectory(simulator)
+
+if (OPENDAQ_ENABLE_REGRESSION_TESTS)
+    add_subdirectory(regression)
+endif()
 
 if (NOT BUILDING_AS_SUBMODULE)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")

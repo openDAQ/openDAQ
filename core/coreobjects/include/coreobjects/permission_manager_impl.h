@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,19 @@
 #include <coreobjects/permission_manager_internal.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coretypes/weakrefptr.h>
+#include <coretypes/cloneable.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal>
+class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
 {
 public:
     explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
+    ~PermissionManagerImpl();
 
     ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) override;
     ErrCode INTERFACE_FUNC isAuthorized(IUser* user, Permission permission, Bool* authorizedOut) override;
+    ErrCode INTERFACE_FUNC clone(IBaseObject** cloneOut) override;
 
 protected:
     ErrCode INTERFACE_FUNC setParent(IPermissionManager* parentManager) override;
@@ -44,7 +47,7 @@ private:
     PermissionManagerInternalPtr getParentManager();
 
     WeakRefPtr<IPermissionManager> parent;
-    DictPtr<IPermissionManager, Bool> children;
+    std::unordered_set<IPermissionManager*> children;
     PermissionsPtr permissions;
     PermissionsPtr localPermissions;
 };

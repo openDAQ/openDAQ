@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:37.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -86,10 +86,16 @@ public class StructBuilder : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStructBuilder.GetStructType(base.NativePointer, out typePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (typePtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new StructType(typePtr, incrementReference: false);
@@ -113,10 +119,16 @@ public class StructBuilder : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStructBuilder.GetFieldNames(base.NativePointer, out namesPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (namesPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new ListObject<StringObject>(namesPtr, incrementReference: false);
@@ -140,10 +152,16 @@ public class StructBuilder : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStructBuilder.GetFieldValues(base.NativePointer, out valuesPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (valuesPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new ListObject<BaseObject>(valuesPtr, incrementReference: false);
@@ -158,7 +176,7 @@ public class StructBuilder : BaseObject
                 //call native method
                 ErrorCode errorCode = (ErrorCode)_rawStructBuilder.SetFieldValues(base.NativePointer, valuesPtr.NativePointer);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -179,10 +197,16 @@ public class StructBuilder : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawStructBuilder.GetAsDictionary(base.NativePointer, out dictionaryPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (dictionaryPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new DictObject<StringObject, BaseObject>(dictionaryPtr, incrementReference: false);
@@ -203,10 +227,16 @@ public class StructBuilder : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Build(base.NativePointer, out struct_Ptr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (struct_Ptr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return new Struct(struct_Ptr, incrementReference: false);
@@ -225,7 +255,7 @@ public class StructBuilder : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Set(base.NativePointer, namePtr.NativePointer, field.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -248,10 +278,16 @@ public class StructBuilder : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Get(base.NativePointer, namePtr.NativePointer, out fieldPtr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (fieldPtr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return new BaseObject(fieldPtr, incrementReference: false);
@@ -273,7 +309,7 @@ public class StructBuilder : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawStructBuilder.HasField(base.NativePointer, namePtr.NativePointer, out contains);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -307,7 +343,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructBuilder(out objPtr, namePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StructBuilder(objPtr, incrementReference: false);
@@ -327,7 +363,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructBuilder(out objPtr, namePtr.NativePointer, typeManager.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -352,7 +388,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new StructBuilder(objPtr, incrementReference: false);
@@ -369,7 +405,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

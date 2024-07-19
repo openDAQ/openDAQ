@@ -18,6 +18,7 @@
     <Compile Include="..\openDAQ.Net.Test\CoreTypesIntegerTests.cs" Link="CoreTypesIntegerTests.cs" />
     <Compile Include="..\openDAQ.Net.Test\CoreTypesStringTests.cs" Link="CoreTypesStringTests.cs" />
     <Compile Include="..\openDAQ.Net.Test\OpenDAQTestsBase.cs" Link="OpenDAQTestsBase.cs" />
+    <Compile Include="..\openDAQ.Net.Test\OpenDaqBackgroundInfoGuidesTests.cs" Link="OpenDaqBackgroundInfoGuidesTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

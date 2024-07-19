@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> declareIComponentStatusContainerPrivate(pybind11::module_ m)
 {
@@ -38,18 +39,18 @@ void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::
     cls.doc() = "Provides access to private methods of the Component status container.";
 
     cls.def("add_status",
-        [](daq::IComponentStatusContainerPrivate *object, const std::string& name, daq::IEnumeration* initialValue)
+        [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* initialValue)
         {
             const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
-            objectPtr.addStatus(name, initialValue);
+            objectPtr.addStatus(getVariantValue<daq::IString*>(name), initialValue);
         },
         py::arg("name"), py::arg("initial_value"),
         "Adds the new status with given name and initial value.");
     cls.def("set_status",
-        [](daq::IComponentStatusContainerPrivate *object, const std::string& name, daq::IEnumeration* value)
+        [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* value)
         {
             const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
-            objectPtr.setStatus(name, value);
+            objectPtr.setStatus(getVariantValue<daq::IString*>(name), value);
         },
         py::arg("name"), py::arg("value"),
         "Sets the value for the existing component status.");

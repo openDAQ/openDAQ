@@ -32,10 +32,13 @@ ServerPtr WebsocketStreamingServerModule::onCreateServer(StringPtr serverType,
     if (!context.assigned())
         throw InvalidParameterException{"Context parameter cannot be null."};
 
-    if (!serverConfig.assigned())
-        serverConfig = WebsocketStreamingServerImpl::createDefaultConfig(context);
+    auto wsConfig = serverConfig;
+    if (!wsConfig.assigned())
+        wsConfig = WebsocketStreamingServerImpl::createDefaultConfig(context);
+    else
+        wsConfig = WebsocketStreamingServerImpl::populateDefaultConfig(wsConfig, context);
 
-    ServerPtr server(WebsocketStreamingServer_Create(rootDevice, serverConfig, context));
+    ServerPtr server(WebsocketStreamingServer_Create(rootDevice, wsConfig, context));
     return server;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/multi_reader_status_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -47,7 +48,6 @@ public:
 
     ~MultiReaderImpl() override;
 
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
@@ -58,7 +58,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC skipSamples(SizeT* count) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
 
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -67,7 +67,6 @@ public:
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* inputPort) override;
 
     // IReaderConfig
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override;
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getDomainTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
@@ -94,12 +93,12 @@ private:
     void setStartInfo();
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    ErrCode readUntilFirstDataPacket();
+    DictPtr<ISignal, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
 
     SyncStatus getSyncStatus() const;
 
-    ErrCode readPackets();
+    MultiReaderStatusPtr readPackets();
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);
@@ -137,6 +136,10 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool startOnFullUnitOfDomain;
+
+    MultiReaderStatusPtr defaultStatus;
+
+    NotifyInfo notify{};
 };
 
 END_NAMESPACE_OPENDAQ

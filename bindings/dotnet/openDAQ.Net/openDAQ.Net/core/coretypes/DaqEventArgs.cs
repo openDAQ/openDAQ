@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:30.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -67,7 +67,7 @@ public class DaqEventArgs : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventId(base.NativePointer, out id);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -89,7 +89,7 @@ public class DaqEventArgs : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDaqEventArgs.GetEventName(base.NativePointer, out namePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -98,7 +98,7 @@ public class DaqEventArgs : BaseObject
             // validate pointer
             if (namePtr == IntPtr.Zero)
             {
-                return null;
+                return default;
             }
 
             using var name = new StringObject(namePtr, incrementReference: false);
@@ -133,7 +133,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new DaqEventArgs(objPtr, incrementReference: false);
@@ -153,7 +153,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

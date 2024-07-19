@@ -10,14 +10,14 @@ from .diaolog import Dialog
 
 class AddFunctionBlockDialog(Dialog):
     def __init__(self, parent, context, node, **kwargs):
-        Dialog.__init__(self, parent, 'Add device', context, **kwargs)
+        Dialog.__init__(self, parent, 'Add function block', context, **kwargs)
         self.node = node
         # send events to parent window
         self.event_port = EventPort(self.parent)
         self.parent_device = None
 
         self.geometry('{}x{}'.format(
-            900*self.context.ui_scaling_factor, 400*self.context.ui_scaling_factor))
+            900 * self.context.ui_scaling_factor, 400 * self.context.ui_scaling_factor))
 
         # parent
 
@@ -57,11 +57,11 @@ class AddFunctionBlockDialog(Dialog):
         tree.heading('name', text='Name')
 
         # layout
-        tree.column('#0', anchor=tk.CENTER, width=0,    stretch=False)
+        tree.column('#0', anchor=tk.CENTER, width=0, stretch=False)
         tree.column('#1', anchor=tk.CENTER, width=300 *
-                    self.context.ui_scaling_factor,  stretch=False)
+                                                  self.context.ui_scaling_factor, stretch=False)
         tree.column('#2', anchor=tk.CENTER, width=300 *
-                    self.context.ui_scaling_factor,  stretch=True)
+                                                  self.context.ui_scaling_factor, stretch=True)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
@@ -109,7 +109,8 @@ class AddFunctionBlockDialog(Dialog):
         available_function_block_types = self.parent_device.available_function_block_types
         for function_block_id in available_function_block_types:
             self.fb_tree.insert('', tk.END, iid=function_block_id, values=(
-                function_block_id, daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
+                function_block_id,
+                daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
 
     def handle_parent_device_selected(self, event):
         selected_item = treeview_get_first_selection(

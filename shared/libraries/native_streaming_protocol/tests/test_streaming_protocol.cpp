@@ -162,7 +162,7 @@ public:
 
         setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
         {
-            return [](config_protocol::PacketBuffer&& packetBuffer) {};
+            return std::make_pair(nullptr, nullptr);
         };
 
         clientsCount = std::get<0>(GetParam());
@@ -194,7 +194,7 @@ public:
                                                                OnSignalAvailableCallback signalAvailableHandler)
     {
         auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            client.clientContext, ClientAttributesBase::createTransportLayerConfig());
+            client.clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         clientHandler->setStreamingHandlers(signalAvailableHandler,
                                             client.signalUnavailableHandler,
@@ -289,6 +289,12 @@ TEST_P(StreamingProtocolTest, Reconnection)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+
+        client.streamingInitPromise = std::promise< void >();
+        client.streamingInitFuture = client.streamingInitPromise.get_future();
     }
 
     stopServer();
@@ -311,6 +317,9 @@ TEST_P(StreamingProtocolTest, Reconnection)
 
         client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
         client.connectionStatusFuture = client.connectionStatusPromise.get_future();
+
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     }
 }
 

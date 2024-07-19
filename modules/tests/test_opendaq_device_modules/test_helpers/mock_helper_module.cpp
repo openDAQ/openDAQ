@@ -6,7 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace test_helpers
 {
 
-MockHelperModuleImpl::MockHelperModuleImpl(daq::ContextPtr ctx, FunctionPtr availableDevicesCb)
+MockHelperModuleImpl::MockHelperModuleImpl(ContextPtr ctx, FunctionPtr availableDevicesCb)
     : ctx(std::move(ctx))
     , availableDevicesCb(std::move(availableDevicesCb))
 {
@@ -46,12 +46,6 @@ ErrCode MockHelperModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
     auto types = Dict<IString, IDeviceType>();
     *deviceTypes = types.detach();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockHelperModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* /*config*/)
-{
-    *accepted = false;
     return OPENDAQ_SUCCESS;
 }
 
@@ -101,16 +95,6 @@ ErrCode MockHelperModuleImpl::getVersionInfo(IVersionInfo** version)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockHelperModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                                   IString* /*connectionString*/,
-                                                                   IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockHelperModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
@@ -118,7 +102,12 @@ ErrCode MockHelperModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockHelperModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockHelperModuleImpl::completeServerCapability(Bool* /*succeeded*/, IServerCapability* /*source*/, IServerCapabilityConfig* /*target*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+ErrCode MockHelperModuleImpl::getAvailableStreamingTypes(IDict** /*streamingTypes*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

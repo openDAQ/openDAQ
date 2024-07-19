@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 #include <opendaq/custom_log.h>
 
@@ -63,7 +65,7 @@ public:
 
     /*!
      * @brief Gets the module id.
-     * @param[out] id The module id.
+     * @param[out] moduleId The module id.
      */
     ErrCode INTERFACE_FUNC getId(IString** moduleId) override
     {
@@ -101,24 +103,6 @@ public:
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
 
         *deviceTypes = types.detach();
-        return errCode;
-    }
-
-    /*!
-     * @brief Checks if connection string can be used to connect to devices supported by this module.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `opc.tcp//`.
-     * Connection strings could simply be devices such as `obsidian` when openDAQ SDK is running on DAQ device hardware.
-     * @param accepted Whether this module supports the @p connectionString.
-     */
-    ErrCode INTERFACE_FUNC acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(accepted);
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-
-        bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsConnectionParameters, accepts, connectionString, config);
-
-        *accepted = accepts;
         return errCode;
     }
 
@@ -215,27 +199,6 @@ public:
     }
 
     /*!
-     * @brief Verifies whether the provided connection string and config object can be used to establish a streaming connection
-     * supported by this module.
-     * @param[out] accepted Whether this module supports the @p connectionString with provided @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
-     * @param config A config object that contains parameters used to configure a streaming connection.
-     * This object can contain properties like various connection timeouts or other streaming protocol specific settings.
-     * Can be created from its corresponding Streaming type object. In case of a null value, it will use the default configuration.
-     */
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(accepted);
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-
-        bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, config);
-
-        *accepted = accepts;
-        return errCode;
-    }
-
-    /*!
      * @brief Creates and returns a streaming object using the specified connection string and config object.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config A config object that contains parameters used to configure a streaming connection.
@@ -254,24 +217,29 @@ public:
         return errCode;
     }
 
-    /*!
-     * @brief Creates and returns a connection string from the specified server capability object.
-     * @param serverCapability Represents the connection parameters of supported streaming or configuration protocol.
-     * @param[out] connectionString The created connection string.
-     * @return A non-zero error code if the @p serverCapability is not supported by module and is not complete enough to
-     * generate a connection string.
-     */
-    ErrCode INTERFACE_FUNC createConnectionString(IString** connectionString, IServerCapability* serverCapability) override
+    ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) override
     {
-        OPENDAQ_PARAM_NOT_NULL(connectionString);
-        OPENDAQ_PARAM_NOT_NULL(serverCapability);
+        OPENDAQ_PARAM_NOT_NULL(target);
+        OPENDAQ_PARAM_NOT_NULL(source);
 
-        StringPtr createdConnectionString;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateConnectionString, createdConnectionString, serverCapability);
+        Bool succeededVal = false;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCompleteServerCapability, succeededVal, source, target);
 
-        *connectionString = createdConnectionString.detach();
+        *succeeded = succeededVal;
         return errCode;
     }
+
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+        DictPtr<IString, IStreamingType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+
+        *streamingTypes = types.detach();
+        return errCode;
+    }
+
 
     // Helpers
 
@@ -292,19 +260,6 @@ public:
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes()
     {
         return Dict<IString, IDeviceType>();
-    }
-
-    /*!
-     * @brief Checks if connection string can be used to connect to devices supported by this module.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `opc.tcp//`.
-     * Connection strings could simply be devices such as `obsidian` when openDAQ SDK is running on DAQ device hardware.
-     * @param config A configuration object that contains connection parameters in the form of key-value pairs. The configuration
-     * is used and applied when connecting to a device. This method check if provided config object is valid.
-     * @returns Whether this module supports the @p connectionString and @p config is valid.
-     */
-    virtual bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
-    {
-        return false;
     }
 
     /*!
@@ -350,14 +305,14 @@ public:
         return Dict<IString, IServerType>();
     }
 
+    virtual DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes()
+    {
+        return Dict<IString, IStreamingType>();
+    }
+
     virtual ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice)
     {
         return nullptr;
-    }
-
-    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
-    {
-        return false;
     }
 
     virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
@@ -365,9 +320,9 @@ public:
         return nullptr;
     }
 
-    virtual StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability)
+    virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
     {
-        return nullptr;
+        return false;
     }
 
 protected:

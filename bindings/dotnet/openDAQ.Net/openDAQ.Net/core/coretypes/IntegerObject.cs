@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:33.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ public class IntegerObject : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawIntegerObject.GetValue(base.NativePointer, out value);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -95,7 +95,7 @@ public class IntegerObject : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawIntegerObject.EqualsValue(base.NativePointer, value, out equals);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -116,7 +116,7 @@ public class IntegerObject : BaseObject
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.IntegerObject"/> to <see cref="long"/>.</summary>
     /// <param name="value">The SDK <c>IntegerObject</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
-    public static implicit operator long(IntegerObject value) => value.Value;
+    public static implicit operator long(IntegerObject value) => value?.Value ?? default(long);
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>
@@ -147,7 +147,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createInteger(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new IntegerObject(objPtr, incrementReference: false);
@@ -164,7 +164,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createInteger(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

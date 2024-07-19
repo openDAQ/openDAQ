@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:30.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDaqEvent.GetSubscriberCount(base.NativePointer, out count);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -102,7 +102,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.AddHandler(base.NativePointer, eventHandler.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -116,7 +116,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.RemoveHandler(base.NativePointer, eventHandler.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -130,7 +130,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Trigger(base.NativePointer, sender.NativePointer, args.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -144,7 +144,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Clear(base.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -158,7 +158,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Mute(base.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -172,7 +172,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Unmute(base.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -186,7 +186,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.MuteListener(base.NativePointer, eventHandler.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -200,7 +200,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDaqEvent.UnmuteListener(base.NativePointer, eventHandler.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -229,7 +229,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEvent(out objPtr);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new DaqEvent(objPtr, incrementReference: false);
@@ -246,7 +246,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createEvent(out objPtr);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

@@ -1,10 +1,12 @@
-#include <opcuatms/exceptions.h>
+#include <opendaq/component_exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
 #include "opendaq/mock/mock_device_module.h"
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coreobjects/user_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -61,11 +63,9 @@ static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
 
-    // FIXME - use default config mega-object
-    auto config = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
-    if (!config.assigned())
-        config = PropertyObject();
-    config.addProperty(ListProperty("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming")));
+    auto config = instance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("opendaq_native_streaming"));
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -98,10 +98,160 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, ConnectUsername)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+    auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceJure.assigned());
+    clientInstance.removeDevice(deviceJure);
+
+    generalConfig.setPropertyValue("Username", "tomaz");
+    generalConfig.setPropertyValue("Password", "tomaz123");
+    auto deviceTomaz = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceTomaz.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+
+    auto authProvider = StaticAuthenticationProvider(true, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1");
+    ASSERT_TRUE(deviceAnonymous.assigned());
+    clientInstance.removeDevice(deviceAnonymous);
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+    auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(deviceJure.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "wrongPass");
+    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123"));
+    users.pushBack(User("tomaz", "tomaz123"));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = InstanceBuilder().setAuthenticationProvider(authProvider).build();
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    auto clientInstance = Instance();
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("opendaq_native_config");
+    PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
+    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("opendaq_native_streaming");
+
+    nativeDeviceConfig.setPropertyValue("Username", "jure");
+    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    nativeStreamingConfig.setPropertyValue("Username", "tomaz");
+    nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+    server.addDevice("daqref://device1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_configuration/discovery/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto& deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                device = client.addDevice(capability.getConnectionString(), nullptr);
+                return;
+            }
+        }
+    }
+    ASSERT_TRUE(false);
+}
+
+TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
+{
+    const auto info = DeviceInfo("", "foo");
+    info.setMacAddress("custom_mac");
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
+                                   .setDefaultRootDeviceInfo(info)
                                    .build();
     server.addDevice("daqref://device1");
 
@@ -114,6 +264,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
+        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
@@ -122,6 +273,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
             if (capability.getProtocolName() == "openDAQ Native Configuration")
             {
                 device = client.addDevice(capability.getConnectionString(), nullptr);
+                ASSERT_EQ(device.getInfo().getMacAddress(), "custom_mac");
                 return;
             }
         }
@@ -131,7 +283,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 
 TEST_F(NativeDeviceModulesTest, RemoveServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns")
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .build();
     server.addDevice("daqref://device1");
@@ -159,7 +311,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 1);
+        ASSERT_EQ(deviceFound, 1u);
     }
 
     // remove device and check that server now is not discoverable
@@ -181,7 +333,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 0);
+        ASSERT_EQ(deviceFound, 0u);
     }
 
     // add server again and check that server is discoverable
@@ -207,7 +359,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 }
             }
         }
-        ASSERT_EQ(deviceFound, 1);
+        ASSERT_EQ(deviceFound, 1u);
     }
 }
 
@@ -236,7 +388,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
     instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
 
@@ -265,6 +417,158 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
+TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_congifurator/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ Native Configuration")
+            {
+                const auto ipv4Info = capability.getAddressInfo()[0];
+                const auto ipv6Info = capability.getAddressInfo()[1];
+                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                
+                ASSERT_EQ(ipv4Info.getType(), "IPv4");
+                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+                
+                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            }
+        }      
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/opcua/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    client.getAvailableDevices();
+    DevicePtr device = client.addDevice("daq.nd://[::1]/");
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        if (capability.getProtocolName() == "openDAQ Native Configuration")
+        {
+            const auto ipv4Info = capability.getAddressInfo()[0];
+            const auto ipv6Info = capability.getAddressInfo()[1];
+            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            
+            ASSERT_EQ(ipv4Info.getType(), "IPv4");
+            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+            
+            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        }
+    }      
+}
+
+#endif
+
+
+TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto path = "/test/native_congifurator/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ Native Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() != "openDAQ Native Configuration")
+                break;
+
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+            break;
+        }
+
+        if (device.assigned())
+            break;
+    }
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        if (capability.getProtocolName() == "openDAQ Native Configuration")
+        {
+            const auto ipv4Info = capability.getAddressInfo()[0];
+            const auto ipv6Info = capability.getAddressInfo()[1];
+            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+            
+            ASSERT_EQ(ipv4Info.getType(), "IPv4");
+            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+            
+            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        }
+    }      
+}
+
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;
@@ -282,6 +586,33 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveDevice)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
+TEST_F(NativeDeviceModulesTest, ChangePropAfterRemove)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+
+    ASSERT_TRUE(refDevice.isRemoved());
+
+    ASSERT_THROW(refDevice.setPropertyValue("NumberOfChannels", 1), ComponentRemovedException);
 }
 
 TEST_F(NativeDeviceModulesTest, RemoteGlobalIds)
@@ -576,16 +907,15 @@ public:
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
+        
+        auto config = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = config.getPropertyValue("General");
 
-        // FIXME - use default config mega-object
-        auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_native_config");
-        auto config = deviceType.createDefaultConfig();
-        if (!config.assigned())
-            config = PropertyObject();
         auto prioritizedStreamingProtocols = List<IString>();
         for (const auto& protocolId : GetParam())
             prioritizedStreamingProtocols.pushBack(protocolId);
-        config.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+        general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
 
         instance.addDevice("daq.nd://127.0.0.1", config);
         return instance;
@@ -826,7 +1156,7 @@ TEST_P(AddComponentsTest, AddDevice)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, RemoveDevice)
+TEST_F(NativeDeviceModulesTest, RemoveSubDevice)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -1040,4 +1370,159 @@ TEST_F(NativeDeviceModulesTest, Update)
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
+}
+
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_native_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ Native Configuration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
+}
+
+TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv4)
+{
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.nd://127.0.0.1");
+    const auto info = dev.getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv4");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.nd://[::1]");
+    const auto info = dev.getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv6");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(NativeDeviceModulesTest, TestAddressInfoGatewayDevice)
+{
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+
+    auto gateway = Instance();
+    auto serverConfig = gateway.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    serverConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addDevice("daq.nd://127.0.0.1");
+    gateway.addServer("openDAQ Native Streaming", serverConfig);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.nd://127.0.0.1:7421/");
+    const auto info = dev.getDevices()[0].getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv4");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
 }

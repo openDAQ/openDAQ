@@ -58,21 +58,6 @@ TEST_F(EmptyModuleTest, EnumerateDevices)
     ASSERT_EQ(deviceInfo.getCount(), static_cast<SizeT>(0));
 }
 
-TEST_F(EmptyModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = createModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(EmptyModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = createModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
 TEST_F(EmptyModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = createModule();

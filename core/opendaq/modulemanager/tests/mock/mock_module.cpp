@@ -34,14 +34,6 @@ ErrCode MockModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockModuleImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
     return OPENDAQ_ERR_NOTFOUND;
@@ -79,16 +71,6 @@ ErrCode MockModuleImpl::getVersionInfo(IVersionInfo** version)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
-                                                             IString* /*connectionString*/,
-                                                             IPropertyObject* /*config*/)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepted);
-
-    *accepted = false;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode MockModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                         IString* /*connectionString*/,
                                         IPropertyObject* /*config*/)
@@ -96,7 +78,12 @@ ErrCode MockModuleImpl::createStreaming(IStreaming** /*streaming*/,
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockModuleImpl::createConnectionString(IString** /*connectionString*/, IServerCapability* /*serverCapability*/)
+ErrCode MockModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+daq::ErrCode MockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IPropertyObject, daq::IBaseObject> declareIPropertyObject(pybind11::module_ m)
 {
@@ -38,7 +39,10 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.doc() = "A container of Properties and their corresponding Property values.";
 
     m.def("PropertyObject", &daq::PropertyObject_Create);
-    m.def("PropertyObjectWithClassAndManager", &daq::PropertyObjectWithClassAndManager_Create);
+    m.def("PropertyObjectWithClassAndManager", [](daq::ITypeManager* manager, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
+        return daq::PropertyObjectWithClassAndManager_Create(manager, getVariantValue<daq::IString*>(className));
+    }, py::arg("manager"), py::arg("class_name"));
+
 
     cls.def_property_readonly("class_name",
         [](daq::IPropertyObject *object)
@@ -48,50 +52,50 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         "Gets the name of the class the Property object was constructed with.");
     cls.def("set_property_value",
-        [](daq::IPropertyObject *object, const std::string& propertyName, const py::object& value)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            objectPtr.setPropertyValue(propertyName, pyObjectToBaseObject(value));
+            objectPtr.setPropertyValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
         },
         py::arg("property_name"), py::arg("value"),
         "Sets the value of the Property with the given name.");
     cls.def("get_property_value",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return baseObjectToPyObject(objectPtr.getPropertyValue(propertyName));
+            return baseObjectToPyObject(objectPtr.getPropertyValue(getVariantValue<daq::IString*>(propertyName)));
         },
         py::arg("property_name"),
         "Gets the value of the Property with the given name.");
     cls.def("get_property_selection_value",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return baseObjectToPyObject(objectPtr.getPropertySelectionValue(propertyName));
+            return baseObjectToPyObject(objectPtr.getPropertySelectionValue(getVariantValue<daq::IString*>(propertyName)));
         },
         py::arg("property_name"),
         "Gets the selected value of the Property, if the Property is a Selection property.");
     cls.def("clear_property_value",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            objectPtr.clearPropertyValue(propertyName);
+            objectPtr.clearPropertyValue(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Clears the Property value from the Property object");
     cls.def("has_property",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.hasProperty(propertyName);
+            return objectPtr.hasProperty(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Checks if the Property object contains a property named `propertyName`.");
     cls.def("get_property",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getProperty(propertyName).detach();
+            return objectPtr.getProperty(getVariantValue<daq::IString*>(propertyName)).detach();
         },
         py::arg("property_name"),
         "Gets the Property with the given `propertyName`.");
@@ -104,29 +108,29 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         py::arg("property"),
         "Adds the property to the Property object.");
     cls.def("remove_property",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            objectPtr.removeProperty(propertyName);
+            objectPtr.removeProperty(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Removes the Property named `propertyName` from the Property object.");
     /*
     cls.def("get_on_property_value_write",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueWrite(propertyName).detach();
+            return objectPtr.getOnPropertyValueWrite(getVariantValue<daq::IString*>(propertyName)).detach();
         },
         py::arg("property_name"),
         "Gets the Event that is triggered whenever a Property value is written to the Property named `propertyName`.");
     */
     /*
     cls.def("get_on_property_value_read",
-        [](daq::IPropertyObject *object, const std::string& propertyName)
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueRead(propertyName).detach();
+            return objectPtr.getOnPropertyValueRead(getVariantValue<daq::IString*>(propertyName)).detach();
         },
         py::arg("property_name"),
         "Gets the Event that is triggered whenever a Property value of a Property named `propertyName` is read.");
@@ -149,10 +153,10 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         "Returns a list of all properties contained in the Property object.");
     cls.def_property("property_order",
         nullptr,
-        [](daq::IPropertyObject *object, daq::IList* orderedPropertyNames)
+        [](daq::IPropertyObject *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& orderedPropertyNames)
         {
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            objectPtr.setPropertyOrder(orderedPropertyNames);
+            objectPtr.setPropertyOrder(getVariantValue<daq::IList*>(orderedPropertyNames));
         },
         "Sets a custom order of properties as defined in the list of property names.");
     cls.def("begin_update",
@@ -179,4 +183,12 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         py::return_value_policy::take_ownership,
         "Gets the Event that is triggered whenever the batch configuration is applied.");
     */
+    cls.def_property_readonly("permission_manager",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getPermissionManager().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the permission manager of property object.");
 }

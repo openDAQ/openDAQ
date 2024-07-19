@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IScaling, daq::IBaseObject> declareIScaling(pybind11::module_ m)
 {
@@ -41,8 +42,14 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
 {
     cls.doc() = "Signal descriptor field that defines a scaling transformation, which should be applied to data carried by the signal's packets when read.";
 
-    m.def("LinearScaling", &daq::LinearScaling_Create);
-    m.def("Scaling", &daq::Scaling_Create);
+    m.def("LinearScaling", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& scale, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset, daq::SampleType inputDataType, daq::ScaledSampleType outputDataType){
+        return daq::LinearScaling_Create(getVariantValue<daq::INumber*>(scale), getVariantValue<daq::INumber*>(offset), inputDataType, outputDataType);
+    }, py::arg("scale"), py::arg("offset"), py::arg("input_data_type"), py::arg("output_data_type"));
+
+    m.def("Scaling", [](daq::SampleType inputDataType, daq::ScaledSampleType outputDataType, daq::ScalingType scalingType, std::variant<daq::IDict*, py::dict>& parameters){
+        return daq::Scaling_Create(inputDataType, outputDataType, scalingType, getVariantValue<daq::IDict*>(parameters));
+    }, py::arg("input_data_type"), py::arg("output_data_type"), py::arg("scaling_type"), py::arg("parameters"));
+
     m.def("ScalingFromBuilder", &daq::ScalingFromBuilder_Create);
 
     cls.def_property_readonly("input_sample_type",

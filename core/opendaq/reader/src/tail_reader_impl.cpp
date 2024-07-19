@@ -136,7 +136,8 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 {
     if (info.remainingToRead == 0)
     {
-        *status = ReaderStatus().detach();
+        if (status)
+            *status = TailReaderStatus().detach();
         return OPENDAQ_SUCCESS;
     }
 
@@ -144,7 +145,9 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
     {
-        return makeErrorInfo(OPENDAQ_ERR_SIZETOOLARGE, "The requested sample-count exceeds the reader history size.");
+        if (status)
+            *status = TailReaderStatus(nullptr, !invalid, false).detach();
+        return OPENDAQ_SUCCESS;
     }
 
     if (cachedSamples > info.remainingToRead)
@@ -160,7 +163,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
         {
             handleDescriptorChanged(packet);
             if (status)
-                *status = ReaderStatus(packet, !invalid).detach();
+                *status = TailReaderStatus(packet, !invalid).detach();
 
             it = packets.erase(packets.begin(), it + 1);
             cachedSamples -= readCachedSamples;
@@ -180,7 +183,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 
     if (status)
     {
-        *status = ReaderStatus().detach();
+        *status = TailReaderStatus().detach();
     }
 
     return errCode;

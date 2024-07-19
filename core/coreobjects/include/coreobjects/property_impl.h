@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,6 @@ protected:
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
-        , permissionManager(PermissionManager())
     {
         if (valueType == ctBinaryData)
         {
@@ -113,7 +112,6 @@ public:
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
-        permissionManager = PermissionManager();
 
         checkErrorInfo(validateDuringConstruction());
     }
@@ -210,9 +208,6 @@ public:
 
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();
-
-        auto objPermissionManager = this->defaultValue.asPtr<IPropertyObject>(true).getPermissionManager().asPtr<IPermissionManagerInternal>(true);
-        objPermissionManager.setParent(permissionManager);
 
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
@@ -1137,13 +1132,22 @@ public:
         }
 
         return daqTry([&]() {
+            auto defaultValueObj = defaultValue;
+
+            if (defaultValueObj.assigned())
+            {
+                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+                if (cloneableDefaultValue.assigned())
+                    defaultValueObj = cloneableDefaultValue.clone();
+            }
+
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
                         .setDescription(description)
                         .setUnit(unit)
                         .setMinValue(minValue)
                         .setMaxValue(maxValue)
-                        .setDefaultValue(defaultValue)
+                        .setDefaultValue(defaultValueObj)
                         .setVisible(visible)
                         .setReadOnly(readOnly)
                         .setSelectionValues(selectionValues)
@@ -1338,8 +1342,15 @@ public:
 
         this->owner = owner;
 
-        const auto parentManager = this->owner.getRef().getPermissionManager();
-        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+        if (this->defaultValue.assigned())
+        {
+            const auto parentManager = this->owner.getRef().getPermissionManager();
+            const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>();
+
+            if (defaultValueObj.assigned())
+                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(parentManager);
+        }
+
         return OPENDAQ_SUCCESS;
     }
 

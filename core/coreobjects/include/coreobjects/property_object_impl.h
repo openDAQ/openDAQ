@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -142,7 +142,8 @@ public:
                                 const ProcedurePtr& triggerCoreEvent,
                                 const PropertyOrderedMap& localProperties,
                                 const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
-                                const std::vector<StringPtr>& customOrder);
+                                const std::vector<StringPtr>& customOrder,
+                                const PermissionManagerPtr& permissionManager);
 
 protected:
     struct UpdatingAction
@@ -1083,8 +1084,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
 
         const auto propName = prop.getName();
         const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+
         if (!cloneable.assigned())
             return;
+
         const PropertyObjectPtr cloned = cloneable.clone();
         writeLocalValue(propName, cloned);
         configureClonedObj(propName, cloned);
@@ -1094,6 +1097,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj)
 {
+    obj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(permissionManager);
+
     const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
     if (!coreEventMuted && objInternal.assigned())
     {
@@ -1420,7 +1425,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const ProcedurePtr& triggerCoreEvent,
     const PropertyOrderedMap& localProperties,
     const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
-    const std::vector<StringPtr>& customOrder)
+    const std::vector<StringPtr>& customOrder,
+    const PermissionManagerPtr& permissionManager)
 {
     this->valueWriteEvents = valueWriteEvents;
     this->valueReadEvents = valueReadEvents;
@@ -1428,6 +1434,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;
+
+    BaseObjectPtr permissionManagerClone;
+    permissionManager.asPtr<ICloneable>()->clone(&permissionManagerClone);
+    this->permissionManager = permissionManagerClone;
 
     for (const auto& val : propValues)
     {
@@ -1453,7 +1463,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 if (OPENDAQ_FAILED(err) || !obj.assigned())
                     continue;
 
-                this->propValues.insert(std::make_pair(val.first, obj));
+                auto it = this->propValues.find(val.first);
+                if (it != this->propValues.end())
+                    it->second = obj;
+                else
+                    this->propValues.insert(std::make_pair(val.first, obj));
             }
         }
         else
@@ -2200,14 +2214,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
+        auto implPtr = static_cast<GenericPropertyObjectImpl<PropObjInterface, Interfaces...>*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,
                                         valueReadEvents,
                                         endUpdateEvent,
                                         triggerCoreEvent,
                                         localProperties,
                                         propValues,
-                                        customOrder);
+                                        customOrder,
+                                        permissionManager);
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;
@@ -2465,7 +2480,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
 
     const auto keys = propValues.getKeys();
 
-    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>();
+    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>(true);
 
     for (const auto& key : keys)
     {

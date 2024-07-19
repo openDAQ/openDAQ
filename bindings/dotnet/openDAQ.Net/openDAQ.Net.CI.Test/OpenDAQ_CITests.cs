@@ -21,6 +21,15 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
     private const string ConnectionProtocolDaqRef = "daqref://";
 
+    public enum eDesiredReader
+    {
+        Stream = 0,
+        Tail,
+        Block,
+        Multi,
+        //Packet
+    }
+
 
     private Device? ConnectFirstDaqRefDevice(Instance daqInstance)
     {
@@ -80,7 +89,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine($"CoreTypes SDK version   = {coreTypesVersion} / .NET Bindings version = {CoreTypesDllInfo.Version}");
         Console.WriteLine($"CoreObjects SDK version = {coreObjectsVersion} / .NET Bindings version = {CoreObjectsDllInfo.Version}");
-        Console.WriteLine($"openDAQ SDK version     = {coreTypesVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
+        Console.WriteLine($"openDAQ SDK version     = {openDaqVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
     }
 
     [Test]
@@ -430,5 +439,133 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         }
 
         Assert.That(samplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [TestCase(eDesiredReader.Stream, double.MinValue)]
+    [TestCase(eDesiredReader.Tail, double.MinValue)]
+    [TestCase(eDesiredReader.Block, double.MinValue)]
+    //[TestCase(eDesiredReader.Multi, double.MinValue)]
+    public void Test_0411_TimeReaderTest<TValueType>(eDesiredReader desiredReader, TValueType _)
+        where TValueType : struct
+    {
+        //Hint: below it makes no sense checking objects for null since the functions throw 'OpenDaqException' in case of an error ( Result.Failed(errorCode) )
+        //Hint: using statements are used below that the objects get dereferenced properly when losing scope (calling Dispose() for each "using" object at the end of this method)
+
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var addedDevice = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(addedDevice, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        using var signal = addedDevice.GetSignalsRecursive()[0]; //Hint: here addedDevice.GetSignals() returns an empty list
+
+        var signalName = signal.Name;
+        var tickResolution = signal.DomainSignal.Descriptor.TickResolution;
+        Console.WriteLine($"  using signal 0 '{signalName}'");
+        Console.WriteLine($"  domain signal tick-resolution = '{tickResolution.Numerator}/{tickResolution.Denominator:N0}'");
+
+        nuint count = 100;
+        nuint blockSize = 1;     //10 for BlockReader (see switch/case below)
+        nuint historySize = count; //only for TailReader; must not be lower than count, otherwise there will always status=fail and count=0
+
+        TValueType[] samples = new TValueType[count];
+        DateTime[] timeStamps = new DateTime[count];
+
+        TValueType defaultValue = (TValueType)Convert.ChangeType(99999, typeof(TValueType));
+        Array.Fill(samples, defaultValue);
+
+        SampleReader? sampleReader = null;
+
+        Console.WriteLine($"OpenDAQFactory.Create{desiredReader}Reader()");
+        switch (desiredReader)
+        {
+            case eDesiredReader.Block:
+                blockSize = 10;
+                Console.WriteLine($"  buffer size = {count}");
+                Console.WriteLine($"  block size  = {blockSize}");
+                sampleReader = OpenDAQFactory.CreateBlockReader<TValueType, Int64>(signal, blockSize); //not working when data not available (native exception)
+                break;
+
+            //case eDesiredReader.Multi:
+            //    sampleReader = OpenDAQFactory.CreateMultiReader<TValueType, Int64>(signals);
+            //    break;
+
+            case eDesiredReader.Stream:
+                Console.WriteLine($"  buffer size = {count}");
+                sampleReader = OpenDAQFactory.CreateStreamReader<TValueType, Int64>(signal);
+                break;
+
+            case eDesiredReader.Tail:
+                Console.WriteLine($"  buffer size  = {count}");
+                Console.WriteLine($"  history size = {historySize}");
+                sampleReader = OpenDAQFactory.CreateTailReader<TValueType, Int64>(signal, historySize); //not working when historySize < count (always reading count=0)
+                break;
+
+            default:
+                Assert.Fail($"Desired reader not (yet) supported: {nameof(eDesiredReader)}.{desiredReader}");
+                break;
+        } //switch
+
+        Assert.That(sampleReader, Is.Not.Null, "*** No SampleReader instance available.");
+
+        Console.WriteLine("OpenDAQFactory.CreateTimeReader()");
+        TimeReader timeReader = OpenDAQFactory.CreateTimeReader(sampleReader, signal);
+        int readFailures = 0;
+
+        Console.WriteLine($"  ValueReadType = {sampleReader.ValueReadType}, DomainReadType = {sampleReader.DomainReadType}");
+
+        nuint readSamplesCount = 0;
+
+        Console.WriteLine("looping timeReader.ReadWithDomain()");
+        const int sleepTime = 25;
+        for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
+        {
+            //read up to 'count' samples or blocks, storing the amount read into array 'samples' and 'timeStamps'
+            count = (nuint)samples.Length / blockSize; //reset to array size or block count
+
+            //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+            //wait until there are enough samples available for our buffers (up to one second)
+            int loopCount = 1000 / sleepTime;
+            do
+            {
+                Thread.Sleep(sleepTime);
+            }
+            while ((sampleReader.AvailableCount < count) && (--loopCount > 0));
+
+            nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
+
+            Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
+
+            Assert.That(samplesOrBlocksCountAvailable > 0, "*** No samples available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
+
+            using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
+
+            nuint samplesCount = count * blockSize; //recalculate for BlockReader (otherwise x1)
+            readSamplesCount += samplesCount;
+
+            if (status?.ReadStatus == ReadStatus.Ok)
+            {
+                string valueString = (samplesCount == 0)
+                                     ? string.Empty
+                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;±0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
+
+                Console.WriteLine($"            read {samplesCount,3} values {valueString}");
+            }
+            else
+            {
+                ++readFailures;
+                Console.WriteLine($"            read failed with ReadStatus = '{status?.ReadStatus}'");
+            }
+        }
+
+        if (sampleReader != null)
+        {
+            sampleReader.Dispose();
+            sampleReader = null;
+        }
+
+        Assert.That(readFailures, Is.EqualTo(0), "*** There have been read failures.");
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
     }
 }

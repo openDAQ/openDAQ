@@ -11,6 +11,7 @@
 #include <opendaq/component_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/component_exceptions.h>
 
 using namespace daq;
 using namespace testing;
@@ -225,4 +226,21 @@ TEST_F(ComponentTest, NonPropertyObjectObjectTypeProperty)
     auto prop = ObjectProperty("Object1", component);
 
     ASSERT_THROW(obj.addProperty(prop), InvalidTypeException);
+}
+
+TEST_F(ComponentTest, Remove)
+{
+    auto component = Component(NullContext(), nullptr, "temp");
+
+    ASSERT_NO_THROW(component.remove());
+    ASSERT_TRUE(component.isRemoved());
+
+    ASSERT_THROW(component.getLockedAttributes().getCount(), ComponentRemovedException);
+    ASSERT_THROW(component.asPtr<IComponentPrivate>().unlockAllAttributes(), ComponentRemovedException);
+    ASSERT_THROW(component.asPtr<IComponentPrivate>().lockAllAttributes(), ComponentRemovedException);
+
+    ASSERT_THROW(component.setName("ignored"), ComponentRemovedException);
+    ASSERT_THROW(component.setDescription("ignored"), ComponentRemovedException);
+    ASSERT_THROW(component.setVisible(false), ComponentRemovedException);
+    ASSERT_THROW(component.setActive(true), ComponentRemovedException);
 }

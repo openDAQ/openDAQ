@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,9 +59,13 @@ struct MdnsDiscoveredDevice
     std::string ipv6Address;
     std::unordered_map<std::string, std::string> properties;
 
-    std::string getPropertyOrDefault(const std::string& name, const std::string& def = "")
+    std::string getPropertyOrDefault(const std::string& name, const std::string& def = "") const
     {
-        return (properties.count(name) > 0) ? properties[name] : def;
+        if (auto iter = properties.find(name); iter != properties.cend())
+        {
+            return iter->second;
+        }
+        return def;
     }
 };
 
@@ -172,6 +176,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
         return devices;
     }
 
+    pruneDevices();
     for (const auto& device : devicesMap)
         devices.push_back(createMdnsDiscoveredDevice(device.second));
 
@@ -185,7 +190,7 @@ inline void MDNSDiscoveryClient::setDiscoveryDuration(std::chrono::milliseconds 
 
 inline void MDNSDiscoveryClient::setupQuery()
 {
-    std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR, MDNS_RECORDTYPE_SRV, MDNS_RECORDTYPE_A, MDNS_RECORDTYPE_AAAA};
+    std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR};
     query.resize(serviceNames.size() * types.size());
     for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)
     {
@@ -328,6 +333,40 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
 #endif
 }
 
+inline void MDNSDiscoveryClient::pruneDevices()
+{
+    std::unordered_set<std::string> toPrune;
+    for (auto& [addr, data] : devicesMap)
+    {
+        if (toPrune.count(addr))
+            continue;
+
+        for (const auto& [addr1, data1] : devicesMap)
+        {
+            if (addr == addr1)
+                continue;
+
+            if (data.SRV.port != data1.SRV.port)
+                continue;
+
+            if (data.AAAA == data1.AAAA && !data.AAAA.empty())
+            {
+                data.A = data.A.empty() ? data1.A : data.A;
+                toPrune.insert(addr1);
+            }
+
+            if (data.A == data1.A && !data.A.empty())
+            {
+                data.AAAA = data.AAAA.empty() ? data1.AAAA : data.AAAA;
+                toPrune.insert(addr1);
+            }
+        }
+    }
+
+    for (const auto& val : toPrune)
+        devicesMap.erase(val);
+}
+
 inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
 {
     char host[NI_MAXHOST] = {0};
@@ -404,18 +443,12 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     char nameBuffer[256];
     mdns_record_txt_t txtbuffer[128];
 
-    std::string deviceAddr = ipAddressToString(from, addrlen);
-    std::string deviceAddrNoPort = ipAddressToString(from, addrlen, false);
-
     std::lock_guard lg(devicesMapLock);
+    
+    std::string deviceAddr = ipAddressToString(from, addrlen);
 
     auto it = devicesMap.insert({deviceAddr, DeviceData{}});
     DeviceData& deviceData = it.first->second;
-
-    if (from->sa_family == AF_INET6 && deviceData.AAAA.empty())
-        deviceData.AAAA = deviceAddrNoPort;
-    else if (from->sa_family == AF_INET && deviceData.A.empty())
-        deviceData.A = deviceAddrNoPort;
 
     if (rtype == MDNS_RECORDTYPE_PTR)
     {

@@ -133,7 +133,15 @@ OpcUaNodeId TmsServerObject::createNode(const OpcUaNodeId& parentNodeId)
             browseName = typeBrowseName;
     }
 
+    // Frist try to set via getRequestedNodeId, because NodeID will also be string
+    // if parent is numeric. However object needs to be GenericComponentPtr or child of it.
     auto params = AddObjectNodeParams(getRequestedNodeId(), parentNodeId);
+
+    // If object is not GenericComponentPtr or child the id should be set to string if possible.
+    // Possible means if parent has a string nodeId.
+    if (params.requestedNewNodeId.isNull())
+        params = AddObjectNodeParams(browseName, parentNodeId);
+        
     configureNodeAttributes(params.attr);
     params.referenceTypeId = getReferenceType();
     params.setBrowseName(browseName);

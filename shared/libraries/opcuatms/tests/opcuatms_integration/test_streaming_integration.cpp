@@ -174,7 +174,7 @@ protected:
 
         auto instance = InstanceCustom(context, "localInstance");
 
-        instance.addDevice("mock_phys_device");
+        instance.addDevice("daqmock://phys_device");
 
         return instance;
     }

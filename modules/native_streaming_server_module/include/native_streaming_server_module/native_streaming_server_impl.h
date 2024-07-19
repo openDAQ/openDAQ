@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ public:
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
     PropertyObjectPtr getDiscoveryConfig() override;
@@ -53,6 +54,8 @@ protected:
 
     void startProcessingOperations();
     void stopProcessingOperations();
+
+    void stopServerInternal();
 
     void addSignalsOfComponent(ComponentPtr& component);
     void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
@@ -78,6 +81,7 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     std::mutex readersSync;
+    bool serverStopped;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

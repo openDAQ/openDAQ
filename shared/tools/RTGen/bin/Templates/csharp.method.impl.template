@@ -5,7 +5,7 @@
             //call native method
             $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
 $CSStealRefHandling$
-            if (Daq.Core.Types.Result.Failed($CSReturnVariable$))
+            if (Result.Failed($CSReturnVariable$))
             {
                 throw new OpenDaqException($CSReturnVariable$);
             }

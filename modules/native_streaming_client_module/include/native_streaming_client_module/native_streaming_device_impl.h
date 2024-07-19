@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 static const char* NativeStreamingDeviceTypeId = "opendaq_native_streaming";
-static const char* NativeStreamingDevicePrefix = "daq.ns://";
+static const char* NativeStreamingDevicePrefix = "daq.ns";
 
 class NativeStreamingDeviceImpl : public Device
 {
@@ -37,6 +37,7 @@ public:
                                        Int initTimeout);
 
 protected:
+    void removed() override;
     DeviceInfoPtr onGetInfo() override;
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);

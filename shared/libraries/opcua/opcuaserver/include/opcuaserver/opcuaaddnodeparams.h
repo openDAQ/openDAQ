@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,8 @@ class AddObjectNodeParams : public GenericAddNodeParams<UA_ObjectAttributes>
 public:
     AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId);
     AddObjectNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId);
-    
+    AddObjectNodeParams(const std::string& name, const OpcUaNodeId& parentNodeId);
+
     OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEOBJECTTYPE);
 };
 

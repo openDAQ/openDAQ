@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,6 +64,8 @@ public:
 
     void setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder);
     std::unique_ptr<IComponentFinder>& getComponentFinder();
+
+    void processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;

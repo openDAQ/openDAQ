@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
 
+#include <map>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -50,21 +51,31 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
+    ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
-    static PropertyObjectPtr populateStreamingConfig(const PropertyObjectPtr& streamingConfig);
+    static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
+    static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
     void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
 
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const ListPtr<IString>& allowedStreamingProtocols);
+                                  const PropertyObjectPtr& generalConfig,
+                                  const PropertyObjectPtr& config);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    StringPtr createConnectionString(const ServerCapabilityPtr& serverCapability);
+    void completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps);
+    static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
+    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
+    static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
+    static PropertyObjectPtr createGeneralConfig();
+
+    std::string getPrefixFromConnectionString(std::string connectionString) const;
 
     bool modulesLoaded;
     std::vector<std::string> paths;

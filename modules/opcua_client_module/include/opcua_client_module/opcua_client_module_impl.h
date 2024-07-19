@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <opcua_client_module/common.h>
 #include <opendaq/module_impl.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -31,14 +32,15 @@ public:
     DevicePtr onCreateDevice(const StringPtr& connectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    static std::tuple<std::string, std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
+    StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType);
     static DeviceTypePtr createDeviceType();
     static PropertyObjectPtr createDefaultConfig();
-    static void completeDeviceServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
+    static void completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;

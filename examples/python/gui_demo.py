@@ -41,7 +41,8 @@ class DisplayType(enum.Enum):
     CHANNELS = 2
     FUNCTION_BLOCKS = 3
     TOPOLOGY = 4
-    UNSPECIFIED = 5
+    TOPOLOGY_CUSTOM_COMPONENTS = 5
+    UNSPECIFIED = 6
 
     def from_tab_index(index):
         if index == 0:
@@ -78,7 +79,7 @@ class App(tk.Tk):
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1400*self.context.ui_scaling_factor, 1000*self.context.ui_scaling_factor))
+            1400 * self.context.ui_scaling_factor, 1000 * self.context.ui_scaling_factor))
 
         main_frame_top = tk.Frame(self)
         main_frame_top.pack(fill=tk.constants.X)
@@ -132,10 +133,10 @@ class App(tk.Tk):
         self.right_side_panel_create(frame_navigator_for_properties)
 
         # High DPI workaround for now
-        ttk.Style().configure('Treeview', rowheight=30*self.context.ui_scaling_factor)
+        ttk.Style().configure('Treeview', rowheight=30 * self.context.ui_scaling_factor)
 
         default_font = tkfont.nametofont("TkDefaultFont")
-        default_font.configure(size=9*self.context.ui_scaling_factor)
+        default_font.configure(size=9 * self.context.ui_scaling_factor)
 
         self.context.load_icons(os.path.join(
             os.path.dirname(__file__), 'gui_demo', 'icons'))
@@ -184,7 +185,7 @@ class App(tk.Tk):
         tree.pack(fill="both", expand=True, side="left")
 
         # layout
-        tree.column('#0', width=350*self.context.ui_scaling_factor)
+        tree.column('#0', width=350 * self.context.ui_scaling_factor)
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
 
@@ -222,16 +223,21 @@ class App(tk.Tk):
         if component is None:
             return
 
+        self.context.nodes[component.global_id] = component
+
         folder = daq.IFolder.cast_from(
             component) if component and daq.IFolder.can_cast_from(component) else None
+        device = daq.IDevice.cast_from(
+            component) if component and daq.IDevice.can_cast_from(component) else None
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
-            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
+            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None else component.parent.global_id
 
-        if folder is None or folder.items:
-            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):
-                self.tree_add_component(parent_id, component)
+        if folder is None or folder.items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
+            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None):
+                self.tree_add_component(
+                    parent_id, component, display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
             elif display_type == DisplayType.SYSTEM_OVERVIEW:
                 if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component)):
                     if not (daq.IFolder.can_cast_from(component) and component.name in ('IP', 'Sig')):
@@ -254,10 +260,17 @@ class App(tk.Tk):
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type)
 
-    def tree_add_component(self, parent_node_id, component):
+        if device is not None and display_type == DisplayType.TOPOLOGY:
+            custom_components = device.custom_components
+            for item in custom_components:
+                self.context.custom_component_ids.add(item.global_id)
+                self.tree_traverse_components_recursive(
+                    item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
+
+    def tree_add_component(self, parent_node_id, component, show_unknown=False):
         component_node_id = component.global_id
         component_name = component.name
-        icon = icon = self.context.icons['circle']
+        icon = self.context.icons['circle']
         skip = not self.context.view_hidden_components and not component.visible
 
         if daq.IChannel.can_cast_from(component):
@@ -293,12 +306,11 @@ class App(tk.Tk):
             elif component_name == 'IO':
                 component_name = 'Inputs/Outputs'
         else:  # skipping unknown type components
-            skip = True
+            skip = not show_unknown
 
         if not skip:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=component_name, open=True, values=(component_node_id))
-        self.context.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''
@@ -383,6 +395,7 @@ class App(tk.Tk):
             return
         config_string = file.read()
         file.close()
+
         self.context.instance.load_configuration(config_string)
         self.tree_update()
 
@@ -426,6 +439,7 @@ class App(tk.Tk):
     # MARK: - Right hand side panel
 
     def find_fb_or_device(self, node):
+
         if node is None:
             return None
         elif daq.IChannel.can_cast_from(node):
@@ -437,8 +451,6 @@ class App(tk.Tk):
         else:
             if daq.IFolderConfig.can_cast_from(node):
                 folder = daq.IFolderConfig.cast_from(node)
-                print(
-                    f'io folder {node} named: {folder.name} items: {folder.items}')
             return self.find_fb_or_device(node.parent)
 
     def right_side_panel_clear(self):
@@ -448,30 +460,29 @@ class App(tk.Tk):
     def right_side_panel_draw_node(self, node):
         if node is None:
             return
-        found = self.find_fb_or_device(node)
+
+        found = self.find_fb_or_device(
+            node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
         elif type(found) in (daq.IChannel, daq.IFunctionBlock):
 
             upper_nodes = list()
 
-            if daq.IChannel.can_cast_from(found):  # traversing up IO folders
+            if daq.IFunctionBlock.can_cast_from(found):  # traversing up
                 current = found.parent
                 while current is not None:
-                    next_parent = current.parent
+                    if daq.IDevice.can_cast_from(current):
+                        break  # stop at device
                     if daq.IFolder.can_cast_from(current):
-                        if next_parent is not None and daq.IFolder.can_cast_from(next_parent):
-                            if not daq.IDevice.can_cast_from(next_parent) and current.local_id != 'IO':
-                                upper_nodes.append(
-                                    daq.IFolder.cast_from(current))
-                            else:
-                                break
-                    current = current.parent
-            # traversing function blocks
-            elif daq.IFunctionBlock.can_cast_from(found):
-                current = found.parent
-                while current is not None:
-                    if daq.IFunctionBlock.can_cast_from(current):
+                        if current.local_id == 'IO':
+                            break  # stop at IO folder
+                        elif current.local_id == 'FB':
+                            pass  # skip FB folder
+                        else:
+                            upper_nodes.append(
+                                daq.IFolder.cast_from(current))
+                    elif daq.IFunctionBlock.can_cast_from(current):
                         upper_nodes.append(
                             daq.IFunctionBlock.cast_from(current))
                     current = current.parent
@@ -489,17 +500,17 @@ class App(tk.Tk):
                     fb = daq.IFunctionBlock.cast_from(fb)
                     b = BlockView(self.right_side_panel, fb,
                                   self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5 + 10*level, 5), pady=5)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
 
                 if fb.has_item('FB'):
                     fb_folder = fb.get_item('FB')
                     fb_folder = daq.IFolder.cast_from(fb_folder)
                     for fb in fb_folder.items:
-                        draw_sub_fbs(fb, level+1)
+                        draw_sub_fbs(fb, level + 1)
 
             draw_sub_fbs(found)
 
-        elif type(found) is daq.IDevice:
+        elif type(found) in (daq.IDevice, daq.IComponent):
             block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X, padx=5, pady=5)
@@ -513,8 +524,8 @@ class App(tk.Tk):
             self.context.selected_node = None
             return
         item = self.tree.item(selected_item)
-
-        node_unique_id = item['values'][0]
+        # WA for IDs with spaces
+        node_unique_id = ' '.join(str(val) for val in item['values'])
         if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]
@@ -555,7 +566,6 @@ class App(tk.Tk):
     # MARK: - Other
 
     def on_refresh_event(self, event):
-        print('APP: refresh event received')
         self.tree_update(self.context.selected_node)
 
     def on_tab_change(self, event):

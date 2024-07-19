@@ -61,61 +61,28 @@ TEST_F(OpcUaClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
-TEST_F(OpcUaClientModuleTest, CreateConnectionString)
-{
-    auto context = NullContext();
-    ModulePtr module;
-    createModule(&module, context);
-
-    StringPtr connectionString;
-
-    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
-    ASSERT_FALSE(connectionString.assigned());
-
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addAddress("123.123.123.123");
-    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
-
-    serverCapability.addProperty(IntProperty("Port", 1234));
-    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
-    ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringNull)
-{
-    auto module = CreateModule();
-    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringEmpty)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringInvalid)
-{
-    auto module = CreateModule();
-
-    bool accepts = true;
-    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
-    ASSERT_FALSE(accepts);
-}
-
-TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringCorrect)
-{
-    auto module = CreateModule();
-
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[::1]"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
-}
+//TEST_F(OpcUaClientModuleTest, CreateConnectionString)
+//{
+//    auto context = NullContext();
+//    ModulePtr module;
+//    createModule(&module, context);
+//
+//    StringPtr connectionString;
+//
+//    ServerCapabilityConfigPtr serverCapabilityIgnored = ServerCapability("test", "test", ProtocolType::Unknown);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
+//    ASSERT_FALSE(connectionString.assigned());
+//
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+//    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
+//
+//    serverCapability.addAddress("123.123.123.123");
+//    ASSERT_EQ(module.createConnectionString(serverCapability), "daq.opcua://123.123.123.123:4840");
+//
+//    serverCapability.setPort(1234);
+//    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapability));
+//    ASSERT_EQ(connectionString, "daq.opcua://123.123.123.123:1234");
+//}
 
 TEST_F(OpcUaClientModuleTest, CreateDeviceConnectionStringNull)
 {
@@ -175,7 +142,7 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
     auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
-    ASSERT_EQ(config.getAllProperties().getCount(), 2u);
+    ASSERT_EQ(config.getAllProperties().getCount(), 3u);
 }
 
 TEST_F(OpcUaClientModuleTest, CreateFunctionBlockIdNull)

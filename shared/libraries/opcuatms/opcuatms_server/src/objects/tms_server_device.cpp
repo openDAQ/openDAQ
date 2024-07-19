@@ -390,6 +390,7 @@ TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbT
     auto functionBlock = object.addFunctionBlock(fbTypeId, config);
     auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(fbFolderNodeId, functionBlock, functionBlocks.size());
     functionBlocks.push_back(tmsFunctionBlock);
+    tmsFunctionBlock->createNonhierarchicalReferences();
     return tmsFunctionBlock;
 }
 

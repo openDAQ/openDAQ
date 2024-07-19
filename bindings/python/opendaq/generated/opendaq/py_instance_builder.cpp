@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> declareIInstanceBuilder(pybind11::module_ m)
 {
@@ -93,10 +94,10 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         "Gets the default Logger global level of Instance / Sets the Logger global log level for the Instance. All log messages with a severity level equal to or higher than the specified level will be processed.");
     cls.def("set_component_log_level",
-        [](daq::IInstanceBuilder *object, const std::string& component, daq::LogLevel logLevel)
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& component, daq::LogLevel logLevel)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.setComponentLogLevel(component, logLevel);
+            objectPtr.setComponentLogLevel(getVariantValue<daq::IString*>(component), logLevel);
         },
         py::arg("component"), py::arg("log_level"),
         "Sets The Logger level for a specific component of the Instance. Log messages related to that component will be processed according to the specified log level.");
@@ -138,17 +139,17 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getModulePath().toStdString();
         },
-        [](daq::IInstanceBuilder *object, const std::string& path)
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.setModulePath(path);
+            objectPtr.setModulePath(getVariantValue<daq::IString*>(path));
         },
         "Gets the path for the default ModuleManager of Instance. / Sets the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
     cls.def("add_module_path",
-        [](daq::IInstanceBuilder *object, const std::string& path)
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.addModulePath(path);
+            objectPtr.addModulePath(getVariantValue<daq::IString*>(path));
         },
         py::arg("path"),
         "Add the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
@@ -217,17 +218,17 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getDefaultRootDeviceLocalId().toStdString();
         },
-        [](daq::IInstanceBuilder *object, const std::string& localId)
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.setDefaultRootDeviceLocalId(localId);
+            objectPtr.setDefaultRootDeviceLocalId(getVariantValue<daq::IString*>(localId));
         },
         "Gets the default root device local id / Sets the local id for default device. Has no effect if `Root device` has been congigured.");
     cls.def("set_root_device",
-        [](daq::IInstanceBuilder *object, const std::string& connectionString, daq::IPropertyObject* config)
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.setRootDevice(connectionString, config);
+            objectPtr.setRootDevice(getVariantValue<daq::IString*>(connectionString), config);
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Sets the connection string for a device that replaces the default openDAQ root device. When the instance is created, a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.");
@@ -275,20 +276,20 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::arg("flag"),
         "Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.");
-    cls.def_property_readonly("discovery_services",
+    cls.def_property_readonly("discovery_servers",
         [](daq::IInstanceBuilder *object)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            return objectPtr.getDiscoveryServices().detach();
+            return objectPtr.getDiscoveryServers().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictionary of discovery services");
-    cls.def("add_discovery_service",
-        [](daq::IInstanceBuilder *object, const std::string& serviceName)
+        "Gets the dictionary of discovery servers");
+    cls.def("add_discovery_server",
+        [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverName)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.addDiscoveryService(serviceName);
+            objectPtr.addDiscoveryServer(getVariantValue<daq::IString*>(serverName));
         },
-        py::arg("service_name"),
-        "Adds a discovery service to the context");
+        py::arg("server_name"),
+        "Adds a discovery server to the context");
 }

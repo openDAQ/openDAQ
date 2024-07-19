@@ -41,6 +41,7 @@ class AttributesDialog(Dialog):
         style.configure("Treeview.Heading", font='Arial 10 bold')
 
         tree.bind("<Double-1>", self.handle_double_click)
+        tree.bind("<Button-3>", self.handle_right_click)
 
         self.additional_tree = None
 
@@ -54,7 +55,6 @@ class AttributesDialog(Dialog):
                     anchor=tk.W, pady=5)
 
             # additional treeview for specific attributes
-
             additional_tree_frame = tk.Frame(self)
 
             additional_tree = ttk.Treeview(additional_tree_frame, columns=(
@@ -75,9 +75,39 @@ class AttributesDialog(Dialog):
             additional_tree.column('#1', anchor=tk.CENTER, stretch=True)
 
             self.additional_tree = additional_tree
+            additional_tree.bind("<Button-3>", self.handle_right_click_additional)
 
         self.tree = tree
         self.initial_update_func = lambda: self.tree_update()
+
+    def handle_copy(self):
+        sel = treeview_get_first_selection(self.tree)
+        if sel not in self.attributes:
+            return
+        attr_dict = self.attributes[sel]
+        value = attr_dict['Value']
+        self.clipboard_clear()
+        self.clipboard_append(value)
+
+    def handle_copy_additional(self):
+        sel = treeview_get_first_selection(self.additional_tree)
+        if not sel:
+            return
+        item = self.additional_tree.item(sel)
+        value_to_copy = item['values'][0] if item['values'] else ''
+        self.clipboard_clear()
+        self.clipboard_append(value_to_copy)
+
+
+    def handle_right_click(self, event):
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Copy", command=self.handle_copy)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def handle_right_click_additional(self, event):
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Copy", command=self.handle_copy_additional)
+        menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self, event):
         node = self.node
@@ -164,19 +194,21 @@ class AttributesDialog(Dialog):
             self.attributes['Public'] = {'Value': bool(
                 signal.public), 'Locked': False, 'Attribute': 'public'}
             self.attributes['Domain Signal ID'] = {
-                'Value': signal.domain_signal.global_id if signal.domain_signal else '', 'Locked': True, 'Attribute': '.domain_signal'}
+                'Value': signal.domain_signal.global_id if signal.domain_signal else '', 'Locked': True,
+                'Attribute': '.domain_signal'}
             self.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
                 [s.global_id for s in signal.related_signals]), 'Locked': True, 'Attribute': 'related_signals'}
             self.attributes['Streamed'] = {'Value': bool(
                 signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
             self.attributes['Last Value'] = {
-                'Value': signal.last_value, 'Locked': True, 'Attribute': 'last_value'}
+                'Value': get_last_value_for_signal(signal), 'Locked': True, 'Attribute': 'last_value'}
 
         if daq.IInputPort.can_cast_from(node):
             input_port = daq.IInputPort.cast_from(node)
 
             self.attributes['Signal ID'] = {
-                'Value': input_port.signal.global_id if input_port.signal else '', 'Locked': True, 'Attribute': 'signal'}
+                'Value': input_port.signal.global_id if input_port.signal else '', 'Locked': True,
+                'Attribute': 'signal'}
             self.attributes['Requires Signal'] = {'Value': bool(
                 input_port.requires_signal), 'Locked': True, 'Attribute': 'requires_signal'}
 

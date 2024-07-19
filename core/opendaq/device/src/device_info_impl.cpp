@@ -3,6 +3,7 @@
 #include <coretypes/validation.h>
 #include "coretypes/impl.h"
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,6 +40,9 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
 
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
     defaultPropertyNames.insert("serverCapabilities");
+
+    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
+    defaultPropertyNames.insert("configurationConnectionInfo");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
@@ -649,6 +653,31 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(ISt
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapability(IString* protocolId, IServerCapability** capability)
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+    OPENDAQ_PARAM_NOT_NULL(capability);
+
+    Bool hasCap;
+    ErrCode err = this->hasServerCapability(protocolId, &hasCap);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    if (!hasCap)
+        return OPENDAQ_ERR_NOTFOUND;
+    
+    BaseObjectPtr obj;
+    StringPtr str = "serverCapabilities";
+    err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    *capability = serverCapabilitiesPtr.getPropertyValue(protocolId).asPtr<IServerCapability>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {
     OPENDAQ_PARAM_NOT_NULL(serverCapabilities);
@@ -675,6 +704,18 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     }
 
     *serverCapabilities = caps.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
+{
+    BaseObjectPtr obj;
+    StringPtr str = "configurationConnectionInfo";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    *connectionInfo = obj.asPtr<IServerCapability>().detach();
     return OPENDAQ_SUCCESS;
 }
 

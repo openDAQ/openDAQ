@@ -58,14 +58,8 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
                                               $<INSTALL_INTERFACE:include>
 )
 
-# links target with daq::streaming_dev (which is a static lib)
-# because daq::streaming_dev is also linked into opcuatms_client lib
-# and both target & opcuatms_client are lately linked into integration test binary,
-# to avoid multiple definition linker errors both target & opcuatms_client should use daq::streaming_dev
 target_link_libraries(${LIB_NAME} PUBLIC daq::streaming_protocol
                                          daq::opendaq
-                                  PRIVATE
-                                         daq::streaming_dev
 )
 
 # Fix daq::streaming_protocol` not properly propagating linking requirements on Windows

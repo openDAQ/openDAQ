@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m)
 {
@@ -35,7 +36,18 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls)
 {
-    cls.doc() = "Provides information about the device type.";
+    cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
 
-    m.def("DeviceType", &daq::DeviceType_Create);
+    m.def("DeviceType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, daq::IPropertyObject* defaultConfig, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix){
+        return daq::DeviceType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig, getVariantValue<daq::IString*>(prefix));
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"), py::arg("prefix"));
+
+
+    cls.def_property_readonly("connection_string_prefix",
+        [](daq::IDeviceType *object)
+        {
+            const auto objectPtr = daq::DeviceTypePtr::Borrow(object);
+            return objectPtr.getConnectionStringPrefix().toStdString();
+        },
+        "");
 }

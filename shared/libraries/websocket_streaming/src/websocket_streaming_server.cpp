@@ -56,13 +56,13 @@ void WebsocketStreamingServer::start()
     packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets) {
         const auto signalId = signal.getGlobalId();
         for (const auto& packet : packets)
-            streamingServer.sendPacketToSubscribers(signalId, packet);
+            streamingServer.broadcastPacket(signalId, packet);
     });
     packetReader.start();
 
     const ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ-LT Streaming", ProtocolType::Streaming);
     serverCapability.setPrefix("daq.lt");
-    serverCapability.addProperty(IntProperty("Port", streamingPort));
+    serverCapability.setPort(streamingPort);
     serverCapability.setConnectionType("TCP/IP");
     this->device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 }
@@ -71,9 +71,10 @@ void WebsocketStreamingServer::stop()
 {
     if (this->device.assigned())
     {
-         const auto info = this->device.getInfo().asPtr<IDeviceInfoInternal>();
+         const auto info = this->device.getInfo();
+         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
          if (info.hasServerCapability("opendaq_lt_streaming"))
-             info.removeServerCapability("opendaq_lt_streaming");
+             infoInternal.removeServerCapability("opendaq_lt_streaming");
     }
 
     stopInternal();

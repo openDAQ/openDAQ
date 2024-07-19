@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <opendaq/multi_typed_reader.h>
 #include <opendaq/read_info.h>
 #include <opendaq/reader_domain_info.h>
+#include <opendaq/reader_status.h>
 
 #include <chrono>
 
@@ -34,7 +35,6 @@ enum class SyncStatus
 struct SignalInfo
 {
     InputPortConfigPtr port;
-    FunctionPtr changeCallback;
     FunctionPtr valueTransformFunction;
     FunctionPtr domainTransformFunction;
     ReadMode readMode;
@@ -66,13 +66,14 @@ struct SignalReader
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
     void setCommonSampleRate(const std::int64_t commonSampleRate);
 
-    void prepare(void* outValues, SizeT count, std::chrono::milliseconds timeoutTime);
-    void prepareWithDomain(void* outValues, void* domain, SizeT count, std::chrono::milliseconds timeoutTime);
+    void prepare(void* outValues, SizeT count);
+    void prepareWithDomain(void* outValues, void* domain, SizeT count);
 
     void setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution);
 
     std::unique_ptr<Comparable> readStartDomain();
-    void readUntilNextDataPacket();
+    bool isFirstPacketEvent();
+    EventPacketPtr readUntilNextDataPacket();
     bool sync(const Comparable& commonStart);
 
     ErrCode readPackets();
@@ -88,7 +89,6 @@ struct SignalReader
 
     InputPortConfigPtr port;
     ConnectionPtr connection;
-    FunctionPtr changeCallback;
 
     ReadInfo info{};
     ReadMode readMode;

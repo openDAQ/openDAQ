@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IArgumentInfo, daq::IBaseObject> declareIArgumentInfo(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
 {
     cls.doc() = "Provides the name and type of a single function/procedure argument";
 
-    m.def("ArgumentInfo", &daq::ArgumentInfo_Create);
+    m.def("ArgumentInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::CoreType type){
+        return daq::ArgumentInfo_Create(getVariantValue<daq::IString*>(name), type);
+    }, py::arg("name"), py::arg("type"));
+
 
     cls.def_property_readonly("name",
         [](daq::IArgumentInfo *object)

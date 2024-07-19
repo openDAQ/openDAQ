@@ -72,7 +72,7 @@ TEST_F(TmsFunctionBlockTest, BrowseSignals)
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
     auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_DAQBSP, "Sig"));
     auto signalReferences = signalServerNode->browse(OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL));
-    ASSERT_EQ(signalReferences.size(), 5u);
+    ASSERT_EQ(signalReferences.size(), 4u);
 }
 
 // TODO: Enable once name and description are no longer props

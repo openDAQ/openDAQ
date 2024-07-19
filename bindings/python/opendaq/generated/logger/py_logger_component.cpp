@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> declareILoggerComponent(pybind11::module_ m)
 {
@@ -37,7 +38,10 @@ void defineILoggerComponent(pybind11::module_ m, PyDaqIntf<daq::ILoggerComponent
 {
     cls.doc() = "Logs messages produced by a specific part of openDAC SDK. The messages are written into the @ref ILoggerSink \"Logger Sinks\" associated with the Logger Component object.";
 
-    m.def("LoggerComponent", &daq::LoggerComponent_Create);
+    m.def("LoggerComponent", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& sinks, daq::ILoggerThreadPool* threadPool, daq::LogLevel level){
+        return daq::LoggerComponent_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(sinks), threadPool, level);
+    }, py::arg("name"), py::arg("sinks"), py::arg("thread_pool"), py::arg("level"));
+
 
     cls.def_property_readonly("name",
         [](daq::ILoggerComponent *object)
@@ -68,10 +72,10 @@ void defineILoggerComponent(pybind11::module_ m, PyDaqIntf<daq::ILoggerComponent
         "Logs a message with the provided source location and severity level.");
     cls.def_property("pattern",
         nullptr,
-        [](daq::ILoggerComponent *object, const std::string& pattern)
+        [](daq::ILoggerComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& pattern)
         {
             const auto objectPtr = daq::LoggerComponentPtr::Borrow(object);
-            objectPtr.setPattern(pattern);
+            objectPtr.setPattern(getVariantValue<daq::IString*>(pattern));
         },
         "Sets the custom formatter pattern for the component.");
     cls.def("should_log",

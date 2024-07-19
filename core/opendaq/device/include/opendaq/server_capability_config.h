@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [interfaceLibrary(IProperty, "coreobjects")]
  * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
@@ -83,12 +84,22 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      */
     virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
 
-    // [templateType(addresses, IString)]
+    // [returnSelf]
     /*!
      * @brief Sets the device's address
      * @param[out] address The device's address
      */
     virtual ErrCode INTERFACE_FUNC addAddress(IString* address) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the port of the device
+     * @param port The port of the device
+     */
+    virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
+    
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <opendaq/module_impl.h>
 #include <daq_discovery/daq_discovery_client.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 #include <boost/asio/io_context.hpp>
 
@@ -32,30 +33,29 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
-    static StringPtr getHost(const StringPtr& url);
-    static StringPtr getPort(const StringPtr& url);
-    static StringPtr getPath(const StringPtr& url);
-    static bool validateConnectionString(const StringPtr& connectionString);
+    StreamingTypePtr createStreamingType();
 
-    /// adds address to server capabilities
-    /// @param capabilities The list of device server capabilities
-    /// @param address IPv4 or IPv6 device address
-    static void completeServerCapabilities(const ListPtr<IServerCapability>& capabilities,
-                                           const StringPtr& address);
+    static StringPtr GetHostType(const StringPtr& url);
+    static StringPtr GetHost(const StringPtr& url);
+    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    static StringPtr GetPath(const StringPtr& url);
 
-    static StringPtr createUrlConnectionString(const char* prefix,
+    static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
+    static bool ValidateConnectionString(const StringPtr& connectionString);
+
+    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
+
+    static StringPtr CreateUrlConnectionString(std::string prefix,
                                                const StringPtr& host,
                                                const IntegerPtr& port,
                                                const StringPtr& path);
@@ -65,7 +65,7 @@ private:
         const StringPtr& host,
         const StringPtr& port,
         const StringPtr& path,
-        const PropertyObjectPtr& transportLayerConfig);
+        const PropertyObjectPtr& config);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
@@ -79,13 +79,18 @@ private:
                                  const StringPtr& port,
                                  const StringPtr& path);
     PropertyObjectPtr createConnectionDefaultConfig();
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
+    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 
     std::mutex sync;
     size_t pseudoDeviceIndex;
+    size_t transportClientIndex;
+    std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;

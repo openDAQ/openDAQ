@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,8 +78,8 @@ public:
 
     ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) override;
 
-    ErrCode INTERFACE_FUNC getDiscoveryServices(IList** services) override;
-    ErrCode INTERFACE_FUNC addDiscoveryService(IString* serviceName) override;
+    ErrCode INTERFACE_FUNC getDiscoveryServers(IList** serverNames) override;
+    ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) override;
 
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
@@ -105,7 +105,7 @@ private:
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;
     PropertyObjectPtr rootDeviceConfig{nullptr};
-    ListPtr<IString> discoveryServices;
+    ListPtr<IString> discoveryServers;
 };
 
 END_NAMESPACE_OPENDAQ

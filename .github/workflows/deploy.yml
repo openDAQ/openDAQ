@@ -27,6 +27,7 @@ env:
   python_versions: 3.8 3.9 3.10 3.11 3.12
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   deploy_windows:
@@ -65,12 +66,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v2.2
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
@@ -126,7 +127,7 @@ jobs:
         working-directory: build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -176,7 +177,7 @@ jobs:
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive
 
       - name: Upload package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Package (${{ matrix.name }})
           path: ${{ env.package_path }}
@@ -184,7 +185,7 @@ jobs:
 
       - name: Upload Wheels
         if: matrix.cmake_generator_platform != 'Win32'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
@@ -195,7 +196,7 @@ jobs:
         if: matrix.name == 'Windows VS 2022 x64 Release'
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.windows_x64_artifact }}
           path: |
@@ -246,7 +247,7 @@ jobs:
           apt-get install -y git openssh-client rename
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -281,7 +282,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v2.2
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Rename package (main)
         working-directory: ${{ env.package_path_rel }}
@@ -310,7 +311,7 @@ jobs:
         working-directory: build/doc_doxygen/html
         run: zip -r "../../cpp_api_reference.zip" .
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -323,7 +324,7 @@ jobs:
           aws s3 cp . s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/ --recursive
 
       - name: Upload package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Package (${{ matrix.name }})
           path: ${{ env.package_path_rel }}
@@ -337,7 +338,7 @@ jobs:
           aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
       - name: Upload API reference
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: API Reference
           path: "build/cpp_api_reference.zip"
@@ -351,13 +352,13 @@ jobs:
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
 
       - name: Upload temporary package for simulator
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.package_path_rel }}
 
       - name: Upload simulator app
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
           path: build/bin/application_simulator
@@ -365,7 +366,7 @@ jobs:
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
         if: matrix.name == 'Ubuntu 20.04 gcc-10 Release'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
           path: |
@@ -444,7 +445,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v2.2
+        uses: benjlevesque/short-sha@v2.2 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
       - name: Rename Wheels (main)
         working-directory: ${{ env.wheels_path }}
@@ -452,7 +453,7 @@ jobs:
         run: |
           rename "s/-cp/_${{ steps.short-sha.outputs.sha }}-cp/" *.whl
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -466,7 +467,7 @@ jobs:
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_linux_x86_64_path }}" --recursive
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
@@ -490,7 +491,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install tools
         run: |
@@ -498,13 +499,13 @@ jobs:
           sudo apt-get install -y virtualbox vagrant
 
       - name: Download package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.simulator_directory }}
 
       - name: Download simulator app
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
           path: ${{ env.simulator_directory }}
@@ -523,7 +524,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v2.2
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Define simulator name
         id: simulator_name
@@ -558,7 +559,7 @@ jobs:
           vboxmanage export ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} -o ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova --options manifest,nomacs
           ls -hl ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -570,14 +571,14 @@ jobs:
           aws s3 cp ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova s3://${{ env.s3bucket }}/${{ env.s3simulatorpath }}/
 
       - name: Upload OVA image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}-ova-image
           path: simulator/${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
           retention-days: 7
 
       - name: Delete unused artifacts
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             ${{ env.simulator_app_artifact }}
@@ -590,10 +591,10 @@ jobs:
     timeout-minutes: 4
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '16'
 
@@ -605,16 +606,25 @@ jobs:
           npm i @asciidoctor/tabs
           npm i @springio/antora-extensions
 
-      - name: Run Antora
+      - name: Run Antora to build user guide
         run: >
           [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-playbook.yml
           || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-playbook-dev.yml)
 
-      - name: Compress Documentation
+      - name: Compress user guide Documentation
         working-directory: ${{ env.build_path }}/site/
         run: zip -r ${{ env.build_path }}/user_guide.zip .
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - name: Run Antora to build protocols specs
+        run: >
+          [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-specs-playbook.yml
+          || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-specs-playbook-dev.yml)
+
+      - name: Compress protocols specifications
+        working-directory: ${{ env.build_path }}/site_specs/
+        run: zip -r ${{ env.build_path }}/native_protocols_specs.zip .
+
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -625,6 +635,11 @@ jobs:
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'user_guide.zip'
           aws s3 cp ${{ env.build_path }}/user_guide.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
+      - name: Upload protocols specifications to S3
+        run: |
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'native_protocols_specs.zip'
+          aws s3 cp ${{ env.build_path }}/native_protocols_specs.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
+
       - name: Call the API to deploy the documentation
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ];
@@ -634,10 +649,16 @@ jobs:
             wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
           fi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: openDAQ_SDK_User_Guide
           path: ${{ env.build_path }}/user_guide.zip
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: openDAQ_SDK_Native_protocols_specifications
+          path: ${{ env.build_path }}/native_protocols_specs.zip
           retention-days: 7
 
   # using reusable workflow
@@ -670,7 +691,7 @@ jobs:
 
     steps:
       - name: Download NuGet artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.dotnet_bindings.outputs.nuget_artifact_name }}
           path: ${{ env.package_path }}
@@ -679,7 +700,7 @@ jobs:
         run: |
           Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

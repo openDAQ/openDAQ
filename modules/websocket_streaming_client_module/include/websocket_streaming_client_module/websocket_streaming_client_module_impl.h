@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,19 +28,23 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    StringPtr onCreateConnectionString(const ServerCapabilityPtr& serverCapability) override;
+    Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    static DeviceTypePtr createWebsocketDeviceType();
+    static DeviceTypePtr createWebsocketDeviceType(bool useOldPrefix);
     static StringPtr createUrlConnectionString(const StringPtr& host,
                                                const IntegerPtr& port,
                                                const StringPtr& path);
+    static StreamingTypePtr createWebsocketStreamingType();
+    static PropertyObjectPtr createDefaultConfig();
+    static StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
     std::mutex sync;
     size_t deviceIndex;

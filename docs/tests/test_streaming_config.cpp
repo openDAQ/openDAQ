@@ -132,10 +132,9 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     double samples[100];
     for (int i = 0; i < 5; ++i)
     {
-        docs_test_helpers::waitForSamplesReady();
         SizeT count = 100;
-        reader.read(samples, &count);
-        ASSERT_GT(count, 0u);
+        reader.read(samples, &count, 10000);
+        ASSERT_EQ(count, 100u);
     }
 }
 
@@ -159,10 +158,9 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     double samples[100];
     for (int i = 0; i < 5; ++i)
     {
-        docs_test_helpers::waitForSamplesReady();
         SizeT count = 100;
-        reader.read(samples, &count);
-        ASSERT_GT(count, 0u);
+        reader.read(samples, &count, 10000);
+        ASSERT_EQ(count, 100u);
     }
 }
 

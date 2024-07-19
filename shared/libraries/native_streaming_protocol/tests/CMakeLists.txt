@@ -5,6 +5,7 @@ set(TEST_SOURCES test_types.cpp
                  test_base.h
                  test_config_packets.cpp
                  test_streaming_protocol.cpp
+                 test_client_to_dev_streaming.cpp
 )
 
 add_executable(${TEST_APP} test_app.cpp

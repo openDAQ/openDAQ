@@ -29,6 +29,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     , processingStrand(processingIOContext)
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
+    , serverStopped(false)
 {
     startProcessingOperations();
     startTransportOperations();
@@ -37,16 +38,18 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
-    serverCapabilityStreaming.setPrefix("daq.ns");
-    serverCapabilityStreaming.setConnectionType("TCP/IP");
-    serverCapabilityStreaming.addProperty(IntProperty("Port", port));
+    ServerCapabilityConfigPtr serverCapabilityStreaming =
+        ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming)
+        .setPrefix("daq.ns")
+        .setConnectionType("TCP/IP")
+        .setPort(port);
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
-    ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
-    serverCapabilityConfig.setPrefix("daq.nd");
-    serverCapabilityConfig.setConnectionType("TCP/IP");
-    serverCapabilityConfig.addProperty(IntProperty("Port", port));
+    ServerCapabilityConfigPtr serverCapabilityConfig =
+        ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming)
+        .setPrefix("daq.nd")
+        .setConnectionType("TCP/IP")
+        .setPort(port);
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
@@ -56,19 +59,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
-    this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (this->rootDevice.assigned())
-    {
-        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_native_streaming"))
-            info.removeServerCapability("opendaq_native_streaming");
-        if (info.hasServerCapability("opendaq_native_config"))
-            info.removeServerCapability("opendaq_native_config");
-    }
-
-    stopReading();
-    stopTransportOperations();
-    stopProcessingOperations();
+    stopServerInternal();
 }
 
 void NativeStreamingServerImpl::addSignalsOfComponent(ComponentPtr& component)
@@ -219,6 +210,30 @@ void NativeStreamingServerImpl::stopProcessingOperations()
     }
 }
 
+void NativeStreamingServerImpl::stopServerInternal()
+{
+    if (serverStopped)
+        return;
+
+    serverStopped = true;
+
+    this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            infoInternal.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            infoInternal.removeServerCapability("opendaq_native_config");
+    }
+
+    stopReading();
+    serverHandler->stopServer();
+    stopTransportOperations();
+    stopProcessingOperations();
+}
+
 void NativeStreamingServerImpl::prepareServerHandler()
 {
     auto signalSubscribedHandler = [this](const SignalPtr& signal)
@@ -232,8 +247,10 @@ void NativeStreamingServerImpl::prepareServerHandler()
         removeReader(signal);
     };
 
-    // The Callback establishes a new native configuration server for each connected client
-    // and transfers ownership of the configuration server to the transport layer session
+    // The Callback establishes two objects for each connected client:
+    // a new native configuration server and
+    // a new packet streaming client (used for client to device streaming);
+    // and transfers ownership of these objects to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
         [this](SendConfigProtocolPacketCb sendConfigPacketCb)
     {
@@ -253,7 +270,30 @@ void NativeStreamingServerImpl::prepareServerHandler()
                 )
             );
         };
-        return processConfigRequestCb;
+
+        auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();
+        OnPacketBufferReceivedCallback packetBufferReceivedHandler =
+            [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
+        {
+            boost::asio::dispatch(
+                processingIOContext,
+                processingStrand.wrap(
+                    [configServer, packetStreamingClient, packetBufferPtr]()
+                    {
+                        packetStreamingClient->addPacketBuffer(packetBufferPtr);
+
+                        auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
+                        while (packet.assigned())
+                        {
+                            configServer->processClientToDeviceStreamingPacket(signalNumericId, packet);
+                            std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
+                        }
+                    }
+                )
+            );
+        };
+
+        return std::make_pair(processConfigRequestCb, packetBufferReceivedHandler);
     };
 
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
@@ -299,6 +339,19 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
     return defaultConfig;
 }
 
+PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context)
+{
+    const auto defConfig = createDefaultConfig(context);
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 {
     auto discoveryConfig = PropertyObject();
@@ -320,18 +373,7 @@ ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 
 void NativeStreamingServerImpl::onStopServer()
 {
-    stopReading();
-    serverHandler->stopServer();
-
-    if (this->rootDevice.assigned())
-    {
-        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_native_streaming"))
-            info.removeServerCapability("opendaq_native_streaming");
-        if (info.hasServerCapability("opendaq_native_config"))
-            info.removeServerCapability("opendaq_native_config");
-    }
-
+    stopServerInternal();
 }
 
 void NativeStreamingServerImpl::startReading()

@@ -73,7 +73,7 @@ They contain an event id, and a dictionary payload containing key-value pairs re
 [#descriptor_changed]
 A common event in openDAQ(TM) is the _Signal-descriptor-changed_ event, which notifies all listeners that the <<signal>>'s description has been changed.
 
-* xref:background_info:packets.adoc#event_packet[More in the architecture section]
+* xref:knowledge_base:packets.adoc#event_packet[More in the architecture section]
 
 [#data_descriptor]
 == Data Descriptor
@@ -190,7 +190,7 @@ image::opendaq:getting_started:function-block-types.svg[Function Blocks,align="c
 Some more complex Function Blocks might have Function Blocks nested within them, to provide a better representation of hierarchical <<property,Properties>>, <<signal>>s, and <<input_port, Ports>>.
 For example, a __File Writer__ Function Block might have a nested __Trigger__ Function Block that specifies trigger conditions on when <<signal>> data should be written to a file.
 
-* xref:background_info:function_blocks.adoc[More in the architecture section]
+* xref:knowledge_base:function_blocks.adoc[More in the architecture section]
 
 [#channel]
 == Channel
@@ -198,7 +198,7 @@ For example, a __File Writer__ Function Block might have a nested __Trigger__ Fu
 Specialization of a <<function_block>> that represents a channel on physical hardware. openDAQ(TM) physical <<device>>s contain a list of channels.
 Examples might include channels representing Analog inputs / outputs and CAN buses.
 
-* xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+* xref:knowledge_base:function_blocks.adoc#channel[More in the architecture section]
 
 [#input_port]
 == Input Port
@@ -211,7 +211,7 @@ If it is not, the <<signal>> can't be connected.
 
 Input Ports are most often used by <<function_block>>s to obtain input data to process and <<reader>>s which read data sent by <<signal>>s.
 
-* xref:background_info:function_blocks.adoc#input_port[More in the architecture section]
+* xref:knowledge_base:function_blocks.adoc#input_port[More in the architecture section]
 
 [#connection]
 == Connection
@@ -228,14 +228,14 @@ Readers connect to <<signal>>s and provide an easy way of reading signal data in
 
 openDAQ(TM) provides different types of readers that can be used depending on user requirements:
 
-* xref:background_info:readers.adoc#packet_reader[*Packet reader*] reads one-or-more packets at a time
-* xref:background_info:readers.adoc#stream_reader[*Stream reader*] reads data as a stream of values, merging data packets into a continuous data buffer.
-* xref:background_info:readers.adoc#tail_reader[*Tail reader*] reads the last n values output by the signal.
-* xref:background_info:readers.adoc#block_reader[*Block reader*] reads the data in predefined block size and can't read less than a full block.
-* xref:background_info:readers.adoc#multi_reader[*Multi reader*] reads aligned data from multiple signals.
+* xref:knowledge_base:readers.adoc#packet_reader[*Packet reader*] reads one-or-more packets at a time
+* xref:knowledge_base:readers.adoc#stream_reader[*Stream reader*] reads data as a stream of values, merging data packets into a continuous data buffer.
+* xref:knowledge_base:readers.adoc#tail_reader[*Tail reader*] reads the last n values output by the signal.
+* xref:knowledge_base:readers.adoc#block_reader[*Block reader*] reads the data in predefined block size and can't read less than a full block.
+* xref:knowledge_base:readers.adoc#multi_reader[*Multi reader*] reads aligned data from multiple signals.
 
 // split from the above list
-* xref:background_info:readers.adoc[More in the architecture section]
+* xref:knowledge_base:readers.adoc[More in the architecture section]
 
 [#property_object]
 == Property Object
@@ -289,7 +289,7 @@ This can be output on the console, written to a file or otherwise displayed to t
 == Instance
 
 The Instance is the entry point object to every openDAQ(TM) application.
-On creation, it initializes a xref:opendaq:background_info:modules.adoc[Module Manager] that loads all available modules from a specified directory (and its subdirectories).
+On creation, it initializes a xref:opendaq:knowledge_base:modules.adoc[Module Manager] that loads all available modules from a specified directory (and its subdirectories).
 By default, it creates a standard openDAQ(TM) <<root_device>>, which allows access to all loaded <<module>> capabilities (adding <<function_block>>s, adding <<device>>s, starting xref:glossary.adoc#opendaq_opcua_server_module[Servers]).
 
 The openDAQ(TM) Instance forwards all <<device>> function calls to its Root Device.
@@ -351,7 +351,7 @@ The {opc-foundation-website}[OPC Foundation] (Open Platform Communications) is a
 == openDAQ(TM) OPC UA standard
 
 // suppress inspection "GrazieInspection"
-A test-and-measurement standared that describes openDAQ devices based on the OPC UA for devices standard.
+A test-and-measurement standard that describes openDAQ devices based on the OPC UA for devices standard.
 It is a protocol that describes the structure of a <<device>>.
 The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module] can connect to <<device>>s that adhere to this protocol.
 

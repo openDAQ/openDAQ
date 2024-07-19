@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
                                  const StringPtr& localId,
@@ -39,6 +40,8 @@ protected:
     void onRemoveDevice(const DevicePtr& device) override;
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
     void findAndCreateFunctionBlocks();
     void findAndCreateSignals();
     void findAndCreateInputsOutputs();
@@ -48,6 +51,8 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
+
+    void removed() override;
 
 private:
     void fetchTimeDomain();

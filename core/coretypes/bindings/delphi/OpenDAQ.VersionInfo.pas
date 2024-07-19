@@ -64,7 +64,7 @@ type
 
 implementation
 uses
-  OpenDAQ.CoreTypesConfig,
+  OpenDAQ.CoreTypes.Config,
   OpenDAQ.CoreTypes.Errors,
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;

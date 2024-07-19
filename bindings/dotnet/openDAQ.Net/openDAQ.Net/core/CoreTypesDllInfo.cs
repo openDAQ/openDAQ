@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpConfigGenerator v1.0.0) on 22.05.2024 13:58:39.
+//     RTGen (CSharpConfigGenerator v1.0.0) on 25.06.2024 08:46:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 

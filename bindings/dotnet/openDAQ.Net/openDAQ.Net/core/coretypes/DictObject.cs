@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:26.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDictObject.GetCount(base.NativePointer, out size);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
@@ -117,10 +117,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeyList(base.NativePointer, out keysPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (keysPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new ListObject<TKey>(keysPtr, incrementReference: false);
@@ -145,10 +151,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValueList(base.NativePointer, out valuesPtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (valuesPtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new ListObject<TValue>(valuesPtr, incrementReference: false);
@@ -173,10 +185,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDictObject.GetKeys(base.NativePointer, out iterablePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (iterablePtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new Iterable<TKey>(iterablePtr, incrementReference: false);
@@ -201,10 +219,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
                 //call native function
                 ErrorCode errorCode = (ErrorCode)_rawDictObject.GetValues(base.NativePointer, out iterablePtr);
 
-                if (Daq.Core.Types.Result.Failed(errorCode))
+                if (Result.Failed(errorCode))
                 {
                     throw new OpenDaqException(errorCode);
                 }
+            }
+
+            // validate pointer
+            if (iterablePtr == IntPtr.Zero)
+            {
+                return default;
             }
 
             return new Iterable<TValue>(iterablePtr, incrementReference: false);
@@ -230,10 +254,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Get(base.NativePointer, key.NativePointer, out valuePtr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (valuePtr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return BaseObject.CreateInstance<TValue>(valuePtr, incrementReference: false);
@@ -250,7 +280,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Set(base.NativePointer, key.NativePointer, value.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -274,10 +304,16 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Remove(base.NativePointer, key.NativePointer, out valuePtr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (valuePtr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return BaseObject.CreateInstance<TValue>(valuePtr, incrementReference: false);
@@ -293,7 +329,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.DeleteItem(base.NativePointer, key.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -308,7 +344,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawDictObject.Clear(base.NativePointer);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -328,7 +364,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawDictObject.HasKey(base.NativePointer, key.NativePointer, out hasKey);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
@@ -533,7 +569,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createDict(out objPtr);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new DictObject<TKey, TValue>(objPtr, incrementReference: false);
@@ -552,7 +588,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createDict(out objPtr);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

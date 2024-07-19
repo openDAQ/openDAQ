@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> declareIUnitBuilder(pybind11::module_ m)
 {
@@ -65,10 +66,10 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getSymbol().toStdString();
         },
-        [](daq::IUnitBuilder *object, const std::string& symbol)
+        [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& symbol)
         {
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setSymbol(symbol);
+            objectPtr.setSymbol(getVariantValue<daq::IString*>(symbol));
         },
         "Gets the symbol of the unit, i.e. \"m/s\". / Sets the symbol of the unit, i.e. \"m/s\".");
     cls.def_property("name",
@@ -77,10 +78,10 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        [](daq::IUnitBuilder *object, const std::string& name)
+        [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the full name of the unit, i.e. \"meters per second\". / Sets the full name of the unit, i.e. \"meters per second\".");
     cls.def_property("quantity",
@@ -89,10 +90,10 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getQuantity().toStdString();
         },
-        [](daq::IUnitBuilder *object, const std::string& quantity)
+        [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& quantity)
         {
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setQuantity(quantity);
+            objectPtr.setQuantity(getVariantValue<daq::IString*>(quantity));
         },
         "Gets the quantity represented by the unit, i.e. \"Velocity\" / Sets the quantity represented by the unit, i.e. \"Velocity\"");
 }

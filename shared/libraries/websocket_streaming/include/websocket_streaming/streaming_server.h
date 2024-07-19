@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,11 +56,17 @@ public:
     void onUnsubscribe(const OnUnsubscribeCallback& callback);
     void unicastPacket(const std::string& streamId, const std::string& signalId, const PacketPtr& packet);
     void broadcastPacket(const std::string& signalId, const PacketPtr &packet);
-    void sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet);
 
 protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;
     using ClientMap = std::unordered_map<std::string, std::pair<daq::streaming_protocol::StreamWriterPtr, SignalMap>>;
+
+    void doRead(const std::string& clientId, const stream::StreamPtr& stream);
+    void onReadDone(const std::string& clientId,
+                    const stream::StreamPtr& stream,
+                    const boost::system::error_code& ec,
+                    std::size_t bytesRead);
+    void removeClient(const std::string& clientId);
 
     void addToOutputSignals(const SignalPtr& signal,
                             SignalMap& outputSignals,

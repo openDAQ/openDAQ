@@ -86,7 +86,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
@@ -140,7 +140,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryService("mdns")
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns")
                                      .addConfigProvider(provider)
                                      .setDefaultRootDeviceInfo(rootInfo)
                                      .build();
@@ -174,6 +174,51 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
+TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto path = "/test/lt/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            {
+                const auto ipv4Info = capability.getAddressInfo()[0];
+                const auto ipv6Info = capability.getAddressInfo()[1];
+                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                
+                ASSERT_EQ(ipv4Info.getType(), "IPv4");
+                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+                
+                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            }
+        }      
+    }
+}
+
+#endif
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();
@@ -182,6 +227,16 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
     ASSERT_EQ(signals.getCount(), 7u);
+}
+
+TEST_F(WebsocketModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto device = client.addDevice("daq.lt://127.0.0.1/");
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
 }
 
 TEST_F(WebsocketModulesTest, SignalConfig_Server)
@@ -272,4 +327,24 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }

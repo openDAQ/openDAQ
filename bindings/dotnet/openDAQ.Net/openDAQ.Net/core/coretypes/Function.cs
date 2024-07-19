@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 22.05.2024 13:58:32.
+//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -86,10 +86,16 @@ public class Function : BaseObject
             //call native function
             ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params.NativePointer, out resultPtr);
 
-            if (Daq.Core.Types.Result.Failed(errorCode))
+            if (Result.Failed(errorCode))
             {
                 throw new OpenDaqException(errorCode);
             }
+        }
+
+        // validate pointer
+        if (resultPtr == IntPtr.Zero)
+        {
+            return default;
         }
 
         return new BaseObject(resultPtr, incrementReference: false);
@@ -117,7 +123,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFunction(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Succeeded(errorCode))
+        if (Result.Succeeded(errorCode))
         {
             //create object
             obj = new Function(objPtr, incrementReference: false);
@@ -134,7 +140,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createFunction(out objPtr, value);
 
-        if (Daq.Core.Types.Result.Failed(errorCode))
+        if (Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

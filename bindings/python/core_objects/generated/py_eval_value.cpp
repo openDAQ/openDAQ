@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IEvalValue, daq::IBaseObject> declareIEvalValue(pybind11::module_ m)
 {
@@ -37,9 +38,18 @@ void defineIEvalValue(pybind11::module_ m, PyDaqIntf<daq::IEvalValue, daq::IBase
 {
     cls.doc() = "Dynamic expression evaluator";
 
-    m.def("EvalValue", &daq::EvalValue_Create);
-    m.def("EvalValueArgs", &daq::EvalValueArgs_Create);
-    m.def("EvalValueFunc", &daq::EvalValueFunc_Create);
+    m.def("EvalValue", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& eval){
+        return daq::EvalValue_Create(getVariantValue<daq::IString*>(eval));
+    }, py::arg("eval"));
+
+    m.def("EvalValueArgs", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& eval, std::variant<daq::IList*, py::list, daq::IEvalValue*>& args){
+        return daq::EvalValueArgs_Create(getVariantValue<daq::IString*>(eval), getVariantValue<daq::IList*>(args));
+    }, py::arg("eval"), py::arg("args"));
+
+    m.def("EvalValueFunc", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& eval, daq::IFunction* func){
+        return daq::EvalValueFunc_Create(getVariantValue<daq::IString*>(eval), func);
+    }, py::arg("eval"), py::arg("func"));
+
 
     cls.def_property_readonly("eval",
         [](daq::IEvalValue *object)

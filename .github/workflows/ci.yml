@@ -1,12 +1,16 @@
 name: Build and Test openDAQ
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
-### TODO: Enable Python binding tests on all distributions
+# TODO: Enable Python binding tests on all distributions
 
 env:
+  s3_bucket: bb-blueberry-sdk-releases
+  regression_tests_target_tag: v3.0.0
+  regression_simulator_folder: regression_test_simulator
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
@@ -19,6 +23,7 @@ env:
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -82,13 +87,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
-        uses: seanmiddleditch/gha-setup-ninja@v3
-        with:
-          version: 1.10.2
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      # https://github.com/actions/runner-images/issues/10001
+      - name: Setup MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Remove outdated clang
+        shell: pwsh
+        run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
 
       - name: Install Python dependencies
         shell: pwsh
@@ -138,7 +149,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
@@ -150,7 +161,7 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
@@ -161,7 +172,7 @@ jobs:
         if: matrix.name == 'Windows VS 2022 x64 Release'
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.windows_x64_artifact }}
           path: |
@@ -188,6 +199,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -250,16 +262,17 @@ jobs:
         run: |
           apt-get update
           apt-get install -y git openssh-client
-          
+
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
-      - name: Checkout
-        uses: actions/checkout@v3
 
-      - name: Install build dependencies
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install additional dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
+            awscli unzip \
             lld ninja-build curl \
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
@@ -281,15 +294,15 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
+        run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+          path: /junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''
@@ -298,7 +311,7 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
@@ -307,7 +320,7 @@ jobs:
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
         if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
           path: |
@@ -318,6 +331,96 @@ jobs:
           # most probably a pattern *xxx.yy does not work, only x*
           #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
           retention-days: 1
+
+      # PROTOCOL REGRESSION TEST BEGIN
+
+      - name: Check AWS secret availability
+        id: check-aws
+        env:
+          AWS_REG: ${{ secrets.AWS_REGION }}
+        run: echo "aws_available=${{ env.AWS_REG != '' }}" >> $GITHUB_OUTPUT
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download regression simulator binaries .zip from S3 bucket
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+
+      - name: Unzip regression simulator binaries
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+
+      - name: Add execute permissions to regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
+
+      - name: Create and give execute permissions to regression test runner script
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: |
+          cat > regression_test_run.sh << EOL
+          
+          # Change directory because we expect the libraries to be in the folder we are running simulator from
+          cd ${{ env.regression_simulator_folder }}
+          
+          # Run simulator and wait for it to to be ready
+          ./regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
+          
+          # Change directory back
+          cd ..
+          
+          # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
+          trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
+          
+          # Perform tests
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+          
+          EOL
+          
+          # Make runner script executable
+          chmod +x regression_test_run.sh
+
+      - name: Protocol regression test - OPC UA
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
+          protocol: opcua
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - ND
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
+          protocol: nd
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - NS
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
+          protocol: ns
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - LT
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
+          protocol: lt
+        run: ./regression_test_run.sh
+
+      - name: Upload regression test results
+        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Regression Test Results (${{ matrix.name }})
+          path: /junit_reports/regression
+
+      # PROTOCOL REGRESSION TEST END
 
   build_linux_centos:
     runs-on: ubuntu-latest
@@ -354,10 +457,10 @@ jobs:
         run: |
           yum update -y
           yum install -y git
-          
+
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
-        
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -394,20 +497,19 @@ jobs:
       - name: Test
         working-directory: build
         env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
         run: |
           python$last_version -m venv venv
           . venv/bin/activate
-          pip install numpy
           pip install pip/packages/opendaq*.whl
           ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+          path: /junit_reports/unit
 
       - name: Package
         if: matrix.cpack != ''
@@ -416,14 +518,14 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
           retention-days: 7
 
       - name: Upload PIP packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:
           name: PIP Package (${{ matrix.name }})
           path: ${{ env.build_path }}/wheels/opendaq*.whl
@@ -454,10 +556,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install ninja-build
-        uses: seanmiddleditch/gha-setup-ninja@v3
+        uses: seanmiddleditch/gha-setup-ninja@v4
         with:
           version: 1.10.2
       - name: Set up Python
@@ -486,7 +588,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
@@ -517,11 +619,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
-        uses: seanmiddleditch/gha-setup-ninja@v3
+        uses: seanmiddleditch/gha-setup-ninja@v4
         with:
           version: 1.10.2
 
@@ -559,7 +661,7 @@ jobs:
           }
 
       - name: Upload PIP packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: PIP Package (${{ matrix.name }})
           path: ${{ env.build_path }}/wheels/*.whl
@@ -588,9 +690,9 @@ jobs:
   #
   #   steps:
   #
-  #     - uses: actions/checkout@v3
+  #     - uses: actions/checkout@v4
   #     - name: Checkout
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
   #
   #     - name: Install build dependencies
   #       run: |
@@ -626,7 +728,7 @@ jobs:
   #           -DANDROID_ABI=${{ matrix.android_abi }} \
   #           -DANDROID_NDK=${{ env.android_ndk_path }} \
   #           -DANDROID_PLATFORM=android-${{ matrix.android_version }} \
-  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \ 
+  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
   #           ..
   #     - name: Build
   #       working-directory: build

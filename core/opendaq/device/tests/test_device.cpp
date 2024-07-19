@@ -12,6 +12,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/channel_impl.h>
+#include <opendaq/component_exceptions.h>
 
 using DeviceTest = testing::Test;
 
@@ -112,13 +113,13 @@ TEST_F(DeviceTest, DefaultProperties)
 TEST_F(DeviceTest, DeviceTypeStructType)
 {
     const auto structType = daq::DeviceTypeStructType();
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType, structPtr.getStructType());
 }
 
 TEST_F(DeviceTest, DeviceTypeStructFields)
 {
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structPtr.get("id"), "id");
     ASSERT_EQ(structPtr.get("name"), "name");
     ASSERT_EQ(structPtr.get("description"), "desc");
@@ -127,7 +128,7 @@ TEST_F(DeviceTest, DeviceTypeStructFields)
 TEST_F(DeviceTest, DeviceTypeStructNames)
 {
     const auto structType = daq::DeviceTypeStructType();
-    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
+    const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
@@ -142,6 +143,36 @@ TEST_F(DeviceTest, StandardProperties)
 
     ASSERT_EQ(device.getName(), name);
     ASSERT_EQ(device.getDescription(), desc);
+}
+
+TEST_F(DeviceTest, Remove)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+
+    ASSERT_NO_THROW(device.remove());
+    ASSERT_TRUE(device.isRemoved());
+
+    ASSERT_THROW(device.addDevice("DeviceConnectionString"), daq::ComponentRemovedException);
+    ASSERT_THROW(device.addFunctionBlock("FbTypeId"), daq::ComponentRemovedException);
+    ASSERT_THROW(device.addStreaming("StreamingConnectionString"), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getAvailableFunctionBlockTypes(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getAvailableDeviceTypes(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getAvailableDevices(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getDevices(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getFunctionBlocks(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getChannels(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getChannelsRecursive(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getSignals(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getSignalsRecursive(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getCustomComponents(), daq::ComponentRemovedException);
+
+    ASSERT_THROW(device.getInfo(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getDomain(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getInputsOutputsFolder(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
 }
 
 class MockFbImpl final : public daq::FunctionBlock

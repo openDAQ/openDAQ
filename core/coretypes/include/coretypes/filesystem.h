@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,12 @@
             inline path relative(const path& p)
             {
                 #pragma message "Experimental std::filesystem does not have `relative()`."
+                return p;
+            }
+
+            inline path proximate(const path& p)
+            {
+                #pragma message "Experimental std::filesystem does not have `proximate()`."
                 return p;
             }
         }

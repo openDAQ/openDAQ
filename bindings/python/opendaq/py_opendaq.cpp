@@ -65,6 +65,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIMultiReaderBuilder = declareIMultiReaderBuilder(m);
     auto classIReaderStatus = declareIReaderStatus(m);
     auto classIBlockReaderStatus = declareIBlockReaderStatus(m);
+    auto classITailReaderStatus = declareITailReaderStatus(m);
+    auto classIMultiReaderStatus = declareIMultiReaderStatus(m);
     auto classIAwaitable = declareIAwaitable(m);
     auto classIGraphVisualization = declareIGraphVisualization(m);
     auto classIScheduler = declareIScheduler(m);
@@ -97,6 +99,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIServer = declareIServer(m);
     auto classIServerType = declareIServerType(m);
     auto classIStreaming = declareIStreaming(m);
+    auto classIStreamingType = declareIStreamingType(m);
     auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
     auto classIMirroredSignalPrivate = declareIMirroredSignalPrivate(m);
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
@@ -107,6 +110,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIComponentPrivate = declareIComponentPrivate(m);
     auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
     auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
+    auto classIAddressInfo = declareIAddressInfo(m);
+    auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
 
     defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
@@ -148,6 +153,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIMultiReaderBuilder(m, classIMultiReaderBuilder);
     defineIReaderStatus(m, classIReaderStatus);
     defineIBlockReaderStatus(m, classIBlockReaderStatus);
+    defineITailReaderStatus(m, classITailReaderStatus);
+    defineIMultiReaderStatus(m, classIMultiReaderStatus);
     defineIAwaitable(m, classIAwaitable);
     defineIGraphVisualization(m, classIGraphVisualization);
     defineIScheduler(m, classIScheduler);
@@ -180,6 +187,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIServer(m, classIServer);
     defineIServerType(m, classIServerType);
     defineIStreaming(m, classIStreaming);
+    defineIStreamingType(m, classIStreamingType);
     defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
     defineIMirroredSignalPrivate(m, classIMirroredSignalPrivate);
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
@@ -190,6 +198,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentPrivate(m, classIComponentPrivate);
     defineIComponentStatusContainer(m, classIComponentStatusContainer);
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
+    defineIAddressInfo(m, classIAddressInfo);
+    defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

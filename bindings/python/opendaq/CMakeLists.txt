@@ -26,6 +26,8 @@ set(SRC_Cpp
     generated/device/py_device_info_config.cpp
     generated/device/py_server_capability.cpp
     generated/device/py_device_type.cpp
+    generated/device/py_address_info.cpp
+    generated/device/py_address_info_builder.cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp
     generated/functionblock/py_function_block_type.cpp
@@ -42,11 +44,13 @@ set(SRC_Cpp
     generated/reader/py_sample_reader.cpp
     generated/reader/py_stream_reader.cpp
     generated/reader/py_tail_reader.cpp
+    generated/reader/py_tail_reader_status.cpp
     generated/reader/py_time_reader.cpp
     generated/reader/py_reader_status.cpp
     generated/reader/py_block_reader_status.cpp
     generated/reader/py_multi_reader.cpp
     generated/reader/py_multi_reader_builder.cpp
+    generated/reader/py_multi_reader_status.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp
@@ -79,6 +83,7 @@ set(SRC_Cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
     generated/streaming/py_streaming.cpp
+    generated/streaming/py_streaming_type.cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IFolderConfig, daq::IFolder> declareIFolderConfig(pybind11::module_ m)
 {
@@ -37,9 +38,18 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
 {
     cls.doc() = "Allows write access to folder.";
 
-    m.def("Folder", &daq::Folder_Create);
-    m.def("FolderWithItemType", &daq::FolderWithItemType_Create);
-    m.def("IoFolder", &daq::IoFolder_Create);
+    m.def("Folder", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::Folder_Create(context, parent, getVariantValue<daq::IString*>(localId));
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"));
+
+    m.def("FolderWithItemType", [](daq::IntfID itemType, daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::FolderWithItemType_Create(itemType, context, parent, getVariantValue<daq::IString*>(localId));
+    }, py::arg("item_type"), py::arg("context"), py::arg("parent"), py::arg("local_id"));
+
+    m.def("IoFolder", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::IoFolder_Create(context, parent, getVariantValue<daq::IString*>(localId));
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"));
+
 
     cls.def("add_item",
         [](daq::IFolderConfig *object, daq::IComponent* item)
@@ -58,10 +68,10 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
         py::arg("item"),
         "Removes the item from the folder.");
     cls.def("remove_item_with_local_id",
-        [](daq::IFolderConfig *object, const std::string& localId)
+        [](daq::IFolderConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
             const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
-            objectPtr.removeItemWithLocalId(localId);
+            objectPtr.removeItemWithLocalId(getVariantValue<daq::IString*>(localId));
         },
         py::arg("local_id"),
         "Removes the item from the folder using local id of the component.");

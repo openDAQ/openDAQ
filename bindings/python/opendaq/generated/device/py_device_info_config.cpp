@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m)
 {
@@ -37,23 +38,29 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
 {
     cls.doc() = "Configuration component of Device info objects. Contains setter methods that are available until the object is frozen.";
 
-    m.def("DeviceInfoConfig", &daq::DeviceInfoConfig_Create);
-    m.def("DeviceInfoConfigWithCustomSdkVersion", &daq::DeviceInfoConfigWithCustomSdkVersion_Create);
+    m.def("DeviceInfoConfig", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString){
+        return daq::DeviceInfoConfig_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(connectionString));
+    }, py::arg("name"), py::arg("connection_string"));
+
+    m.def("DeviceInfoConfigWithCustomSdkVersion", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, std::variant<daq::IString*, py::str, daq::IEvalValue*>& sdkVersion){
+        return daq::DeviceInfoConfigWithCustomSdkVersion_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(connectionString), getVariantValue<daq::IString*>(sdkVersion));
+    }, py::arg("name"), py::arg("connection_string"), py::arg("sdk_version"));
+
 
     cls.def_property("name",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& name)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setName(name);
+            objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Sets the name of the device");
     cls.def_property("connection_string",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& connectionString)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setConnectionString(connectionString);
+            objectPtr.setConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
         "Sets the string representation of a connection address used to connect to the device.");
     cls.def_property("device_type",
@@ -66,90 +73,90 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         "Sets a device type as an object providing type id, name, short description and default device configuration.");
     cls.def_property("manufacturer",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& manufacturer)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& manufacturer)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setManufacturer(manufacturer);
+            objectPtr.setManufacturer(getVariantValue<daq::IString*>(manufacturer));
         },
         "Sets the company that manufactured the device");
     cls.def_property("manufacturer_uri",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& manufacturerUri)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& manufacturerUri)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setManufacturerUri(manufacturerUri);
+            objectPtr.setManufacturerUri(getVariantValue<daq::IString*>(manufacturerUri));
         },
         "Sets the unique identifier of the company that manufactured the device. This identifier should be a fully qualified domain name; however, it may be a GUID or similar construct that ensures global uniqueness.");
     cls.def_property("model",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& model)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& model)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setModel(model);
+            objectPtr.setModel(getVariantValue<daq::IString*>(model));
         },
         "Sets the model of the device");
     cls.def_property("product_code",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& productCode)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& productCode)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setProductCode(productCode);
+            objectPtr.setProductCode(getVariantValue<daq::IString*>(productCode));
         },
         "Sets the unique combination of numbers and letters used to identify the device.");
     cls.def_property("device_revision",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& deviceRevision)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceRevision)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setDeviceRevision(deviceRevision);
+            objectPtr.setDeviceRevision(getVariantValue<daq::IString*>(deviceRevision));
         },
         "Sets the revision level of the device.");
     cls.def_property("hardware_revision",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& hardwareRevision)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& hardwareRevision)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setHardwareRevision(hardwareRevision);
+            objectPtr.setHardwareRevision(getVariantValue<daq::IString*>(hardwareRevision));
         },
         "Sets the revision level of the hardware");
     cls.def_property("software_revision",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& softwareRevision)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& softwareRevision)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setSoftwareRevision(softwareRevision);
+            objectPtr.setSoftwareRevision(getVariantValue<daq::IString*>(softwareRevision));
         },
         "sets the revision level of the software component");
     cls.def_property("device_manual",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& deviceManual)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceManual)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setDeviceManual(deviceManual);
+            objectPtr.setDeviceManual(getVariantValue<daq::IString*>(deviceManual));
         },
         "Sets the address of the user manual. It may be a pathname in the file system or a URL (Web address)");
     cls.def_property("device_class",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& deviceClass)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceClass)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setDeviceClass(deviceClass);
+            objectPtr.setDeviceClass(getVariantValue<daq::IString*>(deviceClass));
         },
         "Sets the purpose of the device. For example \"TestMeasurementDevice\".");
     cls.def_property("serial_number",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& serialNumber)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serialNumber)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setSerialNumber(serialNumber);
+            objectPtr.setSerialNumber(getVariantValue<daq::IString*>(serialNumber));
         },
         "Sets the serial number of the device");
     cls.def_property("product_instance_uri",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& productInstanceUri)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& productInstanceUri)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setProductInstanceUri(productInstanceUri);
+            objectPtr.setProductInstanceUri(getVariantValue<daq::IString*>(productInstanceUri));
         },
         "Sets the globally unique resource identifier provided by the manufacturer. The recommended syntax of the ProductInstanceUri is: <ManufacturerUri>/<any string> where <any string> is unique among all instances using the same ManufacturerUri.");
     cls.def_property("revision_counter",
@@ -162,34 +169,34 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         "Sets the incremental counter indicating the number of times the configuration data has been modified.");
     cls.def_property("asset_id",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& id)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setAssetId(id);
+            objectPtr.setAssetId(getVariantValue<daq::IString*>(id));
         },
         "Sets the asset ID of the device. Represents a user writable alphanumeric character sequence uniquely identifying a component.");
     cls.def_property("mac_address",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& macAddress)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& macAddress)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setMacAddress(macAddress);
+            objectPtr.setMacAddress(getVariantValue<daq::IString*>(macAddress));
         },
         "Sets the Mac address of the device.");
     cls.def_property("parent_mac_address",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& macAddress)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& macAddress)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setParentMacAddress(macAddress);
+            objectPtr.setParentMacAddress(getVariantValue<daq::IString*>(macAddress));
         },
         "Sets the Mac address of the device's parent.");
     cls.def_property("platform",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& platform)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& platform)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setPlatform(platform);
+            objectPtr.setPlatform(getVariantValue<daq::IString*>(platform));
         },
         "Sets the platform of the device. The platform specifies whether real hardware is used or if the device is simulated.");
     cls.def_property("position",
@@ -202,26 +209,26 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         "Sets the position of the device. The position specifies the position within a given system. For example in which slot or slice the device is in.");
     cls.def_property("system_type",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& type)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& type)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setSystemType(type);
+            objectPtr.setSystemType(getVariantValue<daq::IString*>(type));
         },
         "Sets the system type. The system type can, for example, be LayeredSystem, StandaloneSystem, or RackSystem.");
     cls.def_property("system_uuid",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& uuid)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& uuid)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setSystemUuid(uuid);
+            objectPtr.setSystemUuid(getVariantValue<daq::IString*>(uuid));
         },
         "Sets the system UUID that represents a unique ID of a system. All devices in a system share this UUID.");
     cls.def_property("location",
         nullptr,
-        [](daq::IDeviceInfoConfig *object, const std::string& location)
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& location)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.setLocation(location);
+            objectPtr.setLocation(getVariantValue<daq::IString*>(location));
         },
         "Sets the device's location.");
 }

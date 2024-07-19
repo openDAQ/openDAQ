@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,11 +40,11 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
                           const LoggerPtr& logger,
                           const TypeManagerPtr& typeManager,
                           const ModuleManagerPtr& moduleManager,
-                          const AuthenticationProviderPtr& authenticationProvider,
+                          const AuthenticationProviderPtr& authenticationProvider = nullptr,
                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
-                          const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
+                          const DictPtr<IString, IDiscoveryServer> discoveryServers = Dict<IString, IDiscoveryServer>())
 {
-    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices));
+    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers));
     return obj;
 }
 

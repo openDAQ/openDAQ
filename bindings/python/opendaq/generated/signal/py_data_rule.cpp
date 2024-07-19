@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDataRule, daq::IBaseObject> declareIDataRule(pybind11::module_ m)
 {
@@ -43,11 +44,20 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
 {
     cls.doc() = "Rule that defines how a signal value is calculated from an implicit initialization value when the rule type is not `Explicit`.";
 
-    m.def("LinearDataRule", &daq::LinearDataRule_Create);
+    m.def("LinearDataRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start){
+        return daq::LinearDataRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start));
+    }, py::arg("delta"), py::arg("start"));
+
     m.def("ConstantDataRule", &daq::ConstantDataRule_Create);
     m.def("ExplicitDataRule", &daq::ExplicitDataRule_Create);
-    m.def("ExplicitDomainDataRule", &daq::ExplicitDomainDataRule_Create);
-    m.def("DataRule", &daq::DataRule_Create);
+    m.def("ExplicitDomainDataRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& minExpectedDelta, std::variant<daq::INumber*, double, daq::IEvalValue*>& maxExpectedDelta){
+        return daq::ExplicitDomainDataRule_Create(getVariantValue<daq::INumber*>(minExpectedDelta), getVariantValue<daq::INumber*>(maxExpectedDelta));
+    }, py::arg("min_expected_delta"), py::arg("max_expected_delta"));
+
+    m.def("DataRule", [](daq::DataRuleType ruleType, std::variant<daq::IDict*, py::dict>& parameters){
+        return daq::DataRule_Create(ruleType, getVariantValue<daq::IDict*>(parameters));
+    }, py::arg("rule_type"), py::arg("parameters"));
+
     m.def("DataRuleFromBuilder", &daq::DataRuleFromBuilder_Create);
 
     cls.def_property_readonly("type",

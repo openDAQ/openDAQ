@@ -1,3 +1,71 @@
+10.07.2024
+Description
+	- Add address type and address reachability status to server capability
+	- Allows easier identification of what address is used, and checks if device is available
+	- Reachability is currently only available for ipv4
+	- "canPing" and "ipv4Address" properties have been removed from discovered device info
+
+Required integeration changes:
+	- If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
+	- "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
+	
++ [function] IServerCapability::getAddressTypes(IList** addressTypes)
++ [function] IServerCapability::getAddressReachabilityStatus(IList** addressReachability)
++ [function] IServerCapabilityConfig::addAddressType(IString* addressType)
++ [function] IServerCapabilityConfig::addAddressReachabilityStatus(AddressReachabilityStatus addressReachability)
++ [function] IServerCapabilityConfig::setAddressReachabilityStatus(IList* addressReachability)
+
+04.07.2024
+Description
+	- Make device connection string prefix mandatory
+	- Remove "accepts connection string" methods from module
+	
+Required integration changes:
+	- onGetAvailableDeviceTypes() override in modules now has to add a "prefix" to its device type
+	- onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
+	- Connection strings must now always start with a prefix, followed by "://"
+  
+-m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
++m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
+- [function] IModule::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+- [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+
+21.06.2024
+- [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
++ [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)
++ [function] IDeviceInfo::getServerCapability(IString* protocolId, IServerCapability** capability)
+
+21.06.2024
+-m [function] IInstanceBuilder::addDiscoveryService
++m [function] IInstanceBuilder::addDiscoveryServer
+-m [function] IInstanceBuilder::getDiscoveryServices
++m [function] IInstanceBuilder::getDiscoveryServers
+
+17.06.2024
+Description
+  - Add StreamingType object
+  - Change ComponentType objects to use builder pattern
+  - Provide default add-device config object containing config of all modules
+
++ [function] IDevice::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
++ [function] IDeviceType::getConnectionStringPrefix(IString** prefix) = 0;
++ [interface] IComponentTypeBuilder : public IBaseObject
++ [interface] IServerType : public IComponentType
++ [factory] ComponentTypeBuilderPtr StreamingTypeBuilder()
++ [factory] ComponentTypeBuilderPtr DeviceTypeBuilder()
++ [factory] ComponentTypeBuilderPtr FunctionBlockTypeBuilder()
++ [factory] ComponentTypeBuilderPtr ServerTypeBuilder()
++ [function] createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
++ [function] IModule::getAvailableStreamingTypes(IDict** streamingTypes)
++ [function] IModuleManagerUtils::getAvailableStreamingTypes(IDict** streamingTypes)
++ [function] IModuleManagerUtils::createDefaultAddDeviceConfig(IDict** streamingTypes)
+
+30.05.2024
+Description
+  - Supporting reading client's connection info in the deviceInfo
+
++ [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
+
 27.05.2024
 Description
   - Supporing servers to be discovered by mDNS

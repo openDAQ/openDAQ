@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 Blueberry d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IPropertyObjectProtected, daq::IBaseObject> declareIPropertyObjectProtected(pybind11::module_ m)
 {
@@ -38,18 +39,18 @@ void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropert
     cls.doc() = "Provides protected access that allows changing read-only property values of a Property object.";
 
     cls.def("set_protected_property_value",
-        [](daq::IPropertyObjectProtected *object, const std::string& propertyName, const py::object& value)
+        [](daq::IPropertyObjectProtected *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
         {
             const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
-            objectPtr.setProtectedPropertyValue(propertyName, pyObjectToBaseObject(value));
+            objectPtr.setProtectedPropertyValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
         },
         py::arg("property_name"), py::arg("value"),
         "Sets a property value. Does not fail if the property is read-only.");
     cls.def("clear_protected_property_value",
-        [](daq::IPropertyObjectProtected *object, const std::string& propertyName)
+        [](daq::IPropertyObjectProtected *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
-            objectPtr.clearProtectedPropertyValue(propertyName);
+            objectPtr.clearProtectedPropertyValue(getVariantValue<daq::IString*>(propertyName));
         },
         py::arg("property_name"),
         "Clears a property value. Does not fail if the property is read-only.");

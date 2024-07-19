@@ -39,16 +39,9 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    // FIXME - use default config mega-object
-    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
-    if (!config.assigned())
-        config = PropertyObject();
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                    List<IString>("MinConnections",
-                                                                                  "MinHops",
-                                                                                  "NotConnected"),
-                                                                    2);
-    config.addProperty(streamingConnectionHeuristicProp);
+    auto config = instance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("StreamingConnectionHeuristic", 2);
 
     auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
@@ -104,7 +97,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryService("mdns").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
@@ -157,7 +150,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryService("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     instance.addDevice("daqref://device1");
     auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
     instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
@@ -188,6 +181,157 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false);
 }
 
+#ifdef _WIN32
+
+TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/opcua/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                const auto ipv4Info = capability.getAddressInfo()[0];
+                const auto ipv6Info = capability.getAddressInfo()[1];
+                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                
+                ASSERT_EQ(ipv4Info.getType(), "IPv4");
+                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+                
+                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            }
+        }      
+    }
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/opcua/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    client.getAvailableDevices();
+    DevicePtr device = client.addDevice("daq.opcua://[::1]/");
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 1u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        if (capability.getProtocolName() == "openDAQ OpcUa")
+        {
+            const auto ipv4Info = capability.getAddressInfo()[0];
+            const auto ipv6Info = capability.getAddressInfo()[1];
+            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            
+            ASSERT_EQ(ipv4Info.getType(), "IPv4");
+            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+            
+            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        }
+    }      
+}
+
+#endif
+
+TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    auto path = "/test/opcua/discovery_reachability/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("openDAQ OpcUa", serverConfig).enableDiscovery();
+    auto client = Instance();
+
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() != "openDAQ OpcUa")
+                continue;
+
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+            break;
+        }
+
+        if (device.assigned())
+            break;
+    }
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 1u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        if (capability.getProtocolName() == "openDAQ OpcUa")
+        {
+            const auto ipv4Info = capability.getAddressInfo()[0];
+            const auto ipv6Info = capability.getAddressInfo()[1];
+            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+            
+            ASSERT_EQ(ipv4Info.getType(), "IPv4");
+            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+            
+            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        }
+    }      
+}
+
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;
@@ -205,6 +349,45 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto device = client.getDevices()[0];
+
+    ASSERT_NO_THROW(client.removeDevice(device));
+    ASSERT_TRUE(device.isRemoved());
+}
+
+TEST_F(OpcuaDeviceModulesTest, ChangePropAfterRemove)
+{
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
+
+    auto device = client.getDevices()[0];
+    auto mirroredRefDevice = client.getDevices()[0].getDevices()[0];
+
+    client.removeDevice(device);
+
+    ASSERT_TRUE(mirroredRefDevice.isRemoved());
+
+    // reset messages
+    debugSink.waitForMessage(0);
+
+    ASSERT_NO_THROW(mirroredRefDevice.setPropertyValue("NumberOfChannels", 1));
+    logger.flush();
+    ASSERT_TRUE(debugSink.waitForMessage(2000));
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"NumberOfChannels\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(OpcuaDeviceModulesTest, RemoteGlobalIds)
@@ -605,6 +788,43 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     ASSERT_GT(client.getDevices()[0].getFunctionBlocks().getCount(), (SizeT) 0);
 }
 
+TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("");
+    auto typeManager = TypeManager();
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    auto instance = InstanceCustom(context, "local");
+    instance.setRootDevice("daqref://device1");
+    instance.addServer("openDAQ Native Streaming", nullptr);
+    instance.addServer("openDAQ OpcUa", nullptr);
+
+    auto client = InstanceBuilder().build();
+    auto clientDevice = client.addDevice("daq.opcua://127.0.0.1");
+
+    const auto newFb = clientDevice.addFunctionBlock("ref_fb_module_scaling");
+    const auto fbSignals = newFb.getSignals(search::Recursive(search::Any()));
+
+    for (const auto& signal : fbSignals)
+    {
+        ASSERT_GT(signal.asPtr<IMirroredSignalConfig>().getStreamingSources().getCount(), 0u);
+        ASSERT_TRUE(signal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource().assigned());
+    }
+
+    clientDevice.removeFunctionBlock(newFb);
+
+    for (const auto& signal : fbSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
+        ASSERT_TRUE(signal.isRemoved());
+    }
+}
+
 TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
 {
     auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();
@@ -717,7 +937,157 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
-// TODO: Add all examples of dynamic changes
-// TODO: Add examples of all possible property object changes once rework is done
-// TODO: Add examples of device topology, as well as signal/channel node trees in devices/fbs
-// TODO: Add examples of streaming tests once streaming is available
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_opcua_config");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ OpcUa");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
+{
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.opcua://127.0.0.1");
+    const auto info = dev.getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv4");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.opcua://[::1]");
+    const auto info = dev.getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv6");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv6");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestAddressInfoGatewayDevice)
+{
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    server.addServer("openDAQ Native Streaming", nullptr);
+    server.addServer("openDAQ LT Streaming", nullptr);
+    server.addServer("openDAQ OpcUa", nullptr);
+
+    auto gateway = Instance();
+    auto serverConfig = gateway.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+    serverConfig.setPropertyValue("Port", 4841);
+    gateway.addDevice("daq.opcua://127.0.0.1");
+    gateway.addServer("openDAQ OpcUa", serverConfig);
+
+    auto client = Instance();
+    const auto dev = client.addDevice("daq.opcua://127.0.0.1:4841/");
+    const auto info = dev.getDevices()[0].getInfo();
+
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_opcua_config"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_native_streaming"));
+    ASSERT_TRUE(info.hasServerCapability("opendaq_lt_streaming"));
+
+    const auto opcuaCapability = info.getServerCapability("opendaq_opcua_config");
+    const auto nativeConfigCapability = info.getServerCapability("opendaq_native_config");
+    const auto nativeStreamingCapability = info.getServerCapability("opendaq_native_streaming");
+    const auto LTCapability = info.getServerCapability("opendaq_lt_streaming");
+
+    ASSERT_TRUE(opcuaCapability.getConnectionString().assigned() && opcuaCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeConfigCapability.getConnectionString().assigned() && nativeConfigCapability.getConnectionString() != "");
+    ASSERT_TRUE(nativeStreamingCapability.getConnectionString().assigned() && nativeStreamingCapability.getConnectionString() != "");
+    ASSERT_TRUE(LTCapability.getConnectionString().assigned() && LTCapability.getConnectionString() != "");
+
+    const auto opcuaAddressInfo = opcuaCapability.getAddressInfo()[0];
+    const auto nativeConfigAddressInfo= nativeConfigCapability.getAddressInfo()[0];
+    const auto nativeStreamingAddressInfo = nativeStreamingCapability.getAddressInfo()[0];
+    const auto LTAddressInfo = LTCapability.getAddressInfo()[0];
+
+    ASSERT_EQ(opcuaAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeConfigAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(nativeStreamingAddressInfo.getType(), "IPv4");
+    ASSERT_EQ(LTAddressInfo.getType(), "IPv4");
+
+    ASSERT_EQ(opcuaAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}

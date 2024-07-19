@@ -13,12 +13,15 @@ set(ARROW_PARQUET ON)
 
 set(Thrift_VERSION 0.20.0)
 
+set(PATCH_FILES ${CMAKE_CURRENT_SOURCE_DIR}/patches/001-fix-boost-linking.patch)
+
 opendaq_dependency(
     NAME                Arrow
-    REQUIRED_VERSION    18.0.0
-    GIT_REPOSITORY      https://github.com/openDAQ/arrow
-    GIT_REF             bd9923826341065780bdf5acc9c74c346050996c
+    REQUIRED_VERSION    17.0.0
+    GIT_REPOSITORY      https://github.com/apache/arrow
+    GIT_REF             6a2e19a
     SOURCE_SUBDIR       cpp
     ADD_FETCH_ALIAS     Arrow::arrow_static=arrow_static
     EXPECT_TARGET       Arrow::arrow_static
+    PATCH_FILES         "${PATCH_FILES}"
 )

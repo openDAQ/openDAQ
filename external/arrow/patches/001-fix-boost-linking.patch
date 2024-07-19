@@ -1,0 +1,23 @@
+From bd9923826341065780bdf5acc9c74c346050996c Mon Sep 17 00:00:00 2001
+From: David Norris <david.norris@blueberrydaq.com>
+Date: Fri, 19 Jul 2024 10:44:43 +0200
+Subject: [PATCH] boost: don't disable autolinking
+
+---
+ cpp/cmake_modules/ThirdpartyToolchain.cmake | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cpp/cmake_modules/ThirdpartyToolchain.cmake b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+index 5b89a831ff7fe..09497b62fab0a 100644
+--- a/cpp/cmake_modules/ThirdpartyToolchain.cmake
++++ b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+@@ -1310,7 +1310,7 @@ if(ARROW_USE_BOOST)
+     if(NOT TARGET ${BOOST_LIBRARY})
+       continue()
+     endif()
+-    target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::disable_autolinking)
++    # target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::disable_autolinking)
+     if(ARROW_BOOST_USE_SHARED)
+       target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::dynamic_linking)
+     endif()
+     

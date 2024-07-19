@@ -6,12 +6,12 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-    static const StructTypePtr unitStructType = UnitStructType();
+    static const StructTypePtr deviceDomainStructType = DeviceDomainStructType();
 }
 
 DeviceDomainImpl::DeviceDomainImpl(
     RatioPtr tickResolution, StringPtr origin, UnitPtr unit, StringPtr domainId, IntegerPtr grandmasterOffset)
-    : GenericStructImpl<IDeviceDomain, IStruct>(detail::unitStructType,
+    : GenericStructImpl<IDeviceDomain, IStruct>(detail::deviceDomainStructType,
                                                 Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
                                                                             {"Origin", std::move(origin)},
                                                                             {"Unit", std::move(unit)},

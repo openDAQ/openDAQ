@@ -9,11 +9,14 @@ namespace detail
     static const StructTypePtr unitStructType = UnitStructType();
 }
 
-DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution, StringPtr origin, UnitPtr unit)
-    : GenericStructImpl<IDeviceDomain, IStruct>(
-        detail::unitStructType,
-        Dict<IString, IBaseObject>(
-            {{"TickResolution", std::move(tickResolution)}, {"Origin", std::move(origin)}, {"Unit", std::move(unit)}}))
+DeviceDomainImpl::DeviceDomainImpl(
+    RatioPtr tickResolution, StringPtr origin, UnitPtr unit, StringPtr domainId, IntegerPtr grandmasterOffset)
+    : GenericStructImpl<IDeviceDomain, IStruct>(detail::unitStructType,
+                                                Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
+                                                                            {"Origin", std::move(origin)},
+                                                                            {"Unit", std::move(unit)},
+                                                                            {"domainId", std::move(domainId)},
+                                                                            {"grandmasterOffset", std::move(grandmasterOffset)}}))
 {
 }
 
@@ -38,6 +41,22 @@ ErrCode DeviceDomainImpl::getUnit(IUnit** unit)
     OPENDAQ_PARAM_NOT_NULL(unit);
 
     *unit = this->fields.get("Unit").asPtr<IUnit>().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getDomainId(IString** domainId)
+{
+    OPENDAQ_PARAM_NOT_NULL(domainId);
+
+    *domainId = this->fields.get("domainId").asPtr<IString>().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
+
+    *grandmasterOffset = this->fields.get("grandmasterOffset").asPtr<IInteger>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -67,6 +86,20 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             serializer->key("unit");
             unit.serialize(serializer);
         }
+
+        const StringPtr domainId = this->fields.get("domainId");
+        if (domainId.assigned()) // TODO: maybe check for empty string?
+        {
+            serializer->key("domainId");
+            serializer->writeString(domainId.getCharPtr(), domainId.getLength());
+        }
+
+        const IntegerPtr grandmasterOffset = this->fields.get("grandmasterOffset");
+        if (grandmasterOffset.assigned())
+        {
+            serializer->key("grandmasterOffset");
+            serializer->writeInt(grandmasterOffset);
+        }
     }
 
     serializer->endObject();
@@ -95,6 +128,8 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     RatioPtr resolution;
     StringPtr origin;
     UnitPtr unit;
+    StringPtr domainId;
+    IntegerPtr grandmasterOffset;
     
     if (serializedObj.hasKey("tickResolution"))
     {
@@ -111,14 +146,26 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         unit = serializedObj.readObject("unit");
     }
 
-    *obj = DeviceDomain(resolution, origin, unit).as<IBaseObject>();
+    if (serializedObj.hasKey("domainId"))
+    {
+        domainId = serializedObj.readString("domainId");
+    }
+
+    if (serializedObj.hasKey("grandmasterOffset"))
+    {
+        grandmasterOffset = serializedObj.readInt("grandmasterOffset");
+    }
+
+    *obj = DeviceDomain(resolution, origin, unit, domainId, grandmasterOffset).as<IBaseObject>();
     return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
-    IUnit*, unit
+    IUnit*, unit,
+    IString*, domainId,
+    IInteger*, grandmasterOffset
 )
 
 END_NAMESPACE_OPENDAQ

@@ -18,6 +18,7 @@
 #include <coreobjects/unit.h>
 #include <coretypes/ratio.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -65,13 +67,31 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
      * @param[out] unit The domain unit.
      */
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
+
+    /*!
+     * @brief Gets the domain id.
+     * @param[out] domainId The domain id.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getDomainId(IString** domainId) = 0;
+
+    /*!
+     * @brief Gets the grandmaster offset.
+     * @param[out] grandmasterOffset The grandmaster offset.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
-    IUnit*, unit
+    IUnit*, unit,
+    IString*, domainId,
+    IInteger*, grandmasterOffset
 )
 
 

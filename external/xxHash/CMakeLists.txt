@@ -13,13 +13,12 @@ opendaq_dependency(
     REQUIRED_VERSION    0.8.1
     GIT_REPOSITORY      https://github.com/Cyan4973/xxHash.git
     GIT_REF             v0.8.1
+    SOURCE_SUBDIR       cmake_unofficial
     EXPECT_TARGET       xxHash::xxhash
     PATCH_FILES         "${PATCH_FILES}"
 )
 
 if (xxHash_FETCHED)
-
-    add_subdirectory(${xxhash_SOURCE_DIR}/cmake_unofficial ${xxhash_BINARY_DIR})
 
     install(TARGETS xxhash
         EXPORT ${SDK_NAME}

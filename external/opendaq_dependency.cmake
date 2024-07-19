@@ -19,7 +19,7 @@ macro(opendaq_check_dependency)
         ""
         ${ARGN}
     )
-    message(STATUS ${TARGET})
+
     # assume it's there
     set(${OPENDAQ_CHECK_DEP_VAR} 1)
 
@@ -45,6 +45,8 @@ endmacro()
 #     [ FIND_PACKAGE_NAME depName ]           # overrides the name used in find_package() (default is NAME)
 #     [ LOG_LEVEL         WARNING ]           # sets CMAKE_MESSAGE_LOG_LEVEL when fetching
 #     [ PKGCONFIG_NAME    nameInPkgconfig ]   # if set, try pkgconfig with this name if find_package() fails
+#     [ SOURCE_SUBDIR     subdir ]            # add_subdirectory() this subdir in source instead of top level
+#     [ ADD_FETCH_ALIAS   Alias=Target ... ]  # add specified aliases if dep was fetched (not config mode)
 #     [ EXPECT_TARGET     depname::depname ]  # if set, asserts that the specified target is provided
 #     [ EXPECT_COMMNAD    some_command ]      # if set, asserts that the specified command is provided
 #     [ PATCH_FILES       ... ]               # if set, specified patches are applied before building
@@ -78,10 +80,11 @@ macro(opendaq_dependency)
 
     cmake_parse_arguments(OPENDAQ_DEP
         "OPTIONAL"
-        "NAME;REQUIRED_VERSION;EXPECT_TARGET;EXPECT_COMMAND;GIT_REPOSITORY;GIT_REF;GIT_SHALLOW;URL;URL_HASH;FETCH_LOG_LEVEL;PKGCONFIG_NAME;FIND_PACKAGE_NAME;GIT_SUBMODULES"
-        "PATCH_FILES"
+        "NAME;REQUIRED_VERSION;EXPECT_TARGET;EXPECT_COMMAND;GIT_REPOSITORY;GIT_REF;GIT_SHALLOW;URL;URL_HASH;FETCH_LOG_LEVEL;PKGCONFIG_NAME;FIND_PACKAGE_NAME;GIT_SUBMODULES;SOURCE_SUBDIR"
+        "PATCH_FILES;ADD_FETCH_ALIAS"
         ${ARGN})
 
+    string(TOLOWER "${OPENDAQ_DEP_NAME}" OPENDAQ_DEP_NAME_LOWER)
     string(TOUPPER "${OPENDAQ_DEP_NAME}" OPENDAQ_DEP_NAME_UPPER)
 
     set_cmake_folder_context(TARGET_FOLDER_NAME)
@@ -103,6 +106,7 @@ macro(opendaq_dependency)
     endif()
 
     if (NOT OPENDAQ_ALWAYS_FETCH_${OPENDAQ_DEP_NAME_UPPER})
+
         find_package(${OPENDAQ_DEP_FIND_PACKAGE_NAME} ${OPENDAQ_DEP_REQUIRED_VERSION} QUIET GLOBAL)
 
         if (${OPENDAQ_DEP_FIND_PACKAGE_NAME}_FOUND)
@@ -128,8 +132,8 @@ macro(opendaq_dependency)
             # make sure the thing found provides the expected targets/commands
             opendaq_check_dependency(
                 VAR OPENDAQ_DEP_TARGETS_OK
-                OPENDAQ_DEP_EXPECT_TARGET "${OPENDAQ_DEP_EXPECT_TARGET}"
-                OPENDAQ_DEP_EXPECT_COMMAND "${OPENDAQ_DEP_EXPECT_COMMAND}"
+                EXPECT_TARGET "${OPENDAQ_DEP_EXPECT_TARGET}"
+                EXPECT_COMMAND "${OPENDAQ_DEP_EXPECT_COMMAND}"
             )
 
             if (NOT OPENDAQ_DEP_TARGETS_OK)
@@ -189,6 +193,10 @@ macro(opendaq_dependency)
             message(FATAL_ERROR "No valid source given for opendaq_dependency()!")
         endif()
 
+        if (OPENDAQ_DEP_SOURCE_SUBDIR)
+            list(APPEND SOURCE_PARAMS SOURCE_SUBDIR ${OPENDAQ_DEP_SOURCE_SUBDIR})
+        endif()
+
         FetchContent_Declare(${OPENDAQ_DEP_NAME}
             ${SOURCE_PARAMS}
             ${OPENDAQ_DEP_GIT_SUBMODULES}
@@ -201,11 +209,24 @@ macro(opendaq_dependency)
         # pop CMAKE_MESSAGE_LOG_LEVEL
         set(CMAKE_MESSAGE_LOG_LEVEL ${OPENDAQ_DEP_OLD_LOG_LEVEL})
 
+        # in fetched (add_subdirectory) mode, some packages do not create target aliases
+        # normally expected in config mode (find_package) as these are only in its *Config.cmake
+        # files; we will add these aliases ourselves now if requested by the caller
+        foreach(alias ${OPENDAQ_DEP_ADD_FETCH_ALIAS})
+            if(alias MATCHES "^([^=]+)=([^=]+)$")
+                set(alias_from "${CMAKE_MATCH_1}")
+                set(alias_to "${CMAKE_MATCH_2}")
+                add_library(${alias_from} ALIAS ${alias_to})
+            else()
+                message(FATAL_ERROR "opendaq_dependency ADD_FETCH_ALIAS must be of the form Alias=RealTarget")
+            endif()
+        endforeach()
+
         # make sure the thing fetched provides the expected targets/commands
         opendaq_check_dependency(
             VAR ${OPENDAQ_DEP_NAME}_FETCHED
-            OPENDAQ_DEP_EXPECT_TARGET "${OPENDAQ_DEP_EXPECT_TARGET}"
-            OPENDAQ_DEP_EXPECT_COMMAND "${OPENDAQ_DEP_EXPECT_COMMAND}"
+            EXPECT_TARGET "${OPENDAQ_DEP_EXPECT_TARGET}"
+            EXPECT_COMMAND "${OPENDAQ_DEP_EXPECT_COMMAND}"
         )
 
         if (NOT OPENDAQ_DEP_OPTIONAL AND NOT ${OPENDAQ_DEP_NAME}_FETCHED)
@@ -214,4 +235,3 @@ macro(opendaq_dependency)
     endif()
 
 endmacro()
-#endfunction()

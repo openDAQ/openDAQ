@@ -448,7 +448,7 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
         serializer->key("structFields");
         structFields.serialize(serializer);
 
-        if (domainId.assigned())
+        if (domainId.assigned()) // TODO: maybe check for empty string?
         {
             serializer->key("domainId");
             serializer->writeString(domainId.getCharPtr(), domainId.getLength());

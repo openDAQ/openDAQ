@@ -40,6 +40,7 @@ class BlockView(tk.Frame):
         self.function_block_img = self.context.icons[
             'function_block'] if self.context and self.context.icons and 'function_block' in self.context.icons else None
         self.folder_img = self.context.icons['folder'] if self.context and self.context.icons and 'folder' in self.context.icons else None
+        self.component_img = self.context.icons['circle'] if self.context and self.context.icons and 'circle' in self.context.icons else None
 
         self.label_icon = tk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
@@ -82,6 +83,11 @@ class BlockView(tk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.folder_img)
+            elif daq.IComponent.can_cast_from(self.node):
+                self.node = daq.IComponent.cast_from(self.node)
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context)
+                self.label_icon.config(image=self.component_img)
         self.on_expand()
 
     def handle_expand_toggle(self):

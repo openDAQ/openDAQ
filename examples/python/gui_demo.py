@@ -41,7 +41,8 @@ class DisplayType(enum.Enum):
     CHANNELS = 2
     FUNCTION_BLOCKS = 3
     TOPOLOGY = 4
-    UNSPECIFIED = 5
+    TOPOLOGY_CUSTOM_COMPONENTS = 5
+    UNSPECIFIED = 6
 
     def from_tab_index(index):
         if index == 0:
@@ -226,14 +227,17 @@ class App(tk.Tk):
 
         folder = daq.IFolder.cast_from(
             component) if component and daq.IFolder.can_cast_from(component) else None
+        device = daq.IDevice.cast_from(
+            component) if component and daq.IDevice.can_cast_from(component) else None
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
-            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
+            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None else component.parent.global_id
 
-        if folder is None or folder.items:
-            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, None):
-                self.tree_add_component(parent_id, component)
+        if folder is None or folder.items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
+            if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None):
+                self.tree_add_component(
+                    parent_id, component, display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
             elif display_type == DisplayType.SYSTEM_OVERVIEW:
                 if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component)):
                     if not (daq.IFolder.can_cast_from(component) and component.name in ('IP', 'Sig')):
@@ -256,7 +260,14 @@ class App(tk.Tk):
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type)
 
-    def tree_add_component(self, parent_node_id, component):
+        if device is not None and display_type == DisplayType.TOPOLOGY:
+            custom_components = device.custom_components
+            for item in custom_components:
+                self.context.custom_component_ids.add(item.global_id)
+                self.tree_traverse_components_recursive(
+                    item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
+
+    def tree_add_component(self, parent_node_id, component, show_unknown=False):
         component_node_id = component.global_id
         component_name = component.name
         icon = self.context.icons['circle']
@@ -295,7 +306,7 @@ class App(tk.Tk):
             elif component_name == 'IO':
                 component_name = 'Inputs/Outputs'
         else:  # skipping unknown type components
-            skip = True
+            skip = not show_unknown
 
         if not skip:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
@@ -440,8 +451,6 @@ class App(tk.Tk):
         else:
             if daq.IFolderConfig.can_cast_from(node):
                 folder = daq.IFolderConfig.cast_from(node)
-                print(
-                    f'io folder {node} named: {folder.name} items: {folder.items}')
             return self.find_fb_or_device(node.parent)
 
     def right_side_panel_clear(self):
@@ -451,7 +460,9 @@ class App(tk.Tk):
     def right_side_panel_draw_node(self, node):
         if node is None:
             return
-        found = self.find_fb_or_device(node)
+
+        found = self.find_fb_or_device(
+            node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
         elif type(found) in (daq.IChannel, daq.IFunctionBlock):
@@ -499,7 +510,7 @@ class App(tk.Tk):
 
             draw_sub_fbs(found)
 
-        elif type(found) is daq.IDevice:
+        elif type(found) in (daq.IDevice, daq.IComponent):
             block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X, padx=5, pady=5)
@@ -555,7 +566,6 @@ class App(tk.Tk):
     # MARK: - Other
 
     def on_refresh_event(self, event):
-        print('APP: refresh event received')
         self.tree_update(self.context.selected_node)
 
     def on_tab_change(self, event):

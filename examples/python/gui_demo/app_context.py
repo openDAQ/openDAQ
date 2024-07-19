@@ -15,6 +15,7 @@ class AppContext(object):
 
         # logic
         self.nodes = {}
+        self.custom_component_ids = set()
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
@@ -90,7 +91,7 @@ class AppContext(object):
         parts = global_id.split('/')
         n_parts = len(parts)
         devices = ['']
-        if n_parts > 3: # empty + device + Sig + ID
+        if n_parts > 3:  # empty + device + Sig + ID
             if parts[-2] == 'Sig':
                 signal = parts[-1]
                 if signal:
@@ -107,7 +108,7 @@ class AppContext(object):
         for signal in device.signals_recursive:
             self.signals[device.global_id][self.short_id(
                 signal.global_id)] = signal
-            
+
     def signals_for_device(self, device):
         if device is None:
             return {}

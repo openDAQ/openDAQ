@@ -95,6 +95,7 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
 endif()
 
 if (DAQMODULES_FILE_WRITER_MODULE)
+    add_subdirectory(thrift EXCLUDE_FROM_ALL)
     add_subdirectory(arrow EXCLUDE_FROM_ALL)
 endif()
 

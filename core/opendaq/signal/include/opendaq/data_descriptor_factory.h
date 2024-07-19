@@ -78,6 +78,8 @@ inline StructTypePtr DataDescriptorStructType()
                                     "TickResolution",
                                     "StructFields",
                                     "Metadata"),
+                                    "domainId",
+                                    "grandmasterOffset"),
                       List<IBaseObject>(List<IDimension>(),
                                         "",
                                         0,
@@ -88,7 +90,9 @@ inline StructTypePtr DataDescriptorStructType()
                                         nullptr,
                                         nullptr,
                                         nullptr,
-                                        Dict<IString, IBaseObject>()),
+                                        Dict<IString, IBaseObject>(),
+                                        nullptr,
+                                        nullptr),
                       List<IType>(SimpleType(ctList),
                                   SimpleType(ctString),
                                   SimpleType(ctInt),
@@ -99,7 +103,9 @@ inline StructTypePtr DataDescriptorStructType()
                                   SimpleType(ctString),
                                   RatioStructType(),
                                   SimpleType(ctList),
-                                  SimpleType(ctDict)));
+                                  SimpleType(ctDict),
+                                  SimpleType(ctString),
+                                  SimpleType(ctInt)));
 }
 
 /*!@}*/

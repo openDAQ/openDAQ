@@ -448,11 +448,17 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
         serializer->key("structFields");
         structFields.serialize(serializer);
 
-        serializer->key("domainId");
-        serializer->writeString(domainId.getCharPtr(), domainId.getLength());
+        if (domainId.assigned())
+        {
+            serializer->key("domainId");
+            serializer->writeString(domainId.getCharPtr(), domainId.getLength());
+        }
 
-        serializer->key("grandmasterOffset");
-        serializer->writeInt(grandmasterOffset);
+        if (grandmasterOffset.assigned())
+        {
+            serializer->key("grandmasterOffset");
+            serializer->writeInt(grandmasterOffset);
+        }
     }
     serializer->endObject();
 
@@ -530,6 +536,17 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     ListPtr<IDataDescriptor> structFields = serializedObj.readObject("structFields");
     dataDescriptor.setStructFields(structFields);
 
+    if (serializedObj.hasKey("domainId"))
+    {
+        auto domainId = serializedObj.readString("domainId");
+        dataDescriptor.setDomainId(domainId);
+    }
+
+    if (serializedObj.hasKey("grandmasterOffset"))
+    {
+        auto grandmasterOffset = serializedObj.readInt("grandmasterOffset");
+        dataDescriptor.setGrandmasterOffset(grandmasterOffset);
+    }
     *obj = dataDescriptor.build().as<IBaseObject>();
 
     return OPENDAQ_SUCCESS;

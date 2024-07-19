@@ -38,7 +38,7 @@ inline StructTypePtr DeviceDomainStructType()
     return StructType(
         "DeviceDomain",
         List<IString>("TickResolution", "Origin", "Unit", "domainId", "grandmasterOffset"),
-        List<IBaseObject>(Ratio(1, 1), "", "", Unit("s", -1, "second", "time"), nullptr, nullptr),
+        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr),
         List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctInt)));
 }
 

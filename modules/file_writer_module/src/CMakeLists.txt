@@ -39,6 +39,7 @@ target_link_libraries(${LIB_NAME}   PUBLIC daq::opendaq
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
+                                              $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
                                               $<INSTALL_INTERFACE:include>
 )
 

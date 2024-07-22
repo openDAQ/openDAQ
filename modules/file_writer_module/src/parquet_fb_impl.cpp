@@ -21,12 +21,6 @@
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
 
-#include <arrow/api.h>
-#include <arrow/io/api.h>
-#include <parquet/arrow/reader.h>
-#include <parquet/arrow/writer.h>
-#include <parquet/exception.h>
-
 BEGIN_NAMESPACE_FILE_WRITER_MODULE
 
 namespace FileWriter
@@ -36,33 +30,60 @@ static const char* InputDisconnected = "Disconnected";
 static const char* InputConnected = "Connected";
 static const char* InputInvalid = "Invalid";
 
-// #0 Build dummy data to pass around
-// To have some input data, we first create an Arrow Table that holds
-// some data.
-static std::shared_ptr<arrow::Table> generate_table() {
-  arrow::Int64Builder i64builder;
-  PARQUET_THROW_NOT_OK(i64builder.AppendValues({1, 2, 3, 4, 5}));
-  std::shared_ptr<arrow::Array> i64array;
-  PARQUET_THROW_NOT_OK(i64builder.Finish(&i64array));
-
-  arrow::StringBuilder strbuilder;
-  PARQUET_THROW_NOT_OK(strbuilder.Append("some"));
-  PARQUET_THROW_NOT_OK(strbuilder.Append("string"));
-  PARQUET_THROW_NOT_OK(strbuilder.Append("content"));
-  PARQUET_THROW_NOT_OK(strbuilder.Append("in"));
-  PARQUET_THROW_NOT_OK(strbuilder.Append("rows"));
-  std::shared_ptr<arrow::Array> strarray;
-  PARQUET_THROW_NOT_OK(strbuilder.Finish(&strarray));
-
-  std::shared_ptr<arrow::Schema> schema = arrow::schema(
-      {arrow::field("int", arrow::int64()), arrow::field("str", arrow::utf8())});
-
-  return arrow::Table::Make(schema, {i64array, strarray});
+ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : FunctionBlock(CreateType(), ctx, parent, localId)
+    , inputPortCount(0)
+    , recordingActive(false)
+    , dataRecorded(false)
+    , schemaBuilder()
+{
+    initProperties();
+    createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
+    initStatuses();
 }
 
+void ParquetFbImpl::initProperties()
+{
+    const auto fileNameProp = StringProperty("FileName", "");
+    objPtr.addProperty(fileNameProp);
+    objPtr.getOnPropertyValueWrite("FileName") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-// #1 Write out the data as a Parquet file
-static void write_parquet_file(const arrow::Table& table) {
+    const auto recordingActive = BoolProperty("RecordingActive", false);
+    objPtr.addProperty(recordingActive);
+    objPtr.getOnPropertyValueWrite("RecordingActive") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
+    readProperties();
+}
+
+void ParquetFbImpl::propertyChanged(bool configure)
+{
+    std::scoped_lock lock(sync);
+    readProperties();
+    if (!recordingActive && dataRecorded)
+    { 
+        std::shared_ptr<arrow::Table> table = generateTable();
+        writeParquetFile(*table);
+    }
+}
+
+std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable() 
+{
+    arrow::ArrayVector dataVector;
+    // Iterate and print key-value pairs
+    for (auto& entry : builderMap) 
+    {
+        std::shared_ptr<arrow::Array> doubleArray;
+        PARQUET_THROW_NOT_OK(entry.second.Finish(&doubleArray));
+        dataVector.emplace_back(doubleArray);
+    }
+    auto schema = schemaBuilder.Finish();
+    return arrow::Table::Make(schema.ValueOrDie(), dataVector);
+}
+
+void ParquetFbImpl::writeParquetFile(const arrow::Table& table) 
+{
   std::shared_ptr<arrow::io::FileOutputStream> outfile;
   PARQUET_ASSIGN_OR_THROW(
       outfile, arrow::io::FileOutputStream::Open("parquet-arrow-example.parquet"));
@@ -73,91 +94,15 @@ static void write_parquet_file(const arrow::Table& table) {
       parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3));
 }
 
-ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
-{
-    createInputPorts();
-    initProperties();
-    initStatuses();
-
-    std::shared_ptr<arrow::Table> table = generate_table();
-    write_parquet_file(*table);
-}
-
-void ParquetFbImpl::initProperties()
-{
-    const auto fileNameProp = StringProperty("FileName", "");
-    objPtr.addProperty(fileNameProp);
-    objPtr.getOnPropertyValueWrite("FileName") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    readProperties();
-}
-
-void ParquetFbImpl::propertyChanged(bool configure)
-{
-    std::scoped_lock lock(sync);
-    readProperties();
-    if (configure)
-        this->configure();
-}
-
 void ParquetFbImpl::readProperties()
 {
     fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
+    recordingActive = static_cast<bool>(objPtr.getPropertyValue("RecordingActive"));
 }
 
 FunctionBlockTypePtr ParquetFbImpl::CreateType()
 {
     return FunctionBlockType("file_writer_module_parquet", "Parquet", "Stores signals into the apache parquet data format.");
-}
-
-void ParquetFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                   const DataDescriptorPtr& inputDomainDataDescriptor)
-{
-    if (inputDataDescriptor.assigned())
-        this->inputDataDescriptor = inputDataDescriptor;
-    if (inputDomainDataDescriptor.assigned())
-        this->inputDomainDataDescriptor = inputDomainDataDescriptor;
-
-    configure();
-}
-
-void ParquetFbImpl::configure()
-{
-    if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
-    {
-        setInputStatus(InputInvalid);
-        return;
-    }
-
-    try
-    {
-        if (inputDataDescriptor.getDimensions().getCount() > 0)
-            throw std::runtime_error("Arrays not supported");
-
-        inputSampleType = inputDataDescriptor.getSampleType();
-        if (inputSampleType != SampleType::Float64 &&
-            inputSampleType != SampleType::Float32 &&
-            inputSampleType != SampleType::Int8 &&
-            inputSampleType != SampleType::Int16 &&
-            inputSampleType != SampleType::Int32 &&
-            inputSampleType != SampleType::Int64 &&
-            inputSampleType != SampleType::UInt8 &&
-            inputSampleType != SampleType::UInt16 &&
-            inputSampleType != SampleType::UInt32 &&
-            inputSampleType != SampleType::UInt64)
-            throw std::runtime_error("Invalid sample type");
-
-       
-    }
-    catch (const std::exception& e)
-    {
-        setInputStatus(InputInvalid);
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
-    }
-
-    setInputStatus(InputConnected);
 }
 
 
@@ -169,7 +114,7 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
     std::scoped_lock lock(sync);
 
     PacketPtr packet;
-    const auto connection = inputPort.getConnection();
+    const auto connection = port.getConnection();
     if (!connection.assigned())
         return;
 
@@ -180,11 +125,14 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
         switch (packet.getType())
         {
             case PacketType::Event:
-                processEventPacket(packet);
                 break;
-
             case PacketType::Data:
-                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, std::move(packet), outQueue, outDomainQueue);
+                if (recordingActive)
+                {
+                    const auto sampleType = port.getSignal().getDescriptor().getSampleType();
+                    const auto globalId = port.getSignal().getGlobalId();
+                    SAMPLE_TYPE_DISPATCH(sampleType, processDataPacket, globalId, std::move(packet), outQueue, outDomainQueue);
+                }
                 break;
 
             default:
@@ -196,34 +144,43 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
 
 }
 
-void ParquetFbImpl::processEventPacket(const EventPacketPtr& packet)
-{
-    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
-    }
-}
 
 
  template <SampleType InputSampleType>
-void ParquetFbImpl::processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
+void ParquetFbImpl::processDataPacket(std::string globalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
 {
-    using InputType = typename SampleTypeToType<InputSampleType>::Type;
-    auto inputData = static_cast<InputType*>(packet.getData());
+    //using InputType = typename SampleTypeToType<InputSampleType>::Type;
+    double* inputData = static_cast<double*>(packet.getData());
     const size_t sampleCount = packet.getSampleCount();
 
-    std::cout << "bla" << std::endl;
-    // ToDO
-    //for (size_t i = 0; i < sampleCount; i++)
-        
+    PARQUET_THROW_NOT_OK(builderMap[globalId].AppendValues(inputData, sampleCount));
+    dataRecorded = true;
 }
 
-void ParquetFbImpl::createInputPorts()
+void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::SchedulerQueueWasEmpty);
+    std::scoped_lock lock(sync);
+    LOG_T("Connected to port {}", inputPort.getLocalId());
+
+    //std::string domainId = inputPort.getSignal().getDomainSignal().getGlobalId();
+    std::string signalId = inputPort.getSignal().getGlobalId();
+
+    //schemaBuilder.AddField(arrow::field(domainId, arrow::float64()));
+    schemaBuilder.AddField(arrow::field(signalId, arrow::float64()));
+
+    //builderMap[domainId] = arrow::DoubleBuilder();
+    builderMap[signalId] = arrow::DoubleBuilder();
+    createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
+
 }
+
+void ParquetFbImpl::onDisconnected(const InputPortPtr& inputPort)
+{
+    std::scoped_lock lock(sync);
+    LOG_T("Disconnected from port {}", inputPort.getLocalId());
+    removeInputPort(inputPort);
+}
+
 
 void ParquetFbImpl::initStatuses()
 {
@@ -235,12 +192,12 @@ void ParquetFbImpl::initStatuses()
     }
     catch (const std::exception& e)
     {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Parquet");
         LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
     }
     catch (...)
     {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Parquet");
         LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
     }
 
@@ -248,22 +205,6 @@ void ParquetFbImpl::initStatuses()
 
     auto inputStatusValue = Enumeration("InputStatusType", InputDisconnected, context.getTypeManager());
     thisStatusContainer.addStatus("InputStatus", inputStatusValue);
-}
-
-void ParquetFbImpl::setInputStatus(const StringPtr& value)
-{
-    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
-
-    auto inputStatusValue = Enumeration("InputStatusType", value, context.getTypeManager());
-    thisStatusContainer.setStatus("InputStatus", inputStatusValue);
-}
-
-void ParquetFbImpl::onDisconnected(const InputPortPtr& inputPort)
-{
-    if (this->inputPort == inputPort)
-    {
-        setInputStatus(InputDisconnected);
-    }
 }
 
 }

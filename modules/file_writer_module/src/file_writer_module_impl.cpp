@@ -8,10 +8,10 @@ BEGIN_NAMESPACE_FILE_WRITER_MODULE
 
 
 FileWriterModule::FileWriterModule(ContextPtr ctx)
-    : Module("Reference function block module",
+    : Module("File writer module",
              daq::VersionInfo(FILE_WRITER_MODULE_MAJOR_VERSION, FILE_WRITER_MODULE_MINOR_VERSION, FILE_WRITER_MODULE_PATCH_VERSION),
              std::move(ctx),
-             "ReferenceFunctionBlock")
+             "FileWriter")
 {
 }
 

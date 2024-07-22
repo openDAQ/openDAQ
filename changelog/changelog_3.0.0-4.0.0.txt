@@ -1,3 +1,37 @@
+22.07.2024
+Description:
+	- Standardize cases to PascalCase
+		- Component IDs
+			- Reference Device
+			- Reference Function Blocks (backwards compatible)
+				- Classifier
+				- FFT
+				- Power
+				- Renderer
+				- Scaling
+				- Statistics
+				- Trigger
+			- AudioDeviceModuleWavWriter
+			- Reference device IO components (AI, CAN, RefCh)
+		- Component names
+			- Default client device
+		- Type IDs
+			- Reference modules
+			- Streaming/config clients (backwards compatible)
+			- Server modules
+			- MiniAudio
+		- Type names
+			- Reference modules
+			- Streaming/config clients
+			- Server modules
+		- Server capability protocol ID (backwards compatible)
+		- Server capability protocol name
+		- Struct Type field names
+		- Other
+
+Required integration changes:
+	- Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
+
 10.07.2024
 Description
 	- Add address type and address reachability status to server capability
@@ -5,7 +39,7 @@ Description
 	- Reachability is currently only available for ipv4
 	- "canPing" and "ipv4Address" properties have been removed from discovered device info
 
-Required integeration changes:
+Required integration changes:
 	- If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
 	- "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
 	
@@ -68,7 +102,7 @@ Description
 
 27.05.2024
 Description
-  - Supporing servers to be discovered by mDNS
+  - Supporting servers to be discovered by mDNS
 
 +  [interface] IServer::getId(IString** serverId)
 +  [interface] IServer::enableDiscovery();

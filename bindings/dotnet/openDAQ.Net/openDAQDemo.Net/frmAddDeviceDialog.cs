@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Daq.Core.OpenDAQ;
@@ -34,21 +27,26 @@ namespace openDAQDemoNet
     {
         public class ChildDevice
         {
+            private bool _isUsed;
+
             public ChildDevice(bool used, string name, string connectionString)
             {
-                this.Used = used;
+                _isUsed = used;
+
                 this.Name = name;
                 this.ConnectionString = connectionString;
             }
+
+            #region fields to show in table
 
             /// <summary>
             /// Gets a value indicating whether this <see cref="ChildDevice"/> is used.
             /// </summary>
             /// <value>
-            ///   <c>true</c> if used; otherwise, <c>false</c>.
+            ///   <c>yes</c> if used; otherwise, <c>no</c>.
             /// </value>
             [DisplayName("Used")]
-            public bool Used { get; private set; }
+            public string Used => _isUsed ? "yes" : "no";
 
             /// <summary>
             /// Gets the device name.
@@ -62,13 +60,17 @@ namespace openDAQDemoNet
             [DisplayName("Connection string")]
             public string ConnectionString { get; private set; }
 
+            #endregion
+
             /// <summary>
-            /// Sets the used flag (private property).
+            /// Sets the used state (private property).
             /// </summary>
-            internal void SetUsed()
-            {
-                this.Used = true;
-            }
+            internal void SetUsed() => _isUsed = true;
+
+            /// <summary>
+            /// Gets the used state (private property).
+            /// </summary>
+            internal bool IsUsed => _isUsed;
         }
 
         /// <summary>The openDAQ instance.</summary>
@@ -88,19 +90,7 @@ namespace openDAQDemoNet
 
             this.treeParentDevices.HideSelection = false;
 
-            this.gridChildDevices.ColumnHeadersDefaultCellStyle.Font = new Font(this.gridChildDevices.Font, FontStyle.Bold);
-            this.gridChildDevices.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            //this.gridChildDevices.RowsDefaultCellStyle.BackColor            = Color.Gray;
-            this.gridChildDevices.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(0xFF, 0xF0, 0xF0, 0xF0);
-            this.gridChildDevices.GridColor = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
-
-            this.gridChildDevices.DataSource = _childDevices;
-
-            this.gridChildDevices.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            this.gridChildDevices.MultiSelect = false;
-            this.gridChildDevices.RowHeadersVisible = false;
-            this.gridChildDevices.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            this.gridChildDevices.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+            InitializeDataGridView(this.gridChildDevices);
 
             this._instance = instance;
         }
@@ -121,7 +111,29 @@ namespace openDAQDemoNet
             PopulateParentDevices(_instance);
             PopulateChildDevices();
 
+            //binding data late to not to "trash" GUI display beforehand
+            this.gridChildDevices.DataSource = _childDevices;
+            this.gridChildDevices.Columns["Used"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+
             ResetWaitCursor();
+        }
+
+        #region Context Menu
+
+        private void contextMenuStripChildDevices_Opening(object sender, CancelEventArgs e)
+        {
+            if (this.gridChildDevices.SelectedRows.Count == 0)
+                return;
+
+            //set enabled state of "Add device" menu according to its "Used" flag
+            int rowIndex = this.gridChildDevices.SelectedRows[0].Index;
+            this.addDeviceToolStripMenuItem.Enabled = !_childDevices[rowIndex].IsUsed;
+        }
+
+        private void addDeviceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //this.txtConnectionString.Text has already been set after (right-)clicking on the row
+            this.btnAdd.PerformClick();
         }
 
         /// <summary>
@@ -135,6 +147,18 @@ namespace openDAQDemoNet
             PopulateChildDevices();
         }
 
+        #endregion
+
+        #region DataGridView
+
+        private void gridChildDevices_CellContextMenuStripNeeded(object sender, DataGridViewCellContextMenuStripNeededEventArgs e)
+        {
+            DataGridView dataGridView = ((DataGridView)sender);
+
+            //select the clicked cell/row for context menu (which opens automatically after this)
+            dataGridView.CurrentCell = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        }
+
         /// <summary>
         /// Handles the SelectionChanged event of the <c>gridChildDevices</c> control.<br/>
         /// Populate the <c>txtConnectionString</c> control with the selected item.
@@ -146,6 +170,7 @@ namespace openDAQDemoNet
             if (this.gridChildDevices.SelectedRows.Count == 0)
                 return;
 
+            //set the selected connection string into the text box
             int rowIndex = this.gridChildDevices.SelectedRows[0].Index;
             this.txtConnectionString.Text = _childDevices[rowIndex].ConnectionString;
         }
@@ -166,7 +191,7 @@ namespace openDAQDemoNet
 
             ChildDevice childDevice = _childDevices[e.RowIndex];
 
-            if (childDevice.Used)
+            if (childDevice.IsUsed)
             {
                 MessageBox.Show("Device already in use");
                 return;
@@ -180,6 +205,8 @@ namespace openDAQDemoNet
                 this.gridChildDevices.Refresh(); //Update() does not paint the check-mark somehow
             }
         }
+
+        #endregion
 
         /// <summary>
         /// Handles the Click event of the <c>btnAdd</c> control.<br/>
@@ -197,11 +224,11 @@ namespace openDAQDemoNet
                 return;
             }
 
-            //search the connection string in the child device list
+            //search the connection string in the child device list (null when manually entered connection string)
             ChildDevice? childDevice = _childDevices.FirstOrDefault(device => device.ConnectionString?.Equals(connectionString, StringComparison.InvariantCultureIgnoreCase) ?? false);
 
             //found that child device in grid and it is already used?
-            if (childDevice?.Used ?? false)
+            if (childDevice?.IsUsed ?? false)
             {
                 MessageBox.Show("Device already in use");
                 return;
@@ -221,8 +248,8 @@ namespace openDAQDemoNet
         /// </summary>
         private void SetWaitCursor()
         {
-            Cursor.Current = Cursors.WaitCursor;
-            this.Cursor = Cursors.WaitCursor;
+            Cursor.Current     = Cursors.WaitCursor;
+            this.Cursor        = Cursors.WaitCursor;
             this.UseWaitCursor = true;
         }
 
@@ -232,9 +259,35 @@ namespace openDAQDemoNet
         private void ResetWaitCursor()
         {
             this.UseWaitCursor = false;
-            this.Cursor = Cursors.Default;
-            Cursor.Current = Cursors.Default;
+            this.Cursor        = Cursors.Default;
+            Cursor.Current     = Cursors.Default;
             base.ResetCursor();
+        }
+
+        /// <summary>
+        /// Initializes the given <c>DataGridView</c>.
+        /// </summary>
+        /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
+        private void InitializeDataGridView(DataGridView grid)
+        {
+            var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
+
+            grid.EnableHeadersVisualStyles                   = false; //enable ColumnHeadersDefaultCellStyle
+            columnHeadersDefaultCellStyle.BackColor          = Color.FromKnownColor(KnownColor.ButtonFace);
+            columnHeadersDefaultCellStyle.Font               = new Font(gridChildDevices.Font, FontStyle.Bold);
+            columnHeadersDefaultCellStyle.SelectionBackColor = columnHeadersDefaultCellStyle.BackColor;
+            columnHeadersDefaultCellStyle.SelectionForeColor = columnHeadersDefaultCellStyle.ForeColor;
+            grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF0, 0xF0, 0xF0);
+            grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
+
+            grid.DefaultCellStyle.DataSourceNullValue = null;
+
+            grid.SelectionMode       = DataGridViewSelectionMode.FullRowSelect;
+            grid.MultiSelect         = false;
+            grid.RowHeadersVisible   = false;
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            grid.AutoSizeRowsMode    = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
         }
 
         /// <summary>
@@ -284,21 +337,21 @@ namespace openDAQDemoNet
         /// </summary>
         private void PopulateChildDevices()
         {
-            this.gridChildDevices.DataSource = null;
-            this.gridChildDevices.Refresh();
+            bool isWaitCursorAlreadyOn = this.UseWaitCursor;
 
-            SetWaitCursor();
+            if (!isWaitCursorAlreadyOn)
+                SetWaitCursor();
 
             _childDevices.Clear();
+            this.gridChildDevices.Refresh(); //clear in GUI
 
             foreach (var deviceInfo in _instance.AvailableDevices)
             {
                 AddChildDeviceToGrid(deviceInfo.Name, deviceInfo.ConnectionString);
             }
 
-            this.gridChildDevices.DataSource = _childDevices;
-
-            ResetWaitCursor();
+            if (!isWaitCursorAlreadyOn)
+                ResetWaitCursor();
         }
 
         /// <summary>
@@ -336,6 +389,13 @@ namespace openDAQDemoNet
 
             try
             {
+                //HACK: just for now, as HBK devices cannot handle port numbers at the moment
+                if (childDevice?.Name.StartsWith("HBK") ?? false)
+                {
+                    //remove port number for now
+                    connectionString = string.Join(':', connectionString.Split(':'), 0, 2) + "/";
+                }
+
                 //connect the device
                 Device newDevice = selectedParentDevice.AddDevice(connectionString);
 

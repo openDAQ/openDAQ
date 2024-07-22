@@ -31,6 +31,8 @@
             components = new System.ComponentModel.Container();
             TreeNode treeNode2 = new TreeNode("treeComponents");
             treeComponents = new TreeView();
+            contextMenuStripTreeComponents = new ContextMenuStrip(components);
+            contextMenuStripMenuItemTreeRemove = new ToolStripMenuItem();
             listComponent = new ListBox();
             menuStrip1 = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
@@ -53,6 +55,7 @@
             tabFullTopology = new TabPage();
             splitContainer1 = new SplitContainer();
             imglTreeImages = new ImageList(components);
+            contextMenuStripTreeComponents.SuspendLayout();
             menuStrip1.SuspendLayout();
             toolStrip1.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -64,6 +67,7 @@
             // 
             // treeComponents
             // 
+            treeComponents.ContextMenuStrip = contextMenuStripTreeComponents;
             treeComponents.Dock = DockStyle.Fill;
             treeComponents.Location = new Point(3, 3);
             treeComponents.Name = "treeComponents";
@@ -72,7 +76,22 @@
             treeComponents.Nodes.AddRange(new TreeNode[] { treeNode2 });
             treeComponents.Size = new Size(441, 542);
             treeComponents.TabIndex = 2;
-            treeComponents.AfterSelect += treeSystemOverview_AfterSelect;
+            treeComponents.AfterSelect += treeComponents_AfterSelect;
+            treeComponents.NodeMouseClick += treeComponents_NodeMouseClick;
+            // 
+            // contextMenuStripTreeComponents
+            // 
+            contextMenuStripTreeComponents.Items.AddRange(new ToolStripItem[] { contextMenuStripMenuItemTreeRemove });
+            contextMenuStripTreeComponents.Name = "contextMenuStrip1";
+            contextMenuStripTreeComponents.Size = new Size(181, 48);
+            contextMenuStripTreeComponents.Opening += contextMenuStripTreeComponents_Opening;
+            // 
+            // contextMenuStripMenuItemTreeRemove
+            // 
+            contextMenuStripMenuItemTreeRemove.Name = "contextMenuStripMenuItemTreeRemove";
+            contextMenuStripMenuItemTreeRemove.Size = new Size(180, 22);
+            contextMenuStripMenuItemTreeRemove.Text = "Remove";
+            contextMenuStripMenuItemTreeRemove.Click += contextMenuStripMenuItemTreeRemove_Click;
             // 
             // listComponent
             // 
@@ -284,6 +303,7 @@
             FormClosing += frmMain_FormClosing;
             Load += frmMain_Load;
             Shown += frmMain_Shown;
+            contextMenuStripTreeComponents.ResumeLayout(false);
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             toolStrip1.ResumeLayout(false);
@@ -321,5 +341,7 @@
         private ToolStripMenuItem exitToolStripMenuItem;
         private ToolStripMenuItem showHiddenComponentsToolStripMenuItem;
         private ToolStripMenuItem componentsInsteadOfDirectObjectAccessToolStripMenuItem;
+        private ContextMenuStrip contextMenuStripTreeComponents;
+        private ToolStripMenuItem contextMenuStripMenuItemTreeRemove;
     }
 }

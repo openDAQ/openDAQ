@@ -103,12 +103,14 @@ public partial class frmMain : Form
         SetWaitCursor();
         this.Update();
 
-        TreeUpdate();
+        UpdateTree();
 
         ResetWaitCursor();
 
         this.treeComponents.Select();
     }
+
+    #region ToolStripMenu
 
     private void loadConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
@@ -127,12 +129,12 @@ public partial class frmMain : Form
 
     private void showHiddenComponentsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        TreeUpdate();
+        UpdateTree();
     }
 
     private void componentsInsteadOfDirectObjectAccessToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        TreeUpdate();
+        UpdateTree();
     }
 
     private void btnAddDevice_Click(object sender, EventArgs e)
@@ -148,7 +150,7 @@ public partial class frmMain : Form
             SetWaitCursor();
         }
 
-        TreeUpdate();
+        UpdateTree();
 
         ResetWaitCursor();
     }
@@ -160,15 +162,19 @@ public partial class frmMain : Form
 
     private void btnRefresh_Click(object sender, EventArgs e)
     {
-        TreeUpdate();
+        UpdateTree();
     }
+
+    #endregion ToolStripMenu
 
     private void tabControl1_Selected(object sender, TabControlEventArgs e)
     {
-        TreeUpdate();
+        UpdateTree();
     }
 
-    private void treeSystemOverview_AfterSelect(object sender, TreeViewEventArgs e)
+    #region TreeView
+
+    private void treeComponents_AfterSelect(object sender, TreeViewEventArgs e)
     {
         this.listComponent.Items.Clear();
 
@@ -201,8 +207,136 @@ public partial class frmMain : Form
         }
     }
 
+    private void treeComponents_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+    {
+        if (e.Button == MouseButtons.Right)
+            this.treeComponents.SelectedNode = e.Node;
+    }
+
+    #endregion TreeView
+
+    #region ContextMenuStrip
+
+    private void contextMenuStripTreeComponents_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+    {
+        TreeNode? selectedNode = this.treeComponents.SelectedNode;
+
+        if (selectedNode == null)
+        {
+            //no node selected
+            e.Cancel = true;
+            return;
+        }
+
+        //disable all menu items beforehand
+        foreach (var item in this.contextMenuStripTreeComponents.Items.OfType<ToolStripMenuItem>())
+            item.Enabled = false;
+
+        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
+                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
+
+        BaseObject? baseObject = selectedNode.Tag as BaseObject;
+
+        switch (baseObject)
+        {
+            case Component component when useComponentApproach:
+                {
+                    if ((component.CanCastTo<Device>() && !selectedNode.Equals(this.treeComponents.Nodes?[0]))
+                        || (component.CanCastTo<FunctionBlock>() && !component.CanCastTo<Channel>()))
+                    {
+                        this.contextMenuStripMenuItemTreeRemove.Enabled = true;
+                    }
+                    else
+                    {
+                        e.Cancel = true;
+                    }
+                }
+                break;
+
+            //the following cases are meant for the object list approach of the system overview
+
+            case Device:
+            case FunctionBlock when !baseObject.CanCastTo<Channel>():
+                this.contextMenuStripMenuItemTreeRemove.Enabled = true;
+                break;
+
+            //case Channel: //this is also a FunctionBlock
+            //case Signal:
+            //    //nothing here yet
+            //    break;
+
+            default:
+                e.Cancel = true;
+                break;
+        }
+    }
+
+    private void contextMenuStripMenuItemTreeRemove_Click(object sender, EventArgs e)
+    {
+        TreeNode? selectedNode = this.treeComponents.SelectedNode;
+
+        if (selectedNode == null)
+            return;
+
+        //selectedNode.Tag is actually always a Component through inheritance
+        Device parentDevice = GetParentDevice((Component)selectedNode.Tag);
+
+        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
+                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
+
+        bool isRemoved = false;
+
+        BaseObject? baseObject = selectedNode.Tag as BaseObject;
+
+        switch (baseObject)
+        {
+            case Component component when useComponentApproach:
+                {
+                    if (component.Cast<Device>() is Device device)
+                    {
+                        parentDevice.RemoveDevice(device);
+                        device.Dispose();
+                        isRemoved = true;
+                    }
+                    else if (!component.CanCastTo<Channel>() && (component.Cast<FunctionBlock>() is FunctionBlock functionBlock))
+                    {
+                        parentDevice.RemoveFunctionBlock(functionBlock);
+                        functionBlock.Dispose();
+                        isRemoved = true;
+                    }
+                }
+                break;
+
+            //the following cases are meant for the object list approach of the system overview
+
+            case Device device:
+                parentDevice.RemoveDevice(device);
+                device.Dispose();
+                isRemoved = true;
+                break;
+
+            case FunctionBlock functionBlock when !baseObject.CanCastTo<Channel>():
+                parentDevice.RemoveFunctionBlock(functionBlock);
+                functionBlock.Dispose();
+                isRemoved = true;
+                break;
+        }
+
+        if (isRemoved)
+        {
+            selectedNode.Tag = null;
+            this.treeComponents.SelectedNode = selectedNode.Parent;
+            UpdateTree();
+        }
+    }
+
+    #endregion ContextMenuStrip
+
     #endregion //event handlers .................................................................................
 
+    /// <summary>
+    /// Sets the wait cursor.
+    /// </summary>
     private void SetWaitCursor()
     {
         Cursor.Current     = Cursors.WaitCursor;
@@ -210,6 +344,9 @@ public partial class frmMain : Form
         this.UseWaitCursor = true;
     }
 
+    /// <summary>
+    /// Resets to the default cursor.
+    /// </summary>
     private void ResetWaitCursor()
     {
         this.UseWaitCursor = false;
@@ -218,7 +355,10 @@ public partial class frmMain : Form
         base.ResetCursor();
     }
 
-    private void TreeUpdate()
+    /// <summary>
+    /// Updates the <c>TreeView</c>.
+    /// </summary>
+    private void UpdateTree()
     {
         string? selectedNodeName = this.treeComponents.SelectedNode?.Name;
 
@@ -233,11 +373,12 @@ public partial class frmMain : Form
         this.treeComponents.Update();
 
         //select stored node or first or none
-        TreeNode? foundNode = !string.IsNullOrEmpty(selectedNodeName)
-                              ? this.treeComponents.Nodes.Find(selectedNodeName, searchAllChildren: true).FirstOrDefault()
-                              : (this.treeComponents.Nodes.Count > 0)
-                                ? this.treeComponents.Nodes[0]
-                                : null;
+        TreeNode? foundNode = null;
+        if (!string.IsNullOrEmpty(selectedNodeName))
+            foundNode = this.treeComponents.Nodes.Find(selectedNodeName, searchAllChildren: true).FirstOrDefault();
+        if ((foundNode == null) && (this.treeComponents.Nodes.Count > 0))
+            foundNode = this.treeComponents.Nodes[0];
+
         this.treeComponents.SelectedNode = foundNode;
     }
 
@@ -248,13 +389,12 @@ public partial class frmMain : Form
         if (component == null)
             return;
 
-        Folder folder = component.Cast<Folder>();
-
         // tree view only in topology mode + parent exists
         //parent_id = '' if display_type not in (
         //    DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
         string parentId = component.Parent?.GlobalId ?? string.Empty;
 
+        Folder? folder = component.Cast<Folder>();
         if ((folder == null) || (folder.GetItems().Count > 0))
         {
             switch ((eTabstrip)this.tabControl1.SelectedTab.Tag)
@@ -267,22 +407,20 @@ public partial class frmMain : Form
                     }
                     break;
 
-                case eTabstrip.Signals:
-                    if (component.CanCastTo<Signal>())
-                    { }
+                case eTabstrip.Signals when component.Cast<Signal>() is Signal signal:
+                    TreeAddComponent(parentId, signal);
                     break;
 
-                case eTabstrip.Channels:
-                    if (component.CanCastTo<Channel>())
-                    { }
+                case eTabstrip.Channels when component.Cast<Channel>() is Channel channel:
+                    TreeAddComponent(parentId, channel);
                     break;
 
-                case eTabstrip.FunctionBlocks:
-                    if (component.CanCastTo<FunctionBlock>())
-                    { }
+                case eTabstrip.FunctionBlocks when component.Cast<FunctionBlock>() is FunctionBlock functionBlock:
+                    TreeAddComponent(parentId, functionBlock);
                     break;
 
                 case eTabstrip.FullTopology:
+                    TreeAddComponent(parentId, component);
                     break;
 
                 default:
@@ -308,7 +446,7 @@ public partial class frmMain : Form
 
         bool skip = !this.showHiddenComponentsToolStripMenuItem.Checked && !component.Visible;
 
-        if (component.Cast<Channel>() is Channel channel)
+        if (component.CanCastTo<Channel>())
             iconKey = nameof(GlblRes.channel);
         else if (component.CanCastTo<Signal>())
             iconKey = nameof(GlblRes.signal);
@@ -333,8 +471,12 @@ public partial class frmMain : Form
             else if (componentName == "IO")
                 componentName = "Inputs/Outputs'";
         }
-        else //skipping unknown type components
+        else
+        {
+            //skipping unknown type components
             skip = true;
+            System.Diagnostics.Debug.Print($"++++> unknown component {componentName} ({componentNodeId})");
+        }
 
         if (!skip)
         {
@@ -456,11 +598,43 @@ public partial class frmMain : Form
 
     #endregion Object lists approach
 
+    /// <summary>
+    /// Adds a new node to the <c>TreeNodeCollection</c>.
+    /// </summary>
+    /// <param name="nodesCollection">The nodes collection.</param>
+    /// <param name="key">The key.</param>
+    /// <param name="text">The text.</param>
+    /// <param name="imageKey">The image key.</param>
+    /// <returns>The newly created <c>TreeNode</c>.</returns>
     private TreeNode AddNode(TreeNodeCollection nodesCollection, string? key, string text, string imageKey)
     {
         return nodesCollection.Add(key, text, imageKey, imageKey);
     }
 
+    /// <summary>
+    /// Gets the parent <c>Device</c> component for the given child <c>Component</c>.
+    /// </summary>
+    /// <param name="childComponent">The child component.</param>
+    /// <returns>The <c>Device</c> or the instance when no parent <c>Device</c> found.</returns>
+    private Device GetParentDevice(Component? childComponent)
+    {
+        childComponent = childComponent?.Parent;
+
+        while (childComponent != null)
+        {
+            if (childComponent.CanCastTo<Device>())
+                return childComponent.Cast<Device>();
+
+            childComponent = childComponent.Parent;
+        }
+
+        return _instance!;
+    }
+
+    /// <summary>
+    /// Lists the properties.
+    /// </summary>
+    /// <param name="propertyObject">The property object.</param>
     private void ListProperties(PropertyObject propertyObject)
     {
         var properties = propertyObject.AllProperties;

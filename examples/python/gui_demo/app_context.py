@@ -15,6 +15,7 @@ class AppContext(object):
 
         # logic
         self.nodes = {}
+        self.custom_component_ids = set()
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
@@ -86,28 +87,64 @@ class AppContext(object):
             images[file.split('.')[0]] = image
         self.icons = images
 
-    def short_id(self, global_id: str):
+    def is_server(self, device_id):
+        if not device_id:
+            return False
+
+        component = self.instance.find_component(device_id)
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return False
+
+        device = daq.IDevice.cast_from(component)
+        return len(device.info.server_capabilities) > 0
+
+    def short_id(self, global_id):
+        if not global_id or not isinstance(global_id, str):
+            return ''
+
+        # split to '', root_device, etc...
         parts = global_id.split('/')
         n_parts = len(parts)
-        devices = ['']
-        if n_parts > 3: # empty + device + Sig + ID
-            if parts[-2] == 'Sig':
-                signal = parts[-1]
-                if signal:
-                    for index, part in enumerate(parts[:-2]):
-                        if part == 'Dev' and index + 1 < n_parts:
-                            devices.append(parts[index + 1])
-                    return '/'.join(devices) + '/' + signal
-        return ''
+
+        # fallback root device
+        server_device_index = 2  # skip root device id
+        # find the nearest server device pass
+        for index, part in reversed(list(enumerate(parts))):
+            # found subdevice
+            if part == 'Dev' and index + 2 <= n_parts:
+                # recreate device id
+                device_id = '/'.join(parts[:index+2])
+                # found server device
+                if self.is_server(device_id):
+                    server_device_index = index + 1
+                    break
+
+        # filter realitive to device id
+        filtered_parts = []
+        for index, part in reversed(list(enumerate(parts[server_device_index:]))):
+            if part not in ('IO', 'FB', 'Sig', 'Dev'):
+                filtered_parts.append(part)
+
+        return '/'.join(reversed(filtered_parts))
 
     def update_signals_for_device(self, device):
         if device is None:
             return
+
         self.signals[device.global_id] = {}
         for signal in device.signals_recursive:
-            self.signals[device.global_id][self.short_id(
-                signal.global_id)] = signal
-            
+            short_id = self.short_id(signal.global_id)
+
+            if short_id not in self.signals[device.global_id]:
+                self.signals[device.global_id][short_id] = signal
+            else:  # handle collision
+                # replace short entry to long one
+                collided_signal = self.signals[device.global_id][short_id]
+                del self.signals[device.global_id][short_id]
+                self.signals[device.global_id][collided_signal.global_id] = collided_signal
+                # insert second collision entry
+                self.signals[device.global_id][signal.global_id] = signal
+
     def signals_for_device(self, device):
         if device is None:
             return {}

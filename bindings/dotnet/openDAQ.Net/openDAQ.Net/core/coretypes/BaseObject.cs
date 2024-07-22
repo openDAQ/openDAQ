@@ -29,6 +29,7 @@
 //------------------------------------------------------------------------------
 
 //#define USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
+//#define DEBUG_PRINT_CREATE_AND_DISPOSE
 
 
 using System.Reflection;
@@ -97,7 +98,9 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             _name = _name.Substring(0, _name.IndexOf('`')) + $"<{string.Join(", ", type.GenericTypeArguments.Select(arg => arg.Name).ToArray())}>";
         _name = $"{_name}_{__instanceCounter}";
 
+# if DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Print("----- Create " + _name);
+# endif
 
         //check if the native object implements this object's topmost interface
         CheckNativeInterfaceGuid(nativePointer);
@@ -643,7 +646,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             return;
         }
 
-#if DEBUG
+#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
 #endif
         PrintReferenceCount(debugPrintOnly: true);
@@ -705,7 +708,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
             if (!debugPrintOnly)
                 Console.WriteLine(message);
+
+#if DEBUG_PRINT_CREATE_AND_DISPOSE
             System.Diagnostics.Debug.Print(message);
+#endif
 
             return;
         }
@@ -719,7 +725,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
             if (!debugPrintOnly)
                 Console.WriteLine(message);
+
+#if DEBUG_PRINT_CREATE_AND_DISPOSE
             System.Diagnostics.Debug.Print(message);
+#endif
         }
 #endif
     }

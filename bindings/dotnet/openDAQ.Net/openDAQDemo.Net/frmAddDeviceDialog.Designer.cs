@@ -34,6 +34,8 @@
             textBox1 = new TextBox();
             gridChildDevices = new DataGridView();
             contextMenuStripChildDevices = new ContextMenuStrip(components);
+            addDeviceToolStripMenuItem = new ToolStripMenuItem();
+            toolStripSeparator1 = new ToolStripSeparator();
             refreshToolStripMenuItem = new ToolStripMenuItem();
             panel1 = new Panel();
             label1 = new Label();
@@ -97,19 +99,33 @@
             gridChildDevices.RowTemplate.Height = 25;
             gridChildDevices.Size = new Size(653, 432);
             gridChildDevices.TabIndex = 0;
+            gridChildDevices.CellContextMenuStripNeeded += gridChildDevices_CellContextMenuStripNeeded;
             gridChildDevices.CellDoubleClick += gridChildDevices_CellDoubleClick;
             gridChildDevices.SelectionChanged += gridChildDevices_SelectionChanged;
             // 
             // contextMenuStripChildDevices
             // 
-            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { refreshToolStripMenuItem });
+            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { addDeviceToolStripMenuItem, toolStripSeparator1, refreshToolStripMenuItem });
             contextMenuStripChildDevices.Name = "contextMenuStrip1";
-            contextMenuStripChildDevices.Size = new Size(181, 48);
+            contextMenuStripChildDevices.Size = new Size(134, 54);
+            contextMenuStripChildDevices.Opening += contextMenuStripChildDevices_Opening;
+            // 
+            // addDeviceToolStripMenuItem
+            // 
+            addDeviceToolStripMenuItem.Name = "addDeviceToolStripMenuItem";
+            addDeviceToolStripMenuItem.Size = new Size(133, 22);
+            addDeviceToolStripMenuItem.Text = "Add device";
+            addDeviceToolStripMenuItem.Click += addDeviceToolStripMenuItem_Click;
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(130, 6);
             // 
             // refreshToolStripMenuItem
             // 
             refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
-            refreshToolStripMenuItem.Size = new Size(180, 22);
+            refreshToolStripMenuItem.Size = new Size(133, 22);
             refreshToolStripMenuItem.Text = "Refresh list";
             refreshToolStripMenuItem.Click += refreshToolStripMenuItem_Click;
             // 
@@ -187,5 +203,7 @@
         private Label label1;
         private ContextMenuStrip contextMenuStripChildDevices;
         private ToolStripMenuItem refreshToolStripMenuItem;
+        private ToolStripMenuItem addDeviceToolStripMenuItem;
+        private ToolStripSeparator toolStripSeparator1;
     }
 }

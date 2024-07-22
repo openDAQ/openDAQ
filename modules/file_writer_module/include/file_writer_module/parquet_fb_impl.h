@@ -24,6 +24,11 @@
 #include "opendaq/data_packet_ptr.h"
 #include "opendaq/event_packet_ptr.h"
 
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <parquet/arrow/writer.h>
+#include <parquet/exception.h>
+
 BEGIN_NAMESPACE_FILE_WRITER_MODULE
 
 namespace FileWriter
@@ -35,30 +40,31 @@ public:
     explicit ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~ParquetFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
-
-private:
-    InputPortPtr inputPort;
-
-    DataDescriptorPtr inputDataDescriptor;
-    DataDescriptorPtr inputDomainDataDescriptor;
-    SampleType inputSampleType;
-
-    std::string fileName;
-
-    void createInputPorts();
-
-    template <SampleType InputSampleType>
-    void processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
-
-    void processEventPacket(const EventPacketPtr& packet);
-    void onPacketReceived(const InputPortPtr& port) override;
+    void onConnected(const InputPortPtr& port) override;
     void onDisconnected(const InputPortPtr& port) override;
 
-    void processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                        const DataDescriptorPtr& inputDomainDataDescriptor);
+    static FunctionBlockTypePtr CreateType();
 
-    void configure();
+
+private:
+    std::map<std::string,arrow::DoubleBuilder> builderMap;
+
+    int inputPortCount;
+    bool recordingActive;
+    bool dataRecorded; 
+    arrow::SchemaBuilder schemaBuilder;
+    std::string fileName;
+
+
+
+    void updateInputPorts();
+    void writeParquetFile(const arrow::Table& table);
+    std::shared_ptr<arrow::Table> generateTable();
+
+    template <SampleType InputSampleType>
+    void processDataPacket(std::string globalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
+    void onPacketReceived(const InputPortPtr& port) override;
+
 
     void initProperties();
     void propertyChanged(bool configure);
@@ -66,6 +72,7 @@ private:
 
     void initStatuses();
     void setInputStatus(const StringPtr& value);
+
 };
 
 }

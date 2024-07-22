@@ -97,7 +97,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
 
     // [templateType(customComponents, IComponent)]
     /*!
-     * @brief Gets a list of all components/folders in a device that are not titled 'io', 'sig', 'dev', 'sync' or 'fb'
+     * @brief Gets a list of all components/folders in a device that are not titled 'io', 'sig', 'dev', 'Synchronization' or 'fb'
      * @param[out] customComponents The list of custom components.
      */
     virtual ErrCode INTERFACE_FUNC getCustomComponents(IList** customComponents) = 0;

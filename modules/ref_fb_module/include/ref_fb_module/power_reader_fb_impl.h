@@ -35,7 +35,8 @@ public:
     ~PowerReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType();
-    static bool getDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
+    static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
+    static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
 
 private:
     InputPortPtr voltageInputPort;

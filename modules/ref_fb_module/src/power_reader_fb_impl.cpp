@@ -95,15 +95,23 @@ FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
     return FunctionBlockType("ref_fb_module_power_reader", "Power with reader", "Calculates power using multi reader");
 }
 
-bool PowerReaderFbImpl::getDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
+bool PowerReaderFbImpl::getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc)
 {
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         valueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        return true;
+    }
+    return false;
+}
+
+bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc)
+{
+    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
         domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         return true;
     }
-
     return false;
 }
 
@@ -141,12 +149,14 @@ void PowerReaderFbImpl::onDataReceived()
             DataDescriptorPtr currentDescriptor;
 
             if (eventPackets.hasKey(voltageInputPort.getGlobalId()))
-                getDescriptors(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor, domainDescriptor);
+                getDataDescriptor(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor);
 
             if (eventPackets.hasKey(currentInputPort.getGlobalId()))
-                getDescriptors(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor, domainDescriptor);
+                getDataDescriptor(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor);
+            
+            getDomainDescriptor(reader.getMainDescriptor(), domainDescriptor);
 
-            if (domainDescriptor.assigned() || voltageDescriptor.assigned() || currentDescriptor.assigned())
+            if (voltageDescriptor.assigned() || currentDescriptor.assigned())
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
     }

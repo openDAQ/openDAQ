@@ -60,6 +60,7 @@ public:
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** packet) override;
 
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -141,6 +142,9 @@ private:
     NotifyInfo notify{};
     bool portConnected {};
     bool portDisconnected {};
+
+    DataDescriptorPtr mainValueDescriptor;
+    DataDescriptorPtr mainDomainDescriptor;
 };
 
 END_NAMESPACE_OPENDAQ

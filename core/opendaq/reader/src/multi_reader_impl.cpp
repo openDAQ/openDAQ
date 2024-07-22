@@ -6,6 +6,8 @@
 #include <opendaq/multi_reader_impl.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/event_packet_params.h>
 
 #include <fmt/ostream.h>
 #include <thread>
@@ -567,6 +569,15 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
     return min;
 }
 
+
+ErrCode MultiReaderImpl::getMainDescriptor(IEventPacket** packet)
+{
+   OPENDAQ_PARAM_NOT_NULL(packet);
+   std::scoped_lock lock(mutex);
+   *packet = DataDescriptorChangedEventPacket(mainValueDescriptor, mainDomainDescriptor).detach();
+   return OPENDAQ_SUCCESS;
+}
+
 SyncStatus MultiReaderImpl::getSyncStatus() const
 {
     SyncStatus status = SyncStatus::Unsynchronized;
@@ -592,13 +603,29 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 {
     auto packets = Dict<IString, EventPacketPtr>();
 
-    for (auto& signal : signals)
+    for (size_t i = 0; i < signals.size(); i++)
     {
+        auto & signal = signals[i];
         auto packet = signal.readUntilNextDataPacket();
         invalid |= signal.invalid;
         if (packet.assigned())
         {
             packets.set(signal.port.getGlobalId(), packet);
+        }
+
+        if (i == 0 && packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+        {
+            auto params = packet.getParameters();
+            DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+            DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            if (newValueDescriptor.assigned())
+            {
+                mainValueDescriptor = newValueDescriptor;
+            }
+            if (newDomainDescriptor.assigned())
+            {
+                mainDomainDescriptor = newDomainDescriptor;
+            }
         }
     }
     return packets.detach();

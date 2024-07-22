@@ -1070,7 +1070,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (syncComponent.assigned())
     {
-        serializer.key("Sync");
+        serializer.key("Synchronization");
         syncComponent.serialize(serializer);
     }
 }
@@ -1171,9 +1171,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceDomain = serializedObject.readObject("deviceDomain");
     }
 
-    if (serializedObject.hasKey("Sync"))
+    if (serializedObject.hasKey("Synchronization"))
     {
-        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Sync");
+        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

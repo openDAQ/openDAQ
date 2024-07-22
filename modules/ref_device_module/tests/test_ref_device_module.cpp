@@ -511,7 +511,7 @@ TEST_F(RefDeviceModuleTest, Sync)
 {
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
-    ComponentPtr syncComponent = device.getItem("sync");
+    ComponentPtr syncComponent = device.getItem("Synchronization");
 
     ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
     syncComponent.setPropertyValue("UseSync", True);

@@ -82,6 +82,7 @@ public:
                                           SizeT* count,
                                           SizeT timeoutMs = 0,
                                           IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) override;
 
     // IReaderConfig
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
@@ -108,6 +109,7 @@ private:
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
+    void* getValuePacketData(const DataPacketPtr& packet) const;
     ReaderStatusPtr readPackets();
     ErrCode readPacketData();
 

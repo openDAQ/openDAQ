@@ -120,6 +120,44 @@ TYPED_TEST(StreamReaderTest, ReadOneSample)
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
+TYPED_TEST(StreamReaderTest, ReadOneSampleRawValue)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64,
+                                               nullptr,
+                                               LinearScaling(4, 15, SampleType::Int32, ScaledSampleType::Float64)));
+
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal, ReadMode::RawValue);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
+
+    // Set the first sample
+    auto dataPtr = static_cast<int32_t*>(dataPacket.getRawData());
+    dataPtr[0] = 123;
+
+    this->sendPacket(dataPacket);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+    }
+
+    SizeT count{1};
+    TypeParam samples[1]{};
+    reader.read(&samples, &count);
+
+    ASSERT_EQ(count, 1u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(123)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(123));
+    }
+
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
 TYPED_TEST(StreamReaderTest, ReadOneSampleWithTimeout)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -281,13 +319,13 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithRanges)
         setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr),
         1,
         1
-    );
+        );
 
     auto dataPacket = DataPacketWithDomain(
         domainPacket,
         this->signal.getDescriptor(),
         1
-    );
+        );
 
     // Set the first sample to
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -796,7 +834,7 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
         // Packet 2
 
         packet = DataPacket(this->signal.getDescriptor(), SECOND_PACKET_SIZE);
-        
+
         // Set the first sample to
         dataPtr = static_cast<double*>(packet.getData());
         dataPtr[0] = 33.3;
@@ -911,7 +949,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
         reader.read(nullptr, &tmpCount);
     }
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64); // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
@@ -934,7 +972,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
     // domain info available from descriptor change event
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64); 
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
 
 TYPED_TEST(StreamReaderTest, ReadUndefinedWithNoDomainFromPacket)
@@ -948,7 +986,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithNoDomainFromPacket)
         reader.read(nullptr, &tmpCount);
     }
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64); // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
@@ -975,8 +1013,8 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
 
     auto reader = daq::StreamReaderBuilder()
         .setSignal(this->signal)
-        .setValueReadType(SampleTypeFromType<UndefinedType>::SampleType)
-        .setDomainReadType(SampleTypeFromType<UndefinedType>::SampleType)
+        .setValueReadType(SampleType::Invalid)
+        .setDomainReadType(SampleType::Invalid)
         .setSkipEvents(true)
         .build();
 
@@ -1060,23 +1098,23 @@ protected:
             DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
 
         const auto dataDescriptor = DataDescriptorBuilder()
-                                        .setName("Data")
-                                        .setSampleType(SampleType::UInt8)
-                                        .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
-                                        .setRule(ExplicitDataRule())
-                                        .build();
+                                    .setName("Data")
+                                    .setSampleType(SampleType::UInt8)
+                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                    .setRule(ExplicitDataRule())
+                                    .build();
 
         canMsgDescriptor = DataDescriptorBuilder()
-                                          .setName("Can")
-                                          .setSampleType(SampleType::Struct)
-                                          .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
-                                          .build();
+                           .setName("Can")
+                           .setSampleType(SampleType::Struct)
+                           .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
+                           .build();
 
         domainDescriptor = DataDescriptorBuilder()
-                                          .setSampleType(SampleType::UInt64)
-                                          .setRule(LinearDataRule(1, 0))
-                                          .setTickResolution(Ratio(1, 1000))
-                                          .build();
+                           .setSampleType(SampleType::UInt64)
+                           .setRule(LinearDataRule(1, 0))
+                           .setTickResolution(Ratio(1, 1000))
+                           .build();
 
         valueSignal.setDescriptor(canMsgDescriptor);
         domainSignal.setDescriptor(domainDescriptor);
@@ -1140,21 +1178,21 @@ TEST_F(StructStreamReaderTest, ReadStructData)
 
     ASSERT_EQ(count, 3u);
 
-    ASSERT_EQ(dataRead[0].arbId,   (uint32_t) 12);
-    ASSERT_EQ(dataRead[0].length,  (uint8_t)   2);
-    ASSERT_EQ(dataRead[0].data[0], (uint8_t)   1);
-    ASSERT_EQ(dataRead[0].data[1], (uint8_t)   2);
-    ASSERT_EQ(dataRead[1].arbId,   (uint32_t) 15);
-    ASSERT_EQ(dataRead[1].length,  (uint8_t)   4);
-    ASSERT_EQ(dataRead[1].data[0], (uint8_t)   5);
-    ASSERT_EQ(dataRead[1].data[1], (uint8_t)   6);
-    ASSERT_EQ(dataRead[1].data[2], (uint8_t)   7);
-    ASSERT_EQ(dataRead[1].data[3], (uint8_t)   8);
-    ASSERT_EQ(dataRead[2].arbId,   (uint32_t) 14);
-    ASSERT_EQ(dataRead[2].length,  (uint8_t)   3);
-    ASSERT_EQ(dataRead[2].data[0], (uint8_t)  10);
-    ASSERT_EQ(dataRead[2].data[1], (uint8_t)  11);
-    ASSERT_EQ(dataRead[2].data[2], (uint8_t)  12);
+    ASSERT_EQ(dataRead[0].arbId, (uint32_t) 12);
+    ASSERT_EQ(dataRead[0].length, (uint8_t) 2);
+    ASSERT_EQ(dataRead[0].data[0], (uint8_t) 1);
+    ASSERT_EQ(dataRead[0].data[1], (uint8_t) 2);
+    ASSERT_EQ(dataRead[1].arbId, (uint32_t) 15);
+    ASSERT_EQ(dataRead[1].length, (uint8_t) 4);
+    ASSERT_EQ(dataRead[1].data[0], (uint8_t) 5);
+    ASSERT_EQ(dataRead[1].data[1], (uint8_t) 6);
+    ASSERT_EQ(dataRead[1].data[2], (uint8_t) 7);
+    ASSERT_EQ(dataRead[1].data[3], (uint8_t) 8);
+    ASSERT_EQ(dataRead[2].arbId, (uint32_t) 14);
+    ASSERT_EQ(dataRead[2].length, (uint8_t) 3);
+    ASSERT_EQ(dataRead[2].data[0], (uint8_t) 10);
+    ASSERT_EQ(dataRead[2].data[1], (uint8_t) 11);
+    ASSERT_EQ(dataRead[2].data[2], (uint8_t) 12);
 }
 
 TEST_F(StructStreamReaderTest, ReadStructDataInvalid)
@@ -1352,7 +1390,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
         promise.set_value();
     });
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64); // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
@@ -1599,4 +1637,208 @@ TYPED_TEST(StreamReaderTest, DeltaCheck)
         ASSERT_EQ(count, 1u);
         ASSERT_EQ(status.getOffset(), 3);
     }
+}
+
+TYPED_TEST(StreamReaderTest, SkipSamplesNullParam)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+
+    ASSERT_THROW(reader.skipSamples(nullptr), daq::ArgumentNullException);
+}
+
+TYPED_TEST(StreamReaderTest, SkipSamplesStatus)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+    this->signal.setDescriptor(setupDescriptor(SampleType::Invalid));
+
+    // read first descriptor event
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+    }
+
+    // First skip reads the descriptor event and puts reader to invalid state
+    SizeT count = 10;
+    auto status = reader.skipSamples(&count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getValid(), false);
+    ASSERT_TRUE(status.getEventPacket().assigned());
+
+    // Second time reader is already in invalid state
+    count = 10;
+    status = reader.skipSamples(&count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_TRUE(status.assigned());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Fail);
+    ASSERT_EQ(status.getValid(), false);
+    ASSERT_FALSE(status.getEventPacket().assigned());
+}
+
+TYPED_TEST(StreamReaderTest, SkipSamplesNoData)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+    
+    SizeT count{10};
+    reader.skipSamples(&count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
+TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 50);
+
+    // read first descriptor event
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+    }
+
+    // Fill data packet
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    for (size_t i = 0; i < 50; ++i)
+        dataPtr[i] = i * 11.1;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{10};
+    TypeParam firstBatchSamples[10]{};
+    reader.read((void*) &firstBatchSamples, &count);
+
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(reader.getAvailableCount(), 40u);
+
+    count = 30;
+    reader.skipSamples(&count);
+    ASSERT_EQ(count, 30u);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+
+    count = 10;
+    TypeParam secondBatchSamples[10]{};
+    reader.read((void*) &secondBatchSamples, &count);
+
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        for (size_t i = 0; i < 10; ++i)
+        {
+            ASSERT_EQ(firstBatchSamples[i], TypeParam(typename TypeParam::Type(i * 11.1)));
+            ASSERT_EQ(secondBatchSamples[i], TypeParam(typename TypeParam::Type((40 + i) * 11.1)));
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < 10; ++i)
+        {
+            ASSERT_EQ(firstBatchSamples[i], (TypeParam)(i * 11.1));
+            ASSERT_EQ(secondBatchSamples[i], (TypeParam) ((40 + i) * 11.1));
+        }
+    }
+}
+
+
+TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+
+    // read first descriptor event
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+    }
+
+    // Send first data packet
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 25);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    for (size_t i = 0; i < 25; ++i)
+        dataPtr[i] = i * 11.1;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{10};
+    TypeParam firstBatchSamples[10]{};
+    reader.read((void*) &firstBatchSamples, &count);
+
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(reader.getAvailableCount(), 15u);
+
+    count = 20;
+    reader.skipSamples(&count);
+    ASSERT_EQ(count, 15u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    // Send second data packet
+    dataPacket = DataPacket(this->signal.getDescriptor(), 25);
+    dataPtr = static_cast<double*>(dataPacket.getData());
+    for (size_t i = 0; i < 25; ++i)
+        dataPtr[i] = (i + 25) * 11.1;
+
+    this->sendPacket(dataPacket);
+
+    count = 15;
+    reader.skipSamples(&count);
+    ASSERT_EQ(count, 15u);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+
+    count = 10;
+    TypeParam secondBatchSamples[10]{};
+    reader.read((void*) &secondBatchSamples, &count);
+
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        for (size_t i = 0; i < 10; ++i)
+        {
+            ASSERT_EQ(firstBatchSamples[i], TypeParam(typename TypeParam::Type(i * 11.1)));
+            ASSERT_EQ(secondBatchSamples[i], TypeParam(typename TypeParam::Type((40 + i) * 11.1)));
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < 10; ++i)
+        {
+            ASSERT_EQ(firstBatchSamples[i], (TypeParam) (i * 11.1));
+            ASSERT_EQ(secondBatchSamples[i], (TypeParam) ((40 + i) * 11.1));
+        }
+    }
+}
+
+TYPED_TEST(StreamReaderTest, SkipSamplesNotEnoughData)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 50);
+
+    // read first descriptor event
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+    }
+
+    // Fill data packet
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    for (size_t i = 0; i < 50; ++i)
+        dataPtr[i] = i * 11.1;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count = 100;
+    reader.skipSamples(&count);
+    ASSERT_EQ(count, 50u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 }

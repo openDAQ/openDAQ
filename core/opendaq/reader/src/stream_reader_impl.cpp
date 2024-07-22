@@ -387,15 +387,32 @@ bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPa
     return true;
 }
 
+void* StreamReaderImpl::getValuePacketData(const DataPacketPtr& packet) const
+{
+    switch (readMode)
+    {
+        case ReadMode::RawValue:
+        case ReadMode::Unscaled:
+            return packet.getRawData();
+        case ReadMode::Scaled:
+            return packet.getData();
+    }
+
+    throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+}
+
 ErrCode StreamReaderImpl::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     SizeT toRead = std::min(info.remainingToRead, remainingSampleCount);
 
-    ErrCode errCode = valueReader->readData(info.dataPacket.getData(), info.prevSampleIndex, &info.values, toRead);
-    if (OPENDAQ_FAILED(errCode))
+    if (info.values != nullptr)
     {
-        return errCode;
+        ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
     }
 
     if (info.domainValues != nullptr)
@@ -407,7 +424,7 @@ ErrCode StreamReaderImpl::readPacketData()
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
-        errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+        ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
@@ -595,6 +612,32 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
         return OPENDAQ_IGNORED;
     }
     info.prepareWithDomain(samples, domain, *count, milliseconds(timeoutMs));
+
+    auto statusPtr = readPackets();
+
+    *count = *count - info.remainingToRead;
+
+    if (status)
+        *status = statusPtr.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
+{
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    std::scoped_lock lock(mutex);
+
+    if (invalid)
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
+
+    info.prepare(nullptr, *count, milliseconds(0));
 
     auto statusPtr = readPackets();
 

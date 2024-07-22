@@ -29,6 +29,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     , processingStrand(processingIOContext)
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
+    , serverStopped(false)
 {
     startProcessingOperations();
     startTransportOperations();
@@ -58,20 +59,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
-    this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (this->rootDevice.assigned())
-    {
-        const auto info = this->rootDevice.getInfo();
-        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_native_streaming"))
-            infoInternal.removeServerCapability("opendaq_native_streaming");
-        if (info.hasServerCapability("opendaq_native_config"))
-            infoInternal.removeServerCapability("opendaq_native_config");
-    }
-
-    stopReading();
-    stopTransportOperations();
-    stopProcessingOperations();
+    stopServerInternal();
 }
 
 void NativeStreamingServerImpl::addSignalsOfComponent(ComponentPtr& component)
@@ -222,6 +210,30 @@ void NativeStreamingServerImpl::stopProcessingOperations()
     }
 }
 
+void NativeStreamingServerImpl::stopServerInternal()
+{
+    if (serverStopped)
+        return;
+
+    serverStopped = true;
+
+    this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            infoInternal.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            infoInternal.removeServerCapability("opendaq_native_config");
+    }
+
+    stopReading();
+    serverHandler->stopServer();
+    stopTransportOperations();
+    stopProcessingOperations();
+}
+
 void NativeStreamingServerImpl::prepareServerHandler()
 {
     auto signalSubscribedHandler = [this](const SignalPtr& signal)
@@ -361,19 +373,7 @@ ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 
 void NativeStreamingServerImpl::onStopServer()
 {
-    stopReading();
-    serverHandler->stopServer();
-
-    if (this->rootDevice.assigned())
-    {
-        const auto info = this->rootDevice.getInfo();
-        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_native_streaming"))
-            infoInternal.removeServerCapability("opendaq_native_streaming");
-        if (info.hasServerCapability("opendaq_native_config"))
-            infoInternal.removeServerCapability("opendaq_native_config");
-    }
-
+    stopServerInternal();
 }
 
 void NativeStreamingServerImpl::startReading()

@@ -153,7 +153,7 @@ jobs:
         run: |
           foreach($pckg in Get-ChildItem -Filter *.whl -Path .) {
             $pckg_split = $pckg.Name.split("-")
-            $pckg_split[1] = $pckg_split[1] + "_${{ steps.short-sha.outputs.sha }}"
+            $pckg_split[1] = $pckg_split[1] + "+${{ steps.short-sha.outputs.sha }}"
             $renamed = $pckg_split -Join "-"
             Rename-Item -Path $pckg -NewName $renamed
           }
@@ -475,7 +475,10 @@ jobs:
         working-directory: ${{ env.wheels_path }}
         if: github.ref == 'refs/heads/main'
         run: |
-          rename "s/-cp/_${{ steps.short-sha.outputs.sha }}-cp/" *.whl
+          for filename in *.whl; do
+            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
+            mv "$filename" "$new_filename"
+          done
 
       - uses: aws-actions/configure-aws-credentials@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:

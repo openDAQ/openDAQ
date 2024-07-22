@@ -48,7 +48,10 @@ ErrCode DeviceDomainImpl::getDomainId(IString** domainId)
 {
     OPENDAQ_PARAM_NOT_NULL(domainId);
 
-    *domainId = this->fields.get("domainId").asPtr<IString>().addRefAndReturn();
+    auto ptr = this->fields.get("domainId");
+    if (ptr.assigned())
+        *domainId = ptr.asPtr<IString>().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -56,7 +59,10 @@ ErrCode DeviceDomainImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
 {
     OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
 
-    *grandmasterOffset = this->fields.get("grandmasterOffset").asPtr<IInteger>().addRefAndReturn();
+    auto ptr = this->fields.get("grandmasterOffset");
+    if (ptr.assigned())
+        *grandmasterOffset = ptr.asPtr<IInteger>().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 

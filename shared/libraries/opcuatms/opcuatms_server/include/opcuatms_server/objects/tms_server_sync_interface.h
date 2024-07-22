@@ -51,6 +51,17 @@ public:
     using Super::Super;
 
     
+
+    bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override
+    {
+        const auto name = server->readBrowseNameString(nodeId);
+
+        if (name == "<Interface>")
+            return false;
+
+        return Super::createOptionalNode(nodeId);
+    }
+
     void addChildNodes() override
     {
         if (objProp.assigned())

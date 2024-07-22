@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include "opcuatms_server/objects/tms_server_channel.h"
+#include "opcuatms_server/objects/tms_server_sync_interface.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -38,8 +38,8 @@ protected:
     void bindPropertyCallbacks(const std::string& name);
     void triggerEvent(PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args);
 
-    std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyPtr> childProperties;
-    std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyObjectPtr> childObjects;
+    TmsServerSyncInterfacesPtr interfaces;
+    TmsServerPropertyPtr source;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

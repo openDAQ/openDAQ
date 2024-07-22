@@ -145,6 +145,9 @@ public:
                                 const std::vector<StringPtr>& customOrder,
                                 const PermissionManagerPtr& permissionManager);
 
+    friend class AddressInfoImpl;
+    friend class ServerCapabilityConfigImpl;
+
 protected:
     struct UpdatingAction
     {
@@ -226,7 +229,6 @@ protected:
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
     virtual void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
-    virtual PropertyObjectPtr createCloneBase();
 
     ErrCode beginUpdateInternal(bool deep);
     ErrCode endUpdateInternal(bool deep);
@@ -1107,14 +1109,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
         objInternal.setCoreEventTrigger(triggerCoreEvent);
         objInternal.enableCoreEventTrigger();
     }
-}
-
-template <typename PropObjInterface, typename ... Interfaces>
-PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::createCloneBase()
-{
-    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
-    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
-    return obj;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -2209,12 +2203,13 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
-
-    PropertyObjectPtr obj = createCloneBase();
+    
+    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
+    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<GenericPropertyObjectImpl<PropObjInterface, Interfaces...>*>(obj.getObject());
+        auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,
                                         valueReadEvents,
                                         endUpdateEvent,
@@ -2227,7 +2222,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;
     });
-
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

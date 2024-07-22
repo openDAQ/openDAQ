@@ -262,12 +262,6 @@ ErrCode ServerCapabilityConfigImpl::Deserialize(ISerializedObject* serialized,
         });
 }
 
-PropertyObjectPtr ServerCapabilityConfigImpl::createCloneBase()
-{
-    const auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
-    return obj;
-}
-
 ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
@@ -345,6 +339,29 @@ ErrCode ServerCapabilityConfigImpl::addAddressInfo(IAddressInfo* addressInfo)
             addressStr.end());
     addressInfoPtr.addProperty(ObjectProperty(addressStr, addressInfo));
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ServerCapabilityConfigImpl::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+
+    auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
+
+    return daqTry([this, &obj, &cloned]()
+    {
+        auto implPtr = static_cast<ServerCapabilityConfigImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(valueWriteEvents,
+                                        valueReadEvents,
+                                        endUpdateEvent,
+                                        triggerCoreEvent,
+                                        localProperties,
+                                        propValues,
+                                        customOrder,
+                                        permissionManager);
+
+        *cloned = obj.detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

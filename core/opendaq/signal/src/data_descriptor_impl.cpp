@@ -32,8 +32,8 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("TickResolution", builderPtr.getTickResolution());
     params.set("StructFields", builderPtr.getStructFields());
     params.set("Metadata", builderPtr.getMetadata());
-    params.set("domainId", builderPtr.getDomainId());
-    params.set("grandmasterOffset", builderPtr.getGrandmasterOffset());
+    params.set("DomainId", builderPtr.getDomainId());
+    params.set("GrandmasterOffset", builderPtr.getGrandmasterOffset());
 
     return params;
 }

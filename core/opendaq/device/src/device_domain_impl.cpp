@@ -15,8 +15,8 @@ DeviceDomainImpl::DeviceDomainImpl(
                                                 Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
                                                                             {"Origin", std::move(origin)},
                                                                             {"Unit", std::move(unit)},
-                                                                            {"domainId", std::move(domainId)},
-                                                                            {"grandmasterOffset", std::move(grandmasterOffset)}}))
+                                                                            {"DomainId", std::move(domainId)},
+                                                                            {"GrandmasterOffset", std::move(grandmasterOffset)}}))
 {
 }
 
@@ -48,7 +48,7 @@ ErrCode DeviceDomainImpl::getDomainId(IString** domainId)
 {
     OPENDAQ_PARAM_NOT_NULL(domainId);
 
-    auto ptr = this->fields.get("domainId");
+    auto ptr = this->fields.get("DomainId");
     if (ptr.assigned())
         *domainId = ptr.asPtr<IString>().addRefAndReturn();
 
@@ -59,7 +59,7 @@ ErrCode DeviceDomainImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
 {
     OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
 
-    auto ptr = this->fields.get("grandmasterOffset");
+    auto ptr = this->fields.get("GrandmasterOffset");
     if (ptr.assigned())
         *grandmasterOffset = ptr.asPtr<IInteger>().addRefAndReturn();
 
@@ -93,14 +93,14 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             unit.serialize(serializer);
         }
 
-        const StringPtr domainId = this->fields.get("domainId");
+        const StringPtr domainId = this->fields.get("DomainId");
         if (domainId.assigned()) // TODO: maybe check for empty string?
         {
             serializer->key("domainId");
             serializer->writeString(domainId.getCharPtr(), domainId.getLength());
         }
 
-        const IntegerPtr grandmasterOffset = this->fields.get("grandmasterOffset");
+        const IntegerPtr grandmasterOffset = this->fields.get("GrandmasterOffset");
         if (grandmasterOffset.assigned())
         {
             serializer->key("grandmasterOffset");

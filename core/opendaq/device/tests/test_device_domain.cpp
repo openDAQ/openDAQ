@@ -53,8 +53,8 @@ TEST_F(DeviceDomainTest, DeserializeBackwardsCompat)
 TEST_F(DeviceDomainTest, StructType)
 {
     const auto correct =
-        StructType("deviceDomain",
-                   List<IString>("tickResolution", "origin", "unit", "domainId", "grandmasterOffset"),
+        StructType("DeviceDomain",
+                   List<IString>("TickResolution", "Origin", "Unit", "DomainId", "GrandmasterOffset"),
                    List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr),
                    List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctInt)));
     const auto structType = DeviceDomainStructType();

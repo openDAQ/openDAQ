@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/data_descriptor_builder_ptr.h>
-#include <coretypes/struct_type_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <coretypes/simple_type_factory.h>
+#include <coretypes/struct_type_factory.h>
+#include <opendaq/data_descriptor_builder_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/range_factory.h>
-#include <coreobjects/unit_factory.h>
 #include <opendaq/scaling_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -77,9 +77,9 @@ inline StructTypePtr DataDescriptorStructType()
                                     "Origin",
                                     "TickResolution",
                                     "StructFields",
-                                    "Metadata"),
-                                    "domainId",
-                                    "grandmasterOffset"),
+                                    "Metadata",
+                                    "DomainId",
+                                    "GrandmasterOffset"),
                       List<IBaseObject>(List<IDimension>(),
                                         "",
                                         0,

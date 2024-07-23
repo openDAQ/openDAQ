@@ -16,7 +16,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
-static const char* DaqOpcUaDeviceTypeId = "opendaq_opcua_config";
+static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
 
@@ -24,15 +24,15 @@ using namespace discovery;
 using namespace daq::opcua;
 
 OpcUaClientModule::OpcUaClientModule(ContextPtr context)
-    : Module("openDAQ OpcUa client module",
+    : Module("OpenDAQOPCUAClientModule",
             daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
             std::move(context),
-            "OpcUaClient")
+            "OpenDAQOPCUAClientModule")
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "openDAQ OpcUa", ProtocolType::Configuration);
+                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
                 if (!discoveredDevice.ipv4Address.empty())
                 {
                     auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
@@ -77,7 +77,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {"OPENDAQ"}
     )
 {
-    loggerComponent = this->context.getLogger().getOrAddComponent("OpcUaClient");
+    loggerComponent = this->context.getLogger().getOrAddComponent("OPCUAClient");
     discoveryClient.initMdnsClient(List<IString>("_opcua-tcp._tcp.local."));
 }
 
@@ -151,7 +151,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                                  .build();
 
     connectionInfo.setProtocolId(DaqOpcUaDeviceTypeId)
-                  .setProtocolName("openDAQ OpcUa")
+                  .setProtocolName("OpenDAQOPCUA")
                   .setProtocolType(ProtocolType::Configuration)
                   .setConnectionType("TCP/IP")
                   .addAddress(host)
@@ -253,7 +253,7 @@ bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionS
 
 Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (target.getProtocolId() != "opendaq_opcua_config")
+    if (target.getProtocolId() != "OpenDAQOPCUAConfiguration")
         return false;
 
     if (target.getConnectionString().getLength() != 0)

@@ -19,7 +19,7 @@ TEST_F(ArchitectureTest, ClientModule)
     ModulePtr clientModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "openDAQ OpcUa client module")
+        if (mod.getName() == "OpenDAQOPCUAClientModule")
         {
             clientModule = mod;
             break;
@@ -62,7 +62,7 @@ TEST_F(ArchitectureTest, Statistics)
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     ASSERT_TRUE(statistics.asPtr<IPropertyObject>().assigned());
     ASSERT_GT(statistics.getInputPorts().getCount(), 0u);
     ASSERT_GT(statistics.getSignals().getCount(), 0u);
@@ -105,7 +105,7 @@ TEST_F(ArchitectureTest, Readers)
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     statistics.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
 
     PacketReaderPtr packetReader = PacketReader(statistics.getSignals(search::Recursive(search::Any()))[0]);
@@ -143,7 +143,7 @@ TEST_F(ArchitectureTest, ConnectSignal)
 {
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     SignalPtr signal = device.getSignalsRecursive()[0];
     InputPortPtr inputPort = fb.getInputPorts()[0];
     // doc code
@@ -160,7 +160,7 @@ TEST_F(ArchitectureTest, CreateFunctionBlock)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     // doc code
-    daq::FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
+    daq::FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     // function block appears under FunctionBlocks of the instance
     daq::ListPtr<IFunctionBlock> fbs = instance.getFunctionBlocks();
     daq::FunctionBlockPtr fb1 = fbs[fbs.getCount() - 1];
@@ -173,7 +173,7 @@ TEST_F(ArchitectureTest, InputPortConnection)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     SignalPtr signal = device.getSignalsRecursive()[0];
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];
     // doc code
     inputPort.connect(signal);
@@ -189,7 +189,7 @@ TEST_F(ArchitectureTest, ConnectionDequeue)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     SignalPtr signal = device.getSignalsRecursive()[0];
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
+    FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];
     inputPort.connect(signal);
     // doc code

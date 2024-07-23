@@ -63,7 +63,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}}))
+          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
     , name(name)
     , description(description)
@@ -80,7 +80,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}, {"prefix", prefix}}))
+          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
     , description(description)

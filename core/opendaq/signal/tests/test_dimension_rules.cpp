@@ -32,7 +32,7 @@ TEST_F(DimensionRulesTest, ListDimensionRuleSetGet)
     const auto rule = ListDimensionRule(List<INumber>(1, 2, 3, 4, 5, 6, 7));
 
     ASSERT_EQ(rule.getType(), DimensionRuleType::List);
-    ASSERT_EQ(rule.getParameters().get("list").asPtr<IList>()[2], 3);
+    ASSERT_EQ(rule.getParameters().get("List").asPtr<IList>()[2], 3);
 }
 
 TEST_F(DimensionRulesTest, LogarithmicDimensionRule)
@@ -68,7 +68,7 @@ TEST_F(DimensionRulesTest, ListDimensionRuleCopyFactory)
     const auto rule = ListDimensionRule(List<INumber>(1, 2, 3, 4, 5, 6, 7));
     const auto ruleCopy = DimensionRuleBuilderCopy(rule).build();
 
-    ASSERT_TRUE(ruleCopy.getParameters().hasKey("list"));
+    ASSERT_TRUE(ruleCopy.getParameters().hasKey("List"));
 }
 
 TEST_F(DimensionRulesTest, LogarithmicDimensionRuleCopyFactory)
@@ -171,14 +171,14 @@ TEST_F(DimensionRulesTest, StructType)
 TEST_F(DimensionRulesTest, StructFields)
 {
     const daq::StructPtr structPtr = LinearDimensionRule(10, 10, 10);
-    ASSERT_EQ(structPtr.get("ruleType"), static_cast<Int>(DimensionRuleType::Linear));
+    ASSERT_EQ(structPtr.get("RuleType"), static_cast<Int>(DimensionRuleType::Linear));
     
     const auto params = Dict<IString, IBaseObject>({
             {"delta", 10},
             {"start", 10},
             {"size", 10}
         });
-    ASSERT_EQ(structPtr.get("parameters"), params);
+    ASSERT_EQ(structPtr.get("Parameters"), params);
 }
 
 TEST_F(DimensionRulesTest, StructNames)

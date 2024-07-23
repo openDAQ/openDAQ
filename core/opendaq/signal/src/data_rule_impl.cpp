@@ -35,7 +35,7 @@ namespace detail
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params)
     : GenericStructImpl<IDataRule, IStruct, IRulePrivate>(
-          detail::dataRuleStructType, Dict<IString, IBaseObject>({{"type", static_cast<Int>(ruleType)}, {"parameters", params}}))
+          detail::dataRuleStructType, Dict<IString, IBaseObject>({{"Type", static_cast<Int>(ruleType)}, {"Parameters", params}}))
     , ruleType(ruleType)
     , params(params)
 {

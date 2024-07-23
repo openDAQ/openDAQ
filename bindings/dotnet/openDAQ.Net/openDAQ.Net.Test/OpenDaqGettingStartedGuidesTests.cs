@@ -82,13 +82,13 @@ public class OpenDaqGettingStartedGuidesTests : OpenDAQTestsBase
         //TimeReader currently not available in .NET Bindings
 
         // Create an instance of the renderer function block
-        var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
+        var renderer = instance.AddFunctionBlock("RefFBModuleRenderer");
 
         // Connect the first output signal of the device to the renderer
         renderer.GetInputPorts()[0].Connect(signal);
 
         // Create an instance of the statistics function block
-        var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+        var statistics = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         // Connect the first output signal of the device to the statistics
         statistics.GetInputPorts()[0].Connect(signal);

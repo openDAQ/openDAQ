@@ -14,7 +14,7 @@ using namespace daq::opcua::tms;
 static PropertyObjectPtr CreateTestPropertyObject()
 {
     auto obj = PropertyObject();
-    obj.addProperty(StringProperty("name", ""));
+    obj.addProperty(StringProperty("Name", ""));
     obj.addProperty(IntProperty("age", 0));
     obj.addProperty(FloatProperty("weight", 0.0));
     obj.addProperty(BoolProperty("isTheBest", false));
@@ -25,7 +25,7 @@ static PropertyObjectPtr CreateTestPropertyObject()
 TEST_F(PropertyObjectConversionUtilsTest, SimpleObject)
 {
     auto obj = CreateTestPropertyObject();
-    obj.setPropertyValue("name", "Jovanka");
+    obj.setPropertyValue("Name", "Jovanka");
     obj.setPropertyValue("age", 99);
     obj.setPropertyValue("weight", 60.5);
     obj.setPropertyValue("isTheBest", true);
@@ -65,7 +65,7 @@ TEST_F(PropertyObjectConversionUtilsTest, CloneDefault)
 TEST_F(PropertyObjectConversionUtilsTest, Clone)
 {
     auto obj = CreateTestPropertyObject();
-    obj.setPropertyValue("name", "Jovanka");
+    obj.setPropertyValue("Name", "Jovanka");
     obj.setPropertyValue("age", 99);
     obj.setPropertyValue("weight", 60.5);
     obj.setPropertyValue("isTheBest", true);

@@ -123,7 +123,7 @@ void ClassifierFbImpl::readProperties()
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_classifier", "Classifier", "Signal classifing");
+    return FunctionBlockType("RefFBModuleClassifier", "Classifier", "Signal classifing");
 }
 
 bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)
@@ -426,7 +426,7 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     
     linearReader = BlockReaderFromPort(inputPort, linearBlockCount, SampleType::Float64, SampleType::UInt64);
     linearReader.setOnDataAvailable([this] { processData(); });

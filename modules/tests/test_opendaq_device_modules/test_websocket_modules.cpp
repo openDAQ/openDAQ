@@ -15,11 +15,11 @@ static InstancePtr CreateServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
 
-    instance.addServer("openDAQ LT Streaming", nullptr);
+    instance.addServer("OpenDAQLTStreaming", nullptr);
 
     return instance;
 }
@@ -78,7 +78,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addConfigProvider(provider).build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
 
     ASSERT_EQ(serverConfig.getPropertyValue("WebsocketStreamingPort").asPtr<IInteger>(), 1234);
     ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
@@ -89,10 +89,10 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
     auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
     server.addDevice("daqref://device1");
 
-    auto serverConfig = server.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/streaming_lt/discovery/";
     serverConfig.setPropertyValue("Path", path);
-    server.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+    server.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
     DevicePtr device;
@@ -104,7 +104,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             {
                 break;
             }
-            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
                 return;
@@ -145,8 +145,8 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
                                      .setDefaultRootDeviceInfo(rootInfo)
                                      .build();
     instance.addDevice("daqref://device1");
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
-    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
+    instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -154,7 +154,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 {
@@ -182,11 +182,11 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
         return;
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/lt/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("openDAQ LT Streaming", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
 
@@ -197,7 +197,7 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            if (capability.getProtocolName() == "openDAQ LT Streaming")
+            if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 const auto ipv4Info = capability.getAddressInfo()[0];
                 const auto ipv6Info = capability.getAddressInfo()[1];
@@ -327,7 +327,7 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     auto client = CreateClientInstance();
 
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    const auto renderer = client.addFunctionBlock("ref_fb_module_renderer");
+    const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
@@ -343,8 +343,8 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getProtocolId(), "opendaq_lt_streaming");
-    ASSERT_EQ(connectionInfo.getProtocolName(), "openDAQ LT Streaming");
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQLTStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQLTStreaming");
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");

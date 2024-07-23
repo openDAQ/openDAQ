@@ -91,7 +91,7 @@ template <>
 DimensionRulePtr StructConverter<IDimensionRule, UA_ListRuleDescriptionStructure>::ToDaqObject(
     const UA_ListRuleDescriptionStructure& tmsStruct, const ContextPtr& /*context*/)
 {
-    if (tmsStruct.type != "list")
+    if (tmsStruct.type != "List")
         throw ConversionFailedException();
 
     const SizeT elementsSize = tmsStruct.elementsSize;
@@ -112,12 +112,12 @@ template <>
 OpcUaObject<UA_ListRuleDescriptionStructure> StructConverter<IDimensionRule, UA_ListRuleDescriptionStructure>::ToTmsType(
     const DimensionRulePtr& object, const ContextPtr& /*context*/)
 {
-    ListPtr<INumber> daqList = object.getParameters().get("list");
+    ListPtr<INumber> daqList = object.getParameters().get("List");
 
     OpcUaObject<UA_ListRuleDescriptionStructure> uaRuleDescription;
     uaRuleDescription->elementsSize = daqList.getCount();
     uaRuleDescription->elements = static_cast<UA_Variant*>(UA_Array_new(uaRuleDescription->elementsSize, GetUaDataType<UA_Variant>()));
-    uaRuleDescription->type = UA_STRING_ALLOC("list");
+    uaRuleDescription->type = UA_STRING_ALLOC("List");
 
     for (SizeT i = 0; i < daqList.getCount(); i++)
         uaRuleDescription->elements[i] = VariantConverter<INumber>::ToVariant(daqList[i]).getDetachedValue();

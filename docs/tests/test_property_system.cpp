@@ -71,11 +71,11 @@ TEST_F(PropertySystemTest, ObjectProps)
     auto child2 = PropertyObject();
     
     child2.addProperty(StringProperty("String", "foo"));
-    child1.addProperty(ObjectProperty("Child", child2));
-    propObj.addProperty(ObjectProperty("Child", child1));
+    child1.addProperty(ObjectProperty("child", child2));
+    propObj.addProperty(ObjectProperty("child", child1));
 
     // Prints out the value of the "String" property of child2
-    ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "foo");
+    ASSERT_EQ(propObj.getPropertyValue("child.child.String"), "foo");
 }
 
 TEST_F(PropertySystemTest, ContainerProps)
@@ -254,12 +254,12 @@ TEST_F(PropertySystemTest, NestedObjects)
     child2.addProperty(StringProperty("String", "foo"));
 
     auto child1 = PropertyObject();
-    child1.addProperty(ObjectProperty("Child", child2));
+    child1.addProperty(ObjectProperty("child", child2));
 
-    propObj.addProperty(ObjectProperty("Child", child1));
+    propObj.addProperty(ObjectProperty("child", child1));
 
-    propObj.setPropertyValue("Child.Child.String", "bar");
-    ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "bar");
+    propObj.setPropertyValue("child.child.String", "bar");
+    ASSERT_EQ(propObj.getPropertyValue("child.child.String"), "bar");
 }
 
 TEST_F(PropertySystemTest, SelectionPropertiesRead)

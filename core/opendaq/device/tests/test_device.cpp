@@ -86,7 +86,7 @@ TEST_F(DeviceTest, IOFolderSubItems)
     ASSERT_THROW(ioFolder.addItem(comp), daq::InvalidParameterException);
 
     daq::MockChannel::Strict ch;
-    EXPECT_CALL(ch.mock(), getLocalId(testing::_)).WillOnce(daq::Get{daq::String("ch")});
+    EXPECT_CALL(ch.mock(), getLocalId(testing::_)).WillOnce(daq::Get{daq::String("Ch")});
     ASSERT_NO_THROW(ioFolder.addItem(*ch));
 }
 
@@ -101,7 +101,6 @@ TEST_F(DeviceTest, CustomComponentSubItems)
     ASSERT_EQ(folder1.getItems().getCount(), 1u);
     ASSERT_FALSE(customComponents[1].asPtrOrNull<daq::IFolder>().assigned());
 }
-
 
 TEST_F(DeviceTest, DefaultProperties)
 {
@@ -120,9 +119,10 @@ TEST_F(DeviceTest, DeviceTypeStructType)
 TEST_F(DeviceTest, DeviceTypeStructFields)
 {
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
-    ASSERT_EQ(structPtr.get("id"), "id");
-    ASSERT_EQ(structPtr.get("name"), "name");
-    ASSERT_EQ(structPtr.get("description"), "desc");
+    ASSERT_EQ(structPtr.get("Id"), "id");
+    ASSERT_EQ(structPtr.get("Name"), "name");
+    ASSERT_EQ(structPtr.get("Description"), "desc");
+    ASSERT_EQ(structPtr.get("Prefix"), "prefix");
 }
 
 TEST_F(DeviceTest, DeviceTypeStructNames)
@@ -190,7 +190,7 @@ class MockChannel final : public daq::Channel
 {
 public:
     MockChannel(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
-        : daq::Channel(daq::FunctionBlockType("ch", "", ""), ctx, parent, localId)
+        : daq::Channel(daq::FunctionBlockType("Ch", "", ""), ctx, parent, localId)
     {
         createAndAddSignal("sig_ch");
     }
@@ -204,8 +204,8 @@ public:
     {
         createAndAddSignal("sig_device");
 
-        auto aiIoFolder = this->addIoFolder("ai", ioFolder);
-        createAndAddChannel<MockChannel>(aiIoFolder, "ch");
+        auto aiIoFolder = this->addIoFolder("AI", ioFolder);
+        createAndAddChannel<MockChannel>(aiIoFolder, "Ch");
 
         const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
         addNestedFunctionBlock(fb);

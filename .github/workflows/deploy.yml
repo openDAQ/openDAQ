@@ -153,7 +153,7 @@ jobs:
         run: |
           foreach($pckg in Get-ChildItem -Filter *.whl -Path .) {
             $pckg_split = $pckg.Name.split("-")
-            $pckg_split[1] = $pckg_split[1] + "_${{ steps.short-sha.outputs.sha }}"
+            $pckg_split[1] = $pckg_split[1] + "+${{ steps.short-sha.outputs.sha }}"
             $renamed = $pckg_split -Join "-"
             Rename-Item -Path $pckg -NewName $renamed
           }
@@ -217,7 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu 20.04 gcc-10 Release
+          - name: Ubuntu 20.04 gcc-10 Release x86_64
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
@@ -227,6 +227,24 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
+            arch: x86_64
+          - name: Ubuntu 20.04 gcc-10 Release arm64
+            image: ubuntu:20.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines:
+              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DCMAKE_SYSTEM_NAME=Linux
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64
+              -DDAQMODULES_REF_FB_MODULE=OFF
+            build_documentation: false
+            cpack: DEB
+            apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc-10
+            cxx: aarch64-linux-gnu-g++-10
+            arch: arm64
 
     container:
       image: ${{ matrix.image }}
@@ -289,6 +307,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
+          rename 's/_arm64/-ubuntu20.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
       - name: Rename package
@@ -296,6 +315,7 @@ jobs:
         if: github.ref != 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
+          rename 's/_arm64/-ubuntu20.04-arm64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
       - name: Read openDAQ version
@@ -320,7 +340,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*.deb'
+          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*${{ matrix.arch }}.deb'
           aws s3 cp . s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/ --recursive
 
       - name: Upload package
@@ -338,6 +358,7 @@ jobs:
           aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
       - name: Upload API reference
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: API Reference
@@ -345,6 +366,7 @@ jobs:
           retention-days: 7
 
       - name: Upload examples to S3
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         working-directory: examples
         run: |
           zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
@@ -352,12 +374,14 @@ jobs:
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
 
       - name: Upload temporary package for simulator
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.package_path_rel }}
 
       - name: Upload simulator app
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
@@ -365,7 +389,7 @@ jobs:
 
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
-        if: matrix.name == 'Ubuntu 20.04 gcc-10 Release'
+        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
@@ -451,7 +475,10 @@ jobs:
         working-directory: ${{ env.wheels_path }}
         if: github.ref == 'refs/heads/main'
         run: |
-          rename "s/-cp/_${{ steps.short-sha.outputs.sha }}-cp/" *.whl
+          for filename in *.whl; do
+            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
+            mv "$filename" "$new_filename"
+          done
 
       - uses: aws-actions/configure-aws-credentials@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
         with:

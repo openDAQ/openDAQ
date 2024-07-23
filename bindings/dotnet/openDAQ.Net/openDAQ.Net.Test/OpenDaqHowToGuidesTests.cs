@@ -210,7 +210,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
         foreach (var deviceInfo in availableDevicesInfo)
             foreach (var capability in deviceInfo.ServerCapabilities)
-                if (capability.ProtocolName == "openDAQ OpcUa")
+                if (capability.ProtocolName == "OpenDAQOPCUA")
                     Console.WriteLine($"Name: {deviceInfo.Name}, Address: {capability.ConnectionString}");
     }
 
@@ -226,7 +226,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         IListObject<DeviceInfo> availableDevicesInfo = instance.AvailableDevices;
         foreach (var deviceInfo in availableDevicesInfo)
             foreach (var capability in deviceInfo.ServerCapabilities)
-                if (capability.ProtocolName == "openDAQ OpcUa")
+                if (capability.ProtocolName == "OpenDAQOPCUA")
                     devices.Add(instance.AddDevice(capability.ConnectionString));
 
         //Hack: dispose device because otherwise we get exception in native code when GC tries to clean up
@@ -272,14 +272,14 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     public void FunctionBlockAddingAddTest()
     {
         // Add Function Block on the host computer
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
     }
 
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
     public void FunctionBlockAddingGetTypeInformationTest()
     {
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
         Console.WriteLine(functionBlockType.Id);
@@ -304,11 +304,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
             Console.WriteLine(functionBlockTypeName);
 
         // If there is no Statistics Function Block available, exit with an error
-        if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
+        if (!functionBlockTypes.ContainsKey("RefFBModuleStatistics"))
             return 1;
 
         // Add Function Block on the host computer
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         // Print Function Block type info
         FunctionBlockType functionBlockType = functionBlock.FunctionBlockType;
@@ -327,7 +327,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP_DEVICE)]
     public void FunctionBlockConfigureGetVisiblePropertiesTest()
     {
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;
         foreach (var prop in functionBlockProperties)
@@ -338,7 +338,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP_DEVICE)]
     public void FunctionBlockConfigureGetAndSetPropertyValueTest()
     {
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
         Console.WriteLine($"Current block size is {currentBlockSize}");
@@ -348,7 +348,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Test]
     public void FunctionBlockConfigureConnectInputPortsTest()
     {
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
         Signal outputSignal = functionBlock.GetSignals()[0];
@@ -368,7 +368,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Device device = instance.AddDevice("daqref://device0");
 
         // Add Function Block on the host computer
-        FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+        FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
         // List properties of the Function Block
         IListObject<Property> functionBlockProperties = functionBlock.VisibleProperties;

@@ -289,7 +289,7 @@ TEST(SignalConverter, subscribedBitfieldSignal)
     std::string memberName = "This is the measured value";
 
     nlohmann::json bitsInterpretationObject =
-        R"([{"description": "Data overrun","index": 0,"uuid": "c214c128-2447-4cee-ba39-6227aed2eff4"}])"_json;
+        R"([{"Description": "Data overrun","index": 0,"uuid": "c214c128-2447-4cee-ba39-6227aed2eff4"}])"_json;
 
     bsp::SubscribedSignal subscribedSignal(signalNumber, bsp::Logging::logCallback());
 

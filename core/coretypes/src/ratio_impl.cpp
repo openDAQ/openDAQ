@@ -10,10 +10,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 RatioImpl::RatioImpl(Int numerator, Int denominator)
     : GenericStructImpl<daq::IRatio, daq::IStruct, daq::IConvertible, daq::IComparable>(
-          RatioStructType(), Dict<IString, IInteger>({{"numerator", numerator}, {"denominator", denominator}}))
+          RatioStructType(), Dict<IString, IInteger>({{"Numerator", numerator}, {"Denominator", denominator}}))
 {
-    this->numerator = this->fields.get("numerator");
-    this->denominator = this->fields.get("denominator");
+    this->numerator = this->fields.get("Numerator");
+    this->denominator = this->fields.get("Denominator");
 
     if (this->denominator == 0)
     {

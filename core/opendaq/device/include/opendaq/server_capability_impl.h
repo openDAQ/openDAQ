@@ -70,12 +70,11 @@ public:
 
     ErrCode INTERFACE_FUNC getAddressInfo(IList** addressesInfo) override;
     ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) override;
-    
+
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-protected:
-    PropertyObjectPtr createCloneBase() override;
 
 private:
     template <typename T>

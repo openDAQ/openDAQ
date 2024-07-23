@@ -859,9 +859,9 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
 TEST_F(SignalTest, GetLastValueInvisibleDisabled)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
     signal.setVisible(False);
-    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("Visible"));
 
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
 

@@ -12,10 +12,10 @@ namespace detail
 
 ArgumentInfoImpl::ArgumentInfoImpl(StringPtr name, CoreType type)
     : GenericStructImpl<daq::IArgumentInfo, daq::IStruct>(detail::argumentInfoStructType,
-                                                          Dict<IString, IBaseObject>({{"name", name}, {"type", static_cast<Int>(type)}}))
+                                                          Dict<IString, IBaseObject>({{"Name", name}, {"Type", static_cast<Int>(type)}}))
 {
-    this->name = fields.get("name");
-    this->argType = fields.get("type");
+    this->name = fields.get("Name");
+    this->argType = fields.get("Type");
 }
 
 ErrCode ArgumentInfoImpl::getName(IString** argName)

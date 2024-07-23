@@ -63,8 +63,8 @@ protected:
 
 TEST_F(ConfigCoreEventTest, PropertyValueChanged)
 {
-    const auto clientComponent = client->getDevice().findComponent("IO/ai/ch");
-    const auto serverComponent = serverDevice.findComponent("IO/ai/ch");
+    const auto clientComponent = client->getDevice().findComponent("IO/AI/Ch");
+    const auto serverComponent = serverDevice.findComponent("IO/AI/Ch");
 
     int callCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -98,7 +98,7 @@ TEST_F(ConfigCoreEventTest, PropertyChangedNested)
     int callCount = 0;
     
     const auto obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const auto obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const auto obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     clientContext.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
@@ -116,17 +116,17 @@ TEST_F(ConfigCoreEventTest, PropertyChangedNested)
         else
         {
             ASSERT_EQ(obj2, args.getParameters().get("Owner"));
-            ASSERT_EQ("ObjectWithMetadata.Child", args.getParameters().get("Path"));
+            ASSERT_EQ("ObjectWithMetadata.child", args.getParameters().get("Path"));
         }
 
         callCount++;
     };
 
     serverComponent.setPropertyValue("ObjectWithMetadata.String", "foo");
-    serverComponent.setPropertyValue("ObjectWithMetadata.Child.String", "bar");
+    serverComponent.setPropertyValue("ObjectWithMetadata.child.String", "bar");
 
     ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.String"), "foo");
-    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.Child.String"), "bar");
+    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.child.String"), "bar");
 
     ASSERT_EQ(callCount, 2);
 }
@@ -196,10 +196,10 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
 
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int updateCount = 0;
     
@@ -228,7 +228,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
 
     ASSERT_EQ(updateCount, 2);
     ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.String"), serverComponent.getPropertyValue("ObjectWithMetadata.String"));
-    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.Child.String"), serverComponent.getPropertyValue("ObjectWithMetadata.Child.String"));
+    ASSERT_EQ(clientComponent.getPropertyValue("ObjectWithMetadata.child.String"), serverComponent.getPropertyValue("ObjectWithMetadata.child.String"));
 }
 
 TEST_F(ConfigCoreEventTest, PropertyAdded)
@@ -263,10 +263,10 @@ TEST_F(ConfigCoreEventTest, PropertyAddedNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
     
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int addCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -322,10 +322,10 @@ TEST_F(ConfigCoreEventTest, PropertyRemovedNested)
     const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
     
     const PropertyObjectPtr serverObj1 = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr serverObj2 = serverComponent.getPropertyValue("ObjectWithMetadata.child");
 
     const PropertyObjectPtr obj1 = clientComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.Child");
+    const PropertyObjectPtr obj2 = clientComponent.getPropertyValue("ObjectWithMetadata.child");
 
     int removeCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -855,13 +855,13 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 
 TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
 {
-    serverDevice.addProperty(StringProperty("string", "foo"));
-    serverDevice.addProperty(IntProperty("int", 0));
-    serverDevice.addProperty(FloatProperty("float", 1.123));
+    serverDevice.addProperty(StringProperty("String", "foo"));
+    serverDevice.addProperty(IntProperty("Int", 0));
+    serverDevice.addProperty(FloatProperty("Float", 1.123));
     
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.setPropertyValue("string", "bar");
-    serverDevice.setPropertyValue("int", 1);
+    serverDevice.setPropertyValue("String", "bar");
+    serverDevice.setPropertyValue("Int", 1);
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 
     const auto serializer = JsonSerializer();
@@ -880,23 +880,23 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
     const auto str = serializer.getOutput();
     deserializer.update(serverDevice, serializer.getOutput());
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
-    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Int"), serverDevice.getPropertyValue("Int"));
     ASSERT_EQ(updateCount, 1);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
 {
-    serverDevice.addProperty(FloatProperty("temp", 1.123));
+    serverDevice.addProperty(FloatProperty("Temp", 1.123));
 
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.addProperty(StringProperty("string", "foo"));
-    serverDevice.addProperty(IntProperty("int", 0));
-    serverDevice.addProperty(FloatProperty("float", 1.123));
-    serverDevice.removeProperty("temp");
+    serverDevice.addProperty(StringProperty("String", "foo"));
+    serverDevice.addProperty(IntProperty("Int", 0));
+    serverDevice.addProperty(FloatProperty("Float", 1.123));
+    serverDevice.removeProperty("Temp");
     
-    serverDevice.setPropertyValue("string", "bar");
-    serverDevice.setPropertyValue("int", 1);
+    serverDevice.setPropertyValue("String", "bar");
+    serverDevice.setPropertyValue("Int", 1);
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     
     const auto serializer = JsonSerializer();
@@ -914,10 +914,10 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverDevice, serializer.getOutput());
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
-    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
-    ASSERT_EQ(clientDevice.getPropertyValue("float"), serverDevice.getPropertyValue("float"));
-    ASSERT_FALSE(clientDevice.hasProperty("temp"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Int"), serverDevice.getPropertyValue("Int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("Float"), serverDevice.getPropertyValue("Float"));
+    ASSERT_FALSE(clientDevice.hasProperty("Temp"));
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -1031,7 +1031,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     
     serverDeviceFolder.removeItemWithLocalId("dev");
     serverSigFolder.removeItemWithLocalId("sig_device");
-    serverIOFolder.removeItemWithLocalId("ai");
+    serverIOFolder.removeItemWithLocalId("AI");
     
     const auto dev = createWithImplementation<IDevice, test_utils::MockDevice2Impl>(serverDevice.getContext(), serverDeviceFolder, "new_dev");
     const auto io = IoFolder(serverDevice.getContext(), serverIOFolder, "new_io");
@@ -1050,7 +1050,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     ASSERT_FALSE(clientDeviceFolder.hasItem("new_dev"));
     ASSERT_TRUE(clientSigFolder.hasItem("sig_device"));
     ASSERT_FALSE(clientSigFolder.hasItem("new_sig"));
-    ASSERT_TRUE(clientIOFolder.hasItem("ai"));
+    ASSERT_TRUE(clientIOFolder.hasItem("AI"));
     ASSERT_FALSE(clientIOFolder.hasItem("new_io"));
 
     const auto serializer = JsonSerializer();
@@ -1072,7 +1072,7 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     ASSERT_TRUE(clientDeviceFolder.hasItem("new_dev"));
     ASSERT_FALSE(clientSigFolder.hasItem("sig_device"));
     ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
-    ASSERT_FALSE(clientIOFolder.hasItem("ai"));
+    ASSERT_FALSE(clientIOFolder.hasItem("AI"));
     ASSERT_TRUE(clientIOFolder.hasItem("new_io"));
     ASSERT_TRUE(clientIOFolder.getItem("new_io").asPtr<IFolder>().hasItem("new_ch"));
 
@@ -1456,7 +1456,7 @@ TEST_F(ConfigCoreEventTest, DomainChanged)
 TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
 {
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(StringProperty("String", "foo"));
 
     int updateCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -1469,5 +1469,5 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
     client->reconnect();
     ASSERT_EQ(updateCount, 1);
 
-    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
 }

@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 TmsClientTagsImpl::TmsClientTagsImpl(const ContextPtr& ctx, const TmsClientContextPtr& clientContext, const opcua::OpcUaNodeId& nodeId)
     : TmsClientObjectImpl(ctx, clientContext, nodeId)
     , TagsImpl()
-    , loggerComponent(ctx.getLogger().getOrAddComponent("OpcUaClient"))
+    , loggerComponent(ctx.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule"))
 {
 }
 

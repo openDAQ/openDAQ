@@ -14,20 +14,20 @@ DictPtr<IString, IBaseObject> ScalingImpl::PackBuilder(IScalingBuilder* scalingB
 {
     const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("inputDataType", static_cast<Int>(builderPtr.getInputDataType()));
-    params.set("outputDataType", static_cast<Int>(builderPtr.getOutputDataType()));
-    params.set("ruleType", static_cast<Int>(builderPtr.getScalingType()));
-    params.set("parameters", builderPtr.getParameters());
+    params.set("InputDataType", static_cast<Int>(builderPtr.getInputDataType()));
+    params.set("OutputDataType", static_cast<Int>(builderPtr.getOutputDataType()));
+    params.set("RuleType", static_cast<Int>(builderPtr.getScalingType()));
+    params.set("Parameters", builderPtr.getParameters());
     return params;
 }
 
 ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, ScalingType ruleType, DictPtr<IString, IBaseObject> params)
     : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType,
                                                          Dict<IString, IBaseObject>({
-                                                             {"outputDataType", static_cast<Int>(outputType)},
-                                                             {"inputDataType", static_cast<Int>(inputType)},
-                                                             {"ruleType", static_cast<Int>(ruleType)},
-                                                             {"parameters", params},
+                                                             {"OutputDataType", static_cast<Int>(outputType)},
+                                                             {"InputDataType", static_cast<Int>(inputType)},
+                                                             {"RuleType", static_cast<Int>(ruleType)},
+                                                             {"Parameters", params},
                                                          }))
     , outputDataType(outputType)
     , inputDataType(inputType)

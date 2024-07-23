@@ -643,11 +643,11 @@ TEST_F(DictObjectTest, EqualsEmpty)
 TEST_F(DictObjectTest, EqualsDifferentSize)
 {
     auto d1 = Dict<IString, IBaseObject>();
-    d1.set("name", "jon");
+    d1.set("Name", "jon");
     d1.set("age", 20);
 
     auto d2 = Dict<IString, IBaseObject>();
-    d2.set("name", "jon");
+    d2.set("Name", "jon");
     d2.set("age", 20);
     d2.set("weight", 70);
 
@@ -659,15 +659,15 @@ TEST_F(DictObjectTest, EqualsDifferentSize)
 TEST_F(DictObjectTest, EqualsSameSize)
 {
     auto d1 = Dict<IString, IBaseObject>();
-    d1.set("name", "jon");
+    d1.set("Name", "jon");
     d1.set("age", 20);
 
     auto d2 = Dict<IString, IBaseObject>();
-    d2.set("name", "jon");
+    d2.set("Name", "jon");
     d2.set("age", 20);
 
     auto d3 = Dict<IString, IBaseObject>();
-    d3.set("name", "jessica");
+    d3.set("Name", "jessica");
     d3.set("age", 20);
 
     Bool eq{false};
@@ -681,7 +681,7 @@ TEST_F(DictObjectTest, EqualsSameSize)
 TEST_F(DictObjectTest, Clone)
 {
     auto d1 = Dict<IString, IBaseObject>();
-    d1.set("name", "jon");
+    d1.set("Name", "jon");
     d1.set("age", 20);
     d1.set("height", 180);
 
@@ -713,12 +713,12 @@ TEST_F(DictObjectTest, CloneListType)
 TEST_F(DictObjectTest, EqualsDifferentOrder)
 {
     auto d1 = Dict<IString, IBaseObject>();
-    d1.set("name", "jon");
+    d1.set("Name", "jon");
     d1.set("age", 20);
 
     auto d2 = Dict<IString, IBaseObject>();
     d2.set("age", 20);
-    d2.set("name", "jon");
+    d2.set("Name", "jon");
 
     Bool eq{false};
     d1->equals(d2, &eq);

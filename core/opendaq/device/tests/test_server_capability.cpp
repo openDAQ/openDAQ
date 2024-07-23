@@ -39,10 +39,10 @@ TEST_F(ServerCapabilityTest, Freezable)
     ASSERT_NO_THROW(capability.freeze());
     ASSERT_TRUE(capability.isFrozen());
 
-    ASSERT_THROW(capability.addConnectionString("string"), FrozenException);
-    ASSERT_THROW(capability.setConnectionType("string"), FrozenException);
+    ASSERT_THROW(capability.addConnectionString("String"), FrozenException);
+    ASSERT_THROW(capability.setConnectionType("String"), FrozenException);
     ASSERT_THROW(capability.setCoreEventsEnabled(false), FrozenException);
-    ASSERT_THROW(capability.setProtocolName("string"), FrozenException);
+    ASSERT_THROW(capability.setProtocolName("String"), FrozenException);
     
     ASSERT_THROW(capability.addProperty(StringProperty("test_key", "test_value")), FrozenException);
 }

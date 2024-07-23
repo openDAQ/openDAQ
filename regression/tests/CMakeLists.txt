@@ -10,6 +10,7 @@ set(TEST_SOURCES setup_regression.h
                  reg_p_test_folder.cpp
                  reg_p_test_property.cpp
                  reg_p_test_channel.cpp
+                 reg_p_test_serialization.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES})

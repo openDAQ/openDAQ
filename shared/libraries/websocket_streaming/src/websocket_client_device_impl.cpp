@@ -92,7 +92,7 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
 
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
     {
-        // sets signal name as it appeared in metadata "name"
+        // sets signal name as it appeared in metadata "Name"
         signalIt->second.asPtr<IComponentPrivate>().unlockAllAttributes();
         signalIt->second.setName(sInfo.signalName);
         signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();

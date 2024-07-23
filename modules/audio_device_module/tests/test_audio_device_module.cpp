@@ -31,7 +31,7 @@ TEST_F(AudioDeviceModuleTest, CreateModule)
 TEST_F(AudioDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Audio device module");
+    ASSERT_EQ(module.getName(), "AudioDeviceModule");
 }
 
 TEST_F(AudioDeviceModuleTest, VersionAvailable)
@@ -109,14 +109,14 @@ TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_EQ(functionBlockTypes.getCount(), 1u);
-    ASSERT_TRUE(functionBlockTypes.hasKey("audio_device_module_wav_writer"));
-    ASSERT_EQ(functionBlockTypes.get("audio_device_module_wav_writer").getId(), "audio_device_module_wav_writer");
+    ASSERT_TRUE(functionBlockTypes.hasKey("AudioDeviceModuleWavWriter"));
+    ASSERT_EQ(functionBlockTypes.get("AudioDeviceModuleWavWriter").getId(), "AudioDeviceModuleWavWriter");
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("miniaudio"));
-    ASSERT_EQ(deviceTypes.get("miniaudio").getId(), "miniaudio");
+    ASSERT_TRUE(deviceTypes.hasKey("MiniAudio"));
+    ASSERT_EQ(deviceTypes.get("MiniAudio").getId(), "MiniAudio");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

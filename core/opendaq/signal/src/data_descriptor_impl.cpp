@@ -21,17 +21,17 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
 {
     const auto builderPtr = DataDescriptorBuilderPtr::Borrow(dataDescriptorBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("dimensions", builderPtr.getDimensions());
-    params.set("name", builderPtr.getName());
-    params.set("sampleType", static_cast<Int>(builderPtr.getSampleType()));
-    params.set("unit", builderPtr.getUnit());
-    params.set("valueRange", builderPtr.getValueRange());
-    params.set("dataRule", builderPtr.getRule());
-    params.set("scaling", builderPtr.getPostScaling());
-    params.set("origin", builderPtr.getOrigin());
-    params.set("tickResolution", builderPtr.getTickResolution());
-    params.set("structFields", builderPtr.getStructFields());
-    params.set("metadata", builderPtr.getMetadata());
+    params.set("Dimensions", builderPtr.getDimensions());
+    params.set("Name", builderPtr.getName());
+    params.set("SampleType", static_cast<Int>(builderPtr.getSampleType()));
+    params.set("Unit", builderPtr.getUnit());
+    params.set("ValueRange", builderPtr.getValueRange());
+    params.set("DataRule", builderPtr.getRule());
+    params.set("Scaling", builderPtr.getPostScaling());
+    params.set("Origin", builderPtr.getOrigin());
+    params.set("TickResolution", builderPtr.getTickResolution());
+    params.set("StructFields", builderPtr.getStructFields());
+    params.set("Metadata", builderPtr.getMetadata());
 
     return params;
 }

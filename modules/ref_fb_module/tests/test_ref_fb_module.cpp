@@ -9,6 +9,7 @@
 #include <testutils/testutils.h>
 #include <thread>
 #include "testutils/memcheck_listener.h"
+#include <opendaq/instance_factory.h>
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
@@ -34,7 +35,7 @@ TEST_F(RefFbModuleTest, CreateModule)
 TEST_F(RefFbModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "Reference function block module");
+    ASSERT_EQ(module.getName(), "ReferenceFunctionBlockModule");
 }
 
 TEST_F(RefFbModuleTest, VersionAvailable)
@@ -79,33 +80,33 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.assigned());
     ASSERT_EQ(functionBlockTypes.getCount(), 8u);
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
-    ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
+    ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_statistics"));
-    ASSERT_EQ("ref_fb_module_statistics", functionBlockTypes.get("ref_fb_module_statistics").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
+    ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power"));
-    ASSERT_EQ("ref_fb_module_power", functionBlockTypes.get("ref_fb_module_power").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModulePower"));
+    ASSERT_EQ("RefFBModulePower", functionBlockTypes.get("RefFBModulePower").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power_reader"));
-    ASSERT_EQ("ref_fb_module_power_reader", functionBlockTypes.get("ref_fb_module_power_reader").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModulePowerReader"));
+    ASSERT_EQ("RefFbModulePowerReader", functionBlockTypes.get("RefFbModulePowerReader").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_scaling"));
-    ASSERT_EQ("ref_fb_module_scaling", functionBlockTypes.get("ref_fb_module_scaling").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleScaling"));
+    ASSERT_EQ("RefFBModuleScaling", functionBlockTypes.get("RefFBModuleScaling").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_classifier"));
-    ASSERT_EQ("ref_fb_module_classifier", functionBlockTypes.get("ref_fb_module_classifier").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleClassifier"));
+    ASSERT_EQ("RefFBModuleClassifier", functionBlockTypes.get("RefFBModuleClassifier").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_trigger"));
-    ASSERT_EQ("ref_fb_module_trigger", functionBlockTypes.get("ref_fb_module_trigger").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleTrigger"));
+    ASSERT_EQ("RefFBModuleTrigger", functionBlockTypes.get("RefFBModuleTrigger").getId());
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
 {
     const auto module = CreateModule();
 
-    ASSERT_THROW(module.createFunctionBlock("test", nullptr, "id"), NotFoundException);
+    ASSERT_THROW(module.createFunctionBlock("test", nullptr, "Id"), NotFoundException);
 }
 
 TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
@@ -114,7 +115,7 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_renderer", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleRenderer", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 
     // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -124,7 +125,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -132,7 +133,7 @@ TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
 {
     auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "Id");
     ASSERT_EQ(fb.getSignals(search::Recursive(search::Any())).getCount(), 3u);
 }
 
@@ -140,7 +141,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_classifier", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleClassifier", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -148,6 +149,20 @@ TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "Id");
     ASSERT_TRUE(fb.assigned());
+}
+
+TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
+{
+    const auto instance = Instance();
+
+    instance.addFunctionBlock("ref_fb_module_classifier");
+    instance.addFunctionBlock("ref_fb_module_fft");
+    instance.addFunctionBlock("ref_fb_module_power");
+    // instance.addFunctionBlock("ref_fb_module_renderer");
+    instance.addFunctionBlock("ref_fb_module_scaling");
+    instance.addFunctionBlock("ref_fb_module_statistics");
+    instance.addFunctionBlock("ref_fb_module_trigger");
+    instance.addFunctionBlock("audio_device_module_wav_writer");
 }

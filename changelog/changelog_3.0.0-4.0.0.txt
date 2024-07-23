@@ -1,4 +1,4 @@
-18.07.2024
+23.07.2024
 Description
   - Reader improvement
   - Implementing rader builder for all Readers
@@ -93,6 +93,42 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IConnection::hasEventPacket(Bool* hasEventPacket)
 + [function] IConnection::hasGapPacket(Bool* hasGapPacket)
 
+22.07.2024
+Description:
+	- Standardize cases to PascalCase
+		- Component IDs
+			- Reference Device
+			- Reference Function Blocks (backwards compatible)
+				- Classifier
+				- FFT
+				- Power
+				- Renderer
+				- Scaling
+				- Statistics
+				- Trigger
+			- AudioDeviceModuleWavWriter
+			- Reference device IO components (AI, CAN, RefCh)
+		- Component names
+			- Default client device
+		- Type IDs
+			- Reference modules
+			- Streaming/config clients (backwards compatible)
+			- Server modules
+			- MiniAudio
+		- Type names
+			- Reference modules
+			- Streaming/config clients
+			- Server modules
+		- Server capability protocol ID (backwards compatible)
+		- Server capability protocol name
+		- Struct Type field names
+		- Other
+
+Required integration changes:
+	- Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
+	- If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs. eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
+	- Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
+
 10.07.2024
 Description
 	- Add address type and address reachability status to server capability
@@ -100,7 +136,7 @@ Description
 	- Reachability is currently only available for ipv4
 	- "canPing" and "ipv4Address" properties have been removed from discovered device info
 
-Required integeration changes:
+Required integration changes:
 	- If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
 	- "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
 	
@@ -163,7 +199,7 @@ Description
 
 27.05.2024
 Description
-  - Supporing servers to be discovered by mDNS
+  - Supporting servers to be discovered by mDNS
 
 +  [interface] IServer::getId(IString** serverId)
 +  [interface] IServer::enableDiscovery();

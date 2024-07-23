@@ -141,7 +141,7 @@ public:
     {
         ProtocolTestBase::SetUp();
         setUpConfigProtocolServerCb =
-            [this](SendConfigProtocolPacketCb sendPacketCb)
+            [this](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user)
         {
             this->configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(sendPacketCb);
             ProcessConfigProtocolPacketCb receivePacketCb =

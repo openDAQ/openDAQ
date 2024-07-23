@@ -18,6 +18,7 @@
 #include <coretypes/serializer.h>
 #include <coretypes/serializable_ptr.h>
 #include <coretypes/string_ptr.h>
+#include <coretypes/baseobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -227,6 +228,26 @@ public:
             throw InvalidParameterException();
 
         ErrCode errCode = object->reset();
+        checkErrorInfo(errCode);
+    }
+
+    BaseObjectPtr getUser() const
+    {
+        if (!object)
+            throw InvalidParameterException();
+
+        BaseObjectPtr userObject;
+        ErrCode errCode = object->getUser(&userObject);
+        checkErrorInfo(errCode);
+        return userObject;
+    }
+
+    void setUser(const BaseObjectPtr& user)
+    {
+        if (!object)
+            throw InvalidParameterException();
+
+        ErrCode errCode = object->setUser(user);
         checkErrorInfo(errCode);
     }
 };

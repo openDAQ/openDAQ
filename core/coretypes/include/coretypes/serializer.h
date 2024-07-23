@@ -60,6 +60,9 @@ DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC reset() = 0;
     virtual ErrCode INTERFACE_FUNC isComplete(Bool* complete) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getUser(IBaseObject** user) = 0;
+    virtual ErrCode INTERFACE_FUNC setUser(IBaseObject* user) = 0;
 };
 
 /*!

@@ -20,6 +20,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
 #include <coretypes/deserializer.h>
+#include <coretypes/baseobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -56,9 +57,13 @@ public:
     ErrCode INTERFACE_FUNC endObject() override;
     ErrCode INTERFACE_FUNC writeString(ConstCharPtr string, SizeT length) override;
 
+    ErrCode INTERFACE_FUNC getUser(IBaseObject** user) override;
+    ErrCode INTERFACE_FUNC setUser(IBaseObject* user) override;
+
 protected:
     rapidjson::StringBuffer buffer;
     TWriter writer;
+    BaseObjectPtr userContext;
 };
 
 template <typename TWriter>

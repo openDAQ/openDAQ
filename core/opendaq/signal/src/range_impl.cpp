@@ -13,9 +13,9 @@ namespace detail
 
 RangeImpl::RangeImpl(NumberPtr lowValue, NumberPtr highValue)
     : GenericStructImpl<IRange, IStruct>(detail::rangeStructType,
-                                         Dict<IString, IBaseObject>({{"lowValue", std::move(lowValue)}, {"highValue", std::move(highValue)}}))
-    , low(this->fields.get("lowValue"))
-    , high(this->fields.get("highValue"))
+                                         Dict<IString, IBaseObject>({{"LowValue", std::move(lowValue)}, {"HighValue", std::move(highValue)}}))
+    , low(this->fields.get("LowValue"))
+    , high(this->fields.get("HighValue"))
 {
     if (low > high)
         throw RangeBoundariesInvalidException{};

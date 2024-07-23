@@ -24,8 +24,8 @@ class TmsInputPortTest : public TmsServerObjectTest
 public:
     InputPortPtr createInputPort()
     {
-        auto port = InputPort(ctx, nullptr, "port");
-        port.getTags().asPtr<ITagsPrivate>().add("port");
+        auto port = InputPort(ctx, nullptr, "Port");
+        port.getTags().asPtr<ITagsPrivate>().add("Port");
         return port;
     }
 };

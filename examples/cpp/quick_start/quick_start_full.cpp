@@ -98,13 +98,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
 
     // Create an instance of the statistics function block
-    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
 
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);

@@ -55,7 +55,7 @@ TEST_F(CoreEventTest, PropertyChanged)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    component.addProperty(StringProperty("string", "foo"));
+    component.addProperty(StringProperty("String", "foo"));
     int callCount = 0;
 
     component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -71,9 +71,9 @@ TEST_F(CoreEventTest, PropertyChanged)
         callCount++;
     };
 
-    component.setPropertyValue("string", "bar");
-    component.setPropertyValue("string", "foo");
-    component.clearPropertyValue("string");
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("String", "foo");
+    component.clearPropertyValue("String");
 
     ASSERT_EQ(callCount, 3);
 }
@@ -85,8 +85,8 @@ TEST_F(CoreEventTest, PropertyChangedNested)
 
     const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    defaultObj.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    defaultObj.addProperty(StringProperty("String", "foo"));
+    obj2.addProperty(StringProperty("String", "foo"));
 
     component.addProperty(ObjectProperty("obj1", defaultObj));
     const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
@@ -118,8 +118,8 @@ TEST_F(CoreEventTest, PropertyChangedNested)
         callCount++;
     };
 
-    obj1.setPropertyValue("string", "bar");
-    obj2.setPropertyValue("string", "bar");
+    obj1.setPropertyValue("String", "bar");
+    obj2.setPropertyValue("String", "bar");
 
     ASSERT_EQ(callCount, 2);
 }
@@ -197,8 +197,8 @@ TEST_F(CoreEventTest, NestedObjDisableTrigger)
 
     const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    defaultObj.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    defaultObj.addProperty(StringProperty("String", "foo"));
+    obj2.addProperty(StringProperty("String", "foo"));
 
     component.addProperty(ObjectProperty("obj1", defaultObj));
     const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
@@ -213,16 +213,16 @@ TEST_F(CoreEventTest, NestedObjDisableTrigger)
         callCount++;
     };
 
-    obj1.setPropertyValue("string", "bar");
-    obj2.setPropertyValue("string", "foo");
+    obj1.setPropertyValue("String", "bar");
+    obj2.setPropertyValue("String", "foo");
     
     component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-    obj1.setPropertyValue("string", "foo");
-    obj2.setPropertyValue("string", "bar");
+    obj1.setPropertyValue("String", "foo");
+    obj2.setPropertyValue("String", "bar");
     
     component.asPtrOrNull<IPropertyObjectInternal>().disableCoreEventTrigger();
-    obj1.setPropertyValue("string", "bar");
-    obj2.setPropertyValue("string", "foo");
+    obj1.setPropertyValue("String", "bar");
+    obj2.setPropertyValue("String", "foo");
 
     ASSERT_EQ(callCount, 2);
 }
@@ -231,11 +231,11 @@ TEST_F(CoreEventTest, PropertyChangedWithInternalEvent)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    component.addProperty(StringProperty("string", "foo"));
+    component.addProperty(StringProperty("String", "foo"));
 
     int callCount = 0;
     component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-    component.getOnPropertyValueWrite("string") +=
+    component.getOnPropertyValueWrite("String") +=
         [&](const PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
         {
             args.setValue("override_" + std::to_string(callCount));
@@ -255,9 +255,9 @@ TEST_F(CoreEventTest, PropertyChangedWithInternalEvent)
             callCount++;
         };
 
-    component.setPropertyValue("string", "bar");
-    component.setPropertyValue("string", "foo");
-    component.clearPropertyValue("string");
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("String", "foo");
+    component.clearPropertyValue("String");
 
     ASSERT_EQ(callCount, 3);
 }
@@ -266,19 +266,19 @@ TEST_F(CoreEventTest, EndUpdateEventSerilizer)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    component.addProperty(StringProperty("string", "foo"));
-    component.addProperty(IntProperty("int", 0));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String", "foo"));
+    component.addProperty(IntProperty("Int", 0));
+    component.addProperty(FloatProperty("Float", 1.123));
     
-    component.setPropertyValue("string", "bar");
-    component.setPropertyValue("int", 1);
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("Int", 1);
 
     const auto serializer = JsonSerializer();
     component.serialize(serializer);
     const auto out = serializer.getOutput();
     
-    component.clearPropertyValue("string");
-    component.clearPropertyValue("int");
+    component.clearPropertyValue("String");
+    component.clearPropertyValue("Int");
 
     int updateCount = 0;
     
@@ -300,9 +300,9 @@ TEST_F(CoreEventTest, EndUpdateEventBeginEnd)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    component.addProperty(StringProperty("string", "foo"));
-    component.addProperty(IntProperty("int", 0));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String", "foo"));
+    component.addProperty(IntProperty("Int", 0));
+    component.addProperty(FloatProperty("Float", 1.123));
 
     int propChangeCount = 0;
     int updateCount = 0;
@@ -332,13 +332,13 @@ TEST_F(CoreEventTest, EndUpdateEventBeginEnd)
         };
 
     component.beginUpdate();
-    component.setPropertyValue("string", "bar");
-    component.setPropertyValue("int", 1);
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("Int", 1);
     component.endUpdate();
     
     component.beginUpdate();
-    component.clearPropertyValue("string");
-    component.clearPropertyValue("int");
+    component.clearPropertyValue("String");
+    component.clearPropertyValue("Int");
     component.endUpdate();
 
     ASSERT_EQ(propChangeCount, 0);
@@ -364,9 +364,9 @@ TEST_F(CoreEventTest, PropertyAddedEvent)
             addCount++;
         };
 
-    component.addProperty(StringProperty("string1", "foo"));
-    component.addProperty(StringProperty("string2", "bar"));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String1", "foo"));
+    component.addProperty(StringProperty("String2", "bar"));
+    component.addProperty(FloatProperty("Float", 1.123));
     ASSERT_EQ(addCount, 3);
 }
 
@@ -402,8 +402,8 @@ TEST_F(CoreEventTest, PropertyAddedNested)
             addCount++;
         };
     
-    obj1.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    obj1.addProperty(StringProperty("String", "foo"));
+    obj2.addProperty(StringProperty("String", "foo"));
     ASSERT_EQ(addCount, 2);
 }
 
@@ -412,9 +412,9 @@ TEST_F(CoreEventTest, PropertyRemovedEvent)
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
     
-    component.addProperty(StringProperty("string1", "foo"));
-    component.addProperty(StringProperty("string2", "bar"));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String1", "foo"));
+    component.addProperty(StringProperty("String2", "bar"));
+    component.addProperty(FloatProperty("Float", 1.123));
 
     int removeCount = 0;
     
@@ -430,9 +430,9 @@ TEST_F(CoreEventTest, PropertyRemovedEvent)
             removeCount++;
         };
 
-    component.removeProperty("string1");
-    component.removeProperty("string2");
-    component.removeProperty("float");
+    component.removeProperty("String1");
+    component.removeProperty("String2");
+    component.removeProperty("Float");
     ASSERT_EQ(removeCount, 3);
 }
 
@@ -443,8 +443,8 @@ TEST_F(CoreEventTest, PropertyRemovedNested)
 
     const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    defaultObj.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    defaultObj.addProperty(StringProperty("String", "foo"));
+    obj2.addProperty(StringProperty("String", "foo"));
 
     component.addProperty(ObjectProperty("obj1", defaultObj));
     const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
@@ -469,8 +469,8 @@ TEST_F(CoreEventTest, PropertyRemovedNested)
             removeCount++;
         };
 
-    obj1.removeProperty("string");
-    obj2.removeProperty("string");
+    obj1.removeProperty("String");
+    obj2.removeProperty("String");
 
     ASSERT_EQ(removeCount, 2);
 }
@@ -486,9 +486,9 @@ TEST_F(CoreEventTest, PropertyAddedMuted)
             addCount++;
         };
 
-    component.addProperty(StringProperty("string1", "foo"));
-    component.addProperty(StringProperty("string2", "bar"));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String1", "foo"));
+    component.addProperty(StringProperty("String2", "bar"));
+    component.addProperty(FloatProperty("Float", 1.123));
 
     ASSERT_EQ(addCount, 0);
 }
@@ -498,9 +498,9 @@ TEST_F(CoreEventTest, PropertyRemovedMuted)
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
 
-    component.addProperty(StringProperty("string1", "foo"));
-    component.addProperty(StringProperty("string2", "bar"));
-    component.addProperty(FloatProperty("float", 1.123));
+    component.addProperty(StringProperty("String1", "foo"));
+    component.addProperty(StringProperty("String2", "bar"));
+    component.addProperty(FloatProperty("Float", 1.123));
 
     int removeCount = 0;
     context.getOnCoreEvent() +=
@@ -509,9 +509,9 @@ TEST_F(CoreEventTest, PropertyRemovedMuted)
             removeCount++;
         };
 
-    component.removeProperty("string1");
-    component.removeProperty("string2");
-    component.removeProperty("float");
+    component.removeProperty("String1");
+    component.removeProperty("String2");
+    component.removeProperty("Float");
 
     ASSERT_EQ(removeCount, 0);
 }
@@ -521,7 +521,7 @@ TEST_F(CoreEventTest, PropertyValueChangedMuted)
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
 
-    component.addProperty(StringProperty("string1", "foo"));
+    component.addProperty(StringProperty("String1", "foo"));
 
     int changeCount = 0;
     context.getOnCoreEvent() +=
@@ -530,9 +530,9 @@ TEST_F(CoreEventTest, PropertyValueChangedMuted)
             changeCount++;
         };
 
-    component.setPropertyValue("string1", "bar");
-    component.setPropertyValue("string1", "foo");
-    component.setPropertyValue("string1", "bar");
+    component.setPropertyValue("String1", "bar");
+    component.setPropertyValue("String1", "foo");
+    component.setPropertyValue("String1", "bar");
 
     ASSERT_EQ(changeCount, 0);   
 }
@@ -570,10 +570,10 @@ TEST_F(CoreEventTest, recursiveMute)
             callCount++;
         };
 
-    device.addProperty(StringProperty("string1", "string1"));
-    device.addProperty(StringProperty("string2", "string2"));
-    device.setPropertyValue("string1", "foo");
-    device.setPropertyValue("string2", "bar");
+    device.addProperty(StringProperty("String1", "String1"));
+    device.addProperty(StringProperty("String2", "String2"));
+    device.setPropertyValue("String1", "foo");
+    device.setPropertyValue("String2", "bar");
 
     ASSERT_EQ(callCount, 0);
 }
@@ -591,10 +591,10 @@ TEST_F(CoreEventTest, recursiveUnmute)
             callCount++;
         };
 
-    device.addProperty(StringProperty("string1", "string1"));
-    device.addProperty(StringProperty("string2", "string2"));
-    device.setPropertyValue("string1", "foo");
-    device.setPropertyValue("string2", "bar");
+    device.addProperty(StringProperty("String1", "String1"));
+    device.addProperty(StringProperty("String2", "String2"));
+    device.setPropertyValue("String1", "foo");
+    device.setPropertyValue("String2", "bar");
 
     ASSERT_EQ(callCount, 4);
 }

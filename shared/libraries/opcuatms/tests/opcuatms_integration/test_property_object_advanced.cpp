@@ -61,7 +61,7 @@ public:
 
 
         auto functionProp = FunctionProperty(
-            "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("int", ctInt), ArgumentInfo("float", ctFloat))));
+            "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("Int", ctInt), ArgumentInfo("Float", ctFloat))));
         FunctionPtr funcCallback = Function(
             [](ListPtr<IBaseObject> args)
             {
@@ -77,9 +77,9 @@ public:
         auto procProp =
             FunctionProperty("procedure",
                              ProcedureInfo(List<IArgumentInfo>(
-                                 ArgumentInfo("ratio", ctRatio),
-                                 ArgumentInfo("string", ctString),
-                                 ArgumentInfo("bool", ctBool))));
+                                 ArgumentInfo("Ratio", ctRatio),
+                                 ArgumentInfo("String", ctString),
+                                 ArgumentInfo("Bool", ctBool))));
         ProcedurePtr procCallback = Procedure(
             [&](ListPtr<IBaseObject> args)
             {
@@ -132,24 +132,24 @@ public:
                             .addProperty(StructProperty("ArgumentStruct", ArgumentInfo("Arg", ctInt)))
                             .addProperty(StructProperty("RangeStruct", Range(1, 2)))
                             .addProperty(StructProperty("ComplexNumberStruct", ComplexNumber(1, 2)))
-                            .addProperty(StructProperty("FunctionBlockTypeStruct", FunctionBlockType("id", "name", "desc")))
+                            .addProperty(StructProperty("FunctionBlockTypeStruct", FunctionBlockType("Id", "Name", "Desc")))
                             .addProperty(StructProperty("DeviceDomainStructure",
                                                         Struct("DeviceDomainStructure",
                                                                Dict<IString, IBaseObject>({{"Resolution", Ratio(10, 20)},
                                                                                            {"TicksSinceOrigin", 1000},
-                                                                                           {"Origin", "origin"},
+                                                                                           {"Origin", "Origin"},
                                                                                            {"Unit",
-                                                                                            Unit("symbol", -1, "name", "quantity")}}),
+                                                                                            Unit("Symbol", -1, "Name", "Quantity")}}),
                                                                manager)))
                             .addProperty(StructProperty("ListRuleDescriptionStructure",
                                                         Struct("ListRuleDescriptionStructure",
                                                                Dict<IString, IBaseObject>(
-                                                                   {{"Type", "list"}, {"Elements", List<IString>("foo", "bar")}}),
+                                                                   {{"Type", "List"}, {"Elements", List<IString>("foo", "bar")}}),
                                                                manager)))
                             .addProperty(StructProperty("CustomRuleDescriptionStructure",
                                                         Struct("CustomRuleDescriptionStructure",
                                                                Dict<IString, IBaseObject>(
-                                                               {{"Type", "list"},
+                                                               {{"Type", "List"},
                                                                 {"Parameters",
                                                                  Dict<IString, IBaseObject>({{"foo", "bar"}, {"foo1", "bar1"}})}}),
                                                                manager)))
@@ -749,11 +749,11 @@ TEST_F(TmsPropertyObjectAdvancedTest, StructureSet)
                                       manager));
     clientObj.setPropertyValue("ListRuleDescriptionStructure",
                                Struct("ListRuleDescriptionStructure",
-                                      Dict<IString, IBaseObject>({{"Type", "list"}, {"Elements", List<IString>("foo1", "bar1")}}),
+                                      Dict<IString, IBaseObject>({{"Type", "List"}, {"Elements", List<IString>("foo1", "bar1")}}),
                                       manager));
     clientObj.setPropertyValue("CustomRuleDescriptionStructure",
                                Struct("CustomRuleDescriptionStructure",
-                                      Dict<IString, IBaseObject>({{"Type", "list"},
+                                      Dict<IString, IBaseObject>({{"Type", "List"},
                                                                   {"Parameters",
                                                                    Dict<IString, IBaseObject>({{"foo", "bar"}, {"foo1", "bar1"}})}}),
                                       manager));

@@ -92,8 +92,8 @@ inline ScalingBuilderPtr ScalingBuilderCopy(const ScalingPtr& scaling)
 
 inline StructTypePtr ScalingStructType()
 {
-    return StructType("scaling",
-                      List<IString>("outputDataType", "inputDataType", "ruleType", "parameters"),
+    return StructType("Scaling",
+                      List<IString>("OutputDataType", "InputDataType", "RuleType", "Parameters"),
                       List<IBaseObject>(0, 0, 0, Dict<IString, IBaseObject>()),
                       List<IType>(SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctDict)));
 }

@@ -178,7 +178,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                                 value = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
                                 LOG_W(
-                                    "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time.",
+                                    "Failed to read default value of property {} on OpcUa client. Default value is set to the value at connection time.",
                                     this->name);
                             }
 

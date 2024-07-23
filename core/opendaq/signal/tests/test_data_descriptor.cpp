@@ -187,17 +187,17 @@ TEST_F(DataDescriptorTest, StructFields)
                       .setMetadata(metaData)
                       .build();
 
-    ASSERT_EQ(descriptor.get("sampleType"), static_cast<Int>(SampleType::UInt8));
-    ASSERT_EQ(descriptor.get("valueRange"), Range(10, 11.5));
-    ASSERT_EQ(descriptor.get("dimensions"), dimensions);
-    ASSERT_EQ(descriptor.get("origin"), "testRef");
-    ASSERT_EQ(descriptor.get("tickResolution"), Ratio(1, 1000));
-    ASSERT_EQ(descriptor.get("unit"), Unit("s", 10));
-    ASSERT_EQ(descriptor.get("name"), "testName");
-    ASSERT_EQ(descriptor.get("metadata"), metaData);
-    ASSERT_EQ(descriptor.get("structField"), nullptr);
-    ASSERT_EQ(descriptor.get("scaling"), nullptr);
-    ASSERT_EQ(descriptor.get("dataRule"), LinearDataRule(10, 10));
+    ASSERT_EQ(descriptor.get("SampleType"), static_cast<Int>(SampleType::UInt8));
+    ASSERT_EQ(descriptor.get("ValueRange"), Range(10, 11.5));
+    ASSERT_EQ(descriptor.get("Dimensions"), dimensions);
+    ASSERT_EQ(descriptor.get("Origin"), "testRef");
+    ASSERT_EQ(descriptor.get("TickResolution"), Ratio(1, 1000));
+    ASSERT_EQ(descriptor.get("Unit"), Unit("s", 10));
+    ASSERT_EQ(descriptor.get("Name"), "testName");
+    ASSERT_EQ(descriptor.get("Metadata"), metaData);
+    ASSERT_EQ(descriptor.get("StructField"), nullptr);
+    ASSERT_EQ(descriptor.get("Scaling"), nullptr);
+    ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
 }
 
 TEST_F(DataDescriptorTest, StructNames)

@@ -223,8 +223,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             string deviceClass = deviceInfo.GetPropertyValue("deviceClass");
             string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
 
-            Console.WriteLine($"  - Name = '{deviceName}', Connection string = '{connectionString}'");
-            Console.WriteLine($"    model = '{model}', deviceClass = '{deviceClass}', softwareRevision = '{softwareRevision}'");
+            Console.WriteLine($"  - Name = '{deviceName}', Connection String = '{connectionString}'");
+            Console.WriteLine($"    Model = '{model}', DeviceClass = '{deviceClass}', Software Revision = '{softwareRevision}'");
 
             //ShowAllProperties(deviceInfo, nameof(deviceInfo));
         }
@@ -399,7 +399,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
                 ++signalNo;
-                if ((sigName.Equals("AnalogValue") || sigName.Equals("ai0")) && (analogSignalNo == 0))
+                if ((sigName.Equals("AnalogValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
                 {
                     analogSignalNo = signalNo;
                 }

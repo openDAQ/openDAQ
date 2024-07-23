@@ -20,9 +20,9 @@ DevicePtr createServerDevice()
     const auto typeManager = context.getTypeManager();
 
     const auto obj = PropertyObject();
-    obj.addProperty(StringProperty("NestedStringProperty", "string"));
+    obj.addProperty(StringProperty("NestedStringProperty", "String"));
     const auto mockClass = PropertyObjectClassBuilder("MockClass")
-                               .addProperty(StringProperty("MockString", "string"))
+                               .addProperty(StringProperty("MockString", "String"))
                                .addProperty(ObjectProperty("MockChild", obj))
                                .build();
 
@@ -44,7 +44,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     // TODO: Test struct and enum types once type manager is transferred.
 
     auto functionProp = FunctionProperty(
-        "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("int", ctInt), ArgumentInfo("float", ctFloat))));
+        "function", FunctionInfo(ctString, List<IArgumentInfo>(ArgumentInfo("Int", ctInt), ArgumentInfo("Float", ctFloat))));
     FunctionPtr funcCallback = Function(
         [](ListPtr<IBaseObject> args)
         {
@@ -60,9 +60,9 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     auto procProp =
         FunctionProperty("procedure",
                          ProcedureInfo(List<IArgumentInfo>(
-                             ArgumentInfo("ratio", ctRatio),
-                             ArgumentInfo("string", ctString),
-                             ArgumentInfo("bool", ctBool))));
+                             ArgumentInfo("Ratio", ctRatio),
+                             ArgumentInfo("String", ctString),
+                             ArgumentInfo("Bool", ctBool))));
     ProcedurePtr procCallback = Procedure(
         [&](ListPtr<IBaseObject> /*args*/)
         {
@@ -79,7 +79,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     obj2.addProperty(StringProperty("String", "test"));
     auto obj1 = PropertyObject();
     obj1.addProperty(StringProperty("String", "test"));
-    obj1.addProperty(ObjectProperty("Child", obj2));
+    obj1.addProperty(ObjectProperty("child", obj2));
 
     ComponentPtr component = Component(ctx, parent, localId);
     component.addProperty(IntPropertyBuilder("Integer", 1)
@@ -126,9 +126,9 @@ static PropertyObjectPtr createMockNestedPropertyObject()
     PropertyObjectPtr child2_1 = PropertyObject();
     
     auto functionProp = FunctionProperty(
-        "Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+        "Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("Int", ctInt))));
     auto procedureProp = FunctionProperty(
-        "Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+        "Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt))));
 
     FunctionPtr funcCallback = Function(
         [](const IntegerPtr& intVal)
@@ -142,8 +142,8 @@ static PropertyObjectPtr createMockNestedPropertyObject()
                 throw InvalidParameterException{};
         });
 
-    child1_2_1.addProperty(StringProperty("String", "string"));
-    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
+    child1_2_1.addProperty(StringProperty("String", "String"));
+    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "String").setReadOnly(true).build());
     child1_2_1.addProperty(functionProp);
     child1_2_1.addProperty(procedureProp);
     child1_2_1.setPropertyValue("Function", funcCallback);
@@ -189,7 +189,7 @@ MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
 }
 
 MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId, "MockClass")
+    : Channel(FunctionBlockType("Ch", "", ""), ctx, parent, localId, "MockClass")
 {
     objPtr.addProperty(StringProperty("TestStringProp", "test"));
     objPtr.addProperty(BoolPropertyBuilder("TestStringPropWritten", false).setReadOnly(true).build());
@@ -203,7 +203,7 @@ MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& pa
 }
 
 MockChannel2Impl::MockChannel2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId, "MockClass")
+    : Channel(FunctionBlockType("Ch", "", ""), ctx, parent, localId, "MockClass")
 {
     createAndAddSignal("sig_ch");
     createAndAddInputPort("ip", PacketReadyNotification::None);
@@ -219,8 +219,8 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     const auto sig = createAndAddSignal("sig_device");
     this->name = "MockDevice1";
 
-    auto aiIoFolder = this->addIoFolder("ai", ioFolder);
-    createAndAddChannel<MockChannel1Impl>(aiIoFolder, "ch");
+    auto aiIoFolder = this->addIoFolder("AI", ioFolder);
+    createAndAddChannel<MockChannel1Impl>(aiIoFolder, "Ch");
 
     const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "fb");
     addNestedFunctionBlock(fb);
@@ -278,13 +278,13 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     const auto sig = createAndAddSignal("sig_device");
     sig.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
 
-    auto aiIoFolder = this->addIoFolder("ai", ioFolder);
-    createAndAddChannel<MockChannel2Impl>(aiIoFolder, "ch");
+    auto aiIoFolder = this->addIoFolder("AI", ioFolder);
+    createAndAddChannel<MockChannel2Impl>(aiIoFolder, "Ch");
     addExistingComponent(createAdvancedPropertyComponent(ctx, thisPtr<ComponentPtr>(), "AdvancedPropertiesComponent"));
     const auto dev = createWithImplementation<IDevice, MockDevice1Impl>(ctx, this->devices, "dev");
     devices.addItem(dev);
 
-	const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}, {"float", 5.123}});
+	const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}});
 	const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());

@@ -65,7 +65,7 @@ bool ConsoleApplication::processCommand(const std::vector<std::string>& command)
     if (!command.empty() && command[0] == "exit")
         return true;
 
-    if (!command.empty() && command[0] == "help")
+    if (!command.empty() && command[0] == "Help")
     {
         std::cout << std::setw(25) << std::left << "exit"
                   << "Exits the application." << std::endl

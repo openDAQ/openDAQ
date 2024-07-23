@@ -49,7 +49,7 @@ FunctionBlockTypePtr TriggerFbImpl::CreateType()
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("ref_fb_module_trigger",
+    return FunctionBlockType("RefFBModuleTrigger",
                              "Trigger",
                              "Trigger",
                              defaultConfig);
@@ -209,7 +209,7 @@ void TriggerFbImpl::processDataPacket(const DataPacketPtr& packet)
 
 void TriggerFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", packetReadyNotification);
+    inputPort = createAndAddInputPort("Input", packetReadyNotification);
 }
 
 void TriggerFbImpl::createSignals()

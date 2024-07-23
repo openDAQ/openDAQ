@@ -22,7 +22,7 @@ WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
 FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
 {
     return FunctionBlockType(
-        "audio_device_module_wav_writer",
+        "AudioDeviceModuleWavWriter",
         "WAVWriter",
         "Writes input signals to WAV files"
     );
@@ -130,7 +130,7 @@ void WAVWriterFbImpl::storingChangedNoLock(bool store)
 
 void WAVWriterFbImpl::createInputPort()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     reader = StreamReaderFromPort(inputPort, SampleType::Float32, SampleType::UInt64);
     reader.setOnDataAvailable([this] { calculate();});
 }

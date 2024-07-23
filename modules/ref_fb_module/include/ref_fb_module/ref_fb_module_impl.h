@@ -20,10 +20,10 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-class RefFbModule final : public Module
+class RefFBModule final : public Module
 {
 public:
-    explicit RefFbModule(ContextPtr ctx);
+    explicit RefFBModule(ContextPtr ctx);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;

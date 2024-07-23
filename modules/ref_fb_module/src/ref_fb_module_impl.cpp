@@ -14,15 +14,15 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-RefFbModule::RefFbModule(ContextPtr ctx)
-    : Module("Reference function block module",
+RefFBModule::RefFBModule(ContextPtr ctx)
+    : Module("ReferenceFunctionBlockModule",
              daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
              std::move(ctx),
-             "ReferenceFunctionBlock")
+             "ReferenceFunctionBlockModule")
 {
 }
 
-DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTypes()
+DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTypes()
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
@@ -52,7 +52,7 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
     return types;
 }
 
-FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
+FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
                                                     const ComponentPtr& parent,
                                                     const StringPtr& localId,
                                                     const PropertyObjectPtr& config)

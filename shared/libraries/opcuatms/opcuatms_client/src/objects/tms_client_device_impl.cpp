@@ -34,9 +34,9 @@ namespace detail
 {
     static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities"};
 
-    static std::unordered_map<std::string, std::function<void (const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
+    static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
-        {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v){ info.setName(v.toString()); }},
+        {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setName(v.toString()); }},
         {"DeviceClass", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceClass(v.toString()); }},
         {"DeviceManual", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceManual(v.toString()); }},
         {"DeviceRevision", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceRevision(v.toString()); }},
@@ -55,9 +55,11 @@ namespace detail
         {"Position", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setPosition(v.toInteger()); }},
         {"SystemType", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setSystemType(v.toString()); }},
         {"SystemUUID", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setSystemUuid(v.toString()); }},
-        {"OpenDaqPackageVersion",[](const DeviceInfoConfigPtr& info, const OpcUaVariant& v){ info.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("sdkVersion", v.toString()); }},
+        {"OpenDaqPackageVersion",
+         [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v)
+         { info.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("sdkVersion", v.toString()); }},
     };
-}
+    }
 
 TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                          const ComponentPtr& parent,
@@ -187,7 +189,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     for (const auto & cap : deviceInfo.getServerCapabilities())
     {
-        if (cap.getProtocolId() == "opendaq_opcua_config")
+        if (cap.getProtocolId() == "OpenDAQOPCUAConfiguration")
         {
             deviceInfo.setConnectionString(cap.getConnectionString());
         }

@@ -138,20 +138,20 @@ TEST_F(TypeManagerTest, InterfaceIdString)
 
 TEST_F(TypeManagerTest, ProtectedStructNames)
 {
-    std::vector<std::string> protectedNames{{"argumentinfo",
-                                             "callableinfo",
-                                             "unit",
-                                             "complexnumber",
-                                             "ratio",
-                                             "devicetype",
-                                             "functionblocktype",
-                                             "servertype",
-                                             "datadescriptor",
-                                             "datarule",
-                                             "dimension",
-                                             "dimensionrule",
-                                             "range",
-                                             "scaling"}};
+    std::vector<std::string> protectedNames{{"ArgumentInfo",
+                                             "CallableInfo",
+                                             "Unit",
+                                             "ComplexNumber",
+                                             "Ratio",
+                                             "DeviceType",
+                                             "FunctionBlockType",
+                                             "ServerType",
+                                             "DataDescriptor",
+                                             "DataRule",
+                                             "Dimension",
+                                             "DimensionRule",
+                                             "Range",
+                                             "Scaling"}};
 
     const auto typeManager = TypeManager();
     for (const auto& name : protectedNames)

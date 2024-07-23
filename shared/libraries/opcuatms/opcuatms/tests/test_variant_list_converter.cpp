@@ -77,7 +77,7 @@ TEST_F(VariantListConverterTest, Ratio)
 TEST_F(VariantListConverterTest, Unit)
 {
     auto list = List<IUnit>();
-    list.pushBack(Unit("symbol", 1, "name", "q"));
+    list.pushBack(Unit("Symbol", 1, "Name", "q"));
     list.pushBack(Unit("V", 2));
 
     const auto variant = VariantConverter<IUnit>::ToArrayVariant(list);
@@ -184,7 +184,7 @@ TEST_F(VariantListConverterTest, BaseObject)
 
 TEST_F(VariantListConverterTest, DataDescriptor)
 {
-    auto id = DataDescriptorBuilder().setSampleType(SampleType::Int32).setName("id").build();
+    auto id = DataDescriptorBuilder().setSampleType(SampleType::Int32).setName("Id").build();
     auto data = DataDescriptorBuilder().setSampleType(SampleType::UInt8).setName("data").build();
     auto can = DataDescriptorBuilder()
                    .setSampleType(SampleType::Struct)
@@ -218,7 +218,7 @@ TEST_F(VariantListConverterTest, ListDataDescriptor)
 TEST_F(VariantListConverterTest, DataDescriptorMetadata)
 {
     auto metadata = Dict<IString, IBaseObject>();
-    metadata.set("name", "sine1");
+    metadata.set("Name", "sine1");
     metadata.set("frequency", "50");
     auto descriptor1 = DataDescriptorBuilder().setSampleType(SampleType::Float64).setName("Sine1").setMetadata(metadata).build();
 

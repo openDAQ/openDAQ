@@ -18,10 +18,10 @@ static void hashCombine(size_t& seed, const T& value)
 ComplexNumberImpl::ComplexNumberImpl(const Float real, const Float imaginary)
     : GenericStructImpl<IComplexNumber, IStruct, IComparable, IConvertible>(
         ComplexNumberStructType(),
-        Dict<IString, IFloat>({{"real", real}, {"imaginary", imaginary}}))
+        Dict<IString, IFloat>({{"Real", real}, {"Imaginary", imaginary}}))
 {
-    value.real = this->fields.get("real");
-    value.imaginary = this->fields.get("imaginary");
+    value.real = this->fields.get("Real");
+    value.imaginary = this->fields.get("Imaginary");
 }
 
 ErrCode ComplexNumberImpl::getValue(ComplexFloat64* value)

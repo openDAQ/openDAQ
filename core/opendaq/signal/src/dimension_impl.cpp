@@ -21,9 +21,9 @@ DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dime
 {
     const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
     auto params = Dict<IString, IBaseObject>();
-    params.set("name", builderPtr.getName());
-    params.set("unit", builderPtr.getUnit());
-    params.set("rule", builderPtr.getRule());
+    params.set("Name", builderPtr.getName());
+    params.set("Unit", builderPtr.getUnit());
+    params.set("Rule", builderPtr.getRule());
 
     return params;
 }
@@ -31,9 +31,9 @@ DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dime
 DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, const StringPtr& name)
     : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType,
           Dict<IString, IBaseObject>({
-              {"name", name},
-              {"unit", unit},
-              {"rule", rule},
+              {"Name", name},
+              {"Unit", unit},
+              {"Rule", rule},
           }))
     , name(name)
     , unit(unit)
@@ -86,7 +86,7 @@ ErrCode DimensionImpl::getSize(SizeT* size)
     }
     else if (rule.getType() == DimensionRuleType::List)
     {
-        *size = rule.getParameters().get("list").asPtr<IList>().getCount();
+        *size = rule.getParameters().get("List").asPtr<IList>().getCount();
     }
     else
     {
@@ -200,7 +200,7 @@ ListPtr<IBaseObject> DimensionImpl::getLogLabels() const
 
 ListPtr<IBaseObject> DimensionImpl::getListLabels() const
 {
-    return rule.getParameters().get("list");
+    return rule.getParameters().get("List");
 }
 
 ErrCode DimensionImpl::serialize(ISerializer* serializer)

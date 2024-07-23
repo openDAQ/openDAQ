@@ -11,7 +11,7 @@ using namespace daq;
 using namespace daq::opcua;
 
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("OpcUaServer", config, rootDevice, context, nullptr)
+    : Server("OpenDAQOPCUAServerModule", config, rootDevice, context, nullptr)
     , server(rootDevice, context)
     , context(context)
 {
@@ -32,7 +32,7 @@ void OpcUaServerImpl::populateDefaultConfigFromProvider(const ContextPtr& contex
     if (!config.assigned())
         return;
 
-    auto options = context.getModuleOptions("OpcUaServer");
+    auto options = context.getModuleOptions("OpenDAQOPCUAServerModule");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
@@ -73,9 +73,9 @@ PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
 
 ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 {
-    return ServerType("openDAQ OpcUa",
-                      "openDAQ OpcUa server",
-                      "Publishes device structure over OpcUa protocol",
+    return ServerType("OpenDAQOPCUA",
+                      "openDAQ OPC UA server",
+                      "Publishes device structure over OPC UA protocol",
                       OpcUaServerImpl::createDefaultConfig(context));
 }
 
@@ -86,8 +86,8 @@ void OpcUaServerImpl::onStopServer()
     {
         const auto info = this->rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_opcua_config"))
-            infoInternal.removeServerCapability("opendaq_opcua_config");
+        if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+            infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
     }
 }
 

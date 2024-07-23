@@ -11,15 +11,15 @@ bool AppInputPort::processCommand(BaseObjectPtr& port, const std::vector<std::st
     if (command.empty())
         return false;
 
-    if (command[0] == "connect")
+    if (command[0] == "Connect")
         return connect(port, command, instance);
-    if (command[0] == "disconnect")
+    if (command[0] == "Disconnect")
         return disconnect(port);
-    if (command[0] == "print")
+    if (command[0] == "Print")
         return print(port, command);
-    if (command[0] == "help")
+    if (command[0] == "Help")
         return help();
-    if (command[0] == "select")
+    if (command[0] == "Select")
         return select(port, command);
 
     return false;
@@ -59,7 +59,7 @@ bool AppInputPort::print(const InputPortPtr& port, const std::vector<std::string
     if (command.size() != 2)
         return false;
 
-    if (command[1] == "name")
+    if (command[1] == "Name")
     {
         const auto name = port.getName();
         if (name.assigned() && name.getLength() > 0)
@@ -119,7 +119,7 @@ bool AppInputPort::help()
               << "Connects the signal with <signal-id> to the input port" << std::endl
               << std::endl;
 
-    std::cout << std::setw(25) << std::left << "disconnect"
+    std::cout << std::setw(25) << std::left << "Disconnect"
               << "Disconnects the connected signal, if a signal is connected to the input port." << std::endl
               << std::endl;
 

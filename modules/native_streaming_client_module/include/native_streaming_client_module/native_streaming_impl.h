@@ -23,7 +23,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 static const char* NativeStreamingPrefix = "daq.ns";
-static const char* NativeStreamingID = "opendaq_native_streaming";
+static const char* NativeStreamingID = "OpenDAQNativeStreaming";
 
 class NativeStreamingImpl : public Streaming
 {

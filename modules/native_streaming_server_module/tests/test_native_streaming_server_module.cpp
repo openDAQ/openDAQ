@@ -50,7 +50,7 @@ static InstancePtr CreateTestInstance()
 
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
-    auto config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+    auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     config.setPropertyValue("NativeStreamingPort", 0);
     return config;
 }
@@ -68,7 +68,7 @@ TEST_F(NativeStreamingServerModuleTest, CreateModule)
 TEST_F(NativeStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ native streaming server module");
+    ASSERT_EQ(module.getName(), "OpenDAQNativeStreamingServerModule");
 }
 
 TEST_F(NativeStreamingServerModuleTest, VersionAvailable)
@@ -102,8 +102,8 @@ TEST_F(NativeStreamingServerModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 1u);
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
-    ASSERT_EQ(serverTypes.get("openDAQ Native Streaming").getId(), "openDAQ Native Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
+    ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
 }
 
 TEST_F(NativeStreamingServerModuleTest, ServerConfig)
@@ -111,8 +111,8 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
     auto module = CreateModule();
 
     DictPtr<IString, IServerType> serverTypes = module.getAvailableServerTypes();
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
-    auto config = serverTypes.get("openDAQ Native Streaming").createDefaultConfig();
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
+    auto config = serverTypes.get("OpenDAQNativeStreaming").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
     ASSERT_TRUE(config.hasProperty("NativeStreamingPort"));
@@ -125,7 +125,7 @@ TEST_F(NativeStreamingServerModuleTest, CreateServer)
     auto module = CreateModule(device.getContext());
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(module.createServer("openDAQ Native Streaming", device.getRootDevice(), config));
+    ASSERT_NO_THROW(module.createServer("OpenDAQNativeStreaming", device.getRootDevice(), config));
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServerFromInstance)
@@ -133,5 +133,5 @@ TEST_F(NativeStreamingServerModuleTest, CreateServerFromInstance)
     auto device = CreateTestInstance();
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(device.addServer("openDAQ Native Streaming", config));
+    ASSERT_NO_THROW(device.addServer("OpenDAQNativeStreaming", config));
 }

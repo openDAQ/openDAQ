@@ -97,7 +97,7 @@ protected:
 
 TEST_F(TmsFusionDevice, SampleRateTest)
 {
-    SignalPtr daqServerSignal = createSignal("id");
+    SignalPtr daqServerSignal = createSignal("Id");
     daqServerSignal.addProperty(FloatProperty("SampleRate", 1.0, false));
 
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);

@@ -123,11 +123,11 @@ TEST_F(ConfigProtocolSerializationTest, Component)
     const auto ctx = NullContext();
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(ctx, nullptr, "temp");
+    const auto component = Component(ctx, nullptr, "Temp");
 
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().asPtr<ITagsPrivate>().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("Tag");
 
     const auto serializer = JsonSerializer(True);
     component.serialize(serializer);
@@ -138,7 +138,7 @@ TEST_F(ConfigProtocolSerializationTest, Component)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, ctx, nullptr, nullptr, "temp", nullptr);
+        clientComm, std::string {}, ctx, nullptr, nullptr, "Temp", nullptr);
     bool configComponentInstantiated = false;
     const ComponentPtr newComponent = deserializer.deserialize(str1,
                                                                deserializeContext,
@@ -350,7 +350,7 @@ TEST_F(ConfigProtocolSerializationTest, InputPort)
     const auto inputPort = InputPort(NullContext(), nullptr, "ip");
 
     inputPort.setName("ip_name");
-    inputPort.getTags().asPtr<ITagsPrivate>().add("tag");
+    inputPort.getTags().asPtr<ITagsPrivate>().add("Tag");
 
     const auto serializer = JsonSerializer(True);
     inputPort.serialize(serializer);
@@ -622,7 +622,7 @@ class MockChannel final : public Channel
 {
 public:
     MockChannel(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-        : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId)
+        : Channel(FunctionBlockType("Ch", "", ""), ctx, parent, localId)
     {
         createAndAddSignal("sig_ch");
     }
@@ -630,7 +630,7 @@ public:
 
 TEST_F(ConfigProtocolSerializationTest, Channel)
 {
-    const auto ch = createWithImplementation<IChannel, MockChannel>(NullContext(), nullptr, "ch");
+    const auto ch = createWithImplementation<IChannel, MockChannel>(NullContext(), nullptr, "Ch");
     ch.setName("fb_name");
     ch.setDescription("fb_desc");
     ch.getTags().asPtr<ITagsPrivate>().add("fld_tag");
@@ -644,7 +644,7 @@ TEST_F(ConfigProtocolSerializationTest, Channel)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, NullContext(), nullptr, nullptr, "ch", nullptr);
+        clientComm, std::string {}, NullContext(), nullptr, nullptr, "Ch", nullptr);
 
     int configComponentInstantiated = 0;
     const ChannelPtr newCh =
@@ -702,8 +702,8 @@ public:
     {
         createAndAddSignal("sig_device");
 
-        auto aiIoFolder = this->addIoFolder("ai", ioFolder);
-        createAndAddChannel<MockChannel>(aiIoFolder, "ch");
+        auto aiIoFolder = this->addIoFolder("AI", ioFolder);
+        createAndAddChannel<MockChannel>(aiIoFolder, "Ch");
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb", nullptr, true);
         addNestedFunctionBlock(fb);

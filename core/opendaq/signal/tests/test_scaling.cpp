@@ -87,15 +87,15 @@ TEST_F(ScalingTest, StructType)
 TEST_F(ScalingTest, StructFields)
 {
     const daq::StructPtr structPtr = LinearScaling(10, 10);
-    ASSERT_EQ(structPtr.get("ruleType"), static_cast<Int>(ScalingType::Linear));
+    ASSERT_EQ(structPtr.get("RuleType"), static_cast<Int>(ScalingType::Linear));
 
     const auto params = Dict<IString, IBaseObject>({
             {"scale", 10},
             {"offset", 10}
         });
-    ASSERT_EQ(structPtr.get("parameters"), params);
-    ASSERT_EQ(structPtr.get("inputDataType"), static_cast<Int>(SampleType::Float64));
-    ASSERT_EQ(structPtr.get("outputDataType"), static_cast<Int>(SampleType::Float64));
+    ASSERT_EQ(structPtr.get("Parameters"), params);
+    ASSERT_EQ(structPtr.get("InputDataType"), static_cast<Int>(SampleType::Float64));
+    ASSERT_EQ(structPtr.get("OutputDataType"), static_cast<Int>(SampleType::Float64));
 }
 
 TEST_F(ScalingTest, StructNames)

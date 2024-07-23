@@ -51,8 +51,8 @@ inline ServerTypePtr ServerType(const StringPtr& id,
  */
 inline StructTypePtr ServerTypeStructType()
 {
-    return StructType("serverType",
-                      List<IString>("id", "name", "description"),
+    return StructType("ServerType",
+                      List<IString>("Id", "Name", "Description"),
                       List<IString>("", "", ""),
                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }

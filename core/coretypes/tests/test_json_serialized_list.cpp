@@ -34,7 +34,7 @@ const std::string JsonSerializedListTest::FactoryId = "test";
 static ErrCode objectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -60,7 +60,7 @@ static ErrCode serializedObjectFactory(ISerializedObject* serialized,
                                        IBaseObject** obj)
 {
     SerializedListPtr list;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &list);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &list);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -73,7 +73,7 @@ static ErrCode serializedObjectFactory(ISerializedObject* serialized,
 static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -95,7 +95,7 @@ static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context
 static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -118,7 +118,7 @@ static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context
 static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -141,7 +141,7 @@ static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*
 static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -164,7 +164,7 @@ static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*contex
 static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -187,7 +187,7 @@ static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*conte
 static ErrCode serializedListFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
-    ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
+    ErrCode errCode = serialized->readSerializedList(String("List"), &serializedList);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -217,14 +217,14 @@ TEST_F(JsonSerializedListTest, NullObjectInvalidArgumentException)
 TEST_F(JsonSerializedListTest, readSerializedListObjectNull)
 {
     SerializedObjectPtr ptr;
-    ASSERT_THROW(ptr.readSerializedList("list"), InvalidParameterException);
+    ASSERT_THROW(ptr.readSerializedList("List"), InvalidParameterException);
 }
 
 TEST_F(JsonSerializedListTest, readSerializedObjectInvalidValue)
 {
     registerFactory(serializedObjectFactory);
 
-    std::string json = R"({"__type":"test","list":[false]})";
+    std::string json = R"({"__type":"test","List":[false]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -232,7 +232,7 @@ TEST_F(JsonSerializedListTest, readSerializedObjectOutOfRange)
 {
     registerFactory(serializedObjectFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json), OutOfRangeException);
 }
 
@@ -240,7 +240,7 @@ TEST_F(JsonSerializedListTest, readSerializedObjectNull)
 {
     registerFactory(serializedObjectFactory);
 
-    std::string json = R"({"__type":"test","list":[{"__type":1}]})";
+    std::string json = R"({"__type":"test","List":[{"__type":1}]})";
     BaseObjectPtr ptr = deserializer.deserialize(json);
 
     ASSERT_TRUE(ptr.assigned());
@@ -250,7 +250,7 @@ TEST_F(JsonSerializedListTest, readListInvalidType)
 {
     registerFactory(listFactory);
 
-    std::string json = R"({"__type":"test","list":[false]})";
+    std::string json = R"({"__type":"test","List":[false]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -258,7 +258,7 @@ TEST_F(JsonSerializedListTest, readList)
 {
     registerFactory(listFactory);
 
-    std::string json = R"({"__type":"test","list":[[]]})";
+    std::string json = R"({"__type":"test","List":[[]]})";
     ListPtr<IBaseObject> listPtr = deserializer.deserialize(json.data());
 
     ASSERT_EQ(listPtr.getCount(), 0u);
@@ -268,7 +268,7 @@ TEST_F(JsonSerializedListTest, readListOutOfRange)
 {
     registerFactory(listFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -276,7 +276,7 @@ TEST_F(JsonSerializedListTest, readSerializedListInvalidType)
 {
     registerFactory(serializedListFactory);
 
-    std::string json = R"({"__type":"test","list":[{}]})";
+    std::string json = R"({"__type":"test","List":[{}]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -284,7 +284,7 @@ TEST_F(JsonSerializedListTest, readSerializedList)
 {
     registerFactory(serializedListFactory);
 
-    std::string json = R"({"__type":"test","list":[[]]})";
+    std::string json = R"({"__type":"test","List":[[]]})";
     SerializedListPtr listPtr = deserializer.deserialize(json.data());
 
     ASSERT_EQ(listPtr.getCount(), 0u);
@@ -294,7 +294,7 @@ TEST_F(JsonSerializedListTest, readSerializedListOutOfRange)
 {
     registerFactory(serializedListFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -302,7 +302,7 @@ TEST_F(JsonSerializedListTest, readBoolTrue)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":"test","list":[true]})";
+    std::string json = R"({"__type":"test","List":[true]})";
     BooleanPtr ptr = deserializer.deserialize(json.data());
 
     Bool boolVal = ptr;
@@ -313,7 +313,7 @@ TEST_F(JsonSerializedListTest, readBoolFalse)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":"test","list":[false]})";
+    std::string json = R"({"__type":"test","List":[false]})";
     BooleanPtr ptr = deserializer.deserialize(json.data());
 
     Bool boolVal = ptr;
@@ -324,7 +324,7 @@ TEST_F(JsonSerializedListTest, readBoolInvalidType)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":"test","list":[1]})";
+    std::string json = R"({"__type":"test","List":[1]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -332,7 +332,7 @@ TEST_F(JsonSerializedListTest, readBoolOutOfRange)
 {
     registerFactory(boolFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -340,7 +340,7 @@ TEST_F(JsonSerializedListTest, readIntPositive)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":"test","list":[1]})";
+    std::string json = R"({"__type":"test","List":[1]})";
     IntPtr ptr = deserializer.deserialize(json.data());
 
     Int intVal = ptr;
@@ -352,7 +352,7 @@ TEST_F(JsonSerializedListTest, readIntNegative)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":"test","list":[-1]})";
+    std::string json = R"({"__type":"test","List":[-1]})";
     IntPtr ptr = deserializer.deserialize(json.data());
 
     Int intVal = ptr;
@@ -364,7 +364,7 @@ TEST_F(JsonSerializedListTest, readIntInvalidType)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":"test","list":[1.0]})";
+    std::string json = R"({"__type":"test","List":[1.0]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -372,7 +372,7 @@ TEST_F(JsonSerializedListTest, readIntOutOfRange)
 {
     registerFactory(intFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -380,7 +380,7 @@ TEST_F(JsonSerializedListTest, readFloatPositive)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":"test","list":[1.5]})";
+    std::string json = R"({"__type":"test","List":[1.5]})";
     Float floatVal = deserializer.deserialize(json.data());
     ASSERT_EQ(floatVal, 1.5);
 }
@@ -389,7 +389,7 @@ TEST_F(JsonSerializedListTest, readFloatNegative)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":"test","list":[-1.5]})";
+    std::string json = R"({"__type":"test","List":[-1.5]})";
     Float floatVal = deserializer.deserialize(json.data());
 
     ASSERT_EQ(floatVal, -1.5);
@@ -399,7 +399,7 @@ TEST_F(JsonSerializedListTest, readNonExistentFloat)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -407,7 +407,7 @@ TEST_F(JsonSerializedListTest, readFloatInvalidType)
 {
     registerFactory(floatFactory);
 
-    std::string json = R"({"__type":"test","list":[1]})";
+    std::string json = R"({"__type":"test","List":[1]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -415,7 +415,7 @@ TEST_F(JsonSerializedListTest, readString)
 {
     registerFactory(stringFactory);
 
-    std::string json = R"({"__type":"test","list":["Test"]})";
+    std::string json = R"({"__type":"test","List":["Test"]})";
     StringPtr ptr = deserializer.deserialize(json.data());
 
     std::string strVal = ptr.toStdString();
@@ -426,7 +426,7 @@ TEST_F(JsonSerializedListTest, readStringInvalidType)
 {
     registerFactory(stringFactory);
 
-    std::string json = R"({"__type":"test","list":[0]})";
+    std::string json = R"({"__type":"test","List":[0]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
@@ -434,7 +434,7 @@ TEST_F(JsonSerializedListTest, readStringOutOfRange)
 {
     registerFactory(stringFactory);
 
-    std::string json = R"({"__type":"test","list":[]})";
+    std::string json = R"({"__type":"test","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -442,7 +442,7 @@ TEST_F(JsonSerializedListTest, readObjectOutOfRange)
 {
     registerFactory(objectFactory);
 
-    std::string json = R"({"__type":")" + FactoryId + R"(","list":[]})";
+    std::string json = R"({"__type":")" + FactoryId + R"(","List":[]})";
     ASSERT_THROW(deserializer.deserialize(json.data()), OutOfRangeException);
 }
 
@@ -455,7 +455,7 @@ TEST_F(JsonSerializedListTest, readObject)
                                       return OPENDAQ_SUCCESS;
                                   });
 
-    std::string json = R"({"__type":")" + FactoryId + R"(","list":[{"__type":"null"}]})";
+    std::string json = R"({"__type":")" + FactoryId + R"(","List":[{"__type":"null"}]})";
 
     BaseObjectPtr ptr = deserializer.deserialize(String(json.data()));
     ASSERT_FALSE(ptr.assigned());
@@ -465,7 +465,7 @@ TEST_F(JsonSerializedListTest, Inspectable)
 {
     registerFactory(serializedListFactory);
 
-    std::string json = R"({"__type":"test","list":[[]]})";
+    std::string json = R"({"__type":"test","List":[[]]})";
     SerializedListPtr obj = deserializer.deserialize(json.data());
 
     auto ids = obj.asPtr<IInspectable>(true).getInterfaceIds();
@@ -476,7 +476,7 @@ TEST_F(JsonSerializedListTest, ImplementationName)
 {
     registerFactory(serializedListFactory);
 
-    std::string json = R"({"__type":"test","list":[[]]})";
+    std::string json = R"({"__type":"test","List":[[]]})";
     SerializedListPtr obj = deserializer.deserialize(json.data());
 
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();

@@ -277,9 +277,9 @@ ErrCode StreamReaderImpl::getEmpty(Bool* empty)
 
     std::scoped_lock lock(mutex);
 
+    *empty = false;
     if (connection.assigned())
     {
-        *empty = false;
         if (!skipEvents && connection.hasEventPacket())
         {
             return OPENDAQ_SUCCESS;
@@ -291,9 +291,21 @@ ErrCode StreamReaderImpl::getEmpty(Bool* empty)
         }
     }
 
-    SizeT count;
-    getAvailableCount(&count); 
-    *empty = count == 0;
+    if (info.dataPacket.assigned())
+    {
+        if (info.dataPacket.getSampleCount() > info.prevSampleIndex)
+        {
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    if (connection.assigned())
+    {
+        if (connection.getAvailableSamples() > 0)
+        {
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    *empty = true;
     return OPENDAQ_SUCCESS;
 }
 

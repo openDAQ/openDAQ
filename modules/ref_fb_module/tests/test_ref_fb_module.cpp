@@ -89,8 +89,8 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModulePower"));
     ASSERT_EQ("RefFBModulePower", functionBlockTypes.get("RefFBModulePower").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("RefFbModulePowerReader"));
-    ASSERT_EQ("RefFbModulePowerReader", functionBlockTypes.get("RefFbModulePowerReader").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModulePowerReader"));
+    ASSERT_EQ("RefFBModulePowerReader", functionBlockTypes.get("RefFBModulePowerReader").getId());
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleScaling"));
     ASSERT_EQ("RefFBModuleScaling", functionBlockTypes.get("RefFBModuleScaling").getId());

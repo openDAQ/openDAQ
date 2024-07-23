@@ -92,7 +92,7 @@ void PowerReaderFbImpl::readProperties()
 
 FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
 {
-    return FunctionBlockType("RefFbModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    return FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
 }
 
 bool PowerReaderFbImpl::getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc)

@@ -433,7 +433,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 reader.Read(samples, ref count, 1000);
                 samplesCount += count;
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;�0.000})";
+                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;±0.000})";
                 Console.WriteLine($"  Block {readBlockNo + 1,2} read {count,3} values {values}");
             }
         }

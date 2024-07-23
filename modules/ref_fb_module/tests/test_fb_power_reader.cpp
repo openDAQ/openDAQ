@@ -62,7 +62,7 @@ TEST_F(PowerReaderTest, Create)
 {
     const auto module = createModule(createContext());
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -71,7 +71,7 @@ TEST_F(PowerReaderTest, Connect)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -85,7 +85,7 @@ TEST_F(PowerReaderTest, ConnectOneSignal)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -111,7 +111,7 @@ TEST_F(PowerReaderTest, Simple)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -178,7 +178,7 @@ TEST_F(PowerReaderTest, MultiplePackets)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -280,7 +280,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -382,7 +382,7 @@ TEST_F(PowerReaderTest, Gap)
     const auto ctx = createContext();
     const auto module = createModule(ctx);
 
-    auto fb = module.createFunctionBlock("RefFbModulePowerReader", nullptr, "id");
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);

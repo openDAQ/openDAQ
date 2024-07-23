@@ -39,7 +39,8 @@
 daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule = nullptr, daq::ScalingPtr scaling = nullptr);
 daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
                                                           daq::DataRulePtr rule = nullptr,
-                                                          daq::ScalingPtr scaling = nullptr);
+                                                          daq::ScalingPtr scaling = nullptr,
+                                                          daq::StringPtr domainId = nullptr);
 
 template <typename T = void>
 class ReaderTest : public testing::Test
@@ -97,7 +98,8 @@ public:
 
     auto createDomainDescriptor(std::string epoch = "",
                                 daq::RatioPtr resolution = nullptr,
-                                daq::DataRulePtr rule = nullptr) const
+                                daq::DataRulePtr rule = nullptr,
+                                daq::StringPtr domainId = nullptr) const
     {
         if (epoch.empty())
         {
@@ -114,7 +116,7 @@ public:
             rule = daq::LinearDataRule(1, 0);
         }
 
-        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr)
+        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, domainId)
             .setOrigin(epoch)
             .setTickResolution(resolution)
             .setUnit(daq::Unit("s", -1, "seconds", "time"))
@@ -138,10 +140,11 @@ protected:
 
 [[nodiscard]]
 inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
-                                                                daq::DataRulePtr rule,
-                                                                daq::ScalingPtr scaling)
+                                                                 daq::DataRulePtr rule,
+                                                                 daq::ScalingPtr scaling,
+                                                                 daq::StringPtr domainId)
 {
-    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling);
+    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling).setDomainId(domainId);
 
     if (rule.assigned())
         dataDescriptor.setRule(rule);

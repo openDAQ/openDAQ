@@ -143,6 +143,8 @@ private:
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
+
+    void checkSameDomain(const ListPtr<IInputPortConfig>& list);
 };
 
 END_NAMESPACE_OPENDAQ

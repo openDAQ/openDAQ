@@ -276,7 +276,8 @@ jobs:
             lld ninja-build curl \
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev \
+            flex bison libboost-all-dev
 
       - name: Install latest CMake
         run: pip install cmake

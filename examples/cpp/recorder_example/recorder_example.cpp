@@ -21,20 +21,30 @@ int main(int /*argc*/, const char* /*argv*/[])
     FunctionBlockPtr parquet = instance.addFunctionBlock("file_writer_module_parquet");
 
      // Get channel and signal of reference device
-    const auto sineChannel = device.getChannels()[0];
-    const auto sineSignal = sineChannel.getSignals()[0];
-    parquet.getInputPorts()[0].connect(sineSignal);
+    const auto firstChannel = device.getChannels()[0];
+    const auto firstSignal = firstChannel.getSignals()[0];
+
+    const auto secondChannel = device.getChannels()[1];
+    const auto secondSignal = secondChannel.getSignals()[0];
+
+    parquet.getInputPorts()[0].connect(firstSignal);
+    parquet.getInputPorts()[1].connect(secondSignal);
+
+    // You can also manipulate the path. By default is stores in the execution directory.
+    //parquet.setPropertyValue("Path", "xxx");
+    parquet.setPropertyValue("FileName", "myData");
+    parquet.setPropertyValue("WriteBatchCylceInSec", 10);
     parquet.setPropertyValue("RecordingActive", true);
 
     // Process and render data for 10s, modulating the amplitude
     double ampl_step = 0.1;
     for (int i = 0; i < 400; ++i)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        const double ampl = sineChannel.getPropertyValue("Amplitude");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        const double ampl = firstChannel.getPropertyValue("Amplitude");
         if (9.95 < ampl || ampl < 3.05)
             ampl_step *= -1;
-        sineChannel.setPropertyValue("Amplitude", ampl + ampl_step);
+        firstChannel.setPropertyValue("Amplitude", ampl + ampl_step);
     }
     parquet.setPropertyValue("RecordingActive", false);
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

@@ -2,7 +2,6 @@ set(LIB_NAME file_writer_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(MODULE_BINARY_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include/${TARGET_FOLDER_NAME})
 
-
 set(SRC_Include common.h
                 module_dll.h
                 file_writer_module_impl.h
@@ -33,8 +32,8 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
  
-target_link_libraries(${LIB_NAME}   PUBLIC daq::opendaq
-                                    PRIVATE Arrow::arrow_shared parquet_shared
+target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
+                                  PRIVATE Arrow::arrow_shared parquet_shared
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

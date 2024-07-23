@@ -114,4 +114,3 @@ endif()
 if(OPENDAQ_ENABLE_NATIVE_STREAMING)
     add_subdirectory(native_streaming EXCLUDE_FROM_ALL)
 endif()
-

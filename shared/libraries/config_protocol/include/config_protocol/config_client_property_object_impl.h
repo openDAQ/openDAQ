@@ -123,6 +123,36 @@ public:
     void unfreeze();
 };
 
+class ScopedRemoteUpdate
+{
+public:
+    ScopedRemoteUpdate(const ScopedRemoteUpdate&) = delete;
+    ScopedRemoteUpdate(ScopedRemoteUpdate&&) = delete;
+
+    explicit ScopedRemoteUpdate(const BaseObjectPtr& obj)
+    {
+        impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
+        impl->remoteUpdating = true;        
+    }
+
+    ScopedRemoteUpdate operator=(const ScopedRemoteUpdate&) = delete;
+    ScopedRemoteUpdate operator=(ScopedRemoteUpdate&&) = delete;
+
+    ~ScopedRemoteUpdate()
+    {
+        impl->remoteUpdating = false;
+    }
+
+    [[nodiscard]] ConfigClientPropertyObjectImpl* getImpl() const
+    {
+        return impl;
+    }
+
+private:
+    ConfigClientPropertyObjectImpl* impl;
+};
+
+
 template <class Impl>
 template <class ... Args>
 ConfigClientPropertyObjectBaseImpl<Impl>::ConfigClientPropertyObjectBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -593,23 +623,11 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyValueChanged(const CoreEv
     if (path != "")
     {
         const auto obj = this->objPtr.getPropertyValue(path);
-        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
-
-        impl->remoteUpdating = true;
-        try
-        {
-            if (val.assigned())
-                checkErrorInfo(impl->setProtectedPropertyValue(propName, val));
-            else
-                checkErrorInfo(impl->clearProtectedPropertyValue(propName));
-        }
-        catch(...)
-        {
-            impl->remoteUpdating = false;
-            throw;
-        }
-
-        impl->remoteUpdating = false;
+        ScopedRemoteUpdate update(obj);
+        if (val.assigned())
+            checkErrorInfo(update.getImpl()->setProtectedPropertyValue(propName, val));
+        else
+            checkErrorInfo(update.getImpl()->clearProtectedPropertyValue(propName));
     }
     else
     {
@@ -630,29 +648,18 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
 
     if (params.get("Path") != "")
     {
-        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
-        impl->remoteUpdating = true;
-        try
-        {
-            checkErrorInfo(impl->beginUpdate());
+        ScopedRemoteUpdate update(obj);
+        checkErrorInfo(update.getImpl()->beginUpdate());
 
-            for (const auto& val : updatedProperties)
-            {
-                if (val.second.assigned())
-                    checkErrorInfo(impl->setProtectedPropertyValue(val.first, val.second));
-                else
-                    checkErrorInfo(impl->clearProtectedPropertyValue(val.first));
-            }
-
-            checkErrorInfo(impl->endUpdate());
-        }
-        catch(...)
+        for (const auto& val : updatedProperties)
         {
-            impl->remoteUpdating = false;
-            throw;
+            if (val.second.assigned())
+                checkErrorInfo(update.getImpl()->setProtectedPropertyValue(val.first, val.second));
+            else
+                checkErrorInfo(update.getImpl()->clearProtectedPropertyValue(val.first));
         }
 
-        impl->remoteUpdating = false;
+        checkErrorInfo(update.getImpl()->endUpdate());
 
     }
     else
@@ -683,19 +690,8 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
 
     if (params.get("Path") != "")
     {
-        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
-        impl->remoteUpdating = true;
-        try
-        {
-            checkErrorInfo(impl->addProperty(prop));
-        }
-        catch(...)
-        {
-            impl->remoteUpdating = false;
-            throw;
-        }
-
-        impl->remoteUpdating = false;
+        ScopedRemoteUpdate update(obj);
+        checkErrorInfo(update.getImpl()->addProperty(prop));
     }
     else
         checkErrorInfo(Impl::addProperty(prop));
@@ -713,19 +709,8 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyRemoved(const CoreEventAr
 
     if (params.get("Path") != "")
     {
-        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
-        impl->remoteUpdating = true;
-        try
-        {
-            checkErrorInfo(impl->removeProperty(propName));
-        }
-        catch(...)
-        {
-            impl->remoteUpdating = false;
-            throw;
-        }
-
-        impl->remoteUpdating = false;
+        ScopedRemoteUpdate update(obj);
+        checkErrorInfo(update.getImpl()->removeProperty(propName));
     }
     else
         checkErrorInfo(Impl::removeProperty(propName));
@@ -890,4 +875,5 @@ inline void ConfigClientPropertyObjectImpl::unfreeze()
 {
     this->frozen = false;
 }
+
 }

@@ -137,10 +137,27 @@ ErrCode AddressInfoImpl::Deserialize(ISerializedObject* serialized,
         });
 }
 
-PropertyObjectPtr AddressInfoImpl::createCloneBase()
+ErrCode AddressInfoImpl::clone(IPropertyObject** cloned)
 {
-    const auto obj = createWithImplementation<IAddressInfo, AddressInfoImpl>();
-    return obj;
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+        
+    auto obj = createWithImplementation<IAddressInfo, AddressInfoImpl>();
+
+    return daqTry([this, &obj, &cloned]()
+    {
+        auto implPtr = static_cast<AddressInfoImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(valueWriteEvents,
+                                        valueReadEvents,
+                                        endUpdateEvent,
+                                        triggerCoreEvent,
+                                        localProperties,
+                                        propValues,
+                                        customOrder,
+                                        permissionManager);
+
+        *cloned = obj.detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

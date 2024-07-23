@@ -32,6 +32,6 @@ if (Arrow_FETCHED)
     # In this configuration it does not properly register its include paths
     # with the library target. We have to do it here manually.
     target_include_directories(arrow_shared INTERFACE
-        $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
-        $<BUILD_INTERFACE:${arrow_BINARY_DIR}/src>)
+                                            $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
+                                            $<BUILD_INTERFACE:${arrow_BINARY_DIR}/src>)
 endif()

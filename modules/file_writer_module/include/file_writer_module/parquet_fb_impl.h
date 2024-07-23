@@ -37,17 +37,24 @@ namespace FileWriter
 
 struct DataTable
 {
-    DataTable(std::string domainId)
-    : schemaBuilder()
-    , domainBuilder()
+    DataTable(std::string domainId, int tableNr)
+        : schemaBuilder()
+        , domainBuilder()
+        , tableNr(tableNr)
+        , batchCount(0)
+        , empty(true)
+        , batchCylceReached(0)
     {
-        schemaBuilder.AddField(arrow::field(domainId, arrow::int64()));
+        PARQUET_THROW_NOT_OK(schemaBuilder.AddField(arrow::field(domainId, arrow::int64())));
     }
+
     arrow::SchemaBuilder schemaBuilder;
     arrow::Int64Builder domainBuilder;
+    int tableNr;
+    int batchCount;
+    bool empty;
+    int64_t batchCylceReached;
     std::map<std::string, arrow::DoubleBuilder> dataBuilderMap;
-    
-
 };
 
 class ParquetFbImpl final : public FunctionBlock
@@ -61,34 +68,33 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
-
 private:
+    int inputPortCount;
+    int tableNumberCount;
+    bool recordingActive;
 
     std::map<std::string, DataTable> dataTablesMap;
-    
-    int inputPortCount;
-    bool recordingActive;
-    bool dataRecorded; 
+    std::string path;
     std::string fileName;
+    int64_t writeBatchCylceInSec;
 
-
-
-    void updateInputPorts();
-    void writeParquetFile(const arrow::Table& table);
+    void writeParquetFile(const arrow::Table& table, const int tableWriteCount, const int tableWriteSubCount);
     std::shared_ptr<arrow::Table> generateTable(DataTable& dataTable);
 
     template <SampleType InputSampleType>
     void processDataPacket(const std::string& globalId, const std::string& domainGlobalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
     void onPacketReceived(const InputPortPtr& port) override;
 
-
     void initProperties();
-    void propertyChanged(bool configure);
     void readProperties();
+    void propertyChanged(bool configure);
+    void propertyActiveChanged();
+    void configureBatchCyleInSecChanged();
 
     void initStatuses();
-    void setInputStatus(const StringPtr& value);
 
+    void updateInputPorts();
+    void setInputStatus(const StringPtr& value);
 };
 
 }

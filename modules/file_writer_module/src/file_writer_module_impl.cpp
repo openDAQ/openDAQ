@@ -6,7 +6,6 @@
 
 BEGIN_NAMESPACE_FILE_WRITER_MODULE
 
-
 FileWriterModule::FileWriterModule(ContextPtr ctx)
     : Module("File writer module",
              daq::VersionInfo(FILE_WRITER_MODULE_MAJOR_VERSION, FILE_WRITER_MODULE_MINOR_VERSION, FILE_WRITER_MODULE_PATCH_VERSION),
@@ -35,7 +34,6 @@ FunctionBlockPtr FileWriterModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, FileWriter::ParquetFbImpl>(context, parent, localId);
         return fb;
     }
-
 
     LOG_W("Function block \"{}\" not found", id);
     throw NotFoundException("Function block not found");

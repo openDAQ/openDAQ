@@ -54,7 +54,7 @@ ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketReaderImpl::empty(Bool* empty)
+ErrCode PacketReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
     SizeT count;

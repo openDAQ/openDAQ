@@ -261,7 +261,7 @@ void ClassifierFbImpl::configure()
 void ClassifierFbImpl::processData()
 {
     std::scoped_lock lock(sync);
-    while (!linearReader.empty())
+    while (!linearReader.getEmpty())
     {
         size_t blocksToRead = 1;
         auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &blocksToRead);

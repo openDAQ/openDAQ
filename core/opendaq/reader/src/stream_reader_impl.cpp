@@ -271,7 +271,7 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
     });
 }
 
-ErrCode StreamReaderImpl::empty(Bool* empty)
+ErrCode StreamReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
 

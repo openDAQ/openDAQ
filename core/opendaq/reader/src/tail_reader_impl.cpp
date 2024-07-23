@@ -64,7 +64,7 @@ ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::empty(Bool* empty)
+ErrCode TailReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
     SizeT count;

@@ -8,9 +8,9 @@ Required integeration changes:
   - In first read, reader returns first event packet
   - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
   - reader::getAvailableSamples returns available samples untill event packet if skipEvents == false, or until gap packet if skipEvents == true. 
-  To check if reader has data to handle, was implemented method IReader::empty(Bool* empty), which returns true if there is data packet to read or there is an event packet
+  To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
 
-+ [function] IReader::empty(Bool* empty)
++ [function] IReader::getEmpty(Bool* empty)
 
 + [function] IBlockReaderBuilder::setSkipEvents(Bool skipEvents)
 + [function] IBlockReaderBuilder::getSkipEvents(Bool* skipEvents)

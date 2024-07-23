@@ -66,7 +66,7 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
      * This method returns true if there is data available to read. 
      * The data can be an event packet or a sufficient amount of data samples for minimum reading.
      */
-    virtual ErrCode INTERFACE_FUNC empty(Bool* empty) = 0;
+    virtual ErrCode INTERFACE_FUNC getEmpty(Bool* empty) = 0;
 };
 /*!@}*/
 

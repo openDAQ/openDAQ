@@ -890,7 +890,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::empty(Bool* empty)
+ErrCode MultiReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
     bool hasDataPacket = true;

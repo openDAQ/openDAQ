@@ -68,7 +68,7 @@ public:
     ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count, ITailReaderStatus** status) override;
 
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
-    ErrCode INTERFACE_FUNC empty(Bool* empty) override;
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
 private:
     ErrCode readPacket(TailReaderInfo& info, const DataPacketPtr& packet);

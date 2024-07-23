@@ -531,13 +531,13 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             {
                 Thread.Sleep(sleepTime);
             }
-            while ((sampleReader.Empty()) && (--loopCount > 0));
+            while ((sampleReader.Empty) && (--loopCount > 0));
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
 
             Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
 
-            Assert.That(!sampleReader.Empty(), "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
+            Assert.That(!sampleReader.Empty, "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
 
             using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
 

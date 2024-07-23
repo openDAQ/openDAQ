@@ -179,7 +179,7 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::empty(Bool* empty)
+ErrCode BlockReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
 

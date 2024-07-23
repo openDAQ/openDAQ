@@ -193,7 +193,7 @@ void FFTFbImpl::calculate()
 {
     std::scoped_lock lock(sync);
 
-    while (!linearReader.empty())
+    while (!linearReader.getEmpty())
     {
         SizeT readAmount = std::min(linearReader.getAvailableCount(), maxBlockReadCount);
         const auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &readAmount);
@@ -211,7 +211,6 @@ void FFTFbImpl::calculate()
             return;
         }
     }
-
 }
 
 void FFTFbImpl::processData(SizeT readAmount)

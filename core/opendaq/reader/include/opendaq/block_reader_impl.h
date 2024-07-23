@@ -217,7 +217,7 @@ public:
     ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override;
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
     
-    ErrCode INTERFACE_FUNC empty(Bool* empty) override;
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
     ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) override;
     ErrCode INTERFACE_FUNC

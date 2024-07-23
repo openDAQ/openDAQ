@@ -4,21 +4,24 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class DeviceTemplate : public Device, ComponentTemplateBase
+
+class DeviceTemplate : public DeviceTemplateParamsValidation, public Device, ComponentTemplateBase 
 {
 public:
-    DeviceTemplate(const StringPtr& localId,
-                   const DeviceInfoPtr& info,
-                   const StringPtr& logName,
-                   const ContextPtr& context,
-                   const ComponentPtr& parent,
-                   const StringPtr& className = nullptr);
+    DeviceTemplate(const DeviceTemplateParams& params);
+
 protected:
     LoggerComponentPtr loggerComponent;
 
 private:
     DeviceInfoPtr onGetInfo() override;
+
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
+
     DeviceInfoPtr info;
+    bool allowAddDevices;
+    bool allowAddFunctionBlocks;
 };
 
 END_NAMESPACE_OPENDAQ

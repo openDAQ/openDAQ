@@ -5,9 +5,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ModuleTemplate::ModuleTemplate(const StringPtr& name, const VersionInfoPtr& version, const ContextPtr& context, const StringPtr& id)
-    : Module(name, version, context, id)
+ModuleTemplate::ModuleTemplate(const ModuleTemplateParams& params)
+    : ModuleTemplateParamsValidation(params)
+    , Module(params.name, params.version, params.context, params.id)
 {
+    loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
 }
 
 ListPtr<IDeviceInfo> ModuleTemplate::onGetAvailableDevices()
@@ -28,7 +30,7 @@ ListPtr<IDeviceInfo> ModuleTemplate::onGetAvailableDevices()
 
 DictPtr<IString, IDeviceType> ModuleTemplate::onGetAvailableDeviceTypes()
 {
-    ListPtr<IDeviceType> deviceTypes = getDeviceTypes();
+    const ListPtr<IDeviceType> deviceTypes = getDeviceTypes();
 
     DictPtr<IString, IDeviceType> typesDict = Dict<IString, IDeviceType>();
     for (const auto& deviceType : deviceTypes)
@@ -65,7 +67,7 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
 
     for (const auto& infoFields : getDeviceInfoFields(type.getId(), context.getModuleOptions(id)))
     {
-        if (infoFields.connectionAddress == address)
+        if (infoFields.address == address)
         {
             info = createDeviceInfo(infoFields, type);
             break;
@@ -76,7 +78,16 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
         throw NotFoundException("Device with given connection string was not found.");
 
     const auto options = context.getModuleOptions(id);
-    return getDevice(type.getId(), address, info, parent, config, options.assigned() ? options : Dict<IString, IBaseObject>());
+
+    GetDeviceParams params;
+    params.typeId = type.getId().toStdString();
+    params.address = address;
+    params.info = info;
+    params.parent = parent;
+    params.config = config;
+    params.options = options.assigned() ? options : Dict<IString, IBaseObject>();
+
+    return getDevice(params);
 }
 
 DeviceInfoPtr ModuleTemplate::createDeviceInfo(const DeviceInfoFields& fields, const DeviceTypePtr& type)
@@ -90,7 +101,7 @@ DeviceInfoPtr ModuleTemplate::createDeviceInfo(const DeviceInfoFields& fields, c
     if (type.getId() == "")
         throw ArgumentNullException("Device type ID must not be empty");
 
-    auto deviceInfo = DeviceInfo(type.getConnectionStringPrefix() + "://" + fields.connectionAddress);
+    auto deviceInfo = DeviceInfo(type.getConnectionStringPrefix() + "://" + fields.address);
     deviceInfo.setDeviceType(type);
     deviceInfo.setName(fields.name);
     deviceInfo.setManufacturer(fields.manufacturer);
@@ -130,12 +141,7 @@ std::vector<DeviceTypePtr> ModuleTemplate::getDeviceTypes()
     return {};
 }
 
-DevicePtr ModuleTemplate::getDevice(const std::string& /*typeId*/,
-                                    const std::string& /*connectionAddress*/,
-                                    const DeviceInfoPtr& /*info*/,
-                                    const FolderPtr& /*parent*/,
-                                    const PropertyObjectPtr& /*config*/,
-                                    const DictPtr<IString, IBaseObject>& /*options*/)
+DevicePtr ModuleTemplate::getDevice(const GetDeviceParams& /*params*/)
 {
     return nullptr;
 }

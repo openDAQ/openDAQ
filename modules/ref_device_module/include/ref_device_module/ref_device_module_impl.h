@@ -28,15 +28,11 @@ public:
 protected:
     std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options) override;
     std::vector<DeviceTypePtr> getDeviceTypes() override;
-    DevicePtr getDevice(const std::string& typeId,
-                        const std::string& connectionAddress,
-                        const DeviceInfoPtr& info,
-                        const FolderPtr& parent,
-                        const PropertyObjectPtr& config,
-                        const DictPtr<IString, IBaseObject>& options) override;
+    DevicePtr getDevice(const GetDeviceParams& params) override;
 
 private:
     static size_t getIdFromAddress(const std::string& address);
+    static ModuleTemplateParams buildModuleTemplateParams(const ContextPtr& context);
 
     std::unordered_map<std::string, WeakRefPtr<IDevice>> devices;
     size_t maxNumberOfDevices;

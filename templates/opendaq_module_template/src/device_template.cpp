@@ -2,34 +2,33 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DeviceTemplate::DeviceTemplate(const StringPtr& localId,
-                               const DeviceInfoPtr& info,
-                               const StringPtr& logName,
-                               const ContextPtr& context,
-                               const ComponentPtr& parent,
-                               const StringPtr& className)
-    : Device(context, parent, localId, className, info.getName())
-    , info(info)
+DeviceTemplate::DeviceTemplate(const DeviceTemplateParams& params)
+    : DeviceTemplateParamsValidation(params)
+    , Device(params.context, params.parent, params.localId, params.className, params.info.getName())
+    , info(params.info)
+    , allowAddDevices(params.allowAddDevices)
+    , allowAddFunctionBlocks(params.allowAddFunctionBlocks)
 {
-    if (!localId.assigned() || localId == "")
-        throw InvalidParametersException("Local id is not set");
-    if (!info.assigned())
-        throw InvalidParametersException("Device info is not set");
-    if (!logName.assigned() || logName == "")
-        throw InvalidParametersException("Log name is not set");
-    if (!context.assigned())
-        throw InvalidParametersException("Context is not set");
-
-    this->info = info;
+    this->info = params.info;
     if (!this->info.isFrozen())
         this->info.freeze();
 
-    loggerComponent = this->context.getLogger().getOrAddComponent(logName);
+    loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
 }
 
 DeviceInfoPtr DeviceTemplate::onGetInfo()
 {
     return info;
+}
+
+bool DeviceTemplate::allowAddDevicesFromModules()
+{
+    return allowAddDevices;
+}
+
+bool DeviceTemplate::allowAddFunctionBlocksFromModules()
+{
+    return allowAddFunctionBlocks;
 }
 
 END_NAMESPACE_OPENDAQ

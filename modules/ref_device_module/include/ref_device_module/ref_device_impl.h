@@ -26,14 +26,11 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public DeviceTemplate
 {
 public:
-    explicit RefDeviceImpl(const StringPtr& localId, const DeviceInfoPtr& info, const PropertyObjectPtr& config, const ContextPtr& context, const ComponentPtr& parent);
+    explicit RefDeviceImpl(const DeviceTemplateParams& config);
     ~RefDeviceImpl() override;
 
     // IDevice
     uint64_t onGetTicksSinceOrigin() override;
-
-    bool allowAddDevicesFromModules() override;
-    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     void initClock();

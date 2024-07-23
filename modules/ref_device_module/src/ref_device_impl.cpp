@@ -9,8 +9,8 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(const StringPtr& localId, const DeviceInfoPtr& info, const PropertyObjectPtr& config, const ContextPtr& context, const ComponentPtr& parent)
-    : DeviceTemplate(localId, info, localId, context, parent)
+RefDeviceImpl::RefDeviceImpl(const DeviceTemplateParams& params)
+    : DeviceTemplate(params)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
@@ -18,7 +18,7 @@ RefDeviceImpl::RefDeviceImpl(const StringPtr& localId, const DeviceInfoPtr& info
     initIoFolder();
     initSyncComponent();
     initClock();
-    initProperties(config);
+    initProperties(params.config);
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
@@ -42,16 +42,6 @@ uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
     return static_cast<SizeT>(ticksSinceEpoch.count());
-}
-
-bool RefDeviceImpl::allowAddDevicesFromModules()
-{
-    return true;
-}
-
-bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
-{
-    return true;
 }
 
 std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
@@ -137,7 +127,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
     
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(REF_MODULE_ID);
     if (options.assigned())
     {
         if (options.hasKey("NumberOfChannels"))

@@ -1,13 +1,14 @@
 #pragma once
 #include <opendaq/module_impl.h>
 #include <opendaq/device_info_config_ptr.h>
+#include <opendaq_module_template/utils.h>
 #include <map>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 struct DeviceInfoFields
 {
-    std::string connectionAddress;
+    std::string address;
     std::string name;
     std::string manufacturer;
     std::string manufacturerUri;
@@ -32,26 +33,19 @@ struct DeviceInfoFields
     std::map<std::string, std::string> other;
 };
 
-class ModuleTemplate : public Module
+class ModuleTemplate : public ModuleTemplateParamsValidation, public Module
 {
 public:
-    ModuleTemplate(const StringPtr& name,
-                   const VersionInfoPtr& version,
-                   const ContextPtr& context,
-                   const StringPtr& id);
+    ModuleTemplate(const ModuleTemplateParams& params);
 
 protected:
     virtual std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options);
     virtual std::vector<DeviceTypePtr> getDeviceTypes();
-    virtual DevicePtr getDevice(const std::string& typeId,
-                                const std::string& connectionAddress,
-                                const DeviceInfoPtr& info,
-                                const FolderPtr& parent,
-                                const PropertyObjectPtr& config,
-                                const DictPtr<IString, IBaseObject>& options);
+    virtual DevicePtr getDevice(const GetDeviceParams& params);
     virtual void deviceRemoved(const std::string& deviceLocalId);
 
     std::mutex sync;
+    LoggerComponentPtr loggerComponent;
 
 private:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;

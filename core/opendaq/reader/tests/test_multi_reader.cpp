@@ -2292,3 +2292,17 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     ASSERT_EQ(status.getEventPackets().getCount(), 3u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 }
+
+TEST_F(MultiReaderTest, DomainIdInequality)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993"));
+    auto& sig2 = addSignal(0, 113, createDomainSignal("1993"));
+
+    auto multi = MultiReaderFromPort(signalsToPortsList());
+}

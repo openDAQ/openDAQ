@@ -175,8 +175,7 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     }
     return list;
 }
-
-static void checkSameDomain(const ListPtr<IInputPortConfig>& list)
+void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnit;
     StringPtr domainQuantity;
@@ -242,6 +241,26 @@ static void checkSameDomain(const ListPtr<IInputPortConfig>& list)
             }
         }
     }
+
+    // Check domain id existance and equality
+
+    for (const auto& port : list)
+    {
+        auto signal = port.getSignal();
+        if (signal.getDomainSignal().getDescriptor().getDomainId() == nullptr)
+            LOG_W(R"("Signal "{}" domain id is not assigned.")", signal.getLocalId());
+    }
+
+    // We check equality against this one
+    const auto firstDomainId = list[0].getSignal().getDomainSignal().getDescriptor().getDomainId();
+
+    for (size_t i = 1; i < list.getCount(); i++)
+    {
+        auto signal = list[i].getSignal();
+        if (firstDomainId != signal.getDomainSignal().getDescriptor().getDomainId())
+            throw InvalidStateException(R"(Signal "{}" domain id does not match with others.)", signal.getLocalId());
+    }
+
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()

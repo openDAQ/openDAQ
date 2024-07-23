@@ -223,8 +223,8 @@ TEST_F(DataDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("StructField"), nullptr);
     ASSERT_EQ(descriptor.get("Scaling"), nullptr);
     ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
-    ASSERT_EQ(descriptor.get("domainId"), "testDomainId");
-    ASSERT_EQ(descriptor.get("grandmasterOffset"), 53);
+    ASSERT_EQ(descriptor.get("DomainId"), "testDomainId");
+    ASSERT_EQ(descriptor.get("GrandmasterOffset"), 53);
 }
 
 TEST_F(DataDescriptorTest, StructNames)

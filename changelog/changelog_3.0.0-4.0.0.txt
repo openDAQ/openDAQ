@@ -31,6 +31,8 @@ Description:
 
 Required integration changes:
 	- Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
+	- If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs. eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
+	- Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
 
 10.07.2024
 Description

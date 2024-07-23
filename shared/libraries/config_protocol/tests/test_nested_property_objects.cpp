@@ -29,7 +29,7 @@ public:
     {
         serverDevice = test_utils::createServerDevice();
         serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1));
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigNestedPropertyObjectTest::sendRequest, this, std::placeholders::_1), nullptr);

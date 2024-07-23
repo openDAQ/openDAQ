@@ -272,6 +272,7 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
     }
 
     serializer.reset();
+    serializer.setUser(user);
     retObj.serialize(serializer);
     return serializer.getOutput();
 }

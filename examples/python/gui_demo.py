@@ -310,7 +310,7 @@ class App(tk.Tk):
 
         if not skip:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
-                             text=component_name, open=True, values=(component_node_id))
+                             text=component_name, open=True, values=(component_node_id,))
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''

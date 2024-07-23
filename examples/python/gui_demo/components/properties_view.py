@@ -74,7 +74,7 @@ class PropertiesView(tk.Frame):
                     property_info.item_type, node.get_property_value(property_info.name))
 
             self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=property_info.name, values=(
-                property_value))
+                property_value,))
 
             if property_info.value_type == daq.CoreType.ctObject:
                 self.fillProperties(

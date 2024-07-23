@@ -79,7 +79,6 @@ private:
 
     SizeT cachedSamples;
     std::deque<PacketPtr> packets;
-    TailReaderStatusPtr defaultStatus {TailReaderStatus()};
 };
 
 END_NAMESPACE_OPENDAQ

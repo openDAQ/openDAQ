@@ -20,7 +20,6 @@ Required integeration changes:
 -m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
 +m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr)
 
- + [function] IMultiReader::getMainDescriptor(IEventPacket** packet)
 -m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
 +m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr)
 -m [function] IMultiReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
@@ -42,7 +41,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 -m [factory] TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
 +m [factory] TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, const NumberPtr& offset = 0, Bool sufficientHistory = true)
 -m [factory] MultiReaderStatusPtr MultiReaderStatus(const DictPtr<ISignal, IEventPacket>& eventPackets = nullptr, Bool valid = true)
-+m [factory] MultiReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, Bool valid = true, const NumberPtr& offset = 0)
++m [factory] MultiReaderStatusPtr MultiReaderStatus(const EventPacketPtr& mainDescriptor, const DictPtr<IString, IEventPacket>& eventPackets = nullptr, Bool valid = true, const NumberPtr& offset = 0)
 
 + [factory] StreamReaderBuilderPtr StreamReaderBuilder()
 + [factory] StreamReaderPtr StreamReaderFromBuilder(const StreamReaderBuilderPtr& builder)

@@ -156,12 +156,6 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
      */
     virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
-
-    /*!
-     * @brief Gets the data descriptor of the main signal in reader (the main signal is the first signal in the reader).
-     * @param signals The data descriptor of the main signal in reader.
-     */
-    virtual ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** packet) = 0;
 };
 
 /*!@}*/

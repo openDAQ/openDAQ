@@ -74,11 +74,15 @@ class MultiReaderStatusImpl final : public GenericReaderStatusImpl<IMultiReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IMultiReaderStatus>;
-    explicit MultiReaderStatusImpl(const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset);
+    explicit MultiReaderStatusImpl(const EventPacketPtr& mainDescriptor, const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
     ErrCode INTERFACE_FUNC getEventPackets(IDict** events) override;
+
+    ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
+
+    ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** descriptor) override;
 
 private:
     DictPtr<IString, IEventPacket> eventPackets;

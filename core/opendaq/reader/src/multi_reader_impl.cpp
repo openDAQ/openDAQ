@@ -474,7 +474,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
     if (invalid)
     {
         if (status)
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
+            *status = createReaderStatus().detach();
         *count = 0;
         return OPENDAQ_IGNORED;
     }
@@ -505,7 +505,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     if (invalid)
     {
         if (status)
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
+            *status = createReaderStatus().detach();
         *count = 0;
         return OPENDAQ_IGNORED;
     }
@@ -532,7 +532,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     if (invalid)
     {
         if (status)
-            *status = MultiReaderStatus(nullptr, !invalid).detach();
+            *status = createReaderStatus().detach();
         *count = 0;
         return OPENDAQ_IGNORED;
     }
@@ -569,13 +569,10 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
     return min;
 }
 
-
-ErrCode MultiReaderImpl::getMainDescriptor(IEventPacket** packet)
+MultiReaderStatusPtr MultiReaderImpl::createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets, const NumberPtr& offset)
 {
-   OPENDAQ_PARAM_NOT_NULL(packet);
-   std::scoped_lock lock(mutex);
-   *packet = DataDescriptorChangedEventPacket(mainValueDescriptor, mainDomainDescriptor).detach();
-   return OPENDAQ_SUCCESS;
+    auto mainDescriptor = DataDescriptorChangedEventPacket(mainValueDescriptor, mainDomainDescriptor);
+    return MultiReaderStatus(mainDescriptor, eventPackets, !invalid, offset);
 }
 
 SyncStatus MultiReaderImpl::getSyncStatus() const
@@ -695,14 +692,14 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
             {
-                status = MultiReaderStatus(eventPackets, !invalid);
+                status = createReaderStatus(eventPackets);
                 return true;
             }
 
             ErrCode errCode = synchronize(availableSamples, syncStatus);
             if (OPENDAQ_FAILED(errCode))
             {
-                status = MultiReaderStatus(nullptr, !invalid);
+                status = createReaderStatus();
                 return true;
             }
 
@@ -748,7 +745,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
     if (portDisconnected)
     {
-        return defaultStatus;
+        return createReaderStatus();
     }
 
     if (syncStatus != SyncStatus::Synchronized)
@@ -764,12 +761,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         ErrCode errCode = synchronize(availableSamples, syncStatus);
         if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
         {
-            return MultiReaderStatus(eventPackets, !invalid);
+            return createReaderStatus(eventPackets);
         }
 
         if (remainingSamplesToRead == 0)
         {
-            return defaultStatus;
+            return createReaderStatus();
         }
     }
 
@@ -799,10 +796,9 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             remainingSamplesToRead,
             std::chrono::duration_cast<Milliseconds>(end - start).count())
 #endif
-
     }
 
-    return MultiReaderStatus(nullptr, !invalid, offset);
+    return createReaderStatus(nullptr, offset);
 }
 
 // Listener

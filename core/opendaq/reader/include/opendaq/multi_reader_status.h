@@ -40,11 +40,19 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderStatus, IReaderStatus)
      * @param[out] eventPackets The dictionary with global id of input port and the corresponding event packet.
      */
     virtual ErrCode INTERFACE_FUNC getEventPackets(IDict** eventPackets) = 0;
+
+    
+    /*!
+     * @brief Retrieves the descriptor of main signal. The main signal is the first signal in the list of signals.
+     * @param[out] descriptor The descriptor of the main signal.
+     */
+    virtual ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** descriptor) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
+    IEventPacket*, mainDescriptor,
     IDict*, eventPackets,
     Bool, valid,
     INumber*, offset

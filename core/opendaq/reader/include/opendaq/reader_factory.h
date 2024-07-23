@@ -65,11 +65,12 @@ inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullp
     return TailReaderStatus_Create(packet, valid, offset, sufficientHistory);
 }
 
-inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, 
+inline MultiReaderStatusPtr MultiReaderStatus(const EventPacketPtr& mainDescriptor = nullptr,
+                                              const DictPtr<IString, IEventPacket>& eventPackets = nullptr, 
                                               Bool valid = true, 
                                               const NumberPtr& offset = 0)
 {
-    return MultiReaderStatus_Create(eventPackets, valid, offset);
+    return MultiReaderStatus_Create(mainDescriptor, eventPackets, valid, offset);
 }
 
 /*!

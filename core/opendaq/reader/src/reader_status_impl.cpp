@@ -87,8 +87,8 @@ ErrCode TailReaderStatusImpl::getSufficientHistory(Bool* status)
     return OPENDAQ_SUCCESS;
 }
 
-MultiReaderStatusImpl::MultiReaderStatusImpl(const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset)
-    : Super(nullptr, valid, offset)
+MultiReaderStatusImpl::MultiReaderStatusImpl(const EventPacketPtr& mainDescriptor, const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset)
+    : Super(mainDescriptor, valid, offset)
     , eventPackets(eventPackets.assigned() ? eventPackets : Dict<IString, IEventPacket>())
 {
 }
@@ -107,6 +107,17 @@ ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
         *status = ReadStatus::Fail;
 
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderStatusImpl::getEventPacket(IEventPacket** packet) 
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+
+ErrCode MultiReaderStatusImpl::getMainDescriptor(IEventPacket** descriptor)
+{
+    return Super::getEventPacket(descriptor);
 }
 
 ErrCode MultiReaderStatusImpl::getEventPackets(IDict** events)
@@ -141,6 +152,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY (
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, MultiReaderStatus,
+    IEventPacket*, mainDescriptor,
     IDict*, eventPackets,
     Bool, valid,
     INumber*, offset

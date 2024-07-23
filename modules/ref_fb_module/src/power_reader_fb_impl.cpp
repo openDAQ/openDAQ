@@ -153,8 +153,8 @@ void PowerReaderFbImpl::onDataReceived()
 
             if (eventPackets.hasKey(currentInputPort.getGlobalId()))
                 getDataDescriptor(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor);
-            
-            getDomainDescriptor(reader.getMainDescriptor(), domainDescriptor);
+
+            getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
             if (voltageDescriptor.assigned() || currentDescriptor.assigned())
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);

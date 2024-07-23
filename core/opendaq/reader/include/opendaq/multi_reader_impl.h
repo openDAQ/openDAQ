@@ -60,8 +60,6 @@ public:
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
-    ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** packet) override;
-
 
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
     ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
@@ -110,6 +108,8 @@ private:
     void readDomainStart();
     void sync();
 
+    MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
+
     std::mutex mutex;
     bool invalid{false};
     std::string errorMessage;
@@ -136,8 +136,6 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool startOnFullUnitOfDomain;
-
-    MultiReaderStatusPtr defaultStatus {MultiReaderStatus()};
 
     NotifyInfo notify{};
     bool portConnected {};

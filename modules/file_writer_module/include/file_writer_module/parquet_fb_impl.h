@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <algorithm>
 #include <file_writer_module/common.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/function_block_type_factory.h>
@@ -34,6 +35,21 @@ BEGIN_NAMESPACE_FILE_WRITER_MODULE
 namespace FileWriter
 {
 
+struct DataTable
+{
+    DataTable(std::string domainId)
+    : schemaBuilder()
+    , domainBuilder()
+    {
+        schemaBuilder.AddField(arrow::field(domainId, arrow::int64()));
+    }
+    arrow::SchemaBuilder schemaBuilder;
+    arrow::Int64Builder domainBuilder;
+    std::map<std::string, arrow::DoubleBuilder> dataBuilderMap;
+    
+
+};
+
 class ParquetFbImpl final : public FunctionBlock
 {
 public:
@@ -47,22 +63,22 @@ public:
 
 
 private:
-    std::map<std::string,arrow::DoubleBuilder> builderMap;
 
+    std::map<std::string, DataTable> dataTablesMap;
+    
     int inputPortCount;
     bool recordingActive;
     bool dataRecorded; 
-    arrow::SchemaBuilder schemaBuilder;
     std::string fileName;
 
 
 
     void updateInputPorts();
     void writeParquetFile(const arrow::Table& table);
-    std::shared_ptr<arrow::Table> generateTable();
+    std::shared_ptr<arrow::Table> generateTable(DataTable& dataTable);
 
     template <SampleType InputSampleType>
-    void processDataPacket(std::string globalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
+    void processDataPacket(const std::string& globalId, const std::string& domainGlobalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
     void onPacketReceived(const InputPortPtr& port) override;
 
 

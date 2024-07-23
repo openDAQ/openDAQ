@@ -37,14 +37,23 @@ namespace FileWriter
 
 struct DataTable
 {
-    DataTable(std::string domainId)
+    DataTable(std::string domainId, int tableNr)
     : schemaBuilder()
     , domainBuilder()
+    , tableNr(tableNr)
+    , batchCount(0)
+    , empty(true)
+    , batchCylceReached(0)
     {
-        schemaBuilder.AddField(arrow::field(domainId, arrow::int64()));
+        PARQUET_THROW_NOT_OK(schemaBuilder.AddField(arrow::field(domainId, arrow::int64())));
     }
     arrow::SchemaBuilder schemaBuilder;
     arrow::Int64Builder domainBuilder;
+    int tableNr;
+    int batchCount;
+    bool empty;
+    int64_t batchCylceReached;
+
     std::map<std::string, arrow::DoubleBuilder> dataBuilderMap;
     
 
@@ -67,14 +76,15 @@ private:
     std::map<std::string, DataTable> dataTablesMap;
     
     int inputPortCount;
+    int tableNumberCount;
     bool recordingActive;
-    bool dataRecorded; 
+    std::string path;
     std::string fileName;
-
+    int64_t writeBatchCylceInSec;  
 
 
     void updateInputPorts();
-    void writeParquetFile(const arrow::Table& table);
+    void writeParquetFile(const arrow::Table& table, const int tableWriteCount, const int tableWriteSubCount);
     std::shared_ptr<arrow::Table> generateTable(DataTable& dataTable);
 
     template <SampleType InputSampleType>
@@ -84,6 +94,9 @@ private:
 
     void initProperties();
     void propertyChanged(bool configure);
+    void activeChanged();
+    void configureBatchCyleInSecChanged();
+
     void readProperties();
 
     void initStatuses();

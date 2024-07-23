@@ -1,4 +1,7 @@
 #include <iostream>
+#include <filesystem>
+#include <ctime>
+
 #include <file_writer_module/parquet_fb_impl.h>
 #include <file_writer_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
@@ -33,8 +36,8 @@ static const char* InputInvalid = "Invalid";
 ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , inputPortCount(0)
+    , tableNumberCount(0)
     , recordingActive(false)
-    , dataRecorded(false)
 {
     initProperties();
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
@@ -43,32 +46,75 @@ ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 
 void ParquetFbImpl::initProperties()
 {
-    const auto fileNameProp = StringProperty("FileName", "");
+    path = std::filesystem::current_path().string();
+    const auto pathProp = StringProperty("Path", path);
+    objPtr.addProperty(pathProp);
+    objPtr.getOnPropertyValueWrite("Path") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+
+    const auto fileNameProp = StringProperty("FileName", "ExampleFile");
     objPtr.addProperty(fileNameProp);
     objPtr.getOnPropertyValueWrite("FileName") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
 
-    const auto recordingActive = BoolProperty("RecordingActive", false);
-    objPtr.addProperty(recordingActive);
+    const auto recordingActiveProp = BoolProperty("RecordingActive", false);
+    objPtr.addProperty(recordingActiveProp);
     objPtr.getOnPropertyValueWrite("RecordingActive") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { activeChanged(); };
+
+    // After how many seconds a file should be written. 
+    const auto writeBatchCylceInSecProp = IntProperty("WriteBatchCylceInSec", 20);
+    objPtr.addProperty(writeBatchCylceInSecProp);
+    objPtr.getOnPropertyValueWrite("WriteBatchCylceInSec") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     readProperties();
+}
+
+void ParquetFbImpl::readProperties()
+{
+    path = static_cast<std::string>(objPtr.getPropertyValue("Path"));
+    fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
+    recordingActive = static_cast<bool>(objPtr.getPropertyValue("RecordingActive"));
+    writeBatchCylceInSec = static_cast<int>(objPtr.getPropertyValue("WriteBatchCylceInSec"));
 }
 
 void ParquetFbImpl::propertyChanged(bool configure)
 {
     std::scoped_lock lock(sync);
     readProperties();
-    if (!recordingActive && dataRecorded)
-    { 
+    if (configure)
+        configureBatchCyleInSecChanged();
+}
+
+void ParquetFbImpl::activeChanged()
+{
+    std::scoped_lock lock(sync);
+    readProperties();
+    if (!recordingActive)
+    {
         for (auto& dataTable : dataTablesMap)
         {
-            
-            std::shared_ptr<arrow::Table> table = generateTable(dataTable.second);
-            writeParquetFile(*table);
+            if (!dataTable.second.empty)
+            {
+                std::shared_ptr<arrow::Table> table = generateTable(dataTable.second);
+                writeParquetFile(*table, dataTable.second.tableNr, dataTable.second.batchCount);
+            }
         }
+    } 
+    else
+    {
+        configureBatchCyleInSecChanged();
+    }
+}
 
+void ParquetFbImpl::configureBatchCyleInSecChanged()
+{
+    for (auto& dataTable : dataTablesMap)
+    {
+        time_t currentTime;
+        time(&currentTime);
+        dataTable.second.batchCylceReached = currentTime + writeBatchCylceInSec;
     }
 }
 
@@ -76,7 +122,8 @@ std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable(DataTable& dataTable)
 {
     arrow::ArrayVector dataVector;
     std::shared_ptr<arrow::Array> int64Array;
-    dataTable.domainBuilder.Finish(&int64Array);
+    PARQUET_THROW_NOT_OK(dataTable.domainBuilder.Finish(&int64Array));
+    dataTable.domainBuilder.Reset();
 
     dataVector.emplace_back(int64Array);
 
@@ -86,27 +133,26 @@ std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable(DataTable& dataTable)
         std::shared_ptr<arrow::Array> doubleArray;
         PARQUET_THROW_NOT_OK(entry.second.Finish(&doubleArray));
         dataVector.emplace_back(doubleArray);
+        entry.second.Reset();
     }
+    dataTable.empty = true;
     auto schema = dataTable.schemaBuilder.Finish();
     return arrow::Table::Make(schema.ValueOrDie(), dataVector);
 }
 
-void ParquetFbImpl::writeParquetFile(const arrow::Table& table) 
+void ParquetFbImpl::writeParquetFile(const arrow::Table& table, const int tableWriteCount, const int tableWriteSubCount) 
 {
   std::shared_ptr<arrow::io::FileOutputStream> outfile;
   PARQUET_ASSIGN_OR_THROW(
-      outfile, arrow::io::FileOutputStream::Open("parquet-arrow-example.parquet"));
+      outfile, arrow::io::FileOutputStream::Open(path   + "/" + fileName 
+                                                        + "_" + std::to_string(tableWriteCount) 
+                                                        + "_" + std::to_string(tableWriteSubCount) 
+                                                        + ".parquet"));
   // The last argument to the function call is the size of the RowGroup in
   // the parquet file. Normally you would choose this to be rather large but
   // for the example, we use a small value to have multiple RowGroups.
   PARQUET_THROW_NOT_OK(
       parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3));
-}
-
-void ParquetFbImpl::readProperties()
-{
-    fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
-    recordingActive = static_cast<bool>(objPtr.getPropertyValue("RecordingActive"));
 }
 
 FunctionBlockTypePtr ParquetFbImpl::CreateType()
@@ -155,21 +201,29 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
 }
 
 
-
- template <SampleType InputSampleType>
+template <SampleType InputSampleType>
 void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::string& domainGlobalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
 {
 
     if (dataTablesMap.find(domainGlobalId) != dataTablesMap.end()) 
     {
+        time_t currentTime;
         const size_t sampleCount = packet.getSampleCount();
         double* inputData = static_cast<double*>(packet.getData());
         int64_t* domainData =  static_cast<int64_t*>(packet.getDomainPacket().getData());
         auto& dataTable = dataTablesMap.at(domainGlobalId);
         PARQUET_THROW_NOT_OK(dataTable.dataBuilderMap[globalId].AppendValues(inputData, sampleCount));
         PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, sampleCount));
+        dataTable.empty = false;
 
-        dataRecorded = true;
+        time(&currentTime);
+        if (currentTime > dataTable.batchCylceReached)
+        {
+            std::shared_ptr<arrow::Table> table = generateTable(dataTable);
+            writeParquetFile(*table, dataTable.tableNr, dataTable.batchCount);
+            ++dataTable.batchCount;
+            dataTable.batchCylceReached = currentTime + writeBatchCylceInSec;
+        }
     } 
 
     
@@ -178,6 +232,7 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
 void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
+    time_t currentTime;
     LOG_T("Connected to port {}", inputPort.getLocalId());
 
     std::string domainId = inputPort.getSignal().getDomainSignal().getGlobalId();
@@ -185,10 +240,14 @@ void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
 
     if (dataTablesMap.find(domainId) == dataTablesMap.end()) 
     {
-        dataTablesMap.emplace(domainId, domainId);
+        tableNumberCount++;
+        dataTablesMap.emplace(std::piecewise_construct, std::forward_as_tuple(domainId), std::forward_as_tuple(domainId, tableNumberCount));
     }
     dataTablesMap.at(domainId).dataBuilderMap[signalId] = arrow::DoubleBuilder();
-    dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64()));
+    PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64())));
+
+    time(&currentTime);
+    dataTablesMap.at(domainId).batchCylceReached = currentTime + writeBatchCylceInSec;
 
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
 }

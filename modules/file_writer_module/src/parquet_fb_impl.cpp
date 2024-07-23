@@ -35,7 +35,6 @@ ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
     , inputPortCount(0)
     , recordingActive(false)
     , dataRecorded(false)
-    , schemaBuilder()
 {
     initProperties();
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
@@ -63,22 +62,32 @@ void ParquetFbImpl::propertyChanged(bool configure)
     readProperties();
     if (!recordingActive && dataRecorded)
     { 
-        std::shared_ptr<arrow::Table> table = generateTable();
-        writeParquetFile(*table);
+        for (auto& dataTable : dataTablesMap)
+        {
+            
+            std::shared_ptr<arrow::Table> table = generateTable(dataTable.second);
+            writeParquetFile(*table);
+        }
+
     }
 }
 
-std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable() 
+std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable(DataTable& dataTable) 
 {
     arrow::ArrayVector dataVector;
+    std::shared_ptr<arrow::Array> int64Array;
+    dataTable.domainBuilder.Finish(&int64Array);
+
+    dataVector.emplace_back(int64Array);
+
     // Iterate and print key-value pairs
-    for (auto& entry : builderMap) 
+    for (auto& entry : dataTable.dataBuilderMap) 
     {
         std::shared_ptr<arrow::Array> doubleArray;
         PARQUET_THROW_NOT_OK(entry.second.Finish(&doubleArray));
         dataVector.emplace_back(doubleArray);
     }
-    auto schema = schemaBuilder.Finish();
+    auto schema = dataTable.schemaBuilder.Finish();
     return arrow::Table::Make(schema.ValueOrDie(), dataVector);
 }
 
@@ -131,7 +140,8 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
                 {
                     const auto sampleType = port.getSignal().getDescriptor().getSampleType();
                     const auto globalId = port.getSignal().getGlobalId();
-                    SAMPLE_TYPE_DISPATCH(sampleType, processDataPacket, globalId, std::move(packet), outQueue, outDomainQueue);
+                    const auto domainGlobalId = port.getSignal().getDomainSignal().getGlobalId();
+                    SAMPLE_TYPE_DISPATCH(sampleType, processDataPacket, globalId, domainGlobalId, std::move(packet), outQueue, outDomainQueue);
                 }
                 break;
 
@@ -147,14 +157,22 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
 
 
  template <SampleType InputSampleType>
-void ParquetFbImpl::processDataPacket(std::string globalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
+void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::string& domainGlobalId, DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
 {
-    //using InputType = typename SampleTypeToType<InputSampleType>::Type;
-    double* inputData = static_cast<double*>(packet.getData());
-    const size_t sampleCount = packet.getSampleCount();
 
-    PARQUET_THROW_NOT_OK(builderMap[globalId].AppendValues(inputData, sampleCount));
-    dataRecorded = true;
+    if (dataTablesMap.find(domainGlobalId) != dataTablesMap.end()) 
+    {
+        const size_t sampleCount = packet.getSampleCount();
+        double* inputData = static_cast<double*>(packet.getData());
+        int64_t* domainData =  static_cast<int64_t*>(packet.getDomainPacket().getData());
+        auto& dataTable = dataTablesMap.at(domainGlobalId);
+        PARQUET_THROW_NOT_OK(dataTable.dataBuilderMap[globalId].AppendValues(inputData, sampleCount));
+        PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, sampleCount));
+
+        dataRecorded = true;
+    } 
+
+    
 }
 
 void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
@@ -162,16 +180,17 @@ void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
     std::scoped_lock lock(sync);
     LOG_T("Connected to port {}", inputPort.getLocalId());
 
-    //std::string domainId = inputPort.getSignal().getDomainSignal().getGlobalId();
+    std::string domainId = inputPort.getSignal().getDomainSignal().getGlobalId();
     std::string signalId = inputPort.getSignal().getGlobalId();
 
-    //schemaBuilder.AddField(arrow::field(domainId, arrow::float64()));
-    schemaBuilder.AddField(arrow::field(signalId, arrow::float64()));
+    if (dataTablesMap.find(domainId) == dataTablesMap.end()) 
+    {
+        dataTablesMap.emplace(domainId, domainId);
+    }
+    dataTablesMap.at(domainId).dataBuilderMap[signalId] = arrow::DoubleBuilder();
+    dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64()));
 
-    //builderMap[domainId] = arrow::DoubleBuilder();
-    builderMap[signalId] = arrow::DoubleBuilder();
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
-
 }
 
 void ParquetFbImpl::onDisconnected(const InputPortPtr& inputPort)

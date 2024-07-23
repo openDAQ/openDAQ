@@ -49,6 +49,13 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
                                             daq::ref_device_module
     )
 
+    add_executable(recorder_example cpp/recorder_example/recorder_example.cpp)
+    target_link_libraries(recorder_example PRIVATE daq::opendaq)
+    add_dependencies(recorder_example   daq::ref_fb_module
+                                        daq::ref_device_module
+                                        daq::file_writer_module                                       
+    )
+
     add_executable(stream_reader_example cpp/stream_reader_example/stream_reader_example.cpp)
     target_link_libraries(stream_reader_example PRIVATE daq::opendaq)
     add_dependencies(stream_reader_example daq::ref_device_module)

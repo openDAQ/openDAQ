@@ -6,4 +6,3 @@
 using namespace daq::modules::file_writer_module;
 
 DEFINE_MODULE_EXPORTS(FileWriterModule)
-

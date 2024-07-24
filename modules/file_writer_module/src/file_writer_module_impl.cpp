@@ -40,4 +40,3 @@ FunctionBlockPtr FileWriterModule::onCreateFunctionBlock(const StringPtr& id,
 }
 
 END_NAMESPACE_FILE_WRITER_MODULE
-

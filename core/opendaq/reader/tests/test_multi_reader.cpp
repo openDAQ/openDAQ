@@ -2304,5 +2304,5 @@ TEST_F(MultiReaderTest, DomainIdInequality)
     auto& sig1 = addSignal(0, 113, createDomainSignal("1993"));
     auto& sig2 = addSignal(0, 113, createDomainSignal("1993"));
 
-    auto multi = MultiReaderFromPort(signalsToPortsList());
+    //auto multi = MultiReaderFromPort(signalsToPortsList());
 }

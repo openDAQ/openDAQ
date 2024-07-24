@@ -4,13 +4,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class TemplateFunctionBlock : public FunctionBlock, ComponentTemplateBase
+class FunctionBlockTemplate : public FunctionBlock, ComponentTemplateBase
 {
-    TemplateFunctionBlock(const FunctionBlockTypePtr& devType,
+    FunctionBlockTemplate(const FunctionBlockTypePtr& devType,
                           const ContextPtr& context,
                           const ComponentPtr& parent,
                           const StringPtr& localId,
-                          const StringPtr& className = nullptr);
+                          const StringPtr& className = nullptr)
+        : FunctionBlock(devType, context, parent, localId, className)
+    {
+    }
+
 
 };
 

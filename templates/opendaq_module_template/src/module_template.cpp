@@ -5,13 +5,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ModuleTemplate::ModuleTemplate(const ModuleTemplateParams& params)
-    : ModuleTemplateParamsValidation(params)
-    , Module(params.name, params.version, params.context, params.id)
-{
-    loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
-}
-
 ListPtr<IDeviceInfo> ModuleTemplate::onGetAvailableDevices()
 {
     auto deviceInfo = List<IDeviceInfo>();

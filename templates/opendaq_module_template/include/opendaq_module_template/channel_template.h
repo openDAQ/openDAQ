@@ -4,13 +4,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class TemplateChannel : public Channel, ComponentTemplateBase
+class ChannelTemplate : public Channel, ComponentTemplateBase
 {
-    TemplateChannel(const FunctionBlockTypePtr& fbType,
+    ChannelTemplate(const FunctionBlockTypePtr& fbType,
                     const ContextPtr& context,
                     const ComponentPtr& parent,
                     const StringPtr& localId,
-                    const StringPtr& className = nullptr);
+                    const StringPtr& className = nullptr)
+        : Channel(fbType, context, parent, localId, className)
+    {
+    }
 
 };
 

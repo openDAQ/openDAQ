@@ -2,20 +2,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DeviceTemplate::DeviceTemplate(const DeviceTemplateParams& params)
-    : DeviceTemplateParamsValidation(params)
-    , Device(params.context, params.parent, params.localId, params.className, params.info.getName())
-    , info(params.info)
-    , allowAddDevices(params.allowAddDevices)
-    , allowAddFunctionBlocks(params.allowAddFunctionBlocks)
-{
-    this->info = params.info;
-    if (!this->info.isFrozen())
-        this->info.freeze();
-
-    loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
-}
-
 DeviceInfoPtr DeviceTemplate::onGetInfo()
 {
     return info;

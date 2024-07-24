@@ -36,7 +36,13 @@ struct DeviceInfoFields
 class ModuleTemplate : public ModuleTemplateParamsValidation, public Module
 {
 public:
-    ModuleTemplate(const ModuleTemplateParams& params);
+    ModuleTemplate(const ModuleTemplateParams& params)
+        : ModuleTemplateParamsValidation(params)
+        , Module(params.name, params.version, params.context, params.id)
+    {
+        loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+    }
+
 
 protected:
     virtual std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options);

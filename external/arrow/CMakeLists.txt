@@ -14,7 +14,8 @@ set(ARROW_IPC ON)
 
 set(Thrift_VERSION 0.20.0)
 
-set(PATCH_FILES ${CMAKE_CURRENT_SOURCE_DIR}/patches/001-fix-boost-linking.patch)
+set(PATCH_FILES ${CMAKE_CURRENT_SOURCE_DIR}/patches/001-fix-boost-linking.patch
+                ${CMAKE_CURRENT_SOURCE_DIR}/patches/002-fix-boost-linking-thrift.patch)
 
 opendaq_dependency(
     NAME                Arrow

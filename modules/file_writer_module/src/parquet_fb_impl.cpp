@@ -3,23 +3,22 @@
 
 #include <file_writer_module/parquet_fb_impl.h>
 #include <file_writer_module/dispatch.h>
+
+#include <coreobjects/unit_factory.h>
+#include <coreobjects/eval_value_factory.h>
+
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
-#include "coreobjects/unit_factory.h"
-#include "opendaq/data_packet.h"
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/event_packet_ids.h"
-#include "opendaq/packet_factory.h"
-#include "opendaq/range_factory.h"
-#include "opendaq/sample_type_traits.h"
-#include <coreobjects/eval_value_factory.h>
+#include <opendaq/data_packet.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
 

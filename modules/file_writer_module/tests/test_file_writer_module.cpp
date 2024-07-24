@@ -1,3 +1,6 @@
+#include <thread>
+#include <chrono>
+
 #include <testutils/testutils.h>
 #include <file_writer_module/module_dll.h>
 #include <file_writer_module/version.h>
@@ -234,4 +237,74 @@ TEST_F(FileWriterModuleTest, StoreOneSignal)
         rowCount++;
     }
     ASSERT_EQ(rowCount,1000);
+}
+
+TEST_F(FileWriterModuleTest, TestBatching)
+{
+    auto ctx = CreateContext();
+    const auto module = CreateModule();
+
+    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
+
+    createSignals(ctx);
+    fb.getInputPorts()[0].connect(voltageSignal);
+    
+    // Execute recording and use other name for file
+    fb.setPropertyValue("FileName", "openDAQData");
+    fb.setPropertyValue("WriteBatchCylceInSec", 4);
+    fb.setPropertyValue("RecordingActive", true);
+    size_t packagesToSend = 10;
+    for (size_t i = 0; i < packagesToSend; i++)
+    {
+        // Start later in time
+        const auto timePacket = DataPacket(timeSignal1.getDescriptor(), 100, 2000 + 100 * i);
+        timeSignal1.sendPacket(timePacket);
+        const auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
+        double* inputData = static_cast<double*>(voltagePacket.getData());
+        for (size_t dataPoint = 0; dataPoint < 100; ++dataPoint)
+        {
+            *inputData = (i * 100) + dataPoint;
+            inputData++;
+        }
+        voltageSignal.sendPacket(voltagePacket);
+        // At i == 3 it is the half of the 10 packages to be send.
+        // The reason for is that package 0,1,2,3,4 needs to be send, but at package 4 
+        // the evaluation is done if the time is over the WriteBatchCylceInSec
+        if (i == 3)
+        {
+            // 500 to have some buffer even if the number is set to 4 sec.
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        }
+    }
+    // Recording to false triggers file write
+    fb.setPropertyValue("RecordingActive", false);
+
+    size_t rowCount = 0;
+    std::int64_t time;
+    std::int64_t checkTime = 2000;
+    double value;
+    double checkValue = 0;
+    for (size_t bachNr = 0; bachNr < 2; ++bachNr)
+    {
+        std::shared_ptr<arrow::io::ReadableFile> infile;
+        // Created Recorded files have a file format
+        // <fileName>_x_y.parquet
+        // where x is table where signals are sharing a domain signal
+        // where y is subcount if file batching is done.
+        // to batches are created booth with 500 lines of data
+        PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open("openDAQData_1_"+std::to_string(bachNr)+".parquet"));
+        parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+
+        while ( !stream.eof() )
+        {
+            stream >> time >> value >> parquet::EndRow;
+            ASSERT_EQ(time, checkTime++);
+            ASSERT_DOUBLE_EQ(value, checkValue++);
+            rowCount++;
+        }
+        ASSERT_EQ(rowCount,500);
+        rowCount = 0;
+        infile.reset();
+    }
 }

@@ -89,4 +89,31 @@ if (Boost_FOUND)
             add_library(Boost::${BOOST_TARGET} ALIAS Boost::headers)
         endif()
     endforeach()
+
+else()
+
+    # As of Boost 1.82, when Boost is included via FetchContent (add_subdirectory), the
+    # Boost::headers (boost_headers) target does not add the correct build-interface paths to its
+    # INTERFACE_INCLUDE_DIRECTORIES property. Instead it points to an empty directory. It is also
+    # not possible to link a target directly to Boost::libname, because this results in a CMake
+    # export set error (even for header-only libraries which do not need installation), because
+    # the target is not marked IMPORTED.
+    #
+    # Consequently the best available workaround I can come up with is to create an independent
+    # interface target to which other libraries can link if they need Boost headers.
+
+    add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
+
+    set(boost_libs config
+        algorithm assert bind concept_check core detail function
+        iterator locale mpl numeric_conversion preprocessor range smart_ptr
+        static_assert throw_exception tokenizer type_traits utility)
+
+    foreach(boost_lib ${boost_libs})
+        if (TARGET Boost::${boost_lib})
+            get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
+            target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
+        endif()
+    endforeach()
+
 endif()

@@ -193,6 +193,8 @@ macro(opendaq_dependency)
             message(FATAL_ERROR "No valid source given for opendaq_dependency()!")
         endif()
 
+        list(APPEND SOURCE_PARAMS "OVERRIDE_FIND_PACKAGE")
+
         if (OPENDAQ_DEP_SOURCE_SUBDIR)
             list(APPEND SOURCE_PARAMS SOURCE_SUBDIR ${OPENDAQ_DEP_SOURCE_SUBDIR})
         endif()

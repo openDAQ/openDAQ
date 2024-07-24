@@ -212,7 +212,8 @@ jobs:
             lld ninja-build curl \
             python3-pip python3-dev \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev \
+            flex bison
 
       - name: Install documentation dependencies
         if: matrix.build_documentation
@@ -341,7 +342,8 @@ jobs:
           yum install -y ${{ matrix.additional_packages }} \
               ninja-build \
               mono-core \
-              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel \
+              flex
 
       - name: Create build dir
         run: mkdir build

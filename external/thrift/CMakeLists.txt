@@ -16,6 +16,6 @@ opendaq_dependency(
 
 if (Thrift_FETCHED)
     target_include_directories(thrift INTERFACE
-        $<BUILD_INTERFACE:${thrift_SOURCE_DIR}/lib/cpp/src>
-        $<BUILD_INTERFACE:${thrift_BINARY_DIR}>)
+                                      $<BUILD_INTERFACE:${thrift_SOURCE_DIR}/lib/cpp/src>
+                                      $<BUILD_INTERFACE:${thrift_BINARY_DIR}>)
 endif()

@@ -297,17 +297,21 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
 
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 

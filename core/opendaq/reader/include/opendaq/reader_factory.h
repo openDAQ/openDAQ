@@ -14,45 +14,63 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/stream_reader_ptr.h>
-#include <opendaq/block_reader_ptr.h>
-#include <opendaq/tail_reader_ptr.h>
-#include <opendaq/packet_reader_ptr.h>
 #include <opendaq/context_ptr.h>
-#include <opendaq/input_port_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
+
 #include <opendaq/reader_status_ptr.h>
-#include <opendaq/block_reader_status_ptr.h>
-#include <opendaq/tail_reader_status_ptr.h>
-#include <opendaq/multi_reader_status_ptr.h>
-#include <opendaq/multi_reader_builder_ptr.h>
+
+#include <opendaq/block_reader_ptr.h>
 #include <opendaq/block_reader_builder_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
+
+#include <opendaq/multi_reader_ptr.h>
+#include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/multi_reader_status_ptr.h>
+
+#include <opendaq/stream_reader_ptr.h>
+#include <opendaq/stream_reader_builder_ptr.h>
+
+#include <opendaq/tail_reader_ptr.h>
+#include <opendaq/tail_reader_builder_ptr.h>
+#include <opendaq/tail_reader_status_ptr.h>
+
+#include <opendaq/packet_reader_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 using UndefinedType = void;
 
-inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                    Bool valid = true, 
+                                    const NumberPtr& offset = 0)
 {
-    return ReaderStatus_Create(packet, valid);
+    return ReaderStatus_Create(packet, valid, offset);
 }
 
-inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                              Bool valid = true, 
+                                              const NumberPtr& offset = 0, 
+                                              SizeT readSamples = 0)
 {
-    return BlockReaderStatus_Create(packet, valid, readSamples);
+    return BlockReaderStatus_Create(packet, valid, offset, readSamples);
 }
 
-inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, Bool sufficientHistory = true)
+inline TailReaderStatusPtr TailReaderStatus(const EventPacketPtr& packet = nullptr, 
+                                            Bool valid = true, 
+                                            const NumberPtr& offset = 0, 
+                                            Bool sufficientHistory = true)
 {
-    return TailReaderStatus_Create(packet, valid, sufficientHistory);
+    return TailReaderStatus_Create(packet, valid, offset, sufficientHistory);
 }
 
-inline MultiReaderStatusPtr MultiReaderStatus(const DictPtr<ISignal, IEventPacket>& eventPackets = nullptr, Bool valid = true)
+inline MultiReaderStatusPtr MultiReaderStatus(const EventPacketPtr& mainDescriptor = nullptr,
+                                              const DictPtr<IString, IEventPacket>& eventPackets = nullptr, 
+                                              Bool valid = true, 
+                                              const NumberPtr& offset = 0)
 {
-    return MultiReaderStatus_Create(eventPackets, valid);
+    return MultiReaderStatus_Create(mainDescriptor, eventPackets, valid, offset);
 }
 
 /*!
@@ -199,6 +217,16 @@ StreamReaderPtr StreamReaderFromExisting(StreamReaderPtr invalidatedReader)
     );
 }
 
+inline StreamReaderBuilderPtr StreamReaderBuilder()
+{
+    return StreamReaderBuilder_Create();
+}
+
+inline StreamReaderPtr StreamReaderFromBuilder(const StreamReaderBuilderPtr& builder)
+{
+    return StreamReaderFromBuilder_Create(builder);
+}
+
 /*!
  * @brief A reader that only ever reads the last N samples, subsequent calls may result in overlapping data.
  * @param signal The signal to read the data from.
@@ -296,7 +324,7 @@ inline TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, Siz
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
+TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
 {
     return TailReaderFromExisting(
         invalidatedReader,
@@ -304,6 +332,16 @@ StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT hi
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );
+}
+
+inline TailReaderBuilderPtr TailReaderBuilder()
+{
+    return TailReaderBuilder_Create();
+}
+
+inline TailReaderPtr TailReaderFromBuilder(const TailReaderBuilderPtr& builder)
+{
+    return TailReaderFromBuilder_Create(builder);
 }
 
 inline BlockReaderBuilderPtr BlockReaderBuilder()

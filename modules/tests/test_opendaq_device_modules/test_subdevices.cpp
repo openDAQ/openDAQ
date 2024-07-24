@@ -196,16 +196,21 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -241,15 +246,20 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
                                            clientSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
     
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -299,24 +309,28 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal);
-    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal);
+    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+    {
+        daq::SizeT count = 0;
+        clientReader.read(nullptr, &count, 100);
+        gatewayReader.read(nullptr, &count, 100);
+    }
 
     double clientSamples[100];
     double gatewaySamples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
-
         daq::SizeT clientSamplesCount = 100;
-        clientReader.read(clientSamples, &clientSamplesCount);
+        clientReader.read(clientSamples, &clientSamplesCount, 100);
         EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
-
+        
         daq::SizeT gatewaySamplesCount = 100;
-        gatewayReader.read(gatewaySamples, &gatewaySamplesCount);
+        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 100);
         EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
     }
 }

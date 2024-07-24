@@ -15,9 +15,9 @@
  */
 
 #pragma once
+#include <opendaq/stream_reader.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_ptr.h>
-#include <opendaq/stream_reader.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/input_port_factory.h>
@@ -25,8 +25,9 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/stream_reader_builder_ptr.h>
+#include <opendaq/reader_factory.h>
 
-#include <condition_variable>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,12 +55,15 @@ public:
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
+
+    StreamReaderImpl(const StreamReaderBuilderPtr& builder);
     
     ~StreamReaderImpl() override;
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
     // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
@@ -96,10 +100,9 @@ public:
 
 private:
     void readDescriptorFromPort();
+    void connectInputPort(const InputPortConfigPtr& port);
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
-
-    ErrCode onPacketReady();
 
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
@@ -107,7 +110,7 @@ private:
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
-    ErrCode readPackets(IReaderStatus** status);
+    ReaderStatusPtr readPackets();
     ErrCode readPacketData();
 
     ReadInfo info{};
@@ -128,6 +131,8 @@ private:
 
     std::mutex mutex;
     ProcedurePtr readCallback;
+
+    bool skipEvents = false;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -810,13 +810,13 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             {
                 Thread.Sleep(sleepTime);
             }
-            while ((sampleReader.AvailableCount < count) && (--loopCount > 0));
+            while ((sampleReader.Empty()) && (--loopCount > 0));
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
 
             Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
 
-            Assert.That(samplesOrBlocksCountAvailable > 0, "*** No samples available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
+            Assert.That(!sampleReader.Empty(), "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
 
             using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
 
@@ -831,10 +831,15 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
             }
+            else if (status?.ReadStatus == ReadStatus.Event)
+            {
+                Console.WriteLine($"            event occurred'");
+            }
             else
             {
                 ++readFailures;
                 Console.WriteLine($"            read failed with ReadStatus = '{status?.ReadStatus}'");
+                break;
             }
         }
 

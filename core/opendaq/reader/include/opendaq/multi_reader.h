@@ -16,7 +16,8 @@
 #pragma once
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
-#include <opendaq/reader_status.h>
+#include <opendaq/multi_reader_status.h>
+#include <opendaq/event_packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -63,7 +64,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
      * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
-    virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(samples, count), arrayArg(domain, count), arrayArg(count, 1)]
     /*!
@@ -101,7 +102,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
      * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(count, 1)]
     /*!
@@ -115,7 +116,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
      * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IReaderStatus** status) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) = 0;
 
     /*!
      * @brief Gets the resolution the reader aligned all the signals to.

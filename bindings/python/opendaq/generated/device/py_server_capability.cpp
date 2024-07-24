@@ -124,5 +124,5 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getAddressInfo().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the list of address information objects.");
 }

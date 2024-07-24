@@ -785,7 +785,7 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
     test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
@@ -793,12 +793,16 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
     ASSERT_EQ(domainSubscribeFuture.get(), streamingSource);
 
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 

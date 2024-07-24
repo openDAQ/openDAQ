@@ -123,10 +123,11 @@ TEST_F(PacketReaderTest, DataPacket)
 TEST_F(PacketReaderTest, PacketReaderWithInputPort)
 {
     signal.setDescriptor(createDataDescriptor());
+
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    auto reader = PacketReaderFromPort(port);
     port.connect(signal);
 
-    auto reader = PacketReaderFromPort(port);
     sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
 
     scheduler.waitAll();
@@ -165,9 +166,7 @@ TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
 
 TEST_F(PacketReaderTest, MultiplePacketReaderToInputPort)
 {
-    signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
 
     auto reader1 = PacketReaderFromPort(port);
     ASSERT_THROW(PacketReaderFromPort(port), AlreadyExistsException);
@@ -177,8 +176,6 @@ TEST_F(PacketReaderTest, PacketReaderReuseInputPort)
 {
     signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
-
     {
         auto reader1 = PacketReaderFromPort(port);
     }
@@ -195,7 +192,7 @@ TEST_F(PacketReaderTest, PacketReaderOnReadCallback)
     signal.setDescriptor(createDataDescriptor());
 
     auto reader = PacketReader(signal);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         packets = reader.readAll();
         promise.set_value();
     });
@@ -224,10 +221,11 @@ TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
 
     signal.setDescriptor(createDataDescriptor());
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
 
     auto reader = PacketReaderFromPort(port);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    port.connect(signal);
+
+    reader.setOnDataAvailable([&] {
         packets = reader.readAll();
         promise.set_value();
     });
@@ -245,4 +243,44 @@ TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
 
     auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
     ASSERT_TRUE(dataPacket.assigned());
+}
+
+TEST_F(PacketReaderTest, ReadingNotConnectedPort)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::PacketReaderFromPort(port);
+
+    auto availableCount = reader.getAvailableCount();
+    ASSERT_EQ(availableCount, 0u);
+
+    auto packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 0u);
+
+    // connecting port
+    port.connect(this->signal);
+
+    // check that event is encountered
+    packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 1u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+}
+
+TEST_F(PacketReaderTest, NotifyPortIsConnected)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::PacketReaderFromPort(port);
+
+    ListPtr<IPacket> packets;
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    reader.setOnDataAvailable([&] {
+        packets = reader.readAll();
+        promise.set_value();
+    });
+
+    port.connect(this->signal);
+
+    ASSERT_EQ(packets.getCount(), 1u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
 }

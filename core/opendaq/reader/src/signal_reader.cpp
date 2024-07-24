@@ -107,9 +107,12 @@ SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }
 
-    count += acrossDescriptorChanges
-        ? connection.getAvailableSamples()
-        : connection.getSamplesUntilNextDescriptor();
+    if (connection.assigned())
+    {
+        count += acrossDescriptorChanges
+            ? connection.getSamplesUntilNextGapPacket()
+            : connection.getSamplesUntilNextEventPacket();
+    }
     return count * sampleRateDivider;
 }
 
@@ -195,6 +198,14 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
         {
             validDomain = false;
         }
+
+        packetDelta = 0;
+        const auto domainRule = newDomainDescriptor.getRule();
+        if (domainRule.getType() == DataRuleType::Linear)
+        {
+            const auto domainRuleParams = domainRule.getParameters();
+            packetDelta = domainRuleParams.get("delta");
+        }
     }
 
     invalid = invalid || !validDomain;
@@ -208,12 +219,12 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 
 void SignalReader::prepare(void* outValues, SizeT count)
 {
-    info.prepare(outValues, count / sampleRateDivider, std::chrono::milliseconds(0));
+    info.prepare(outValues, sampleRateDivider == 0 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
 }
 
 void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count)
 {
-    info.prepareWithDomain(outValues, domain, count / sampleRateDivider, std::chrono::milliseconds(0));
+    info.prepareWithDomain(outValues, domain, sampleRateDivider == 0 ? 0 : (count / sampleRateDivider), std::chrono::milliseconds(0));
 }
 
 void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
@@ -244,6 +255,11 @@ bool SignalReader::isFirstPacketEvent()
         return false;
     }
 
+    if (!connection.assigned())
+    {
+        return false;
+    }
+
     auto packet = connection.peek();
     while (packet.assigned())
     {
@@ -259,6 +275,7 @@ bool SignalReader::isFirstPacketEvent()
             return true;
         }
         connection.dequeue();
+        packet = connection.peek();
     }
     return false;
 }
@@ -268,7 +285,7 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     if (!isFirstPacketEvent())
         return nullptr;
 
-    EventPacketPtr gapPacket;
+    EventPacketPtr packetToReturn;
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
 
@@ -276,13 +293,22 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     while (true)
     {
         packet = connection.peek();
-        if (!packet.assigned() || (packet.getType() == PacketType::Data))
+        if (!packet.assigned())
+        {
             break;
-        
+        }
+
+        if (packet.getType() == PacketType::Data)
+        {
+            connection.dequeue();
+            break;
+        }
+
         if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            auto packetId = eventPacket.getEventId();
+            if (packetId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 auto params = eventPacket.getParameters();
                 DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
@@ -297,17 +323,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                     domainDescriptor = newDomainDescriptor;
                 }
             }
-            else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            else if (packetId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
                 if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
                 {
-                    gapPacket = packet;
                     connection.dequeue();
+                    packetToReturn = packet;
                 }
                 break;
             }
         }
-        
         connection.dequeue();
     }
 
@@ -317,21 +342,17 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         info.prevSampleIndex = 0;
     }
 
-    if (dataDescriptor.assigned() || domainDescriptor.assigned())
+    if (!packetToReturn.assigned() && (dataDescriptor.assigned() || domainDescriptor.assigned()))
+        packetToReturn = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+
+    if (packetToReturn.assigned())
     {
-        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+        synced = SyncStatus::Unsynchronized;
         bool firstData {false};
-        handlePacket(eventPacket, firstData);
-        return eventPacket;
-    }
-    if (gapPacket.assigned())
-    {
-        bool firstData {false};
-        handlePacket(gapPacket, firstData);
-        return gapPacket;
+        handlePacket(packetToReturn, firstData);
     }
 
-    return nullptr;
+    return packetToReturn;
 }
 
 bool SignalReader::sync(const Comparable& commonStart)

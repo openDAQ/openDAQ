@@ -112,6 +112,26 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getSamplesUntilNextGapPacket(SizeT* samples) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
     {
         *remote = False;

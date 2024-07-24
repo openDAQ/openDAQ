@@ -17,65 +17,52 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
-#include <opendaq/block_reader.h>
+#include <opendaq/tail_reader.h>
 #include <opendaq/input_port.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_readers
- * @addtogroup opendaq_block_reader Block reader builder
+ * @addtogroup opendaq_tail_reader Tail reader builder
  * @{
  */
 
 /*!
- * @brief Builder component of Block reader objects. Contains setter methods to configure the Block reader parameters
+ * @brief Builder component of Tail reader objects. Contains setter methods to configure the Tail reader parameters
  * and a `build` method that builds the Unit object.
  */
-DECLARE_OPENDAQ_INTERFACE(IBlockReaderBuilder, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ITailReaderBuilder, IBaseObject)
 {
     /*!
-     * @brief Builds and returns a Block reader object using the currently set values of the Builder.
-     * @param[out] blockReader The built Block reader.
+     * @brief Builds and returns a Tail reader object using the currently set values of the Builder.
+     * @param[out] tailReader The built Tail reader.
      */
-    virtual ErrCode INTERFACE_FUNC build(IBlockReader** blockReader) = 0;
+    virtual ErrCode INTERFACE_FUNC build(ITailReader** tailReader) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets old block reader instance to copy from
-     * @param blockReader The old Block reader instance
-     */
-    virtual ErrCode INTERFACE_FUNC setOldBlockReader(IBlockReader* blockReader) = 0;
-
-    /*!
-     * @brief Gets the old Block reader instance to copy from
-     * @param blockReader The old Block reader instance
-     */
-    virtual ErrCode INTERFACE_FUNC getOldBlockReader(IBlockReader** blockReader) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the signal to block reader
-     * @param signal The signal which will be handled in block reader
+     * @brief Sets the signal to tail reader
+     * @param signal The signal which will be handled in tail reader
      */
     virtual ErrCode INTERFACE_FUNC setSignal(ISignal* signal) = 0;
 
     /*!
      * @brief Gets the signal
-     * @param signal The signal which will be handled in block reader
+     * @param signal The signal which will be handled in tail reader
      */
     virtual ErrCode INTERFACE_FUNC getSignal(ISignal** signal) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the input port to block reader
-     * @param port The input port which will be handled in block reader
+     * @brief Sets the input port to tail reader
+     * @param port The input port which will be handled in tail reader
      */
     virtual ErrCode INTERFACE_FUNC setInputPort(IInputPort* port) = 0;
 
     /*!
      * @brief Gets the input port
-     * @param port The input port which will be handled in block reader
+     * @param port The input port which will be handled in tail reader
      */
     virtual ErrCode INTERFACE_FUNC getInputPort(IInputPort** port) = 0;
 
@@ -120,29 +107,16 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReaderBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the block size
-     * @param mode The block size
+     * @brief Sets the history size
+     * @param historySize The history size
      */
-    virtual ErrCode INTERFACE_FUNC setBlockSize(SizeT size) = 0;
+    virtual ErrCode INTERFACE_FUNC setHistorySize(SizeT historySize) = 0;
 
     /*!
-     * @brief Gets the block size
-     * @param[out] mode The block size
+     * @brief Gets the history size
+     * @param[out] historySize The history size
      */
-    virtual ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the overlap
-     * @param mode The overlap
-     */
-    virtual ErrCode INTERFACE_FUNC setOverlap(SizeT overlap) = 0;
-
-    /*!
-     * @brief Gets the overlap
-     * @param[out] mode The overlap[
-     */
-    virtual ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) = 0;
+    virtual ErrCode INTERFACE_FUNC getHistorySize(SizeT* historySize) = 0;
 
     // [returnSelf]
     /*!
@@ -158,7 +132,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReaderBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) = 0;
 };
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, BlockReaderBuilder, IBlockReaderBuilder)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, TailReaderBuilder, ITailReaderBuilder)
 
 /*!@}*/
 END_NAMESPACE_OPENDAQ

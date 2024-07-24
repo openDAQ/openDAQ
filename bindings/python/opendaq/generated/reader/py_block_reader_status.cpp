@@ -27,7 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> declareIBlockReaderStatus(pybind11::module_ m)
 {
@@ -38,7 +38,10 @@ void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderSt
 {
     cls.doc() = "IBlockReaderStatus inherits from IReaderStatus to expand information returned read function";
 
-    m.def("BlockReaderStatus", &daq::BlockReaderStatus_Create);
+    m.def("BlockReaderStatus", [](daq::IEventPacket* eventPacket, const bool valid, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset, const size_t readSamples){
+        return daq::BlockReaderStatus_Create(eventPacket, valid, getVariantValue<daq::INumber*>(offset), readSamples);
+    }, py::arg("event_packet"), py::arg("valid"), py::arg("offset"), py::arg("read_samples"));
+
 
     cls.def_property_readonly("read_samples",
         [](daq::IBlockReaderStatus *object)

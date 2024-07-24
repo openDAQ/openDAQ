@@ -433,7 +433,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 reader.Read(samples, ref count, 1000);
                 samplesCount += count;
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;±0.000})";
+                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;Â±0.000})";
                 Console.WriteLine($"  Block {readBlockNo + 1,2} read {count,3} values {values}");
             }
         }
@@ -531,13 +531,13 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             {
                 Thread.Sleep(sleepTime);
             }
-            while ((sampleReader.AvailableCount < count) && (--loopCount > 0));
+            while ((sampleReader.Empty) && (--loopCount > 0));
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
 
             Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
 
-            Assert.That(samplesOrBlocksCountAvailable > 0, "*** No samples available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
+            Assert.That(!sampleReader.Empty, "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
 
             using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
 
@@ -548,14 +548,19 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             {
                 string valueString = (samplesCount == 0)
                                      ? string.Empty
-                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;±0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
+                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;ï¿½0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
+            }
+            else if (status?.ReadStatus == ReadStatus.Event)
+            {
+                Console.WriteLine($"            event occurred'");
             }
             else
             {
                 ++readFailures;
                 Console.WriteLine($"            read failed with ReadStatus = '{status?.ReadStatus}'");
+                break;
             }
         }
 

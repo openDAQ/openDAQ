@@ -127,14 +127,19 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.lt://127.0.0.1:7414"));
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal);
-
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal,ReadTimeoutType::Any);
+    
+    {
+        SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
+    
     double samples[100];
     for (int i = 0; i < 5; ++i)
     {
         SizeT count = 100;
-        reader.read(samples, &count, 10000);
-        ASSERT_EQ(count, 100u);
+        reader.read(samples, &count, 1000);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -153,14 +158,19 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.ns://127.0.0.1:7420"));
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+    
+    {
+        SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+    }
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
     {
         SizeT count = 100;
-        reader.read(samples, &count, 10000);
-        ASSERT_EQ(count, 100u);
+        reader.read(samples, &count, 1000);
+        ASSERT_GT(count, 0u);
     }
 }
 

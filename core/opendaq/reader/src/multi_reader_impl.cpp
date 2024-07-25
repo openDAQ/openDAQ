@@ -36,9 +36,10 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     this->internalAddRef();
     try
     {
+        assert(list.getCount() > 0);
+        loggerComponent = list[0].getContext().getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
         auto ports = CheckPreconditions(list, true, fromInputPorts);
-        loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -177,8 +178,9 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
 }
 void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
 {
-    StringPtr domainUnit;
+    StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
+    StringPtr domainId;
 
     for (const auto& port : list)
     {
@@ -194,16 +196,43 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
             throw InvalidParameterException(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId());
         }
 
-        auto unit = domain.getDescriptor().getUnit();
-        if (!unit.assigned())
+        auto domainDescriptor = domain.getDescriptor();
+        if (!domainDescriptor.assigned())
+        {
+            throw InvalidParameterException(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId());
+        }
+
+        auto domainUnit = domainDescriptor.getUnit();
+        if (!domainUnit.assigned())
         {
             throw InvalidParameterException(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
+        if (!domainId.assigned())
+        {
+            // Check domain ID existence
+
+            domainId = domainDescriptor.getDomainId();
+
+            if (!domainId.assigned())
+            {
+                LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
+            }
+        }
+        else
+        {
+            // Check domain ID equality
+
+            if (domainId != domainDescriptor.getDomainId())
+            {
+                throw InvalidStateException(R"("Domain signal "{}" domain ID does not match with others.)", domain.getLocalId());
+            }
+        }
+
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
         {
-            domainQuantity = unit.getQuantity();
-            domainUnit = unit.getSymbol();
+            domainQuantity = domainUnit.getQuantity();
+            domainUnitSymbol = domainUnit.getSymbol();
 
             if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
             {
@@ -219,48 +248,28 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
                 );
             }
 
-            if (domainUnit != "s")
+            if (domainUnitSymbol != "s")
             {
                 throw NotSupportedException(
                     R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
                     signal.getLocalId(),
-                    domainUnit
+                    domainUnitSymbol
                 );
             }
         }
         else
         {
-            if (domainQuantity != unit.getQuantity())
+            if (domainQuantity != domainUnit.getQuantity())
             {
                 throw InvalidStateException(R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId());
             }
 
-            if (domainUnit != unit.getSymbol())
+            if (domainUnitSymbol != domainUnit.getSymbol())
             {
                 throw InvalidStateException(R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
             }
         }
     }
-
-    // Check domain id existance and equality
-
-    for (const auto& port : list)
-    {
-        auto signal = port.getSignal();
-        if (signal.getDomainSignal().getDescriptor().getDomainId() == nullptr)
-            LOG_W(R"("Signal "{}" domain id is not assigned.")", signal.getLocalId());
-    }
-
-    // We check equality against this one
-    const auto firstDomainId = list[0].getSignal().getDomainSignal().getDescriptor().getDomainId();
-
-    for (size_t i = 1; i < list.getCount(); i++)
-    {
-        auto signal = list[i].getSignal();
-        if (firstDomainId != signal.getDomainSignal().getDescriptor().getDomainId())
-            throw InvalidStateException(R"(Signal "{}" domain id does not match with others.)", signal.getLocalId());
-    }
-
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()

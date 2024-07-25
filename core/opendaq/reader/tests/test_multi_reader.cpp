@@ -154,10 +154,11 @@ public:
     [[nodiscard]]
     SignalConfigPtr createDomainSignal(std::string epoch = "",
                                        const daq::RatioPtr& resolution = nullptr,
-                                       const daq::DataRulePtr& rule = nullptr) const
+                                       const daq::DataRulePtr& rule = nullptr,
+                                       const daq::StringPtr& domainId = nullptr) const
     {
         auto domain = Signal(context, nullptr, "time");
-        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule));
+        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule, domainId));
 
         return domain;
     }
@@ -2293,16 +2294,100 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 }
 
-TEST_F(MultiReaderTest, DomainIdInequality)
+TEST_F(MultiReaderTest, DomainIdEquality01)
 {
-    constexpr const auto NUM_SIGNALS = 3;
-
-    readSignals.reserve(3);
-
     auto& sig0 = addSignal(0, 113, createDomainSignal("1993"));
     auto& sig1 = addSignal(0, 113, createDomainSignal("1993"));
-    auto& sig2 = addSignal(0, 113, createDomainSignal("1993"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993"));
 
-    auto portList = portsList();
-    auto multi = MultiReaderFromPort(portList);
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, DomainIdEquality02)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, DomainIdEquality03)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+TEST_F(MultiReaderTest, DomainIdEquality04)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, DomainIdEquality05)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality01)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality02)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality03)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality04)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality05)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
+}
+
+TEST_F(MultiReaderTest, DomainIdInequality06)
+{
+    auto& sig0 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    auto& sig1 = addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "diffDomainId"));
+    auto& sig2 = addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "sameDomainId"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"("Domain signal "time" domain ID does not match with others.)");
 }

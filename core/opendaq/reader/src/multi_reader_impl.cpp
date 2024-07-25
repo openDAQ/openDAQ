@@ -221,11 +221,22 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
         }
         else
         {
-            // Check domain ID equality
+            // Check domain ID existence
 
-            if (domainId != domainDescriptor.getDomainId())
+            auto currentDomainId = domainDescriptor.getDomainId();
+
+            if (!currentDomainId.assigned())
             {
-                throw InvalidStateException(R"("Domain signal "{}" domain ID does not match with others.)", domain.getLocalId());
+                LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
+            }
+            else
+            {
+                // Check domain ID equality
+
+                if (domainId != currentDomainId)
+                {
+                    throw InvalidStateException(R"("Domain signal "{}" domain ID does not match with others.)", domain.getLocalId());
+                }
             }
         }
 

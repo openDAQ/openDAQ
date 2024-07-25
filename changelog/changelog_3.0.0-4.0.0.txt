@@ -1,3 +1,9 @@
+25.07.2024
+Description:
+  - Add user context to json serializer
++ [function] ISerializer::getUser(IBaseObject** user)
++ [function] ISerializer::setUser(IBaseObject* user)
+
 23.07.2024
 Description
   - Reader improvement

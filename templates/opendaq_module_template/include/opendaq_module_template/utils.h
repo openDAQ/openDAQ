@@ -43,13 +43,13 @@ public:
     DeviceTemplateParamsValidation(const DeviceTemplateParams& params)
     {
         if (params.localId.empty())
-            throw InvalidParametersException("Local id is not set");
+            throw InvalidParameterException("Local id is not set");
         if (!params.info.assigned())
-            throw InvalidParametersException("Device info is not set");
+            throw InvalidParameterException("Device info is not set");
         if (params.logName.empty())
-            throw InvalidParametersException("Log name is not set");
+            throw InvalidParameterException("Log name is not set");
         if (!params.context.assigned())
-            throw InvalidParametersException("Context is not set");
+            throw InvalidParameterException("Context is not set");
     }
 };
 
@@ -59,15 +59,15 @@ public:
     ModuleTemplateParamsValidation(const ModuleTemplateParams& config)
     {
         if (!config.version.assigned())
-            throw InvalidParametersException("Module version is not set");
+            throw InvalidParameterException("Module version is not set");
         if (!config.context.assigned())
-            throw InvalidParametersException("Context is not set");
+            throw InvalidParameterException("Context is not set");
         if (config.name.empty())
-            throw InvalidParametersException("Module is not set");
+            throw InvalidParameterException("Module is not set");
         if (config.logName.empty())
-            throw InvalidParametersException("Log name is not set");
+            throw InvalidParameterException("Log name is not set");
         if (config.id.empty())
-            throw InvalidParametersException("Module ID is not set");
+            throw InvalidParameterException("Module ID is not set");
     }
 };
 

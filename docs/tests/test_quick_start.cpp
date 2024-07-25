@@ -32,7 +32,7 @@ TEST_F(QuickStartTest, QuickStartAppConnect)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
-    ASSERT_EQ(device.getInfo().getName(), "Device 1");
+    ASSERT_EQ(device.getInfo().getName(), "Reference device 1");
 }
 
 // Corresponding document: Antora/modules/quick_start/pages/quick_start_application.adoc

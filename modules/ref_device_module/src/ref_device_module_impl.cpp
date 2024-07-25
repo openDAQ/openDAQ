@@ -100,7 +100,7 @@ DevicePtr RefDeviceModule::getDevice(const GetDeviceParams& params)
     if (params.options.hasKey("LocalId"))
         localId = params.options.get("LocalId");
     else
-        localId = fmt::format("ref_dev{}", getIdFromAddress(params.address));
+        localId = fmt::format("RefDev{}", getIdFromAddress(params.address));
 
     DeviceTemplateParams deviceParams;
     deviceParams.info = params.info;

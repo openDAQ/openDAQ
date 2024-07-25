@@ -270,7 +270,7 @@ public:
      * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
      * @returns The device object created to communicate with and control the device.
      */
-    virtual DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
+    virtual DevicePtr onCreateDevice(const StringPtr& /*connectionString*/, const ComponentPtr& /*parent*/, const PropertyObjectPtr& /*config*/)
     {
         return nullptr;
     }
@@ -293,7 +293,7 @@ public:
      * @param config Configuration parameters used during function block construction.
      * @returns The created function block.
      */
-    virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
+    virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& /*id*/, const ComponentPtr& /*parent*/, const StringPtr& /*localId*/, const PropertyObjectPtr& /*config*/)
     {
         throw NotFoundException();
     }

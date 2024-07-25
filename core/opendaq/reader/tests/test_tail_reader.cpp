@@ -1214,6 +1214,6 @@ TEST_F(TailReaderTest, DeltaCheck)
     RangeType64 domain[1]{};
     auto status = reader.readWithDomain(&samples, &domain, &count);
 
-    ASSERT_EQ(count, 1);
+    ASSERT_EQ(count, 1u);
     ASSERT_EQ(status.getOffset(), 1);
 }

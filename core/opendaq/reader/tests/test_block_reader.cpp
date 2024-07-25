@@ -517,7 +517,7 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeTimeoutOverlapped)
 
     ASSERT_TRUE(status.assigned());
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(status.getReadSamples(), 2);
+    ASSERT_EQ(status.getReadSamples(), 2u);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {

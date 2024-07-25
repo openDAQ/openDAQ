@@ -2118,7 +2118,7 @@ TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
     status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
-    ASSERT_EQ(status.getEventPackets().getCount(), 1);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
     
     auto event = status.getEventPackets().get("/readsig0");

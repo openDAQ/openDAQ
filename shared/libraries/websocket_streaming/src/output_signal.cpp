@@ -384,11 +384,11 @@ LinearTimeSignalPtr OutputLinearDomainSignal::createSignalStream(
     daq::SampleType daqSampleType = descriptor.getSampleType();
     if (daqSampleType != daq::SampleType::Int64 &&
         daqSampleType != daq::SampleType::UInt64)
-        throw InvalidParameterException("Unsupported domain signal sample type");
+        throw InvalidParameterException("Unsupported domain signal sample type - only 64bit integer types are supported");
 
     auto dataRule = descriptor.getRule();
     if (dataRule.getType() != DataRuleType::Linear)
-        throw InvalidParameterException("Invalid domain signal data rule {}.", (size_t)dataRule.getType());
+        throw InvalidParameterException("Invalid domain signal data rule - linear rule only is supported");
 
     auto unit = descriptor.getUnit();
     if (!unit.assigned() ||
@@ -469,7 +469,7 @@ BaseSynchronousSignalPtr OutputSyncValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type");
+            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, syncStream, getSignalProps(signal));
@@ -574,7 +574,7 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type");
+            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, constStream, getSignalProps(signal));

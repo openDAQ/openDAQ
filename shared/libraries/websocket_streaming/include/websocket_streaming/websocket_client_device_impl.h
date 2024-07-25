@@ -47,9 +47,10 @@ protected:
 
     DeviceInfoConfigPtr deviceInfo;
     std::unordered_map<StringPtr, SignalPtr> deviceSignals;
-    StreamingPtr websocketStreaming;
-    StringPtr connectionString;
     std::vector<std::string> orderedSignalIds;
+    StringPtr connectionString;
+
+    StreamingPtr websocketStreaming;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

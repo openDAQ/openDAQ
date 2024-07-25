@@ -108,18 +108,20 @@ void StreamingServer::onAccept(const OnAcceptCallback& callback)
     onAcceptCallback = callback;
 }
 
-void StreamingServer::onSubscribe(const OnSubscribeCallback& callback)
+void StreamingServer::onStartSignalsRead(const OnStartSignalsReadCallback& callback)
 {
-    onSubscribeCallback = callback;
+    onStartSignalsReadCallback = callback;
 }
 
-void StreamingServer::onUnsubscribe(const OnUnsubscribeCallback& callback)
+void StreamingServer::onStopSignalsRead(const OnStopSignalsReadCallback& callback)
 {
-    onUnsubscribeCallback = callback;
+    onStopSignalsReadCallback = callback;
 }
 
 void StreamingServer::broadcastPacket(const std::string& signalId, const PacketPtr& packet)
 {
+    std::scoped_lock lock(sync);
+
     for (auto& [_, client] : clients)
     {
         auto writer = client.first;
@@ -144,7 +146,7 @@ DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
     auto descriptor = signal.getDescriptor();
     if (!descriptor.assigned() || !descriptor.getRule().assigned())
     {
-        throw InvalidParameterException("Unknown signal rule");
+        throw InvalidParameterException(R"(Signal "{}" has incomplete  descriptor - unknown signal rule)", signal.getGlobalId());
     }
     return descriptor.getRule().getType();
 }
@@ -172,7 +174,7 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
             {
                 outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignal);
                 if (!outputDomainSignal)
-                    throw NoInterfaceException("Registered output signal {} is not of domain type", domainSignalId);
+                    throw NoInterfaceException("Previously registered domain output signal {} is not of domain type", domainSignalId);
             }
         }
         else
@@ -191,7 +193,7 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
         }
         else
         {
-            throw InvalidParameterException("Unsupported domain signal rule type");
+            throw InvalidParameterException("Unsupported domain signal rule type - only domain signals with linear rule type are supported in LT-streaming");
         }
     }
     else
@@ -233,19 +235,38 @@ void StreamingServer::onReadDone(const std::string& clientId,
     doRead(clientId, stream);
 }
 
+void StreamingServer::startReadSignals(const ListPtr<ISignal>& signals)
+{
+    if (onStartSignalsReadCallback && signals.getCount() > 0)
+        onStartSignalsReadCallback(signals);
+}
+
+void StreamingServer::stopReadSignals(const ListPtr<ISignal>& signals)
+{
+    if (onStopSignalsReadCallback && signals.getCount() > 0)
+        onStopSignalsReadCallback(signals);
+}
+
 void StreamingServer::removeClient(const std::string& clientId)
 {
     LOG_I("client with id {} disconnected", clientId);
 
-    if (auto iter = clients.find(clientId); iter != clients.end())
+    auto signalsToStopRead = List<ISignal>();
     {
-        auto outputSignals = iter->second.second;
-        for (const auto& [signalId, outputSignal] : outputSignals)
+        std::scoped_lock lock(sync);
+        if (auto iter = clients.find(clientId); iter != clients.end())
         {
-            unsubscribeHandler(signalId, outputSignal);
+            const auto& outputSignals = iter->second.second;
+            for (const auto& [signalId, outputSignal] : outputSignals)
+            {
+                if (unsubscribeHandler(signalId, outputSignal) && outputSignal->isDataSignal())
+                    signalsToStopRead.pushBack(outputSignal->getDaqSignal());
+            }
+            clients.erase(iter);
         }
-        clients.erase(iter);
     }
+
+    stopReadSignals(signalsToStopRead);
 }
 
 void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
@@ -259,13 +280,15 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     if (onAcceptCallback)
         signals = onAcceptCallback(writer);
 
-    auto outputSignals = std::unordered_map<std::string, OutputSignalBasePtr>();
-
-    publishSignalsToClient(writer, signals, outputSignals);
-
     auto clientId = stream->endPointUrl();
     LOG_I("New client connected. Stream Id: {}", clientId);
-    clients.insert({clientId, {writer, outputSignals}});
+    {
+        std::scoped_lock lock(sync);
+        clients.insert({clientId, {writer, std::unordered_map<std::string, OutputSignalBasePtr>()}});
+        auto& outputSignals = clients.at(clientId).second;
+        publishSignalsToClient(writer, signals, outputSignals);
+    }
+
     doRead(clientId, stream);
 }
 
@@ -280,28 +303,46 @@ int StreamingServer::onControlCommand(const std::string& streamId,
         errorMessage = "Signal list is empty";
         return -1;
     }
-
-    auto clientIter = clients.find(streamId);
-    if (clientIter == std::end(clients))
+    if (command != "subscribe" && command != "unsubscribe")
     {
-        LOG_W("Unknown streamId: {}, reject command", streamId);
-        errorMessage = "Unknown streamId:  '" + streamId + "'";
+        LOG_W("Unknown control command: {}", command);
+        errorMessage = "Unknown command: " + command;
         return -1;
     }
 
-    if (command == "subscribe" || command == "unsubscribe")
+    size_t unknownSignalsCount = 0;
+    std::string message = "Command '" + command + "' failed for unknown signals:\n";
+
+    auto signalsToStartRead = List<ISignal>();
+    auto signalsToStopRead = List<ISignal>();
+
     {
-        size_t unknownSignalsCount = 0;
-        std::string message = "Command '" + command + "' failed for unknown signals:\n";
+        std::scoped_lock lock(sync);
+
+        auto clientIter = clients.find(streamId);
+        if (clientIter == std::end(clients))
+        {
+            LOG_W("Unknown streamId: {}, reject command", streamId);
+            errorMessage = "Unknown streamId:  '" + streamId + "'";
+            return -1;
+        }
+
         for (const auto& signalId : signalIds)
         {
-            auto signals = clientIter->second.second;
-            if (auto signalIter = signals.find(signalId); signalIter != signals.end())
+            auto& outputSignals = clientIter->second.second;
+            if (auto signalIter = outputSignals.find(signalId); signalIter != outputSignals.end())
             {
+                auto outputSignal = signalIter->second;
                 if (command == "subscribe")
-                    subscribeHandler(signalId, signalIter->second);
+                {
+                    if (subscribeHandler(signalId, outputSignal) && outputSignal->isDataSignal())
+                        signalsToStartRead.pushBack(outputSignal->getDaqSignal());
+                }
                 else if (command == "unsubscribe")
-                    unsubscribeHandler(signalId, signalIter->second);
+                {
+                    if (unsubscribeHandler(signalId, outputSignal) && outputSignal->isDataSignal())
+                        signalsToStopRead.pushBack(outputSignal->getDaqSignal());
+                }
             }
             else
             {
@@ -309,22 +350,24 @@ int StreamingServer::onControlCommand(const std::string& streamId,
                 message.append(signalId + "\n");
             }
         }
+    }
 
-        if (unknownSignalsCount > 0)
-        {
-            LOG_W("{}", message);
-            errorMessage = message;
-            return -1;
-        }
+    if (command == "subscribe")
+        startReadSignals(signalsToStartRead);
+
+    if (command == "unsubscribe")
+        stopReadSignals(signalsToStopRead);
+
+    if (unknownSignalsCount > 0)
+    {
+        LOG_W("{}", message);
+        errorMessage = message;
+        return -1;
     }
     else
     {
-        LOG_W("Unknown control command: {}", command);
-        errorMessage = "Unknown command: " + command;
-        return -1;
+        return 0;
     }
-    return 0;
-
 }
 
 void StreamingServer::writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer)
@@ -384,32 +427,28 @@ bool StreamingServer::isSignalSubscribed(const std::string& signalId) const
     return result;
 }
 
-void StreamingServer::subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
+bool StreamingServer::subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
 {
-    // wasn't subscribed by any client
-    if (!isSignalSubscribed(signalId))
-    {
-        if (signal->isDataSignal() && onSubscribeCallback)
-            onSubscribeCallback(signal->getDaqSignal());
-    }
-
+    // returns true if signal wasn't subscribed by any client
+    bool result = !isSignalSubscribed(signalId);
     signal->setSubscribed(true);
+
+    return result;
 }
 
-void StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
+bool StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
 {
+    if (!signal->isSubscribed())
+        return false;
     signal->setSubscribed(false);
 
-    // became not subscribed by any client
-    if (!isSignalSubscribed(signalId))
-    {
-        if (signal->isDataSignal() && onUnsubscribeCallback)
-            onUnsubscribeCallback(signal->getDaqSignal());
-    }
+    // returns true if signal became not subscribed by any client
+    return !isSignalSubscribed(signalId);
 }
 
 void StreamingServer::addSignals(const ListPtr<ISignal>& signals)
 {
+    std::scoped_lock lock(sync);
     for (auto& [_, client] : clients)
     {
         auto writer = client.first;
@@ -421,31 +460,84 @@ void StreamingServer::addSignals(const ListPtr<ISignal>& signals)
 
 void StreamingServer::removeComponentSignals(const StringPtr& componentId)
 {
-    auto removedComponentId = componentId.toStdString();
-
-    for (auto& [_, client] : clients)
+    auto signalsToStopRead = List<ISignal>();
     {
-        auto writer = client.first;
-        auto& outputSignals = client.second;
+        std::scoped_lock lock(sync);
+        auto removedComponentId = componentId.toStdString();
 
-        std::vector<std::string> signalsToRemove;
-
-        for (const auto& [signalId, outputSignal] : outputSignals)
+        for (auto& [_, client] : clients)
         {
-            // removed component is a signal, or signal is a descendant of removed component
-            if (signalId == removedComponentId || IdsParser::isNestedComponentId(removedComponentId, signalId))
+            auto writer = client.first;
+            auto& outputSignals = client.second;
+
+            std::vector<std::string> signalsToRemove;
+
+            for (const auto& [signalId, outputSignal] : outputSignals)
             {
-                signalsToRemove.push_back(signalId);
-                unsubscribeHandler(signalId, outputSignal);
+                // removed component is a signal, or signal is a descendant of removed component
+                if (signalId == removedComponentId || IdsParser::isNestedComponentId(removedComponentId, signalId))
+                {
+                    signalsToRemove.push_back(signalId);
+                    if (unsubscribeHandler(signalId, outputSignal) && outputSignal->isDataSignal())
+                        signalsToStopRead.pushBack(outputSignal->getDaqSignal());
+                }
+            }
+
+            if (!signalsToRemove.empty())
+            {
+                writeSignalsUnavailable(writer, signalsToRemove);
+                for (const auto& signalId : signalsToRemove)
+                    outputSignals.erase(signalId);
             }
         }
-        for (const auto& signalId : signalsToRemove)
-        {
-            outputSignals.erase(signalId);
-        }
-
-        writeSignalsUnavailable(writer, signalsToRemove);
     }
+
+    stopReadSignals(signalsToStopRead);
+}
+
+void StreamingServer::updateComponentSignals(const DictPtr<IString, ISignal>& signals, const StringPtr& componentId)
+{
+    auto signalsToStopRead = List<ISignal>();
+    {
+        std::scoped_lock lock(sync);
+        auto updatedComponentId = componentId.toStdString();
+
+        for (auto& [_, client] : clients)
+        {
+            auto writer = client.first;
+            auto& outputSignals = client.second;
+
+            auto signalsToAdd = List<ISignal>();
+            for (const auto& [signalId, signal] : signals)
+            {
+                if (auto iter = outputSignals.find(signalId.toStdString()); iter == outputSignals.end())
+                    signalsToAdd.pushBack(signal);
+            }
+            if (signalsToAdd.getCount() > 0)
+                publishSignalsToClient(writer, signalsToAdd, outputSignals);
+
+            std::vector<std::string> signalsToRemove;
+            for (const auto& [signalId, outputSignal] : outputSignals)
+            {
+                // signal is a descendant of updated component
+                if (IdsParser::isNestedComponentId(updatedComponentId, signalId) &&
+                    (!signals.hasKey(signalId) || !signals.get(signalId).getPublic()))
+                {
+                    signalsToRemove.push_back(signalId);
+                    if (unsubscribeHandler(signalId, outputSignal) && outputSignal->isDataSignal())
+                        signalsToStopRead.pushBack(outputSignal->getDaqSignal());
+                }
+            }
+            if (!signalsToRemove.empty())
+            {
+                writeSignalsUnavailable(writer, signalsToRemove);
+                for (const auto& signalId : signalsToRemove)
+                    outputSignals.erase(signalId);
+            }
+        }
+    }
+
+    stopReadSignals(signalsToStopRead);
 }
 
 void StreamingServer::updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
@@ -470,7 +562,7 @@ void StreamingServer::updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
         }
         catch (const DaqException& e)
         {
-            LOG_W("Failed to create an output LT streaming signal for {}: {}", daqSignal.getGlobalId(), e.what());
+            LOG_W("Failed to re-create an output LT streaming signal for {}, reason: {}", daqSignal.getGlobalId(), e.what());
         }
     }
 }
@@ -494,7 +586,7 @@ void StreamingServer::publishSignalsToClient(const StreamWriterPtr& writer,
         }
         catch (const DaqException& e)
         {
-            LOG_W("Failed to create an output LT streaming signal for {}: {}", signalId, e.what());
+            LOG_W("Failed to create an output LT streaming signal for {}, reason: {}", signalId, e.what());
             auto placeholderSignal = std::make_shared<OutputNullSignal>(daqSignal, logCallback);
             outputSignals.insert({signalId, placeholderSignal});
         }

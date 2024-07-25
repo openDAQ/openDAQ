@@ -94,16 +94,18 @@ void AsyncPacketReader::createReaders()
     }
 }
 
-void AsyncPacketReader::startReadSignal(const SignalPtr& signal)
+void AsyncPacketReader::startReadSignals(const ListPtr<ISignal>& signals)
 {
     std::scoped_lock lock(readersSync);
-    addReader(signal);
+    for (const auto& signal : signals)
+        addReader(signal);
 }
 
-void AsyncPacketReader::stopReadSignal(const SignalPtr& signal)
+void AsyncPacketReader::stopReadSignals(const ListPtr<ISignal>& signals)
 {
     std::scoped_lock lock(readersSync);
-    removeReader(signal);
+    for (const auto& signal : signals)
+        removeReader(signal);
 }
 
 void AsyncPacketReader::addReader(SignalPtr signalToRead)

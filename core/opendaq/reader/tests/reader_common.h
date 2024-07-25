@@ -39,13 +39,11 @@
 daq::DataDescriptorPtr setupDescriptor(daq::SampleType type,
                                        daq::DataRulePtr rule = nullptr,
                                        daq::ScalingPtr scaling = nullptr,
-                                       daq::StringPtr domainId = nullptr,
-                                       daq::IntegerPtr grandmasterOffset = nullptr);
+                                       daq::StringPtr domainId = nullptr);
 daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
                                                           daq::DataRulePtr rule = nullptr,
                                                           daq::ScalingPtr scaling = nullptr,
-                                                          daq::StringPtr domainId = nullptr,
-                                                          daq::IntegerPtr grandmasterOffset = nullptr);
+                                                          daq::StringPtr domainId = nullptr);
 
 template <typename T = void>
 class ReaderTest : public testing::Test
@@ -104,8 +102,7 @@ public:
     auto createDomainDescriptor(std::string epoch = "",
                                 daq::RatioPtr resolution = nullptr,
                                 daq::DataRulePtr rule = nullptr,
-                                daq::StringPtr domainId = nullptr,
-                                daq::IntegerPtr grandmasterOffset = nullptr) const
+                                daq::StringPtr domainId = nullptr) const
     {
         if (epoch.empty())
         {
@@ -122,12 +119,11 @@ public:
             rule = daq::LinearDataRule(1, 0);
         }
 
-        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, domainId, grandmasterOffset)
+        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, domainId)
             .setOrigin(epoch)
             .setTickResolution(resolution)
             .setUnit(daq::Unit("s", -1, "seconds", "time"))
             .setDomainId(domainId)
-            .setGrandmasterOffset(grandmasterOffset)
             .build();
     }
 
@@ -150,10 +146,9 @@ protected:
 inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
                                                                  daq::DataRulePtr rule,
                                                                  daq::ScalingPtr scaling,
-                                                                 daq::StringPtr domainId,
-                                                                 daq::IntegerPtr grandmasterOffset)
+                                                                 daq::StringPtr domainId)
 {
-    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling).setDomainId(domainId).setGrandmasterOffset(grandmasterOffset);
+    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling).setDomainId(domainId);
 
     if (rule.assigned())
         dataDescriptor.setRule(rule);
@@ -165,10 +160,9 @@ inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType
 inline daq::DataDescriptorPtr setupDescriptor(daq::SampleType type,
                                               daq::DataRulePtr rule,
                                               daq::ScalingPtr scaling,
-                                              daq::StringPtr domainId,
-                                              daq::IntegerPtr grandmasterOffset)
+                                              daq::StringPtr domainId)
 {
-    return setupConfigurableDescriptor(type, rule, scaling, domainId, grandmasterOffset).build();
+    return setupConfigurableDescriptor(type, rule, scaling, domainId).build();
 }
 
 namespace daq

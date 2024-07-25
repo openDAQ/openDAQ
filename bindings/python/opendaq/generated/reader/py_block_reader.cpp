@@ -64,19 +64,21 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
 
     cls.def(
         "read",
-        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValues(daq::BlockReaderPtr::Borrow(object), count, timeoutMs); },
+        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValues(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Copies at maximum the next `count` blocks of unread samples to the values buffer."
         "The amount actually read is returned through the `count` parameter");
 
     cls.def(
         "read_with_domain",
-        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(daq::BlockReaderPtr::Borrow(object), count, timeoutMs); },
+        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Copies at maximum the next `count` blocks of unread samples and clock-stamps to the `dataBlocks` and `domainBlocks` buffers."
         "The amount actually read is returned through the `count` parameter.");
 

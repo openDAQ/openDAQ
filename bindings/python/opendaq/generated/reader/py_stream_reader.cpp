@@ -50,28 +50,32 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
 
     cls.def(
         "read",
-        [](daq::IStreamReader* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs); },
+        [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` "
         "parameter.");
     cls.def(
         "read_with_domain",
-        [](daq::IStreamReader* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs); },
+        [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples and clock-stamps to the `values` and `stamps` buffers. The amount actually read "
         "is returned through the `count` parameter.");
     cls.def(
         "skip_samples",
-        [](daq::IStreamReader* object, size_t count)
+        [](daq::IStreamReader* object, size_t count, bool returnStatus)
         {
             const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
-            objectPtr.skipSamples(&count);
-            return count;
+            auto status = objectPtr.skipSamples(&count);
+            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status)} :
+              SizeReaderStatusVariant<decltype(objectPtr)>{count};
         },
         py::arg("count"),
+        py::arg("return_status") = false,
         "Skips the specified amount of samples.");
 }

@@ -91,11 +91,14 @@
             // 
             // gridChildDevices
             // 
+            gridChildDevices.AllowUserToAddRows = false;
+            gridChildDevices.AllowUserToDeleteRows = false;
             gridChildDevices.BackgroundColor = SystemColors.Window;
             gridChildDevices.ContextMenuStrip = contextMenuStripChildDevices;
             gridChildDevices.Dock = DockStyle.Fill;
             gridChildDevices.Location = new Point(0, 0);
             gridChildDevices.Name = "gridChildDevices";
+            gridChildDevices.ReadOnly = true;
             gridChildDevices.RowTemplate.Height = 25;
             gridChildDevices.Size = new Size(653, 432);
             gridChildDevices.TabIndex = 0;

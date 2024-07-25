@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
+
+using System.ComponentModel;
+using System.Windows.Forms;
+
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
 
-using Task = System.Threading.Tasks.Task; //ToDo: rename openDAQ Task to TaskObject
-
+using Component = Daq.Core.OpenDAQ.Component;
 using GlblRes = global::openDAQDemoNet.Properties.Resources;
-using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using System.Security.Policy;
-using System.Windows.Forms.VisualStyles;
 
 
 namespace openDAQDemoNet;
@@ -32,8 +31,6 @@ namespace openDAQDemoNet;
 
 public partial class frmMain : Form
 {
-    Instance? _instance;
-
     /// <summary>
     /// For TabStrip item identification (stored in Tag).
     /// </summary>
@@ -46,6 +43,9 @@ public partial class frmMain : Form
         FullTopology
     }
 
+    private readonly BindingList<PropertyItem> _propertyItems = new();
+    private Instance? _instance;
+
     public frmMain()
     {
         InitializeComponent();
@@ -53,26 +53,21 @@ public partial class frmMain : Form
         //ToDo:
         this.btnAddFunctionBlock.Enabled = false;
 
-        //for easy selected tab identification
+        //for easy selected-tab identification
         this.tabSystemOverview.Tag = eTabstrip.SystemOverview;
-        this.tabSignals.Tag        = eTabstrip.Signals;
-        this.tabChannels.Tag       = eTabstrip.Channels;
+        this.tabSignals.Tag = eTabstrip.Signals;
+        this.tabChannels.Tag = eTabstrip.Channels;
         this.tabFunctionBlocks.Tag = eTabstrip.FunctionBlocks;
-        this.tabFullTopology.Tag   = eTabstrip.FullTopology;
+        this.tabFullTopology.Tag = eTabstrip.FullTopology;
 
         this.treeComponents.HideSelection = false;
 
         this.treeComponents.Nodes.Clear();
-        this.listComponent.Items.Clear();
 
-        this.imglTreeImages.Images.Clear();
-        this.imglTreeImages.ImageSize = new Size(24, 24);
-        this.imglTreeImages.Images.Add(nameof(GlblRes.circle),         (Bitmap)GlblRes.circle.Clone());
-        this.imglTreeImages.Images.Add(nameof(GlblRes.device),         (Bitmap)GlblRes.device.Clone());
-        this.imglTreeImages.Images.Add(nameof(GlblRes.folder),         (Bitmap)GlblRes.folder.Clone());
-        this.imglTreeImages.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
-        this.imglTreeImages.Images.Add(nameof(GlblRes.channel),        (Bitmap)GlblRes.channel.Clone());
-        this.imglTreeImages.Images.Add(nameof(GlblRes.signal),         (Bitmap)GlblRes.signal.Clone());
+        InitializeDataGridView(this.gridProperties);
+
+        ImageList imageList = this.imglTreeImages;
+        InitializeImageList(imageList);
 
         this.treeComponents.ImageList = this.imglTreeImages;
     }
@@ -93,7 +88,8 @@ public partial class frmMain : Form
     private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
     {
         this.treeComponents.Nodes.Clear();
-        this.listComponent.Items.Clear();
+
+        _propertyItems.Clear();
 
         _instance?.Dispose();
     }
@@ -102,6 +98,10 @@ public partial class frmMain : Form
     {
         SetWaitCursor();
         this.Update();
+
+        //binding data late to not to "trash" GUI display beforehand
+        this.gridProperties.DataSource = _propertyItems;
+        this.gridProperties.Columns[nameof(PropertyItem.ReadOnlyImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
         UpdateTree();
 
@@ -172,53 +172,27 @@ public partial class frmMain : Form
         UpdateTree();
     }
 
-    #region TreeView
+    #region treeComponents
 
     private void treeComponents_AfterSelect(object sender, TreeViewEventArgs e)
     {
-        this.listComponent.Items.Clear();
-
-        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
-
-        switch (e.Node?.Tag)
-        {
-            case Component component when useComponentApproach:
-                ListProperties(component);
-                break;
-
-            //the following cases are meant for the object list approach of the system overview
-
-            case Device device:
-                ListProperties(device);
-                break;
-
-            case Channel channel: //this is also a FunctionBlock
-                ListProperties(channel);
-                break;
-
-            case Signal signal:
-                ListProperties(signal);
-                break;
-
-            case FunctionBlock functionBlock:
-                ListProperties(functionBlock);
-                break;
-        }
+        UpdateProperties(e.Node?.Tag as BaseObject);
     }
 
     private void treeComponents_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
     {
+        //on right-click just select the clicked node as this is not done by default
         if (e.Button == MouseButtons.Right)
             this.treeComponents.SelectedNode = e.Node;
     }
 
-    #endregion TreeView
+    #region contextMenuStripTreeComponents
 
-    #region ContextMenuStrip
-
-    private void contextMenuStripTreeComponents_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+    private void contextMenuStripTreeComponents_Opening(object sender, CancelEventArgs e)
     {
+        //init
+        this.contextMenuStripMenuItemTreeRemove.Enabled = false;
+
         TreeNode? selectedNode = this.treeComponents.SelectedNode;
 
         if (selectedNode == null)
@@ -235,8 +209,8 @@ public partial class frmMain : Form
         bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
                                     || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
 
+        //ContextMenu only for Device and FunctionBlock nodes (but not a Channel)
         BaseObject? baseObject = selectedNode.Tag as BaseObject;
-
         switch (baseObject)
         {
             case Component component when useComponentApproach:
@@ -262,9 +236,6 @@ public partial class frmMain : Form
 
             //case Channel: //this is also a FunctionBlock
             //case Signal:
-            //    //nothing here yet
-            //    break;
-
             default:
                 e.Cancel = true;
                 break;
@@ -330,17 +301,83 @@ public partial class frmMain : Form
         }
     }
 
-    #endregion ContextMenuStrip
+    #endregion contextMenuStripTreeComponents
+
+    #endregion treeComponents
+
+    #region listViewProperties
+
+    private void gridProperties_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0)
+        {
+            MessageBox.Show("No property selected", "Edit", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            return;
+        }
+
+        PropertyItem propertyItem = _propertyItems[e.RowIndex];
+
+        if (propertyItem.IsReadOnly)
+        {
+            MessageBox.Show("Property is read-only", "Edit", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            return;
+        }
+
+        //ToDo: edit property
+        MessageBox.Show($"Edit '{propertyItem.Name}' ({propertyItem.Value})", "Edit", MessageBoxButtons.OK, MessageBoxIcon.Question);
+    }
+
+    #endregion listViewProperties
 
     #endregion //event handlers .................................................................................
+
+    /// <summary>
+    /// Initializes the given <c>DataGridView</c>.
+    /// </summary>
+    /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
+    private static void InitializeDataGridView(DataGridView grid)
+    {
+        var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
+
+        grid.EnableHeadersVisualStyles = false; //enable ColumnHeadersDefaultCellStyle
+        columnHeadersDefaultCellStyle.BackColor = Color.FromKnownColor(KnownColor.ButtonFace);
+        columnHeadersDefaultCellStyle.Font = new Font(grid.Font, FontStyle.Bold);
+        columnHeadersDefaultCellStyle.SelectionBackColor = columnHeadersDefaultCellStyle.BackColor;
+        columnHeadersDefaultCellStyle.SelectionForeColor = columnHeadersDefaultCellStyle.ForeColor;
+        grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
+        grid.GridColor = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
+        grid.DefaultCellStyle.SelectionBackColor = Color.White;
+        grid.DefaultCellStyle.SelectionForeColor = Color.Black;
+
+        grid.DefaultCellStyle.DataSourceNullValue = null;
+
+        grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        grid.MultiSelect = false;
+        grid.RowHeadersVisible = false;
+        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+        grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+    }
+
+    private static void InitializeImageList(ImageList imageList)
+    {
+        imageList.Images.Clear();
+        imageList.ImageSize = new Size(24, 24);
+        imageList.Images.Add(nameof(GlblRes.circle), (Bitmap)GlblRes.circle.Clone());
+        imageList.Images.Add(nameof(GlblRes.device), (Bitmap)GlblRes.device.Clone());
+        imageList.Images.Add(nameof(GlblRes.folder), (Bitmap)GlblRes.folder.Clone());
+        imageList.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
+        imageList.Images.Add(nameof(GlblRes.channel), (Bitmap)GlblRes.channel.Clone());
+        imageList.Images.Add(nameof(GlblRes.signal), (Bitmap)GlblRes.signal.Clone());
+    }
 
     /// <summary>
     /// Sets the wait cursor.
     /// </summary>
     private void SetWaitCursor()
     {
-        Cursor.Current     = Cursors.WaitCursor;
-        this.Cursor        = Cursors.WaitCursor;
+        Cursor.Current = Cursors.WaitCursor;
+        this.Cursor = Cursors.WaitCursor;
         this.UseWaitCursor = true;
     }
 
@@ -350,8 +387,8 @@ public partial class frmMain : Form
     private void ResetWaitCursor()
     {
         this.UseWaitCursor = false;
-        this.Cursor        = Cursors.Default;
-        Cursor.Current     = Cursors.Default;
+        this.Cursor = Cursors.Default;
+        Cursor.Current = Cursors.Default;
         base.ResetCursor();
     }
 
@@ -441,8 +478,8 @@ public partial class frmMain : Form
     private void TreeAddComponent(string parentId, Component component)
     {
         string componentNodeId = component.GlobalId;
-        string componentName   = component.Name;
-        string iconKey         = nameof(GlblRes.circle);
+        string componentName = component.Name;
+        string iconKey = nameof(GlblRes.circle);
 
         bool skip = !this.showHiddenComponentsToolStripMenuItem.Checked && !component.Visible;
 
@@ -632,6 +669,46 @@ public partial class frmMain : Form
     }
 
     /// <summary>
+    /// Updates the property grid.
+    /// </summary>
+    /// <param name="baseObject">The openDAQ <c>BaseObject</c> to get the properties from.</param>
+    private void UpdateProperties(BaseObject? baseObject)
+    {
+        _propertyItems.Clear();
+
+        if (baseObject == null)
+            return;
+
+        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
+                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
+
+        switch (baseObject)
+        {
+            case Component component when useComponentApproach:
+                ListProperties(component);
+                break;
+
+            //the following cases are meant for the object list approach of the system overview
+
+            case Device device:
+                ListProperties(device);
+                break;
+
+            case Channel channel: //this is also a FunctionBlock
+                ListProperties(channel);
+                break;
+
+            case Signal signal:
+                ListProperties(signal);
+                break;
+
+            case FunctionBlock functionBlock:
+                ListProperties(functionBlock);
+                break;
+        }
+    }
+
+    /// <summary>
     /// Lists the properties.
     /// </summary>
     /// <param name="propertyObject">The property object.</param>
@@ -641,12 +718,12 @@ public partial class frmMain : Form
 
         foreach (var property in properties)
         {
-            string     propertyName        = property.Name;
-            CoreType   propertyType        = property.ValueType;
+            string propertyName = property.Name;
+            CoreType propertyType = property.ValueType;
             BaseObject propertyValueObject = propertyObject.GetPropertyValue(propertyName);
-            BaseObject propertyValue       = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, propertyType);
+            BaseObject propertyValue = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, propertyType);
 
-            this.listComponent.Items.Add($"{propertyName,-25} = {propertyValue}");
+            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString()));
         }
     }
 }

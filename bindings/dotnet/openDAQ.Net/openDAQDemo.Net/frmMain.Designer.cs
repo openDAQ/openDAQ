@@ -29,11 +29,10 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            TreeNode treeNode2 = new TreeNode("treeComponents");
+            TreeNode treeNode1 = new TreeNode("treeComponents");
             treeComponents = new TreeView();
             contextMenuStripTreeComponents = new ContextMenuStrip(components);
             contextMenuStripMenuItemTreeRemove = new ToolStripMenuItem();
-            listComponent = new ListBox();
             menuStrip1 = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
             loadConfigurationToolStripMenuItem = new ToolStripMenuItem();
@@ -54,6 +53,7 @@
             tabFunctionBlocks = new TabPage();
             tabFullTopology = new TabPage();
             splitContainer1 = new SplitContainer();
+            gridProperties = new DataGridView();
             imglTreeImages = new ImageList(components);
             contextMenuStripTreeComponents.SuspendLayout();
             menuStrip1.SuspendLayout();
@@ -63,6 +63,7 @@
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)gridProperties).BeginInit();
             SuspendLayout();
             // 
             // treeComponents
@@ -71,10 +72,10 @@
             treeComponents.Dock = DockStyle.Fill;
             treeComponents.Location = new Point(3, 3);
             treeComponents.Name = "treeComponents";
-            treeNode2.Name = "Node0";
-            treeNode2.Text = "treeComponents";
-            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode2 });
-            treeComponents.Size = new Size(441, 542);
+            treeNode1.Name = "Node0";
+            treeNode1.Text = "treeComponents";
+            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode1 });
+            treeComponents.Size = new Size(297, 542);
             treeComponents.TabIndex = 2;
             treeComponents.AfterSelect += treeComponents_AfterSelect;
             treeComponents.NodeMouseClick += treeComponents_NodeMouseClick;
@@ -83,34 +84,22 @@
             // 
             contextMenuStripTreeComponents.Items.AddRange(new ToolStripItem[] { contextMenuStripMenuItemTreeRemove });
             contextMenuStripTreeComponents.Name = "contextMenuStrip1";
-            contextMenuStripTreeComponents.Size = new Size(181, 48);
+            contextMenuStripTreeComponents.Size = new Size(118, 26);
             contextMenuStripTreeComponents.Opening += contextMenuStripTreeComponents_Opening;
             // 
             // contextMenuStripMenuItemTreeRemove
             // 
             contextMenuStripMenuItemTreeRemove.Name = "contextMenuStripMenuItemTreeRemove";
-            contextMenuStripMenuItemTreeRemove.Size = new Size(180, 22);
+            contextMenuStripMenuItemTreeRemove.Size = new Size(117, 22);
             contextMenuStripMenuItemTreeRemove.Text = "Remove";
             contextMenuStripMenuItemTreeRemove.Click += contextMenuStripMenuItemTreeRemove_Click;
-            // 
-            // listComponent
-            // 
-            listComponent.Dock = DockStyle.Fill;
-            listComponent.Font = new Font("Consolas", 9F, FontStyle.Regular, GraphicsUnit.Point);
-            listComponent.FormattingEnabled = true;
-            listComponent.IntegralHeight = false;
-            listComponent.ItemHeight = 14;
-            listComponent.Location = new Point(0, 3);
-            listComponent.Name = "listComponent";
-            listComponent.Size = new Size(883, 542);
-            listComponent.TabIndex = 3;
             // 
             // menuStrip1
             // 
             menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, viewToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
-            menuStrip1.Size = new Size(1334, 24);
+            menuStrip1.Size = new Size(784, 24);
             menuStrip1.TabIndex = 4;
             menuStrip1.Text = "menuStrip1";
             // 
@@ -175,7 +164,7 @@
             toolStrip1.Items.AddRange(new ToolStripItem[] { btnAddDevice, btnAddFunctionBlock, btnRefresh });
             toolStrip1.Location = new Point(0, 24);
             toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new Size(1334, 25);
+            toolStrip1.Size = new Size(784, 25);
             toolStrip1.TabIndex = 5;
             toolStrip1.Text = "toolStrip1";
             // 
@@ -211,7 +200,7 @@
             tabControl1.Location = new Point(0, 49);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(1334, 23);
+            tabControl1.Size = new Size(784, 23);
             tabControl1.TabIndex = 6;
             tabControl1.Selected += tabControl1_Selected;
             // 
@@ -220,7 +209,7 @@
             tabSystemOverview.Location = new Point(4, 24);
             tabSystemOverview.Name = "tabSystemOverview";
             tabSystemOverview.Padding = new Padding(3);
-            tabSystemOverview.Size = new Size(1326, 0);
+            tabSystemOverview.Size = new Size(776, 0);
             tabSystemOverview.TabIndex = 0;
             tabSystemOverview.Text = "System overview";
             tabSystemOverview.UseVisualStyleBackColor = true;
@@ -230,7 +219,7 @@
             tabSignals.Location = new Point(4, 24);
             tabSignals.Name = "tabSignals";
             tabSignals.Padding = new Padding(3);
-            tabSignals.Size = new Size(1326, 0);
+            tabSignals.Size = new Size(776, 0);
             tabSignals.TabIndex = 1;
             tabSignals.Text = "Signals";
             tabSignals.UseVisualStyleBackColor = true;
@@ -239,7 +228,7 @@
             // 
             tabChannels.Location = new Point(4, 24);
             tabChannels.Name = "tabChannels";
-            tabChannels.Size = new Size(1326, 0);
+            tabChannels.Size = new Size(776, 0);
             tabChannels.TabIndex = 2;
             tabChannels.Text = "Channels";
             tabChannels.UseVisualStyleBackColor = true;
@@ -248,7 +237,7 @@
             // 
             tabFunctionBlocks.Location = new Point(4, 24);
             tabFunctionBlocks.Name = "tabFunctionBlocks";
-            tabFunctionBlocks.Size = new Size(1326, 0);
+            tabFunctionBlocks.Size = new Size(776, 0);
             tabFunctionBlocks.TabIndex = 3;
             tabFunctionBlocks.Text = "Function blocks";
             tabFunctionBlocks.UseVisualStyleBackColor = true;
@@ -257,7 +246,7 @@
             // 
             tabFullTopology.Location = new Point(4, 24);
             tabFullTopology.Name = "tabFullTopology";
-            tabFullTopology.Size = new Size(1326, 0);
+            tabFullTopology.Size = new Size(776, 0);
             tabFullTopology.TabIndex = 4;
             tabFullTopology.Text = "Full topology";
             tabFullTopology.UseVisualStyleBackColor = true;
@@ -275,11 +264,25 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(listComponent);
+            splitContainer1.Panel2.Controls.Add(gridProperties);
             splitContainer1.Panel2.Padding = new Padding(0, 3, 3, 3);
-            splitContainer1.Size = new Size(1334, 548);
-            splitContainer1.SplitterDistance = 444;
+            splitContainer1.Size = new Size(784, 548);
+            splitContainer1.SplitterDistance = 300;
             splitContainer1.TabIndex = 0;
+            // 
+            // gridProperties
+            // 
+            gridProperties.AllowUserToAddRows = false;
+            gridProperties.AllowUserToDeleteRows = false;
+            gridProperties.BackgroundColor = SystemColors.Window;
+            gridProperties.Dock = DockStyle.Fill;
+            gridProperties.Location = new Point(0, 3);
+            gridProperties.Name = "gridProperties";
+            gridProperties.ReadOnly = true;
+            gridProperties.RowTemplate.Height = 25;
+            gridProperties.Size = new Size(477, 542);
+            gridProperties.TabIndex = 4;
+            gridProperties.CellDoubleClick += gridProperties_CellDoubleClick;
             // 
             // imglTreeImages
             // 
@@ -291,7 +294,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1334, 620);
+            ClientSize = new Size(784, 620);
             Controls.Add(splitContainer1);
             Controls.Add(tabControl1);
             Controls.Add(toolStrip1);
@@ -313,13 +316,13 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)gridProperties).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
         private TreeView treeComponents;
-        private ListBox listComponent;
         private MenuStrip menuStrip1;
         private ToolStripMenuItem fileToolStripMenuItem;
         private ToolStripMenuItem viewToolStripMenuItem;
@@ -343,5 +346,6 @@
         private ToolStripMenuItem componentsInsteadOfDirectObjectAccessToolStripMenuItem;
         private ContextMenuStrip contextMenuStripTreeComponents;
         private ToolStripMenuItem contextMenuStripMenuItemTreeRemove;
+        private DataGridView gridProperties;
     }
 }

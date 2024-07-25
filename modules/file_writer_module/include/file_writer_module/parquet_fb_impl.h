@@ -90,9 +90,7 @@ private:
     void propertyChanged(bool configure);
     void propertyActiveChanged();
     void configureBatchCyleInSecChanged();
-
-    void initStatuses();
-
+    
     void updateInputPorts();
     void setInputStatus(const StringPtr& value);
 };

@@ -27,10 +27,6 @@ BEGIN_NAMESPACE_FILE_WRITER_MODULE
 namespace FileWriter
 {
 
-static const char* InputDisconnected = "Disconnected";
-static const char* InputConnected = "Connected";
-static const char* InputInvalid = "Invalid";
-
 ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , inputPortCount(0)
@@ -39,7 +35,6 @@ ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 {
     initProperties();
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
-    initStatuses();
 }
 
 void ParquetFbImpl::initProperties()
@@ -160,7 +155,7 @@ void ParquetFbImpl::writeParquetFile(const arrow::Table& table, const int tableW
 
 FunctionBlockTypePtr ParquetFbImpl::CreateType()
 {
-    return FunctionBlockType("file_writer_module_parquet", "Parquet", "Stores signals into the apache parquet data format.");
+    return FunctionBlockType("FileWriterModuleParquet", "Parquet", "Stores signals into the apache parquet data format.");
 }
 
 void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
@@ -254,32 +249,6 @@ void ParquetFbImpl::onDisconnected(const InputPortPtr& inputPort)
     std::scoped_lock lock(sync);
     LOG_T("Disconnected from port {}", inputPort.getLocalId());
     removeInputPort(inputPort);
-}
-
-
-void ParquetFbImpl::initStatuses()
-{
-    auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
-
-    try
-    {
-        this->context.getTypeManager().addType(inputStatusType);
-    }
-    catch (const std::exception& e)
-    {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Parquet");
-        LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
-    }
-    catch (...)
-    {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Parquet");
-        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
-    }
-
-    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
-
-    auto inputStatusValue = Enumeration("InputStatusType", InputDisconnected, context.getTypeManager());
-    thisStatusContainer.addStatus("InputStatus", inputStatusValue);
 }
 
 }

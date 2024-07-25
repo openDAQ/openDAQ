@@ -18,7 +18,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add a reference device and set it as root
     auto device = instance.addDevice("daqref://device0");
 
-    FunctionBlockPtr parquet = instance.addFunctionBlock("file_writer_module_parquet");
+    FunctionBlockPtr parquet = instance.addFunctionBlock("FileWriterModuleParquet");
 
      // Get channel and signal of reference device
     const auto firstChannel = device.getChannels()[0];

@@ -136,7 +136,7 @@ TEST_F(FileWriterModuleTest, VersionCorrect)
 TEST_F(FileWriterModuleTest, Create)
 {
     const auto module = CreateModule(CreateContext());
-    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }
 
@@ -145,7 +145,7 @@ TEST_F(FileWriterModuleTest, Connect)
     const auto ctx = CreateContext();
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -163,7 +163,7 @@ TEST_F(FileWriterModuleTest, CheckSetProperties)
     auto ctx = CreateContext();
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     // Check Default Values
@@ -189,7 +189,7 @@ TEST_F(FileWriterModuleTest, StoreOneSignal)
     auto ctx = CreateContext();
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);
@@ -244,7 +244,7 @@ TEST_F(FileWriterModuleTest, TestBatching)
     auto ctx = CreateContext();
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("file_writer_module_parquet", nullptr, "id");
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
     createSignals(ctx);

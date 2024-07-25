@@ -340,8 +340,8 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*${{ matrix.arch }}.deb'
-          aws s3 cp . s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/ --recursive
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
 
       - name: Upload package
         uses: actions/upload-artifact@v4

@@ -67,7 +67,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Assert.That(deviceInfos.Count, Is.GreaterThan(0));
 
-#if !DEBUG || !HBK_TEST
         foreach (var deviceInfo in deviceInfos)
         {
             var deviceConnectionString = deviceInfo.ConnectionString;
@@ -93,10 +92,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Console.WriteLine($"  *** connection failed: {ex.GetType().Name} - {ex}");
             }
         }
-#else
-        //device from MS@HBK
-        using var device = daqInstance.AddDevice("daq.opcua://172.19.210.228/"); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
-#endif
 
         // Get the list of connected devices
         var devices = daqInstance.GetDevices();
@@ -307,7 +302,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"  Name: '{info.Name}', Connection string: '{info.ConnectionString}'");
 
             device.PrintReferenceCount();
-            //device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
         }
     }
 
@@ -467,6 +461,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //StreamReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
@@ -478,8 +473,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 sw.Stop();
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
 
@@ -517,7 +512,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
                 ++signalNo;
-                if ((sigName.Equals("AnalogValue") || sigName.Equals("ai0")) && (analogSignalNo == 0))
+                if ((sigName.Equals("AnalogValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
                 {
                     analogSignalNo = signalNo;
                 }
@@ -553,6 +548,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //TailReader does not need to wait for 'AvailableCount == count'
 
                 nuint availableCount = reader.AvailableCount;
@@ -564,8 +560,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 sw.Stop();
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
 
@@ -603,7 +599,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
                 ++signalNo;
-                if ((sigName.Equals("AnalogValue") || sigName.Equals("ai0")) && (analogSignalNo == 0))
+                if ((sigName.Equals("AnalogValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
                 {
                     analogSignalNo = signalNo;
                 }
@@ -632,8 +628,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
             Stopwatch sw = new Stopwatch();
 
-            Thread.Sleep(200);
-
             for (int loopNo = 0; loopNo < loopCount; ++loopNo)
             {
                 //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
@@ -642,18 +636,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length / blockSize; //reset to array size
 
-                //ToDo: somehow timeout does not work (leads to internal exceptions) when there are not yet enough samples for 'count' blocks
-
-                //wait until there are enough samples available for our buffers (up to one second)
-                int sleepLoopCount = 1000 / sleepTime;
-                do
-                {
-                    Thread.Sleep(sleepTime);
-                }
-                while ((reader.AvailableCount < count) && (--sleepLoopCount > 0));
+                //just wait a bit
+                Thread.Sleep(sleepTime); //BlockReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
-                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' blocks, storing the amount read into array 'samples'
                 reader.Read(samples, ref count, 5000);
@@ -663,8 +649,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,2} blocks ({valueCount,3} values) {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
 
@@ -720,6 +706,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = maxCount; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //MultiReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
@@ -731,10 +718,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 sw.Stop();
 
-                string values  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
-                string values2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
-                Console.WriteLine($"                                                       {values2}");
+                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
+                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+                Console.WriteLine($"                                                       {valueString2}");
             }
         }
 
@@ -791,6 +778,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //StreamReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
@@ -802,8 +790,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 sw.Stop();
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
 
@@ -859,6 +847,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //TailReader does not need to wait for 'AvailableCount == count'
 
                 nuint availableCount = reader.AvailableCount;
@@ -868,8 +857,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 reader.ReadWithDomain(samples, timeStamps, ref count);
                 readSamplesCount += count;
                 sw.Stop();
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
 
@@ -918,8 +907,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
             Stopwatch sw = new Stopwatch();
 
-            Thread.Sleep(200);
-
             for (int loopNo = 0; loopNo < loopCount; ++loopNo)
             {
                 //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
@@ -928,15 +915,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = (nuint)samples.Length / blockSize; //reset to array size
 
-                //ToDo: somehow timeout does not work (leads to internal exceptions) when there are not yet enough samples for 'count' blocks
-
-                //wait until there are enough samples available for our buffers (up to one second)
-                int sleepLoopCount = 1000 / sleepTime;
-                do
-                {
-                    Thread.Sleep(sleepTime);
-                }
-                while ((reader.AvailableCount < count) && (--sleepLoopCount > 0));
+                //just wait a bit
+                Thread.Sleep(sleepTime); //BlockReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
@@ -949,8 +929,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,2} blocks ({valueCount,3} values) {values}");
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
 
@@ -1009,6 +989,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 nuint count = maxCount; //reset to array size
 
+                //just wait a bit
                 Thread.Sleep(sleepTime); //MultiReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
 
                 nuint availableCount = reader.AvailableCount;
@@ -1021,10 +1002,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
                 sw.Stop();
 
-                string values  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
-                string values2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
-                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms AvailableCount={availableCount,-3} read {count,3} values {values}");
-                Console.WriteLine($"                                                       {values2}");
+                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
+                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+                Console.WriteLine($"                                                       {valueString2}");
             }
         }
 
@@ -1115,7 +1096,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             default:
                 Assert.Fail($"Desired reader not (yet) supported: {nameof(eDesiredReader)}.{desiredReader}");
                 break;
-        } //switch
+        }
 
         Assert.That(sampleReader, Is.Not.Null, "*** No SampleReader instance available.");
 
@@ -1136,19 +1117,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
             //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
 
-            //wait until there are enough samples available for our buffers (up to one second)
-            int loopCount = 1000 / sleepTime;
-            do
-            {
-                Thread.Sleep(sleepTime);
-            }
-            while ((sampleReader.Empty) && (--loopCount > 0));
+            //just wait a bit
+            Thread.Sleep(sleepTime);
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
-
-            Debug.Print/*Console.WriteLine*/($"  Block {loopNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
-
-            Assert.That(!sampleReader.Empty, "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
 
             using var status = (samples != null)
                                ? timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000)

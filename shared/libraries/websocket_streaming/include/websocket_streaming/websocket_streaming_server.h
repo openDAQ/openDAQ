@@ -35,7 +35,6 @@ public:
     void stop();
 
 protected:
-    void addSignalsOfComponent(ComponentPtr& component);
     void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentUpdated(ComponentPtr& updatedComponent);
@@ -51,6 +50,7 @@ protected:
     LoggerComponentPtr loggerComponent;
 
 private:
+    static DictPtr<IString, ISignal> getSignalsOfComponent(ComponentPtr& component);
     void stopInternal();
 };
 

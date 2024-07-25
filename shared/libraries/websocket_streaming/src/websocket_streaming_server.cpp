@@ -52,8 +52,8 @@ void WebsocketStreamingServer::start()
         return;
 
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
-    streamingServer.onSubscribe([this](const daq::SignalPtr& signal) { packetReader.startReadSignal(signal); } );
-    streamingServer.onUnsubscribe([this](const daq::SignalPtr& signal) { packetReader.stopReadSignal(signal); } );
+    streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
+    streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
@@ -110,6 +110,25 @@ void WebsocketStreamingServer::coreEventCallback(ComponentPtr& sender, CoreEvent
     }
 }
 
+DictPtr<IString, ISignal> WebsocketStreamingServer::getSignalsOfComponent(ComponentPtr& component)
+{
+    auto signals = Dict<IString, ISignal>();
+    if (component.supportsInterface<ISignal>())
+    {
+        signals.set(component.getGlobalId(), component.asPtr<ISignal>());
+    }
+    else if (component.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+                signals.set(nestedComponent.getGlobalId(), nestedComponent.asPtr<ISignal>());
+        }
+    }
+    return signals;
+}
+
 void WebsocketStreamingServer::componentAdded(ComponentPtr& /*sender*/, CoreEventArgsPtr& eventArgs)
 {
     ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
@@ -120,32 +139,7 @@ void WebsocketStreamingServer::componentAdded(ComponentPtr& /*sender*/, CoreEven
         return;
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
-    addSignalsOfComponent(addedComponent);
-}
-
-void WebsocketStreamingServer::addSignalsOfComponent(ComponentPtr& component)
-{
-    auto signalsToAdd = List<ISignal>();
-
-    if (component.supportsInterface<ISignal>())
-    {
-        LOG_I("Added Signal: {};", component.getGlobalId());
-        signalsToAdd.pushBack(component.asPtr<ISignal>());
-    }
-    else if (component.supportsInterface<IFolder>())
-    {
-        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-        {
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                LOG_I("Added Signal: {};", nestedComponent.getGlobalId());
-                signalsToAdd.pushBack(nestedComponent.asPtr<ISignal>());
-            }
-        }
-    }
-
-    streamingServer.addSignals(signalsToAdd);
+    streamingServer.addSignals(getSignalsOfComponent(addedComponent).getValueList());
 }
 
 void WebsocketStreamingServer::componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
@@ -171,11 +165,8 @@ void WebsocketStreamingServer::componentUpdated(ComponentPtr& updatedComponent)
 
     LOG_I("Component: {}; is updated", updatedComponentGlobalId);
 
-    // remove all registered signal of updated component since those might be modified or removed
-    streamingServer.removeComponentSignals(updatedComponentGlobalId);
-
-    // add updated versions of signals
-    addSignalsOfComponent(updatedComponent);
+    // update list of known signals to include added and exclude removed signals
+    streamingServer.updateComponentSignals(getSignalsOfComponent(updatedComponent), updatedComponentGlobalId);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

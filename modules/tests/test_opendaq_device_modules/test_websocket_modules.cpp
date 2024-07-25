@@ -468,10 +468,20 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     ASSERT_EQ(clientSignals.getCount(), 2u);
 }
 
-TEST_F(WebsocketModulesTest, UpdateSignals)
+TEST_F(WebsocketModulesTest, UpdateAddSignals)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
+
+    // save device config
+    auto serverRefDevice = server.getDevices()[0];
+    const auto serializer = JsonSerializer();
+    serverRefDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    // remove channel
+    serverRefDevice.setPropertyValue("NumberOfChannels", 1);
+
     auto client = CreateClientInstance();
 
     size_t addedSignalsCount = 0;
@@ -486,18 +496,14 @@ TEST_F(WebsocketModulesTest, UpdateSignals)
             ComponentPtr component = params.get("Component");
             ASSERT_TRUE(component.asPtrOrNull<ISignal>().assigned());
             addedSignalsCount++;
-            if (addedSignalsCount == 4)
+            if (addedSignalsCount == 2)
             {
                 addSignalsPromise.set_value();
             }
         }
     };
 
-    // update device
-    auto serverRefDevice = server.getDevices()[0];
-    const auto serializer = JsonSerializer();
-    serverRefDevice.serialize(serializer);
-    const auto str = serializer.getOutput();
+    // update device to backup removed channels
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverRefDevice, str);
 
@@ -515,4 +521,63 @@ TEST_F(WebsocketModulesTest, UpdateSignals)
         ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << clientSignals[i].getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
     }
+}
+
+TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+
+    // save device config
+    auto serverRefDevice = server.getDevices()[0];
+    const auto serializer = JsonSerializer();
+    serverRefDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    // add extra channel
+    serverRefDevice.setPropertyValue("NumberOfChannels", 3);
+
+    auto client = CreateClientInstance();
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    size_t removedSignalsCount = 0;
+    std::promise<void> removedSignalsPromise;
+    std::future<void> removedSignalsFuture = removedSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+
+            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[4].getGlobalId() ||
+                        (comp.getGlobalId() + "/" + id) == clientSignals[5].getGlobalId());
+            removedSignalsCount++;
+            if (removedSignalsCount == 2)
+            {
+                removedSignalsPromise.set_value();
+            }
+        }
+    };
+
+    // update device to remove extra channel
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverRefDevice, str);
+
+    ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    auto mirroredSignalPtr = clientSignals[4].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[4].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[4].getGlobalId();
+    ASSERT_TRUE(clientSignals[4].isRemoved());
+
+    mirroredSignalPtr = clientSignals[5].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[5].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[5].getGlobalId();
+    ASSERT_TRUE(clientSignals[5].isRemoved());
+
+    clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 4u);
 }

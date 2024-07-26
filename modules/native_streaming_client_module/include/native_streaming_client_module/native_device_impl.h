@@ -47,7 +47,7 @@ public:
                                 std::thread::id reconnectionProcessingThreadId);
     ~NativeDeviceHelper();
 
-    DevicePtr connectAndGetDevice(const ComponentPtr& parent);
+    DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion);
 
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
@@ -88,7 +88,7 @@ private:
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) = 0;
-    virtual void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) = 0;
+    virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
 };
 
@@ -107,8 +107,9 @@ public:
 
     // INativeDevicePrivate
     void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
-    void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
+    void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
     void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
+
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

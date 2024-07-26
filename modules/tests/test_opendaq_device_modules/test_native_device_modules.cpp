@@ -68,11 +68,17 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
     return instance;
 }
 
-static InstancePtr CreateClientInstance()
+static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max())
 {
     auto instance = Instance();
 
     auto config = instance.createDefaultAddDeviceConfig();
+    if (nativeConfigProtocolVersion != std::numeric_limits<uint16_t>::max())
+    {
+        PropertyObjectPtr device = config.getPropertyValue("Device");
+        PropertyObjectPtr nativeStreaming = device.getPropertyValue("OpenDAQNativeConfiguration");
+        nativeStreaming.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
+    }
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
 
@@ -85,6 +91,38 @@ TEST_F(NativeDeviceModulesTest, ConnectAndDisconnect)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
+TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 1);
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    const auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 0);
 
     client->releaseRef();
     server->releaseRef();

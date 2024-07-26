@@ -25,18 +25,23 @@ namespace daq::config_protocol
 class ConfigServerComponent
 {
 public:
-    static BaseObjectPtr getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr setPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr setProtectedPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr clearPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr callProperty(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr endUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
-    static BaseObjectPtr update(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr getPropertyValue(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setPropertyValue(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setProtectedPropertyValue(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr clearPropertyValue(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr callProperty(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr beginUpdate(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr endUpdate(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setAttributeValue(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr update(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+
+private:
+
+    static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
 };
 
-inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr& component,
+inline BaseObjectPtr ConfigServerComponent::getPropertyValue(uint16_t protocolVersion,
+                                                             const ComponentPtr& component,
                                                              const ParamsDictPtr& params,
                                                              const UserPtr& user)
 {
@@ -49,7 +54,8 @@ inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr&
     return value;
 }
 
-inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr& component,
+inline BaseObjectPtr ConfigServerComponent::setPropertyValue(uint16_t protocolVersion,
+                                                             const ComponentPtr& component,
                                                              const ParamsDictPtr& params,
                                                              const UserPtr& user)
 {
@@ -64,7 +70,8 @@ inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr&
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const ComponentPtr& component,
+inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(uint16_t protocolVersion,
+                                                                      const ComponentPtr& component,
                                                                       const ParamsDictPtr& params,
                                                                       const UserPtr& user)
 {
@@ -79,7 +86,8 @@ inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const Comp
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const ComponentPtr& component,
+inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(uint16_t protocolVersion,
+                                                               const ComponentPtr& component,
                                                                const ParamsDictPtr& params,
                                                                const UserPtr& user)
 {
@@ -93,7 +101,10 @@ inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const ComponentPt
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
+inline BaseObjectPtr ConfigServerComponent::callProperty(uint16_t protocolVersion,
+                                                         const ComponentPtr& component,
+                                                         const ParamsDictPtr& params,
+                                                         const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     BaseObjectPtr callParams;
@@ -123,7 +134,10 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
     throw InvalidPropertyException("Property not callable");
 }
 
-inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
+inline BaseObjectPtr ConfigServerComponent::beginUpdate(uint16_t protocolVersion,
+                                                        const ComponentPtr& component,
+                                                        const ParamsDictPtr& params,
+                                                        const UserPtr& user)
 {
     ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
 
@@ -137,21 +151,33 @@ inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& comp
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
+inline BaseObjectPtr ConfigServerComponent::endUpdate(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
     ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
 
+    PropertyObjectPtr obj;
     if (params.hasKey("Path"))
     {
-        const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
-        obj.endUpdate();
+        obj = component.getPropertyValue(params.get("Path"));
     }
     else
-        component.endUpdate();
+        obj = component;
+
+    if (params.hasKey("Props"))
+    {
+        if (protocolVersion < 1)
+            throw NotSupportedException();
+
+        const ListPtr<IDict> props = params.get("Props");
+        applyProps(protocolVersion, obj, props);
+    }
+
+    obj.endUpdate();
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr& component,
+inline BaseObjectPtr ConfigServerComponent::setAttributeValue(uint16_t protocolVersion,
+                                                              const ComponentPtr& component,
                                                               const ParamsDictPtr& params,
                                                               const UserPtr& user)
 {
@@ -172,7 +198,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
+inline BaseObjectPtr ConfigServerComponent::update(uint16_t protocolVersion, const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
     ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
 
@@ -189,6 +215,25 @@ inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component
     deserializer.update(updatable, serializedString);
 
     return nullptr;
+}
+
+inline void ConfigServerComponent::applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props)
+{
+    for (DictPtr<IString, IBaseObject> item: props)
+    {
+        const auto setValue = static_cast<Bool>(item.get("SetValue"));
+        const StringPtr name = item.get("Name");
+        if (setValue)
+        {
+            const auto value = item.get("Value");
+            if (static_cast<Bool>(item.get("ProtectedAccess")))
+                obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, value);
+            else
+                obj.setPropertyValue(name, value);
+        }
+        else
+            obj.clearPropertyValue(name);
+    }
 }
 
 }

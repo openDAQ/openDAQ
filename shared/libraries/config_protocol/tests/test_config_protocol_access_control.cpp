@@ -249,7 +249,7 @@ TEST_F(ConfigProtocolAccessControlTest, BeginEndUpdate)
 
     setupServerAndClient(device, UserRegular);
 
-    ASSERT_THROW(clientDevice.beginUpdate(), AccessDeniedException);
+    clientDevice.beginUpdate();
     ASSERT_THROW(clientDevice.endUpdate(), AccessDeniedException);
 
     setupServerAndClient(device, UserAdmin);

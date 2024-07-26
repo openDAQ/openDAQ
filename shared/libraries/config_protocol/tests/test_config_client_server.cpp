@@ -375,6 +375,24 @@ TEST_F(ConfigProtocolTest, BeginEndUpdate)
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
 
+TEST_F(ConfigProtocolTest, BeginEndUpdateWithProps)
+{
+    device->addProperty(StringPropertyBuilder("PropName", "-").build());
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+
+    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+
+    auto prop = Dict<IString, IBaseObject>({{"Name", "PropName"}, {"ProtectedAccess", False}, {"SetValue", True}, {"Value", "val"}});
+    auto props = List<IDict>(prop);
+    auto params = Dict<IString, IBaseObject>({{"Props", props}});
+
+    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params), NotSupportedException);
+    server->setProtocolVersion(1);
+    client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params);
+
+    ASSERT_EQ(device->getPropertyValue("PropName"), "val");
+}
+
 TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
 {
     StringPtr deviceName;

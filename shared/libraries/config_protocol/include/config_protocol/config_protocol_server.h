@@ -67,6 +67,9 @@ public:
 
     void processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
 
+    uint16_t getProtocolVersion() const;
+    void setProtocolVersion(uint16_t protocolVersion);
+
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
 
@@ -80,6 +83,8 @@ private:
     std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
+    uint16_t protocolVersion;
+    const std::set<uint16_t> supportedServerVersions;
 
     PacketBuffer processPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpc(const StringPtr& jsonStr);
@@ -90,7 +95,7 @@ private:
     BaseObjectPtr getComponent(const ParamsDictPtr& params) const;
     BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
     BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
-    BaseObjectPtr connectSignal(const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr connectSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 
     template <class SmartPtr, class F>
     BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);

@@ -83,6 +83,7 @@ private:
     bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
+    void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);

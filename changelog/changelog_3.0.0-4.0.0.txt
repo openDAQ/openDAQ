@@ -303,9 +303,3 @@ Description:
   - Fix reserved keyword clashes with Delphi bindings
 - [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)
 + [function] IPermissionsBuilder::assign(StringPtr groupId, PermissionMaskBuilderPtr permissions)
-
-25.07.2024
-Description:
-  - Add user context to json serializer
-+ [function] ISerializer::getUser(IBaseObject** user)
-+ [function] ISerializer::setUser(IBaseObject* user)

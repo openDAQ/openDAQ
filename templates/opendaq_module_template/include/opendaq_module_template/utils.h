@@ -3,6 +3,50 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// Attribute definitions
+
+struct AttributeTemplate
+{
+    bool locked;
+};
+
+struct BoolAttribute : AttributeTemplate
+{
+    bool value;
+};
+
+struct StringAttribute : AttributeTemplate
+{
+    std::string value;
+};
+
+struct SignalAttribute : AttributeTemplate
+{
+    SignalPtr value;
+};
+
+struct SignalListAttribute : AttributeTemplate
+{
+    ListPtr<ISignal> value;
+};
+
+struct ComponentAttributeConfig
+{
+    StringAttribute description {true, ""};
+    StringAttribute name {false, ""};
+    BoolAttribute active {false, true};
+    BoolAttribute visible {true, true};
+};
+
+struct SignalAttributeConfig : ComponentAttributeConfig
+{
+    BoolAttribute isPublic {true, true};
+    SignalAttribute domainSignal {true, nullptr};
+    SignalListAttribute relatedSignals{true, {}};
+};
+
+// Constructor parameter definitions
+
 struct DeviceTemplateParams
 {
     DeviceInfoPtr info;
@@ -36,6 +80,8 @@ struct GetDeviceParams
     PropertyObjectPtr config;
     DictPtr<IString, IBaseObject> options;
 };
+
+// Validation classes
 
 class DeviceTemplateParamsValidation
 {
@@ -71,7 +117,7 @@ public:
     }
 };
 
-class FuntionBlockTemplateParamsValidation
+class FunctionBlockTemplateParamsValidation
 {
 
 };

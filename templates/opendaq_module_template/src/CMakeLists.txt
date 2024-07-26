@@ -9,6 +9,7 @@ set(SRC_Include
     function_block_template.h
     module_template.h
     component_template_base.h
+    component_helpers.h
     utils.h
 )
 
@@ -18,6 +19,7 @@ set(SRC_Srcs
     function_block_template.cpp
     module_template.cpp
     component_template_base.cpp
+    component_helpers.cpp
     utils.cpp
 )
 

@@ -80,10 +80,10 @@ public partial class frmAddDeviceDialog : Form
 
         //set enabled state of "Add device" menu according to its "Used" flag
         int rowIndex = this.gridChildDevices.SelectedRows[0].Index;
-        this.addDeviceToolStripMenuItem.Enabled = !_childDevices[rowIndex].IsUsed;
+        this.contextMenuItemChildDevicesAddDevice.Enabled = !_childDevices[rowIndex].IsUsed;
     }
 
-    private void addDeviceToolStripMenuItem_Click(object sender, EventArgs e)
+    private void contextMenuItemChildDevicesAddDevice_Click(object sender, EventArgs e)
     {
         //this.txtConnectionString.Text has already been set after (right-)clicking on the row
         this.btnAdd.PerformClick();
@@ -95,7 +95,7 @@ public partial class frmAddDeviceDialog : Form
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-    private void refreshToolStripMenuItem_Click(object sender, EventArgs e)
+    private void contextMenuItemChildDevicesRefresh_Click(object sender, EventArgs e)
     {
         PopulateChildDevices();
     }
@@ -228,8 +228,8 @@ public partial class frmAddDeviceDialog : Form
         grid.EnableHeadersVisualStyles                   = false; //enable ColumnHeadersDefaultCellStyle
         columnHeadersDefaultCellStyle.BackColor          = Color.FromKnownColor(KnownColor.ButtonFace);
         columnHeadersDefaultCellStyle.Font               = new Font(grid.Font, FontStyle.Bold);
-        columnHeadersDefaultCellStyle.SelectionBackColor = columnHeadersDefaultCellStyle.BackColor;
-        columnHeadersDefaultCellStyle.SelectionForeColor = columnHeadersDefaultCellStyle.ForeColor;
+        columnHeadersDefaultCellStyle.SelectionBackColor = Color.Transparent;
+        columnHeadersDefaultCellStyle.SelectionForeColor = Color.Transparent;
         grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
         grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);

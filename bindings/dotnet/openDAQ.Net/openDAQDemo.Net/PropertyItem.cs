@@ -17,6 +17,8 @@
 
 using System.ComponentModel;
 
+using Daq.Core.Objects;
+
 using GlblRes = global::openDAQDemoNet.Properties.Resources;
 
 
@@ -39,12 +41,14 @@ public class PropertyItem
     /// <param name="readOnly">If set to <c>true</c>, the property is read-only; otherwise <c>false</c>.</param>
     /// <param name="name">The property name.</param>
     /// <param name="value">The property value's text representation.</param>
-    public PropertyItem(bool readOnly, string name, string value)
+    /// <param name="unit">The property value's unit.</param>
+    public PropertyItem(bool readOnly, string name, string value, string unit)
     {
         _isReadOnly = readOnly;
 
-        this.Name  = name;
-        this.Value = value;
+        this.Name     = name;
+        this.Value    = value;
+        this.Unit     = unit;
     }
 
     #region fields to show in table
@@ -59,13 +63,19 @@ public class PropertyItem
     /// Gets the property name.
     /// </summary>
     [DisplayName("Property name")]
-    public string Name { get; private set; }
+    public string Name { get; }
 
     /// <summary>
     /// Gets the property value.
     /// </summary>
     [DisplayName("Value")]
-    public string Value { get; private set; }
+    public string Value { get; }
+
+    /// <summary>
+    /// Gets the property value's unit.
+    /// </summary>
+    [DisplayName("Unit")]
+    public string Unit { get; }
 
     #endregion
 

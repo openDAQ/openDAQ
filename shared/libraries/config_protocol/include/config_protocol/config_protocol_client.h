@@ -23,12 +23,11 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/mirrored_signal_private_ptr.h>
-
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
-
-#include "opendaq/custom_log.h"
+#include <set>
+#include <opendaq/custom_log.h>
 
 namespace daq::config_protocol
 {
@@ -56,7 +55,7 @@ public:
     BaseObjectPtr getLastValue(const std::string& globalId);
 
     void beginUpdate(const std::string& globalId, const std::string& path);
-    void endUpdate(const std::string& globalId, const std::string& path);
+    void endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props = nullptr);
 
     bool getConnected() const;
     ContextPtr getDaqContext();
@@ -82,6 +81,8 @@ public:
                                              const FunctionPtr& factoryCallback,
                                              ComponentDeserializeCallback deviceDeserialzeCallback);
 
+    uint16_t getProtocolVersion() const;
+
 private:
     ContextPtr daqContext;
     uint64_t id;
@@ -90,6 +91,7 @@ private:
     DeserializerPtr deserializer;
     bool connected;
     WeakRefPtr<IDevice> rootDeviceRef;
+    uint16_t protocolVersion;
 
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
@@ -119,6 +121,8 @@ private:
     void forEachComponent(const ComponentPtr& component, const F& f);
     [[maybe_unused]]
     void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
+
+    void setProtocolVersion(uint16_t protocolVersion);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -138,7 +142,7 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    DevicePtr connect(const ComponentPtr& parent = nullptr);
+    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = std::numeric_limits<uint16_t>::max());
     void reconnect();
 
     DevicePtr getDevice();
@@ -158,7 +162,7 @@ private:
     
     ComponentPtr findComponent(std::string globalId);
 
-    void protocolHandshake();
+    void protocolHandshake(uint16_t protocolVersion);
     void enumerateTypes();
 
     // this should handle server component updates
@@ -185,22 +189,41 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
 }
 
 template<class TRootDeviceImpl>
-void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake()
+void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolVersion)
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
     const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
 
+    const std::set<uint16_t> supportedClientVersions {0, 1};
+
     uint16_t currentVersion;
-    std::vector<uint16_t> supportedVersions;
-    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedVersions);
+    std::set<uint16_t> supportedServerVersions;
+    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
-    if (currentVersion != 0)
-        throw ConfigProtocolException("Invalid server protocol version");
+    if (protocolVersion != std::numeric_limits<uint16_t>::max())
+    {
+        if (std::find(supportedClientVersions.begin(), supportedClientVersions.end(), protocolVersion) == supportedClientVersions.end())
+            throw ConfigProtocolException("Protocol not supported on client");
 
-    if (std::find(supportedVersions.begin(), supportedVersions.end(), 0) == supportedVersions.end())
-        throw ConfigProtocolException("Protocol not supported on server");
+        if (std::find(supportedServerVersions.begin(), supportedServerVersions.end(), protocolVersion) == supportedServerVersions.end())
+            throw ConfigProtocolException("Protocol not supported on server");
+    }
+    else
+    {
+        std::set<uint16_t> commonVersions;
+        std::set_intersection(supportedClientVersions.begin(),
+                              supportedClientVersions.end(),
+                              supportedServerVersions.begin(),
+                              supportedServerVersions.end(),
+                              std::inserter(commonVersions, commonVersions.begin()));
 
-    auto upgradeProtocolRequestPacketBuffer = PacketBuffer::createUpgradeProtocolRequest(clientComm->generateId(), 0);
+        if (commonVersions.empty())
+            throw ConfigProtocolException("Cannot handshake a common protocol version");
+
+        protocolVersion = *commonVersions.rbegin();
+    }
+
+    auto upgradeProtocolRequestPacketBuffer = PacketBuffer::createUpgradeProtocolRequest(clientComm->generateId(), protocolVersion);
     const auto upgradeProtocolReplyPacketBuffer = sendRequestCallback(upgradeProtocolRequestPacketBuffer);
 
     bool success;
@@ -208,6 +231,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake()
 
     if (!success)
         throw ConfigProtocolException("Protocol upgrade failed");
+
+    clientComm->setProtocolVersion(protocolVersion);
+    const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+    LOG_I("Config protocol version {} used", protocolVersion);
 }
 
 template<class TRootDeviceImpl>
@@ -263,7 +290,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
     if (!rootDevice.assigned())
         throw NotAssignedException("Root device is not assigned.");
 
-    protocolHandshake();
+    protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
     const StringPtr serializedDevice = clientComm->requestSerializedRootDevice();
@@ -276,9 +303,9 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
 }
 
 template<class TRootDeviceImpl>
-DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent)
+DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent, uint16_t protocolVersion)
 {
-    protocolHandshake();
+    protocolHandshake(protocolVersion);
     enumerateTypes();
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);

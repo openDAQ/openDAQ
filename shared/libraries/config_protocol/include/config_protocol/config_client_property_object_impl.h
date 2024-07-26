@@ -59,9 +59,6 @@ public:
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
-    ErrCode INTERFACE_FUNC beginUpdate() override;
-    ErrCode INTERFACE_FUNC endUpdate() override;
-
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
     ErrCode INTERFACE_FUNC complete() override;
@@ -70,6 +67,7 @@ public:
     ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) override;
     ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC remoteUpdate(ISerializedObject* serialized) override;
+    ErrCode INTERFACE_FUNC setRemoteUpdating(Bool remoteUpdating) override;
 
 protected:
     bool deserializationComplete;
@@ -77,6 +75,11 @@ protected:
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
+
+    void beginApplyUpdate() override;
+    void endApplyUpdate() override;
+
+    bool remoteUpdating;
 
 private:
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
@@ -91,6 +94,9 @@ private:
     BaseObjectPtr getFullPropName(const std::string& propName) const;
 
     void checkCanSetPropertyValue(const StringPtr& propName);
+
+    std::string getPath();
+    void applyUpdatingPropsAndValuesProtocolVer0();
 };
 
 class ConfigClientPropertyObjectImpl : public ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
@@ -108,8 +114,6 @@ public:
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
-    ErrCode INTERFACE_FUNC beginUpdate() override;
-    ErrCode INTERFACE_FUNC endUpdate() override;
 
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
                                              IBaseObject* context,
@@ -119,7 +123,6 @@ public:
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    bool remoteUpdating;
     void unfreeze();
 };
 
@@ -129,10 +132,10 @@ public:
     ScopedRemoteUpdate(const ScopedRemoteUpdate&) = delete;
     ScopedRemoteUpdate(ScopedRemoteUpdate&&) = delete;
 
-    explicit ScopedRemoteUpdate(const BaseObjectPtr& obj)
+    explicit ScopedRemoteUpdate(const PropertyObjectPtr& obj)
+        : obj(obj)
     {
-        impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(obj.getObject());
-        impl->remoteUpdating = true;        
+        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(True));
     }
 
     ScopedRemoteUpdate operator=(const ScopedRemoteUpdate&) = delete;
@@ -140,16 +143,11 @@ public:
 
     ~ScopedRemoteUpdate()
     {
-        impl->remoteUpdating = false;
-    }
-
-    [[nodiscard]] ConfigClientPropertyObjectImpl* getImpl() const
-    {
-        return impl;
+        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(False));
     }
 
 private:
-    ConfigClientPropertyObjectImpl* impl;
+    BaseObjectPtr obj;
 };
 
 
@@ -161,6 +159,7 @@ ConfigClientPropertyObjectBaseImpl<Impl>::ConfigClientPropertyObjectBaseImpl(con
     : ConfigClientObjectImpl(configProtocolClientComm, remoteGlobalId)
     , Impl(args ...)
     , deserializationComplete(false)
+    , remoteUpdating(false)
 {
 }
 
@@ -168,6 +167,9 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
+
+    if (this->updateCount > 0)
+        return Impl::setPropertyValue(propertyName, value);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
     const auto valuePtr = BaseObjectPtr::Borrow(value);
@@ -313,6 +315,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
+/*
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
@@ -325,8 +328,9 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
         });
 }
 
+
 template <class Impl>
-inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
+ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 {
     return daqTry([this]()
         {
@@ -335,7 +339,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdat
                 path = this->path.toStdString();
             clientComm->endUpdate(remoteGlobalId, path);
         });
-}
+}*/
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
@@ -414,6 +418,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
             onRemoteUpdate(serialized);
             return OPENDAQ_SUCCESS;
         });
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteUpdating)
+{
+    this->remoteUpdating = remoteUpdating;
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -613,6 +624,64 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
 }
 
 template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::beginApplyUpdate()
+{
+    if (remoteUpdating)
+        return Impl::beginApplyUpdate();
+
+    clientComm->beginUpdate(remoteGlobalId, getPath());
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::endApplyUpdate()
+{
+    if (remoteUpdating)
+        return Impl::endApplyUpdate();
+
+    ListPtr<IDict> propsAndValuesEx;
+
+    if (clientComm->getProtocolVersion() >= 1)
+    {
+        propsAndValuesEx = List<IDict>();
+
+        auto ignoredProps = List<IString>();
+        for (auto& item : this->updatingPropsAndValues)
+        {
+            auto itemEx = Dict<IString, IBaseObject>();
+            itemEx.set("Name", String(item.first));
+            itemEx.set("SetValue", Boolean(item.second.setValue));
+            itemEx.set("ProtectedAccess", Boolean(item.second.protectedAccess));
+            itemEx.set("Value", item.second.value);
+            propsAndValuesEx.pushBack(itemEx);
+        }
+    }
+    else
+        applyUpdatingPropsAndValuesProtocolVer0();
+
+    this->updatingPropsAndValues.clear();
+
+    clientComm->endUpdate(remoteGlobalId, getPath(), propsAndValuesEx);
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::applyUpdatingPropsAndValuesProtocolVer0()
+{
+    for (const auto& item : this->updatingPropsAndValues)
+    {
+        if (item.second.setValue)
+        {
+            if (item.second.protectedAccess)
+                clientComm->setProtectedPropertyValue(remoteGlobalId, item.first, item.second.value);
+            else
+                clientComm->setPropertyValue(remoteGlobalId, item.first, item.second.value);
+        }
+        else
+            clientComm->clearPropertyValue(remoteGlobalId, item.first);
+    }
+}
+
+
+template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::propertyValueChanged(const CoreEventArgsPtr& args)
 {
     const auto params = args.getParameters();
@@ -622,12 +691,13 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyValueChanged(const CoreEv
 
     if (path != "")
     {
-        const auto obj = this->objPtr.getPropertyValue(path);
+        const PropertyObjectPtr obj = this->objPtr.getPropertyValue(path);
         ScopedRemoteUpdate update(obj);
+
         if (val.assigned())
-            checkErrorInfo(update.getImpl()->setProtectedPropertyValue(propName, val));
+            obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, val);
         else
-            checkErrorInfo(update.getImpl()->clearProtectedPropertyValue(propName));
+            obj.asPtr<IPropertyObjectProtected>(true).clearProtectedPropertyValue(propName);
     }
     else
     {
@@ -649,21 +719,24 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
     if (params.get("Path") != "")
     {
         ScopedRemoteUpdate update(obj);
-        checkErrorInfo(update.getImpl()->beginUpdate());
+
+        obj.beginUpdate();
 
         for (const auto& val : updatedProperties)
         {
             if (val.second.assigned())
-                checkErrorInfo(update.getImpl()->setProtectedPropertyValue(val.first, val.second));
+                obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(val.first, val.second);
             else
-                checkErrorInfo(update.getImpl()->clearProtectedPropertyValue(val.first));
+                obj.asPtr<IPropertyObjectProtected>(true).clearProtectedPropertyValue(val.first);
         }
 
-        checkErrorInfo(update.getImpl()->endUpdate());
+        obj.endUpdate();
 
     }
     else
     {
+        ScopedRemoteUpdate update(obj);
+
         checkErrorInfo(Impl::beginUpdateInternal(false));
 
         for (const auto& val : updatedProperties)
@@ -691,7 +764,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
     if (params.get("Path") != "")
     {
         ScopedRemoteUpdate update(obj);
-        checkErrorInfo(update.getImpl()->addProperty(prop));
+        obj.addProperty(prop);
     }
     else
         checkErrorInfo(Impl::addProperty(prop));
@@ -710,7 +783,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyRemoved(const CoreEventAr
     if (params.get("Path") != "")
     {
         ScopedRemoteUpdate update(obj);
-        checkErrorInfo(update.getImpl()->removeProperty(propName));
+        obj.removeProperty(propName);
     }
     else
         checkErrorInfo(Impl::removeProperty(propName));
@@ -749,12 +822,21 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
     }
 }
 
+template <class Impl>
+std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPath()
+{
+    std::string path{};
+    if (this->path.assigned())
+        path = this->path.toStdString();
+
+    return path;
+}
+
 inline ConfigClientPropertyObjectImpl::ConfigClientPropertyObjectImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                                       const std::string& remoteGlobalId,
                                                                       const TypeManagerPtr& manager,
                                                                       const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, manager, className)
-    , remoteUpdating(false)
 {
 }
 
@@ -793,20 +875,6 @@ inline ErrCode ConfigClientPropertyObjectImpl::removeProperty(IString* propertyN
     if (remoteUpdating)
         return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::removeProperty(propertyName);
     return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::removeProperty(propertyName);
-}
-
-inline ErrCode ConfigClientPropertyObjectImpl::beginUpdate()
-{
-    if (remoteUpdating)
-        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::beginUpdate();
-    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::beginUpdate();
-}
-
-inline ErrCode ConfigClientPropertyObjectImpl::endUpdate()
-{
-    if (remoteUpdating)
-        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::endUpdate();
-    return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::endUpdate();
 }
 
 inline ErrCode ConfigClientPropertyObjectImpl::deserializeValues(ISerializedObject* serializedObject,

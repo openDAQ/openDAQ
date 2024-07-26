@@ -192,6 +192,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/packet_destruct_callback.h
         ${SDK_HEADERS_DIR}/packet_destruct_callback_factory.h
         ${SDK_HEADERS_DIR}/packet_destruct_callback_impl.h
+        ${SDK_HEADERS_DIR}/grandmaster_offset_adder.h
         ${SDK_SRC_DIR}/data_packet_impl.cpp
         ${SDK_SRC_DIR}/generic_data_packet_impl.cpp
         ${SDK_SRC_DIR}/event_packet_impl.cpp
@@ -339,6 +340,7 @@ set(SRC_PrivateHeaders_Component
     data_rule_calc_private.h
     scaling_calc_private.h
     external_allocator_impl.h
+    grandmaster_offset_adder.h
     ${SRC_Mimalloc_PrivateHeaders}
     PARENT_SCOPE
 )

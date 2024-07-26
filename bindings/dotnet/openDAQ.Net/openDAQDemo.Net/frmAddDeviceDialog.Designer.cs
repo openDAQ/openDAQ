@@ -34,9 +34,9 @@
             textBox1 = new TextBox();
             gridChildDevices = new DataGridView();
             contextMenuStripChildDevices = new ContextMenuStrip(components);
-            addDeviceToolStripMenuItem = new ToolStripMenuItem();
+            contextMenuItemChildDevicesAddDevice = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
-            refreshToolStripMenuItem = new ToolStripMenuItem();
+            contextMenuItemChildDevicesRefresh = new ToolStripMenuItem();
             panel1 = new Panel();
             label1 = new Label();
             btnAdd = new Button();
@@ -108,29 +108,30 @@
             // 
             // contextMenuStripChildDevices
             // 
-            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { addDeviceToolStripMenuItem, toolStripSeparator1, refreshToolStripMenuItem });
+            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { contextMenuItemChildDevicesAddDevice, toolStripSeparator1, contextMenuItemChildDevicesRefresh });
             contextMenuStripChildDevices.Name = "contextMenuStrip1";
-            contextMenuStripChildDevices.Size = new Size(134, 54);
+            contextMenuStripChildDevices.Size = new Size(223, 76);
             contextMenuStripChildDevices.Opening += contextMenuStripChildDevices_Opening;
             // 
-            // addDeviceToolStripMenuItem
+            // contextMenuItemChildDevicesAddDevice
             // 
-            addDeviceToolStripMenuItem.Name = "addDeviceToolStripMenuItem";
-            addDeviceToolStripMenuItem.Size = new Size(133, 22);
-            addDeviceToolStripMenuItem.Text = "Add device";
-            addDeviceToolStripMenuItem.Click += addDeviceToolStripMenuItem_Click;
+            contextMenuItemChildDevicesAddDevice.Name = "contextMenuItemChildDevicesAddDevice";
+            contextMenuItemChildDevicesAddDevice.ShortcutKeyDisplayString = "<double-click>";
+            contextMenuItemChildDevicesAddDevice.Size = new Size(222, 22);
+            contextMenuItemChildDevicesAddDevice.Text = "Add device";
+            contextMenuItemChildDevicesAddDevice.Click += contextMenuItemChildDevicesAddDevice_Click;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(130, 6);
+            toolStripSeparator1.Size = new Size(219, 6);
             // 
-            // refreshToolStripMenuItem
+            // contextMenuItemChildDevicesRefresh
             // 
-            refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
-            refreshToolStripMenuItem.Size = new Size(133, 22);
-            refreshToolStripMenuItem.Text = "Refresh list";
-            refreshToolStripMenuItem.Click += refreshToolStripMenuItem_Click;
+            contextMenuItemChildDevicesRefresh.Name = "contextMenuItemChildDevicesRefresh";
+            contextMenuItemChildDevicesRefresh.Size = new Size(222, 22);
+            contextMenuItemChildDevicesRefresh.Text = "Refresh list";
+            contextMenuItemChildDevicesRefresh.Click += contextMenuItemChildDevicesRefresh_Click;
             // 
             // panel1
             // 
@@ -205,8 +206,8 @@
         private TextBox txtConnectionString;
         private Label label1;
         private ContextMenuStrip contextMenuStripChildDevices;
-        private ToolStripMenuItem refreshToolStripMenuItem;
-        private ToolStripMenuItem addDeviceToolStripMenuItem;
+        private ToolStripMenuItem contextMenuItemChildDevicesRefresh;
+        private ToolStripMenuItem contextMenuItemChildDevicesAddDevice;
         private ToolStripSeparator toolStripSeparator1;
     }
 }

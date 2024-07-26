@@ -173,6 +173,13 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
             objectPtr.endUpdate();
         },
         "Ends batch configuration of the object.");
+    cls.def_property_readonly("updating",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getUpdating();
+        },
+        "Returns the state of batch configuration.");
     /*
     cls.def_property_readonly("on_end_update",
         [](daq::IPropertyObject *object)

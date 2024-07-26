@@ -91,6 +91,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC beginUpdate() override;
     virtual ErrCode INTERFACE_FUNC endUpdate() override;
+    virtual ErrCode INTERFACE_FUNC getUpdating(Bool* updating) override;
 
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
@@ -2047,6 +2048,15 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
     return endUpdateInternal(true);
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUpdating(Bool* updating)
+{
+    OPENDAQ_PARAM_NOT_NULL(updating);
+
+    *updating = updateCount > 0 ? True : False;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

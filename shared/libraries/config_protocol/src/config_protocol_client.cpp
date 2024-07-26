@@ -21,6 +21,7 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , serializer(JsonSerializer())
         , deserializer(JsonDeserializer())
         , connected(false)
+        , protocolVersion(0)
 {
 }
 
@@ -144,12 +145,14 @@ void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const st
     parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
 }
 
-void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path)
+void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     if (!path.empty())
         dict.set("Path", String(path));
+    if (props.assigned())
+        dict.set("Props", props);
     auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "EndUpdate", dict);
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
@@ -319,6 +322,11 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     return nullptr;
 }
 
+uint16_t ConfigProtocolClientComm::getProtocolVersion() const
+{
+    return protocolVersion;
+}
+
 ComponentDeserializeContextPtr ConfigProtocolClientComm::createDeserializeContext(const std::string& remoteGlobalId,
                                                                                   const ContextPtr& context,
                                                                                   const ComponentPtr& root,
@@ -442,6 +450,11 @@ void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component,
             comp.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&compRemoteId);
             comp.asPtr<IConfigClientObject>(true)->setRemoteGlobalId(parentRemoteId + compRemoteId);
         });
+}
+
+void ConfigProtocolClientComm::setProtocolVersion(uint16_t protocolVersion)
+{
+    this->protocolVersion = protocolVersion;
 }
 
 void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)

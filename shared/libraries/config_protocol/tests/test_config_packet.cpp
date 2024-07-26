@@ -102,7 +102,7 @@ TEST_F(ConfigPacketTest, GetProtocolInfoReply)
 
     ASSERT_EQ(packetBuffer.getId(), 1u);
     uint16_t curVer;
-    std::vector<uint16_t> supVer;
+    std::set<uint16_t> supVer;
     packetBuffer.parseProtocolInfoReply(curVer, supVer);
 
     ASSERT_EQ(curVer, 2);

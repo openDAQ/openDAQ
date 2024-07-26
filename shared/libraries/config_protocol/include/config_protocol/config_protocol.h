@@ -23,6 +23,8 @@
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
 
+#include <set>
+
 namespace daq::config_protocol
 {
 
@@ -105,8 +107,8 @@ public:
     static PacketBuffer createGetProtocolInfoRequest(uint64_t id);
     void parseProtocolInfoRequest() const;
 
-    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions);
-    void parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const;
+    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::set<uint16_t>& supportedVersions);
+    void parseProtocolInfoReply(uint16_t& currentVersion, std::set<uint16_t>& supportedVersions) const;
 
     static PacketBuffer createUpgradeProtocolRequest(uint64_t id, uint16_t version);
     void parseProtocolUpgradeRequest(uint16_t& version) const;

@@ -10,7 +10,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                                          PRIVATE Arrow::arrow_shared parquet_shared
+                                          PRIVATE Arrow::arrow_static parquet_static
 )
 
 target_include_directories(${TEST_APP} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

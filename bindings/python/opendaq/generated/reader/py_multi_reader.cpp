@@ -45,29 +45,31 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     m.def("MultiReaderFromExisting", &daq::MultiReaderFromExisting_Create);
 
     cls.def("read",
-        [](daq::IMultiReader *object, size_t count, const size_t timeoutMs)
+        [](daq::IMultiReader *object, size_t count, const size_t timeoutMs, bool returnStatus)
         {
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
-            return PyTypedReader::readValues(objectPtr, count, timeoutMs);
+            return PyTypedReader::readValues(objectPtr, count, timeoutMs, returnStatus);
         },
-        py::arg("count"), py::arg("timeout_ms") = 0,
+        py::arg("count"), py::arg("timeout_ms") = 0, py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` parameter.");
     cls.def("read_with_domain",
-        [](daq::IMultiReader *object, size_t count, const size_t timeoutMs)
+        [](daq::IMultiReader *object, size_t count, const size_t timeoutMs, bool returnStatus)
         {
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
-            return PyTypedReader::readValuesWithDomain(objectPtr, count, timeoutMs);
+            return PyTypedReader::readValuesWithDomain(objectPtr, count, timeoutMs, returnStatus);
         },
-        py::arg("count"), py::arg("timeout_ms") = 0,
+        py::arg("count"), py::arg("timeout_ms") = 0, py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples and clock-stamps to the `samples` and `domain` buffers. The amount actually read is returned through the `count` parameter.");
     cls.def("skip_samples",
-        [](daq::IMultiReader *object, size_t count)
+        [](daq::IMultiReader *object, size_t count, bool returnStatus)
         {
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
-            objectPtr.skipSamples(&count);
-            return count;
+            auto status = objectPtr.skipSamples(&count);
+            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status)} :
+              SizeReaderStatusVariant<decltype(objectPtr)>{count};
         },
         py::arg("count"),
+        py::arg("return_status") = false,
         "Skips the specified amount of samples.");
     cls.def_property_readonly("tick_resolution",
         [](daq::IMultiReader *object)

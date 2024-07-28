@@ -188,4 +188,29 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");
+    cls.def_property("domain_id",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getDomainId().toStdString();
+        },
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& domainId)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setDomainId(getVariantValue<daq::IString*>(domainId));
+        },
+        "Gets the domain id. / Sets the domain id.");
+    cls.def_property("grandmaster_offset",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getGrandmasterOffset().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& grandmasterOffset)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setGrandmasterOffset(getVariantValue<daq::IInteger*>(grandmasterOffset));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the grandmaster offset. / Sets the grandmaster offset.");
 }

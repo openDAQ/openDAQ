@@ -101,5 +101,5 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
             return baseObjectToPyObject(objectPtr.getLastValue());
         },
         py::return_value_policy::take_ownership,
-        "Gets the signal last value");
+        "Gets the signal last value.");
 }

@@ -70,8 +70,8 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
-    ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC setReferenceDomainOffset(INumber* referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
 
 protected:
     ListPtr<IDimension> dimensions;
@@ -86,7 +86,7 @@ protected:
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
     StringPtr referenceDomainId;
-    IntegerPtr referenceDomainOffset;
+    NumberPtr referenceDomainOffset;
 };
 
 END_NAMESPACE_OPENDAQ

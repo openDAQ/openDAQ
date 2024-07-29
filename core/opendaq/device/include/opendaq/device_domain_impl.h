@@ -29,14 +29,14 @@ public:
                               StringPtr origin,
                               UnitPtr unit,
                               StringPtr referenceDomainId = nullptr,
-                              IntegerPtr referenceDomainOffset = nullptr);
+                              NumberPtr referenceDomainOffset = nullptr);
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
 
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

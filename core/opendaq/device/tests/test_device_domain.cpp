@@ -56,7 +56,7 @@ TEST_F(DeviceDomainTest, StructType)
         StructType("DeviceDomain",
                    List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainId", "ReferenceDomainOffset"),
                    List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr),
-                   List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctInt)));
+                   List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctFloat)));
     const auto structType = DeviceDomainStructType();
     ASSERT_EQ(structType, correct);
 }

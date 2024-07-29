@@ -23,7 +23,6 @@
 #include <opendaq/data_rule.h>
 #include <opendaq/scaling.h>
 #include <opendaq/sample_type.h>
-#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +31,6 @@ struct IDataDescriptorBuilder;
 /*#
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -247,7 +245,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) = 0;
 };
 /*!@}*/
 

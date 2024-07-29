@@ -177,7 +177,7 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainId(IString** refere
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainOffset(INumber** referenceDomainOffset)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
 
@@ -457,7 +457,7 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
         if (referenceDomainOffset.assigned())
         {
             serializer->key("referenceDomainOffset");
-            serializer->writeInt(referenceDomainOffset);
+            serializer->writeFloat(referenceDomainOffset);
         }
     }
     serializer->endObject();
@@ -544,7 +544,7 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     if (serializedObj.hasKey("referenceDomainOffset"))
     {
-        auto referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
+        auto referenceDomainOffset = serializedObj.readFloat("referenceDomainOffset");
         dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
     }
     *obj = dataDescriptor.build().as<IBaseObject>();

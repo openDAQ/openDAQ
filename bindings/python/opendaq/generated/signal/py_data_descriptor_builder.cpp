@@ -188,29 +188,29 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");
-    cls.def_property("domain_id",
+    cls.def_property("reference_domain_id",
         [](daq::IDataDescriptorBuilder *object)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            return objectPtr.getDomainId().toStdString();
+            return objectPtr.getReferenceDomainId().toStdString();
         },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& domainId)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& referenceDomainId)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setDomainId(getVariantValue<daq::IString*>(domainId));
+            objectPtr.setReferenceDomainId(getVariantValue<daq::IString*>(referenceDomainId));
         },
-        "Gets the domain id. / Sets the domain id.");
-    cls.def_property("grandmaster_offset",
+        "Gets the reference domain id. / Sets the reference domain id.");
+    cls.def_property("reference_domain_offset",
         [](daq::IDataDescriptorBuilder *object)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            return objectPtr.getGrandmasterOffset().detach();
+            return objectPtr.getReferenceDomainOffset().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& grandmasterOffset)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& referenceDomainOffset)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setGrandmasterOffset(getVariantValue<daq::IInteger*>(grandmasterOffset));
+            objectPtr.setReferenceDomainOffset(getVariantValue<daq::INumber*>(referenceDomainOffset));
         },
         py::return_value_policy::take_ownership,
-        "Gets the grandmaster offset. / Sets the grandmaster offset.");
+        "Gets the reference domain offset. / Sets the reference domain offset.");
 }

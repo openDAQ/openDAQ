@@ -220,13 +220,13 @@ ErrCode DataDescriptorBuilderImpl::getReferenceDomainId(IString** referenceDomai
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::setReferenceDomainOffset(IInteger* referenceDomainOffset)
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainOffset(INumber* referenceDomainOffset)
 {
     this->referenceDomainOffset = referenceDomainOffset;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainOffset(INumber** referenceDomainOffset)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
     *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();

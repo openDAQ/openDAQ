@@ -31,8 +31,9 @@
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "tsl/ordered_map.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
 
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
@@ -77,9 +78,13 @@ private:
     static PropertyObjectPtr createGeneralConfig();
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
+    static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
 
     static StringPtr convertIfOldIdFB(const StringPtr& id);
     static StringPtr convertIfOldIdProtocol(const StringPtr& id);
+
+    static void populateDeviceConfigFromConnStrOptions(const PropertyObjectPtr& devConfig,
+                                                       const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

@@ -1,7 +1,7 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 set(RTGEN_NAMESPACE "${SDK_TARGET_NAMESPACE}")
-set(OPENDAQ_CORE_VERSION 3.2.1)
+set(OPENDAQ_CORE_VERSION 3.2.2)
 
 add_subdirectory(corecontainers)
 add_subdirectory(coretypes)

@@ -29,6 +29,8 @@
 
 #include <thread>
 
+using namespace daq;
+
 #if !defined(SKIP_TEST_MAC_CI)
     #if defined(__clang__) && !defined(__RESHARPER__)
         #define SKIP_TEST_MAC_CI return

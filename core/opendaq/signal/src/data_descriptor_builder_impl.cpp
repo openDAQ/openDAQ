@@ -20,8 +20,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
     , resolution(nullptr)
     , structFields(List<IDataDescriptor>())
     , metadata(Dict<IString, IString>())
-    , domainId(nullptr)
-    , grandmasterOffset(nullptr)
+    , referenceDomainId(nullptr)
+    , referenceDomainOffset(nullptr)
 {
 }
 
@@ -37,8 +37,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , resolution(descriptorCopy.getTickResolution())
     , structFields(descriptorCopy.getStructFields())
     , metadata(descriptorCopy.getMetadata())
-    , domainId(descriptorCopy.getDomainId())
-    , grandmasterOffset(descriptorCopy.getGrandmasterOffset())
+    , referenceDomainId(descriptorCopy.getReferenceDomainId())
+    , referenceDomainOffset(descriptorCopy.getReferenceDomainOffset())
 {
 }
 
@@ -207,29 +207,29 @@ ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::setDomainId(IString* domainId)
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainId(IString* referenceDomainId)
 {
-    this->domainId = domainId;
+    this->referenceDomainId = referenceDomainId;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::getDomainId(IString** domainId)
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainId(IString** referenceDomainId)
 {
-    OPENDAQ_PARAM_NOT_NULL(domainId);
-    *domainId = this->domainId.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::setGrandmasterOffset(IInteger* grandmasterOffset)
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainOffset(IInteger* referenceDomainOffset)
 {
-    this->grandmasterOffset = grandmasterOffset;
+    this->referenceDomainOffset = referenceDomainOffset;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
 {
-    OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
-    *grandmasterOffset = this->grandmasterOffset.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
+    *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -28,15 +28,15 @@ public:
     explicit DeviceDomainImpl(RatioPtr tickResolution,
                               StringPtr origin,
                               UnitPtr unit,
-                              StringPtr domainId = nullptr,
-                              IntegerPtr grandmasterOffset = nullptr);
+                              StringPtr referenceDomainId = nullptr,
+                              IntegerPtr referenceDomainOffset = nullptr);
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
 
-    ErrCode INTERFACE_FUNC getDomainId(IString** domainId) override;
-    ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

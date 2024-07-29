@@ -241,12 +241,12 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getDomainId(IString** domainId) override
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override
     {
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) override
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override
     {
         return OPENDAQ_SUCCESS;
     }

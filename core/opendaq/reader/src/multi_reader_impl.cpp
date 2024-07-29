@@ -180,7 +180,7 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
-    StringPtr domainId;
+    StringPtr referenceDomainId;
 
     for (const auto& port : list)
     {
@@ -208,13 +208,13 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
             throw InvalidParameterException(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
-        if (!domainId.assigned())
+        if (!referenceDomainId.assigned())
         {
             // Check domain ID existence
 
-            domainId = domainDescriptor.getDomainId();
+            referenceDomainId = domainDescriptor.getReferenceDomainId();
 
-            if (!domainId.assigned())
+            if (!referenceDomainId.assigned())
             {
                 LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
             }
@@ -223,9 +223,9 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
         {
             // Check domain ID existence
 
-            auto currentDomainId = domainDescriptor.getDomainId();
+            auto currentReferenceDomainId = domainDescriptor.getReferenceDomainId();
 
-            if (!currentDomainId.assigned())
+            if (!currentReferenceDomainId.assigned())
             {
                 LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
             }
@@ -233,7 +233,7 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
             {
                 // Check domain ID equality
 
-                if (domainId != currentDomainId)
+                if (referenceDomainId != currentReferenceDomainId)
                 {
                     throw InvalidStateException(R"("Domain signal "{}" domain ID does not match with others.)", domain.getLocalId());
                 }

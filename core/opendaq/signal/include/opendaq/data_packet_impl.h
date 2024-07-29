@@ -102,7 +102,7 @@ private:
     bool hasDataRuleCalc;
     bool hasRawDataOnly;
     bool externalMemory;
-    bool hasGrandmasterOffset;
+    bool hasReferenceDomainOffset;
 
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
     BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
@@ -123,9 +123,9 @@ void DataPacketImpl<TInterface>::initPacket()
 
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
 
-    hasGrandmasterOffset = descriptor.getGrandmasterOffset() != nullptr;
+    hasReferenceDomainOffset = descriptor.getReferenceDomainOffset() != nullptr;
 
-    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasGrandmasterOffset;
+    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
 
 template <typename TInterface>
@@ -141,7 +141,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(false)
-    , hasGrandmasterOffset(false)
+    , hasReferenceDomainOffset(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -183,7 +183,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(true)
-    , hasGrandmasterOffset(false)
+    , hasReferenceDomainOffset(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -253,7 +253,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
         throw InvalidParameterException("Constant data rule with post scaling not supported.");
     hasRawDataOnly = false;
 
-    hasGrandmasterOffset = descriptor.getGrandmasterOffset() != nullptr;
+    hasReferenceDomainOffset = descriptor.getReferenceDomainOffset() != nullptr;
 }
 
 template <typename TInterface>
@@ -332,11 +332,11 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                         scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
                     }
 
-                    if (hasGrandmasterOffset)
+                    if (hasReferenceDomainOffset)
                     {
-                        auto grandMasterOffsetAdder = std::unique_ptr<GrandmasterOffsetAdder>(
-                            createGrandmasterOffsetTyped(descriptor.getSampleType(), descriptor.getGrandmasterOffset(), sampleCount));
-                        grandMasterOffsetAdder->addGrandmasterOffset(&scaledData);
+                        auto grandMasterOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(
+                            createReferenceDomainOffsetTyped(descriptor.getSampleType(), descriptor.getReferenceDomainOffset(), sampleCount));
+                        grandMasterOffsetAdder->addReferenceDomainOffset(&scaledData);
                     }
 
                     *address = scaledData;

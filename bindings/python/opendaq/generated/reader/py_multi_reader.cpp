@@ -65,7 +65,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
         {
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             auto status = objectPtr.skipSamples(&count);
-            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status)} :
+            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status.detach())} :
               SizeReaderStatusVariant<decltype(objectPtr)>{count};
         },
         py::arg("count"),

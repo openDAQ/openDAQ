@@ -72,7 +72,7 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         {
             const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
             auto status = objectPtr.skipSamples(&count);
-            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status)} :
+            return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status.detach())} :
               SizeReaderStatusVariant<decltype(objectPtr)>{count};
         },
         py::arg("count"),

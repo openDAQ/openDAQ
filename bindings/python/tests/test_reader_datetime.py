@@ -13,9 +13,17 @@ class TestReaderDateTime(opendaq_test.TestCase):
         reader = opendaq.StreamReader(mock.signal)
         reader.read(0)
 
+        #check skip
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
+        skip, status = reader.skip_samples(10, return_status=True)
+        self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
+        self.assertTrue(status.valid)
+        self.assertEqual(skip, 10)
+        self.assertEqual(reader.available_count, 0)
 
+        #check read
+        mock.add_data(numpy.arange(10))
         values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
@@ -261,11 +269,20 @@ class TestReaderDateTime(opendaq_test.TestCase):
         reader.read(0)
 
         nparray = numpy.arange(10)
+
+        #check skip
         sig1.add_data(nparray)
         sig2.add_data(nparray)
-
         self.assertEqual(reader.available_count, 10)
+        skip, status = reader.skip_samples(10, return_status=True)
+        self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
+        self.assertTrue(status.valid)
+        self.assertEqual(skip, 10)
+        self.assertEqual(reader.available_count, 0)
 
+        #check read
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
         values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)

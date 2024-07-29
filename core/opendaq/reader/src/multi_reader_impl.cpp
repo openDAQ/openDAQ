@@ -51,6 +51,9 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
 
         SizeT min{};
         SyncStatus syncStatus{};
+
+        std::lock_guard lockNotify(notify.mutex);
+
         ErrCode errCode = synchronize(min, syncStatus);
 
         checkErrorInfo(errCode);
@@ -148,6 +151,9 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
     SizeT min{};
     SyncStatus syncStatus{};
+
+    std::lock_guard lockNotify(notify.mutex);
+
     ErrCode errCode = synchronize(min, syncStatus);
 
     checkErrorInfo(errCode);
@@ -443,6 +449,8 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::lock_guard lock(mutex);
+
+    std::lock_guard lockNotify(notify.mutex);
 
     SizeT min{};
     SyncStatus syncStatus{};

@@ -67,11 +67,11 @@ public:
     ErrCode INTERFACE_FUNC setStructFields(IList* structFields) override;
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
 
-    ErrCode INTERFACE_FUNC setDomainId(IString* domainId) override;
-    ErrCode INTERFACE_FUNC getDomainId(IString** domainId) override;
+    ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
-    ErrCode INTERFACE_FUNC setGrandmasterOffset(IInteger* grandmasterOffset) override;
-    ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) override;
+    ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
 protected:
     ListPtr<IDimension> dimensions;
@@ -85,8 +85,8 @@ protected:
     RatioPtr resolution;
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
-    StringPtr domainId;
-    IntegerPtr grandmasterOffset;
+    StringPtr referenceDomainId;
+    IntegerPtr referenceDomainOffset;
 };
 
 END_NAMESPACE_OPENDAQ

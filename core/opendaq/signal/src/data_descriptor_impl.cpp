@@ -32,8 +32,8 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("TickResolution", builderPtr.getTickResolution());
     params.set("StructFields", builderPtr.getStructFields());
     params.set("Metadata", builderPtr.getMetadata());
-    params.set("DomainId", builderPtr.getDomainId());
-    params.set("GrandmasterOffset", builderPtr.getGrandmasterOffset());
+    params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
+    params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
 
     return params;
 }
@@ -55,8 +55,8 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
-    this->domainId = dataDescriptorBuilderPtr.getDomainId();
-    this->grandmasterOffset = dataDescriptorBuilderPtr.getGrandmasterOffset();
+    this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
+    this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
     checkErrorInfo(validate());
     calculateSampleMemSize();
 }
@@ -168,20 +168,20 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC DataDescriptorImpl::getDomainId(IString** domainId)
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainId(IString** referenceDomainId)
 {
-    OPENDAQ_PARAM_NOT_NULL(domainId);
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
 
-    *domainId = this->domainId.addRefAndReturn();
+    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC DataDescriptorImpl::getGrandmasterOffset(IInteger** grandmasterOffset)
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
 {
-    OPENDAQ_PARAM_NOT_NULL(grandmasterOffset);
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
 
-    *grandmasterOffset = this->grandmasterOffset.addRefAndReturn();
+    *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -335,9 +335,9 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         if (!BaseObjectPtr::Equals(metadata, descriptor.getMetadata()))
             return OPENDAQ_SUCCESS;
 
-        if (!BaseObjectPtr::Equals(domainId, descriptor.getDomainId()))
+        if (!BaseObjectPtr::Equals(referenceDomainId, descriptor.getReferenceDomainId()))
             return OPENDAQ_SUCCESS;
-        if (!BaseObjectPtr::Equals(grandmasterOffset, descriptor.getGrandmasterOffset()))
+        if (!BaseObjectPtr::Equals(referenceDomainOffset, descriptor.getReferenceDomainOffset()))
             return OPENDAQ_SUCCESS;
 
         *equals = true;
@@ -448,16 +448,16 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
         serializer->key("structFields");
         structFields.serialize(serializer);
 
-        if (domainId.assigned()) // TODO: maybe check for empty string?
+        if (referenceDomainId.assigned()) // TODO: maybe check for empty string?
         {
-            serializer->key("domainId");
-            serializer->writeString(domainId.getCharPtr(), domainId.getLength());
+            serializer->key("referenceDomainId");
+            serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());
         }
 
-        if (grandmasterOffset.assigned())
+        if (referenceDomainOffset.assigned())
         {
-            serializer->key("grandmasterOffset");
-            serializer->writeInt(grandmasterOffset);
+            serializer->key("referenceDomainOffset");
+            serializer->writeInt(referenceDomainOffset);
         }
     }
     serializer->endObject();
@@ -536,16 +536,16 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     ListPtr<IDataDescriptor> structFields = serializedObj.readObject("structFields");
     dataDescriptor.setStructFields(structFields);
 
-    if (serializedObj.hasKey("domainId"))
+    if (serializedObj.hasKey("referenceDomainId"))
     {
-        auto domainId = serializedObj.readString("domainId");
-        dataDescriptor.setDomainId(domainId);
+        auto referenceDomainId = serializedObj.readString("referenceDomainId");
+        dataDescriptor.setReferenceDomainId(referenceDomainId);
     }
 
-    if (serializedObj.hasKey("grandmasterOffset"))
+    if (serializedObj.hasKey("referenceDomainOffset"))
     {
-        auto grandmasterOffset = serializedObj.readInt("grandmasterOffset");
-        dataDescriptor.setGrandmasterOffset(grandmasterOffset);
+        auto referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
+        dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
     }
     *obj = dataDescriptor.build().as<IBaseObject>();
 

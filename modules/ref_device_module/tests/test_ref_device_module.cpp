@@ -164,25 +164,25 @@ TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
     ASSERT_FALSE(static_cast<std::string>(res).empty());
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainDomainId)
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
 {
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getDomainId();
+    auto res = domain.getReferenceDomainId();
     ASSERT_EQ(res, nullptr);
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainGrandmasterOffset)
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
 {
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getGrandmasterOffset();
+    auto res = domain.getReferenceDomainOffset();
     ASSERT_EQ(res, nullptr);
 }
 

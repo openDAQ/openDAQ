@@ -21,59 +21,59 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class GrandmasterOffsetAdder
+class ReferenceDomainOffsetAdder
 {
 public:
-    virtual ~GrandmasterOffsetAdder() = default;
-    virtual void addGrandmasterOffset(void** input) = 0;
+    virtual ~ReferenceDomainOffsetAdder() = default;
+    virtual void addReferenceDomainOffset(void** input) = 0;
 };
 
 template <typename T>
-class GrandmasterOffsetAdderTyped : public GrandmasterOffsetAdder
+class ReferenceDomainOffsetAdderTyped : public ReferenceDomainOffsetAdder
 {
 public:
-    void addGrandmasterOffset(void** input) override
+    void addReferenceDomainOffset(void** input) override
     {
         T* typed = static_cast<T*>(*input);
         for (SizeT i = 0; i < sampleCount; ++i)
-            typed[i] = typed[i] + grandmasterOffset;
+            typed[i] = typed[i] + referenceDomainOffset;
     }
 
-    GrandmasterOffsetAdderTyped(const IntegerPtr& grandmasterOffset, SizeT sampleCount)
+    ReferenceDomainOffsetAdderTyped(const IntegerPtr& referenceDomainOffset, SizeT sampleCount)
     {
-        this->grandmasterOffset = static_cast<T>(grandmasterOffset);
+        this->referenceDomainOffset = static_cast<T>(referenceDomainOffset);
         this->sampleCount = sampleCount;
     }
 
 private:
-    T grandmasterOffset;
+    T referenceDomainOffset;
     SizeT sampleCount;
 };
 
-static GrandmasterOffsetAdder* createGrandmasterOffsetTyped(SampleType outputType, const IntegerPtr& grandmasterOffset, SizeT sampleCount)
+static ReferenceDomainOffsetAdder* createReferenceDomainOffsetTyped(SampleType outputType, const IntegerPtr& referenceDomainOffset, SizeT sampleCount)
 {
     switch (outputType)
     {
         case SampleType::Float32:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Float32>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Float32>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Float64:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Float64>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Float64>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::UInt8:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::UInt8>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt8>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int8:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Int8>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Int8>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::UInt16:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::UInt16>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt16>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int16:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Int16>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Int16>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::UInt32:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::UInt32>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt32>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int32:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Int32>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Int32>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::UInt64:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::UInt64>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt64>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int64:
-            return new GrandmasterOffsetAdderTyped<SampleTypeToType<SampleType::Int64>::Type>(grandmasterOffset, sampleCount);
+            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Int64>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::RangeInt64:
         case SampleType::Binary:
         case SampleType::ComplexFloat32:

@@ -34,8 +34,8 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
                       .setRule(LinearDataRule(10, 10))
                       .setName("testName")
                       .setMetadata(metaData)
-                      .setDomainId("testDomainId")
-                      .setGrandmasterOffset(53)
+                      .setReferenceDomainId("testReferenceDomainId")
+                      .setReferenceDomainOffset(53)
                       .build();
 
 
@@ -47,8 +47,8 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     ASSERT_EQ(descriptor.getRule().getParameters().get("delta"), 10);
     ASSERT_EQ(descriptor.getName(), "testName");
     ASSERT_EQ(descriptor.getMetadata().get("key"), "value");
-    ASSERT_EQ(descriptor.getDomainId(), "testDomainId");
-    ASSERT_EQ(descriptor.getGrandmasterOffset(), 53);
+    ASSERT_EQ(descriptor.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(descriptor.getReferenceDomainOffset(), 53);
 }
 
 TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
@@ -71,8 +71,8 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
                           .setRule(ExplicitDataRule())
                           .setName("testName")
                           .setMetadata(metaData)
-                          .setDomainId("testDomainId")
-                          .setGrandmasterOffset(53)
+                          .setReferenceDomainId("testReferenceDomainId")
+                          .setReferenceDomainOffset(53)
                           .build();
 
     auto copy = DataDescriptorBuilderCopy(descriptor).build();
@@ -87,8 +87,8 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getRule().getType(), DataRuleType::Explicit);
     ASSERT_EQ(copy.getName(), "testName");
     ASSERT_EQ(copy.getMetadata().get("key"), "value");
-    ASSERT_EQ(copy.getDomainId(), "testDomainId");
-    ASSERT_EQ(copy.getGrandmasterOffset(), 53);
+    ASSERT_EQ(copy.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(copy.getReferenceDomainOffset(), 53);
 }
 
 TEST_F(DataDescriptorTest, RuleScalingInteraction)
@@ -154,8 +154,8 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
                           .setRule(LinearDataRule(10, 10))
                           .setName("testName")
                           .setMetadata(metaData)
-                          .setDomainId("testDomainId")
-                          .setGrandmasterOffset(53)
+                          .setReferenceDomainId("testReferenceDomainId")
+                          .setReferenceDomainOffset(53)
                           .build();
 
     auto serializer = JsonSerializer(False);
@@ -171,7 +171,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
 
 TEST_F(DataDescriptorTest, DeserializeBackwardsCompat)
 {
-    // Without domainId/grandmasterOffset
+    // Without referenceDomainId/referenceDomainOffset
 
     std::string serialized = R"({"__type":"DataDescriptor","name":"testName","sampleType":3,"unit":{"__type":"Unit","symbol":"s","id":10,"name":"","quantity":""},"dimensions":[{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""}],"valueRange":{"__type":"Range","low":10,"high":11.5},"rule":{"__type":"DataRule","ruleType":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10}]}},"origin":"testRef","tickResolution":{"__type":"Ratio","num":1,"den":1000},"metadata":{"__type":"Dict","values":[{"key":"key","value":"value"}]},"structFields":[]})";
 
@@ -207,8 +207,8 @@ TEST_F(DataDescriptorTest, StructFields)
                       .setRule(LinearDataRule(10, 10))
                       .setName("testName")
                       .setMetadata(metaData)
-                      .setDomainId("testDomainId")
-                      .setGrandmasterOffset(53)
+                      .setReferenceDomainId("testReferenceDomainId")
+                      .setReferenceDomainOffset(53)
                       .build();
 
 
@@ -223,8 +223,8 @@ TEST_F(DataDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("StructField"), nullptr);
     ASSERT_EQ(descriptor.get("Scaling"), nullptr);
     ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
-    ASSERT_EQ(descriptor.get("DomainId"), "testDomainId");
-    ASSERT_EQ(descriptor.get("GrandmasterOffset"), 53);
+    ASSERT_EQ(descriptor.get("ReferenceDomainId"), "testReferenceDomainId");
+    ASSERT_EQ(descriptor.get("ReferenceDomainOffset"), 53);
 }
 
 TEST_F(DataDescriptorTest, StructNames)
@@ -251,8 +251,8 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
                                         .setName("testName")
                                         .setPostScaling(linearScaling)
                                         .setMetadata(metaData)
-                                        .setDomainId("testDomainId")
-                                        .setGrandmasterOffset(53);
+                                        .setReferenceDomainId("testReferenceDomainId")
+                                        .setReferenceDomainOffset(53);
     
     ASSERT_EQ(dataDescriptorBuilder.getSampleType(), SampleType::Float64);
     ASSERT_EQ(dataDescriptorBuilder.getValueRange(), Range(10, 1000));
@@ -264,8 +264,8 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     ASSERT_EQ(dataDescriptorBuilder.getName(), "testName");
     ASSERT_EQ(dataDescriptorBuilder.getPostScaling(), linearScaling);
     ASSERT_EQ(dataDescriptorBuilder.getMetadata(), metaData);
-    ASSERT_EQ(dataDescriptorBuilder.getDomainId(), "testDomainId");
-    ASSERT_EQ(dataDescriptorBuilder.getGrandmasterOffset(), 53);
+    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainOffset(), 53);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
@@ -284,8 +284,8 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
                                         .setRule(LinearDataRule(10, 10))
                                         .setName("testName")
                                         .setMetadata(metaData)
-                                        .setDomainId("testDomainId")
-                                        .setGrandmasterOffset(53);
+                                        .setReferenceDomainId("testReferenceDomainId")
+                                        .setReferenceDomainOffset(53);
 
     const auto dataDescriptor = DataDescriptorFromBuilder(dataDescriptorBuilder);
 
@@ -298,8 +298,8 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     ASSERT_EQ(dataDescriptor.getRule(), LinearDataRule(10, 10));
     ASSERT_EQ(dataDescriptor.getName(), "testName");
     ASSERT_EQ(dataDescriptor.getMetadata(), metaData);
-    ASSERT_EQ(dataDescriptor.getDomainId(), "testDomainId");
-    ASSERT_EQ(dataDescriptor.getGrandmasterOffset(), 53);
+    ASSERT_EQ(dataDescriptor.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(dataDescriptor.getReferenceDomainOffset(), 53);
 }
 
 

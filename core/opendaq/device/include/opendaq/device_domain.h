@@ -69,20 +69,20 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
 
     /*!
-     * @brief Gets the domain id.
-     * @param[out] domainId The domain id.
+     * @brief Gets the reference domain id.
+     * @param[out] referenceDomainId The reference domain id.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getDomainId(IString** domainId) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
     /*!
-     * @brief Gets the grandmaster offset.
-     * @param[out] grandmasterOffset The grandmaster offset.
+     * @brief Gets the reference domain offset.
+     * @param[out] referenceDomainOffset The reference domain offset.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getGrandmasterOffset(IInteger** grandmasterOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
 };
 /*!@}*/
 
@@ -90,8 +90,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
     IUnit*, unit,
-    IString*, domainId,
-    IInteger*, grandmasterOffset
+    IString*, referenceDomainId,
+    IInteger*, referenceDomainOffset
 )
 
 

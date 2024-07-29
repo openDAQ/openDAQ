@@ -638,12 +638,12 @@ TEST_F(DataPacketTest, GetLastValueNoTypeManager)
     ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
 }
 
-TEST_F(DataPacketTest, GrandmasterOffset)
+TEST_F(DataPacketTest, ReferenceDomainOffset)
 {
-    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(LinearDataRule(2, 6)).setGrandmasterOffset(100).build();
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(LinearDataRule(2, 6)).setReferenceDomainOffset(100).build();
     const auto packet = DataPacket(descriptor, 3, 2);
 
-    // offset = 2, start = 6, grandmasterOffset = 100: 2 + 6 + 100 = 108
+    // offset = 2, start = 6, referenceDomainOffset = 100: 2 + 6 + 100 = 108
     int32_t expected[]  = {108, 110, 112}; 
 
     const auto data1 = static_cast<int32_t*>(packet.getData());

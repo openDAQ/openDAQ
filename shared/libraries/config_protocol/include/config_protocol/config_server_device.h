@@ -26,21 +26,22 @@ namespace daq::config_protocol
 class ConfigServerDevice
 {
 public:
-    static BaseObjectPtr getAvailableFunctionBlockTypes(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr getInfo(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableFunctionBlockTypes(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr addFunctionBlock(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr removeFunctionBlock(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getInfo(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getTicksSinceOrigin(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
-inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const DevicePtr& device,
+inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(uint16_t protocolVersion,
+                                                                        const DevicePtr& device,
     const ParamsDictPtr& params)
 {
     const auto fbTypes = device.getAvailableFunctionBlockTypes();
     return fbTypes;
 }
 
-inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params)
 {
     const auto fbTypeId = params.get("TypeId");
     PropertyObjectPtr config;
@@ -51,7 +52,7 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& devic
     return ComponentHolder(fb);
 }
 
-inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params)
 {
     const auto localId = params.get("LocalId");
 
@@ -66,12 +67,12 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& de
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getInfo(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params)
 {
     return device.getInfo();
 }
 
-inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(uint16_t protocolVersion, const DevicePtr& device, const ParamsDictPtr& params)
 {
     return device.getTicksSinceOrigin();
 }

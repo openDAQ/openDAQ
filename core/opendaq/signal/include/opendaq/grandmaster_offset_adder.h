@@ -17,7 +17,6 @@
 #pragma once
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_exceptions.h>
-#include "coretypes/integer_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,7 +38,7 @@ public:
             typed[i] = typed[i] + referenceDomainOffset;
     }
 
-    ReferenceDomainOffsetAdderTyped(const IntegerPtr& referenceDomainOffset, SizeT sampleCount)
+    ReferenceDomainOffsetAdderTyped(const NumberPtr& referenceDomainOffset, SizeT sampleCount)
     {
         this->referenceDomainOffset = static_cast<T>(referenceDomainOffset);
         this->sampleCount = sampleCount;
@@ -50,7 +49,7 @@ private:
     SizeT sampleCount;
 };
 
-static ReferenceDomainOffsetAdder* createReferenceDomainOffsetTyped(SampleType outputType, const IntegerPtr& referenceDomainOffset, SizeT sampleCount)
+static ReferenceDomainOffsetAdder* createReferenceDomainOffsetTyped(SampleType outputType, const NumberPtr& referenceDomainOffset, SizeT sampleCount)
 {
     switch (outputType)
     {
@@ -85,7 +84,7 @@ static ReferenceDomainOffsetAdder* createReferenceDomainOffsetTyped(SampleType o
             break;
     }
 
-    throw InvalidSampleTypeException{"Grandmaster Offset: Output type is not supported."};
+    throw InvalidSampleTypeException{"Reference Domain Offset: Output type is not supported."};
 }
 
 END_NAMESPACE_OPENDAQ

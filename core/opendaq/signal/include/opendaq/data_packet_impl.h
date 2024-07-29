@@ -334,9 +334,9 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
 
                     if (hasReferenceDomainOffset)
                     {
-                        auto grandMasterOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(
+                        auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(
                             createReferenceDomainOffsetTyped(descriptor.getSampleType(), descriptor.getReferenceDomainOffset(), sampleCount));
-                        grandMasterOffsetAdder->addReferenceDomainOffset(&scaledData);
+                        referenceDomainOffsetAdder->addReferenceDomainOffset(&scaledData);
                     }
 
                     *address = scaledData;

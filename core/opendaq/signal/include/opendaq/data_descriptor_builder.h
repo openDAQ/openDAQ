@@ -215,16 +215,16 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the domain id.
-     * @param referenceDomainId The domain id.
+     * @brief Sets the reference domain id.
+     * @param referenceDomainId The reference domain id.
      *
      * TODO description
      */
     virtual ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) = 0;
 
     /*!
-     * @brief Gets the domain id.
-     * @param[out] referenceDomainId The domain id.
+     * @brief Gets the reference domain id.
+     * @param[out] referenceDomainId The reference domain id.
      *
      * TODO description
      */
@@ -232,20 +232,20 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the grandmaster offset.
-     * @param referenceDomainOffset The grandmaster offset.
+     * @brief Sets the reference domain offset.
+     * @param referenceDomainOffset The reference domain offset.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(INumber* referenceDomainOffset) = 0;
 
     /*!
-     * @brief Gets the grandmaster offset.
-     * @param[out] referenceDomainOffset The grandmaster offset.
+     * @brief Gets the reference domain offset.
+     * @param[out] referenceDomainOffset The reference domain offset.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) = 0;
 };
 /*!@}*/
 

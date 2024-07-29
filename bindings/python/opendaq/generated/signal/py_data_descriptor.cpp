@@ -139,19 +139,19 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
             return objectPtr.getRawSampleSize();
         },
         "Gets the actual sample size in buffer of one sample in bytes.");
-    cls.def_property_readonly("domain_id",
+    cls.def_property_readonly("reference_domain_id",
         [](daq::IDataDescriptor *object)
         {
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
-            return objectPtr.getDomainId().toStdString();
+            return objectPtr.getReferenceDomainId().toStdString();
         },
-        "Gets the domain id.");
-    cls.def_property_readonly("grandmaster_offset",
+        "Gets the reference domain id.");
+    cls.def_property_readonly("reference_domain_offset",
         [](daq::IDataDescriptor *object)
         {
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
-            return objectPtr.getGrandmasterOffset().detach();
+            return objectPtr.getReferenceDomainOffset().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the grandmaster offset.");
+        "Gets the reference domain offset.");
 }

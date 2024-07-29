@@ -27,7 +27,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit, const StringPtr& referenceDomainId = nullptr, const IntegerPtr& referenceDomainOffset = nullptr)
+inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution,
+                                    const StringPtr& origin,
+                                    const UnitPtr& unit,
+                                    const StringPtr& referenceDomainId = nullptr,
+                                    const NumberPtr& referenceDomainOffset = nullptr)
 {
     DeviceDomainPtr obj(DeviceDomain_Create(tickResolution, origin, unit, referenceDomainId, referenceDomainOffset));
     return obj;
@@ -39,7 +43,7 @@ inline StructTypePtr DeviceDomainStructType()
         "DeviceDomain",
         List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainId", "ReferenceDomainOffset"),
         List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr),
-        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctInt)));
+        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctFloat)));
 }
 
 /*!@}*/

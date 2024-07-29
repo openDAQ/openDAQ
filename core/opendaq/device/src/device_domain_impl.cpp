@@ -10,7 +10,7 @@ namespace detail
 }
 
 DeviceDomainImpl::DeviceDomainImpl(
-    RatioPtr tickResolution, StringPtr origin, UnitPtr unit, StringPtr referenceDomainId, IntegerPtr referenceDomainOffset)
+    RatioPtr tickResolution, StringPtr origin, UnitPtr unit, StringPtr referenceDomainId, NumberPtr referenceDomainOffset)
     : GenericStructImpl<IDeviceDomain, IStruct>(detail::deviceDomainStructType,
                                                 Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
                                                                             {"Origin", std::move(origin)},
@@ -55,13 +55,13 @@ ErrCode DeviceDomainImpl::getReferenceDomainId(IString** referenceDomainId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DeviceDomainImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
+ErrCode DeviceDomainImpl::getReferenceDomainOffset(INumber** referenceDomainOffset)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
 
     auto ptr = this->fields.get("ReferenceDomainOffset");
     if (ptr.assigned())
-        *referenceDomainOffset = ptr.asPtr<IInteger>().addRefAndReturn();
+        *referenceDomainOffset = ptr.asPtr<INumber>().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -100,11 +100,11 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());
         }
 
-        const IntegerPtr referenceDomainOffset = this->fields.get("ReferenceDomainOffset");
+        const NumberPtr referenceDomainOffset = this->fields.get("ReferenceDomainOffset");
         if (referenceDomainOffset.assigned())
         {
             serializer->key("referenceDomainOffset");
-            serializer->writeInt(referenceDomainOffset);
+            serializer->writeFloat(referenceDomainOffset);
         }
     }
 
@@ -135,7 +135,7 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     StringPtr origin;
     UnitPtr unit;
     StringPtr referenceDomainId;
-    IntegerPtr referenceDomainOffset;
+    NumberPtr referenceDomainOffset;
     
     if (serializedObj.hasKey("tickResolution"))
     {
@@ -159,7 +159,7 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
     if (serializedObj.hasKey("referenceDomainOffset"))
     {
-        referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
+        referenceDomainOffset = serializedObj.readFloat("referenceDomainOffset");
     }
 
     *obj = DeviceDomain(resolution, origin, unit, referenceDomainId, referenceDomainOffset).as<IBaseObject>();
@@ -171,7 +171,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IString*, origin,
     IUnit*, unit,
     IString*, referenceDomainId,
-    IInteger*, referenceDomainOffset
+    INumber*, referenceDomainOffset
 )
 
 END_NAMESPACE_OPENDAQ

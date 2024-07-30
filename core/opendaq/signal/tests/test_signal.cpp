@@ -251,6 +251,11 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
 };
 
 TEST_F(SignalTest, IsComponent)

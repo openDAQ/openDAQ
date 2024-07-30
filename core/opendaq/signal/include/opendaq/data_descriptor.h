@@ -23,6 +23,7 @@
 #include <opendaq/data_rule.h>
 #include <opendaq/scaling.h>
 #include <opendaq/sample_type.h>
+#include <coretypes/boolean.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +32,7 @@ struct IDataDescriptorBuilder;
 /*#
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
  */
 
 /*!
@@ -246,6 +248,14 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      * TODO description
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) = 0;
+
+    /*!
+     * @brief Gets the flag that indicates if the reference domain is absolute.
+     * @param[out] referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
 };
 /*!@}*/
 

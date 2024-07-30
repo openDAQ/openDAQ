@@ -50,6 +50,7 @@ public:
     ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSizes) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -92,6 +93,7 @@ protected:
 
     StringPtr referenceDomainId;
     NumberPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
 
 private:
     ErrCode validate();

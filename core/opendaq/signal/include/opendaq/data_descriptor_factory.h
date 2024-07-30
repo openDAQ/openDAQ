@@ -79,7 +79,8 @@ inline StructTypePtr DataDescriptorStructType()
                                     "StructFields",
                                     "Metadata",
                                     "ReferenceDomainId",
-                                    "ReferenceDomainOffset"),
+                                    "ReferenceDomainOffset",
+                                    "ReferenceDomainIsAbsolute"),
                       List<IBaseObject>(List<IDimension>(),
                                         "",
                                         0,
@@ -91,6 +92,7 @@ inline StructTypePtr DataDescriptorStructType()
                                         nullptr,
                                         nullptr,
                                         Dict<IString, IBaseObject>(),
+                                        nullptr,
                                         nullptr,
                                         nullptr),
                       List<IType>(SimpleType(ctList),
@@ -105,7 +107,9 @@ inline StructTypePtr DataDescriptorStructType()
                                   SimpleType(ctList),
                                   SimpleType(ctDict),
                                   SimpleType(ctString),
-                                  SimpleType(ctFloat)));
+                                  SimpleType(ctFloat),
+                                  SimpleType(ctBool)
+                      ));
 }
 
 /*!@}*/

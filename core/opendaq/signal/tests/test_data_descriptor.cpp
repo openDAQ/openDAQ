@@ -36,6 +36,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
                       .setMetadata(metaData)
                       .setReferenceDomainId("testReferenceDomainId")
                       .setReferenceDomainOffset(53)
+                      .setReferenceDomainIsAbsolute(False)
                       .build();
 
 
@@ -49,6 +50,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     ASSERT_EQ(descriptor.getMetadata().get("key"), "value");
     ASSERT_EQ(descriptor.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(descriptor.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(descriptor.getReferenceDomainIsAbsolute(), False);
 }
 
 TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
@@ -73,6 +75,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
                           .setMetadata(metaData)
                           .setReferenceDomainId("testReferenceDomainId")
                           .setReferenceDomainOffset(53)
+                          .setReferenceDomainIsAbsolute(False)
                           .build();
 
     auto copy = DataDescriptorBuilderCopy(descriptor).build();
@@ -89,6 +92,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getMetadata().get("key"), "value");
     ASSERT_EQ(copy.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(copy.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(copy.getReferenceDomainIsAbsolute(), False);
 }
 
 TEST_F(DataDescriptorTest, RuleScalingInteraction)
@@ -156,6 +160,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
                           .setMetadata(metaData)
                           .setReferenceDomainId("testReferenceDomainId")
                           .setReferenceDomainOffset(53)
+                          .setReferenceDomainIsAbsolute(False)
                           .build();
 
     auto serializer = JsonSerializer(False);
@@ -171,7 +176,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
 
 TEST_F(DataDescriptorTest, DeserializeBackwardsCompat)
 {
-    // Without referenceDomainId/referenceDomainOffset
+    // Without referenceDomainId/referenceDomainOffset/referenceDomainIsAbsolute
 
     std::string serialized = R"({"__type":"DataDescriptor","name":"testName","sampleType":3,"unit":{"__type":"Unit","symbol":"s","id":10,"name":"","quantity":""},"dimensions":[{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""}],"valueRange":{"__type":"Range","low":10,"high":11.5},"rule":{"__type":"DataRule","ruleType":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10}]}},"origin":"testRef","tickResolution":{"__type":"Ratio","num":1,"den":1000},"metadata":{"__type":"Dict","values":[{"key":"key","value":"value"}]},"structFields":[]})";
 
@@ -209,6 +214,7 @@ TEST_F(DataDescriptorTest, StructFields)
                       .setMetadata(metaData)
                       .setReferenceDomainId("testReferenceDomainId")
                       .setReferenceDomainOffset(53)
+                      .setReferenceDomainIsAbsolute(False)
                       .build();
 
 
@@ -225,6 +231,7 @@ TEST_F(DataDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
     ASSERT_EQ(descriptor.get("ReferenceDomainId"), "testReferenceDomainId");
     ASSERT_EQ(descriptor.get("ReferenceDomainOffset"), 53);
+    ASSERT_EQ(descriptor.get("ReferenceDomainIsAbsolute"), False);
 }
 
 TEST_F(DataDescriptorTest, StructNames)
@@ -252,7 +259,8 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
                                         .setPostScaling(linearScaling)
                                         .setMetadata(metaData)
                                         .setReferenceDomainId("testReferenceDomainId")
-                                        .setReferenceDomainOffset(53);
+                                        .setReferenceDomainOffset(53)
+                                        .setReferenceDomainIsAbsolute(False);
     
     ASSERT_EQ(dataDescriptorBuilder.getSampleType(), SampleType::Float64);
     ASSERT_EQ(dataDescriptorBuilder.getValueRange(), Range(10, 1000));
@@ -266,6 +274,7 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     ASSERT_EQ(dataDescriptorBuilder.getMetadata(), metaData);
     ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainIsAbsolute(), False);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
@@ -285,7 +294,8 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
                                         .setName("testName")
                                         .setMetadata(metaData)
                                         .setReferenceDomainId("testReferenceDomainId")
-                                        .setReferenceDomainOffset(53);
+                                        .setReferenceDomainOffset(53)
+                                        .setReferenceDomainIsAbsolute(False);
 
     const auto dataDescriptor = DataDescriptorFromBuilder(dataDescriptorBuilder);
 
@@ -300,6 +310,7 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     ASSERT_EQ(dataDescriptor.getMetadata(), metaData);
     ASSERT_EQ(dataDescriptor.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(dataDescriptor.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(dataDescriptor.getReferenceDomainIsAbsolute(), False);
 }
 
 

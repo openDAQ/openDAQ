@@ -9,14 +9,20 @@ namespace detail
     static const StructTypePtr deviceDomainStructType = DeviceDomainStructType();
 }
 
-DeviceDomainImpl::DeviceDomainImpl(
-    RatioPtr tickResolution, StringPtr origin, UnitPtr unit, StringPtr referenceDomainId, NumberPtr referenceDomainOffset)
-    : GenericStructImpl<IDeviceDomain, IStruct>(detail::deviceDomainStructType,
-                                                Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
-                                                                            {"Origin", std::move(origin)},
-                                                                            {"Unit", std::move(unit)},
-                                                                            {"ReferenceDomainId", std::move(referenceDomainId)},
-                                                                            {"ReferenceDomainOffset", std::move(referenceDomainOffset)}}))
+DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution,
+                                   StringPtr origin,
+                                   UnitPtr unit,
+                                   StringPtr referenceDomainId,
+                                   NumberPtr referenceDomainOffset,
+                                   BoolPtr referenceDomainIsAbsolute)
+    : GenericStructImpl<IDeviceDomain, IStruct>(
+          detail::deviceDomainStructType,
+          Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
+                                      {"Origin", std::move(origin)},
+                                      {"Unit", std::move(unit)},
+                                      {"ReferenceDomainId", std::move(referenceDomainId)},
+                                      {"ReferenceDomainOffset", std::move(referenceDomainOffset)},
+                                      {"ReferenceDomainIsAbsolute", std::move(referenceDomainIsAbsolute)}}))
 {
 }
 
@@ -66,6 +72,17 @@ ErrCode DeviceDomainImpl::getReferenceDomainOffset(INumber** referenceDomainOffs
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DeviceDomainImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+
+    auto ptr = this->fields.get("ReferenceDomainIsAbsolute");
+    if (ptr.assigned())
+        *referenceDomainIsAbsolute = ptr.asPtr<IBoolean>().addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
 {
     OPENDAQ_PARAM_NOT_NULL(serializer);
@@ -106,6 +123,13 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             serializer->key("referenceDomainOffset");
             serializer->writeFloat(referenceDomainOffset);
         }
+
+        const BoolPtr referenceDomainIsAbsolute = this->fields.get("ReferenceDomainIsAbsolute");
+        if (referenceDomainIsAbsolute.assigned())
+        {
+            serializer->key("referenceDomainIsAbsolute");
+            serializer->writeBool(referenceDomainIsAbsolute);
+        }
     }
 
     serializer->endObject();
@@ -136,6 +160,7 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     UnitPtr unit;
     StringPtr referenceDomainId;
     NumberPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
     
     if (serializedObj.hasKey("tickResolution"))
     {
@@ -162,7 +187,12 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         referenceDomainOffset = serializedObj.readFloat("referenceDomainOffset");
     }
 
-    *obj = DeviceDomain(resolution, origin, unit, referenceDomainId, referenceDomainOffset).as<IBaseObject>();
+    if (serializedObj.hasKey("referenceDomainIsAbsolute"))
+    {
+        referenceDomainIsAbsolute = serializedObj.readBool("referenceDomainIsAbsolute");
+    }
+
+    *obj = DeviceDomain(resolution, origin, unit, referenceDomainId, referenceDomainOffset, referenceDomainIsAbsolute).as<IBaseObject>();
     return OPENDAQ_SUCCESS;
 }
 
@@ -171,7 +201,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IString*, origin,
     IUnit*, unit,
     IString*, referenceDomainId,
-    INumber*, referenceDomainOffset
+    INumber*, referenceDomainOffset,
+    IBoolean*, referenceDomainIsAbsolute
 )
 
 END_NAMESPACE_OPENDAQ

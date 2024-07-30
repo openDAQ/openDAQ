@@ -73,6 +73,9 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainOffset(INumber* referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
 
+    ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+
 protected:
     ListPtr<IDimension> dimensions;
     StringPtr name;
@@ -87,6 +90,7 @@ protected:
     DictPtr<IString, IString> metadata;
     StringPtr referenceDomainId;
     NumberPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
 };
 
 END_NAMESPACE_OPENDAQ

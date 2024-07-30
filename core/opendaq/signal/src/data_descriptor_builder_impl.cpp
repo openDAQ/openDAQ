@@ -22,6 +22,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
     , metadata(Dict<IString, IString>())
     , referenceDomainId(nullptr)
     , referenceDomainOffset(nullptr)
+    , referenceDomainIsAbsolute(nullptr)
 {
 }
 
@@ -39,6 +40,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , metadata(descriptorCopy.getMetadata())
     , referenceDomainId(descriptorCopy.getReferenceDomainId())
     , referenceDomainOffset(descriptorCopy.getReferenceDomainOffset())
+    , referenceDomainIsAbsolute(descriptorCopy.getReferenceDomainIsAbsolute())
 {
 }
 
@@ -230,6 +232,19 @@ ErrCode DataDescriptorBuilderImpl::getReferenceDomainOffset(INumber** referenceD
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
     *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute)
+{
+    this->referenceDomainIsAbsolute = referenceDomainIsAbsolute;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

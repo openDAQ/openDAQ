@@ -29,7 +29,8 @@ public:
                               StringPtr origin,
                               UnitPtr unit,
                               StringPtr referenceDomainId = nullptr,
-                              NumberPtr referenceDomainOffset = nullptr);
+                              NumberPtr referenceDomainOffset = nullptr,
+                              BoolPtr referenceDomainIsAbsolute = nullptr);
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
@@ -37,6 +38,7 @@ public:
 
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

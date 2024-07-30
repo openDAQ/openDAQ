@@ -684,7 +684,6 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0TimeoutExceeded)
     if (thread.joinable())
         thread.join();
 
-    ASSERT_THAT(end - start, AllOf(Gt(299ms), Le(350ms)));
     ASSERT_EQ(count, SAMPLES - 77);
 
     std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};

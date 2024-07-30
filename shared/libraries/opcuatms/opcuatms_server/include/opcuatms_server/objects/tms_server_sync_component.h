@@ -35,11 +35,9 @@ public:
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
-    void bindPropertyCallbacks(const std::string& name);
     void triggerEvent(PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args);
 
     TmsServerSyncInterfacesPtr interfaces;
-    TmsServerPropertyPtr source;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

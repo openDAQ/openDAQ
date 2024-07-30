@@ -38,7 +38,7 @@ public:
 
     ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override
     {
-        return Super::setPropertyValue(String("Source"), Integer(selectedSource));
+        return TmsClientComponentBaseImpl::setPropertyValue(String("Source"), Integer(selectedSource));
     }
 
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override
@@ -60,7 +60,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames)
+    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override
     {
         try
         {

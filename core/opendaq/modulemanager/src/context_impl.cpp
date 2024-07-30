@@ -265,7 +265,6 @@ void ContextImpl::registerOpenDaqTypes()
     typeManager->addType(enumDelayMechanism);
     typeManager->addType(enumProfiles);
 
-    PropertyObjectPtr ports = PropertyObject();
 
     PropertyObjectPtr parameters = PropertyObject();
     parameters.addProperty(StructProperty("PtpConfigurationStructure",
@@ -280,6 +279,8 @@ void ContextImpl::registerOpenDaqTypes()
                                                             {"Priority2", 0},
                                                             {"Profiles", Enumeration("PtpProfileEnumeration", "I558", typeManager)}}),
                                                             typeManager)));
+
+    PropertyObjectPtr ports = PropertyObject();
     parameters.addProperty(ObjectProperty("Ports", ports));
 
     auto ptpSyncInterface = PropertyObjectClassBuilder(typeManager, "PtpSyncInterface")

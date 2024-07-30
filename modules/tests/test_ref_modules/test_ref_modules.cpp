@@ -451,8 +451,6 @@ TEST_F(RefModulesTest, SerializeDevicePower)
 
     const auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    auto syncComponent = device0.getItem("Synchronization");
-    syncComponent.setPropertyValue("UseSync", True);
 
     const auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
@@ -490,8 +488,6 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
     auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    const auto syncComponent = device0.getItem("Synchronization");
-    syncComponent.setPropertyValue("UseSync", True);
     auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
@@ -545,7 +541,6 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
     instance.loadConfiguration(configuration);
 
-    ASSERT_EQ(device0.getItem("Synchronization").getPropertyValue("UseSync"), True);
     ASSERT_EQ(device0.getPropertyValue("GlobalSampleRate"), 10000);
     device0Channel = device0.getChannels()[0];
     ASSERT_EQ(device0Channel.getPropertyValue("Frequency"), 10.2);

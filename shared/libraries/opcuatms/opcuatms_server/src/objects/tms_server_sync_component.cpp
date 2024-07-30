@@ -26,6 +26,7 @@ void TmsServerSyncComponent::addChildNodes()
 
     tmsPropertyObject->ignoredProps.emplace("Interfaces");
     tmsPropertyObject->ignoredProps.emplace("InterfaceNames");
+    tmsPropertyObject->ignoredProps.emplace("SynchronizationLocked");
 
     Super::addChildNodes();
 }

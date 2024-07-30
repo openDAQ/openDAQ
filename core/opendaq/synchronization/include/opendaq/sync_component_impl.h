@@ -76,7 +76,7 @@ GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl
     Super::addProperty(ObjectProperty("Interfaces", PropertyObject()));
     Super::addProperty(ListProperty("InterfaceNames", List<IString>()));
     Super::addProperty(SelectionProperty("Source", EvalValue("$InterfaceNames"), 0));
-    Super::addProperty(BoolProperty("SyncronizationLocked", false));
+    Super::addProperty(BoolProperty("SynchronizationLocked", false));
 
 }
 
@@ -91,7 +91,7 @@ template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSyncLocked(Bool* synchronizationLocked)
 {
     return daqTry([&]() {
-        *synchronizationLocked = getTypedProperty<IBoolean>("SyncronizationLocked");
+        *synchronizationLocked = getTypedProperty<IBoolean>("SynchronizationLocked");
         return OPENDAQ_SUCCESS;
     });
 }
@@ -99,7 +99,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSyncLocked(Bo
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::setSyncLocked(Bool synchronizationLocked)
 {
-    return Super::setPropertyValue(String("SyncronizationLocked"), BooleanPtr(synchronizationLocked));
+    return Super::setPropertyValue(String("SynchronizationLocked"), BooleanPtr(synchronizationLocked));
 }
 
 template <typename MainInterface, typename ... Interfaces>

@@ -213,4 +213,17 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
         },
         py::return_value_policy::take_ownership,
         "Gets the reference domain offset. / Sets the reference domain offset.");
+    cls.def_property("reference_domain_is_absolute",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getReferenceDomainIsAbsolute().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& referenceDomainIsAbsolute)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setReferenceDomainIsAbsolute(getVariantValue<daq::IBoolean*>(referenceDomainIsAbsolute));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the flag that indicates if the reference domain is absolute. / Sets the flag that indicates if the reference domain is absolute.");
 }

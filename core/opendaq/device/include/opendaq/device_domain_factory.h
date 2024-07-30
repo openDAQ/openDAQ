@@ -31,9 +31,11 @@ inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution,
                                     const StringPtr& origin,
                                     const UnitPtr& unit,
                                     const StringPtr& referenceDomainId = nullptr,
-                                    const NumberPtr& referenceDomainOffset = nullptr)
+                                    const NumberPtr& referenceDomainOffset = nullptr,
+                                    const BoolPtr& referenceDomainIsAbsolute = nullptr)
 {
-    DeviceDomainPtr obj(DeviceDomain_Create(tickResolution, origin, unit, referenceDomainId, referenceDomainOffset));
+    DeviceDomainPtr obj(
+        DeviceDomain_Create(tickResolution, origin, unit, referenceDomainId, referenceDomainOffset, referenceDomainIsAbsolute));
     return obj;
 }
 
@@ -41,9 +43,9 @@ inline StructTypePtr DeviceDomainStructType()
 {
     return StructType(
         "DeviceDomain",
-        List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainId", "ReferenceDomainOffset"),
-        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr),
-        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctFloat)));
+        List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainId", "ReferenceDomainOffset", "ReferenceDomainIsAbsolute"),
+        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr, nullptr),
+        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctFloat), SimpleType(ctBool)));
 }
 
 /*!@}*/

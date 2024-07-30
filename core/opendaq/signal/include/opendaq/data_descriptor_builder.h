@@ -22,6 +22,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [include(ISampleType)]
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
  */
 
 /*!
@@ -244,6 +245,23 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * TODO description
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the flag that indicates if the reference domain is absolute.
+     * @param referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) = 0;
+
+    /*!
+     * @brief Gets the flag that indicates if the reference domain is absolute.
+     * @param[out] referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
 };
 /*!@}*/
 

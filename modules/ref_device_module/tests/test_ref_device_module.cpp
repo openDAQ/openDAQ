@@ -186,6 +186,17 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
     ASSERT_EQ(res, nullptr);
 }
 
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIsAbsolute)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainIsAbsolute();
+    ASSERT_EQ(res, nullptr);
+}
+
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();

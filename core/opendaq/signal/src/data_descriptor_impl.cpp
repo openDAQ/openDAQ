@@ -34,6 +34,7 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("Metadata", builderPtr.getMetadata());
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
+    params.set("ReferenceDomainIsAbsolute", builderPtr.getReferenceDomainIsAbsolute());
 
     return params;
 }
@@ -57,6 +58,7 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->dataRuleCalc = nullptr;
     this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
     this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
+    this->referenceDomainIsAbsolute = dataDescriptorBuilderPtr.getReferenceDomainIsAbsolute();
     checkErrorInfo(validate());
     calculateSampleMemSize();
 }
@@ -182,6 +184,15 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainOffset(INumber** re
     OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
 
     *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+
+    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -339,6 +350,8 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
             return OPENDAQ_SUCCESS;
         if (!BaseObjectPtr::Equals(referenceDomainOffset, descriptor.getReferenceDomainOffset()))
             return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainIsAbsolute, descriptor.getReferenceDomainIsAbsolute()))
+            return OPENDAQ_SUCCESS;
 
         *equals = true;
         return OPENDAQ_SUCCESS;
@@ -459,6 +472,13 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
             serializer->key("referenceDomainOffset");
             serializer->writeFloat(referenceDomainOffset);
         }
+
+        if (referenceDomainIsAbsolute.assigned())
+        {
+            serializer->key("referenceDomainIsAbsolute");
+            serializer->writeBool(referenceDomainIsAbsolute);
+        }
+
     }
     serializer->endObject();
 
@@ -547,6 +567,13 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
         auto referenceDomainOffset = serializedObj.readFloat("referenceDomainOffset");
         dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
     }
+
+    if (serializedObj.hasKey("referenceDomainIsAbsolute"))
+    {
+        auto referenceDomainIsAbsolute = serializedObj.readBool("referenceDomainIsAbsolute");
+        dataDescriptor.setReferenceDomainIsAbsolute(referenceDomainIsAbsolute);
+    }
+
     *obj = dataDescriptor.build().as<IBaseObject>();
 
     return OPENDAQ_SUCCESS;

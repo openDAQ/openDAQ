@@ -17,11 +17,11 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
     : GenericStructImpl<IDimensionRule, IStruct, IRulePrivate>(
           detail::dimensionRuleStructType,
           Dict<IString, IBaseObject>({
-              {"ruleType", static_cast<Int>(ruleType)},
-              {"parameters", params},
+              {"RuleType", static_cast<Int>(ruleType)},
+              {"Parameters", params},
           }))
       , ruleType(ruleType)
-      , params(this->fields.get("parameters"))
+      , params(this->fields.get("Parameters"))
 {
     checkErrorInfo(verifyParametersInternal());
     if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
@@ -29,7 +29,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
 }
 
 DimensionRuleImpl::DimensionRuleImpl(const ListPtr<INumber>& list)
-    : DimensionRuleImpl(DimensionRuleType::List, Dict<IString, IBaseObject>({{"list", list}}))
+    : DimensionRuleImpl(DimensionRuleType::List, Dict<IString, IBaseObject>({{"List", list}}))
 {
 }
 
@@ -146,17 +146,17 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
 
 ErrCode DimensionRuleImpl::checkListRuleValidity() const
 {
-    if (!params.hasKey("list"))
+    if (!params.hasKey("List"))
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "list" parameter is required.)");
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "List" parameter is required.)");
     }
 
-    if (!params.get("list").asPtrOrNull<IList>().assigned())
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "list" parameter must be a list object.)");
+    if (!params.get("List").asPtrOrNull<IList>().assigned())
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "List" parameter must be a list object.)");
 
-    if (!listLabelsValid(params.get("list")))
+    if (!listLabelsValid(params.get("List")))
         return makeErrorInfo(OPENDAQ_ERR_INVALID_DIMENSION_LABEL_TYPES,
-                             R"(The "list" elements must be either strings, numbers, or ranges. All elements must be of the same kind.)");
+                             R"(The "List" elements must be either strings, numbers, or ranges. All elements must be of the same kind.)");
 
     return OPENDAQ_SUCCESS;
 }

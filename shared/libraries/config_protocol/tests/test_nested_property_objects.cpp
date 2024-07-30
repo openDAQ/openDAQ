@@ -30,7 +30,7 @@ public:
     {
         serverDevice = test_utils::createServerDevice();
         serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1));
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigNestedPropertyObjectTest::sendRequest, this, std::placeholders::_1), nullptr);
@@ -71,7 +71,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientGet)
     const PropertyObjectPtr child1_2_1 = child1_2.getPropertyValue("child1_2_1");
     const PropertyObjectPtr child2_1 = child2.getPropertyValue("child2_1");
 
-    ASSERT_EQ(child1_2_1.getPropertyValue("String"), "string");
+    ASSERT_EQ(child1_2_1.getPropertyValue("String"), "String");
     ASSERT_DOUBLE_EQ(child1_1.getPropertyValue("Float"), 1.1);
     ASSERT_EQ(child1_2.getPropertyValue("Int"), 1);
     ASSERT_EQ(child2_1.getPropertyValue("Ratio"), Ratio(1,2));
@@ -79,7 +79,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientGet)
 
 TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientGetDotAccess)
 {
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
@@ -132,8 +132,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientSetDotAccess)
 TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientProtectedSet)
 {
     ASSERT_THROW(clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString", "new_string"), AccessDeniedException);
-    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString"), "string");
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString"), "string");
+    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString"), "String");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString"), "String");
 
     ASSERT_NO_THROW(clientDevice.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString", "new_string"));
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.ReadOnlyString"), "new_string");
@@ -149,12 +149,12 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClear)
 
     clientDevice.clearPropertyValue("ObjectProperty");
 
-    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
 
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
@@ -166,12 +166,12 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClear)
     
     clientDevice.clearPropertyValue("ObjectProperty.child1");
 
-    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
 
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
@@ -183,8 +183,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClassProperty)
     ASSERT_EQ(serverDevice.getPropertyValue("MockChild.NestedStringProperty"), "new_string");
     ASSERT_EQ(clientDevice.getPropertyValue("MockChild.NestedStringProperty"), "new_string");
     clientDevice.clearPropertyValue("MockChild.NestedStringProperty");
-    ASSERT_EQ(serverDevice.getPropertyValue("MockChild.NestedStringProperty"), "string");
-    ASSERT_EQ(clientDevice.getPropertyValue("MockChild.NestedStringProperty"), "string");
+    ASSERT_EQ(serverDevice.getPropertyValue("MockChild.NestedStringProperty"), "String");
+    ASSERT_EQ(clientDevice.getPropertyValue("MockChild.NestedStringProperty"), "String");
 }
 
 TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerSet)
@@ -217,7 +217,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearIndividual)
     serverDevice.clearPropertyValue("ObjectProperty.child1.child1_2.Int");
     serverDevice.clearPropertyValue("ObjectProperty.child2.child2_1.Ratio");
 
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
@@ -237,7 +237,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearObject)
 
     serverDevice.clearPropertyValue("ObjectProperty");
 
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
@@ -249,7 +249,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearObject)
 
     serverDevice.clearPropertyValue("ObjectProperty.child1");
     
-    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "string");
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));

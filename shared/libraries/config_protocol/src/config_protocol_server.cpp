@@ -63,8 +63,7 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
     return nullptr;
 }
 
-ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
-                                           NotificationReadyCallback notificationReadyCallback)
+ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback, const UserPtr& user)
     : rootDevice(std::move(rootDevice))
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
@@ -72,6 +71,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , serializer(JsonSerializer())
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
+    , user(user)
 {
     buildRpcDispatchStructure();
 
@@ -272,6 +272,7 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
     }
 
     serializer.reset();
+    serializer.setUser(user);
     retObj.serialize(serializer);
     return serializer.getOutput();
 }

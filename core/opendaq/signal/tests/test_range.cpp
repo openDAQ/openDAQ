@@ -62,8 +62,8 @@ TEST_F(RangeTest, StructType)
 TEST_F(RangeTest, StructFields)
 {
     const StructPtr structPtr = Range(1, 2);
-    ASSERT_EQ(structPtr.get("lowValue"), 1);
-    ASSERT_EQ(structPtr.get("highValue"), 2);
+    ASSERT_EQ(structPtr.get("LowValue"), 1);
+    ASSERT_EQ(structPtr.get("HighValue"), 2);
 }
 
 TEST_F(RangeTest, StructNames)

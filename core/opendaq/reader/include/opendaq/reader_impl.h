@@ -23,6 +23,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <coretypes/number_ptr.h>
 
 #include <mutex>
 #include <utility>
@@ -39,9 +40,11 @@ public:
     explicit ReaderImpl(SignalPtr signal,
                         ReadMode mode,
                         SampleType valueReadType,
-                        SampleType domainReadType)
+                        SampleType domainReadType,
+                        Bool skipEvents)
         : readMode(mode)
         , timeoutType(ReadTimeoutType::All)
+        , skipEvents(skipEvents)
     {
         if (!signal.assigned())
             throw ArgumentNullException("Signal must not be null.");
@@ -61,11 +64,16 @@ public:
     explicit ReaderImpl(InputPortConfigPtr port,
                         ReadMode mode,
                         SampleType valueReadType,
-                        SampleType domainReadType)
+                        SampleType domainReadType,
+                        Bool skipEvents)
         : readMode(mode)
         , portBinder(PropertyObject())
         , timeoutType(ReadTimeoutType::All)
+        , skipEvents(skipEvents)
     {
+        if (port.getConnection().assigned())
+            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
         if (!port.assigned())
             throw ArgumentNullException("Signal must not be null.");
         
@@ -76,8 +84,6 @@ public:
         this->port = port;
         this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
-        if (port.getConnection().assigned())
-            connection = this->port.getConnection();
         valueReader = createReaderForType(valueReadType, nullptr);
         domainReader = createReaderForType(domainReadType, nullptr);
     }
@@ -109,10 +115,10 @@ public:
      * @brief Called when a signal is connected to the input port.
      * @param inputPort The port to which the signal was connected.
      */
-    ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
+    virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        connection = InputPortPtr::Borrow(inputPort).getConnection();
+        inputPort->getConnection(&connection);
         return OPENDAQ_SUCCESS;
     }
 
@@ -120,7 +126,7 @@ public:
      * @brief Called when a signal is disconnected from the input port.
      * @param inputPort The port from which a signal was disconnected.
      */
-    ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
+    virtual ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
 
@@ -311,6 +317,7 @@ protected:
         : readMode(old->readMode)
         , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
+        , skipEvents(old->skipEvents)
     {
         dataDescriptor = old->dataDescriptor;
         domainDescriptor = old->domainDescriptor;
@@ -474,6 +481,23 @@ protected:
         throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
     }
 
+    NumberPtr calculateOffset(const DataPacketPtr& packet, SizeT offset) const 
+    {
+        const auto domainPacket = packet.getDomainPacket();
+        if (domainPacket.assigned() && domainPacket.getOffset().assigned())
+        {
+            Int delta = 0;
+            const auto domainRule = domainPacket.getDataDescriptor().getRule();
+            if (domainRule.assigned() && domainRule.getType() == DataRuleType::Linear)
+            {
+                const auto domainRuleParams = domainRule.getParameters();
+                delta = domainRuleParams.get("delta");
+            }
+            return NumberPtr(domainPacket.getOffset().getIntValue() + (offset * delta));
+        }
+        return NumberPtr(0);
+    }
+
     bool invalid{};
     std::mutex mutex;
     ReadMode readMode;
@@ -488,6 +512,7 @@ protected:
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
+    Bool skipEvents = false;
 };
 
 END_NAMESPACE_OPENDAQ

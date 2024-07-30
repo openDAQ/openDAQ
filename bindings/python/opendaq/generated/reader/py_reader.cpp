@@ -57,4 +57,11 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
             objectPtr.setOnDataAvailable(callback);
         },
         "Sets the specified callback function to be called when there is available data in the reader. Pass @c nullptr to unset the callback. The callback should take no arguments.");
+    cls.def_property_readonly("empty",
+        [](daq::IReader *object)
+        {
+            const auto objectPtr = daq::ReaderPtr::Borrow(object);
+            return objectPtr.getEmpty();
+        },
+        "Checks if there is data to read.");
 }

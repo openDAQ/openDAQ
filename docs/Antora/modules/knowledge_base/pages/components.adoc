@@ -118,7 +118,7 @@ Cpp::
 +
 [source,cpp]
 ----
-const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
 std::cout << "The Scaling Function Block available statuses: ";
 for (const auto& [name, _] : scalingFb.getStatusContainer().getStatuses())
     std::cout << "\"" << name << "\"; ";
@@ -131,7 +131,7 @@ C#::
 +
 [source,csharp]
 ----
-var scalingFb = instance.AddFunctionBlock("ref_fb_module_scaling");
+var scalingFb = instance.AddFunctionBlock("RefFBModuleScaling");
 Console.WriteLine("The Scaling Function Block available statuses: ");
 foreach (string statusName in functionBlock.StatusContainer.Statuses.Keys)
     Console.WriteLine($"\"{statusName}\"");

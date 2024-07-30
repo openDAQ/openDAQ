@@ -9,46 +9,44 @@ BEGIN_NAMESPACE_OPENDAQ
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
-BlockReaderImpl::BlockReaderImpl(
-    const SignalPtr& signal,
-    SizeT blockSize,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    ReadMode mode,
-    SizeT overlap)
-    : Super(signal, mode, valueReadType, domainReadType)
+BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode,
+                                 SizeT overlap,
+                                 Bool skipEvents)
+    : Super(signal, mode, valueReadType, domainReadType, skipEvents)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
 
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    readDescriptorFromPort();
+    packetReceived(port.asPtrOrNull<IInputPort>(true));
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    IInputPortConfig* port,
-    SizeT blockSize,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    ReadMode mode,
-    SizeT overlap)
-    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode,
+                                 SizeT overlap,
+                                 Bool skipEvents)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType, skipEvents)
     , blockSize(blockSize)
     , overlap(overlap)
 {
     initOverlap();
-
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    const ReaderConfigPtr& readerConfig,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    SizeT blockSize,
-    ReadMode mode,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 SizeT blockSize,
+                                 ReadMode mode,
+                                 SizeT overlap)
     : Super(readerConfig, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
@@ -58,12 +56,11 @@ BlockReaderImpl::BlockReaderImpl(
     readDescriptorFromPort();
 }
 
-BlockReaderImpl::BlockReaderImpl(
-    BlockReaderImpl* old,
-    SampleType valueReadType,
-    SampleType domainReadType,
-    SizeT blockSize,
-    SizeT overlap)
+BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 SizeT blockSize,
+                                 SizeT overlap)
     : Super(old, valueReadType, domainReadType)
     , blockSize(blockSize)
     , overlap(overlap)
@@ -72,15 +69,7 @@ BlockReaderImpl::BlockReaderImpl(
     initOverlap();
 
     this->internalAddRef();
-    if (portBinder.assigned())
-    {
-        auto eventPacket = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
-        handleDescriptorChanged(eventPacket);
-    }
-    else
-    {
-        readDescriptorFromPort();
-    }
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 
     notify.dataReady = false;
 }
@@ -114,48 +103,103 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 SizeT BlockReaderImpl::getAvailable() const
 {
     const auto availableSamples = getAvailableSamples();
-    return availableSamples < blockSize ? 0 : calculateBlockCount(availableSamples);
+    return calculateBlockCount(availableSamples);
 }
 
 SizeT BlockReaderImpl::getAvailableSamples() const
 {
-    SizeT count{};
+    SizeT count = 0;
     if (info.currentDataPacketIter != info.dataPacketsQueue.end())
-        count = info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
-    count += connection.getAvailableSamples();
+        count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    if (connection.assigned())
+        count += skipEvents ? connection.getSamplesUntilNextGapPacket() : connection.getSamplesUntilNextEventPacket();
     return count;
+}
+
+SizeT BlockReaderImpl::getTotalSamples() const
+{
+    SizeT count = 0;
+    if (info.currentDataPacketIter != info.dataPacketsQueue.end())
+        count += info.currentDataPacketIter->getSampleCount() - info.prevSampleIndex;
+    if (connection.assigned())
+        count += connection.getAvailableSamples();
+    return count;
+}
+
+
+ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+    std::scoped_lock lock(notify.mutex);
+    inputPort->getConnection(&connection);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode BlockReaderImpl::disconnected(IInputPort* inputPort)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+    std::scoped_lock lock(notify.mutex);
+    connection = nullptr;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
+    ProcedurePtr callback;
     {
+        bool triggerCallback = false;
         std::scoped_lock lock(notify.mutex);
-
-        if (getAvailable() != 0)
+        if (connection.hasEventPacket())
         {
-            notify.dataReady = true;
+            triggerCallback = true;
         }
         else
+        {
+            triggerCallback = calculateBlockCount(getTotalSamples()) != 0;
+        }
+
+        if (triggerCallback)
+        {
+            callback = readCallback;
+            notify.dataReady = true;
+        }
+    }
+   
+    notify.condition.notify_one();
+
+    if (callback.assigned())
+    {
+        return wrapHandler(callback);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode BlockReaderImpl::getEmpty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+
+    std::scoped_lock lock(mutex);
+    if (connection.assigned())
+    {
+        *empty = false;
+        if (!skipEvents && connection.hasEventPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (skipEvents && connection.hasGapPacket())
         {
             return OPENDAQ_SUCCESS;
         }
     }
-    notify.condition.notify_one();
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
-    std::unique_lock lock(mutex);
-    auto callback = readCallback;
-    while (callback.assigned() && getAvailable() && OPENDAQ_SUCCEEDED(errCode))
-    {
-        lock.unlock();
-        errCode = wrapHandler(callback);
-        lock.lock();
-        callback = readCallback;
-    }
-
-    return errCode;
+    *empty = calculateBlockCount(getTotalSamples()) == 0;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode BlockReaderImpl::readPacketData()
@@ -208,7 +252,6 @@ ErrCode BlockReaderImpl::readPacketData()
     {
         if (++info.currentDataPacketIter == info.dataPacketsQueue.end())
         {
-            std::unique_lock lock(notify.mutex);
             notify.dataReady = false;
         }
         info.resetSampleIndex();
@@ -218,33 +261,48 @@ ErrCode BlockReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
+BlockReaderStatusPtr BlockReaderImpl::readPackets()
 {
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
+    std::unique_lock notifyLock(notify.mutex);
     auto initialWrittenSamplesCount = info.writtenSampleCount;
-    auto availableSamples = getAvailableSamples();
 
-    if (availableSamples < info.remainingSamplesToRead && info.timeout.count() > 0)
+    if (info.timeout.count() > 0)
     {
-        // if not enough samples wait for the timeout or a full block
-        std::unique_lock notifyLock(notify.mutex);
-        auto condition = [this, &availableSamples]
+        // if there is no enough samples - wait for the timeout or a full block
+        auto condition = [this]
         {
-            if (!notify.dataReady)
+            if (!connection.assigned())
+            {
                 return false;
-            notify.dataReady = false;
+            }
 
-            availableSamples = getAvailableSamples();
-            return availableSamples >= info.remainingSamplesToRead;
+            if (skipEvents)
+            {
+                if (connection.hasGapPacket())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (connection.hasEventPacket())
+                {
+                    return true;
+                }
+            }
+
+            if (!notify.dataReady)
+            {
+                return false;
+            }
+            notify.dataReady = false;
+            return getAvailableSamples() >= info.remainingSamplesToRead;
         };
         notify.condition.wait_for(notifyLock, info.timeout, condition);
     }
 
-    info.remainingSamplesToRead = std::min(availableSamples, info.remainingSamplesToRead);
-    *count = calculateBlockCount(info.remainingSamplesToRead);
-
-    while (info.remainingSamplesToRead != 0)
+    NumberPtr offset;
+    while (true)    
     {
         PacketPtr packet;
 
@@ -252,82 +310,75 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
         {
             packet = *info.currentDataPacketIter;
         }
-        else
+        
+        if (!packet.assigned())
         {
             // if no partially-read packet and there are more blocks left in the connection
-            std::unique_lock notifyLock(notify.mutex);
-
-            packet = connection.dequeue();
-            notify.dataReady = false;
+            if (connection.assigned())
+            {
+                packet = connection.dequeue();
+            }
         }
 
-        switch (packet.getType())
+        if (!packet.assigned())
         {
-            case PacketType::Data:
-            {
-                if (info.currentDataPacketIter == info.dataPacketsQueue.end())
-                {
-                    info.dataPacketsQueue.emplace_back(packet);
-                    info.currentDataPacketIter = --info.dataPacketsQueue.end();
-                }
-                errCode = readPacketData();
+            break;
+        }
 
-                if (OPENDAQ_FAILED(errCode))
-                {
-                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-                    if (status)
-                        *status = BlockReaderStatus(nullptr, true, writtenSamplesCount).detach();
-                    *count = writtenSamplesCount / blockSize;
-                    return errCode;
-                }
+        if (packet.getType() == PacketType::Data)
+        {
+            if (info.currentDataPacketIter == info.dataPacketsQueue.end())
+            {
+                info.dataPacketsQueue.emplace_back(packet);
+                info.currentDataPacketIter = --info.dataPacketsQueue.end();
+            }
+
+            if (info.remainingSamplesToRead == 0)
+            {
                 break;
             }
-            case PacketType::Event:
+
+            if (!offset.assigned())
             {
-                // Handle events
-                auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
-                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                {
-                    handleDescriptorChanged(eventPacket);
-                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-                    if (status)
-                        *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
-                    *count = writtenSamplesCount / blockSize;
-                    info.clean();
-                    return errCode;
-                }
-
-                if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
-                {
-                    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-                    if (status)
-                        *status = BlockReaderStatus(eventPacket, !invalid, writtenSamplesCount).detach();
-                    *count = writtenSamplesCount / blockSize;
-                    info.clean();
-                    return errCode;
-                }
-
-                break;
+                offset = calculateOffset(*info.currentDataPacketIter, info.prevSampleIndex);
             }
-            case PacketType::None:
-                break;
+
+            ErrCode errCode = readPacketData();
+            if (OPENDAQ_FAILED(errCode))
+            {
+                auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
+                return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
+            }
+        }
+        else if (packet.getType() == PacketType::Event)
+        {
+            // Handle events
+            auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                handleDescriptorChanged(eventPacket);
+            }
+
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
+                info.clean();
+                return BlockReaderStatus(eventPacket, !invalid, offset, writtenSamplesCount);
+            }
         }
     }
 
-    if (status)
-    {
-        auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
-        *status = BlockReaderStatus(nullptr, !invalid, writtenSamplesCount).detach();
-        *count = writtenSamplesCount / blockSize;
-    }
-
-    return errCode;
+    auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
+    return BlockReaderStatus(nullptr, !invalid, offset, writtenSamplesCount);
 }
 
-ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IBlockReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(blocks);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(blocks);
+    }
 
     std::scoped_lock lock(mutex);
 
@@ -335,24 +386,30 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     {
         if (status)
             *status = BlockReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
-
-    if (status)
-        *status = nullptr;
 
     const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepare(blocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
-    const ErrCode errCode = readPackets(status, count);
-    return errCode;
+    auto statusPtr = readPackets();
+    *count = statusPtr.getReadSamples() / blockSize;
+    if (status)
+    {
+        *status = statusPtr.detach();
+    }
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
+ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IBlockReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(dataBlocks);
-    OPENDAQ_PARAM_NOT_NULL(domainBlocks);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(dataBlocks);
+        OPENDAQ_PARAM_NOT_NULL(domainBlocks);
+    }
 
     std::scoped_lock lock(mutex);
 
@@ -360,17 +417,20 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     {
         if (status)
             *status = BlockReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
-
-    if (status)
-        *status = nullptr;
 
     const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
-    const ErrCode errCode = readPackets(status, count);
-    return errCode;
+    auto statusPtr = readPackets();
+    *count = statusPtr.getReadSamples() / blockSize;
+    if (status)
+    {
+        *status = statusPtr.detach();
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 void BlockReaderImpl::initOverlap()
@@ -469,7 +529,8 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlap());
+                builderPtr.getOverlap(),
+                builderPtr.getSkipEvents());
         }
         else if (inputPort.assigned())
         {
@@ -480,7 +541,8 @@ struct ObjectCreator<IBlockReader>
                 builderPtr.getValueReadType(),
                 builderPtr.getDomainReadType(),
                 builderPtr.getReadMode(),
-                builderPtr.getOverlap());
+                builderPtr.getOverlap(),
+                builderPtr.getSkipEvents());
         }
         else
         {

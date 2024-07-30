@@ -53,8 +53,8 @@ inline DeviceTypePtr DeviceType(const StringPtr& id,
  */
 inline StructTypePtr DeviceTypeStructType()
 {
-    return StructType("deviceType",
-                      List<IString>("id", "name", "description", "prefix"),
+    return StructType("DeviceType",
+                      List<IString>("Id", "Name", "Description", "Prefix"),
                       List<IString>("", "", "", ""),
                       List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }

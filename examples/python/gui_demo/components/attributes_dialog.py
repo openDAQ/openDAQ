@@ -308,7 +308,7 @@ class AttributesDialog(Dialog):
                     value) is not daq.IDict else ''
                 iid = parent_node_name + '.' + name
                 self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=name, values=(display_value))
+                    parent_node_name, tk.END, iid=iid, text=name, values=(display_value,))
                 if type(value) is dict or type(value) is daq.IDict:
                     self.fill_additional_tree(iid, value)
         elif type(attributes) is daq.IDeviceInfo:
@@ -316,4 +316,4 @@ class AttributesDialog(Dialog):
                 iid = parent_node_name + '.' + property.name
                 value = attributes.get_property_value(property.name)
                 self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=property.name, values=(value))
+                    parent_node_name, tk.END, iid=iid, text=property.name, values=(value,))

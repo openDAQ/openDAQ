@@ -212,6 +212,23 @@ ErrCode JsonSerializerImpl<TWriter>::writeString(ConstCharPtr string, SizeT leng
 }
 
 template <typename TWriter>
+ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(IBaseObject** user)
+{
+    if (!user)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *user = this->userContext.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TWriter>
+ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(IBaseObject* user)
+{
+    this->userContext = user;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::getOutput(IString** output)
 {
     *output = String_Create(buffer.GetString());

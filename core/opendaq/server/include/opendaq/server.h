@@ -36,7 +36,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Depend of the implementation, it can support configuring the device, reading configuration, and data streaming.
  *
  * We do not make the server directly. But through the instance and module manager. For that reason, the server must be uniquely
- * defined with "serverType". The server is than created with the current root device, context and configuration object.
+ * defined with "ServerType". The server is than created with the current root device, context and configuration object.
  *
  * Configuration of the server can be done with custom property object.
  * The configuration object is created with the corresponding ServerType object (IServerType::createDefaultConfig method).

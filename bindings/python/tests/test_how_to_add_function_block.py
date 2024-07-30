@@ -16,9 +16,9 @@ class TestDocumentationHow(opendaq_test.TestCase):
         device = instance.root_device
 
         # Start a web-socket streaming server
-        instance.add_server('openDAQ LT Streaming', None)
+        instance.add_server('OpenDAQLTStreaming', None)
 
-        # Start an openDAQ OpcUa and native streaming servers
+        # Start an openDAQ OPC UA and native streaming servers
         # TODO: remove assignment to `servers` once OPC UA server destruction order issue is fixed
         servers = instance.add_standard_servers()
 

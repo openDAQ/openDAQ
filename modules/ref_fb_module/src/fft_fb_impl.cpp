@@ -64,7 +64,7 @@ void FFTFbImpl::readProperties()
 
 FunctionBlockTypePtr FFTFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_fft", "FFT", "Fast Fourier Transform");
+    return FunctionBlockType("RefFBModuleFFT", "FFT", "Fast Fourier Transform");
 }
 
 bool FFTFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)
@@ -192,12 +192,10 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 void FFTFbImpl::calculate()
 {
     std::scoped_lock lock(sync);
-    SizeT availableBlocks = linearReader.getAvailableCount();
-    bool continueReading = availableBlocks > 0;
 
-    while (continueReading)
+    while (!linearReader.getEmpty())
     {
-        SizeT readAmount = std::min(availableBlocks, maxBlockReadCount);
+        SizeT readAmount = std::min(linearReader.getAvailableCount(), maxBlockReadCount);
         const auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &readAmount);
 
         if (configValid)
@@ -212,11 +210,7 @@ void FFTFbImpl::calculate()
                 processEventPacket(eventPacket);
             return;
         }
-
-        continueReading = readAmount < availableBlocks;
-        availableBlocks -= readAmount;
     }
-
 }
 
 void FFTFbImpl::processData(SizeT readAmount)
@@ -251,7 +245,7 @@ void FFTFbImpl::processData(SizeT readAmount)
 
 void FFTFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
 
     linearReader = BlockReaderFromPort(inputPort, blockSize, SampleType::Float32, SampleType::UInt64);
     linearReader.setOnDataAvailable([this] { calculate();});

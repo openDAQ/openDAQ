@@ -47,7 +47,7 @@ TEST_F(ComponentsTest, DeviceFolderTypes)
 TEST_F(ComponentsTest, ComponentStatuses)
 {
     auto instance = docs_test_helpers::setupInstance();
-    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+    const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
     auto statuses = scalingFb.getStatusContainer().getStatuses();
 
     ASSERT_GT(statuses.getCount(), 0u);

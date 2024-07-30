@@ -42,5 +42,15 @@ struct MockPacket : daq::ImplementationOf<daq::IPacket>
                     *r = this->getReferenceCount();
                     return OPENDAQ_SUCCESS;
                 });
+
+        EXPECT_CALL(*this, getType(_)).Times(AnyNumber()).WillRepeatedly([this](daq::PacketType* type)
+                {
+                    if (type)
+                    {
+                        *type = daq::PacketType::None;
+                    }
+                    return OPENDAQ_SUCCESS;
+                });
+        
     }
 };

@@ -48,7 +48,7 @@ TEST_F(InstanceTest, InstanceGetters)
 TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
     instance.setRootDevice("daqmock://client_device");
 }
 
@@ -70,7 +70,7 @@ TEST_F(InstanceTest, SetRootDeviceWithConfig)
 TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
     instance.setRootDevice("daqmock://phys_device");
 
     auto fbs = instance.getFunctionBlocks();
@@ -104,7 +104,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getInfo().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getInfo().getName(), String("OpenDAQClient"));
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -257,17 +257,17 @@ TEST_F(InstanceTest, EnumerateServerTypes)
     auto mockServer = serverTypes.get("MockServer");
     ASSERT_EQ(mockServer.getId(), "MockServer");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ LT Streaming"));
-    mockServer = serverTypes.get("openDAQ LT Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ LT Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQLTStreaming"));
+    mockServer = serverTypes.get("OpenDAQLTStreaming");
+    ASSERT_EQ(mockServer.getId(), "OpenDAQLTStreaming");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
-    mockServer = serverTypes.get("openDAQ Native Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ Native Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
+    mockServer = serverTypes.get("OpenDAQNativeStreaming");
+    ASSERT_EQ(mockServer.getId(), "OpenDAQNativeStreaming");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ OpcUa"));
-    mockServer = serverTypes.get("openDAQ OpcUa");
-    ASSERT_EQ(mockServer.getId(), "openDAQ OpcUa");
+    ASSERT_TRUE(serverTypes.hasKey("OpenDAQOPCUA"));
+    mockServer = serverTypes.get("OpenDAQOPCUA");
+    ASSERT_EQ(mockServer.getId(), "OpenDAQOPCUA");
 }
 
 TEST_F(InstanceTest, AddServer)
@@ -368,7 +368,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setModuleManager(moduleManager)
                                 .setSchedulerWorkerNum(1)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceLocalId("openDAQ Client")
+                                .setDefaultRootDeviceLocalId("OpenDAQClient")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .setAuthenticationProvider(authenticationProvider);
@@ -388,7 +388,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1u);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
-    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "openDAQ Client");
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "OpenDAQClient");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
     ASSERT_EQ(instanceBuilder.getAuthenticationProvider(), authenticationProvider);
@@ -448,7 +448,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
                         .setGlobalLogLevel(LogLevel::Debug)
                         .setModuleManager(moduleManager)
                         .setScheduler(scheduler)
-                        .setDefaultRootDeviceLocalId("openDAQ Client")
+                        .setDefaultRootDeviceLocalId("OpenDAQClient")
                         .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                         .setSchedulerWorkerNum(1)
                         .setAuthenticationProvider(authenticationProvider)
@@ -460,7 +460,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
     ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
-    ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client"));
+    ASSERT_EQ(instance.getRootDevice().getName(), String("OpenDAQClient"));
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }
@@ -502,6 +502,15 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     instance.setRootDevice("daqmock://phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
     ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
+}
+
+TEST_F(InstanceTest, AddServerBackwardsCompat)
+{
+    auto instance = Instance();
+
+    ASSERT_NO_THROW(instance.addServer("openDAQ Native Streaming", nullptr));
+    ASSERT_NO_THROW(instance.addServer("openDAQ LT Streaming", nullptr));
+    ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
 }
 
 END_NAMESPACE_OPENDAQ

@@ -118,8 +118,8 @@ inline DataRuleBuilderPtr DataRuleBuilderCopy(const DataRulePtr& rule)
  */
 inline StructTypePtr DataRuleStructType()
 {
-    return StructType("dataRule",
-                   List<IString>("type", "parameters"),
+    return StructType("DataRule",
+                   List<IString>("Type", "Parameters"),
                    List<IBaseObject>(0, Dict<IString, IBaseObject>()),
                    List<IType>(SimpleType(ctInt), SimpleType(ctDict)));
 }

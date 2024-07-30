@@ -51,22 +51,23 @@ void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISa
 
     cls.def(
         "read",
-        [](daq::ITailReader* object, size_t count)
+        [](daq::ITailReader* object, size_t count, bool returnStatus)
         {
             const auto objectPtr = daq::TailReaderPtr::Borrow(object);
-            return PyTypedReader::readValues(objectPtr, count, 0);
+            return PyTypedReader::readValues(objectPtr, count, 0, returnStatus);
         },
-        py::arg("count"),
+        py::arg("count"), py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` "
         "parameter.");
     cls.def(
         "read_with_domain",
-        [](daq::ITailReader* object, size_t count)
+        [](daq::ITailReader* object, size_t count, bool returnStatus)
         {
             const auto objectPtr = daq::TailReaderPtr::Borrow(object);
-            return PyTypedReader::readValuesWithDomain(objectPtr, count, 0);
+            return PyTypedReader::readValuesWithDomain(objectPtr, count, 0, returnStatus);
         },
         py::arg("count"),
+        py::arg("return_status") = false,
         "Copies at maximum the next `count` unread samples and clock-stamps to the `values` and `stamps` buffers. The amount actually read "
         "is returned through the `count` parameter.");
     cls.def_property_readonly(

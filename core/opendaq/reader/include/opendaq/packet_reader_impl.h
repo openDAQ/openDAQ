@@ -37,6 +37,8 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
     ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
+
 private:
     std::mutex mutex;
     InputPortConfigPtr port;

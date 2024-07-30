@@ -161,6 +161,8 @@ private:
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);
+
+    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
 };
 
 END_NAMESPACE_OPENDAQ

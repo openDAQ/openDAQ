@@ -758,7 +758,7 @@ The openDAQ(TM) Function Blocks are data processing objects. They receive data t
 
 Not all Function Blocks are required to have Input Ports or output Signals, however. For example, a function generator Function Block might only output generated Signals, without requiring any input data. The Channels of our simulated Device are another such example - they do not receive any input data but still produce output Signals.
 
-Conversely, a file writer Function Block has no output Signals, but only receives input data, and writes it to a file on a hard drive. Another example of the latter is the renderer Function Block that is provided by one of the Modules within the openDAQ(TM) binaries. It provides an Input Port to which a Signal can be connected. Once connected, the renderer draws a graph that visualizes the Signal data over time. The Function Block can be added to our openDAQ(TM) Instance using its `"ref_fb_module_renderer"` unique ID.
+Conversely, a file writer Function Block has no output Signals, but only receives input data, and writes it to a file on a hard drive. Another example of the latter is the renderer Function Block that is provided by one of the Modules within the openDAQ(TM) binaries. It provides an Input Port to which a Signal can be connected. Once connected, the renderer draws a graph that visualizes the Signal data over time. The Function Block can be added to our openDAQ(TM) Instance using its `"RefFBModuleRenderer"` unique ID.
 
 .Function Blocks with different combinations of Input Ports and output Signals
 image::opendaq:getting_started:function-block-types.svg[Function Blocks,align="center"]
@@ -777,7 +777,7 @@ int main(int argc, const char* argv[])
     // ...
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
@@ -795,7 +795,7 @@ Python::
 # ...
 
 # Create an instance of the renderer function block
-renderer = instance.add_function_block('ref_fb_module_renderer')
+renderer = instance.add_function_block('RefFBModuleRenderer')
 # Connect the first output signal of the device to the renderer
 renderer.input_ports[0].connect(signal)
 
@@ -810,7 +810,7 @@ C#::
 // ...
 
 // Create an instance of the renderer function block
-var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
+var renderer = instance.AddFunctionBlock("RefFBModuleRenderer");
 
 // Connect the first output signal of the device to the renderer
 renderer.GetInputPorts()[0].Connect(signal);
@@ -846,7 +846,7 @@ int main(int argc, const char* argv[])
     // ...
 
     // Create an instance of the statistics function block
-    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
 
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);
@@ -867,7 +867,7 @@ Python::
 # ...
 
 # Create an instance of the statistics function block
-statistics = instance.add_function_block('ref_fb_module_statistics')
+statistics = instance.add_function_block('RefFBModuleStatistics')
 # Connect the first output signal of the device to the statistics
 statistics.input_ports[0].connect(signal)
 # Connect the first output signal of the statistics to the renderer
@@ -884,7 +884,7 @@ C#::
 // ...
 
 // Create an instance of the statistics function block
-var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+var statistics = instance.AddFunctionBlock("RefFBModuleStatistics");
 
 // Connect the first output signal of the device to the statistics
 statistics.GetInputPorts()[0].Connect(signal);
@@ -1109,13 +1109,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
 
     // Create an instance of the statistics function block
-    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
 
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);
@@ -1217,12 +1217,12 @@ for i in range (0, 40):
         print(f'Value: {samples[-1]}, Domain: {time_stamps[-1]}')
 
 # Create an instance of the renderer function block
-renderer = instance.add_function_block('ref_fb_module_renderer')
+renderer = instance.add_function_block('RefFBModuleRenderer')
 # Connect the first output signal of the device to the renderer
 renderer.input_ports[0].connect(signal)
 
 # Create an instance of the statistics function block
-statistics = instance.add_function_block('ref_fb_module_statistics')
+statistics = instance.add_function_block('RefFBModuleStatistics')
 # Connect the first output signal of the device to the statistics
 statistics.input_ports[0].connect(signal)
 # Connect the first output signal of the statistics to the renderer
@@ -1327,13 +1327,13 @@ for (int i = 0; i < 40; i++)
 }
 
 // Create an instance of the renderer function block
-var renderer = instance.AddFunctionBlock("ref_fb_module_renderer");
+var renderer = instance.AddFunctionBlock("RefFBModuleRenderer");
 
 // Connect the first output signal of the device to the renderer
 renderer.GetInputPorts()[0].Connect(signal);
 
 // Create an instance of the statistics function block
-var statistics = instance.AddFunctionBlock("ref_fb_module_statistics");
+var statistics = instance.AddFunctionBlock("RefFBModuleStatistics");
 
 // Connect the first output signal of the device to the statistics
 statistics.GetInputPorts()[0].Connect(signal);

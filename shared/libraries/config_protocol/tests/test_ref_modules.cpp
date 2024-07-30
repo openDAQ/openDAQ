@@ -26,7 +26,7 @@ public:
         // ReSharper disable once CppExpressionWithoutSideEffects
         instance.addDevice("daqref://device0");
 
-        server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr);
+        server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr, nullptr);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
@@ -52,7 +52,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
     const auto instance = Instance();
     // ReSharper disable once CppExpressionWithoutSideEffects
     instance.setRootDevice("daqref://device0");
-    ConfigProtocolServer server(instance, nullptr);
+    ConfigProtocolServer server(instance, nullptr, nullptr);
 
     clientContext = NullContext();
     ConfigProtocolClient<ConfigClientDeviceImpl> client(
@@ -69,7 +69,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
 
     const auto clientSignal = ch.getSignals()[0];
 
-    const auto clientFunctionBlock = clientDevice.addFunctionBlock("ref_fb_module_statistics");
+    const auto clientFunctionBlock = clientDevice.addFunctionBlock("RefFBModuleStatistics");
     const auto clientInputPort = clientFunctionBlock.getInputPorts()[0];
 
     clientInputPort.connect(clientSignal);

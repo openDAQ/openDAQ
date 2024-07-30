@@ -45,7 +45,7 @@ enum class ComponentTypeSort
  * @brief Builder component of Component type objects. Contains setter methods to configure the Component type parameters, and a
  * `build` method that builds the object.
  *
- * Depending on the set "type" builder parameter, a different Component type is created - eg. Streaming type,
+ * Depending on the set "Type" builder parameter, a different Component type is created - eg. Streaming type,
  * Device type, Function block type, or Server type
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)

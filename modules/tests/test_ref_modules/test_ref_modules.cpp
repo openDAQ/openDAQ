@@ -34,7 +34,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
     const auto instance = Instance();
     const auto device = instance.addDevice("daqref://device1");
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceSignal0 = deviceChannel0.getSignals(search::Recursive(search::Visible()))[0];
@@ -52,9 +52,9 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
     const auto device = instance.addDevice("daqref://device1");
     device.setPropertyValue("EnableCANChannel", True);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
-    const ChannelPtr canChannel = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const ChannelPtr canChannel = device.getInputsOutputsFolder().getItem("CAN").asPtr<IFolder>().getItems()[0];
     const auto canSignal = canChannel.getSignals(search::Recursive(search::Visible()))[0];
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
@@ -69,7 +69,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
     const auto instance = Instance();
     const auto device = instance.addDevice("daqref://device1");
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceSignal0 = deviceChannel0.getSignals(search::Recursive(search::Visible()))[0];
@@ -88,7 +88,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererRemoveDevice)
     const auto instance = Instance();
     const auto device = instance.addDevice("daqref://device1");
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceSignal0 = deviceChannel0.getSignals()[0];
@@ -107,7 +107,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimpleCounter)
     const auto instance = Instance();
 
     const auto device = instance.addDevice("daqref://device1");
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceSignal0 = deviceChannel0.getSignals()[0];
@@ -138,7 +138,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
 
     deviceChannel1.setPropertyValue("ClientSideScaling", True);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceSignal0_0 = deviceChannel0.getSignals()[0];
     const auto deviceSignal1_0 = deviceChannel1.getSignals()[0];
@@ -169,7 +169,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
 
     ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 25.0);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceSignal0_0 = deviceChannel0.getSignals()[0];
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
@@ -196,9 +196,9 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
     const auto device = instance.addDevice("daqref://device1");
     device.setPropertyValue("GlobalSampleRate", 10000);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     rendererFb.setPropertyValue("Duration", 10.0);
-    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statisticsFb = instance.addFunctionBlock("RefFBModuleStatistics");
     statisticsFb.setPropertyValue("BlockSize", 20);
 
     const auto deviceChannel = device.getChannels()[0];
@@ -231,8 +231,8 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 
     const auto device = instance.addDevice("daqref://device1");
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
+    const auto statisticsFb = instance.addFunctionBlock("RefFBModuleStatistics");
 
     const auto deviceChannel = device.getChannels()[0];
     const auto deviceSignal = deviceChannel.getSignals()[0];
@@ -267,11 +267,11 @@ TEST_F(RefModulesTest, DISABLED_RendererSync)
     deviceChannel0.setPropertyValue("SampleRate", 100.0);
     deviceChannel0.setPropertyValue("Frequency", 1.0);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     rendererFb.setPropertyValue("Duration", 10.0);
     rendererFb.setPropertyValue("SingleXAxis", True);
 
-    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    const auto statisticsFb = instance.addFunctionBlock("RefFBModuleStatistics");
     statisticsFb.setPropertyValue("BlockSize", 5);
 
     const auto deviceSignal0 = deviceChannel0.getSignals()[0];
@@ -324,7 +324,7 @@ TEST_F(RefModulesTest, FindComponentSignal)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent("Dev/ref_dev1/IO/ai/refch0/Sig/ai0");
+    auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0/Sig/AI0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<ISignal>());
 }
@@ -335,7 +335,7 @@ TEST_F(RefModulesTest, FindComponentSignalRelative)
     auto device = instance.addDevice("daqref://device1");
     auto ch = device.getChannels()[0];
 
-    auto comp = ch.findComponent("Sig/ai0");
+    auto comp = ch.findComponent("Sig/AI0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<ISignal>());
 }
@@ -345,7 +345,7 @@ TEST_F(RefModulesTest, FindComponentChannel)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent("Dev/ref_dev1/IO/ai/refch0");
+    auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<IChannel>());
 }
@@ -355,7 +355,7 @@ TEST_F(RefModulesTest, FindComponentDevice)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent("Dev/ref_dev1");
+    auto comp = instance.findComponent("Dev/RefDev1");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<IDevice>());
 }
@@ -369,10 +369,10 @@ TEST_F(RefModulesTest, DISABLED_RunDevicePowerRenderer)
     const auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     rendererFb.setPropertyValue("Duration", 2.0);
 
-    const auto powerFb = instance.addFunctionBlock("ref_fb_module_power");
+    const auto powerFb = instance.addFunctionBlock("RefFBModulePower");
 
     powerFb.setPropertyValue("VoltageScale", 2.0);
     powerFb.setPropertyValue("VoltageOffset", 1.0);
@@ -416,14 +416,14 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingRenderer)
     deviceChannel.setPropertyValue("Frequency", 0.37);
     const auto deviceSignal = deviceChannel.getSignals()[0];
 
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     rendererFb.setPropertyValue("Duration", 2.0);
     rendererFb.setPropertyValue("SingleXAxis", 2.0);
     rendererFb.setPropertyValue("ShowLastValue", True);
 
-    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
-    scalingFb.setPropertyValue("Scale", 2.0);
-    scalingFb.setPropertyValue("Offset", 1.0);
+    const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
+    scalingFb.setPropertyValue("scale", 2.0);
+    scalingFb.setPropertyValue("offset", 1.0);
 
     scalingFb.getInputPorts()[0].connect(deviceSignal);
     const auto scaledSignal = scalingFb.getSignals()[0];
@@ -457,7 +457,7 @@ TEST_F(RefModulesTest, SerializeDevicePower)
     const auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
-    const auto powerFb = instance.addFunctionBlock("ref_fb_module_power");
+    const auto powerFb = instance.addFunctionBlock("RefFBModulePower");
 
     powerFb.setPropertyValue("VoltageScale", 2.0);
     powerFb.setPropertyValue("VoltageOffset", 1.0);
@@ -495,7 +495,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
-    auto powerFb = instance.addFunctionBlock("ref_fb_module_power");
+    auto powerFb = instance.addFunctionBlock("RefFBModulePower");
 
     powerFb.setPropertyValue("VoltageScale", 2.0);
     powerFb.setPropertyValue("VoltageOffset", 1.0);
@@ -518,7 +518,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     powerFb.getInputPorts()[0].connect(device0Signal);
     powerFb.getInputPorts()[1].connect(device1Signal);
 
-/*    auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+/*    auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     rendererFb.getInputPorts()[0].connect(powerFb.getSignals()[0]);
     rendererFb.getInputPorts()[1].connect(device0Signal);
     rendererFb.getInputPorts()[2].connect(device1Signal);
@@ -1049,7 +1049,7 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
                              nullptr,
                              "domain_sig");
 
-    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+    const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
     ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
 
     auto statusTest = [](const char* expectedValue)
@@ -1110,7 +1110,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
 
     if constexpr (enableRenderer)
     {
-        rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+        rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
         rendererFb.setPropertyValue("Duration", 2.0);
         rendererFb.setPropertyValue("SingleXAxis", 2.0);
         rendererFb.setPropertyValue("ShowLastValue", True);
@@ -1125,30 +1125,30 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
         const auto deviceSignal = deviceChannel.getSignals()[0];
         deviceSignal.setPublic(false);
 
-        const auto scalingFb1 = instance.addFunctionBlock("ref_fb_module_scaling");
-        scalingFb1.setPropertyValue("Scale", 2.0);
-        scalingFb1.setPropertyValue("Offset", 1.0);
+        const auto scalingFb1 = instance.addFunctionBlock("RefFBModuleScaling");
+        scalingFb1.setPropertyValue("scale", 2.0);
+        scalingFb1.setPropertyValue("offset", 1.0);
         scalingFb1.getInputPorts()[0].connect(deviceSignal);
         const auto scaledSignal1 = scalingFb1.getSignals()[0];
         scaledSignal1.setPublic(false);
 
-        const auto scalingFb2 = instance.addFunctionBlock("ref_fb_module_scaling");
-        scalingFb2.setPropertyValue("Scale", 2.0);
-        scalingFb2.setPropertyValue("Offset", 1.0);
+        const auto scalingFb2 = instance.addFunctionBlock("RefFBModuleScaling");
+        scalingFb2.setPropertyValue("scale", 2.0);
+        scalingFb2.setPropertyValue("offset", 1.0);
         scalingFb2.getInputPorts()[0].connect(scaledSignal1);
         const auto scaledSignal2 = scalingFb2.getSignals()[0];
         scaledSignal2.setPublic(false);
 
-        const auto scalingFb3 = instance.addFunctionBlock("ref_fb_module_scaling");
-        scalingFb3.setPropertyValue("Scale", 2.0);
-        scalingFb3.setPropertyValue("Offset", 1.0);
+        const auto scalingFb3 = instance.addFunctionBlock("RefFBModuleScaling");
+        scalingFb3.setPropertyValue("scale", 2.0);
+        scalingFb3.setPropertyValue("offset", 1.0);
         scalingFb3.getInputPorts()[0].connect(scaledSignal2);
         const auto scaledSignal3 = scalingFb3.getSignals()[0];
         scaledSignal3.setPublic(false);
 
-        const auto scalingFb4 = instance.addFunctionBlock("ref_fb_module_scaling");
-        scalingFb4.setPropertyValue("Scale", 2.0);
-        scalingFb4.setPropertyValue("Offset", 1.0);
+        const auto scalingFb4 = instance.addFunctionBlock("RefFBModuleScaling");
+        scalingFb4.setPropertyValue("scale", 2.0);
+        scalingFb4.setPropertyValue("offset", 1.0);
         scalingFb4.getInputPorts()[0].connect(scaledSignal3);
         const auto scaledSignal4 = scalingFb4.getSignals()[0];
         scaledSignal4.setPublic(false);

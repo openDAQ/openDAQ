@@ -19,7 +19,7 @@ class TmsFunctionBlockTest : public TmsServerObjectTest
 {
 public:
 
-    FunctionBlockPtr createFunctionBlock(const FunctionBlockTypePtr& type = FunctionBlockType("uid", "name", "desc"))
+    FunctionBlockPtr createFunctionBlock(const FunctionBlockTypePtr& type = FunctionBlockType("UID", "Name", "Desc"))
     {
         return MockFunctionBlock(type, ctx, nullptr, "mockfb");
     }
@@ -79,7 +79,7 @@ TEST_F(TmsFunctionBlockTest, BrowseSignals)
 TEST_F(TmsFunctionBlockTest, DISABLED_Property)
 {
     // Build functionBlock info:
-    const FunctionBlockTypePtr type = FunctionBlockType("uid", "name", "desc");
+    const FunctionBlockTypePtr type = FunctionBlockType("UID", "Name", "Desc");
 
     // Build server functionBlock
     auto serverFunctionBlock = createFunctionBlock(type);

@@ -55,6 +55,9 @@ PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::m
 PyDaqIntf<daq::IStreamReader, daq::ISampleReader> declareIStreamReader(pybind11::module_ m);
 PyDaqIntf<daq::ITailReader, daq::ISampleReader> declareITailReader(pybind11::module_ m);
 PyDaqIntf<daq::IMultiReader, daq::ISampleReader> declareIMultiReader(pybind11::module_ m);
+PyDaqIntf<daq::IBlockReaderBuilder, daq::IBaseObject> declareIBlockReaderBuilder(pybind11::module_ m);
+PyDaqIntf<daq::ITailReaderBuilder, daq::IBaseObject> declareITailReaderBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IStreamReaderBuilder, daq::IBaseObject> declareIStreamReaderBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IMultiReaderBuilder, daq::IBaseObject> declareIMultiReaderBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> declareIReaderStatus(pybind11::module_ m);
 PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> declareIBlockReaderStatus(pybind11::module_ m);
@@ -148,6 +151,9 @@ void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::T
 void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls);
 void defineTimeMultiReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::MultiReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
+void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderBuilder, daq::IBaseObject> cls);
+void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBuilder, daq::IBaseObject> cls);
+void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReaderBuilder, daq::IBaseObject> cls);
 void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderBuilder, daq::IBaseObject> cls);
 void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> cls);
 void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> cls);

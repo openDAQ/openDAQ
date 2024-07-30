@@ -43,8 +43,7 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-protected:
-    PropertyObjectPtr createCloneBase() override;
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
 private:
     template <typename T>

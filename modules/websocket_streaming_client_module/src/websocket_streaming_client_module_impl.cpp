@@ -11,8 +11,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
-static std::string WebsocketDeviceTypeId = "opendaq_lt_streaming";
-static std::string OldWebsocketDeviceTypeId = "opendaq_lt_streaming_old";
+static std::string WebsocketDeviceTypeId = "OpenDAQLTStreaming";
+static std::string OldWebsocketDeviceTypeId = "OpenDAQLTStreamingOld";
 static std::string WebsocketDevicePrefix = "daq.lt";
 static std::string OldWebsocketDevicePrefix = "daq.ws";
 
@@ -20,16 +20,16 @@ using namespace discovery;
 using namespace daq::websocket_streaming;
 
 WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr context)
-    : Module("openDAQ websocket client module",
+    : Module("OpenDAQWebsocketClientModule",
             daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
             std::move(context),
-            "WebsocketStreamingClient")
+            "OpenDAQWebsocketClientModule")
     , deviceIndex(0)
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto cap = ServerCapability(WebsocketDeviceTypeId, "openDAQ LT Streaming", ProtocolType::Streaming);
+                auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
                 if (!discoveredDevice.ipv4Address.empty())
                 {
@@ -156,7 +156,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     connectionInfo.setProtocolId(WebsocketDeviceTypeId);
-    connectionInfo.setProtocolName("openDAQ LT Streaming");
+    connectionInfo.setProtocolName("OpenDAQLTStreaming");
     connectionInfo.setProtocolType(ProtocolType::Streaming);
     connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
@@ -197,7 +197,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
 
 Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (target.getProtocolId() != "opendaq_lt_streaming")
+    if (target.getProtocolId() != "OpenDAQLTStreaming")
         return false;
 
     if (target.getConnectionString().getLength() != 0)

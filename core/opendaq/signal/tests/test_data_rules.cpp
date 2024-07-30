@@ -106,13 +106,13 @@ TEST_F(DataRulesTest, StructType)
 TEST_F(DataRulesTest, StructFields)
 {
     const daq::StructPtr structPtr = LinearDataRule(10, 10);
-    ASSERT_EQ(structPtr.get("type"), static_cast<Int>(DataRuleType::Linear));
+    ASSERT_EQ(structPtr.get("Type"), static_cast<Int>(DataRuleType::Linear));
     
     const auto params = Dict<IString, IBaseObject>({
             {"delta", 10},
             {"start", 10}
         });
-    ASSERT_EQ(structPtr.get("parameters"), params);
+    ASSERT_EQ(structPtr.get("Parameters"), params);
 }
 
 TEST_F(DataRulesTest, StructNames)

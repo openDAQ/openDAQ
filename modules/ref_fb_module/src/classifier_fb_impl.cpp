@@ -123,7 +123,7 @@ void ClassifierFbImpl::readProperties()
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_classifier", "Classifier", "Signal classifing");
+    return FunctionBlockType("RefFBModuleClassifier", "Classifier", "Signal classifing");
 }
 
 bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)
@@ -200,6 +200,9 @@ void ClassifierFbImpl::configure()
             linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
+
+            if (linearBlockCount == 0)
+                throw std::runtime_error("Calculation of linearBlockCount failed");
         }
         else
         {
@@ -207,8 +210,12 @@ void ClassifierFbImpl::configure()
         }
 
         if (linearReader.getBlockSize() != linearBlockCount)
+        {
             linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, SampleType::Float64, SampleType::UInt64);
-        
+            inputData.resize(linearBlockCount);
+            inputDomainData.resize(linearBlockCount);
+        }
+
         auto dimensions = List<IDimension>();
         if (useCustomClasses) 
         {
@@ -253,23 +260,15 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    while (linearReader.getAvailableCount())
+    std::scoped_lock lock(sync);
+    while (!linearReader.getEmpty())
     {
-        if (linearBlockCount == 0)
-        {
-            LOG_D("blockSize have to more than zero");
-            return;
-        }
-
-        std::vector<Float> inputData(linearBlockCount);
-        std::vector<UInt> inputDomainData(linearBlockCount);
-       
         size_t blocksToRead = 1;
         auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &blocksToRead);
 
         if (blocksToRead == 1)
         {
-            if(domainLinear)
+            if (domainLinear)
                 processLinearData(inputData, inputDomainData);
             else
                 processExplicitData(inputData[0], inputDomainData[0]);
@@ -312,9 +311,10 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
         if (low == high)
             return low;
 
-        Int mid = low + (high - low) / 2;
+        Int mid = (low + high) / 2;
         Float midValue = static_cast<Float>(labels.getItemAt(mid));
-        if (value >= midValue && value < static_cast<Float>(labels.getItemAt(mid+1))) 
+
+        if (value >= midValue && value < static_cast<Float>(labels.getItemAt(mid + 1))) 
             return mid;
         else if (value < midValue) 
             high = mid - 1;
@@ -426,10 +426,12 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     
     linearReader = BlockReaderFromPort(inputPort, linearBlockCount, SampleType::Float64, SampleType::UInt64);
     linearReader.setOnDataAvailable([this] { processData(); });
+    inputData.resize(linearBlockCount);
+    inputDomainData.resize(linearBlockCount);
 }
 
 void ClassifierFbImpl::createSignals()

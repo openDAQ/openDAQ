@@ -19,7 +19,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
     , started(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent("AudioDevice")
+                          ? this->logger.getOrAddComponent("AudioDeviceModule")
                           : throw ArgumentNullException("Logger must not be null"))
 {
     // time signal is owned by device, because in case of multiple channels they should share the same time signal
@@ -257,7 +257,7 @@ std::string AudioDeviceImpl::getConnectionStringFromId(ma_backend backend, ma_de
 
 DeviceTypePtr AudioDeviceImpl::createType()
 {
-    return DeviceType("miniaudio", "Audio device", "", "miniaudio");
+    return DeviceType("MiniAudio", "Audio device", "", "miniaudio");
 }
 
 ma_device_id AudioDeviceImpl::getIdFromConnectionString(std::string connectionString)

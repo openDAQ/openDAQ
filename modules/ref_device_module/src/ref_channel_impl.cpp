@@ -19,7 +19,7 @@
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
-    : ChannelImpl(FunctionBlockType("ref_channel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
+    : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::Sine)
     , freq(0)
     , ampl(0)
@@ -434,8 +434,8 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 
 void RefChannelImpl::createSignals()
 {
-    valueSignal = createAndAddSignal(fmt::format("ai{}", index));
-    timeSignal = createAndAddSignal(fmt::format("ai{}_time", index), nullptr, false);
+    valueSignal = createAndAddSignal(fmt::format("AI{}", index));
+    timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
     valueSignal.setDomainSignal(timeSignal);
 }
 

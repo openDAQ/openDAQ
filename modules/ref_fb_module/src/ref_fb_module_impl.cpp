@@ -11,48 +11,52 @@
 #include <ref_fb_module/trigger_fb_impl.h>
 #include <ref_fb_module/fft_fb_impl.h>
 #include <ref_fb_module/version.h>
+#include <ref_fb_module/power_reader_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-RefFbModule::RefFbModule(ContextPtr ctx)
-    : Module("Reference function block module",
+RefFBModule::RefFBModule(ContextPtr ctx)
+    : Module("ReferenceFunctionBlockModule",
              daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
              std::move(ctx),
-             "ReferenceFunctionBlock")
+             "ReferenceFunctionBlockModule")
 {
 }
 
-DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTypes()
+DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTypes()
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
 #ifdef OPENDAQ_ENABLE_RENDERER
-    auto typeRenderer = Renderer::RendererFbImpl::CreateType();
+    const auto typeRenderer = Renderer::RendererFbImpl::CreateType();
     types.set(typeRenderer.getId(), typeRenderer);
 #endif
 
-    auto typeStatistics = Statistics::StatisticsFbImpl::CreateType();
+    const auto typeStatistics = Statistics::StatisticsFbImpl::CreateType();
     types.set(typeStatistics.getId(), typeStatistics);
 
-    auto typePower = Power::PowerFbImpl::CreateType();
+    const auto typePower = Power::PowerFbImpl::CreateType();
     types.set(typePower.getId(), typePower);
 
-    auto typeScaling = Scaling::ScalingFbImpl::CreateType();
+    const auto typeScaling = Scaling::ScalingFbImpl::CreateType();
     types.set(typeScaling.getId(), typeScaling);
 
-    auto typeClassifier = Classifier::ClassifierFbImpl::CreateType();
+    const auto typeClassifier = Classifier::ClassifierFbImpl::CreateType();
     types.set(typeClassifier.getId(), typeClassifier);
 
-    auto typeTrigger = Trigger::TriggerFbImpl::CreateType();
+    const auto typeTrigger = Trigger::TriggerFbImpl::CreateType();
     types.set(typeTrigger.getId(), typeTrigger);
 
-    auto typeFFT = FFT::FFTFbImpl::CreateType();
+    const auto typeFFT = FFT::FFTFbImpl::CreateType();
     types.set(typeFFT.getId(), typeFFT);
+
+    const auto typePowerReader = PowerReader::PowerReaderFbImpl::CreateType();
+    types.set(typePowerReader.getId(), typePowerReader);
 
     return types;
 }
 
-FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
+FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
                                                     const ComponentPtr& parent,
                                                     const StringPtr& localId,
                                                     const PropertyObjectPtr& config)
@@ -94,7 +98,11 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, FFT::FFTFbImpl>(context, parent, localId);
         return fb;
     }
-
+    if (id == PowerReader::PowerReaderFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PowerReader::PowerReaderFbImpl>(context, parent, localId);
+        return fb;
+    }
 
     LOG_W("Function block \"{}\" not found", id);
     throw NotFoundException("Function block not found");

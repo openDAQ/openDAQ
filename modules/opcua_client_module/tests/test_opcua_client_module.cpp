@@ -34,7 +34,7 @@ TEST_F(OpcUaClientModuleTest, CreateModule)
 TEST_F(OpcUaClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "openDAQ OpcUa client module");
+    ASSERT_EQ(module.getName(), "OpenDAQOPCUAClientModule");
 }
 
 TEST_F(OpcUaClientModuleTest, VersionAvailable)
@@ -73,7 +73,7 @@ TEST_F(OpcUaClientModuleTest, EnumerateDevices)
 //    ASSERT_NO_THROW(connectionString = module.createConnectionString(serverCapabilityIgnored));
 //    ASSERT_FALSE(connectionString.assigned());
 //
-//    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+//    ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUA", ProtocolType::Configuration);
 //    ASSERT_THROW(module.createConnectionString(serverCapability), InvalidParameterException);
 //
 //    serverCapability.addAddress("123.123.123.123");
@@ -124,8 +124,8 @@ TEST_F(OpcUaClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
-    ASSERT_EQ(deviceTypes.get("opendaq_opcua_config").getId(), "opendaq_opcua_config");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfiguration"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQOPCUAConfiguration").getId(), "OpenDAQOPCUAConfiguration");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -139,8 +139,8 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
-    auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQOPCUAConfiguration"));
+    auto config = deviceTypes.get("OpenDAQOPCUAConfiguration").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
     ASSERT_EQ(config.getAllProperties().getCount(), 3u);
 }

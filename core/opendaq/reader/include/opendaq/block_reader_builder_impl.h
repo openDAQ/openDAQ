@@ -52,6 +52,9 @@ public:
     ErrCode INTERFACE_FUNC setOverlap(SizeT overlap) override;
     ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
+    ErrCode INTERFACE_FUNC setSkipEvents(Bool skipEvents) override;
+    ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) override;
+
 private:
     SampleType valueReadType;
     SampleType domainReadType;
@@ -62,6 +65,7 @@ private:
     InputPortPtr inputPort;
     BlockReaderPtr oldBlockReader;
     bool used;
+    bool skipEvents;
 };
 
 END_NAMESPACE_OPENDAQ

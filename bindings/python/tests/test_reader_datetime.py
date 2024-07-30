@@ -11,11 +11,20 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(mock.signal)
+        reader.read(0)
 
+        #check skip
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
+        skip, status = reader.skip_samples(10, return_status=True)
+        self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
+        self.assertTrue(status.valid)
+        self.assertEqual(skip, 10)
+        self.assertEqual(reader.available_count, 0)
 
-        values, status = reader.read(10)
+        #check read
+        mock.add_data(numpy.arange(10))
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -27,11 +36,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(
             mock.signal, value_type=opendaq.SampleType.Int64)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
 
-        values, status = reader.read(10)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -48,11 +58,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_domain(self):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(mock.signal)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
 
-        values, domain, status = reader.read_with_domain(10)
+        values, domain, status = reader.read_with_domain(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -63,11 +75,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_timestamps(self):
         mock = opendaq.MockSignal()
         stream = opendaq.StreamReader(mock.signal)
+        stream.read(0)
         reader = opendaq.TimeStreamReader(stream)
 
         mock.add_data(numpy.arange(10))
 
-        values, domain, status = reader.read_with_timestamps(10)
+        values, domain, status = reader.read_with_timestamps(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -78,13 +92,14 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_tail_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.TailReader(mock.signal, 10)
+        reader.read(0)
 
         self.assertEqual(reader.history_size, 10)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
 
-        values, status = reader.read(10)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -96,13 +111,14 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock = opendaq.MockSignal()
         reader = opendaq.TailReader(
             mock.signal, 10, value_type=opendaq.SampleType.Int64)
+        reader.read(0)
 
         self.assertEqual(reader.history_size, 10)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
 
-        values, status = reader.read(10)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -119,11 +135,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_tail_read_with_domain(self):
         mock = opendaq.MockSignal()
         reader = opendaq.TailReader(mock.signal, 10)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
 
-        values, domain, status = reader.read_with_domain(10)
+        values, domain, status = reader.read_with_domain(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -134,11 +152,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_tail_read_with_timestamps(self):
         mock = opendaq.MockSignal()
         tail = opendaq.TailReader(mock.signal, 10)
+        tail.read(0)
         reader = opendaq.TimeTailReader(tail)
 
         mock.add_data(numpy.arange(10))
 
-        values, domain, status = reader.read_with_timestamps(10)
+        values, domain, status = reader.read_with_timestamps(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
@@ -149,13 +169,14 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_block_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.BlockReader(mock.signal, 2)
+        reader.read(0)
 
         self.assertEqual(reader.block_size, 2)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
 
-        values, status = reader.read(5)
+        values, status = reader.read(5, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(
@@ -170,13 +191,14 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock = opendaq.MockSignal()
         reader = opendaq.BlockReader(
             mock.signal, 2, value_type=opendaq.SampleType.Int64)
+        reader.read(0)
 
         self.assertEqual(reader.block_size, 2)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
 
-        values, status = reader.read(5)
+        values, status = reader.read(5, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(
@@ -196,11 +218,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_block_read_with_domain(self):
         mock = opendaq.MockSignal()
         reader = opendaq.BlockReader(mock.signal, 2)
+        reader.read(0)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
 
-        values, domain, status = reader.read_with_domain(5)
+        values, domain, status = reader.read_with_domain(5, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(
@@ -214,12 +237,14 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_block_read_with_timestamps(self):
         mock = opendaq.MockSignal()
         block = opendaq.BlockReader(mock.signal, 2)
+        block.read(0)
         reader = opendaq.TimeBlockReader(block)
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(block.available_count, 5)
 
-        values, domain, status = reader.read_with_timestamps(5)
+        values, domain, status = reader.read_with_timestamps(
+            5, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(
@@ -241,14 +266,24 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sigs.append(sig2.signal)
 
         reader = opendaq.MultiReader(sigs)
+        reader.read(0)
 
         nparray = numpy.arange(10)
+
+        #check skip
         sig1.add_data(nparray)
         sig2.add_data(nparray)
-
         self.assertEqual(reader.available_count, 10)
+        skip, status = reader.skip_samples(10, return_status=True)
+        self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
+        self.assertTrue(status.valid)
+        self.assertEqual(skip, 10)
+        self.assertEqual(reader.available_count, 0)
 
-        values, status = reader.read(10)
+        #check read
+        sig1.add_data(nparray)
+        sig2.add_data(nparray)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
@@ -268,6 +303,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sigs.append(sig2.signal)
 
         reader = opendaq.MultiReader(sigs, value_type=opendaq.SampleType.Int64)
+        reader.read(0)
 
         nparray = numpy.arange(10)
         sig1.add_data(nparray)
@@ -275,7 +311,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         self.assertEqual(reader.available_count, 10)
 
-        values, status = reader.read(10)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
@@ -307,6 +343,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sigs.append(sig2.signal)
 
         reader = opendaq.MultiReader(sigs)
+        reader.read(0)
 
         nparray = numpy.arange(10)
         sig1.add_data(nparray)
@@ -314,7 +351,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         self.assertEqual(reader.available_count, 10)
 
-        values, domain, status = reader.read_with_domain(10)
+        values, domain, status = reader.read_with_domain(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
@@ -333,6 +371,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sigs.append(sig2.signal)
 
         reader = opendaq.MultiReader(sigs)
+        reader.read(0)
         timed = opendaq.TimeMultiReader(reader)
 
         nparray = numpy.arange(10)
@@ -341,7 +380,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         self.assertEqual(reader.available_count, 10)
 
-        values, domain, status = timed.read_with_timestamps(10)
+        values, domain, status = timed.read_with_timestamps(
+            10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))
@@ -358,8 +398,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
         builder.add_signal(sig1.signal)
         builder.add_signal(sig2.signal)
         builder.value_read_type = opendaq.SampleType.Int64
-
         reader = builder.build()
+        reader.read(0)
 
         nparray = numpy.arange(10)
         sig1.add_data(nparray)
@@ -367,7 +407,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         self.assertEqual(reader.available_count, 10)
 
-        values, status = reader.read(10)
+        values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
         self.assertTrue(status.valid)
         self.assertTrue(numpy.array_equal(values[0], numpy.arange(10)))

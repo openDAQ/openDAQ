@@ -112,6 +112,26 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getSamplesUntilNextGapPacket(SizeT* samples) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
     {
         *remote = False;
@@ -839,9 +859,9 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
 TEST_F(SignalTest, GetLastValueInvisibleDisabled)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
     signal.setVisible(False);
-    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+    signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("Visible"));
 
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
 

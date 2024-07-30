@@ -47,6 +47,7 @@ public:
 
     void setReconnected(bool reconnected);
     bool getReconnected();
+    UserPtr getUser();
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;

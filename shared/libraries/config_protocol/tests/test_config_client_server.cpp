@@ -37,7 +37,7 @@ public:
     void SetUp() override
     {
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1));
+        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
 
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
@@ -78,7 +78,7 @@ protected:
 
 TEST_F(ConfigProtocolTest, Connect)
 {
-    EXPECT_CALL(device.mock(), getLocalId(_)).WillOnce(Get(String("id")));
+    EXPECT_CALL(device.mock(), getLocalId(_)).WillOnce(Get(String("Id")));
     EXPECT_CALL(device.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
     ASSERT_THROW(client->connect(), ConfigProtocolException);
 }
@@ -235,21 +235,21 @@ TEST_F(ConfigProtocolTest, CallProcedurePropertyTwoParams)
 TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 {
     const auto defaultConfig = PropertyObject();
-    defaultConfig.addProperty(StringPropertyBuilder("prop", "value").build());
+    defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
 
     auto fbTypes = Dict<IString, IFunctionBlockType>();
-    fbTypes.set("id", FunctionBlockType("id", "name", "desc", defaultConfig));
+    fbTypes.set("Id", FunctionBlockType("Id", "Name", "Desc", defaultConfig));
 
     EXPECT_CALL(device.mock(), getAvailableFunctionBlockTypes(_)).WillOnce(daq::Get<DictPtr<IString, IFunctionBlockType>>(fbTypes));
 
     const DictPtr<IString, IFunctionBlockType> value = client->getClientComm()->sendComponentCommand("//root", "GetAvailableFunctionBlockTypes");
-    ASSERT_EQ(fbTypes.get("id"), value.get("id"));
-    ASSERT_EQ(fbTypes.get("id").createDefaultConfig().getPropertyValue("prop"), "value");
+    ASSERT_EQ(fbTypes.get("Id"), value.get("Id"));
+    ASSERT_EQ(fbTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
 }
 
 TEST_F(ConfigProtocolTest, GetDeviceInfo)
 {
-    const auto devInfo = DeviceInfo("connectionString", "name");
+    const auto devInfo = DeviceInfo("connectionString", "Name");
 
     StringPtr fbId;
     EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));

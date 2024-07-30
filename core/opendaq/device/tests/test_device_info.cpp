@@ -13,9 +13,9 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(DeviceInfoTest, Factory)
 {
     DeviceInfoPtr deviceInfo;
-    ASSERT_NO_THROW(deviceInfo = DeviceInfo("connectionStr", "name"));
+    ASSERT_NO_THROW(deviceInfo = DeviceInfo("connectionStr", "Name"));
     ASSERT_EQ(deviceInfo.getConnectionString(), "connectionStr");
-    ASSERT_EQ(deviceInfo.getName(), "name");
+    ASSERT_EQ(deviceInfo.getName(), "Name");
 }
 
 TEST_F(DeviceInfoTest, DefaultValues)
@@ -158,7 +158,7 @@ TEST_F(DeviceInfoTest, Freezable)
     ASSERT_NO_THROW(deviceInfoConfig.freeze());
     ASSERT_TRUE(deviceInfoConfig.isFrozen());
 
-    ASSERT_THROW(deviceInfoConfig.setName("name"), FrozenException);
+    ASSERT_THROW(deviceInfoConfig.setName("Name"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setConnectionString("connection_string"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setManufacturer("manufacturer"), FrozenException);
     ASSERT_THROW(deviceInfoConfig.setManufacturerUri("manufacturer_uri"), FrozenException);
@@ -182,9 +182,8 @@ TEST_F(DeviceInfoTest, CustomProperties)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");
 
-    info.addProperty(StringProperty("Name", "Chell"));
-    ASSERT_EQ(info.getPropertyValue("Name"), "Chell");
-    ASSERT_EQ(info.getPropertyValue("Name"), "Chell");
+    info.addProperty(StringProperty("NewName", "Chell"));
+    ASSERT_EQ(info.getPropertyValue("NewName"), "Chell");
 
     ASSERT_NO_THROW(info.addProperty(IntProperty("Age", 999)));
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));
@@ -197,7 +196,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");
 
-    info.setName("name");
+    info.setName("Name");
     info.setConnectionString("connection_string");
     info.setManufacturer("manufacturer");
     info.setManufacturerUri("manufacturer_uri");

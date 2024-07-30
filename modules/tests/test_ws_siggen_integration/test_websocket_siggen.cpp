@@ -127,7 +127,7 @@ TEST_P(SiggenTest, DISABLED_RenderSignals)
 {
     auto client = CreateClientInstance(GetParam());
 
-    const auto rendererFb = client.addFunctionBlock("ref_fb_module_renderer");
+    const auto rendererFb = client.addFunctionBlock("RefFBModuleRenderer");
 
     rendererFb.getInputPorts()[0].connect(client.getSignalsRecursive()[0]);
     rendererFb.getInputPorts()[1].connect(client.getSignalsRecursive()[1]);

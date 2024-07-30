@@ -90,10 +90,10 @@ TEST_F(UnitTest, StructFields)
 {
     const StructPtr structPtr = Unit("s",-1, "seconds", "time");
 
-    ASSERT_EQ(structPtr.get("symbol"), "s");
-    ASSERT_EQ(structPtr.get("name"), "seconds");
-    ASSERT_EQ(structPtr.get("id"), -1);
-    ASSERT_EQ(structPtr.get("quantity"), "time");
+    ASSERT_EQ(structPtr.get("Symbol"), "s");
+    ASSERT_EQ(structPtr.get("Name"), "seconds");
+    ASSERT_EQ(structPtr.get("Id"), -1);
+    ASSERT_EQ(structPtr.get("Quantity"), "time");
 }
 
 TEST_F(UnitTest, StructNames)

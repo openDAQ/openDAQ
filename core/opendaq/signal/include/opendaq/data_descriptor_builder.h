@@ -21,9 +21,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [include(ISampleType)]
- * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!

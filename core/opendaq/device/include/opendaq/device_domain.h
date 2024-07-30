@@ -29,7 +29,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IUnit, CoreObjects)]
- * [interfaceLibrary(INumber, CoreTypes)]
  */
 
 /*!

@@ -32,7 +32,6 @@ class GenericSyncComponentImpl : public ComponentImpl<MainInterface, Interfaces.
 public:
     using Super = ComponentImpl<MainInterface, Interfaces...>;
 
-    
     GenericSyncComponentImpl(const ContextPtr& context,
                              const ComponentPtr& parent,
                              const StringPtr& localId,
@@ -50,8 +49,6 @@ public:
     ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
-
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -273,25 +270,6 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSerializeId(C
 }
 
 template <typename MainInterface, typename ... Interfaces>
-ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
-{
-    // if (idCount == nullptr)
-    //     return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    // *idCount = Super::InterfaceIds::Count() + 1;
-    // if (ids == nullptr)
-    // {
-    //     return OPENDAQ_SUCCESS;
-    // }
-
-    // **ids = IPropertyObject::Id;
-    // (*ids)++;
-
-    Super::InterfaceIds::AddInterfaceIds(*ids);
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename MainInterface, typename ... Interfaces>
 ConstCharPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::SerializeId()
 {
     return "SyncComponent";
@@ -308,7 +286,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
     return daqTry(
         [&obj, &serialized, &context, &factoryCallback]()
         {
-            *obj = DeserializeComponent(
+            *obj = Super::DeserializeComponent(
                 serialized,
                 context,
                 factoryCallback, 

@@ -413,14 +413,13 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto serverSubDevice = device.getDevices()[1];
     auto serverSync = serverSubDevice.getSyncComponent();
     serverSync.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
-    // serverSync.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
-    // serverSync.setSelectedSource(1);
+    serverSync.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+    serverSync.setSelectedSource(1);
     serverSync.setSyncLocked(true);
 
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    // while (true) {}
     TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
     auto clientSubDevice = clientDevice.getDevices()[1];

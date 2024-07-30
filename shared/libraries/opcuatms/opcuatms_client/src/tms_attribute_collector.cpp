@@ -83,6 +83,9 @@ void TmsAttributeCollector::collectDeviceAttributes(const OpcUaNodeId& nodeId)
 
     const auto methodSetId = browser->getChildNodeId(nodeId, "MethodSet");
     collectMethodSetNode(methodSetId);
+
+    const auto synchronizationNoded = browser->getChildNodeId(nodeId, "Synchronization");
+    collectPropertyObjectAttributes(synchronizationNoded);
 }
 
 void TmsAttributeCollector::collectFunctionBlockAttributes(const OpcUaNodeId& nodeId)

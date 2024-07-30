@@ -93,6 +93,9 @@ void TmsServerSyncComponent::bindPropertyCallbacks(const std::string& name)
 
 void TmsServerSyncComponent::bindCallbacks()
 {
+    // Bind read callback for Interfaces property
+    bindPropertyCallbacks(interfaces->getBrowseName());
+
     // Bind callbacks for source property
     this->object.getOnPropertyValueWrite(source->getBrowseName()) += event(this, &TmsServerSyncComponent::triggerEvent);
     bindPropertyCallbacks(source->getBrowseName());

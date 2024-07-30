@@ -129,7 +129,6 @@ void RefDeviceImpl::initSyncComponent()
 {
     SyncComponentPtr syncComponent;
     this->getSyncComponent(&syncComponent);
-    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "SyncInterfaceBase"));
     syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
     syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
     syncComponent.setSelectedSource(1);

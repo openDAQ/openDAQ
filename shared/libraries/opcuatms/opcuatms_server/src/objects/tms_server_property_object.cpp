@@ -344,6 +344,7 @@ void TmsServerPropertyObject::addBeginUpdateNode()
         return status == OPENDAQ_SUCCESS ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
     };
 
+    // this fails
     addEvent(methodNodeId)->onMethodCall(callback);
 }
 
@@ -361,6 +362,7 @@ void TmsServerPropertyObject::addEndUpdateNode()
         return status == OPENDAQ_SUCCESS ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
     };
 
+    // this fails
     addEvent(methodNodeId)->onMethodCall(callback);
 }
 

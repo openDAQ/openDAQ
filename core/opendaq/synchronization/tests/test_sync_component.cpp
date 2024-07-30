@@ -43,7 +43,7 @@ TEST_F(SyncComponentTest, testAddInterface)
     PropertyObjectPtr interface = PropertyObject();
     ASSERT_EQ(syncComponent->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
 
-    PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
+    PropertyObjectPtr interface1 = PropertyObject(typeManager, "InterfaceClockSync");
     ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
 }
 
@@ -54,10 +54,13 @@ TEST_F(SyncComponentTest, testRemoveInterface)
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
 
-    ASSERT_EQ(syncComponent->removeInterface(String("SyncInterfaceBase")), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent->removeInterface(String("InterfaceClockSync")), OPENDAQ_ERR_NOTFOUND);
+    PropertyObjectPtr interface2 = PropertyObject(typeManager, "InterfaceClockSync");
+    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(syncComponent->removeInterface(String("SyncInterfaceBase")), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(syncComponent->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
 }
 
 //#define TEST_DEBUG
@@ -87,11 +90,11 @@ TEST_F(SyncComponentTest, testAddInhertiedInterfaces)
 #endif
 
     //Assert that an interfaces with valid base class can be added
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
     //TBD: Assert GetInterfaces(String list) indeed includes the added interfaces
@@ -115,7 +118,7 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
 
@@ -126,12 +129,9 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     syncComponent->getSelectedSource(&selectedSource);
     ASSERT_EQ(selectedSource, 1);
 
-    ASSERT_NO_THROW(syncComponent.setSelectedSource(2));
-    ASSERT_EQ(syncComponent.getSelectedSource(), 2);
-
     // out of range
-    ASSERT_ANY_THROW(syncComponent.setSelectedSource(3));
-    ASSERT_EQ(syncComponent.getSelectedSource(), 2);
+    ASSERT_ANY_THROW(syncComponent.setSelectedSource(2));
+    ASSERT_EQ(syncComponent.getSelectedSource(), 1);
 }
 
 TEST_F(SyncComponentTest, testSelectedSourceListChanged)
@@ -145,20 +145,12 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
 
     auto interfaceNames = syncComponent.getInterfaceNames();
-    ASSERT_EQ(interfaceNames.getCount(), 3);
-
-    syncComponent.setSelectedSource(1);
-    ASSERT_EQ(syncComponent->removeInterface(String("SyncInterfaceBase")), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent.getSelectedSource(), 0);
-
-    interfaceNames = syncComponent.getInterfaceNames();
     ASSERT_EQ(interfaceNames.getCount(), 2);
-    ASSERT_EQ(interfaceNames[0], "PtpSyncInterface");
 
     syncComponent.setSelectedSource(1);
     ASSERT_EQ(syncComponent->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
@@ -175,11 +167,9 @@ TEST_F(SyncComponentTest, Serialization)
     auto typeManager = ctx.getTypeManager();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
 
-    PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
 

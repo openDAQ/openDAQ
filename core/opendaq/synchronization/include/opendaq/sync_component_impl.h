@@ -169,33 +169,35 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
 
     //TBD: Check if interface inherits from SyncInterfaceBase
     StringPtr className = interfacePtr.getClassName();
-    if (className != "SyncInterfaceBase")
+    if (className == "SyncInterfaceBase")
     {
-        auto typeManager = this->context.getTypeManager();
-        if (typeManager == nullptr)
-        {
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
-        }
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Allowed adding property objects that inherit from 'SyncInterfaceBase', but not 'SyncInterfaceBase' itself.");
+    }
 
-        TypePtr type;
-        ErrCode errCode = typeManager->getType(className, &type);
-        if (OPENDAQ_FAILED(errCode) || type == nullptr)
-        {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
-        }
+    auto typeManager = this->context.getTypeManager();
+    if (typeManager == nullptr)
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
+    }
 
-        if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
+    TypePtr type;
+    ErrCode errCode = typeManager->getType(className, &type);
+    if (OPENDAQ_FAILED(errCode) || type == nullptr)
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
+    }
+
+    if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
+    {
+        auto parentName = objectClass.getParentName();
+        if (!parentName.assigned() || parentName != "SyncInterfaceBase")
         {
-            auto parentName = objectClass.getParentName();
-            if (!parentName.assigned() || parentName != "SyncInterfaceBase")
-            {
-                return OPENDAQ_ERR_INVALID_ARGUMENT;
-            }
+            return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' does not inherit from 'SyncInterfaceBase'.", className));
         }
-        else
-        {
-            return OPENDAQ_ERR_INVALID_ARGUMENT;
-        }
+    }
+    else
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not IPropertyObjectClass", className));
     }
 
     BaseObjectPtr interfacesValue;

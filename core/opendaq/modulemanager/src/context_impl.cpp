@@ -266,7 +266,7 @@ void ContextImpl::registerOpenDaqTypes()
     typeManager->addType(enumProfiles);
 
     PropertyObjectPtr ports = PropertyObject();
-    // ports.addProperty(BoolProperty("Port1", true));
+    ports.addProperty(BoolProperty("Port1", true));
 
     PropertyObjectPtr parameters = PropertyObject();
     parameters.addProperty(StructProperty("PtpConfigurationStructure",

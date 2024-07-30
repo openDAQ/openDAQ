@@ -9,6 +9,7 @@
 #include <thread>
 #include <testutils/test_comparators.h>
 #include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -403,4 +404,29 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
 
     ASSERT_NO_THROW(clientDevice.beginUpdate());
     ASSERT_NO_THROW(clientDevice.endUpdate());
+}
+
+TEST_F(TmsIntegrationTest, SyncComponent)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    serverSync.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
+    // serverSync.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+    // serverSync.setSelectedSource(1);
+    serverSync.setSyncLocked(true);
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    // while (true) {}
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    ASSERT_EQ(serverSync.getInterfaces().getCount(), clientSync.getInterfaces().getCount());
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
 }

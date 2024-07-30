@@ -305,7 +305,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
 
     // update the sync component in the server side
     SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
-    syncComponent.addInterface(PropertyObject(typeManager, "SyncInterfaceBase"));
+    ASSERT_ANY_THROW(syncComponent.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
     syncComponent.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
     syncComponent.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
     syncComponent.setSelectedSource(1);
@@ -314,16 +314,16 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // check that the client side has the same sync component
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
     ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
-    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 3);
-    ASSERT_EQ(clientSyncComponent.getInterfaceNames().getCount(), 3);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaceNames().getCount(), 2);
     ASSERT_EQ(clientSyncComponent.getInterfaceNames(), syncComponent.getInterfaceNames());
     ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
 
     // update the sync component in the client side
-    clientSyncComponent.setSelectedSource(2);
+    clientSyncComponent.setSelectedSource(0);
 
-    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 2); 
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0); 
 
     // check that the server side has the same sync component
-    ASSERT_EQ(syncComponent.getSelectedSource(), 2);    
+    ASSERT_EQ(syncComponent.getSelectedSource(), 0);    
 }

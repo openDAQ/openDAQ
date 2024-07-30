@@ -63,6 +63,9 @@ set(SRC_Objects_Headers ${OBJECT_SRC_DIR}/tms_client_object_impl.h
 						
                         ${OBJECT_SRC_DIR}/tms_client_tags_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_tags_factory.h
+
+                        ${OBJECT_SRC_DIR}/tms_client_sync_component_impl.h
+                        ${OBJECT_SRC_DIR}/tms_client_sync_component_factory.h
 )
 
 set(SRC_Objects ${OBJECT_SRC_DIR}/tms_client_object_impl.cpp
@@ -101,6 +104,7 @@ source_group("objects\\io_folder" "${OBJECT_SRC_DIR}/tms_client_io_folder.*")
 source_group("objects\\server_capability" "${OBJECT_SRC_DIR}/tms_client_server_capability.*")
 source_group("objects\\tags" "${OBJECT_SRC_DIR}/tms_client_tags.*")
 source_group("objects\\function" "${OBJECT_SRC_DIR}/(tms_client_function_impl.*|tms_client_function_factory.h|tms_client_procedure.*)")
+source_group("objects\\sync_component" "${OBJECT_SRC_DIR}tms_client_sync_component.*")
 
 # /objects
 

@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include "opcuatms_server/objects/tms_server_sync_interface.h"
+#include <opcuatms_server/objects/tms_server_sync_interface.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

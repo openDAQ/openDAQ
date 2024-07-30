@@ -129,7 +129,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IL
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>();
+    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     for (const auto& prop : InterfacesPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)
@@ -227,7 +227,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>();
+    const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     err = InterfacesPtr->removeProperty(interfaceName);
     if (OPENDAQ_FAILED(err))
         return err;

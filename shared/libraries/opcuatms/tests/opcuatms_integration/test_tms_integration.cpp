@@ -415,8 +415,7 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     serverSync.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
     serverSync.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
 
-    // TODO: Fix this
-    //serverSync.setSelectedSource(1);
+    serverSync.setSelectedSource(1);
     serverSync.setSyncLocked(true);
 
     TmsServer tmsServer(device);
@@ -428,6 +427,6 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto clientSync = clientSubDevice.getSyncComponent();
 
     ASSERT_EQ(serverSync.getInterfaces().getCount(), clientSync.getInterfaces().getCount());
-    //ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
     ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
 }

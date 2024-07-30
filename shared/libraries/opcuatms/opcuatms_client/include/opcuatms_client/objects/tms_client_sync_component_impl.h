@@ -34,6 +34,7 @@ public:
                                const opcua::OpcUaNodeId& nodeId)
         : Super(ctx, parent, localId, clientContext, nodeId)
     {
+        populateInterfaceNames();
     }
 
     ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override
@@ -60,21 +61,22 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override
+private:
+
+    void populateInterfaceNames()
     {
-        try
+        BaseObjectPtr interfacesValue;
+        ErrCode errCode = getPropertyValue(String("Interfaces"), &interfacesValue);
+        checkErrorInfo(errCode);
+
+        const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
+        auto interfaceNames = List<IString>();
+        for (const auto& prop : InterfacesPtr.getAllProperties())
         {
-            // auto syncComponentNodeId = getNodeId("Interfaces");
-            // auto interfaces = TmsClientPropertyObject(context, clientContext,
-            //                                     syncComponentNodeId);
-        }
-        catch (...)
-        {
-            LOG_W("Failed to get interface names on OpcUA client sync component \"{}\"", this->globalId);
+            interfaceNames.pushBack(prop.getName());
         }
 
-        return OPENDAQ_SUCCESS;
-
+        Impl::setPropertyValue(String("InterfaceNames"), interfaceNames);
     }
 };
 

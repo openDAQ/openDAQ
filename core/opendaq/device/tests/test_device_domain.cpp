@@ -29,7 +29,7 @@ TEST_F(DeviceDomainTest, DeviceDomainGettersBackwardsCompat)
 
 TEST_F(DeviceDomainTest, SerializeDeserialize)
 {
-    auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), "ReferenceDomainId", 666);
+    auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), "ReferenceDomainId", 666.0);
     auto serializer = JsonSerializer(False);
     deviceDomain.serialize(serializer);
     auto serialized = serializer.getOutput();

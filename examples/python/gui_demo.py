@@ -206,8 +206,8 @@ class App(tk.Tk):
         popup = tk.Menu(tree, tearoff=0)
         popup.add_command(label="Remove")
         popup.add_command(label="Close")
-        popup.add_command(label="Begin update", command=self.handle_start_update)
-        popup.add_command(label="End update", command=self.handle_stop_update)
+        popup.add_command(label="Begin update", command=self.handle_begin_update)
+        popup.add_command(label="End update", command=self.handle_end_update)
         self.tree_popup = popup
 
     def tree_update(self, new_selected_node=None):
@@ -220,7 +220,7 @@ class App(tk.Tk):
             self.context.instance, self.current_tab())
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
-        self.change_node(None)
+        self.set_node_update_status()
 
     def tree_traverse_components_recursive(self, component, display_type=DisplayType.UNSPECIFIED):
         if component is None:
@@ -298,7 +298,7 @@ class App(tk.Tk):
             icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
-            component_name = self.get_string_from_component(component_name)
+            component_name = self.get_standard_folder_name(component_name)
         else:  # skipping unknown type components
             skip = not show_unknown
 
@@ -306,8 +306,7 @@ class App(tk.Tk):
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=component_name, open=True, values=(component_node_id,))
 
-
-    def get_string_from_component(self, component):
+    def get_standard_folder_name(self, component):
         if component == 'Sig':
             component = 'Signals'
         elif component == 'FB':
@@ -582,48 +581,48 @@ class App(tk.Tk):
     def current_tab(self):
         return DisplayType.from_tab_index(self.nb.index('current')) if self.nb is not None else DisplayType.UNSPECIFIED
 
-    def handle_start_update(self):
+    def handle_begin_update(self):
         selected_item = treeview_get_first_selection(self.tree)
         if selected_item:
-            self.begin_update_on_node_and_children(selected_item)
-            self.change_node('red')
+            self.begin_update_on_node(selected_item)
+            self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
-    def handle_stop_update(self):
+    def handle_end_update(self):
         selected_item = treeview_get_first_selection(self.tree)
         if selected_item:
-            self.end_update_on_node_and_children(selected_item)
-            self.change_node('red')
+            self.end_update_on_node(selected_item)
+            self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
-    def begin_update_on_node_and_children(self, node):
+    def begin_update_on_node(self, node):
         node_obj = find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
         node_obj.begin_update()
 
-    def end_update_on_node_and_children(self, node):
+    def end_update_on_node(self, node):
         node_obj = find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
         node_obj.end_update()
 
-    def change_node(self, color):
+    def set_node_update_status(self):
         for node in self.tree.get_children():
-            self._change_node_recursive(node, color)
+            self._set_node_update_status_recursive(node)
 
-    def _change_node_recursive(self, node, color):
+    def _set_node_update_status_recursive(self, node):
+        color = 'red'
         node_obj = find_component(node, self.context.instance)
-        node_text = self.get_string_from_component(node_obj.name)
-        if daq.IPropertyObject.can_cast_from(node_obj):
-            node_obj = daq.IPropertyObject.cast_from(node_obj)
-            if node_obj.updating:
-                self.tree.item(node, tags=('selected',),
-                               text=node_text + " [*]")
-                self.tree.tag_configure('selected', foreground=color)
-            else:
-                self.tree.item(node, tags=())
+        node_text = self.get_standard_folder_name(node_obj.name)
+        if node_obj.updating:
+            self.tree.item(node, tags=('selected',),
+                           text=node_text + " [*]")
+            self.tree.tag_configure('selected', foreground=color)
+        else:
+            self.tree.item(node, tags=())
         children = self.tree.get_children(node)
         for child in children:
-            self._change_node_recursive(child, color)
+            self._set_node_update_status_recursive(child)
+
 
 # MARK: - Entry point
 if __name__ == '__main__':

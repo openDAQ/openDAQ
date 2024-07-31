@@ -10,6 +10,8 @@
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/data_rule_calc_private.h>
 
+#include "testutils/testutils.h"
+
 using DataDescriptorTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -70,7 +72,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
                           .setOrigin("testRef")
                           .setTickResolution(Ratio(1, 1000))
                           .setUnit(Unit("s", 10))
-                          .setRule(ExplicitDataRule())
+                          .setRule(LinearDataRule(1, 2))
                           .setName("testName")
                           .setMetadata(metaData)
                           .setReferenceDomainId("testReferenceDomainId")
@@ -87,7 +89,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getSampleType(), SampleType::Float64);
     ASSERT_EQ(copy.getDimensions().getCount(), static_cast<SizeT>(3));
     ASSERT_TRUE(copy.getUnit().assigned());
-    ASSERT_EQ(copy.getRule().getType(), DataRuleType::Explicit);
+    ASSERT_EQ(copy.getRule().getType(), DataRuleType::Linear);
     ASSERT_EQ(copy.getName(), "testName");
     ASSERT_EQ(copy.getMetadata().get("key"), "value");
     ASSERT_EQ(copy.getReferenceDomainId(), "testReferenceDomainId");
@@ -425,6 +427,54 @@ TEST_F(DataDescriptorTest, QueryInterface)
 
     auto desc13 = desc.asPtr<IDataRuleCalcPrivate>(true);
     ASSERT_TRUE(desc13->hasDataRuleCalc());
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForConstantDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainId("RefDomId").build(),
+        InvalidParameterException,
+        "Reference domain id only supported for linear data rule type.");
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainOffset(100).build(),
+        InvalidParameterException,
+        "Reference domain offset only supported for linear data rule type.");
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForConstantDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainIsAbsolute(False).build(),
+        InvalidParameterException,
+        "Reference domain is absolute only supported for linear data rule type.");
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForExplicitDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ExplicitDataRule()).setReferenceDomainId("RefDomId").build(),
+        InvalidParameterException,
+        "Reference domain id only supported for linear data rule type.");
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForExplicitDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ExplicitDataRule()).setReferenceDomainOffset(100).build(),
+        InvalidParameterException,
+        "Reference domain offset only supported for linear data rule type.");
+}
+
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForExplicitDataRule)
+{
+    ASSERT_THROW_MSG(
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ExplicitDataRule()).setReferenceDomainIsAbsolute(False).build(),
+        InvalidParameterException,
+        "Reference domain is absolute only supported for linear data rule type.");
 }
 
 END_NAMESPACE_OPENDAQ

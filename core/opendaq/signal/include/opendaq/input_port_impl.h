@@ -27,9 +27,9 @@
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/work_factory.h>
+#include <opendaq/scheduler_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 template <class... Interfaces>
 class GenericInputPortImpl;
 
@@ -405,7 +405,9 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
 template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 {
-    scheduler.scheduleWork(notifySchedulerCallback);
+    const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
+    if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
+        checkErrorInfo(errCode);
 }
 
 template <class... Interfaces>

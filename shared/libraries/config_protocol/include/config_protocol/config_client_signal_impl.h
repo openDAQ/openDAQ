@@ -170,12 +170,12 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
 inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
 {
-    {
-        std::scoped_lock lock(this->sync);
+    const ErrCode err = Super::getLastValue(value);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
-        if (lastDataPacket.assigned())
-            return Super::getLastValue(value);
-    }
+    if (err != OPENDAQ_IGNORED)
+        return err;
 
     try
     {

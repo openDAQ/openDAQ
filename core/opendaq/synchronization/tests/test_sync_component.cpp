@@ -1,4 +1,5 @@
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/sync_component_internal_ptr.h>
 #include <opendaq/context_factory.h>
 #include <gtest/gtest.h>
 #include <coreobjects/property_object_factory.h>
@@ -15,23 +16,18 @@ TEST_F(SyncComponentTest, testGetSyncLocked)
 {
     const auto ctx = daq::NullContext();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
-
-    Bool syncLocked = false;
-    syncComponent->getSyncLocked(&syncLocked);
-    ASSERT_FALSE(syncLocked);
+    ASSERT_FALSE(syncComponent.getSyncLocked());
 }
 
 TEST_F(SyncComponentTest, testSetSyncLocked)
 {
     const auto ctx = daq::NullContext();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
-    Bool syncLocked = false;
-    syncComponent->getSyncLocked(&syncLocked);
-    ASSERT_FALSE(syncLocked);
-    syncComponent->setSyncLocked(true);
-    syncComponent->getSyncLocked(&syncLocked);
-    ASSERT_TRUE(syncLocked);
+    ASSERT_FALSE(syncComponent.getSyncLocked());
+    syncComponentInternal.setSyncLocked(true);
+    ASSERT_TRUE(syncComponent.getSyncLocked());
 }
 
 TEST_F(SyncComponentTest, testAddInterface)
@@ -39,12 +35,13 @@ TEST_F(SyncComponentTest, testAddInterface)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface = PropertyObject();
-    ASSERT_EQ(syncComponent->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "InterfaceClockSync");
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_SUCCESS);
 }
 
 TEST_F(SyncComponentTest, testRemoveInterface)
@@ -52,59 +49,43 @@ TEST_F(SyncComponentTest, testRemoveInterface)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
 
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "InterfaceClockSync");
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(syncComponent->removeInterface(String("SyncInterfaceBase")), OPENDAQ_ERR_NOTFOUND);
-    ASSERT_EQ(syncComponent->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->removeInterface(String("SyncInterfaceBase")), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(syncComponentInternal->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
 }
-
-//#define TEST_DEBUG
 
 TEST_F(SyncComponentTest, testAddInhertiedInterfaces)
 {
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
-
-#ifdef TEST_DEBUG
-    ListPtr<IString> typesList = typeManager.getTypes();
-    for (const auto& type : typesList)
-    {
-        std::cout << type << std::endl;
-    }
-#endif
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-#ifdef TEST_DEBUG
-    std::cout << "Class Name: " << interface1.getClassName() << std::endl;
-    std::cout << "Class Name: " << interface2.getClassName() << std::endl;
-    std::cout << "Class Name: " << interface3.getClassName() << std::endl;
-#endif
-
     //Assert that an interfaces with valid base class can be added
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface3), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
-    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
-    //TBD: Assert GetInterfaces(String list) indeed includes the added interfaces
-
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
 
     //Assert that an interfaces with invalid base class cannot be added
     auto propClass = PropertyObjectClassBuilder("prop").build();
     typeManager.addType(propClass);
     PropertyObjectPtr interface4 = PropertyObject(typeManager, "prop");
-    ASSERT_EQ(syncComponent->addInterface(interface4), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface4), OPENDAQ_ERR_INVALID_ARGUMENT);
 }
 
 TEST_F(SyncComponentTest, testSetSelectedSource)
@@ -113,21 +94,20 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     auto typeManager = ctx.getTypeManager();
 
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface3), OPENDAQ_SUCCESS);
 
-    Int selectedSource = 0;
-    syncComponent->getSelectedSource(&selectedSource);
-    ASSERT_EQ(selectedSource, 0);
-    syncComponent->setSelectedSource(1);
-    syncComponent->getSelectedSource(&selectedSource);
-    ASSERT_EQ(selectedSource, 1);
+
+    ASSERT_EQ(syncComponent.getSelectedSource(), 0);
+    syncComponent.setSelectedSource(1);
+    ASSERT_EQ(syncComponent.getSelectedSource(), 1);
 
     // out of range
     ASSERT_ANY_THROW(syncComponent.setSelectedSource(2));
@@ -140,20 +120,21 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     auto typeManager = ctx.getTypeManager();
 
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface3), OPENDAQ_SUCCESS);
 
     auto interfaceNames = syncComponent.getInterfaceNames();
     ASSERT_EQ(interfaceNames.getCount(), 2);
 
     syncComponent.setSelectedSource(1);
-    ASSERT_EQ(syncComponent->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent.getSelectedSource(), 0);
     
     interfaceNames = syncComponent.getInterfaceNames();
@@ -166,12 +147,13 @@ TEST_F(SyncComponentTest, Serialization)
     const auto ctx = daq::NullContext();
     auto typeManager = ctx.getTypeManager();
     SyncComponentPtr syncComponent = SyncComponent(ctx, nullptr, String("localId"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
 
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponent->addInterface(interface2), OPENDAQ_SUCCESS);
-    ASSERT_EQ(syncComponent->addInterface(interface3), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface2), OPENDAQ_SUCCESS);
+    ASSERT_EQ(syncComponentInternal->addInterface(interface3), OPENDAQ_SUCCESS);
 
     const auto serializer = JsonSerializer();
 

@@ -23,14 +23,15 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/sync_component_ptr.h>
+#include <opendaq/sync_component_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename MainInterface, typename ... Interfaces>
-class GenericSyncComponentImpl : public ComponentImpl<MainInterface, Interfaces...>
+class GenericSyncComponentImpl : public ComponentImpl<ISyncComponentInternal, MainInterface, Interfaces...>
 {
 public:
-    using Super = ComponentImpl<MainInterface, Interfaces...>;
+    using Super = ComponentImpl<ISyncComponentInternal, MainInterface, Interfaces...>;
 
     GenericSyncComponentImpl(const ContextPtr& context,
                              const ComponentPtr& parent,

@@ -16,16 +16,12 @@
 
 #pragma once
 
-#include <opendaq/component.h>
 #include <coretypes/listobject.h>
 #include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
- * [templated(defaultAliasName: SyncComponentPtr)]
- * [interfaceSmartPtr(ISyncComponent, GenericSyncComponentPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  */
@@ -55,47 +51,27 @@ BEGIN_NAMESPACE_OPENDAQ
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
+DECLARE_OPENDAQ_INTERFACE(ISyncComponentInternal, IBaseObject)
 {
     /*!
-     * @brief Retrieves the synchronization lock status.
-     * @param[out] synchronizationLocked True if synchronization is locked; false otherwise.
+     * @brief Sets the synchronization lock status.
+     * @param synchronizationLocked True if synchronization is locked; false otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) = 0;
+    virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) = 0;
+
+    // [elementType(interface, IPropertyObject)]
+    /*!
+     * @brief Adds an interface to the synchronization component.
+     * @param interface The interface to be added.
+     */
+    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) = 0;
 
     /*!
-     * @brief Retrieves the selected sync source interface.
-     * @param[out] selectedSource The selected sync source interface.
+     * @brief Removes an interface from the synchronization component.
+     * @param interfaceName The name of the interface to be removed.
      */
-    virtual ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) = 0;
-
-    /*!
-     * @brief Sets the selected sync source interface.
-     * @param selectedSource The selected sync source interface.
-     */
-    virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) = 0;
-
-    // [elementType(interfaces, IPropertyObject)]
-    /*!
-     * @brief Retrieves the list of interfaces associated with this synchronization component.
-     * @param[out] interface List of interfaces associated with this component.
-     */
-    virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) = 0;
-
-    // [elementType(interfaceNames, IString)]
-    /*!
-     * @brief Retrieves the list of interface names associated with this synchronization component.
-     * @param[out] interfaceNames List of interface names associated with this component.
-     */
-    virtual ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) = 0;
+    virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) = 0;
 };
 /*!@}*/
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, SyncComponent, ISyncComponent,
-    IContext*, context,
-    IComponent*, ParseFailedException,
-    IString*, localId
-)
 
 END_NAMESPACE_OPENDAQ

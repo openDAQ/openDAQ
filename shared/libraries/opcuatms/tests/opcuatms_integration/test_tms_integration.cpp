@@ -10,6 +10,7 @@
 #include <testutils/test_comparators.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/sync_component_internal_ptr.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -412,11 +413,12 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto serverTypeManager = device.getContext().getTypeManager();
     auto serverSubDevice = device.getDevices()[1];
     auto serverSync = serverSubDevice.getSyncComponent();
-    serverSync.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
-    serverSync.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+    SyncComponentInternalPtr syncComponentInternal = serverSync.asPtr<ISyncComponentInternal>(true);
+
+    syncComponentInternal.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
+    syncComponentInternal.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
 
     serverSync.setSelectedSource(1);
-    serverSync.setSyncLocked(true);
 
     TmsServer tmsServer(device);
     tmsServer.start();
@@ -426,7 +428,69 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto clientSubDevice = clientDevice.getDevices()[1];
     auto clientSync = clientSubDevice.getSyncComponent();
 
-    ASSERT_EQ(serverSync.getInterfaces().getCount(), clientSync.getInterfaces().getCount());
     ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
     ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
+    ASSERT_EQ(serverSync.getInterfaceNames(), clientSync.getInterfaceNames());
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+
+    for (size_t i = 0; i < serverInterfaces.getCount(); i++)
+    {
+        auto serverInterface = serverInterfaces[i];
+        auto clientInterface = clientInterfaces[i];
+        for (const auto& property : serverInterface.getAllProperties())
+        {
+            ASSERT_EQ(property, clientInterface.getProperty(property.getName()));
+        }
+    }
+}
+
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentInternalPtr syncComponentInternal = serverSync.asPtr<ISyncComponentInternal>(true);
+
+    auto ptpSyncInterface = PropertyObject(serverTypeManager, "PtpSyncInterface");
+    ptpSyncInterface.setPropertyValue("Mode", 2);
+    
+    PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
+    status.setPropertyValue("State", 2);
+    syncComponentInternal.addInterface(ptpSyncInterface);
+
+    syncComponentInternal.setSyncLocked(true);
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serveSyncInterface = serverSync.getInterfaces();
+    auto clientSyncInterface = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
+    ASSERT_EQ(serverSync.getInterfaceNames(), clientSync.getInterfaceNames());
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+
+    for (size_t i = 0; i < serverInterfaces.getCount(); i++)
+    {
+        auto serverInterface = serverInterfaces[i];
+        auto clientInterface = clientInterfaces[i];
+        for (const auto& property : serverInterface.getAllProperties())
+        {
+            ASSERT_EQ(property, clientInterface.getProperty(property.getName()));
+        }
+    }
 }

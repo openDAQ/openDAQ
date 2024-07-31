@@ -229,7 +229,7 @@ void ContextImpl::registerOpenDaqTypes()
 
     //Sync Component Interfaces
     auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
-                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 3))
                                     .build();
     typeManager->addType(syncInterfaceBase);
 
@@ -238,7 +238,7 @@ void ContextImpl::registerOpenDaqTypes()
 
     auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
                                     .setParentName("SyncInterfaceBase")
-                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 3))
                                     .addProperty(ObjectProperty("Status", InterfaceClockSyncStatusProperty))
                                     .build();
     typeManager->addType(interfaceClockSync);
@@ -285,7 +285,7 @@ void ContextImpl::registerOpenDaqTypes()
 
     auto ptpSyncInterface = PropertyObjectClassBuilder(typeManager, "PtpSyncInterface")
                                     .setParentName("SyncInterfaceBase")
-                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 4))
+                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 3))
                                     .addProperty(ObjectProperty("Status", PtpSyncInterfaceStatus))
                                     .addProperty(ObjectProperty("Parameters", parameters))
                                     .build();

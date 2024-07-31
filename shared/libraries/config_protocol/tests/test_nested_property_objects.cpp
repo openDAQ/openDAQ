@@ -15,6 +15,7 @@
 #include <opendaq/component_status_container_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_ptr.h>
+#include <opendaq/sync_component_internal_ptr.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
@@ -305,11 +306,12 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
 
     // update the sync component in the server side
     SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
-    ASSERT_ANY_THROW(syncComponent.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
-    syncComponent.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
-    syncComponent.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
+    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
+    ASSERT_ANY_THROW(syncComponentInternal.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
+    syncComponentInternal.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
+    syncComponentInternal.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
     syncComponent.setSelectedSource(1);
-    syncComponent.setSyncLocked(true);
+    syncComponentInternal.setSyncLocked(true);
 
     // check that the client side has the same sync component
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();

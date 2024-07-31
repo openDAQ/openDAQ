@@ -119,6 +119,10 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         return OPENDAQ_SUCCESS;
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    if (propertyNamePtr == "Mode" || propertyNamePtr == "State")
+    {
+        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
+    }
 
     StringPtr lastProccessDescription = "";
     ErrCode errCode = daqTry([&]() {

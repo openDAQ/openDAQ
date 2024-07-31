@@ -730,10 +730,10 @@ TEST_F(NativeDeviceModulesTest, SignalDescriptors)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    DataDescriptorPtr dataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
+    DataDescriptorPtr dataDescriptor = client.getDevices()[0].getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
     DataDescriptorPtr serverDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
 
-    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
+    DataDescriptorPtr domainDataDescriptor = client.getDevices()[0].getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
     DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
 
     ASSERT_TRUE(dataDescriptor.assigned());
@@ -1581,4 +1581,27 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
     }
     EXPECT_GT(client1SamplesRead, 0u);
     EXPECT_GT(client2SamplesRead, 0u);
+}
+
+TEST_F(NativeDeviceModulesTest, ReadLastValue)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto clientSignal = client.getDevices()[0].getDevices()[0].getSignalsRecursive()[0];
+    BaseObjectPtr value;
+    int cnt = 0;
+    while (!value.assigned())
+    {
+        ASSERT_NO_THROW(value = clientSignal.getLastValue());
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        ASSERT_LT(cnt++, 10);
+    }
+
+    const auto ip = InputPort(client.getContext(), nullptr, "ip");
+    ip.connect(clientSignal);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT_NO_THROW(value = clientSignal.getLastValue());
+    ASSERT_TRUE(value.assigned());
 }

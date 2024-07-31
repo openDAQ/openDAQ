@@ -233,6 +233,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         }
     }
 
+    if (this->deviceInfo.assigned())
+        this->deviceInfo.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
+
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }

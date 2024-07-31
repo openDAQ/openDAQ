@@ -8,6 +8,7 @@
 
 #include <coreobjects/property_object_factory.h>
 #include <memory>
+#include <coreobjects/user_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -176,7 +177,11 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
         case AuthenticationType::Anonymous:
         {
             if (authProvider.isAnonymousAllowed())
+            {
+                auto anonymousUser = User("", "");
+                userContextOut = std::shared_ptr<daq::IUser>(anonymousUser.detach(), UserContextDeleter());
                 return true;
+            }
 
             LOG_W("Anonymous authentication rejected");
             break;
@@ -193,6 +198,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
             {
                 LOG_W("Username authentication rejected: {}", e.what());
             }
+
             break;
         }
     }

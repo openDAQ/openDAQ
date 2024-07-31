@@ -280,14 +280,23 @@ ErrCode DataDescriptorImpl::validate()
                     return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
             }
 
-            if (dataRule.getType() != DataRuleType::Linear)
+            if (dataRule.getType() == DataRuleType::Constant)
             {
                 if (referenceDomainId.assigned())
-                    throw InvalidParameterException("Reference domain id only supported for linear data rule type.");
+                    throw InvalidParameterException("Reference domain id not supported for constant data rule type.");
                 if (referenceDomainOffset.assigned())
-                    throw InvalidParameterException("Reference domain offset only supported for linear data rule type.");
+                    throw InvalidParameterException("Reference domain offset not supported for constant data rule type.");
                 if (referenceDomainIsAbsolute.assigned())
-                    throw InvalidParameterException("Reference domain is absolute only supported for linear data rule type.");
+                    throw InvalidParameterException("Reference domain is absolute not supported for constant data rule type.");
+            }
+            else if (dataRule.getType() == DataRuleType::Explicit && scaling.assigned())
+            {
+                if (referenceDomainId.assigned())
+                    throw InvalidParameterException("Reference domain id not supported for explicit data rule type with post scaling.");
+                if (referenceDomainOffset.assigned())
+                    throw InvalidParameterException("Reference domain offset not supported for explicit data rule type with post scaling.");
+                if (referenceDomainIsAbsolute.assigned())
+                    throw InvalidParameterException("Reference domain is absolute not supported for explicit data rule type with post scaling.");
             }
                 
         }

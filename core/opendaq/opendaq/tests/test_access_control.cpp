@@ -228,3 +228,98 @@ TEST_F(AccessControlTest, RemoveChildPermissionManager)
 
     ASSERT_FALSE(permissionManager.getRef().assigned());
 }
+
+TEST_F(AccessControlTest, PartialSerializationProperty)
+{
+    const auto permissionsDenyAll = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().read()).build();
+    const auto user = User("user", "psswordHash");
+
+    auto device = createDevice();
+
+    auto obj = PropertyObject();
+    obj.addProperty(IntProperty("DeniedIntProperty", 100));
+    obj.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    device.addProperty(ObjectProperty("DeniedObjectProperty", obj));
+    device.addProperty(ObjectProperty("AllowedObjectProperty", PropertyObject()));
+
+    auto serializer = JsonSerializer();
+    serializer.setUser(user);
+    device.serialize(serializer);
+    std::string output = serializer.getOutput();
+
+    ASSERT_FALSE(output.find("DeniedIntProperty") != std::string::npos);
+    ASSERT_FALSE(output.find("DeniedObjectProperty") != std::string::npos);
+    ASSERT_TRUE(output.find("AllowedObjectProperty") != std::string::npos);
+}
+
+
+TEST_F(AccessControlTest, PartialSerializationFunctionBlock)
+{
+    const auto permissionsDenyAll = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().read()).build();
+    const auto user = User("user", "psswordHash");
+
+    auto device = createDevice();
+    device.addFunctionBlock("mock_fb_uid");
+
+    auto fb1 = device.findComponent("FB/mock_fb_uid_1");
+    auto fb2 = device.findComponent("FB/mock_fb_uid_2");
+
+    fb2.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    auto serializer = JsonSerializer();
+    serializer.setUser(user);
+    device.serialize(serializer);
+    std::string output = serializer.getOutput();
+
+    ASSERT_TRUE(output.find("mock_fb_uid_1") != std::string::npos);
+    ASSERT_FALSE(output.find("mock_fb_uid_2") != std::string::npos);
+}
+
+TEST_F(AccessControlTest, PartialSerializationSignal)
+{
+    const auto permissionsDenyAll = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().read()).build();
+    const auto user = User("user", "psswordHash");
+
+    auto device = createDevice();
+    auto signals = device.getSignalsRecursive();
+
+    auto signal1 = signals.getItemAt(0);
+    signal1.setName("UniqueTestSignal1");
+
+    auto signal2 = signals.getItemAt(1);
+    signal2.setName("UniqueTestSignal2");
+    signal2.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    auto serializer = JsonSerializer();
+    serializer.setUser(user);
+    device.serialize(serializer);
+    std::string output = serializer.getOutput();
+
+    ASSERT_TRUE(output.find("UniqueTestSignal1") != std::string::npos);
+    ASSERT_FALSE(output.find("UniqueTestSignal2") != std::string::npos);
+}
+
+TEST_F(AccessControlTest, PartialSerializationChannel)
+{
+    const auto permissionsDenyAll = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().read()).build();
+    const auto user = User("user", "psswordHash");
+
+    auto device = createDevice();
+    auto channels = device.getChannelsRecursive();
+
+    auto channel1 = channels.getItemAt(0);
+    channel1.setName("UniqueTestChannel1");
+
+    auto channel2 = channels.getItemAt(1);
+    channel2.setName("UniqueTestChannel2");
+    channel2.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    auto serializer = JsonSerializer();
+    serializer.setUser(user);
+    device.serialize(serializer);
+    std::string output = serializer.getOutput();
+
+    ASSERT_TRUE(output.find("UniqueTestChannel1") != std::string::npos);
+    ASSERT_FALSE(output.find("UniqueTestChannel2") != std::string::npos);
+}

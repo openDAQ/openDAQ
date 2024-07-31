@@ -7,18 +7,19 @@
 #include <opendaq/discovery_server_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coreobjects/user_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateDefaultServerInstance()
+static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto authenticationProvider = AuthenticationProvider();
     auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
@@ -29,6 +30,12 @@ static InstancePtr CreateDefaultServerInstance()
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
     return instance;
+}
+
+static InstancePtr CreateDefaultServerInstance()
+{
+    auto authenticationProvider = AuthenticationProvider();
+    return CreateCustomServerInstance(authenticationProvider);
 }
 
 static InstancePtr CreateUpdatedServerInstance()
@@ -214,6 +221,36 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, PartialSerialization)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123", List<IString>("user")));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = CreateCustomServerInstance(authProvider);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto channels = serverInstance.getChannelsRecursive();
+    ASSERT_EQ(channels.getCount(), 2u);
+
+    auto permissions = PermissionsBuilder().inherit(true).deny("user", PermissionMaskBuilder().read()).build();
+    channels.getItemAt(0).getPermissionManager().setPermissions(permissions);
+
+    auto clientInstance = Instance();
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto clientChannels = device.getChannelsRecursive();
+    ASSERT_EQ(clientChannels.getCount(), 1u);
 }
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)

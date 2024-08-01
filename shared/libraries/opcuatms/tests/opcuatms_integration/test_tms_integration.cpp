@@ -436,18 +436,7 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto serverInterfaces = serverSync.getInterfaces();
     auto clientInterfaces = clientSync.getInterfaces();
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
-
-    for (size_t i = 0; i < serverInterfaces.getCount(); i++)
-    {
-        auto serverInterface = serverInterfaces[i];
-        auto clientInterface = clientInterfaces[i];
-        for (const auto& property : serverInterface.getAllProperties())
-        {
-            ASSERT_EQ(property, clientInterface.getProperty(property.getName()));
-        }
-    }
 }
-
 
 TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
 {

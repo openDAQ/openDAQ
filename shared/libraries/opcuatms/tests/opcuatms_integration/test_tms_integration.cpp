@@ -11,6 +11,7 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_internal_ptr.h>
+#include <coreobjects/property_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -461,6 +462,29 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     
     PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
     status.setPropertyValue("State", 2);
+    status.setPropertyValue("Grandmaster", "1234");
+
+    PropertyObjectPtr parameters = ptpSyncInterface.getPropertyValue("Parameters");
+
+    StructPtr configuration = parameters.getPropertyValue("PtpConfigurationStructure");
+
+    auto newConfiguration = StructBuilder(configuration)
+                    .set("ClockType",  Enumeration("PtpClockTypeEnumeration", "OrdinaryBoundary", serverTypeManager))
+                    .set("TransportProtocol", Enumeration("PtpProtocolEnumeration", "UDP6_SCOPE", serverTypeManager))
+                    .set("StepFlag", Enumeration("PtpStepFlagEnumeration", "Two", serverTypeManager))
+                    .set("DomainNumber", 123)
+                    .set("LeapSeconds", 123)
+                    .set("DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "E2E", serverTypeManager))
+                    .set("Priority1", 123)
+                    .set("Priority2", 123)
+                    .set("Profiles", Enumeration("PtpProfileEnumeration", "802_1AS", serverTypeManager))
+                    .build();
+
+    parameters.setPropertyValue("PtpConfigurationStructure", newConfiguration);
+
+    PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
+    ports.addProperty(BoolProperty("Port1", true));
+        
     syncComponentInternal.addInterface(ptpSyncInterface);
 
     syncComponentInternal.setSyncLocked(true);
@@ -484,13 +508,16 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     auto clientInterfaces = clientSync.getInterfaces();
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
 
-    for (size_t i = 0; i < serverInterfaces.getCount(); i++)
-    {
-        auto serverInterface = serverInterfaces[i];
-        auto clientInterface = clientInterfaces[i];
-        for (const auto& property : serverInterface.getAllProperties())
-        {
-            ASSERT_EQ(property, clientInterface.getProperty(property.getName()));
-        }
-    }
+    auto clientPtpSyncInterface = clientInterfaces[0];
+    ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);
+
+    PropertyObjectPtr clientStatus = clientPtpSyncInterface.getPropertyValue("Status");
+    ASSERT_EQ(clientStatus.getPropertyValue("State"), 2);
+    ASSERT_EQ(clientStatus.getPropertyValue("Grandmaster"), "1234");
+
+    PropertyObjectPtr clientParameters = clientPtpSyncInterface.getPropertyValue("Parameters");
+    ASSERT_EQ(clientParameters.getPropertyValue("PtpConfigurationStructure"), newConfiguration);
+    
+    PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
+    ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);   
 }

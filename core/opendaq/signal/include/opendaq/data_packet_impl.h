@@ -125,7 +125,7 @@ void DataPacketImpl<TInterface>::initPacket()
 
     hasReferenceDomainOffset = descriptor.getReferenceDomainOffset() != nullptr;
 
-    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc;
+    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
 
 template <typename TInterface>
@@ -330,11 +330,23 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     else if (hasDataRuleCalc)
                     {
                         scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
+                    }
 
-                        if (hasReferenceDomainOffset)
+                    if (hasReferenceDomainOffset)
+                    {
+                        auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(), descriptor.getReferenceDomainOffset(), sampleCount));
+
+                        if (data)
                         {
-                            auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetTyped(
-                                descriptor.getSampleType(), descriptor.getReferenceDomainOffset(), sampleCount));
+                            // Explicit data rule, apply Reference Domain Offset
+                            // Uses malloc to create a new array
+                            scaledData = referenceDomainOffsetAdder->addReferenceDomainOffset(data);
+                        }
+                        else
+                        {
+                            // Linear data rule, apply Reference Domain Offset
+                            // Modifies existing array
                             referenceDomainOffsetAdder->addReferenceDomainOffset(&scaledData);
                         }
                     }

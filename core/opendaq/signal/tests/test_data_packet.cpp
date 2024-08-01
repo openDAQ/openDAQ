@@ -638,7 +638,7 @@ TEST_F(DataPacketTest, GetLastValueNoTypeManager)
     ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
 }
 
-TEST_F(DataPacketTest, ReferenceDomainOffset)
+TEST_F(DataPacketTest, ReferenceDomainOffsetLinearDataRuleInt32)
 {
     const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(LinearDataRule(2, 6)).setReferenceDomainOffset(100).build();
     const auto packet = DataPacket(descriptor, 3, 2);
@@ -660,4 +660,80 @@ TEST_F(DataPacketTest, ReferenceDomainOffset)
     ASSERT_EQ(expected[1], data2[1]);
     ASSERT_EQ(expected[2], data2[2]);
 
+}
+
+TEST_F(DataPacketTest, ReferenceDomainOffsetLinearDataRuleInt64)
+{
+    const auto descriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(LinearDataRule(2, 6)).setReferenceDomainOffset(100).build();
+    const auto packet = DataPacket(descriptor, 3, 2);
+
+    // offset = 2, start = 6, referenceDomainOffset = 100: 2 + 6 + 100 = 108
+    int64_t expected[] = {108, 110, 112};
+
+    const auto data1 = static_cast<int64_t*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data1[0]);
+    ASSERT_EQ(expected[1], data1[1]);
+    ASSERT_EQ(expected[2], data1[2]);
+
+    // Tests a different path
+
+    const auto data2 = static_cast<int64_t*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data2[0]);
+    ASSERT_EQ(expected[1], data2[1]);
+    ASSERT_EQ(expected[2], data2[2]);
+}
+
+TEST_F(DataPacketTest, ReferenceDomainOffsetLinearDataRuleFloat64)
+{
+    const auto descriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(LinearDataRule(2.5, 6.5)).setReferenceDomainOffset(100.5).build();
+    const auto packet = DataPacket(descriptor, 3, 2.5);
+
+    // offset = 2.5, start = 6.5, referenceDomainOffset = 100.5: 2.5 + 6.5 + 100.5 = 109.5
+    double expected[] = {109.5, 112.0, 114.5};
+
+    const auto data1 = static_cast<double*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data1[0]);
+    ASSERT_EQ(expected[1], data1[1]);
+    ASSERT_EQ(expected[2], data1[2]);
+
+    // Tests a different path
+
+    const auto data2 = static_cast<double*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data2[0]);
+    ASSERT_EQ(expected[1], data2[1]);
+    ASSERT_EQ(expected[2], data2[2]);
+}
+
+TEST_F(DataPacketTest, ReferenceDomainOffsetExplicitDataRule)
+{
+    const auto descriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ExplicitDataRule()).setReferenceDomainOffset(100).build();
+    const auto packet = DataPacket(descriptor, 3);
+
+    const auto rawData = static_cast<int32_t*>(packet.getRawData());
+    rawData[0] = 8;
+    rawData[1] = 10;
+    rawData[2] = 12;
+
+    int32_t expected[] = {108, 110, 112};
+
+    const auto data1 = static_cast<int32_t*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data1[0]);
+    ASSERT_EQ(expected[1], data1[1]);
+    ASSERT_EQ(expected[2], data1[2]);
+
+    // Tests a different path
+
+    const auto data2 = static_cast<int32_t*>(packet.getData());
+
+    ASSERT_EQ(expected[0], data2[0]);
+    ASSERT_EQ(expected[1], data2[1]);
+    ASSERT_EQ(expected[2], data2[2]);
 }

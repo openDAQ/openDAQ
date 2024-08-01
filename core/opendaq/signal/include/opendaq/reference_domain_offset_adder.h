@@ -24,6 +24,7 @@ class ReferenceDomainOffsetAdder
 {
 public:
     virtual ~ReferenceDomainOffsetAdder() = default;
+    virtual void* addReferenceDomainOffset(void* input) = 0;
     virtual void addReferenceDomainOffset(void** input) = 0;
 };
 
@@ -31,6 +32,20 @@ template <typename T>
 class ReferenceDomainOffsetAdderTyped : public ReferenceDomainOffsetAdder
 {
 public:
+    void* addReferenceDomainOffset(void* input) override
+    {
+        void* output = std::malloc(sampleCount * sizeof(T));
+        if (!output)
+            throw NoMemoryException("Memory allocation failed.");
+
+        T* typedOutput = static_cast<T*>(output);
+        T* typedInput = static_cast<T*>(input);
+        for (SizeT i = 0; i < sampleCount; ++i)
+            typedOutput[i] = typedInput[i] + referenceDomainOffset;
+
+        return output;
+    }
+
     void addReferenceDomainOffset(void** input) override
     {
         T* typed = static_cast<T*>(*input);
@@ -49,7 +64,9 @@ private:
     SizeT sampleCount;
 };
 
-static ReferenceDomainOffsetAdder* createReferenceDomainOffsetTyped(SampleType outputType, const NumberPtr& referenceDomainOffset, SizeT sampleCount)
+static ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleType outputType,
+                                                                         const NumberPtr& referenceDomainOffset,
+                                                                         SizeT sampleCount)
 {
     switch (outputType)
     {

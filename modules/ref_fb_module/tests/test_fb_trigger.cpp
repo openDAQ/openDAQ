@@ -96,7 +96,7 @@ private:
             {
                 // Explicit creation of one domain packet
                 auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size());
-                auto domainPacketData = static_cast<Int*>(domainPacket.getData());
+                auto domainPacketData = static_cast<Int*>(domainPacket.getRawData());
                 for (size_t ii = 0; ii < mockDomainPackets[i].size(); ii++)
                     *domainPacketData++ = static_cast<Int>(mockDomainPackets[i][ii]);
                 domainPackets.push_back(domainPacket);
@@ -154,7 +154,7 @@ private:
         {
             // Create data packet
             auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
-            auto packetData = static_cast<T*>(dataPacket.getData());
+            auto packetData = static_cast<T*>(dataPacket.getRawData());
             for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
                 *packetData++ = static_cast<T>(mockPackets[i][ii]);
 

@@ -170,7 +170,7 @@ void TriggerFbImpl::trigger(const DataPacketPtr& inputPacket, size_t triggerInde
     auto domainPacketData = static_cast<daq::Int*>(outputDomainPacket.getData());
     *domainPacketData = triggeredAt;
 
-    // Create ouput data packet
+    // Create output data packet
     auto dataPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
     auto packetData = static_cast<daq::Bool*>(dataPacket.getData());
     *packetData = static_cast<daq::Bool>(state);

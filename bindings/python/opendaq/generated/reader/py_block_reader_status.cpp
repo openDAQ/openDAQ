@@ -38,7 +38,7 @@ void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderSt
 {
     cls.doc() = "IBlockReaderStatus inherits from IReaderStatus to expand information returned read function";
 
-    m.def("BlockReaderStatus", [](daq::IEventPacket* eventPacket, const bool valid, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset, const size_t readSamples){
+    m.def("BlockReaderStatus", [](daq::IEventPacket* eventPacket, const bool valid, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset, const size_t readSamples){
         return daq::BlockReaderStatus_Create(eventPacket, valid, getVariantValue<daq::INumber*>(offset), readSamples);
     }, py::arg("event_packet"), py::arg("valid"), py::arg("offset"), py::arg("read_samples"));
 

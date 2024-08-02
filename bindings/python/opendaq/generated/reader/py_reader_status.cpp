@@ -44,7 +44,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
 {
     cls.doc() = "Represents the status of the reading process returned by the reader::read function.";
 
-    m.def("ReaderStatus", [](daq::IEventPacket* eventPacket, const bool valid, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset){
+    m.def("ReaderStatus", [](daq::IEventPacket* eventPacket, const bool valid, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset){
         return daq::ReaderStatus_Create(eventPacket, valid, getVariantValue<daq::INumber*>(offset));
     }, py::arg("event_packet"), py::arg("valid"), py::arg("offset"));
 

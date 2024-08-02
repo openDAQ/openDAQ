@@ -174,6 +174,17 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
             return daq::ObjectPtr<std::remove_pointer_t<DaqType>>(*ptr);
         }
     }
+    if constexpr (std::is_same_v<DaqType, daq::INumber*> && is_variant_member_v<double, Variant> && is_variant_member_v<int64_t, Variant>) {
+        variant_full_t variant;
+        if (auto doublePtr = std::get_if<double>(&v))
+        {
+            variant = *doublePtr;
+        } else if (auto intPtr = std::get_if<int64_t>(&v))
+        {
+            variant = *intPtr;
+        }
+        return getVariantValueInternal(variant);
+    }
     if (auto daq = std::get_if<DaqType>(&v))
     {
         return daq::ObjectPtr<std::remove_pointer_t<DaqType>>::Borrow(*daq);

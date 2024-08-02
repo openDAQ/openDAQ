@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
  */
 
 /*!
@@ -59,18 +59,17 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponentInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setSyncLocked(Bool synchronizationLocked) = 0;
 
-    // [elementType(interface, IPropertyObject)]
     /*!
      * @brief Adds an interface to the synchronization component.
      * @param interface The interface to be added.
      */
-    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) = 0;
+    virtual ErrCode INTERFACE_FUNC addInterface(IPropertyObject* syncInterface) = 0;
 
     /*!
      * @brief Removes an interface from the synchronization component.
      * @param interfaceName The name of the interface to be removed.
      */
-    virtual ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) = 0;
+    virtual ErrCode INTERFACE_FUNC removeInterface(IString* syncInterfaceName) = 0;
 };
 /*!@}*/
 

@@ -48,8 +48,8 @@ public:
 
     ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
     ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
-    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* interface) override;
-    ErrCode INTERFACE_FUNC removeInterface(IString* interfaceName) override;
+    ErrCode INTERFACE_FUNC addInterface(IPropertyObject* syncInterface) override;
+    ErrCode INTERFACE_FUNC removeInterface(IString* syncInterfaceName) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -149,21 +149,21 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IL
 }
 
 template <typename MainInterface, typename ... Interfaces>
-ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceNames(IList** interfaceNames)
+ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceNames(IList** syncInterfaceNames)
 {
-    OPENDAQ_PARAM_NOT_NULL(interfaceNames);
+    OPENDAQ_PARAM_NOT_NULL(syncInterfaceNames);
     return daqTry([&]() {
-        *interfaceNames = getTypedProperty<IList>("InterfaceNames").detach();
+        *syncInterfaceNames = getTypedProperty<IList>("InterfaceNames").detach();
         return OPENDAQ_SUCCESS;
     });
 }
 
 template <typename MainInterface, typename ... Interfaces>
-ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPropertyObject* interface)
+ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPropertyObject* syncInterface)
 {
-    OPENDAQ_PARAM_NOT_NULL(interface);
+    OPENDAQ_PARAM_NOT_NULL(syncInterface);
 
-    PropertyObjectPtr interfacePtr = interface;
+    PropertyObjectPtr interfacePtr = syncInterface;
 
     //TBD: Check if interface inherits from SyncInterfaceBase
     StringPtr className = interfacePtr.getClassName();
@@ -205,7 +205,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
         return err;
 
     const auto interfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
-    err = interfacesPtr->addProperty(ObjectProperty(className, interface));
+    err = interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
     if (OPENDAQ_FAILED(err))
         return err;
 

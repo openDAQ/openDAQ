@@ -43,18 +43,13 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
     }, py::arg("context"), py::arg("parse_failed_exception"), py::arg("local_id"));
 
 
-    cls.def_property("sync_locked",
+    cls.def_property_readonly("sync_locked",
         [](daq::ISyncComponent *object)
         {
             const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
             return objectPtr.getSyncLocked();
         },
-        [](daq::ISyncComponent *object, const bool synchronizationLocked)
-        {
-            const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
-            objectPtr.setSyncLocked(synchronizationLocked);
-        },
-        "Retrieves the synchronization lock status. / Sets the synchronization lock status.");
+        "Retrieves the synchronization lock status.");
     cls.def_property("selected_source",
         [](daq::ISyncComponent *object)
         {
@@ -83,20 +78,4 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
         },
         py::return_value_policy::take_ownership,
         "Retrieves the list of interface names associated with this synchronization component.");
-    cls.def("add_interface",
-        [](daq::ISyncComponent *object, daq::IPropertyObject* interface)
-        {
-            const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
-            objectPtr.addInterface(interface);
-        },
-        py::arg("interface"),
-        "Adds an interface to the synchronization component.");
-    cls.def("remove_interface",
-        [](daq::ISyncComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& interfaceName)
-        {
-            const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
-            objectPtr.removeInterface(getVariantValue<daq::IString*>(interfaceName));
-        },
-        py::arg("interface_name"),
-        "Removes an interface from the synchronization component.");
 }

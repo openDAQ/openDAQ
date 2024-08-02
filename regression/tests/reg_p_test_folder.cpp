@@ -27,7 +27,7 @@ TEST_F(RegressionTestFolder, getItems)
     ASSERT_NO_THROW(items = folder.getItems());
     if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_EQ(items.getCount(), 5);
+        ASSERT_EQ(items.getCount(), 6);
     }
     else if (protocol == "ns" || protocol == "lt")
     {

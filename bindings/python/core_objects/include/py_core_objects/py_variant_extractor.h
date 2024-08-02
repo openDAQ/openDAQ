@@ -98,11 +98,13 @@ struct DaqInterfaceTypeToNativeType<daq::IString>
 };
 
 // check Variant has type
-template<typename T, typename Variant>
+template <typename T, typename Variant>
 struct is_variant_member;
 
 template <typename T, typename... Args>
-struct is_variant_member<T, std::variant<Args...>> : std::disjunction<std::is_same<T, Args>...> {};
+struct is_variant_member<T, std::variant<Args...>> : std::disjunction<std::is_same<T, Args>...>
+{
+};
 
 template <typename T, typename Variant>
 inline constexpr bool is_variant_member_v = is_variant_member<T, Variant>::value;
@@ -174,12 +176,14 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
             return daq::ObjectPtr<std::remove_pointer_t<DaqType>>(*ptr);
         }
     }
-    if constexpr (std::is_same_v<DaqType, daq::INumber*> && is_variant_member_v<double, Variant> && is_variant_member_v<int64_t, Variant>) {
+    if constexpr (std::is_same_v<DaqType, daq::INumber*> && is_variant_member_v<double, Variant> && is_variant_member_v<int64_t, Variant>)
+    {
         variant_full_t variant;
         if (auto doublePtr = std::get_if<double>(&v))
         {
             variant = *doublePtr;
-        } else if (auto intPtr = std::get_if<int64_t>(&v))
+        }
+        else if (auto intPtr = std::get_if<int64_t>(&v))
         {
             variant = *intPtr;
         }

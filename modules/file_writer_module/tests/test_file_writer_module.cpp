@@ -168,19 +168,31 @@ TEST_F(FileWriterModuleTest, CheckSetProperties)
 
     // Check Default Values
     ASSERT_EQ(fb.getPropertyValue("FileName"), "ExampleFile");
-    ASSERT_EQ(fb.getPropertyValue("WriteBatchCylceInSec"), 20);
+    ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 20);
     ASSERT_EQ(fb.getPropertyValue("RecordingActive"), false);
     ASSERT_EQ(fb.getPropertyValue("Path"), "");
 
     // Manipulate
     fb.setPropertyValue("FileName", "openDAQData");
-    fb.setPropertyValue("WriteBatchCylceInSec", 99);
+    fb.setPropertyValue("BatchCylce", 99);
     fb.setPropertyValue("RecordingActive", true);
     fb.setPropertyValue("Path", "myPath");
     ASSERT_EQ(fb.getPropertyValue("FileName"), "openDAQData");
-    ASSERT_EQ(fb.getPropertyValue("WriteBatchCylceInSec"), 99);
+    ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 99);
     ASSERT_EQ(fb.getPropertyValue("RecordingActive"), true);
     ASSERT_EQ(fb.getPropertyValue("Path"), "myPath");
+
+    // Try to set negative batch cycle
+    fb.setPropertyValue("BatchCylce", -1);
+    ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 1);
+
+    // Try to set min value
+    fb.setPropertyValue("BatchCylce", 0);
+    ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 1);
+
+    // Try to set max value
+    fb.setPropertyValue("BatchCylce", 3601);
+    ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 3600);
 }
 
 
@@ -252,7 +264,7 @@ TEST_F(FileWriterModuleTest, TestBatching)
     
     // Execute recording and use other name for file
     fb.setPropertyValue("FileName", "openDAQData");
-    fb.setPropertyValue("WriteBatchCylceInSec", 4);
+    fb.setPropertyValue("BatchCylce", 4);
     fb.setPropertyValue("RecordingActive", true);
     size_t packagesToSend = 10;
     for (size_t i = 0; i < packagesToSend; i++)
@@ -270,7 +282,7 @@ TEST_F(FileWriterModuleTest, TestBatching)
         voltageSignal.sendPacket(voltagePacket);
         // At i == 3 it is the half of the 10 packages to be send.
         // The reason for is that package 0,1,2,3,4 needs to be send, but at package 4 
-        // the evaluation is done if the time is over the WriteBatchCylceInSec
+        // the evaluation is done if the time is over the BatchCylce
         if (i == 3)
         {
             // 500 to have some buffer even if the number is set to 4 sec.

@@ -55,9 +55,14 @@ void ParquetFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("RecordingActive") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyActiveChanged(); };
 
-    const auto writeBatchCylceInSecProp = IntProperty("WriteBatchCylceInSec", 20);
-    objPtr.addProperty(writeBatchCylceInSecProp);
-    objPtr.getOnPropertyValueWrite("WriteBatchCylceInSec") +=
+    const auto batchCylce = IntPropertyBuilder("BatchCylce", 20)
+                            .setUnit(Unit("s"))
+                            .setMinValue(1)
+                            .setMaxValue(3600)
+                            .setDescription("After how many seconds a batch is stored.")
+                            .build();
+    objPtr.addProperty(batchCylce);
+    objPtr.getOnPropertyValueWrite("BatchCylce") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     readProperties();
@@ -77,7 +82,7 @@ void ParquetFbImpl::readProperties()
 
     fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
     recordingActive = static_cast<bool>(objPtr.getPropertyValue("RecordingActive"));
-    writeBatchCylceInSec = static_cast<int>(objPtr.getPropertyValue("WriteBatchCylceInSec"));
+    batchCycle = static_cast<int>(objPtr.getPropertyValue("BatchCylce"));
 }
 
 void ParquetFbImpl::propertyChanged(bool configure)
@@ -115,7 +120,7 @@ void ParquetFbImpl::configureBatchCyleInSecChanged()
     {
         time_t currentTime;
         time(&currentTime);
-        dataTable.second.batchCylceReached = currentTime + writeBatchCylceInSec;
+        dataTable.second.batchCylceReached = currentTime + batchCycle;
     }
 }
 
@@ -216,7 +221,7 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
             std::shared_ptr<arrow::Table> table = generateTable(dataTable);
             writeParquetFile(*table, dataTable.tableNr, dataTable.batchCount);
             ++dataTable.batchCount;
-            dataTable.batchCylceReached = currentTime + writeBatchCylceInSec;
+            dataTable.batchCylceReached = currentTime + batchCycle;
         }
     } 
 }
@@ -239,7 +244,7 @@ void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
     PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64())));
 
     time(&currentTime);
-    dataTablesMap.at(domainId).batchCylceReached = currentTime + writeBatchCylceInSec;
+    dataTablesMap.at(domainId).batchCylceReached = currentTime + batchCycle;
 
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
 }

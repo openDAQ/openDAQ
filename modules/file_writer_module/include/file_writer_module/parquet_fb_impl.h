@@ -76,7 +76,7 @@ private:
     std::map<std::string, DataTable> dataTablesMap;
     std::string path;
     std::string fileName;
-    int64_t writeBatchCylceInSec;
+    int64_t batchCycle;
 
     void writeParquetFile(const arrow::Table& table, const int tableWriteCount, const int tableWriteSubCount);
     std::shared_ptr<arrow::Table> generateTable(DataTable& dataTable);

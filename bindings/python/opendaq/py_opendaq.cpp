@@ -213,4 +213,5 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIReferenceDomainInfoBuilder(m, classIReferenceDomainInfoBuilder);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
+    m.def("NullContext", []() { return daq::NullContext().detach(); });
 }

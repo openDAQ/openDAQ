@@ -31,7 +31,7 @@ TEST_F(RegressionTestFolder, getItems)
     }
     else if (protocol == "ns" || protocol == "lt")
     {
-        ASSERT_EQ(items.getCount(), 4);
+        ASSERT_EQ(items.getCount(), 5);
     }
 }
 

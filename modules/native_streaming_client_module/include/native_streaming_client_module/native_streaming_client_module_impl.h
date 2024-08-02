@@ -81,10 +81,12 @@ private:
     PropertyObjectPtr createConnectionDefaultConfig();
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
     void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
+    bool validateDeviceConfig(const PropertyObjectPtr& config);
     bool validateConnectionConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 

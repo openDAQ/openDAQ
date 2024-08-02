@@ -25,6 +25,27 @@ class TestPropertySystem(opendaq_test.TestCase):
         self.assertEqual(
             property_object.get_property_value('property1'), 'value')
         self.assertEqual(property_object.get_property_value('property2'), 3)
+        
+    def test_min_max_default_float(self):
+        float_property_builder = opendaq.FloatPropertyBuilder("property1", 10.0)
+
+        float_property_builder.min_value = 0.0
+        float_property_builder.max_value = 100.0
+       
+        self.assertTrue(isinstance(float_property_builder.default_value, float))
+        self.assertEqual(float_property_builder.min_value.core_type, opendaq.CoreType.ctFloat)
+        self.assertEqual(float_property_builder.max_value.core_type, opendaq.CoreType.ctFloat)
+
+    def test_min_max_default_int(self):
+        int_property_builder = opendaq.IntPropertyBuilder("property1", 10)
+
+        int_property_builder.min_value = 0
+        int_property_builder.max_value = 100
+
+        # here values min & max are converted to float type, they should be int.
+        self.assertTrue(isinstance(int_property_builder.default_value, int))        
+        self.assertEqual(int_property_builder.min_value.core_type, opendaq.CoreType.ctInt)
+        self.assertEqual(int_property_builder.max_value.core_type, opendaq.CoreType.ctInt)
 
     def test_numerical_props(self):
         property_object = opendaq.PropertyObject()

@@ -42,7 +42,6 @@ class TestPropertySystem(opendaq_test.TestCase):
         int_property_builder.min_value = 0
         int_property_builder.max_value = 100
 
-        # here values min & max are converted to float type, they should be int.
         self.assertTrue(isinstance(int_property_builder.default_value, int))        
         self.assertEqual(int_property_builder.min_value.core_type, opendaq.CoreType.ctInt)
         self.assertEqual(int_property_builder.max_value.core_type, opendaq.CoreType.ctInt)

@@ -5,6 +5,7 @@ from functools import cmp_to_key
 
 from ..utils import *
 from ..event_port import EventPort
+from .function_dialog import FunctionDialog
 
 
 class PropertiesView(tk.Frame):
@@ -59,7 +60,7 @@ class PropertiesView(tk.Frame):
         properties_info = node.visible_properties
         sorted_properties_info = self.properties_sort(properties_info)
         for property_info in sorted_properties_info:
-            iid = property_info.name if parent_iid == None else parent_iid + "." + property_info.name
+            iid = property_info.name if parent_iid is None else parent_iid + "." + property_info.name
             self.nodes_by_iids[iid] = node
 
             if property_info.selection_values is not None:
@@ -158,15 +159,15 @@ class PropertiesView(tk.Frame):
 
         if property_info.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(property_value)
-            f()  # only functions without parameters
+            FunctionDialog(self, property_info, f, self.context).show()
             return
 
         if property_info.value_type == daq.CoreType.ctProc:
             p = daq.IProcedure.cast_from(property_value)
-            p()  # only functions without parameters
+            FunctionDialog(self, property_info, p, self.context).show()
             return
 
-        if (property_info == None or property_info.read_only):
+        if (property_info is None or property_info.read_only):
             return
 
         prompt = 'Enter the new value for {}:'.format(property_name)

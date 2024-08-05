@@ -8,7 +8,7 @@ PYBIND11_MODULE(opendaq, m)
 {
     m.doc() = "openDAQ python bindings";
 
-    blueberry_daq_module = m;
+    opendaq_daq_module = m;
     python_class_fraction = py::module_::import("fractions").attr("Fraction");
 
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);

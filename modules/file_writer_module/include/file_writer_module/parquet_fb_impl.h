@@ -41,6 +41,7 @@ struct DataTable
         : schemaBuilder()
         , domainBuilder()
         , tableNr(tableNr)
+        , lastDomainValue(0)
         , batchCount(0)
         , empty(true)
         , batchCylceReached(0)
@@ -51,10 +52,25 @@ struct DataTable
     arrow::SchemaBuilder schemaBuilder;
     arrow::Int64Builder domainBuilder;
     int tableNr;
+    int64_t lastDomainValue;
     int batchCount;
     bool empty;
     int64_t batchCylceReached;
-    std::map<std::string, arrow::DoubleBuilder> dataBuilderMap;
+    
+    std::map<std::string, std::unique_ptr<arrow::ArrayBuilder>> dataBuilderMap;
+};
+
+struct SignalContext
+{
+    SignalContext(std::string signalId, std::string domainId, SampleType sampleType)
+        : signalId(signalId)
+        , domainId(domainId)
+        , sampleType(sampleType)
+    {
+    }
+    const StringPtr signalId;
+    const StringPtr domainId;
+    const SampleType sampleType;
 };
 
 class ParquetFbImpl final : public FunctionBlock
@@ -74,6 +90,7 @@ private:
     bool recordingActive;
 
     std::map<std::string, DataTable> dataTablesMap;
+    std::map<std::string, SignalContext> inputPortSignalContextMap;
     std::string path;
     std::string fileName;
     int64_t batchCycle;

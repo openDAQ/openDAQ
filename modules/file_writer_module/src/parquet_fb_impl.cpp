@@ -3,6 +3,7 @@
 
 #include <file_writer_module/parquet_fb_impl.h>
 #include <file_writer_module/dispatch.h>
+#include <file_writer_module/builder_type_transit.h>
 
 #include <coreobjects/unit_factory.h>
 #include <coreobjects/eval_value_factory.h>
@@ -137,9 +138,9 @@ std::shared_ptr<arrow::Table> ParquetFbImpl::generateTable(DataTable& dataTable)
     for (auto& entry : dataTable.dataBuilderMap) 
     {
         std::shared_ptr<arrow::Array> doubleArray;
-        PARQUET_THROW_NOT_OK(entry.second.Finish(&doubleArray));
+        PARQUET_THROW_NOT_OK(entry.second.get()->Finish(&doubleArray));
         dataVector.emplace_back(doubleArray);
-        entry.second.Reset();
+        entry.second.get()->Reset();
     }
 
     dataTable.empty = true;
@@ -155,7 +156,7 @@ void ParquetFbImpl::writeParquetFile(const arrow::Table& table, const int tableW
                                                                              + "_" + std::to_string(tableWriteCount) 
                                                                              + "_" + std::to_string(tableWriteSubCount) 
                                                                              + ".parquet"));
-    PARQUET_THROW_NOT_OK( parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 1000));
+    PARQUET_THROW_NOT_OK( parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 10000));
 }
 
 FunctionBlockTypePtr ParquetFbImpl::CreateType()
@@ -176,7 +177,7 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
         return;
 
     packet = connection.dequeue();
-
+   
     while (packet.assigned())
     {
         switch (packet.getType())
@@ -186,10 +187,14 @@ void ParquetFbImpl::onPacketReceived(const InputPortPtr& port)
             case PacketType::Data:
                 if (recordingActive)
                 {
-                    const auto sampleType = port.getSignal().getDescriptor().getSampleType();
-                    const auto globalId = port.getSignal().getGlobalId();
-                    const auto domainGlobalId = port.getSignal().getDomainSignal().getGlobalId();
-                    SAMPLE_TYPE_DISPATCH(sampleType, processDataPacket, globalId, domainGlobalId, std::move(packet), outQueue, outDomainQueue);
+                    const auto signalContextItr = inputPortSignalContextMap.find(port.getGlobalId());
+                    if (signalContextItr == inputPortSignalContextMap.end())
+                        LOG_T("No Signal Context found for Port {}", inputPort.getGlobalId());
+                    else 
+                    {
+                        const auto signalContext = signalContextItr->second;
+                        SAMPLE_TYPE_DISPATCH(signalContext.sampleType, processDataPacket, signalContext.signalId, signalContext.domainId, std::move(packet), outQueue, outDomainQueue);
+                    }
                 }
                 break;
             default:
@@ -206,16 +211,27 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
     if (dataTablesMap.find(domainGlobalId) != dataTablesMap.end()) 
     {
         time_t currentTime;
+        time(&currentTime);
+
         const size_t sampleCount = packet.getSampleCount();
-        double* inputData = static_cast<double*>(packet.getData());
+        using InputType = typename SampleTypeToType<InputSampleType>::Type;
+        auto inputData = static_cast<InputType*>(packet.getData());
+
         int64_t* domainData = static_cast<int64_t*>(packet.getDomainPacket().getData());
         
+        using BuilderType = typename SampleToBuilderType<InputSampleType>::Type;
         auto& dataTable = dataTablesMap.at(domainGlobalId);
-        PARQUET_THROW_NOT_OK(dataTable.dataBuilderMap[globalId].AppendValues(inputData, sampleCount));
-        PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, sampleCount));
+        auto builder = static_cast<BuilderType*>(dataTable.dataBuilderMap[globalId].get());
+
+        PARQUET_THROW_NOT_OK(builder->AppendValues(inputData, sampleCount));
+        // Domain data only add if it is the first domain package.
+        if (dataTable.lastDomainValue  != domainData[sampleCount-1])
+        {
+            PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, sampleCount));
+            dataTable.lastDomainValue = domainData[sampleCount-1];
+        }
         dataTable.empty = false;
 
-        time(&currentTime);
         if (currentTime > dataTable.batchCylceReached)
         {
             std::shared_ptr<arrow::Table> table = generateTable(dataTable);
@@ -223,29 +239,82 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
             ++dataTable.batchCount;
             dataTable.batchCylceReached = currentTime + batchCycle;
         }
-    } 
+    }
+    else
+    {
+        LOG_T("Data tables have not the domain id: {} stored.", inputPort.getGlobalId());
+    }
 }
 
 void ParquetFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
     time_t currentTime;
-    LOG_T("Connected to port {}", inputPort.getLocalId());
-
     std::string domainId = inputPort.getSignal().getDomainSignal().getGlobalId();
     std::string signalId = inputPort.getSignal().getGlobalId();
+    auto sampleType = inputPort.getSignal().getDescriptor().getSampleType();
+
+    inputPortSignalContextMap.emplace(std::piecewise_construct, std::forward_as_tuple(inputPort.getGlobalId()), 
+                                                        std::forward_as_tuple(signalId, domainId, sampleType));
+
 
     if (dataTablesMap.find(domainId) == dataTablesMap.end()) 
     {
         tableNumberCount++;
-        dataTablesMap.emplace(std::piecewise_construct, std::forward_as_tuple(domainId), std::forward_as_tuple(domainId, tableNumberCount));
+        dataTablesMap.emplace(std::piecewise_construct, std::forward_as_tuple(domainId), 
+                                                        std::forward_as_tuple(domainId, tableNumberCount));
     }
-    dataTablesMap.at(domainId).dataBuilderMap[signalId] = arrow::DoubleBuilder();
-    PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64())));
+
+    switch(sampleType)
+    {
+        case SampleType::Int8:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::Int8Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::int8())));
+            break;
+        case SampleType::Int16:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::Int16Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::int16())));
+            break;
+        case SampleType::Int32:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::Int32Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::int32())));
+            break;
+        case SampleType::Int64:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::Int64Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::int64())));
+            break;
+        case SampleType::UInt8:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::UInt8Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::uint8())));
+            break;
+        case SampleType::UInt16:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::UInt16Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::uint16())));
+            break;
+        case SampleType::UInt32:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::UInt32Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::uint32())));
+            break;
+        case SampleType::UInt64:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::UInt64Builder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::uint64())));
+            break;
+        case SampleType::Float32:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::FloatBuilder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float32())));
+            break;
+        case SampleType::Float64:
+            dataTablesMap.at(domainId).dataBuilderMap[signalId] = std::make_unique<arrow::DoubleBuilder>();
+            PARQUET_THROW_NOT_OK(dataTablesMap.at(domainId).schemaBuilder.AddField(arrow::field(signalId, arrow::float64())));
+            break;
+        default:
+            throw std::runtime_error("Invalid sample type");
+    }
+
 
     time(&currentTime);
     dataTablesMap.at(domainId).batchCylceReached = currentTime + batchCycle;
-
+    LOG_T("Connected to port {}", inputPort.getLocalId());
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
 }
 

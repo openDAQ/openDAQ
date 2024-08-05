@@ -28,6 +28,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
+#include "py_opendaq/py_packet_buffer.h"
 
 PyDaqIntf<daq::IDataPacket, daq::IPacket> declareIDataPacket(pybind11::module_ m)
 {
@@ -75,26 +76,22 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         },
         py::return_value_policy::take_ownership,
         "Gets current packet offset. This offset is later applied to the data rule used by a signal to calculate actual data value. This value is usually a time or other domain value. Packet offset is particularly useful when one wants to transfer a gap in otherwise equidistant samples. If we have a linear data rule, defined by equation f(x) = k*x + n, then the data value will be calculated by the equation g(x) = offset + f(x).");
-    /*
-    cls.def_property_readonly("data",
-        [](daq::IDataPacket *object)
+    cls.def_property_readonly(
+        "raw_data",
+        [](daq::IDataPacket* object)
         {
-            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
-            return objectPtr.getData();
+            auto ptr = std::make_unique<detail::PacketBuffer<detail::PacketBufferType::raw>>(object);
+            return ptr;
         },
-        py::return_value_policy::take_ownership,
-        "Gets the calculated/scaled data address of the packet.");
-    */
-    /*
-    cls.def_property_readonly("raw_data",
-        [](daq::IDataPacket *object)
+        py::return_value_policy::take_ownership);
+    cls.def_property_readonly(
+        "data",
+        [](daq::IDataPacket* object)
         {
-            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
-            return objectPtr.getRawData();
+            auto ptr = std::make_unique<detail::PacketBuffer<detail::PacketBufferType::scaled>>(object);
+            return ptr;
         },
-        py::return_value_policy::take_ownership,
-        "Gets a pointer to the raw packet data. `nullptr` if the signal's data rule is implicit.");
-    */
+        py::return_value_policy::take_ownership);
     cls.def_property_readonly("data_size",
         [](daq::IDataPacket *object)
         {

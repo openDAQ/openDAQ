@@ -3,6 +3,7 @@
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_core_types.h"
 #include "py_opendaq/py_opendaq.h"
+#include "py_opendaq/py_packet_buffer.h"
 
 PYBIND11_MODULE(opendaq, m)
 {
@@ -16,6 +17,10 @@ PYBIND11_MODULE(opendaq, m)
     m.def("clear_error_info", &daqClearErrorInfo);
 
     // wrap individual components
+    
+    registerPacketBuffer<detail::PacketBufferType::raw>(m);
+    registerPacketBuffer<detail::PacketBufferType::scaled>(m);
+
     wrapDaqComponentCoreTypes(m);
     wrapDaqComponentCoreObjects(m);
     wrapDaqComponentOpenDaq(m);

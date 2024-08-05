@@ -21,6 +21,7 @@
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
 #include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -30,9 +31,11 @@ class ConfigNestedPropertyObjectTest : public testing::Test
 public:
     void SetUp() override
     {
+        const auto anonymousUser = User("", "");
+
         serverDevice = test_utils::createServerDevice();
         serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigNestedPropertyObjectTest::sendRequest, this, std::placeholders::_1), nullptr);
@@ -325,10 +328,10 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // update the sync component in the client side
     clientSyncComponent.setSelectedSource(0);
 
-    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0); 
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0);
 
     // check that the server side has the same sync component
-    ASSERT_EQ(syncComponent.getSelectedSource(), 0);    
+    ASSERT_EQ(syncComponent.getSelectedSource(), 0);
 }
 
 
@@ -342,7 +345,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     auto ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
     ptpSyncInterface.setPropertyValue("Mode", 2);
-    
+
     PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
     status.setPropertyValue("State", 2);
     status.setPropertyValue("Grandmaster", "1234");
@@ -367,7 +370,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
     ports.addProperty(BoolProperty("Port1", true));
-        
+
     syncComponentPrivate.addInterface(ptpSyncInterface);
 
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
@@ -385,7 +388,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     PropertyObjectPtr clientParameters = clientPtpSyncInterface.getPropertyValue("Parameters");
     ASSERT_EQ(clientParameters.getPropertyValue("PtpConfigurationStructure"), newConfiguration);
-    
+
     PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
     ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);
 }

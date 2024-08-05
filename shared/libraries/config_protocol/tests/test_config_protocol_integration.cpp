@@ -13,6 +13,7 @@
 #include <config_protocol/config_client_device_impl.h>
 
 #include "opendaq/packet_factory.h"
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -24,10 +25,12 @@ class ConfigProtocolIntegrationTest : public Test
 public:
     void SetUp() override
     {
+        auto anonymousUser = User("", "");
+
         serverDevice = test_utils::createServerDevice();
         serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
-
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
 

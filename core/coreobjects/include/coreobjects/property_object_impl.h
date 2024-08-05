@@ -2404,10 +2404,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     if (!hasAccess)
-    {
-        hasUserReadAccess(serializerPtr.getUser(), &hasAccess);
         return OPENDAQ_ERR_ACCESSDENIED;
-    }
 
     serializer->startTaggedObject(this);
 

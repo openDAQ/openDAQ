@@ -73,6 +73,8 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
 {
+    serializer.setUser(user);
+
     buildRpcDispatchStructure();
 
     if (daqContext.assigned())
@@ -100,25 +102,23 @@ BaseObjectPtr ConfigProtocolServer::bindComponentWrapper(const F& f, const Param
 }
 
 template <class SmartPtr, class Handler>
-void ConfigProtocolServer::addHandler(const std::string& name, const Handler& handler)
+void ConfigProtocolServer::addHandler(const std::string& name, const Handler& handler, const std::vector<Permission>& requiredPermissions)
 {
     using namespace std::placeholders;
 
     auto h = std::bind(handler, _1, _2);
 
-    rpcDispatch.insert(
-        {
-            name,
-            [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
-            {
-                return bindComponentWrapper<SmartPtr>(
-                        [&h](const SmartPtr& component, const ParamsDictPtr& params) -> BaseObjectPtr
+    rpcDispatch.insert({name,
+                        [this, h, requiredPermissions](const ParamsDictPtr& params) -> BaseObjectPtr
                         {
-                            return h(component, params);
-                        },
-                    params);
-            }
-        });
+                            return bindComponentWrapper<SmartPtr>(
+                                [this, &h, &requiredPermissions](const SmartPtr& component, const ParamsDictPtr& params) -> BaseObjectPtr
+                                {
+                                    protectComponent(component, requiredPermissions);
+                                    return h(component, params);
+                                },
+                                params);
+                        }});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -129,32 +129,26 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
     rpcDispatch.insert({"GetSerializedRootDevice", std::bind(&ConfigProtocolServer::getSerializedRootDevice, this,  _1)});
 
-    addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
-    addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
-    addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
-    addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
-    addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
-    addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
-    addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
-    addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
-    addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue, {Permission::Read});
+    addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty, {Permission::Read, Permission::Execute});
+    addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue, {Permission::Read, Permission::Write});
+    addHandler<ComponentPtr>("Update", &ConfigServerComponent::update, {Permission::Read, Permission::Write});
 
-    addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
-    addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
-    addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
-    addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
-    addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
+    addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo, {Permission::Read});
+    addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes, {Permission::Read});
+    addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock, {Permission::Read, Permission::Write});
+    addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock, {Permission::Read, Permission::Write});
+    addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin, {Permission::Read});
 
-    addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
+    addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue, {Permission::Read});
 
-    addHandler<InputPortPtr>("ConnectSignal",
-                             [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
-                             {
-                                 const StringPtr signalId = params.get("SignalId");
-                                 const SignalPtr signal = findComponent(signalId);
-                                 return ConfigServerInputPort::connect(inputPort, signal);
-                             });
-    addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
+    addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2), {Permission::Read, Permission::Write});
+    addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect, {Permission::Read, Permission::Write});
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -272,7 +266,6 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
     }
 
     serializer.reset();
-    serializer.setUser(user);
     retObj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -304,15 +297,25 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     if (!component.assigned())
         throw NotFoundException("Component not found");
 
+    protectComponent(component, Permission::Read);
     return ComponentHolder(component);
 }
 
 BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr& params)
 {
+    protectComponent(rootDevice, Permission::Read);
+
     serializer.reset();
     rootDevice.serialize(serializer);
 
     return serializer.getOutput();
+}
+
+BaseObjectPtr ConfigProtocolServer::connectSignal(const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    return ConfigServerInputPort::connect(inputPort, signal);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
@@ -406,8 +409,26 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
 }
 
+void ConfigProtocolServer::protectComponent(const ComponentPtr& component, const std::vector<Permission>& requiredPermissions) const
+{
+    auto permissionManager = component.getPermissionManager();
+
+    for (const auto permission : requiredPermissions)
+    {
+        if (!permissionManager.isAuthorized(user, permission))
+            throw AccessDeniedException();
+    }
+}
+
+void ConfigProtocolServer::protectComponent(const ComponentPtr& component, Permission requiredPermission) const 
+{
+    const std::vector<Permission> requiredPermissions = {requiredPermission};
+    protectComponent(component, requiredPermissions);
+}
+
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
 {
+    protectComponent(rootDevice, Permission::Read);
     const auto typeManager = rootDevice.getContext().getTypeManager();
     return typeManager;
 }

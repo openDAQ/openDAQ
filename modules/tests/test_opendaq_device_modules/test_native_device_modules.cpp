@@ -253,6 +253,29 @@ TEST_F(NativeDeviceModulesTest, PartialSerialization)
     ASSERT_EQ(clientChannels.getCount(), 1u);
 }
 
+TEST_F(NativeDeviceModulesTest, PartialSerializationPropertyObjectClass)
+{
+    auto authProvider = AuthenticationProvider(true);
+
+    auto serverInstance = CreateCustomServerInstance(authProvider);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto typeManager = serverInstance.getContext().getTypeManager();
+
+    const auto obj = PropertyObject();
+    obj.addProperty(StringProperty("NestedStringProperty", "String"));
+    const auto testClass = PropertyObjectClassBuilder("TestClass")
+                               .addProperty(StringProperty("TestString", "String"))
+                               .addProperty(ObjectProperty("TestChild", obj))
+                               .build();
+
+    typeManager.addType(testClass);
+
+    auto clientInstance = Instance();
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
+    ASSERT_TRUE(device.assigned());
+}
+
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();

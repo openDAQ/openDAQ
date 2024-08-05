@@ -73,6 +73,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
 {
+    assert(user.assigned());
     serializer.setUser(user);
 
     buildRpcDispatchStructure();

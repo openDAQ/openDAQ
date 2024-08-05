@@ -275,12 +275,18 @@ TEST_F(FileWriterModuleTest, CheckSetProperties)
     // Manipulate
     fb.setPropertyValue("FileName", "openDAQData");
     fb.setPropertyValue("BatchCylce", 99);
+    fb.setPropertyValue("DownScalingDevider", 5);
     fb.setPropertyValue("RecordingActive", true);
     fb.setPropertyValue("Path", "myPath");
     ASSERT_EQ(fb.getPropertyValue("FileName"), "openDAQData");
     ASSERT_EQ(fb.getPropertyValue("BatchCylce"), 99);
+    ASSERT_EQ(fb.getPropertyValue("DownScalingDevider"), 5);
     ASSERT_EQ(fb.getPropertyValue("RecordingActive"), true);
     ASSERT_EQ(fb.getPropertyValue("Path"), "myPath");
+
+    // If active it should be not possible to manipulate
+    //fb.setPropertyValue("DownScalingDevider", 10);
+    //ASSERT_EQ(fb.getPropertyValue("DownScalingDevider"), 5);
 
     // Try to set negative batch cycle
     fb.setPropertyValue("BatchCylce", -1);
@@ -395,6 +401,64 @@ TEST_F(FileWriterModuleTest, StoreOneSignal)
     }
     ASSERT_EQ(rowCount,1000);
 }
+
+TEST_F(FileWriterModuleTest, DownsamplingTest)
+{
+    auto ctx = CreateContext();
+    const auto module = CreateModule();
+    int downSamplingFactor = 100;
+
+    auto fb = module.createFunctionBlock("FileWriterModuleParquet", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
+
+    createSignals(ctx);
+    //fb.getInputPorts()[0].connect(int32Signal);
+    fb.getInputPorts()[0].connect(floatSignal);
+
+    
+    // Execute recording
+    fb.setPropertyValue("FileName", "Downsamling");
+    fb.setPropertyValue("DownScalingDevider", downSamplingFactor);
+    fb.setPropertyValue("RecordingActive", true);
+    // Send Data
+    //sendSignalWithTime1<daq::SampleType::Int32>(10, 1000, 1000);
+    sendSignalWithTime1<daq::SampleType::Float32>(10, 1000, 1000);
+
+    // Recording to false triggers file write
+    fb.setPropertyValue("RecordingActive", false);
+
+    std::shared_ptr<arrow::io::ReadableFile> infile;
+
+    // Created Recorded files have a file format
+    // <fileName>_x_y.parquet
+    // where x is table where signals are sharing a domain signal
+    // where y is subcount if file batching is done.
+    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open("Downsamling_1_0.parquet"));
+
+    parquet::StreamReader stream{parquet::ParquetFileReader::Open(infile)};
+    
+    size_t rowCount = 0;
+    std::int64_t time = 0;
+    std::int64_t checkTime = 999;
+    //int32_t value = 0;
+    //int32_t checkValue = -1;
+    float value2 = 0;
+    float checkValue2 = -1.0;
+    while ( !stream.eof() )
+    {
+        stream >> time >> value2 >> parquet::EndRow;
+        checkTime += downSamplingFactor;
+        ASSERT_EQ(time, checkTime);
+        //checkValue += downSamplingFactor;
+        checkValue2 += downSamplingFactor;
+        //ASSERT_EQ(value, checkValue);
+        ASSERT_FLOAT_EQ(value2, checkValue2);
+
+        rowCount++;
+    }
+    ASSERT_EQ(rowCount, 100);
+}
+
 
 TEST_F(FileWriterModuleTest, TestBatching)
 {

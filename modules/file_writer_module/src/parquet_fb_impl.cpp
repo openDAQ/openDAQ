@@ -22,6 +22,8 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <coreobjects/validator_factory.h>
+
 
 BEGIN_NAMESPACE_FILE_WRITER_MODULE
 
@@ -33,6 +35,7 @@ ParquetFbImpl::ParquetFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
     , inputPortCount(0)
     , tableNumberCount(0)
     , recordingActive(false)
+    , downScalingDevider(1)
 {
     initProperties();
     createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
@@ -66,6 +69,17 @@ void ParquetFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("BatchCylce") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
+
+    const auto downScalingDevider = IntPropertyBuilder("DownScalingDevider", 1)
+                            .setMinValue(1)
+                            .setMaxValue(1000000)
+                            .setDescription("Only every nth value is stored to the file.")
+                            //.setValidator(Validator("$RecordingActive == False"))
+                            .build();
+    objPtr.addProperty(downScalingDevider);
+    objPtr.getOnPropertyValueWrite("DownScalingDevider") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+
     readProperties();
 }
 
@@ -84,6 +98,7 @@ void ParquetFbImpl::readProperties()
     fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
     recordingActive = static_cast<bool>(objPtr.getPropertyValue("RecordingActive"));
     batchCycle = static_cast<int>(objPtr.getPropertyValue("BatchCylce"));
+    downScalingDevider = static_cast<int>(objPtr.getPropertyValue("DownScalingDevider"));
 }
 
 void ParquetFbImpl::propertyChanged(bool configure)
@@ -214,6 +229,7 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
         time(&currentTime);
 
         const size_t sampleCount = packet.getSampleCount();
+        size_t adaptedSampleCount = sampleCount;
         using InputType = typename SampleTypeToType<InputSampleType>::Type;
         auto inputData = static_cast<InputType*>(packet.getData());
 
@@ -223,12 +239,34 @@ void ParquetFbImpl::processDataPacket(const std::string& globalId, const std::st
         auto& dataTable = dataTablesMap.at(domainGlobalId);
         auto builder = static_cast<BuilderType*>(dataTable.dataBuilderMap[globalId].get());
 
-        PARQUET_THROW_NOT_OK(builder->AppendValues(inputData, sampleCount));
-        // Domain data only add if it is the first domain package.
-        if (dataTable.lastDomainValue  != domainData[sampleCount-1])
+        if (downScalingDevider > 1)
         {
-            PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, sampleCount));
-            dataTable.lastDomainValue = domainData[sampleCount-1];
+            adaptedSampleCount = 0;
+            for (size_t i = 0; i < sampleCount; ++i)
+            {
+                dataTable.dividerCounter++;
+                if (dataTable.dividerCounter == downScalingDevider)
+                {
+                    inputData[adaptedSampleCount] = inputData[i];
+                    domainData[adaptedSampleCount] = domainData[i];
+                    adaptedSampleCount++;
+                    dataTable.dividerCounter = 0;
+                }
+            }
+        }
+
+        if (adaptedSampleCount == 0)
+        {
+            // Nothing to store
+            return;
+        }
+
+        PARQUET_THROW_NOT_OK(builder->AppendValues(inputData, adaptedSampleCount));
+        // Domain data only add if it is the first domain package.
+        if (dataTable.lastDomainValue  != domainData[adaptedSampleCount-1])
+        {
+            PARQUET_THROW_NOT_OK(dataTable.domainBuilder.AppendValues(domainData, adaptedSampleCount));
+            dataTable.lastDomainValue = domainData[adaptedSampleCount-1];
         }
         dataTable.empty = false;
 

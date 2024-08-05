@@ -36,6 +36,7 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -77,6 +78,8 @@ protected:
         , readOnly(false)
     {
         propPtr = this->borrowPtr<PropertyPtr>();
+
+        initDefaultPermissionManager();
     }
 
 public:
@@ -110,6 +113,7 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
+        initDefaultPermissionManager();
         checkErrorInfo(validateDuringConstruction());
     }
 
@@ -209,6 +213,12 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
+
+        if (this->defaultValue.assigned())
+        {
+            auto defaultValueObj = this->defaultValue.asPtr<IPropertyObject>();
+            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->defaultPermissionManager);
+        }
     }
 
     // FunctionProperty()
@@ -291,6 +301,15 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
+    }
+
+    void initDefaultPermissionManager()
+    {
+        const auto defaultPermissions =
+            PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+        defaultPermissionManager = PermissionManager();
+        defaultPermissionManager.setPermissions(defaultPermissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -1420,7 +1439,7 @@ protected:
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
-    PermissionManagerPtr permissionManager;
+    PermissionManagerPtr defaultPermissionManager;
 
 private:
     PropertyPtr bindAndGetRefProp(bool& bound)

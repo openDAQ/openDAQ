@@ -208,4 +208,5 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
+    m.def("NullContext", []() { return daq::NullContext().detach(); });
 }

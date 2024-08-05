@@ -7,11 +7,14 @@
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/custom_log.h>
+#include <coretypes/intfs.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
 WebsocketStreamingServer::~WebsocketStreamingServer()
 {
+    this->context.getOnCoreEvent() -= event(this, &WebsocketStreamingServer::coreEventCallback);
     stopInternal();
 }
 
@@ -25,6 +28,7 @@ WebsocketStreamingServer::WebsocketStreamingServer(const DevicePtr& device, cons
     , context(context)
     , streamingServer(context)
     , packetReader(device, context)
+    , loggerComponent(context.getLogger().getOrAddComponent("WebsocketStreamingServer"))
 {
 }
 
@@ -48,8 +52,8 @@ void WebsocketStreamingServer::start()
         return;
 
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
-    streamingServer.onSubscribe([this](const daq::SignalPtr& signal) { packetReader.startReadSignal(signal); } );
-    streamingServer.onUnsubscribe([this](const daq::SignalPtr& signal) { packetReader.stopReadSignal(signal); } );
+    streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
+    streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
@@ -59,6 +63,8 @@ void WebsocketStreamingServer::start()
             streamingServer.broadcastPacket(signalId, packet);
     });
     packetReader.start();
+
+    this->context.getOnCoreEvent() += event(this, &WebsocketStreamingServer::coreEventCallback);
 
     const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "OpenDAQLTStreaming", ProtocolType::Streaming);
     serverCapability.setPrefix("daq.lt");
@@ -84,6 +90,83 @@ void WebsocketStreamingServer::stopInternal()
 {
     packetReader.stop();
     streamingServer.stop();
+}
+
+void WebsocketStreamingServer::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
+{
+    switch (static_cast<CoreEventId>(eventArgs.getEventId()))
+    {
+        case CoreEventId::ComponentAdded:
+            componentAdded(sender, eventArgs);
+            break;
+        case CoreEventId::ComponentRemoved:
+            componentRemoved(sender, eventArgs);
+            break;
+        case CoreEventId::ComponentUpdateEnd:
+            componentUpdated(sender);
+            break;
+        default:
+            break;
+    }
+}
+
+DictPtr<IString, ISignal> WebsocketStreamingServer::getSignalsOfComponent(ComponentPtr& component)
+{
+    auto signals = Dict<IString, ISignal>();
+    if (component.supportsInterface<ISignal>())
+    {
+        signals.set(component.getGlobalId(), component.asPtr<ISignal>());
+    }
+    else if (component.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+                signals.set(nestedComponent.getGlobalId(), nestedComponent.asPtr<ISignal>());
+        }
+    }
+    return signals;
+}
+
+void WebsocketStreamingServer::componentAdded(ComponentPtr& /*sender*/, CoreEventArgsPtr& eventArgs)
+{
+    ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
+
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
+    if (addedComponentGlobalId.find(deviceGlobalId) != 0)
+        return;
+
+    LOG_I("Added Component: {};", addedComponentGlobalId);
+    streamingServer.addSignals(getSignalsOfComponent(addedComponent).getValueList());
+}
+
+void WebsocketStreamingServer::componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
+{
+    StringPtr removedComponentLocalId = eventArgs.getParameters().get("Id");
+
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto removedComponentGlobalId =
+        sender.getGlobalId().toStdString() + "/" + removedComponentLocalId.toStdString();
+    if (removedComponentGlobalId.find(deviceGlobalId) != 0)
+         return;
+
+    LOG_I("Component: {}; is removed", removedComponentGlobalId);
+    streamingServer.removeComponentSignals(removedComponentGlobalId);
+}
+
+void WebsocketStreamingServer::componentUpdated(ComponentPtr& updatedComponent)
+{
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
+    if (updatedComponentGlobalId.find(deviceGlobalId) != 0)
+        return;
+
+    LOG_I("Component: {}; is updated", updatedComponentGlobalId);
+
+    // update list of known signals to include added and exclude removed signals
+    streamingServer.updateComponentSignals(getSignalsOfComponent(updatedComponent), updatedComponentGlobalId);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

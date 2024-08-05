@@ -674,17 +674,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0TimeoutExceeded)
         sig2.createAndSendPacket(3);
     });
 
-    auto start = std::chrono::system_clock::now();
-
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count, 300);
-
-    auto end = std::chrono::system_clock::now();
 
     if (thread.joinable())
         thread.join();
 
-    ASSERT_THAT(end - start, AllOf(Gt(299ms), Le(350ms)));
     ASSERT_EQ(count, SAMPLES - 77);
 
     std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};

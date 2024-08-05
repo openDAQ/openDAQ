@@ -1,35 +1,65 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
 
-using WebsocketModulesTest = testing::Test;
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+class WebsocketModulesTest : public testing::Test
 {
-    auto logger = Logger();
-    auto scheduler = Scheduler(logger);
-    auto moduleManager = ModuleManager("");
-    auto typeManager = TypeManager();
-    auto authenticationProvider = AuthenticationProvider();
-    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+public:
+    void testSignalDescriptors(size_t rangeBegin,
+                               size_t rangeEnd,
+                               const ListPtr<ISignal>& clientSignals,
+                               const ListPtr<ISignal>& serverSignals)
+    {
+        ASSERT_EQ(clientSignals.getCount(), serverSignals.getCount());
+        ASSERT_GT(rangeEnd, rangeBegin);
+        ASSERT_GE(clientSignals.getCount(), rangeBegin);
 
-    auto instance = InstanceCustom(context, "local");
+        for (size_t i = rangeBegin; i < rangeEnd; i += 2)
+        {
+            ASSERT_TRUE(clientSignals[i].getDomainSignal().assigned());
+            ASSERT_EQ(clientSignals[i].getDomainSignal(), clientSignals[i+1]);
+            ASSERT_FALSE(clientSignals[i+1].getDomainSignal().assigned());
 
-    const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
-    const auto refDevice = instance.addDevice("daqref://device1");
-    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+            DataDescriptorPtr dataDescriptor = clientSignals[i].getDescriptor();
+            DataDescriptorPtr serverDataDescriptor = serverSignals[i].getDescriptor();
 
-    instance.addServer("OpenDAQLTStreaming", nullptr);
+            DataDescriptorPtr domainDataDescriptor = clientSignals[i].getDomainSignal().getDescriptor();
+            DataDescriptorPtr serverDomainDataDescriptor = serverSignals[i].getDomainSignal().getDescriptor();
 
-    return instance;
-}
+            ASSERT_EQ(dataDescriptor, serverDataDescriptor);
 
-static InstancePtr CreateClientInstance()
-{
-    auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
-    return instance;
-}
+            ASSERT_EQ(domainDataDescriptor.getRule().getParameters(), serverDomainDataDescriptor.getRule().getParameters());
+            ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
+            ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
+        }
+    }
+
+    InstancePtr CreateServerInstance()
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto typeManager = TypeManager();
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+        auto instance = InstanceCustom(context, "local");
+
+        const auto refDevice = instance.addDevice("daqref://device1");
+
+        instance.addServer("openDAQ LT Streaming", nullptr);
+
+        return instance;
+    }
+
+    InstancePtr CreateClientInstance()
+    {
+        auto instance = Instance();
+        auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
+        return instance;
+    }
+};
 
 TEST_F(WebsocketModulesTest, ConnectFail)
 {
@@ -226,7 +256,7 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signals.getCount(), 7u);
+    ASSERT_EQ(signals.getCount(), 4u);
 }
 
 TEST_F(WebsocketModulesTest, RemoveDevice)
@@ -265,17 +295,10 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    DataDescriptorPtr dataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
-    DataDescriptorPtr serverDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
-
-    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getDescriptor();
-    DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getDescriptor();
-
-    ASSERT_EQ(dataDescriptor, serverDataDescriptor);
-
-    ASSERT_EQ(domainDataDescriptor.getRule().getParameters(), serverDomainDataDescriptor.getRule().getParameters());
-    ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
-    ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
+    testSignalDescriptors(0u,
+                          4u,
+                          client.getSignals(search::Recursive(search::Any())),
+                          server.getSignals(search::Recursive(search::Any())));
 }
 
 TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
@@ -351,4 +374,210 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7414);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
+}
+
+TEST_F(WebsocketModulesTest, AddSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    size_t addedSignalsCount = 0;
+    std::promise<void> addSignalsPromise;
+    std::future<void> addSignalsFuture = addSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            ASSERT_TRUE(component.asPtrOrNull<ISignal>().assigned());
+            addedSignalsCount++;
+            if (addedSignalsCount == 2)
+            {
+                addSignalsPromise.set_value();
+            }
+        }
+    };
+
+    auto serverRefDevice = server.getDevices()[0];
+    serverRefDevice.setPropertyValue("NumberOfChannels", 3);
+
+    ASSERT_TRUE(addSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 6u);
+
+    testSignalDescriptors(4u, 6u, clientSignals, serverSignals);
+
+    for (size_t i = 4; i < clientSignals.getCount(); ++i)
+    {
+        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << clientSignals[i].getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+    }
+}
+
+TEST_F(WebsocketModulesTest, RemoveSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    size_t removedSignalsCount = 0;
+    std::promise<void> removedSignalsPromise;
+    std::future<void> removedSignalsFuture = removedSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+
+            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[2].getGlobalId() ||
+                        (comp.getGlobalId() + "/" + id) == clientSignals[3].getGlobalId());
+            removedSignalsCount++;
+            if (removedSignalsCount == 2)
+            {
+                removedSignalsPromise.set_value();
+            }
+        }
+    };
+
+    auto serverRefDevice = server.getDevices()[0];
+    serverRefDevice.setPropertyValue("NumberOfChannels", 1);
+
+    ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    auto mirroredSignalPtr = clientSignals[2].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[2].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[2].getGlobalId();
+    ASSERT_TRUE(clientSignals[2].isRemoved());
+
+    mirroredSignalPtr = clientSignals[3].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[3].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[3].getGlobalId();
+    ASSERT_TRUE(clientSignals[3].isRemoved());
+
+    clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 2u);
+}
+
+TEST_F(WebsocketModulesTest, UpdateAddSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+
+    // save device config
+    auto serverRefDevice = server.getDevices()[0];
+    const auto serializer = JsonSerializer();
+    serverRefDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    // remove channel
+    serverRefDevice.setPropertyValue("NumberOfChannels", 1);
+
+    auto client = CreateClientInstance();
+
+    size_t addedSignalsCount = 0;
+    std::promise<void> addSignalsPromise;
+    std::future<void> addSignalsFuture = addSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            ASSERT_TRUE(component.asPtrOrNull<ISignal>().assigned());
+            addedSignalsCount++;
+            if (addedSignalsCount == 2)
+            {
+                addSignalsPromise.set_value();
+            }
+        }
+    };
+
+    // update device to backup removed channels
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverRefDevice, str);
+
+    ASSERT_TRUE(addSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 4u);
+
+    testSignalDescriptors(0u, 4u, clientSignals, serverSignals);
+
+    for (size_t i = 0; i < clientSignals.getCount(); ++i)
+    {
+        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << clientSignals[i].getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+    }
+}
+
+TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+
+    // save device config
+    auto serverRefDevice = server.getDevices()[0];
+    const auto serializer = JsonSerializer();
+    serverRefDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    // add extra channel
+    serverRefDevice.setPropertyValue("NumberOfChannels", 3);
+
+    auto client = CreateClientInstance();
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    size_t removedSignalsCount = 0;
+    std::promise<void> removedSignalsPromise;
+    std::future<void> removedSignalsFuture = removedSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+
+            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[4].getGlobalId() ||
+                        (comp.getGlobalId() + "/" + id) == clientSignals[5].getGlobalId());
+            removedSignalsCount++;
+            if (removedSignalsCount == 2)
+            {
+                removedSignalsPromise.set_value();
+            }
+        }
+    };
+
+    // update device to remove extra channel
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverRefDevice, str);
+
+    ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    auto mirroredSignalPtr = clientSignals[4].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[4].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[4].getGlobalId();
+    ASSERT_TRUE(clientSignals[4].isRemoved());
+
+    mirroredSignalPtr = clientSignals[5].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[5].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[5].getGlobalId();
+    ASSERT_TRUE(clientSignals[5].isRemoved());
+
+    clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 4u);
 }

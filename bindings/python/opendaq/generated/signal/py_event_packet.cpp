@@ -43,7 +43,7 @@ void defineIEventPacket(pybind11::module_ m, PyDaqIntf<daq::IEventPacket, daq::I
     }, py::arg("id"), py::arg("params"));
 
     m.def("DataDescriptorChangedEventPacket", &daq::DataDescriptorChangedEventPacket_Create);
-    m.def("ImplicitDomainGapDetectedEventPacket", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& diff){
+    m.def("ImplicitDomainGapDetectedEventPacket", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& diff){
         return daq::ImplicitDomainGapDetectedEventPacket_Create(getVariantValue<daq::INumber*>(diff));
     }, py::arg("diff"));
 

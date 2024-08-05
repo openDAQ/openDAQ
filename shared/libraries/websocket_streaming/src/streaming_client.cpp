@@ -24,6 +24,7 @@ StreamingClient::StreamingClient(const ContextPtr& context, const std::string& c
     , useRawTcpConnection(useRawTcpConnection)
 {
     parseConnectionString(connectionString);
+    startBackgroundContext();
 }
 
 StreamingClient::StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target, bool useRawTcpConnection)
@@ -38,11 +39,46 @@ StreamingClient::StreamingClient(const ContextPtr& context, const std::string& h
     , signalContainer(logCallback)
     , useRawTcpConnection(useRawTcpConnection)
 {
+    startBackgroundContext();
+}
+
+void daq::websocket_streaming::StreamingClient::startBackgroundContext()
+{
+    clientBackgroundThread = std::thread(
+        [this]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(backgroundContext.get_executor());
+            backgroundContext.run();
+        }
+    );
+}
+
+void StreamingClient::stopBackgroundContext()
+{
+    backgroundContext.stop();
+    if (clientBackgroundThread.get_id() != std::this_thread::get_id())
+    {
+        if (clientBackgroundThread.joinable())
+        {
+            clientBackgroundThread.join();
+            LOG_I("Websocket streaming client background thread joined");
+        }
+        else
+        {
+            LOG_W("Websocket streaming client background thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Websocket streaming client background thread cannot join itself");
+    }
 }
 
 StreamingClient::~StreamingClient()
 {
     disconnect();
+    stopBackgroundContext();
 }
 
 bool StreamingClient::connect()
@@ -73,53 +109,17 @@ bool StreamingClient::connect()
         clientStream = std::make_unique<WebsocketClientStream>(ioContext, host, std::to_string(port), target);
 
     protocolHandler = std::make_shared<ProtocolHandler>(ioContext, signalContainer, protocolMetaCallback, logCallback);
+
     std::unique_lock<std::mutex> lock(clientMutex);
     protocolHandler->startWithSyncInit(std::move(clientStream));
 
     ioContext.restart();
-    clientThread = std::thread([this]() { ioContext.run(); });
+    clientIoThread = std::thread([this]() { ioContext.run(); });
 
     conditionVariable.wait_for(lock, connectTimeout, [this]() { return connected; });
 
     if (connected)
-    {
-        std::vector<std::string> signalIds;
-        for (const auto& [signalId,_] : availableSignals)
-        {
-            signalIds.push_back(signalId);
-            std::promise<void> signalInitPromise;
-            std::future<void> signalInitFuture = signalInitPromise.get_future();
-            availableSigInitStatus.insert_or_assign(
-                signalId,
-                std::make_tuple(
-                    std::move(signalInitPromise),
-                    std::move(signalInitFuture),
-                    false
-                )
-            );
-        }
-
-        // signal meta-information (signal description, tableId, related signals, etc.)
-        // is published only for subscribed signals.
-        // as workaround we temporarily subscribe all signals to receive signal meta-info
-        // and initialize signal descriptors
-        protocolHandler->subscribe(signalIds);
-
-        const auto timeout = std::chrono::seconds(1);
-        auto timeoutExpired = std::chrono::system_clock::now() + timeout;
-
-        for (const auto& [id, params] : availableSigInitStatus)
-        {
-            auto status = std::get<1>(params).wait_until(timeoutExpired);
-            if (status != std::future_status::ready)
-            {
-                LOG_W("signal {} has incomplete descriptors", id);
-            }
-        }
-
-        // unsubscribe previously subscribed signals
-        protocolHandler->unsubscribe(signalIds);
-    }
+        checkTmpSubscribedSignalsInit();
 
     return connected;
 }
@@ -127,21 +127,21 @@ bool StreamingClient::connect()
 void StreamingClient::disconnect()
 {
     ioContext.stop();
-    if (clientThread.get_id() != std::this_thread::get_id())
+    if (clientIoThread.get_id() != std::this_thread::get_id())
     {
-        if (clientThread.joinable())
+        if (clientIoThread.joinable())
         {
-            clientThread.join();
-            LOG_I("Websocket streaming client thread joined");
+            clientIoThread.join();
+            LOG_I("Websocket streaming client IO thread joined");
         }
         else
         {
-            LOG_W("Websocket streaming client thread is not joinable");
+            LOG_W("Websocket streaming client IO thread is not joinable");
         }
     }
     else
     {
-        LOG_C("Websocket streaming client thread cannot join itself");
+        LOG_C("Websocket streaming client IO thread cannot join itself");
     }
 
     connected = false;
@@ -152,39 +152,54 @@ void StreamingClient::onPacket(const OnPacketCallback& callack)
     onPacketCallback = callack;
 }
 
-void StreamingClient::onAvailableSignalInit(const OnSignalCallback& callback)
+void StreamingClient::onDeviceAvailableSignalInit(const OnSignalCallback& callback)
 {
     onAvailableSignalInitCb = callback;
 }
 
-void StreamingClient::onSignalUpdated(const OnSignalCallback& callback)
+void StreamingClient::onDeviceSignalUpdated(const OnSignalCallback& callback)
 {
     onSignalUpdatedCallback = callback;
 }
 
-void StreamingClient::onDomainSingalInit(const OnDomainSignalInitCallback& callback)
+void StreamingClient::onDeviceDomainSingalInit(const OnDomainSignalInitCallback& callback)
 {
     onDomainSignalInitCallback = callback;
 }
 
-void StreamingClient::onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback)
+void StreamingClient::onStreamingAvailableSignals(const OnAvailableSignalsCallback& callback)
 {
     onAvailableStreamingSignalsCb = callback;
 }
 
-void StreamingClient::onAvailableDeviceSignals(const OnAvailableSignalsCallback& callback)
+void StreamingClient::onDeviceAvailableSignals(const OnAvailableSignalsCallback& callback)
 {
     onAvailableDeviceSignalsCb = callback;
 }
 
-void StreamingClient::onHiddenStreamingSignal(const OnSignalCallback& callback)
+void StreamingClient::onStreamingUnavailableSignals(const OnAvailableSignalsCallback& callback)
+{
+    onUnavailableStreamingSignalsCb = callback;
+}
+
+void StreamingClient::onDeviceUnavailableSignals(const OnAvailableSignalsCallback& callback)
+{
+    onUnavailableDeviceSignalsCb = callback;
+}
+
+void StreamingClient::onStreamingHiddenSignal(const OnSignalCallback& callback)
 {
     onHiddenStreamingSignalCb = callback;
 }
 
-void StreamingClient::onHiddenDeviceSignal(const OnSignalCallback& callback)
+void StreamingClient::onDeviceHiddenSignal(const OnSignalCallback& callback)
 {
     onHiddenDeviceSignalInitCb = callback;
+}
+
+void StreamingClient::onDeviceSignalsInitDone(const OnSignalsInitDoneCallback& callback)
+{
+    onSignalsInitDone = callback;
 }
 
 void StreamingClient::onSubscriptionAck(const OnSubsciptionAckCallback& callback)
@@ -293,34 +308,106 @@ void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& p
 {
     if (method == daq::streaming_protocol::META_METHOD_AVAILABLE)
     {
-        std::vector<std::string> signalIds;
         auto availableSignalsArray = params.find(META_SIGNALIDS);
-
         if (availableSignalsArray != params.end() && availableSignalsArray->is_array())
         {
-            for (const auto& arrayItem : *availableSignalsArray)
-            {
-                std::string signalId = arrayItem;
-                signalIds.push_back(signalId);
-
-                if (auto signalIt = availableSignals.find(signalId); signalIt == availableSignals.end())
-                {
-                    availableSignals.insert({signalId, nullptr});
-                }
-                else
-                {
-                    LOG_E("Received duplicate of available signal. ID is {}.", signalId);
-                }
-            }
-
-            onAvailableDeviceSignalsCb(signalIds);
-            onAvailableStreamingSignalsCb(signalIds);
+            availableSignalsHandler(availableSignalsArray);
         }
+    }
+    else if (method == daq::streaming_protocol::META_METHOD_UNAVAILABLE)
+    {
+        auto unavailableSignalsArray = params.find(META_SIGNALIDS);
+        if (unavailableSignalsArray != params.end() && unavailableSignalsArray->is_array())
+        {
+            unavailableSignalsHandler(unavailableSignalsArray);
+        }
+    }
+}
 
-        std::unique_lock<std::mutex> lock(clientMutex);
+void StreamingClient::availableSignalsHandler(const nlohmann::json::const_iterator& availableSignalsArray)
+{
+    std::vector<std::string> signalIds;
+    for (const auto& arrayItem : *availableSignalsArray)
+    {
+        std::string signalId = arrayItem;
+        signalIds.push_back(signalId);
+
+        if (auto signalIt = availableSignals.find(signalId); signalIt == availableSignals.end())
+        {
+            availableSignals.insert({signalId, nullptr});
+        }
+        else
+        {
+            LOG_E("Received duplicate of available signal. ID is {}.", signalId);
+        }
+    }
+
+    onAvailableDeviceSignalsCb(signalIds);
+    onAvailableStreamingSignalsCb(signalIds);
+
+    std::unique_lock<std::mutex> lock(clientMutex);
+
+    for (const auto& signalId : signalIds)
+    {
+        tmpSubscribedSignalIds.insert(signalId);
+
+        std::promise<void> signalInitPromise;
+        std::future<void> signalInitFuture = signalInitPromise.get_future();
+        availableSigInitStatus.insert_or_assign(
+            signalId,
+            std::make_tuple(
+                std::move(signalInitPromise),
+                std::move(signalInitFuture),
+                false
+            )
+        );
+    }
+
+    // signal meta-information (signal description, tableId, related signals, etc.)
+    // is published only for subscribed signals.
+    // as workaround we temporarily subscribe all signals to receive signal meta-info
+    // and initialize signal descriptors
+    this->protocolHandler->subscribe(signalIds);
+
+    if (connected)
+    {
+        // wait for signals initialization done in a separate thread
+        backgroundContext.dispatch(
+            [this]()
+            {
+                std::unique_lock<std::mutex> lock(clientMutex);
+                checkTmpSubscribedSignalsInit();
+            }
+        );
+    }
+    else
+    {
         connected = true;
         conditionVariable.notify_all();
     }
+}
+
+void StreamingClient::unavailableSignalsHandler(const nlohmann::json::const_iterator& unavailableSignalsArray)
+{
+    std::vector<std::string> signalIds;
+    for (const auto& arrayItem : *unavailableSignalsArray)
+    {
+        std::string signalId = arrayItem;
+
+        if (auto signalIt = availableSignals.find(signalId); signalIt != availableSignals.end())
+        {
+            availableSignals.erase(signalIt);
+        }
+        else
+        {
+            LOG_E("Received unavailable signal which were not available before. ID is {}.", signalId);
+        }
+
+        signalIds.push_back(signalId);
+    }
+
+    onUnavailableStreamingSignalsCb(signalIds);
+    onUnavailableDeviceSignalsCb(signalIds);
 }
 
 void StreamingClient::subscribeSignal(const std::string& signalId)
@@ -424,6 +511,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
         onHiddenStreamingSignalCb(signalId, sInfo);
         onHiddenDeviceSignalInitCb(signalId, sInfo);
         onDomainSignalInitCallback(signalId, domainInputSignal->getSignalId());
+        publishSignalChanges(inputSignal, true, true);
     }
     else if (available && !inputSignal)
     {
@@ -432,6 +520,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
         onAvailableSignalInitCb(signalId, sInfo);
         onDomainSignalInitCallback(signalId, domainInputSignal->getSignalId());
         setSignalInitSatisfied(signalId);
+        publishSignalChanges(inputSignal, true, true);
     }
     else
     {
@@ -598,6 +687,33 @@ void StreamingClient::setSignalInitSatisfied(const std::string& signalId)
             }
         }
     }
+}
+
+void StreamingClient::checkTmpSubscribedSignalsInit()
+{
+    if (tmpSubscribedSignalIds.empty())
+        return;
+
+    const auto timeout = std::chrono::seconds(1);
+    auto timeoutExpired = std::chrono::system_clock::now() + timeout;
+
+    for (const auto& [id, params] : availableSigInitStatus)
+    {
+        if (tmpSubscribedSignalIds.count(id) != 0)
+        {
+            auto status = std::get<1>(params).wait_until(timeoutExpired);
+            if (status != std::future_status::ready)
+            {
+                LOG_W("signal {} has incomplete descriptors", id);
+            }
+        }
+    }
+
+    // unsubscribe previously subscribed signals
+    protocolHandler->unsubscribe(std::vector<std::string>(tmpSubscribedSignalIds.begin(), tmpSubscribedSignalIds.end()));
+    tmpSubscribedSignalIds.clear();
+
+    onSignalsInitDone();
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

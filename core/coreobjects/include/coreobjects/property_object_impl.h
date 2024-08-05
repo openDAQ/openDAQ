@@ -2429,10 +2429,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
     Bool hasAccess = false;
-    ErrCode errCode = hasUserReadAccess(serializerPtr.getUser(), &hasAccess);
+    ErrCode serializeErrCode = hasUserReadAccess(serializerPtr.getUser(), &hasAccess);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    if (OPENDAQ_FAILED(serializeErrCode))
+        return serializeErrCode;
     if (!hasAccess)
         return OPENDAQ_ERR_ACCESSDENIED;
 
@@ -2446,22 +2446,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
         serializer->writeBool(frozen);
     }
 
-    errCode = serializeCustomValues(serializer, false);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializeCustomValues(serializer, false);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
-    errCode = serializePropertyValues(serializer);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
-    errCode = serializeLocalProperties(serializer);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializeLocalProperties(serializer);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
     serializer->endObject();

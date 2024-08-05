@@ -42,6 +42,7 @@ struct DataTable
         , domainBuilder()
         , tableNr(tableNr)
         , lastDomainValue(0)
+        , dividerCounter(0)
         , batchCount(0)
         , empty(true)
         , batchCylceReached(0)
@@ -53,6 +54,7 @@ struct DataTable
     arrow::Int64Builder domainBuilder;
     int tableNr;
     int64_t lastDomainValue;
+    int32_t dividerCounter;
     int batchCount;
     bool empty;
     int64_t batchCylceReached;
@@ -88,6 +90,7 @@ private:
     int inputPortCount;
     int tableNumberCount;
     bool recordingActive;
+    int downScalingDevider;
 
     std::map<std::string, DataTable> dataTablesMap;
     std::map<std::string, SignalContext> inputPortSignalContextMap;

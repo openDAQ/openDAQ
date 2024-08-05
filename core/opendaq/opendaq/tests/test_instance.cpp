@@ -513,4 +513,175 @@ TEST_F(InstanceTest, AddServerBackwardsCompat)
     ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
 }
 
+TEST_F(InstanceTest, SaveLoadRestoreDevice)
+{
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    instance.addDevice("daqmock://phys_device");
+    instance.addDevice("daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    ASSERT_EQ(instance.getDevices().getCount(), instance2.getDevices().getCount());
+
+    for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
+    {
+        auto device1 = instance.getDevices()[i];
+        auto device2 = instance2.getDevices()[i];
+
+        ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
+        ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
+{
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    instance.addDevice("daqmock://phys_device");
+    instance.addDevice("daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    ASSERT_EQ(instance.getDevices().getCount(), instance2.getDevices().getCount());
+
+    for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
+    {
+        auto device1 = instance.getDevices()[i];
+        auto device2 = instance2.getDevices()[i];
+
+        ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
+        ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+    auto restoredFb2 = restoredFbs[1];
+    ASSERT_EQ(restoredFb2.getLocalId(), "mock_fb_uid_2");
+    auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(inputSignal.assigned());
+    ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_1/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+    auto restoredFb2 = restoredFbs[1];
+    ASSERT_EQ(restoredFb2.getLocalId(), "mock_fb_uid_2");
+    auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(inputSignal.assigned());
+    ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId2/FB/mock_fb_uid_1/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+    auto restoredFb1 = restoredFbs[0];
+    ASSERT_EQ(restoredFb1.getLocalId(), "mock_fb_uid_1");
+    auto inputSignal = restoredFb1.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(inputSignal.assigned());
+    ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionConnectingSIgnalFromDev)
+{
+    StringPtr config;
+    StringPtr signalId;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        auto dev = instance.addDevice("daqmock://phys_device");
+        auto sig = dev.getSignalsRecursive()[0];
+        signalId = sig.getGlobalId();
+        fb.getInputPorts()[0].connect(sig);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredDevs = instance2.getDevices();
+    ASSERT_EQ(restoredDevs.getCount(), 1u);
+    auto restoredDev = restoredDevs[0];
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto restoredSig = restoredFb.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(restoredSig.assigned());
+    ASSERT_EQ(restoredSig.getGlobalId(), signalId);
+}
+
+TEST_F(InstanceTest, SaveLoadServers)
+{
+    StringPtr config;
+    StringPtr serverId;
+    {
+        auto instance = Instance();
+        auto server = instance.addServer("OpenDAQOPCUA", nullptr);
+        serverId = server.getId();
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto servers = instance2.getServers();
+    ASSERT_EQ(servers.getCount(), 1u);
+    ASSERT_EQ(servers[0].getId(), serverId);
+}
+
 END_NAMESPACE_OPENDAQ

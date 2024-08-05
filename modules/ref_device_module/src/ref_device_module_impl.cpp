@@ -105,6 +105,12 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
     devices[id] = devicePtr;
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setPrefix("daqref://")
+                  .setConnectionString(connectionString)
+                  .freeze();
     return devicePtr;
 }
 

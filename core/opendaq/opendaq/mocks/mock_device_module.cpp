@@ -61,7 +61,11 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IComponent* parent,
                                            IPropertyObject* config)
 {
+    OPENDAQ_PARAM_NOT_NULL(device);
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+
     StringPtr connStr = connectionString;
+    DevicePtr devicePtr;
     if (connStr == "daqmock://client_device")
     {
         const ModulePtr deviceModule(MockDeviceModule_Create(ctx));
@@ -71,8 +75,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         manager.addModule(deviceModule);
         manager.addModule(fbModule);
 
-        auto clientDevice = Client(ctx, "client", nullptr, parent);
-        *device = clientDevice.detach();
+        devicePtr = Client(ctx, "client", nullptr, parent);
     }
     else if (connStr == "daqmock://phys_device")
     {
@@ -80,13 +83,19 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         if (cnt != 0)
             id += std::to_string(cnt);
         cnt++;
-        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config));
-        *device = physicalDevice.detach();
+        devicePtr = MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config);
     }
     else
     {
         return OPENDAQ_ERR_INVALIDPARAMETER;
     }
+
+    ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
+    connectionInfo.setPrefix("daqmock://")
+                  .setConnectionString(connectionString)
+                  .freeze();
+    
+    *device = devicePtr.detach();
 
     return OPENDAQ_SUCCESS;
 }

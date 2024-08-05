@@ -133,6 +133,19 @@ TEST_F(ConfigProtocolAccessControlTest, GetChannels)
     ASSERT_EQ(clientDevice.getChannelsRecursive().getCount(), 6u);
 }
 
+TEST_F(ConfigProtocolAccessControlTest, GetAvailableFunctionBlockTypes)
+{
+    auto device = createDevice();
+
+    auto types = device.getDevices()[0].getAvailableFunctionBlockTypes();
+    ASSERT_EQ(types.getCount(), 1u);
+
+    setupServerAndClient(device, UserRegular);
+
+    auto clientTypes = clientDevice.getDevices()[0].getAvailableFunctionBlockTypes();
+    ASSERT_EQ(clientTypes.getCount(), 1u);
+}
+
 TEST_F(ConfigProtocolAccessControlTest, SetPropertyValue)
 {
     auto device = createDevice();

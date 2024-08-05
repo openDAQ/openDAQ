@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
-    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.2.2</OPENDAQ_PACKAGE_VERSION>
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.2.3</OPENDAQ_PACKAGE_VERSION>
     <_BuildNumber>17</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>

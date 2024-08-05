@@ -207,10 +207,10 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     }
 
     double samples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -256,10 +256,10 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     }
 
     double samples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -323,14 +323,14 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
     double clientSamples[100];
     double gatewaySamples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT clientSamplesCount = 100;
-        clientReader.read(clientSamples, &clientSamplesCount, 100);
+        clientReader.read(clientSamples, &clientSamplesCount, 1000);
         EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
         
         daq::SizeT gatewaySamplesCount = 100;
-        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 100);
+        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 1000);
         EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
     }
 }

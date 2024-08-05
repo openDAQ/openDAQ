@@ -50,9 +50,6 @@ public partial class frmMain : Form
     {
         InitializeComponent();
 
-        //ToDo: btnAddFunctionBlock
-        this.btnAddFunctionBlock.Enabled = false;
-
         //for easy selected-tab identification
         this.tabSystemOverview.Tag = eTabstrip.SystemOverview;
         this.tabSignals.Tag        = eTabstrip.Signals;
@@ -158,7 +155,20 @@ public partial class frmMain : Form
 
     private void btnAddFunctionBlock_Click(object sender, EventArgs e)
     {
-        //ToDo: add function block
+        if (_instance == null)
+            return;
+
+        SetWaitCursor();
+
+        using (var frm = new frmAddFunctionBlockDialog(_instance))
+        {
+            frm.ShowDialog(this);
+            SetWaitCursor();
+        }
+
+        UpdateTree();
+
+        ResetWaitCursor();
     }
 
     private void btnRefresh_Click(object sender, EventArgs e)
@@ -194,12 +204,20 @@ public partial class frmMain : Form
         //init
         this.contextMenuItemTreeComponentsRemove.Enabled = false;
 
-        TreeView tree = this.treeComponents;
+        TreeView  tree         = this.treeComponents;
         TreeNode? selectedNode = tree.SelectedNode;
 
         if (selectedNode == null)
         {
             //no node selected
+            e.Cancel = true;
+            return;
+        }
+
+        var info = tree.HitTest(tree.PointToClient(Cursor.Position));
+        if (info.Node == null)
+        {
+            //no node clicked
             e.Cancel = true;
             return;
         }
@@ -396,16 +414,20 @@ public partial class frmMain : Form
         grid.ShowCellToolTips    = false;
     }
 
+    /// <summary>
+    /// Initializes the image list (designer would remove transparency over time).
+    /// </summary>
+    /// <param name="imageList">The image list.</param>
     private static void InitializeImageList(ImageList imageList)
     {
         imageList.Images.Clear();
         imageList.ImageSize = new Size(24, 24);
-        imageList.Images.Add(nameof(GlblRes.circle), (Bitmap)GlblRes.circle.Clone());
-        imageList.Images.Add(nameof(GlblRes.device), (Bitmap)GlblRes.device.Clone());
-        imageList.Images.Add(nameof(GlblRes.folder), (Bitmap)GlblRes.folder.Clone());
+        imageList.Images.Add(nameof(GlblRes.circle),         (Bitmap)GlblRes.circle.Clone());
+        imageList.Images.Add(nameof(GlblRes.device),         (Bitmap)GlblRes.device.Clone());
+        imageList.Images.Add(nameof(GlblRes.folder),         (Bitmap)GlblRes.folder.Clone());
         imageList.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
-        imageList.Images.Add(nameof(GlblRes.channel), (Bitmap)GlblRes.channel.Clone());
-        imageList.Images.Add(nameof(GlblRes.signal), (Bitmap)GlblRes.signal.Clone());
+        imageList.Images.Add(nameof(GlblRes.channel),        (Bitmap)GlblRes.channel.Clone());
+        imageList.Images.Add(nameof(GlblRes.signal),         (Bitmap)GlblRes.signal.Clone());
     }
 
     /// <summary>

@@ -30,8 +30,8 @@ namespace openDAQDemoNet;
 /// </summary>
 public class PropertyItem
 {
-    private readonly Image _editableImage = new Bitmap(16, 16);
-    private readonly Image _lockedImage = (Image)GlblRes.locked.Clone();
+    private readonly Image _editableImage = new Bitmap(16, 16); //empty image
+    private readonly Image _lockedImage   = (Image)GlblRes.locked16.Clone();
 
     private bool _isReadOnly;
 

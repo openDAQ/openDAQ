@@ -465,7 +465,7 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
         serializer.startObject();
         for (const auto& item : items)
         {
-            if (!item.second.asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
+            if (!item.second.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
                 continue;
 
             serializer.key(item.first.c_str());

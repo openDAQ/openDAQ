@@ -2283,7 +2283,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut)
 {
     OPENDAQ_PARAM_NOT_NULL(hasAccessOut);
-    const auto self = this->borrowPtr<PropertyObjectPtr>();
+    const auto self = this->template borrowPtr<PropertyObjectPtr>();
     *hasAccessOut = hasUserReadAccess(userContext, self);
     return OPENDAQ_SUCCESS;
 }

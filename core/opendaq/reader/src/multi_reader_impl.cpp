@@ -2,14 +2,15 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/event_packet_params.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader_impl.h>
+#include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/event_packet_params.h>
 
 #include <fmt/ostream.h>
+#include <set>
 #include <thread>
 
 using namespace std::chrono;
@@ -66,9 +67,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     }
 }
 
-MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
-                                 SampleType valueReadType,
-                                 SampleType domainReadType)
+MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType, SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
 {
     std::scoped_lock lock(old->mutex);
@@ -97,10 +96,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
         throw InvalidParameterException("Signal sample rate does not match required common sample rate");
 }
 
-MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
-                                 SampleType valueReadType,
-                                 SampleType domainReadType,
-                                 ReadMode mode)
+MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -176,11 +172,37 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     }
     return list;
 }
-void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
+
+struct MultiReaderImpl::DomainBin
+{
+    StringPtr id;
+    BoolPtr isAbs;
+
+    bool operator<(const DomainBin& rhs) const
+    {
+        if (id == rhs.id)
+        {
+            // Both ids are the same
+            if (!rhs.isAbs.assigned())
+                return false;  // Right one doesn't have absolute assigned
+            if (isAbs.assigned() && rhs.isAbs.assigned())
+                return isAbs < rhs.isAbs;  // Absolute not the same, but both are assigned
+            return true;
+        }
+        if (id.assigned() && rhs.id.assigned())
+            return id < rhs.id;  // Ids not the same, but both are assigned
+        if (id.assigned())
+            return false;  // Ids are not the same, only left one is assigned
+        return true;       // Ids are not the same, only right one is assigned
+    }
+};
+
+void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
-    StringPtr referenceDomainId;
+
+    auto referenceDomainElts = std::set<DomainBin>();
 
     for (const auto& port : list)
     {
@@ -208,38 +230,6 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
             throw InvalidParameterException(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
-        if (!referenceDomainId.assigned())
-        {
-            // Check domain ID existence
-
-            referenceDomainId = domainDescriptor.getReferenceDomainId();
-
-            if (!referenceDomainId.assigned())
-            {
-                LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
-            }
-        }
-        else
-        {
-            // Check domain ID existence
-
-            auto currentReferenceDomainId = domainDescriptor.getReferenceDomainId();
-
-            if (!currentReferenceDomainId.assigned())
-            {
-                LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
-            }
-            else
-            {
-                // Check domain ID equality
-
-                if (referenceDomainId != currentReferenceDomainId)
-                {
-                    throw InvalidStateException(R"("Domain signal "{}" domain ID does not match with others.)", domain.getLocalId());
-                }
-            }
-        }
-
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
         {
             domainQuantity = domainUnit.getQuantity();
@@ -252,20 +242,16 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
 
             if (domainQuantity != "time")
             {
-                throw NotSupportedException(
-                    R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
-                    signal.getLocalId(),
-                    domainQuantity
-                );
+                throw NotSupportedException(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
+                                            signal.getLocalId(),
+                                            domainQuantity);
             }
 
             if (domainUnitSymbol != "s")
             {
-                throw NotSupportedException(
-                    R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
-                    signal.getLocalId(),
-                    domainUnitSymbol
-                );
+                throw NotSupportedException(R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
+                                            signal.getLocalId(),
+                                            domainUnitSymbol);
             }
         }
         else
@@ -280,6 +266,62 @@ void MultiReaderImpl::checkSameDomain(const ListPtr<IInputPortConfig>& list)
                 throw InvalidStateException(R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
             }
         }
+
+        DomainBin refDom = {domainDescriptor.getReferenceDomainId(), domainDescriptor.getReferenceDomainIsAbsolute()};
+
+        // Check domain ID existence
+        if (!refDom.id.assigned())
+        {
+            LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
+        }
+
+        // Check reference domain (is absolute / ID matching)
+        if (!refDom.isAbs.assigned() || !refDom.isAbs)
+        {
+            // Is not absolute
+
+            // Check if there exists
+            // a reference domain "group" (that has a different domain ID)
+            // without a signal that is absolute among valid signals
+
+            // If so, invalid state
+
+            // Set is ordered by domain ID and domain is absolute (nullptr first), so we can do the following:
+
+            auto elt = referenceDomainElts.begin();
+
+            while (elt != referenceDomainElts.end())
+            {
+                // Traverse one group
+
+                bool needsAbs = false;
+                bool hasAbs = false;
+                auto groupDomainId = elt->id;
+
+                while (elt != referenceDomainElts.end() && elt->id == groupDomainId)
+                {
+                    if (groupDomainId.assigned() && refDom.id.assigned() && groupDomainId != refDom.id)
+                    {
+                        // Both are assigned, but not matching
+                        // Needs absolute
+                        needsAbs = true;
+                    }
+                    if (elt->isAbs.assigned() && elt->isAbs)
+                    {
+                        // Group (domain signals with identical domain ID) has at least one absolute
+                        hasAbs = true;
+                    }
+                    ++elt;
+                }
+
+                if (needsAbs && !hasAbs)
+                {
+                    throw InvalidStateException("Reference domain incompatible.");
+                }
+            }
+        }
+
+        referenceDomainElts.insert(refDom);
     }
 }
 
@@ -369,7 +411,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
 
     fromInputPorts = haveInputPorts;
 
-    checkSameDomain(portList);
+    isDomainValid(portList);
     return portList;
 }
 
@@ -411,10 +453,7 @@ void MultiReaderImpl::setStartInfo()
     }
 }
 
-void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
-                                     SampleType valueRead,
-                                     SampleType domainRead,
-                                     ReadMode mode)
+void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode)
 {
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
@@ -652,7 +691,7 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 
     for (size_t i = 0; i < signals.size(); i++)
     {
-        auto & signal = signals[i];
+        auto& signal = signals[i];
         auto packet = signal.readUntilNextDataPacket();
         invalid |= signal.invalid;
         if (packet.assigned())
@@ -775,14 +814,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto start = std::chrono::steady_clock::now();
 #endif
 
-        [[maybe_unused]]
-        bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
+        [[maybe_unused]] bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
-        LOG_T("Waited {} ms {} success"
-            , std::chrono::duration_cast<Milliseconds>(end - start).count()
-            , ok ? "with" : "without")
+        LOG_T("Waited {} ms {} success", std::chrono::duration_cast<Milliseconds>(end - start).count(), ok ? "with" : "without")
 #endif
 
         if (status.assigned() && portConnected)
@@ -840,11 +876,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
-        LOG_T("Read {} / {} [{} left] for {} ms", 
-            toRead, 
-            samplesToRead, 
-            remainingSamplesToRead,
-            std::chrono::duration_cast<Milliseconds>(end - start).count())
+        LOG_T("Read {} / {} [{} left] for {} ms",
+              toRead,
+              samplesToRead,
+              remainingSamplesToRead,
+              std::chrono::duration_cast<Milliseconds>(end - start).count())
 #endif
     }
 
@@ -867,9 +903,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    auto findSigByPort = [port](const SignalReader& signal) {
-            return signal.port == port;
-        };
+    auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
 
     std::scoped_lock lock(notify.mutex);
     if (signals.empty())
@@ -888,7 +922,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
                 portList.pushBack(signalReader.port);
         }
 
-        checkSameDomain(portList);
+        isDomainValid(portList);
         portConnected = true;
     }
 
@@ -903,7 +937,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     }
     if (!portDisconnected)
     {
-        for (auto& signal: signals)
+        for (auto& signal : signals)
         {
             signal.port.setActive(true);
         }
@@ -915,9 +949,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
 ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    auto findSigByPort = [port](const SignalReader& signal) {
-            return signal.port == port;
-        };
+    auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
 
     std::scoped_lock lock(notify.mutex);
     if (signals.empty())
@@ -931,7 +963,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
         if (portDisconnected == false)
         {
             portDisconnected = true;
-            for (auto& signal: signals)
+            for (auto& signal : signals)
             {
                 signal.port.setActive(false);
             }
@@ -963,8 +995,8 @@ ErrCode MultiReaderImpl::getEmpty(Bool* empty)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    // data are ready 
-    // if any of signals has event packet 
+    // data are ready
+    // if any of signals has event packet
     // or all signals have data packet
     bool hasEventPacket = false;
     bool hasDataPacket = true;
@@ -1072,7 +1104,7 @@ void MultiReaderImpl::readDomainStart()
         {
             commonStart = std::move(sigStart);
         }
-        else if (*commonStart < *sigStart) 
+        else if (*commonStart < *sigStart)
         {
             commonStart = std::move(sigStart);
         }
@@ -1218,35 +1250,42 @@ ErrCode MultiReaderImpl::markAsInvalid()
 
 #pragma endregion ReaderConfig
 
-OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY, MultiReader,
-    IList*, signals,
-    SampleType, valueReadType,
-    SampleType, domainReadType,
-    ReadMode, mode,
-    ReadTimeoutType, timeoutType
-)
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY,
+                             MultiReader,
+                             IList*,
+                             signals,
+                             SampleType,
+                             valueReadType,
+                             SampleType,
+                             domainReadType,
+                             ReadMode,
+                             mode,
+                             ReadTimeoutType,
+                             timeoutType)
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, MultiReaderImpl, IMultiReader, createMultiReaderEx,
-    IList*, signals,
-    SampleType, valueReadType,
-    SampleType, domainReadType,
-    ReadMode, mode,
-    ReadTimeoutType, timeoutType,
-    Int, requiredCommonSampleRate,
-    Bool, startOnFullUnitOfDomain
-)
-
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               MultiReaderImpl,
+                                                               IMultiReader,
+                                                               createMultiReaderEx,
+                                                               IList*,
+                                                               signals,
+                                                               SampleType,
+                                                               valueReadType,
+                                                               SampleType,
+                                                               domainReadType,
+                                                               ReadMode,
+                                                               mode,
+                                                               ReadTimeoutType,
+                                                               timeoutType,
+                                                               Int,
+                                                               requiredCommonSampleRate,
+                                                               Bool,
+                                                               startOnFullUnitOfDomain)
 
 template <>
 struct ObjectCreator<IMultiReader>
 {
-    static ErrCode Create(IMultiReader** out,
-                          IMultiReader* toCopy,
-                          SampleType valueReadType,
-                          SampleType domainReadType
-                         ) noexcept
+    static ErrCode Create(IMultiReader** out, IMultiReader* toCopy, SampleType valueReadType, SampleType domainReadType) noexcept
     {
         OPENDAQ_PARAM_NOT_NULL(out);
 
@@ -1261,21 +1300,22 @@ struct ObjectCreator<IMultiReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<MultiReaderImpl*>(old.getObject());
 
-        return impl != nullptr
-            ? createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType)
-            : createObject<IMultiReader, MultiReaderImpl>(out, old, valueReadType, domainReadType, mode);
+        return impl != nullptr ? createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType)
+                               : createObject<IMultiReader, MultiReaderImpl>(out, old, valueReadType, domainReadType, mode);
     }
 };
 
-OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, IMultiReader, createMultiReaderFromExisting,
-    IMultiReader*, invalidatedReader,
-    SampleType, valueReadType,
-    SampleType, domainReadType
-)
+OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                                      IMultiReader,
+                                                                      createMultiReaderFromExisting,
+                                                                      IMultiReader*,
+                                                                      invalidatedReader,
+                                                                      SampleType,
+                                                                      valueReadType,
+                                                                      SampleType,
+                                                                      domainReadType)
 
-extern "C"
-daq::ErrCode PUBLIC_EXPORT createMultiReaderFromBuilder(IMultiReader** objTmp, IMultiReaderBuilder* builder)
+extern "C" daq::ErrCode PUBLIC_EXPORT createMultiReaderFromBuilder(IMultiReader** objTmp, IMultiReaderBuilder* builder)
 {
     return daq::createObject<IMultiReader, MultiReaderImpl>(objTmp, builder);
 }

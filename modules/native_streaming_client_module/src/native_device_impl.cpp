@@ -20,21 +20,14 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
-                                       std::thread::id reconnectionProcessingThreadId,
-                                       std::future<void> processingCompletedFuture,
-                                       std::future<void> reconnectionProcessingCompletedFuture)
+                                       std::thread::id reconnectionProcessingThreadId)
     : processingIOContextPtr(processingIOContextPtr)
-    , processingStrand(*(this->processingIOContextPtr))
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
-    , reconnectionProcessingStrand(*(this->reconnectionProcessingIOContextPtr))
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(ClientConnectionStatus::Connected)
-    , processingCompletedFuture(std::move(processingCompletedFuture))
-    , reconnectionProcessingCompletedFuture(std::move(reconnectionProcessingCompletedFuture))
 {
-    setupProtocolClients(context);
 }
 
 NativeDeviceHelper::~NativeDeviceHelper()
@@ -69,13 +62,11 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
     if (!processingIOContextPtr->stopped())
     {
         processingIOContextPtr->stop();
-        processingCompletedFuture.wait();
     }
 
     if (!reconnectionProcessingIOContextPtr->stopped())
     {
         reconnectionProcessingIOContextPtr->stop();
-        reconnectionProcessingCompletedFuture.wait();
     }
 
     configProtocolClient.reset();
@@ -272,11 +263,12 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         [this](PacketBuffer&& packetBuffer)
     {
         auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
-        boost::asio::post(
-            processingStrand,
-            [this, packetBufferPtr]()
+        boost::asio::dispatch(
+            *processingIOContextPtr,
+            [this, packetBufferPtr, weak_self = weak_from_this()]()
             {
-                this->processConfigPacket(std::move(*packetBufferPtr));
+                if (auto shared_self = weak_self.lock())
+                    this->processConfigPacket(std::move(*packetBufferPtr));
             }
         );
     };
@@ -284,11 +276,12 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     OnConnectionStatusChangedCallback connectionStatusChangedCb =
         [this](ClientConnectionStatus status)
     {
-        boost::asio::post(
-            reconnectionProcessingStrand,
-            [this, status]()
+        boost::asio::dispatch(
+            *reconnectionProcessingIOContextPtr,
+            [this, status, weak_self = weak_from_this()]()
             {
-                this->connectionStatusChangedHandler(status);
+                if (auto shared_self = weak_self.lock())
+                    this->connectionStatusChangedHandler(status);
             }
         );
     };
@@ -391,7 +384,7 @@ void NativeDeviceImpl::initStatuses(const ContextPtr& ctx)
 
 // INativeDevicePrivate
 
-void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper)
+void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = std::move(deviceHelper);
 }

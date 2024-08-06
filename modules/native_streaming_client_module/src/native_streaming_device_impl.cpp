@@ -23,7 +23,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const StringPtr& connectionString,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                     std::future<void> processingCompletedFuture,
                                                      Int initTimeout)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
@@ -36,7 +35,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     initStatuses(ctx);
     createNativeStreaming(transportProtocolClient,
                           processingIOContextPtr,
-                          std::move(processingCompletedFuture),
                           initTimeout);
     activateStreaming();
 }
@@ -80,7 +78,6 @@ void NativeStreamingDeviceImpl::publishConnectionStatus()
 
 void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandlerPtr transportProtocolClient,
                                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                      std::future<void> processingCompletedFuture,
                                                       Int initTimeout)
 {
     ProcedurePtr onSignalAvailableCallback =
@@ -107,11 +104,11 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,
-                                                                  std::move(processingCompletedFuture),
                                                                   initTimeout,
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,
                                                                   onConnectionStatusChangedCallback);
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
 }
 
 void NativeStreamingDeviceImpl::activateStreaming()

@@ -36,18 +36,17 @@ static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;
 
-class NativeDeviceHelper
+class NativeDeviceHelper : public std::enable_shared_from_this<NativeDeviceHelper>
 {
 public:
     explicit NativeDeviceHelper(const ContextPtr& context,
                                 opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
-                                std::thread::id reconnectionProcessingThreadId,
-                                std::future<void> processingCompletedFuture,
-                                std::future<void> reconnectionProcessingCompletedFuture);
+                                std::thread::id reconnectionProcessingThreadId);
     ~NativeDeviceHelper();
 
+    void setupProtocolClients(const ContextPtr& context);
     DevicePtr connectAndGetDevice(const ComponentPtr& parent);
 
     void subscribeToCoreEvent(const ContextPtr& context);
@@ -57,7 +56,6 @@ public:
 
 private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
-    void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
@@ -68,9 +66,7 @@ private:
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
-    boost::asio::io_context::strand processingStrand;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
-    boost::asio::io_context::strand reconnectionProcessingStrand;
     std::thread::id reconnectionProcessingThreadId;
 
     LoggerComponentPtr loggerComponent;
@@ -79,13 +75,11 @@ private:
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
-    std::future<void> processingCompletedFuture;
-    std::future<void> reconnectionProcessingCompletedFuture;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) = 0;
+    virtual void INTERFACE_FUNC attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper) = 0;
     virtual void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
 };
@@ -104,7 +98,7 @@ public:
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
+    void INTERFACE_FUNC attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper) override;
     void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
     void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
 
@@ -117,7 +111,7 @@ protected:
 private:
     void initStatuses(const ContextPtr& ctx);
 
-    std::unique_ptr<NativeDeviceHelper> deviceHelper;
+    std::shared_ptr<NativeDeviceHelper> deviceHelper;
     bool deviceInfoSet;
 };
 

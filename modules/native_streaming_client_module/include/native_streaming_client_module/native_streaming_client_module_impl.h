@@ -60,8 +60,7 @@ private:
                                                const IntegerPtr& port,
                                                const StringPtr& path);
 
-    using ProsessingContextAttr = std::pair<std::shared_ptr<boost::asio::io_context>, std::future<void>>;
-    ProsessingContextAttr addStreamingProcessingContext(const StringPtr& connectionString);
+    std::shared_ptr<boost::asio::io_context> addStreamingProcessingContext(const StringPtr& connectionString);
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr createAndConnectTransportClient(
         const StringPtr& host,
         const StringPtr& port,

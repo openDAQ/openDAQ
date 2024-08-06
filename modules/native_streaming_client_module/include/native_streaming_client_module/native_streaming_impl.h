@@ -25,20 +25,28 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 static const char* NativeStreamingPrefix = "daq.ns";
 static const char* NativeStreamingID = "OpenDAQNativeStreaming";
 
-class NativeStreamingImpl : public Streaming
+DECLARE_OPENDAQ_INTERFACE(INativeStreamingPrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() = 0;
+};
+
+class NativeStreamingImpl : public StreamingImpl<INativeStreamingPrivate>
 {
 public:
+    using Super = StreamingImpl<INativeStreamingPrivate>;
     explicit NativeStreamingImpl(const StringPtr& connectionString,
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-        std::future<void> processingCompletedFuture,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
         opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb);
 
     ~NativeStreamingImpl();
+
+    // INativeStreamingPrivate
+    void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
 
 protected:
     void onSetActive(bool active) override;
@@ -50,9 +58,11 @@ protected:
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
 
-    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void processConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
 
-    void prepareClientHandler();
+    void initClientHandlerCallbacks();
+    void upgradeClientHandlerCallbacks();
 
     void stopProcessingOperations();
 
@@ -66,8 +76,6 @@ protected:
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
-    boost::asio::io_context::strand processingStrand;
-    std::future<void> processingCompletedFuture;
 
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;

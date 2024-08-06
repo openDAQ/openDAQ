@@ -17,20 +17,17 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ContextPtr& context,
     NativeStreamingClientHandlerPtr transportClientHandler,
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-    std::future<void> processingCompletedFuture,
     Int streamingInitTimeout,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
-    : Streaming(connectionString, context, false)
+    : Super(connectionString, context, false)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceConnectionStatusChangedCb(onDeviceConnectionStatusChangedCb)
     , connectionStatus(ClientConnectionStatus::Connected)
     , processingIOContextPtr(processingIOContextPtr)
-    , processingStrand(*(this->processingIOContextPtr))
-    , processingCompletedFuture(std::move(processingCompletedFuture))
     , protocolInitFuture(protocolInitPromise.get_future())
     , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
     , timerContextPtr(transportClientHandler->getIoContext())
@@ -38,7 +35,7 @@ NativeStreamingImpl::NativeStreamingImpl(
           std::make_shared<boost::asio::steady_timer>(*timerContextPtr)
     )
 {
-    prepareClientHandler();
+    initClientHandlerCallbacks();
     this->transportClientHandler->sendStreamingRequest();
 
     if (protocolInitFuture.wait_for(this->streamingInitTimeout) != std::future_status::ready)
@@ -57,12 +54,16 @@ NativeStreamingImpl::~NativeStreamingImpl()
     stopProcessingOperations();
 }
 
+void NativeStreamingImpl::upgradeToSafeProcessingCallbacks()
+{
+    upgradeClientHandlerCallbacks();
+}
+
 void NativeStreamingImpl::stopProcessingOperations()
 {
     if (!processingIOContextPtr->stopped())
     {
         processingIOContextPtr->stop();
-        processingCompletedFuture.wait();
     }
 }
 
@@ -86,7 +87,7 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
     }
 }
 
-void NativeStreamingImpl::connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status)
+void NativeStreamingImpl::updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status)
 {
     if (status == ClientConnectionStatus::Connected)
     {
@@ -105,7 +106,121 @@ void NativeStreamingImpl::connectionStatusChangedHandler(opendaq_native_streamin
     }
 }
 
-void NativeStreamingImpl::prepareClientHandler()
+void NativeStreamingImpl::processConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status)
+{
+    if (status == ClientConnectionStatus::Connected)
+    {
+        this->transportClientHandler->sendStreamingRequest();
+        protocolInitPromise = std::promise<void>();
+        protocolInitFuture = protocolInitPromise.get_future();
+        protocolInitTimer->expires_from_now(streamingInitTimeout);
+        protocolInitTimer->async_wait(
+            [this](const boost::system::error_code& ec)
+            {
+                if (ec)
+                    return;
+
+                if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                    updateConnectionStatus(ClientConnectionStatus::Connected);
+                else
+                    updateConnectionStatus(ClientConnectionStatus::Unrecoverable);
+            }
+        );
+    }
+    else
+    {
+        updateConnectionStatus(status);
+    }
+}
+
+void NativeStreamingImpl::upgradeClientHandlerCallbacks()
+{
+    using namespace boost::asio;
+    WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+
+    OnSignalAvailableCallback signalAvailableCb =
+        [this, thisRef](const StringPtr& signalStringId,
+               const StringPtr& serializedSignal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId = signalStringId, serializedSignal = serializedSignal]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    signalAvailableHandler(signalStringId, serializedSignal);
+            }
+        );
+    };
+    OnSignalUnavailableCallback signalUnavailableCb =
+        [this, thisRef](const StringPtr& signalStringId)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId = signalStringId]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    signalUnavailableHandler(signalStringId);
+            }
+        );
+    };
+    OnPacketCallback onPacketCallback =
+        [this, thisRef](const StringPtr& signalStringId, const PacketPtr& packet)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId = signalStringId, packet = packet]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->onPacket(signalStringId, packet);
+            }
+        );
+    };
+    OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
+        [this, thisRef](const StringPtr& signalStringId, bool subscribed)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId = signalStringId, subscribed]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->triggerSubscribeAck(signalStringId, subscribed);
+            }
+        );
+    };
+    OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
+        [this, thisRef](ClientConnectionStatus status)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, status]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    processConnectionStatus(status);
+            }
+        );
+    };
+    OnStreamingInitDoneCallback onStreamingInitDoneCb =
+        [this, thisRef]()
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    protocolInitPromise.set_value();
+            }
+        );
+    };
+
+    transportClientHandler->setStreamingHandlers(signalAvailableCb,
+                                                 signalUnavailableCb,
+                                                 onPacketCallback,
+                                                 onSignalSubscriptionAckCallback,
+                                                 onConnectionStatusChangedCb,
+                                                 onStreamingInitDoneCb);
+}
+
+void NativeStreamingImpl::initClientHandlerCallbacks()
 {
     using namespace boost::asio;
 
@@ -113,8 +228,8 @@ void NativeStreamingImpl::prepareClientHandler()
         [this](const StringPtr& signalStringId,
                const StringPtr& serializedSignal)
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this, signalStringId = signalStringId, serializedSignal = serializedSignal]()
             {
                 signalAvailableHandler(signalStringId, serializedSignal);
@@ -124,8 +239,8 @@ void NativeStreamingImpl::prepareClientHandler()
     OnSignalUnavailableCallback signalUnavailableCb =
         [this](const StringPtr& signalStringId)
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this, signalStringId = signalStringId]()
             {
                 signalUnavailableHandler(signalStringId);
@@ -135,8 +250,8 @@ void NativeStreamingImpl::prepareClientHandler()
     OnPacketCallback onPacketCallback =
         [this](const StringPtr& signalStringId, const PacketPtr& packet)
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this, signalStringId = signalStringId, packet = packet]()
             {
                 this->onPacket(signalStringId, packet);
@@ -146,8 +261,8 @@ void NativeStreamingImpl::prepareClientHandler()
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
         [this](const StringPtr& signalStringId, bool subscribed)
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this, signalStringId = signalStringId, subscribed]()
             {
                 this->triggerSubscribeAck(signalStringId, subscribed);
@@ -157,41 +272,19 @@ void NativeStreamingImpl::prepareClientHandler()
     OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
         [this](ClientConnectionStatus status)
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this, status]()
             {
-                if (status == ClientConnectionStatus::Connected)
-                {
-                    this->transportClientHandler->sendStreamingRequest();
-                    protocolInitPromise = std::promise<void>();
-                    protocolInitFuture = protocolInitPromise.get_future();
-                    protocolInitTimer->expires_from_now(streamingInitTimeout);
-                    protocolInitTimer->async_wait(
-                        [this](const boost::system::error_code& ec)
-                        {
-                            if (ec)
-                                return;
-
-                            if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                                connectionStatusChangedHandler(ClientConnectionStatus::Connected);
-                            else
-                                connectionStatusChangedHandler(ClientConnectionStatus::Unrecoverable);
-                        }
-                    );
-                }
-                else
-                {
-                    connectionStatusChangedHandler(status);
-                }
+                processConnectionStatus(status);
             }
         );
     };
     OnStreamingInitDoneCallback onStreamingInitDoneCb =
         [this]()
     {
-        post(
-            processingStrand,
+        dispatch(
+            *processingIOContextPtr,
             [this]()
             {
                 protocolInitPromise.set_value();

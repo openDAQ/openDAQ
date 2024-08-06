@@ -177,40 +177,33 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 {
     auto transportClient = createAndConnectTransportClient(host, port, path, config);
 
-    auto processingCompletedPromisePtr = std::make_shared<std::promise<void>>();
-    std::future<void> processingCompletedFuture = processingCompletedPromisePtr->get_future();
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
-        [this, processingIOContextPtr, processingCompletedPromisePtr]()
+        [this, processingIOContextPtr]()
         {
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Native device config processing thread finished");
-            processingCompletedPromisePtr->set_value();
         }
     );
 
-    auto reconnectionProcessingCompletedPromisePtr = std::make_shared<std::promise<void>>();
-    std::future<void> reconnectionProcessingCompletedFuture = reconnectionProcessingCompletedPromisePtr->get_future();
     auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto reconnectionProcessingThread = std::thread(
-        [this, reconnectionProcessingIOContextPtr, reconnectionProcessingCompletedPromisePtr]()
+        [this, reconnectionProcessingIOContextPtr]()
         {
             using namespace boost::asio;
             auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
             LOG_I("Native device reconnection processing thread finished");
-            reconnectionProcessingCompletedPromisePtr->set_value();
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
+    auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
                                                              transportClient,
                                                              processingIOContextPtr,
                                                              reconnectionProcessingIOContextPtr,
-                                                             reconnectionProcessingThread.get_id(),
-                                                             std::move(processingCompletedFuture),
-                                                             std::move(reconnectionProcessingCompletedFuture));
+                                                             reconnectionProcessingThread.get_id());
+    deviceHelper->setupProtocolClients(context);
     auto device = deviceHelper->connectAndGetDevice(parent);
 
     deviceHelper->subscribeToCoreEvent(context);
@@ -353,15 +346,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-        auto processingContextAttributes = addStreamingProcessingContext(connectionString);
         device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
             localId,
             connectionString,
             transportClient,
-            processingContextAttributes.first,
-            std::move(processingContextAttributes.second),
+            addStreamingProcessingContext(connectionString),
             initTimeout
         );
         protocolId = NativeStreamingDeviceTypeId;
@@ -466,26 +457,23 @@ bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const Str
     return false;
 }
 
-NativeStreamingClientModule::ProsessingContextAttr NativeStreamingClientModule::addStreamingProcessingContext(const StringPtr& connectionString)
+std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreamingProcessingContext(const StringPtr& connectionString)
 {
-    auto processingCompletedPromisePtr = std::make_shared<std::promise<void>>();
-    std::future<void> processingCompletedFuture = processingCompletedPromisePtr->get_future();
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
-        [this, processingIOContextPtr, connectionString, processingCompletedPromisePtr]()
+        [this, processingIOContextPtr, connectionString]()
         {
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Streaming {}: processing thread finished", connectionString);
-            processingCompletedPromisePtr->set_value();
         }
     );
     processingContextPool.emplace_back("Streaming " + connectionString + " processing",
                                        std::move(processingThread),
                                        processingIOContextPtr);
 
-    return std::make_pair(processingIOContextPtr, std::move(processingCompletedFuture));
+    return processingIOContextPtr;
 }
 
 NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTransportClient(
@@ -523,18 +511,18 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
                                                                 Int streamingInitTimeout)
 {
-    auto processingContextAttributes = addStreamingProcessingContext(connectionString);
-    return createWithImplementation<IStreaming, NativeStreamingImpl>(
+    StreamingPtr nativeStreaming = createWithImplementation<IStreaming, NativeStreamingImpl>(
         connectionString,
         context,
         transportClientHandler,
-        processingContextAttributes.first,
-        std::move(processingContextAttributes.second),
+        addStreamingProcessingContext(connectionString),
         streamingInitTimeout,
         nullptr,
         nullptr,
         nullptr
     );
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+    return nativeStreaming;
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,

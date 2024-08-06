@@ -23,15 +23,15 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/sync_component_internal.h>
+#include <opendaq/sync_component_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename MainInterface, typename ... Interfaces>
-class GenericSyncComponentImpl : public ComponentImpl<ISyncComponentInternal, MainInterface, Interfaces...>
+class GenericSyncComponentImpl : public ComponentImpl<ISyncComponentPrivate, MainInterface, Interfaces...>
 {
 public:
-    using Super = ComponentImpl<ISyncComponentInternal, MainInterface, Interfaces...>;
+    using Super = ComponentImpl<ISyncComponentPrivate, MainInterface, Interfaces...>;
 
     GenericSyncComponentImpl(const ContextPtr& context,
                              const ComponentPtr& parent,
@@ -46,7 +46,7 @@ public:
     ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) override;
     virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
 
-    ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) override;
+    ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
     ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* syncInterface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* syncInterfaceName) override;
@@ -60,6 +60,8 @@ public:
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
+
+    ErrCode checkClassNameIsSyncInterface(const StringPtr& className, const TypeManagerPtr& manager) const;
 
 };
 
@@ -78,7 +80,6 @@ GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl
     Super::addProperty(ListProperty("InterfaceNames", List<IString>()));
     Super::addProperty(SelectionProperty("Source", EvalValue("$InterfaceNames"), 0));
     Super::addProperty(BoolProperty("SynchronizationLocked", false));
-
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -91,7 +92,9 @@ typename InterfaceToSmartPtr<T>::SmartPtr GenericSyncComponentImpl<MainInterface
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSyncLocked(Bool* synchronizationLocked)
 {
-    return daqTry([&]() {
+    OPENDAQ_PARAM_NOT_NULL(synchronizationLocked);
+    return daqTry([&] 
+    {
         *synchronizationLocked = getTypedProperty<IBoolean>("SynchronizationLocked");
         return OPENDAQ_SUCCESS;
     });
@@ -106,7 +109,9 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::setSyncLocked(Bo
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSelectedSource(Int* selectedSource)
 {
-    return daqTry([&]() {
+    OPENDAQ_PARAM_NOT_NULL(selectedSource);
+    return daqTry([&]
+    {
         *selectedSource = getTypedProperty<IInteger>("Source");
         return OPENDAQ_SUCCESS;
     });
@@ -119,10 +124,10 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::setSelectedSourc
 }
 
 template <typename MainInterface, typename ... Interfaces>
-ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IList** interfaces)
+ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IDict** interfaces)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaces);
-    ListPtr<IPropertyObject> interfacesList = List<IPropertyObject>();
+    auto interfacesDict = Dict<IString, IPropertyObject>();
 
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
@@ -135,16 +140,17 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(IL
     {
         if (prop.getValueType() == ctObject)
         {
+            StringPtr name = prop.getName();
             BaseObjectPtr interfaceProperty;
-            err = InterfacesPtr->getPropertyValue(prop.getName(), &interfaceProperty);
+            err = InterfacesPtr->getPropertyValue(name, &interfaceProperty);
             if (OPENDAQ_FAILED(err))
                 return err;
 
-            interfacesList.pushBack(interfaceProperty.detach());
+            interfacesDict.set(name, interfaceProperty);
         }
     }
 
-    *interfaces = interfacesList.detach();
+    *interfaces = interfacesDict.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -152,10 +158,39 @@ template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceNames(IList** syncInterfaceNames)
 {
     OPENDAQ_PARAM_NOT_NULL(syncInterfaceNames);
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *syncInterfaceNames = getTypedProperty<IList>("InterfaceNames").detach();
         return OPENDAQ_SUCCESS;
     });
+}
+
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIsSyncInterface(const StringPtr& className, const TypeManagerPtr& manager) const
+{
+    if (!className.assigned())
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name does not inherit from SyncInterfaceBase.");
+
+    TypePtr type;
+    ErrCode errCode = manager->getType(className, &type);
+    if (OPENDAQ_FAILED(errCode) || type == nullptr)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
+
+    if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
+    {
+        auto parentName = objectClass.getParentName();
+        if (!parentName.assigned())
+        {
+            return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' does not inherit from 'SyncInterfaceBase'.", className));
+        }
+        if (parentName == "SyncInterfaceBase")
+        {
+            return OPENDAQ_SUCCESS;
+        }
+        return checkClassNameIsSyncInterface(parentName, manager);
+    }
+
+    return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not IPropertyObjectClass", className));
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -165,11 +200,15 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
 
     PropertyObjectPtr interfacePtr = syncInterface;
 
-    //TBD: Check if interface inherits from SyncInterfaceBase
     StringPtr className = interfacePtr.getClassName();
+    if (className == nullptr)
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name is not assigned.");
+    }
+
     if (className == "SyncInterfaceBase")
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Allowed adding property objects that inherit from 'SyncInterfaceBase', but not 'SyncInterfaceBase' itself.");
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Allowed adding property objects which inherits from 'SyncInterfaceBase', but not 'SyncInterfaceBase' itself.");
     }
 
     auto typeManager = this->context.getTypeManager();
@@ -178,44 +217,30 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
     }
 
-    TypePtr type;
-    ErrCode errCode = typeManager->getType(className, &type);
-    if (OPENDAQ_FAILED(errCode) || type == nullptr)
+    ErrCode errCode = checkClassNameIsSyncInterface(className, typeManager);
+    if (OPENDAQ_FAILED(errCode))
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' not found.", className));
-    }
-
-    if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
-    {
-        auto parentName = objectClass.getParentName();
-        if (!parentName.assigned() || parentName != "SyncInterfaceBase")
-        {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' does not inherit from 'SyncInterfaceBase'.", className));
-        }
-    }
-    else
-    {
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not IPropertyObjectClass", className));
+        return errCode;
     }
 
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
-    ErrCode err = this->getPropertyValue(str, &interfacesValue);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    errCode = this->getPropertyValue(str, &interfacesValue);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
     const auto interfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
-    err = interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
-    if (OPENDAQ_FAILED(err))
-        return err;
+    errCode = interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         ListPtr<IString> interfaceNames = getTypedProperty<IList>("InterfaceNames");
         interfaceNames.pushBack(className);
         return Super::setPropertyValue(String("InterfaceNames"), interfaceNames);
     });
 }
-
 
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(IString* interfaceName)
@@ -233,7 +258,8 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
     if (OPENDAQ_FAILED(err))
         return err;
 
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         Int selectedSource = 0;
         getSelectedSource(&selectedSource);
 
@@ -264,9 +290,7 @@ template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
-
     *id = SerializeId();
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -278,28 +302,27 @@ ConstCharPtr GenericSyncComponentImpl<MainInterface, Interfaces...>::SerializeId
 
 template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
-                                                IBaseObject* context,
-                                                IFunction* factoryCallback,
-                                                IBaseObject** obj)
+                                                                            IBaseObject* context,
+                                                                            IFunction* factoryCallback,
+                                                                            IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                serialized,
-                context,
-                factoryCallback, 
-                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-                {
-                    return createWithImplementation<ISyncComponent, GenericSyncComponentImpl>(
-                        deserializeContext.getContext(),
-                        deserializeContext.getParent(),
-                        deserializeContext.getLocalId(),
-                        className);
-                }).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = Super::DeserializeComponent(
+            serialized,
+            context,
+            factoryCallback, 
+            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+            {
+                return createWithImplementation<ISyncComponent, GenericSyncComponentImpl>(
+                    deserializeContext.getContext(),
+                    deserializeContext.getParent(),
+                    deserializeContext.getLocalId(),
+                    className);
+            }).detach();
+    });
 }
 
 

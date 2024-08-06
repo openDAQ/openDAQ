@@ -10,7 +10,7 @@
 #include <testutils/test_comparators.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
-#include <opendaq/sync_component_internal_ptr.h>
+#include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/property_factory.h>
 
 using namespace daq;
@@ -414,10 +414,10 @@ TEST_F(TmsIntegrationTest, SyncComponent)
     auto serverTypeManager = device.getContext().getTypeManager();
     auto serverSubDevice = device.getDevices()[1];
     auto serverSync = serverSubDevice.getSyncComponent();
-    SyncComponentInternalPtr syncComponentInternal = serverSync.asPtr<ISyncComponentInternal>(true);
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
 
-    syncComponentInternal.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
-    syncComponentInternal.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
 
     serverSync.setSelectedSource(1);
 
@@ -444,7 +444,7 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     auto serverTypeManager = device.getContext().getTypeManager();
     auto serverSubDevice = device.getDevices()[1];
     auto serverSync = serverSubDevice.getSyncComponent();
-    SyncComponentInternalPtr syncComponentInternal = serverSync.asPtr<ISyncComponentInternal>(true);
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
 
     auto ptpSyncInterface = PropertyObject(serverTypeManager, "PtpSyncInterface");
     ptpSyncInterface.setPropertyValue("Mode", 2);
@@ -474,9 +474,9 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
     ports.addProperty(BoolProperty("Port1", true));
         
-    syncComponentInternal.addInterface(ptpSyncInterface);
+    syncComponentPrivate.addInterface(ptpSyncInterface);
 
-    syncComponentInternal.setSyncLocked(true);
+    syncComponentPrivate.setSyncLocked(true);
 
     TmsServer tmsServer(device);
     tmsServer.start();
@@ -497,7 +497,7 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     auto clientInterfaces = clientSync.getInterfaces();
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
 
-    auto clientPtpSyncInterface = clientInterfaces[0];
+    auto clientPtpSyncInterface = clientInterfaces.get("PtpSyncInterface");
     ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);
 
     PropertyObjectPtr clientStatus = clientPtpSyncInterface.getPropertyValue("Status");

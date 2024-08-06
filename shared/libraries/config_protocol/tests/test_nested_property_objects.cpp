@@ -15,7 +15,7 @@
 #include <opendaq/component_status_container_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/sync_component_internal_ptr.h>
+#include <opendaq/sync_component_private_ptr.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
@@ -306,12 +306,12 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
 
     // update the sync component in the server side
     SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
-    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
-    ASSERT_ANY_THROW(syncComponentInternal.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
-    syncComponentInternal.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
-    syncComponentInternal.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
+    ASSERT_ANY_THROW(syncComponentPrivate.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
+    syncComponentPrivate.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
     syncComponent.setSelectedSource(1);
-    syncComponentInternal.setSyncLocked(true);
+    syncComponentPrivate.setSyncLocked(true);
 
     // check that the client side has the same sync component
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
@@ -337,7 +337,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     // update the sync component in the server side
     SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
-    SyncComponentInternalPtr syncComponentInternal = syncComponent.asPtr<ISyncComponentInternal>(true);
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
     auto ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
     ptpSyncInterface.setPropertyValue("Mode", 2);
@@ -367,7 +367,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
     PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
     ports.addProperty(BoolProperty("Port1", true));
         
-    syncComponentInternal.addInterface(ptpSyncInterface);
+    syncComponentPrivate.addInterface(ptpSyncInterface);
 
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
 
@@ -375,7 +375,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
     auto clientInterfaces = clientSyncComponent.getInterfaces();
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
 
-    auto clientPtpSyncInterface = clientInterfaces[0];
+    auto clientPtpSyncInterface = clientInterfaces.get("PtpSyncInterface");
     ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);
 
     PropertyObjectPtr clientStatus = clientPtpSyncInterface.getPropertyValue("Status");

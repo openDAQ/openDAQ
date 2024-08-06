@@ -75,12 +75,12 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
      */
     virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) = 0;
 
-    // [elementType(interfaces, IPropertyObject)]
+    // [templateType(interfaces, IString, IPropertyObject)]
     /*!
      * @brief Retrieves the list of interfaces associated with this synchronization component.
      * @param[out] interface List of interfaces associated with this component.
      */
-    virtual ErrCode INTERFACE_FUNC getInterfaces(IList** interfaces) = 0;
+    virtual ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) = 0;
 
     // [elementType(interfaceNames, IString)]
     /*!

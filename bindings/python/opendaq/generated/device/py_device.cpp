@@ -69,7 +69,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getCustomComponents().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a list of all components/folders in a device that are not titled 'io', 'sig', 'dev', 'Synchronization' or 'fb'");
+        "Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Sync' or 'FB'");
     cls.def_property_readonly("signals",
         [](daq::IDevice *object)
         {

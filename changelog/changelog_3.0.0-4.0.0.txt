@@ -1,3 +1,21 @@
+06.08.2024
+Description
+  - Intergration the Sync Component
+
++ [interface] ISyncComponent : public IComponent
++ [function] ISyncComponent::getSyncLocked(Bool* synchronizationLocked)
++ [function] ISyncComponent::getSelectedSource(Int* selectedSource)
++ [function] ISyncComponent::setSelectedSource(Int selectedSource)
++ [function] ISyncComponent::getInterfaces(IDict** interfaces)
++ [function] ISyncComponent::getInterfaceNames(IList** interfaceNames)
+
++ [interface] ISyncComponentPrivate : public IBaseObject
++ [function] ISyncComponentPrivate::setSyncLocked(Bool synchronizationLocked);
++ [function] ISyncComponentPrivate::addInterface(IPropertyObject* syncInterface);
++ [function] ISyncComponentPrivate::removeInterface(IString* syncInterfaceName);
+
++ [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+
 25.07.2024
 Description:
   - Add user context to json serializer

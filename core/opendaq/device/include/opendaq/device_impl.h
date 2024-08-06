@@ -186,12 +186,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
-    this->defaultComponents.insert("Synchronization");
+    this->defaultComponents.insert("Sync");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
-    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Sync"));
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -1070,7 +1070,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (syncComponent.assigned())
     {
-        serializer.key("Synchronization");
+        serializer.key("Sync");
         syncComponent.serialize(serializer);
     }
 }
@@ -1171,9 +1171,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceDomain = serializedObject.readObject("deviceDomain");
     }
 
-    if (serializedObject.hasKey("Synchronization"))
+    if (serializedObject.hasKey("Sync"))
     {
-        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
+        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Sync");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

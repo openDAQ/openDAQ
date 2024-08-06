@@ -156,3 +156,4 @@ run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags_private
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component
+run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component_private

@@ -51,7 +51,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponentInternal, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISyncComponentPrivate, IBaseObject)
 {
     /*!
      * @brief Sets the synchronization lock status.

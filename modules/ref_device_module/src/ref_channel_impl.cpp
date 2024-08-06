@@ -12,6 +12,7 @@
 #include <opendaq/scaling_factory.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/argument_info_factory.h>
 
 
 #define PI 3.141592653589793
@@ -139,6 +140,17 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(resetCounterProp);
     objPtr.setPropertyValue("ResetCounter", Procedure([this] { this->resetCounter(); }));
 
+    const auto getCurrentAndSetCounterProp =
+        FunctionProperty("GetAndSetCounter", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("Val", ctInt))), EvalValue("$Waveform == 3"));
+    objPtr.addProperty(getCurrentAndSetCounterProp);
+    objPtr.setPropertyValue("GetAndSetCounter", Function([this](Int val)
+    {
+        std::scoped_lock lock(sync);
+        const auto cnt = counter;
+        this->setCounter(val, false);
+        return cnt;
+    }));
+
     const auto clientSideScalingProp = BoolProperty("ClientSideScaling", False);
 
     objPtr.addProperty(clientSideScalingProp);
@@ -238,6 +250,17 @@ void RefChannelImpl::resetCounter()
 {
     std::scoped_lock lock(sync);
     counter = 0;
+}
+
+void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
+{
+    if (shouldLock)
+    {
+        std::scoped_lock lock(sync);
+	    counter = cnt;
+    }
+    else
+        counter = cnt;
 }
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const

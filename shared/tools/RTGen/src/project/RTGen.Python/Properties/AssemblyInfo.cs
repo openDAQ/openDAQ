@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("RTGen.Python")]
 [assembly: AssemblyDescription("RTGen Support for Python interfaces generation")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Blueberry d.o.o.")]
+[assembly: AssemblyCompany("openDAQ d.o.o.")]
 [assembly: AssemblyProduct("RTGen.Python")]
-[assembly: AssemblyCopyright("Copyright © 2023 Blueberry d.o.o.")]
+[assembly: AssemblyCopyright("Copyright © 2024 openDAQ d.o.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -3,7 +3,7 @@
 ##
 
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME} CACHE STRING "The package name")
-set(CPACK_PACKAGE_VENDOR "Blueberry d.o.o.")
+set(CPACK_PACKAGE_VENDOR "openDAQ d.o.o.")
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "openDAQ SDK for C++"
     CACHE STRING "Package description for the package metadata"
@@ -49,7 +49,7 @@ set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 ## NSIS
 
 set(CPACK_NSIS_WELCOME_TITLE "Welcome to openDAQ SDK Setup")
-set(CPACK_NSIS_BRANDING_TEXT "Blueberry d.o.o.")
+set(CPACK_NSIS_BRANDING_TEXT "openDAQ d.o.o.")
 set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/media/opendaq.ico")
 set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}\\media\\opendaq.ico")
 # Paths must be in Windows format otherwise NSIS produces errors

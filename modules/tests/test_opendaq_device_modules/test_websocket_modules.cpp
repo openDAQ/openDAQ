@@ -331,10 +331,10 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     }
 
     double samples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 

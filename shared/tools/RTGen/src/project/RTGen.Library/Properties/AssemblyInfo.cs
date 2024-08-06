@@ -9,9 +9,9 @@ using RTGen;
 [assembly: AssemblyTitle("RTGen.Library")]
 [assembly: AssemblyDescription("Code generation tool library for RTCore interfaces.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Blueberry d.o.o.")]
+[assembly: AssemblyCompany("openDAQ d.o.o.")]
 [assembly: AssemblyProduct("RTGen")]
-[assembly: AssemblyCopyright("Copyright © 2023 Blueberry d.o.o.")]
+[assembly: AssemblyCopyright("Copyright © 2024 openDAQ d.o.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

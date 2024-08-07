@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(RefFbModule VERSION 3.2.3 LANGUAGES CXX)
+project(RefFbModule VERSION 3.2.4 LANGUAGES CXX)
 
 add_subdirectory(src)
 

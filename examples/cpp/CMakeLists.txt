@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(OPENDAQ_EXAMPLES_VERSION 3.2.4)
+set(OPENDAQ_EXAMPLES_VERSION 3.2.5)
 project(opendaq_examples VERSION ${OPENDAQ_EXAMPLES_VERSION})
 
 option(OPENDAQ_CONSOLE_APP "Console application example." ON)

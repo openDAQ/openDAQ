@@ -1145,7 +1145,7 @@ bool operator==(std::nullptr_t lhs, const ObjectPtr<T>& rhs)
 template <class T>
 bool operator!=(std::nullptr_t lhs, const ObjectPtr<T>& rhs)
 {
-    return rhs == lhs;
+    return rhs != lhs;
 }
 
 template <class T>

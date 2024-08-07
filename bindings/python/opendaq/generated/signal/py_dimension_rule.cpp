@@ -44,7 +44,7 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
 {
     cls.doc() = "Rule that defines the labels (alternatively called bins, ticks) of a dimension.";
 
-    m.def("LinearDimensionRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start, const size_t size){
+    m.def("LinearDimensionRule", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& start, const size_t size){
         return daq::LinearDimensionRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start), size);
     }, py::arg("delta"), py::arg("start"), py::arg("size"));
 
@@ -52,7 +52,7 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
         return daq::ListDimensionRule_Create(getVariantValue<daq::IList*>(list));
     }, py::arg("list"));
 
-    m.def("LogarithmicDimensionRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start, std::variant<daq::INumber*, double, daq::IEvalValue*>& base, const size_t size){
+    m.def("LogarithmicDimensionRule", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& start, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& base, const size_t size){
         return daq::LogarithmicDimensionRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start), getVariantValue<daq::INumber*>(base), size);
     }, py::arg("delta"), py::arg("start"), py::arg("base"), py::arg("size"));
 

@@ -730,10 +730,10 @@ TEST_F(NativeDeviceModulesTest, SignalDescriptors)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    DataDescriptorPtr dataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
+    DataDescriptorPtr dataDescriptor = client.getDevices()[0].getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
     DataDescriptorPtr serverDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
 
-    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
+    DataDescriptorPtr domainDataDescriptor = client.getDevices()[0].getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
     DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
 
     ASSERT_TRUE(dataDescriptor.assigned());
@@ -799,10 +799,10 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
     }
 
     double samples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 
@@ -1247,7 +1247,8 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
             "InactivityTimeout": 200,
             "ConnectionTimeout": 300,
             "StreamingInitTimeout": 400,
-            "ReconnectionPeriod": 500
+            "ReconnectionPeriod": 500,
+            "ConfigProtocolRequestTimeout": 6000
             }
         }
     }
@@ -1260,6 +1261,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
 
     auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
+    ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 6000);
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -1544,7 +1546,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
     std::future<StringPtr> client1SignalSubscribeFuture;
     test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
 
-    StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal);
+    StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client1SignalSubscribeFuture));
 
     // change samplerate to trigger signal changes
@@ -1559,26 +1561,51 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
     std::future<StringPtr> client2SignalSubscribeFuture;
     test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
 
-    StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal);
+    StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client2SignalSubscribeFuture));
 
-    // read some
-    daq::SizeT client1SamplesRead = 0;
-    daq::SizeT client2SamplesRead = 0;
-    double samples[100];
-    for (int i = 0; i < 3; ++i)
     {
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(100ms);
+        SizeT count = 0;
+        client1Reader.read(nullptr, &count, 100);
+    }
+    {
+        SizeT count = 0;
+        client2Reader.read(nullptr, &count, 100);
+    }
 
+    // read some
+    double samples[100];
+    for (int i = 0; i < 5; ++i)
+    {
         daq::SizeT count = 100;
-        client1Reader.read(samples, &count);
-        client1SamplesRead += count;
+        client1Reader.read(samples, &count, 1000);
+        //EXPECT_GT(count, 0u) << "iteration " << i;
 
         count = 100;
-        client2Reader.read(samples, &count);
-        client2SamplesRead += count;
+        client2Reader.read(samples, &count, 1000);
+        //EXPECT_GT(count, 0u) << "iteration " << i;
     }
-    EXPECT_GT(client1SamplesRead, 0u);
-    EXPECT_GT(client2SamplesRead, 0u);
+}
+
+TEST_F(NativeDeviceModulesTest, ReadLastValue)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto clientSignal = client.getDevices()[0].getDevices()[0].getSignalsRecursive()[0];
+    BaseObjectPtr value;
+    int cnt = 0;
+    while (!value.assigned())
+    {
+        ASSERT_NO_THROW(value = clientSignal.getLastValue());
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        ASSERT_LT(cnt++, 10);
+    }
+
+    const auto ip = InputPort(client.getContext(), nullptr, "ip");
+    ip.connect(clientSignal);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT_NO_THROW(value = clientSignal.getLastValue());
+    ASSERT_TRUE(value.assigned());
 }

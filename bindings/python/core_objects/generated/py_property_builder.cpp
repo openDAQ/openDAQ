@@ -161,7 +161,7 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMinValue().detach();
         },
-        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& min)
+        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& min)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             objectPtr.setMinValue(getVariantValue<daq::INumber*>(min));
@@ -174,7 +174,7 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMaxValue().detach();
         },
-        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& max)
+        [](daq::IPropertyBuilder *object, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& max)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             objectPtr.setMaxValue(getVariantValue<daq::INumber*>(max));

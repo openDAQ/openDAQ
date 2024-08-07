@@ -27,6 +27,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> declareIAddressInfoBuilder(pybind11::module_ m)
 {
@@ -52,10 +53,10 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getAddress().toStdString();
         },
-        [](daq::IAddressInfoBuilder *object, const std::string& address)
+        [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& address)
         {
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
-            objectPtr.setAddress(address);
+            objectPtr.setAddress(getVariantValue<daq::IString*>(address));
         },
         "Gets the server address as a string. / Sets the server address as a string.");
     cls.def_property("connection_string",
@@ -64,10 +65,10 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },
-        [](daq::IAddressInfoBuilder *object, const std::string& connectionString)
+        [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
         {
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
-            objectPtr.setConnectionString(connectionString);
+            objectPtr.setConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
         "Gets the connection string corresponding to the address. / Sets the connection string corresponding to the address.");
     cls.def_property("type",
@@ -76,10 +77,10 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getType().toStdString();
         },
-        [](daq::IAddressInfoBuilder *object, const std::string& type)
+        [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& type)
         {
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
-            objectPtr.setType(type);
+            objectPtr.setType(getVariantValue<daq::IString*>(type));
         },
         "Gets the type of the address. / Sets the type of the address.");
     cls.def_property("reachability_status",

@@ -21,7 +21,7 @@ BEGIN
         BLOCK "042404b0"
         BEGIN 
             VALUE "Comments", "Configured on ${CONFIGURE_DATE}"
-            VALUE "CompanyName", "Blueberry d.o.o."
+            VALUE "CompanyName", "openDAQ d.o.o."
             VALUE "FileDescription", "${PROJECT_NAME}"
 #ifdef _DEBUG
             VALUE "FileVersion", "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${OPENDAQ_WC_REVISION}-debug"
@@ -29,7 +29,7 @@ BEGIN
             VALUE "FileVersion", "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${OPENDAQ_WC_REVISION}"
 #endif          
             VALUE "InternalName", "${PROJECT_NAME}"
-            VALUE "LegalCopyright", "Copyright Blueberry d.o.o. (C) ${CURRENT_YEAR}"
+            VALUE "LegalCopyright", "Copyright openDAQ d.o.o. (C) ${CURRENT_YEAR}"
 #ifdef _DEBUG
             VALUE "OriginalFilename", "${ORIGINAL_OUTPUT_NAME}${CMAKE_DEBUG_POSTFIX}${LIB_TARGET_TYPE}"
 #else

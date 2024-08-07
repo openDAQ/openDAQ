@@ -320,6 +320,18 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC endUpdate() = 0;
 
+    /*!
+     * @brief Returns the state of batch configuration.
+     * @param[out] updating True if the object is performing batch update of its properties.
+     *
+     * Batched configuration is used to apply several settings at once. To begin batch configuration, call `beginUpdate`.
+     * When the `setPropertyValue` is called on the object, the changes are not immediately applied. When `endUpdate`
+     * is called, the property values set between the `beginUpdate` and `endUpdate` method calls are
+     * applied. This method returns True if `beginUpdate` method has been called on the object` and `endUpdate` has not
+     * been called yet.
+     */
+    virtual ErrCode INTERFACE_FUNC getUpdating(Bool* updating) = 0;
+
     // [templateType(event, IPropertyObject, IEndUpdateEventArgs)]
     /*!
      * @brief Gets the Event that is triggered whenever the batch configuration is applied.

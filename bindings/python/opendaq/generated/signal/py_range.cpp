@@ -38,7 +38,7 @@ void defineIRange(pybind11::module_ m, PyDaqIntf<daq::IRange, daq::IBaseObject> 
 {
     cls.doc() = "Describes a range of values between the `lowValue` and `highValue` boundaries.";
 
-    m.def("Range", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& lowValue, std::variant<daq::INumber*, double, daq::IEvalValue*>& highValue){
+    m.def("Range", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& lowValue, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& highValue){
         return daq::Range_Create(getVariantValue<daq::INumber*>(lowValue), getVariantValue<daq::INumber*>(highValue));
     }, py::arg("low_value"), py::arg("high_value"));
 

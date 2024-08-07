@@ -452,7 +452,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForConstantDataRule)
         "Reference domain is absolute not supported for constant data rule type.");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForExplicitDataRule)
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIdWithPostScaling)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Float64)
@@ -461,10 +461,10 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForExplicitDataRule)
                          .setReferenceDomainId("RefDomId")
                          .build(),
                      InvalidParameterException,
-                     "Reference domain id not supported for explicit data rule type with post scaling.");
+                     "Reference domain id not supported with post scaling.");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForExplicitDataRule)
+TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Float64)
@@ -473,10 +473,10 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForExplicitDataRule)
                          .setReferenceDomainOffset(100)
                          .build(),
                      InvalidParameterException,
-                     "Reference domain offset not supported for explicit data rule type with post scaling.");
+                     "Reference domain offset not supported with post scaling.");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForExplicitDataRule)
+TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteWithPostScaling)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Float64)
@@ -485,7 +485,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForExplicitDataRule)
                          .setReferenceDomainIsAbsolute(False)
                          .build(),
                      InvalidParameterException,
-                     "Reference domain is absolute not supported for explicit data rule type with post scaling.");
+                     "Reference domain is absolute not supported with post scaling.");
 }
 
 END_NAMESPACE_OPENDAQ

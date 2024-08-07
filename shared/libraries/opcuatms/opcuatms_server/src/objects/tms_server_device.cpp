@@ -477,7 +477,7 @@ void TmsServerDevice::addChildNodes()
     for (auto component : object.getItems(search::Any()))
     {
         auto id = component.getLocalId();
-        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Synchronization")
+        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Sync")
             continue;
 
         if (component.asPtrOrNull<IFolder>().assigned())

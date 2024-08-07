@@ -7,7 +7,7 @@ To start working with openDAQ(TM), the requisite binaries are required. They can
 Windows::
 +
 --
-To install openDAQ(TM), download the `opendaq-3.2.4-win64.exe` installer, run it, and follow its instructions. Make sure to add openDAQ(TM) to the system path to be able to run openDAQ(TM) application examples.
+To install openDAQ(TM), download the `opendaq-3.2.5-win64.exe` installer, run it, and follow its instructions. Make sure to add openDAQ(TM) to the system path to be able to run openDAQ(TM) application examples.
 
 We recommend using the default installation path to avoid issues requiring additional environment variable modifications and troubleshooting.
 --
@@ -15,11 +15,11 @@ We recommend using the default installation path to avoid issues requiring addit
 Linux::
 +
 --
-To install openDAQ(TM) on Ubuntu 20.04 or newer, download the `opendaq-3.2.4-ubuntu20.04-x86_64.deb` Debian package. Install it using the following command:
+To install openDAQ(TM) on Ubuntu 20.04 or newer, download the `opendaq-3.2.5-ubuntu20.04-x86_64.deb` Debian package. Install it using the following command:
 
 [source,shell]
 ----
-sudo apt install ./opendaq-3.2.4-ubuntu20.04-x86_64.deb
+sudo apt install ./opendaq-3.2.5-ubuntu20.04-x86_64.deb
 ----
 --
 ====

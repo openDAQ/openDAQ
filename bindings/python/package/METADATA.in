@@ -3,7 +3,7 @@ Name: opendaq
 Version: @VERSION@
 Summary: Open Data Acquisition Platform
 Home-page: https://opendaq.com
-Author: Blueberry d.o.o.
+Author: openDAQ d.o.o.
 Author-email: opendaq@blueberry.com
 Keywords: DAQ
 Project-URL: Homepage, https://opendaq.com/

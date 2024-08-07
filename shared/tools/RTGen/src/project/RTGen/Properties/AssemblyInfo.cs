@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("RTGen")]
-[assembly: AssemblyDescription("Code generation tool for RTCore interfaces.")]
+[assembly: AssemblyDescription("Code generation tool for openDAQ interfaces.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Blueberry d.o.o.")]
+[assembly: AssemblyCompany("openDAQ d.o.o.")]
 [assembly: AssemblyProduct("RTGen")]
-[assembly: AssemblyCopyright("Copyright © 2023 Blueberry d.o.o.")]
+[assembly: AssemblyCopyright("Copyright © 2024 openDAQ d.o.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

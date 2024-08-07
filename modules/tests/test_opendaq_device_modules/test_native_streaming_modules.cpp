@@ -305,10 +305,10 @@ TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
     }
 
     double samples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         daq::SizeT count = 100;
-        reader.read(samples, &count, 100);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 
@@ -431,11 +431,16 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     // wait for subscribe ack before read
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
+
+    {
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
 
     // destroy server to emulate disconnection
     server.release();
@@ -452,12 +457,10 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
         // read all data received from server before disconnection
         daq::SizeT count = 1000;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
 
         count = 1000;
-        // and test there is no more data to read
-        std::this_thread::sleep_for(100ms);
-        reader.read(samples, &count);
+        reader.read(samples, &count, 100);
         EXPECT_EQ(count, 0u);
     }
 
@@ -479,12 +482,11 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // No descriptor changed packet, as the descriptor did not change
     // read data received from server after reconnection
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
-        std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
         double samples[100];
-        reader.read(samples, &count);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }

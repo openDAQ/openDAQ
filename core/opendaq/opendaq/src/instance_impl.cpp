@@ -702,6 +702,11 @@ ErrCode InstanceImpl::endUpdate()
     return rootDevice->endUpdate();
 }
 
+ErrCode InstanceImpl::getUpdating(Bool* updating)
+{
+    return rootDevice->getUpdating(updating);
+}
+
 ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
 {
     return rootDevice->endUpdate();

@@ -16,6 +16,14 @@ Description
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 
+26.07.2024
+Description:
+  - Add method to IPropertyObject to detect begin/end update status  
+Required integeration changes:
+  - Breaks binary compatibility
+
++ [function] IPropertyObject::getUpdating(Bool* updating)
+
 25.07.2024
 Description:
   - Add user context to json serializer

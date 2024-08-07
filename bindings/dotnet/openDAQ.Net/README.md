@@ -195,4 +195,4 @@ patterns allowed as displayed).
 - The pattern `x\**\y` means that all subdirectories behind `x` will be searched for the file `y`
   and thus excluded.  
 
-_<sub>Last changed on 2024-02-05 &copy; 2024 by Blueberry d.o.o.</sub>_
+_<sub>Last changed on 2024-02-05 &copy; 2024 by openDAQ d.o.o.</sub>_

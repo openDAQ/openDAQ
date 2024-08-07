@@ -137,11 +137,15 @@ TEST_F(ObjectPtrTest, Equality)
     ASSERT_TRUE(ptr1 != ptr2);
     ASSERT_TRUE(ptr1 != nullptr);
     ASSERT_FALSE(ptr1 == nullptr);
+    ASSERT_TRUE(nullptr != ptr1);
+    ASSERT_FALSE(nullptr == ptr1);
     ASSERT_FALSE(ptr1 == ptr2);
     ASSERT_TRUE(ptr1 != ptr3);
     ASSERT_FALSE(ptr1 == ptr3);
     ASSERT_TRUE(ptr3 != ptr1);
     ASSERT_FALSE(ptr3 == ptr1);
+    ASSERT_TRUE(nullptr == ptr3);
+    ASSERT_FALSE(nullptr != ptr3);
 }
 
 TEST_F(ObjectPtrTest, EmptyEqual)

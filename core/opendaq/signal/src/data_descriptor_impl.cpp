@@ -289,14 +289,14 @@ ErrCode DataDescriptorImpl::validate()
                 if (referenceDomainIsAbsolute.assigned())
                     throw InvalidParameterException("Reference domain is absolute not supported for constant data rule type.");
             }
-            else if (dataRule.getType() == DataRuleType::Explicit && scaling.assigned())
+            else if (scaling.assigned())
             {
                 if (referenceDomainId.assigned())
-                    throw InvalidParameterException("Reference domain id not supported for explicit data rule type with post scaling.");
+                    throw InvalidParameterException("Reference domain id not supported with post scaling.");
                 if (referenceDomainOffset.assigned())
-                    throw InvalidParameterException("Reference domain offset not supported for explicit data rule type with post scaling.");
+                    throw InvalidParameterException("Reference domain offset not supported with post scaling.");
                 if (referenceDomainIsAbsolute.assigned())
-                    throw InvalidParameterException("Reference domain is absolute not supported for explicit data rule type with post scaling.");
+                    throw InvalidParameterException("Reference domain is absolute not supported with post scaling.");
             }
                 
         }

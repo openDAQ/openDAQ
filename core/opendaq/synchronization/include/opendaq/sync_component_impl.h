@@ -77,7 +77,7 @@ GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl
     : Super(context, parent, localId, className, name)
 {
     Super::addProperty(ObjectProperty("Interfaces", PropertyObject()));
-    Super::addProperty(ListProperty("InterfaceNames", List<IString>()));
+    Super::addProperty(ListPropertyBuilder("InterfaceNames", List<IString>()).setVisible(false).build());
     Super::addProperty(SelectionProperty("Source", EvalValue("$InterfaceNames"), 0));
     Super::addProperty(BoolProperty("SynchronizationLocked", false));
 }

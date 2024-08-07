@@ -26,38 +26,39 @@ namespace openDAQDemoNet;
 
 
 /// <summary>
-/// Class describing items from the device scan (<c>_instance.AvailableDevices</c>).
+/// Class describing property items from <see cref="Daq.Core.OpenDAQ.Component"/>s.
 /// </summary>
 public class PropertyItem
 {
     private readonly Image _editableImage = new Bitmap(16, 16); //empty image
     private readonly Image _lockedImage   = (Image)GlblRes.locked16.Clone();
 
-    private bool _isReadOnly;
+    private bool _isLocked;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyItem"/> class.
     /// </summary>
-    /// <param name="readOnly">If set to <c>true</c>, the property is read-only; otherwise <c>false</c>.</param>
+    /// <param name="isLocked">If set to <c>true</c>, the property is locked; otherwise <c>false</c>.</param>
     /// <param name="name">The property name.</param>
     /// <param name="value">The property value's text representation.</param>
     /// <param name="unit">The property value's unit.</param>
-    public PropertyItem(bool readOnly, string name, string value, string unit)
+    public PropertyItem(bool isLocked, string name, string? value, string unit, string description)
     {
-        _isReadOnly = readOnly;
+        _isLocked = isLocked;
 
-        this.Name     = name;
-        this.Value    = value;
-        this.Unit     = unit;
+        this.Name        = name;
+        this.Value       = value ?? string.Empty;
+        this.Unit        = unit;
+        this.Description = description;
     }
 
     #region fields to show in table
 
     /// <summary>
-    /// Gets an image indicating whether this <see cref="PropertyItem"/> is read-only.
+    /// Gets an image indicating whether this <see cref="PropertyItem"/> is locked.
     /// </summary>
-    [DisplayName("Read-only")]
-    public Image ReadOnlyImage => _isReadOnly ? _lockedImage : _editableImage;
+    [DisplayName("Locked")]
+    public Image LockedImage => _isLocked ? _lockedImage : _editableImage;
 
     /// <summary>
     /// Gets the property name.
@@ -77,10 +78,16 @@ public class PropertyItem
     [DisplayName("Unit")]
     public string Unit { get; }
 
+    /// <summary>
+    /// Gets the property description.
+    /// </summary>
+    [DisplayName("Description")]
+    public string Description { get; }
+
     #endregion
 
     /// <summary>
-    /// Gets the read-only state (private property).
+    /// Gets the locked state (private property).
     /// </summary>
-    internal bool IsReadOnly => _isReadOnly;
+    internal bool IsLocked => _isLocked;
 }

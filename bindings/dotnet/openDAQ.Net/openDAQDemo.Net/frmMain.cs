@@ -98,7 +98,7 @@ public partial class frmMain : Form
 
         //binding data late to not to "trash" GUI display beforehand
         this.gridProperties.DataSource = _propertyItems;
-        this.gridProperties.Columns[nameof(PropertyItem.ReadOnlyImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        this.gridProperties.Columns[nameof(PropertyItem.LockedImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         this.gridProperties.Refresh();
 
         UpdateTree();
@@ -187,7 +187,18 @@ public partial class frmMain : Form
 
     private void treeComponents_AfterSelect(object sender, TreeViewEventArgs e)
     {
-        UpdateProperties(e.Node?.Tag as BaseObject);
+        SetWaitCursor();
+
+        try
+        {
+            BaseObject? selectedBaseObject = e.Node?.Tag as BaseObject;
+
+            UpdateProperties(selectedBaseObject);
+        }
+        finally
+        {
+            ResetWaitCursor();
+        }
     }
 
     private void treeComponents_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
@@ -337,9 +348,9 @@ public partial class frmMain : Form
 
         var propertyItem = (PropertyItem)((DataGridView)sender).Rows[e.RowIndex].DataBoundItem;
 
-        if (propertyItem.IsReadOnly)
+        if (propertyItem.IsLocked)
         {
-            MessageBox.Show("Property is read-only", $"Edit property \"{propertyItem.Name}\"", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            MessageBox.Show("Property is locked", $"Edit property \"{propertyItem.Name}\"", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             return;
         }
 
@@ -350,6 +361,9 @@ public partial class frmMain : Form
 
     private void gridProperties_CellContextMenuStripNeeded(object sender, DataGridViewCellContextMenuStripNeededEventArgs e)
     {
+        if ((e.RowIndex < 0) || (e.ColumnIndex < 0))
+            return;
+
         DataGridView dataGridView = ((DataGridView)sender);
 
         //select the clicked cell/row for context menu (which opens automatically after this)
@@ -369,9 +383,18 @@ public partial class frmMain : Form
             return;
         }
 
+        Point cursor = grid.PointToClient(Cursor.Position);
+        var info = grid.HitTest(cursor.X, cursor.Y);
+        if (info.Type != DataGridViewHitTestType.Cell)
+        {
+            //no node clicked
+            e.Cancel = true;
+            return;
+        }
+
         var selectedProperty = (PropertyItem)grid.SelectedRows[0].DataBoundItem;
 
-        this.conetxtMenuItemGridPropertiesEdit.Enabled = !selectedProperty.IsReadOnly;
+        this.conetxtMenuItemGridPropertiesEdit.Enabled = !selectedProperty.IsLocked;
     }
 
     private void conetxtMenuItemGridPropertiesEdit_Click(object sender, EventArgs e)
@@ -398,6 +421,7 @@ public partial class frmMain : Form
         columnHeadersDefaultCellStyle.Font               = new Font(grid.Font, FontStyle.Bold);
         columnHeadersDefaultCellStyle.SelectionBackColor = Color.Transparent;
         columnHeadersDefaultCellStyle.SelectionForeColor = Color.Transparent;
+        columnHeadersDefaultCellStyle.WrapMode           = DataGridViewTriState.False;
         grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
         grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
@@ -456,9 +480,12 @@ public partial class frmMain : Form
     /// </summary>
     private void UpdateTree()
     {
+        SetWaitCursor();
+
         string? selectedNodeName = this.treeComponents.SelectedNode?.Name;
 
         this.treeComponents.Nodes.Clear();
+        _propertyItems.Clear();
 
         if (this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview))
             TreeTraverseComponentsRecursive(_instance); //components approach
@@ -476,6 +503,8 @@ public partial class frmMain : Form
             foundNode = this.treeComponents.Nodes[0];
 
         this.treeComponents.SelectedNode = foundNode;
+
+        ResetWaitCursor();
     }
 
     #region Components approach (as in Python Demo)
@@ -511,7 +540,8 @@ public partial class frmMain : Form
                     TreeAddComponent(parentId, channel);
                     break;
 
-                case eTabstrip.FunctionBlocks when component.Cast<FunctionBlock>() is FunctionBlock functionBlock:
+                case eTabstrip.FunctionBlocks when !component.CanCastTo<Channel>()
+                                                   && component.Cast<FunctionBlock>() is FunctionBlock functionBlock:
                     TreeAddComponent(parentId, functionBlock);
                     break;
 
@@ -767,6 +797,7 @@ public partial class frmMain : Form
         }
 
         this.gridProperties.ClearSelection();
+        this.gridProperties.AutoResizeColumns();
     }
 
     /// <summary>
@@ -779,6 +810,9 @@ public partial class frmMain : Form
 
         foreach (var property in properties)
         {
+            if (!property.Visible)
+                continue;
+
             var propertyName            = property.Name;
             var propertyType            = property.ValueType;
             var propertyValueObject     = propertyObject.GetPropertyValue(propertyName);
@@ -803,12 +837,12 @@ public partial class frmMain : Form
                 }
             }
 
-            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit));
+            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description));
         }
     }
 
     /// <summary>
-    /// Open edit-dialog for the selected property (property tree).
+    /// Open edit-dialog for the selected property (property grid).
     /// </summary>
     private void EditSelectedProperty()
     {
@@ -823,7 +857,7 @@ public partial class frmMain : Form
 
         var oldPropertyValue = propertyValue;
 
-        string caption = $"Edit property \"{propertyName}\"";
+        string askDialogTitle = $"Edit property \"{propertyName}\"";
 
         switch (property.ValueType)
         {
@@ -836,7 +870,7 @@ public partial class frmMain : Form
                     if (propertySelectionValues.CanCastTo<ListObject<StringObject>>())
                     {
                         propertyValue = frmInputDialog.AskList(this,
-                                                               caption,
+                                                               askDialogTitle,
                                                                "Please select the new value below",
                                                                propertyValue,
                                                                propertySelectionValues.Cast<ListObject<StringObject>>());
@@ -844,7 +878,7 @@ public partial class frmMain : Form
                     else if (propertySelectionValues.CanCastTo<DictObject<IntegerObject, StringObject>>())
                     {
                         propertyValue = frmInputDialog.AskDict(this,
-                                                               caption,
+                                                               askDialogTitle,
                                                                "Please select the new value below",
                                                                propertyValue,
                                                                propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>());
@@ -852,7 +886,7 @@ public partial class frmMain : Form
                     else
                     {
                         MessageBox.Show($"Sorry, opeanDAQ property selection-values of unknown type.",
-                                        caption, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                                        askDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     }
                 }
                 else
@@ -860,7 +894,7 @@ public partial class frmMain : Form
                     long? min = null; if (property.MinValue != null) min = property.MinValue;
                     long? max = null; if (property.MaxValue != null) max = property.MaxValue;
                     propertyValue = frmInputDialog.AskInteger(this,
-                                                              caption,
+                                                              askDialogTitle,
                                                               "Please enter the new value below",
                                                               propertyValue,
                                                               min,
@@ -872,7 +906,7 @@ public partial class frmMain : Form
                     double? min = null; if (property.MinValue != null) min = property.MinValue;
                     double? max = null; if (property.MaxValue != null) max = property.MaxValue;
                     propertyValue = frmInputDialog.AskFloat(this,
-                                                            caption,
+                                                            askDialogTitle,
                                                             "Please enter the new value below",
                                                             propertyValue,
                                                             min,
@@ -881,20 +915,20 @@ public partial class frmMain : Form
                 break;
             case CoreType.ctString:
                 propertyValue = frmInputDialog.AskString(this,
-                                                         caption,
+                                                         askDialogTitle,
                                                          "Please enter the new value below",
                                                          propertyValue);
                 break;
             case CoreType.ctList:
                 propertyValue = frmInputDialog.AskList(this,
-                                                       caption,
+                                                       askDialogTitle,
                                                        "Please select the new value below",
                                                        propertyValue,
                                                        propertySelectionValues.Cast<ListObject<StringObject>>());
                 break;
             case CoreType.ctDict:
                 propertyValue = frmInputDialog.AskDict(this,
-                                                       caption,
+                                                       askDialogTitle,
                                                        "Please select the new value below",
                                                        propertyValue,
                                                        propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>());
@@ -919,7 +953,7 @@ public partial class frmMain : Form
             //    break;
             default:
                 MessageBox.Show($"Sorry, opeanDAQ value type '{property.ValueType}' is not editable here.",
-                                caption, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                                askDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 break;
         }
 
@@ -932,7 +966,7 @@ public partial class frmMain : Form
             catch (Exception ex)
             {
                 MessageBox.Show($"Sorry, something went wrong:\n{ex.GetType().Name} - {ex.Message}",
-                                caption, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                                askDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
 
                 //throws exception in native code
                 //selectedComponent.SetPropertyValue(propertyName, oldPropertyValue);

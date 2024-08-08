@@ -123,7 +123,7 @@ void RefDeviceImpl::initClock()
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
+    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(), localId, 0));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -253,8 +253,8 @@ void RefDeviceImpl::updateNumberOfChannels()
     for (auto i = channels.size(); i < num; i++)
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
+        auto chLocalId = fmt::format("RefCh{}", i);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, localId);
         channels.push_back(std::move(ch));
     }
 }

@@ -317,8 +317,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
     ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
     ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
-    ASSERT_EQ(clientSyncComponent.getInterfaceNames().getCount(), 2);
-    ASSERT_EQ(clientSyncComponent.getInterfaceNames(), syncComponent.getInterfaceNames());
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getKeyList(), syncComponent.getInterfaces().getKeyList());
     ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
 
     // update the sync component in the client side

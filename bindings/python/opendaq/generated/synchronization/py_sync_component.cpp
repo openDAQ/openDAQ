@@ -70,12 +70,4 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
         },
         py::return_value_policy::take_ownership,
         "Retrieves the list of interfaces associated with this synchronization component.");
-    cls.def_property_readonly("interface_names",
-        [](daq::ISyncComponent *object)
-        {
-            const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
-            return objectPtr.getInterfaceNames().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Retrieves the list of interface names associated with this synchronization component.");
 }

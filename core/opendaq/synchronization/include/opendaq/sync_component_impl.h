@@ -47,7 +47,6 @@ public:
     virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override;
 
     ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
-    ErrCode INTERFACE_FUNC getInterfaceNames(IList** interfaceNames) override;
     ErrCode INTERFACE_FUNC addInterface(IPropertyObject* syncInterface) override;
     ErrCode INTERFACE_FUNC removeInterface(IString* syncInterfaceName) override;
 
@@ -77,8 +76,7 @@ GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl
     : Super(context, parent, localId, className, name)
 {
     Super::addProperty(ObjectProperty("Interfaces", PropertyObject()));
-    Super::addProperty(ListPropertyBuilder("InterfaceNames", List<IString>()).setVisible(false).build());
-    Super::addProperty(SelectionProperty("Source", EvalValue("$InterfaceNames"), 0));
+    Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
     Super::addProperty(BoolProperty("SynchronizationLocked", false));
 }
 
@@ -155,17 +153,6 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(ID
 }
 
 template <typename MainInterface, typename ... Interfaces>
-ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaceNames(IList** syncInterfaceNames)
-{
-    OPENDAQ_PARAM_NOT_NULL(syncInterfaceNames);
-    return daqTry([&]
-    {
-        *syncInterfaceNames = getTypedProperty<IList>("InterfaceNames").detach();
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIsSyncInterface(const StringPtr& className, const TypeManagerPtr& manager) const
 {
     if (!className.assigned())
@@ -230,16 +217,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
         return errCode;
 
     const auto interfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
-    errCode = interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    return daqTry([&]
-    {
-        ListPtr<IString> interfaceNames = getTypedProperty<IList>("InterfaceNames");
-        interfaceNames.pushBack(className);
-        return Super::setPropertyValue(String("InterfaceNames"), interfaceNames);
-    });
+    return interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -253,37 +231,35 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
     if (OPENDAQ_FAILED(err))
         return err;
 
+    Int selectedSource = 0;
+    getSelectedSource(&selectedSource);
+
     const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
-    err = InterfacesPtr->removeProperty(interfaceName);
-    if (OPENDAQ_FAILED(err))
-        return err;
-
-    return daqTry([&]
+    Int idx = 0;
+    err = OPENDAQ_ERR_NOTFOUND;
+    for (const auto& prop : InterfacesPtr.getAllProperties())
     {
-        Int selectedSource = 0;
-        getSelectedSource(&selectedSource);
-
-        ListPtr<IString> interfaceNames = getTypedProperty<IList>("InterfaceNames");
-        for (SizeT i = 0; i < interfaceNames.getCount(); i++)
+        Bool equals;
+        prop.getName()->equals(interfaceName, &equals);
+        if (equals)
         {
-            Bool equals;
-            interfaceNames[i]->equals(interfaceName, &equals);
-            if (equals)
+            err = InterfacesPtr->removeProperty(interfaceName);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            if (selectedSource == idx)
             {
-                if (selectedSource == Int(i))
-                {
-                    setSelectedSource(0);
-                }
-                else if (selectedSource > Int(i))
-                {
-                    setSelectedSource(selectedSource - 1);
-                }
-                interfaceNames.removeAt(i);
-                break;
+                setSelectedSource(0);
             }
+            else if (selectedSource > idx)
+            {
+                setSelectedSource(selectedSource - 1);
+            }
+            break;
         }
-        return Super::setPropertyValue(String("InterfaceNames"), interfaceNames);
-    });
+        idx++;
+    }
+    return err;
 }
 
 template <typename MainInterface, typename ... Interfaces>

@@ -34,12 +34,10 @@ public:
                                const opcua::OpcUaNodeId& nodeId)
         : Super(ctx, parent, localId, clientContext, nodeId)
     {
-        populateInterfaceNames();
-    }
-
-    ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) override
-    {
-        return TmsClientComponentBaseImpl::setPropertyValue(String("Source"), Integer(selectedSource));
+        StringPtr propertyName = "Interfaces";
+        BaseObjectPtr interfacesValue;
+        checkErrorInfo(getPropertyValue(propertyName, &interfacesValue));
+        checkErrorInfo(Impl::setProtectedPropertyValue(propertyName, interfacesValue));
     }
 
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override
@@ -59,24 +57,6 @@ public:
             LOG_W("Failed to get sync locked on OpcUA client sync component \"{}\"", this->globalId);
         }
         return OPENDAQ_SUCCESS;
-    }
-
-private:
-
-    void populateInterfaceNames()
-    {
-        BaseObjectPtr interfacesValue;
-        ErrCode errCode = getPropertyValue(String("Interfaces"), &interfacesValue);
-        checkErrorInfo(errCode);
-
-        const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
-        auto interfaceNames = List<IString>();
-        for (const auto& prop : InterfacesPtr.getAllProperties())
-        {
-            interfaceNames.pushBack(prop.getName());
-        }
-
-        Impl::setPropertyValue(String("InterfaceNames"), interfaceNames);
     }
 };
 

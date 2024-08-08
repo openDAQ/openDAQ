@@ -431,7 +431,7 @@ TEST_F(TmsIntegrationTest, SyncComponent)
 
     ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
     ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
-    ASSERT_EQ(serverSync.getInterfaceNames(), clientSync.getInterfaceNames());
+    ASSERT_EQ(serverSync.getInterfaces().getKeyList(), clientSync.getInterfaces().getKeyList());
 
     auto serverInterfaces = serverSync.getInterfaces();
     auto clientInterfaces = clientSync.getInterfaces();
@@ -491,11 +491,11 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
 
     ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
     ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
-    ASSERT_EQ(serverSync.getInterfaceNames(), clientSync.getInterfaceNames());
-
+   
     auto serverInterfaces = serverSync.getInterfaces();
     auto clientInterfaces = clientSync.getInterfaces();
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
 
     auto clientPtpSyncInterface = clientInterfaces.get("PtpSyncInterface");
     ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);

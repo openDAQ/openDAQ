@@ -91,13 +91,10 @@ TEST_F(DevicesTest, SettingSyncComponent)
     // Add the new PTP interface to the sync component
     syncComponentPrivate.addInterface(ptpSyncInterface);
 
-    // Check if the new PTP interface is added
-    ListPtr<IString> interfacesNames = syncComponent.getInterfaceNames();
-    ASSERT_EQ(interfacesNames.getCount(), 1);
-    ASSERT_EQ(interfacesNames[0], "PtpSyncInterface");
-
     // Get the new PTP interface
     auto interfaces = syncComponent.getInterfaces();
+    ASSERT_EQ(interfaces.getCount(), 1);
+    ASSERT_TRUE(interfaces.hasKey("PtpSyncInterface"));
     PropertyObjectPtr newPtpSyncInterface = interfaces.get("PtpSyncInterface");
 
     // We can edit the existing PTP interface as well

@@ -130,16 +130,16 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_SUCCESS);
 
-    auto interfaceNames = syncComponent.getInterfaceNames();
+    auto interfaceNames = syncComponent.getInterfaces();
     ASSERT_EQ(interfaceNames.getCount(), 2);
 
     syncComponent.setSelectedSource(1);
     ASSERT_EQ(syncComponentPrivate->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent.getSelectedSource(), 0);
     
-    interfaceNames = syncComponent.getInterfaceNames();
+    interfaceNames = syncComponent.getInterfaces();
     ASSERT_EQ(interfaceNames.getCount(), 1);
-    ASSERT_EQ(interfaceNames[0], "PtpSyncInterface");
+    ASSERT_TRUE(interfaceNames.hasKey("PtpSyncInterface"));
 }
 
 TEST_F(SyncComponentTest, Serialization)
@@ -166,7 +166,7 @@ TEST_F(SyncComponentTest, Serialization)
 
     ASSERT_EQ(syncComponent.getSelectedSource(), syncComponentDeserialized.getSelectedSource());
     ASSERT_EQ(syncComponent.getSyncLocked(), syncComponentDeserialized.getSyncLocked());
-    ASSERT_EQ(syncComponent.getInterfaceNames(), syncComponentDeserialized.getInterfaceNames());
+    ASSERT_EQ(syncComponent.getInterfaces().getKeyList(), syncComponentDeserialized.getInterfaces().getKeyList());
 }
 
 

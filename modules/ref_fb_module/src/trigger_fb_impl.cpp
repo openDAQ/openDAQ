@@ -49,10 +49,7 @@ FunctionBlockTypePtr TriggerFbImpl::CreateType()
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("RefFBModuleTrigger",
-                             "Trigger",
-                             "Trigger",
-                             defaultConfig);
+    return FunctionBlockType("RefFBModuleTrigger", "Trigger", "Trigger", defaultConfig);
 }
 
 void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
@@ -145,25 +142,12 @@ void TriggerFbImpl::trigger(const DataPacketPtr& inputPacket, size_t triggerInde
     // Flip state
     state = !state;
 
-    // Explicit vs Linear data rule type
     Int triggeredAt = -1;
     auto inputDomainPacket = inputPacket.getDomainPacket();
-    auto rule = inputDomainPacket.getDataDescriptor().getRule();
-    if (rule.getType() == DataRuleType::Explicit)
-    {
-        // Get value of domain packet data at sample i (when triggered)
-        auto domainDataValues = static_cast<daq::Int*>(inputDomainPacket.getData());
-        triggeredAt = static_cast<daq::Int>(domainDataValues[triggerIndex]);
-    }
-    else
-    {
-        // Use linear data rule to figure out when triggered
-        auto dictionary = rule.getParameters();
-        auto delta = dictionary.get("delta");
-        auto start = dictionary.get("start");
-        auto offset = inputDomainPacket.getOffset();
-        triggeredAt = offset + delta * triggerIndex + start;
-    }
+
+    // Get value of domain packet data at sample i (when triggered)
+    auto domainDataValues = static_cast<daq::Int*>(inputDomainPacket.getData());
+    triggeredAt = static_cast<daq::Int>(domainDataValues[triggerIndex]);
 
     // Create output domain packet
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);

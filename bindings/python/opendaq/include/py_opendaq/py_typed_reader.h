@@ -34,29 +34,15 @@
 
 #include "py_opendaq/py_reader_traits.h"
 
-using SampleTypeVariant = std::variant<py::array_t<daq::SampleTypeToType<daq::SampleType::Float32>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::Float64>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::Int32>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::Int64>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::Int8>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>,
-                                       py::array_t<daq::SampleTypeToType<daq::SampleType::Int16>::Type>>;
-
-using DomainTypeVariant = SampleTypeVariant;
-
 template <typename ReaderType>
 using ReaderStatusType = typename daq::ReaderStatusType<ReaderType>::IType*;
 
 template <typename ReaderType>
-using SampleTypeReaderStatusVariant = std::variant<SampleTypeVariant, std::tuple<SampleTypeVariant, ReaderStatusType<ReaderType>>>;
+using SampleTypeReaderStatusVariant = std::variant<py::array, std::tuple<py::array, ReaderStatusType<ReaderType>>>;
 
 template <typename ReaderType>
 using SampleTypeDomainTypeReaderStatusVariant =
-    std::variant<std::tuple<SampleTypeVariant, DomainTypeVariant>,
-                 std::tuple<SampleTypeVariant, DomainTypeVariant, ReaderStatusType<ReaderType>>>;
+    std::variant<std::tuple<py::array, py::array>, std::tuple<py::array, py::array, ReaderStatusType<ReaderType>>>;
 
 template <typename ReaderType>
 using SizeReaderStatusVariant = std::variant<daq::SizeT, std::tuple<daq::SizeT, ReaderStatusType<ReaderType>>>;
@@ -226,7 +212,7 @@ private:
         if (count == 0)
         {
             auto status = readZeroValues(reader, timeoutMs);
-            return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>{std::make_tuple(SampleTypeVariant{}, status.detach())}
+            return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, status.detach())}
                                 : SampleTypeReaderStatusVariant<ReaderType>{};
         }
 
@@ -306,9 +292,8 @@ private:
         {
             auto status = readZeroValues(reader, timeoutMs);
             return returnStatus
-                       ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(
-                             SampleTypeVariant{}, DomainTypeVariant{}, status.detach())}
-                       : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(SampleTypeVariant{}, DomainTypeVariant{})};
+                       ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{}, status.detach())}
+                       : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{})};
         }
 
         size_t blockSize = 1, initialCount = count;

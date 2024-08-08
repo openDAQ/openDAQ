@@ -107,7 +107,7 @@ inline StructTypePtr DataDescriptorStructType()
                                   SimpleType(ctList),
                                   SimpleType(ctDict),
                                   SimpleType(ctString),
-                                  SimpleType(ctFloat),
+                                  SimpleType(ctInt),
                                   SimpleType(ctBool)
                       ));
 }

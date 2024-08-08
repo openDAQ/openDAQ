@@ -53,7 +53,7 @@ public:
             typed[i] = typed[i] + referenceDomainOffset;
     }
 
-    ReferenceDomainOffsetAdderTyped(const NumberPtr& referenceDomainOffset, SizeT sampleCount)
+    ReferenceDomainOffsetAdderTyped(const IntegerPtr& referenceDomainOffset, SizeT sampleCount)
     {
         this->referenceDomainOffset = static_cast<T>(referenceDomainOffset);
         this->sampleCount = sampleCount;
@@ -65,15 +65,11 @@ private:
 };
 
 static ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleType outputType,
-                                                                         const NumberPtr& referenceDomainOffset,
+                                                                         const IntegerPtr& referenceDomainOffset,
                                                                          SizeT sampleCount)
 {
     switch (outputType)
     {
-        case SampleType::Float32:
-            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Float32>::Type>(referenceDomainOffset, sampleCount);
-        case SampleType::Float64:
-            return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Float64>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::UInt8:
             return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt8>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int8:
@@ -90,6 +86,8 @@ static ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleT
             return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::UInt64>::Type>(referenceDomainOffset, sampleCount);
         case SampleType::Int64:
             return new ReferenceDomainOffsetAdderTyped<SampleTypeToType<SampleType::Int64>::Type>(referenceDomainOffset, sampleCount);
+        case SampleType::Float32:
+        case SampleType::Float64:
         case SampleType::RangeInt64:
         case SampleType::Binary:
         case SampleType::ComplexFloat32:

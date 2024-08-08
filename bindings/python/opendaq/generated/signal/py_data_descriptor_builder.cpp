@@ -206,10 +206,10 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
             return objectPtr.getReferenceDomainOffset().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::INumber*, double, daq::IEvalValue*>& referenceDomainOffset)
+        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& referenceDomainOffset)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setReferenceDomainOffset(getVariantValue<daq::INumber*>(referenceDomainOffset));
+            objectPtr.setReferenceDomainOffset(getVariantValue<daq::IInteger*>(referenceDomainOffset));
         },
         py::return_value_policy::take_ownership,
         "Gets the reference domain offset. / Sets the reference domain offset.");

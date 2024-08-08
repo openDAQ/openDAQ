@@ -18,7 +18,7 @@ TEST_F(DeviceDomainTest, DeviceDomainGetters)
 
 TEST_F(DeviceDomainTest, DeviceDomainGettersBackwardsCompat)
 {
-    // Without referenceDomainId/referenceDomainOffset
+    // Without referenceDomainId/referenceDomainOffset/referenceDomainIsAbsolute
 
     auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"));
     ASSERT_EQ(deviceDomain.getTickResolution(), Ratio(1, 3));
@@ -58,7 +58,7 @@ TEST_F(DeviceDomainTest, StructType)
         StructType("DeviceDomain",
                    List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainId", "ReferenceDomainOffset", "ReferenceDomainIsAbsolute"),
                    List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr, nullptr, nullptr),
-                   List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctFloat), SimpleType(ctBool)));
+                   List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), SimpleType(ctString), SimpleType(ctInt), SimpleType(ctBool)));
     const auto structType = DeviceDomainStructType();
     ASSERT_EQ(structType, correct);
 }

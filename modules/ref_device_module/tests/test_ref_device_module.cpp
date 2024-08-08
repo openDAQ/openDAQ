@@ -172,7 +172,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainId();
-    ASSERT_EQ(res, nullptr);
+    ASSERT_EQ(res, "RefDev1");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
@@ -183,7 +183,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainOffset();
-    ASSERT_EQ(res, nullptr);
+    ASSERT_EQ(res, 0);
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIsAbsolute)

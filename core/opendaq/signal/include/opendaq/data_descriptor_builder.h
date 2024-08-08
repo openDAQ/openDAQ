@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [include(ISampleType)]
  * [interfaceLibrary(IUnit, CoreObjects)]
  * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -236,7 +237,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(INumber* referenceDomainOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) = 0;
 
     /*!
      * @brief Gets the reference domain offset.
@@ -244,7 +245,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
 
     // [returnSelf]
     /*!

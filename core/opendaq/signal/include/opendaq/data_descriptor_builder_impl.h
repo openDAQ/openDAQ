@@ -70,8 +70,8 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
-    ErrCode INTERFACE_FUNC setReferenceDomainOffset(INumber* referenceDomainOffset) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainOffset(INumber** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
     ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) override;
     ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
@@ -89,7 +89,7 @@ protected:
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
     StringPtr referenceDomainId;
-    NumberPtr referenceDomainOffset;
+    IntegerPtr referenceDomainOffset;
     BoolPtr referenceDomainIsAbsolute;
 };
 

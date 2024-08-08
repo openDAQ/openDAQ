@@ -48,9 +48,6 @@ public:
         createFunctionBlock();
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
-
-        // Fix so PacketReadyNotification::Scheduler works
-        context.getScheduler().stop();
     }
 
 private:
@@ -140,7 +137,7 @@ private:
         auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
-        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb" , config);
 
         // Set input (port) and output (signal) of the function block
         fb.getInputPorts()[0].connect(signal);

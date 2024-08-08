@@ -1,6 +1,9 @@
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/reader_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/signal_factory.h>
@@ -9,7 +12,6 @@
 #include <testutils/testutils.h>
 #include <thread>
 #include "testutils/memcheck_listener.h"
-#include <opendaq/instance_factory.h>
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
@@ -145,7 +147,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
     ASSERT_TRUE(fb.assigned());
 }
 
-TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
+TEST_F(RefFbModuleTest, CreateFunctionBlockTrigger)
 {
     const auto module = CreateModule();
 
@@ -165,4 +167,72 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
     instance.addFunctionBlock("ref_fb_module_statistics");
     instance.addFunctionBlock("ref_fb_module_trigger");
     instance.addFunctionBlock("audio_device_module_wav_writer");
+}
+
+TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
+{
+    // Create domain signal
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
+    auto domainSignalDescriptor = DataDescriptorBuilder()
+                                      .setUnit(Unit("s", -1, "seconds", "Time"))
+                                      .setSampleType(SampleType::Int64)
+                                      .setRule(LinearDataRule(5, 3))
+                                      .setOrigin("1970")
+                                      .setTickResolution(Ratio(1, 1000))
+                                      .setReferenceDomainOffset(100)
+                                      .build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
+    const auto sampleCount = 5;
+    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
+    // Create signal with descriptor
+    auto signalDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
+    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
+    // Set domain signal of signal
+    signal.setDomainSignal(domainSignal);
+
+    // Create module
+    ModulePtr module;
+    createModule(&module, context);
+
+    // Fix for race condition
+    auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
+    config.setPropertyValue("UseMultiThreadedScheduler", false);
+
+    // Create function block
+    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "FB", config);
+
+    // Set input (port) and output (signal) of the function block
+    fb.getInputPorts()[0].connect(signal);
+    auto reader = PacketReader(fb.getSignals()[0]);
+
+    // Create data packet
+    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
+    auto packetData = static_cast<double*>(dataPacket.getRawData());
+    for (size_t i = 0; i < sampleCount; i++)
+        *packetData++ = static_cast<double>(i);
+
+    // Send packet
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    // Receive packet
+    PacketPtr receivedPacket;
+    while (true)
+    {
+        receivedPacket = reader.read();
+        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
+            break;
+    }
+
+    // Check domain data
+    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+
+    // input data:      0, 1, 2, 3, 4
+    //                     ^ trigger, becauase greater than 0.5
+    // input domain:    104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+    //                        ^ expected output domain, one sample with value 109
+
+    ASSERT_EQ(domainData[0], 109);
 }

@@ -87,7 +87,6 @@ private:
     uint64_t id;
     SendRequestCallback sendRequestCallback;
     ComponentDeserializeCallback rootDeviceDeserializeCallback;
-    SerializerPtr serializer;
     DeserializerPtr deserializer;
     bool connected;
     WeakRefPtr<IDevice> rootDeviceRef;

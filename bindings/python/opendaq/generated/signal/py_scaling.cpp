@@ -42,7 +42,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
 {
     cls.doc() = "Signal descriptor field that defines a scaling transformation, which should be applied to data carried by the signal's packets when read.";
 
-    m.def("LinearScaling", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& scale, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset, daq::SampleType inputDataType, daq::ScaledSampleType outputDataType){
+    m.def("LinearScaling", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& scale, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset, daq::SampleType inputDataType, daq::ScaledSampleType outputDataType){
         return daq::LinearScaling_Create(getVariantValue<daq::INumber*>(scale), getVariantValue<daq::INumber*>(offset), inputDataType, outputDataType);
     }, py::arg("scale"), py::arg("offset"), py::arg("input_data_type"), py::arg("output_data_type"));
 

@@ -51,6 +51,8 @@
         $CSCheckArrayTypeAndThrow$
         unsafe //use native method pointer
         {
+            //"pin a variable for pointer operations"
+            //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/fixed
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
             $CSFixedArrays$
 #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type

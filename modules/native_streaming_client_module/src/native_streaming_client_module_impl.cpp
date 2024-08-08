@@ -199,6 +199,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     );
     auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
                                                              transportClient,
+                                                             config.getPropertyValue("ConfigProtocolRequestTimeout"),
                                                              processingIOContextPtr,
                                                              reconnectionProcessingIOContextPtr,
                                                              reconnectionProcessingThread.get_id());
@@ -217,6 +218,20 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                     reconnectionProcessingIOContextPtr);
 
     return device;
+}
+
+void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig)
+{
+    auto options = context.getModuleOptions(id);
+    if (options.getCount() == 0)
+        return;
+
+    if (options.hasKey("ConfigProtocolRequestTimeout"))
+    {
+        auto value = options.get("ConfigProtocolRequestTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", value);
+    }
 }
 
 void NativeStreamingClientModule::populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig)
@@ -279,13 +294,8 @@ PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const Prope
             if (name == "TransportLayerConfig")
             {
                 const PropertyObjectPtr transportLayerConfig = config.getPropertyValue(name);
-                const PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
-                for (const auto& transportLayerProp : defTransportLayerConfig.getAllProperties())
-                {
-                    const auto transportLayerName = transportLayerProp.getName();
-                    if (transportLayerConfig.hasProperty(name))
-                        defTransportLayerConfig.setPropertyValue(name, config.getPropertyValue(name));
-                }
+                PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
+                populateDefaultTransportLayerConfig(defTransportLayerConfig, transportLayerConfig);
             }
             else
             {
@@ -295,6 +305,17 @@ PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const Prope
     }
 
     return defConfig;
+}
+
+void NativeStreamingClientModule::populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig,
+                                                                      const PropertyObjectPtr& config)
+{
+    for (const auto& prop : defaultConfig.getAllProperties())
+    {
+        const auto propName = prop.getName();
+        if (config.hasProperty(propName))
+            defaultConfig.setPropertyValue(propName, config.getPropertyValue(propName));
+    }
 }
 
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
@@ -414,6 +435,9 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
 
+    defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+    populateDeviceConfigFromContext(defaultConfig);
+
     return defaultConfig;
 }
 
@@ -428,7 +452,8 @@ bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& c
         return false;
     }
 
-    if (config.assigned() && !validateConnectionConfig(config))
+    if (config.assigned() &&
+        (pseudoDevicePrefixFound && !validateConnectionConfig(config) || devicePrefixFound && !validateDeviceConfig(config)))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;
@@ -726,6 +751,13 @@ bool NativeStreamingClientModule::validateTransportLayerConfig(const PropertyObj
            config.getProperty("ConnectionTimeout").getValueType() == ctInt &&
            config.getProperty("StreamingInitTimeout").getValueType() == ctInt &&
            config.getProperty("ReconnectionPeriod").getValueType() == ctInt;
+}
+
+bool NativeStreamingClientModule::validateDeviceConfig(const PropertyObjectPtr& config)
+{
+    return config.hasProperty("ConfigProtocolRequestTimeout") &&
+           config.getProperty("ConfigProtocolRequestTimeout").getValueType() == ctInt &&
+           validateConnectionConfig(config);
 }
 
 bool NativeStreamingClientModule::validateConnectionConfig(const PropertyObjectPtr& config)

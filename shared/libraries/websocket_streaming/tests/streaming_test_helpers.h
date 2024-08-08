@@ -93,7 +93,6 @@ namespace streaming_test_helpers
                               .setMetadata(meta)
                               .build();
 
-        auto timeSignal = createLinearTimeSignal(ctx);
         auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
         signal.setDomainSignal(domainSignal);
         signal.setName(name);

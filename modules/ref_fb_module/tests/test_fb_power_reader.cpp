@@ -104,6 +104,8 @@ TEST_F(PowerReaderTest, ConnectOneSignal)
         const auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
         currentSignal.sendPacket(currentPacket);
     }
+
+    ctx.getScheduler().stop();
 }
 
 TEST_F(PowerReaderTest, Simple)
@@ -122,19 +124,16 @@ TEST_F(PowerReaderTest, Simple)
     const auto powerSignal = fb.getSignals()[0];
 
     const auto timePacket = DataPacket(timeSignal.getDescriptor(), 100, 0);
-    timeSignal.sendPacket(timePacket);
 
     const auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
     auto voltageData = static_cast<float*>(voltagePacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *voltageData++ = static_cast<float>(i);
-    voltageSignal.sendPacket(voltagePacket);
 
     const auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
     auto currentData = static_cast<float*>(currentPacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *currentData++ = static_cast<float>(i);
-    currentSignal.sendPacket(currentPacket);
 
     const auto reader = StreamReaderBuilder()
                             .setSkipEvents(True)
@@ -144,6 +143,10 @@ TEST_F(PowerReaderTest, Simple)
                             .setReadMode(ReadMode::Scaled)
                             .setReadTimeoutType(ReadTimeoutType::All)
                             .build();
+
+    timeSignal.sendPacket(timePacket);
+    voltageSignal.sendPacket(voltagePacket);
+    currentSignal.sendPacket(currentPacket);
 
     std::vector<double> data(100);
     std::vector<int64_t> time(100);
@@ -171,6 +174,8 @@ TEST_F(PowerReaderTest, Simple)
                       return n++;
                   });
     ASSERT_THAT(time, testing::ElementsAreArray(expectedTime));
+
+    ctx.getScheduler().stop();
 }
 
 TEST_F(PowerReaderTest, MultiplePackets)
@@ -189,19 +194,16 @@ TEST_F(PowerReaderTest, MultiplePackets)
     const auto powerSignal = fb.getSignals()[0];
 
     const auto timePacket0 = DataPacket(timeSignal.getDescriptor(), 100, 0);
-    timeSignal.sendPacket(timePacket0);
 
     const auto voltagePacket0 = DataPacketWithDomain(timePacket0, voltageSignal.getDescriptor(), 100);
     auto voltageData0 = static_cast<float*>(voltagePacket0.getRawData());
     for (size_t i = 0; i < 100; i++)
         *voltageData0++ = static_cast<float>(i);
-    voltageSignal.sendPacket(voltagePacket0);
 
     const auto currentPacket0 = DataPacketWithDomain(timePacket0, currentSignal.getDescriptor(), 100);
     auto currentData0 = static_cast<float*>(currentPacket0.getRawData());
     for (size_t i = 0; i < 100; i++)
         *currentData0++ = static_cast<float>(i);
-    currentSignal.sendPacket(currentPacket0);
 
     const auto reader = StreamReaderBuilder()
                             .setSkipEvents(True)
@@ -211,6 +213,10 @@ TEST_F(PowerReaderTest, MultiplePackets)
                             .setReadMode(ReadMode::Scaled)
                             .setReadTimeoutType(ReadTimeoutType::All)
                             .build();
+
+    timeSignal.sendPacket(timePacket0);
+    voltageSignal.sendPacket(voltagePacket0);
+    currentSignal.sendPacket(currentPacket0);
 
     constexpr size_t samplesToRead0 = 50;
 
@@ -273,6 +279,8 @@ TEST_F(PowerReaderTest, MultiplePackets)
     std::vector<int64_t> expectedTime1(samplesToRead1);
     std::generate(expectedTime1.begin(), expectedTime1.end(), [n = samplesToRead0]() mutable { return n++; });
     ASSERT_THAT(time1, testing::ElementsAreArray(expectedTime1));
+
+    ctx.getScheduler().stop();
 }
 
 TEST_F(PowerReaderTest, DisconnectReconnect)
@@ -291,19 +299,16 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
     const auto powerSignal = fb.getSignals()[0];
 
     auto timePacket = DataPacket(timeSignal.getDescriptor(), 100, 0);
-    timeSignal.sendPacket(timePacket);
 
     auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
     auto voltageData = static_cast<float*>(voltagePacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *voltageData++ = static_cast<float>(i);
-    voltageSignal.sendPacket(voltagePacket);
 
     auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
     auto currentData = static_cast<float*>(currentPacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *currentData++ = static_cast<float>(i);
-    currentSignal.sendPacket(currentPacket);
 
     const auto reader = StreamReaderBuilder()
                             .setSkipEvents(True)
@@ -313,6 +318,10 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
                             .setReadMode(ReadMode::Scaled)
                             .setReadTimeoutType(ReadTimeoutType::All)
                             .build();
+
+    timeSignal.sendPacket(timePacket);
+    voltageSignal.sendPacket(voltagePacket);
+    currentSignal.sendPacket(currentPacket);
 
     std::vector<double> data(100);
     std::vector<int64_t> time(100);
@@ -375,6 +384,8 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
     std::vector<int64_t> expectedTime1(100);
     std::generate(expectedTime1.begin(), expectedTime1.end(), [n = 100]() mutable { return n++; });
     ASSERT_THAT(time, testing::ElementsAreArray(expectedTime));
+
+    ctx.getScheduler().stop();
 }
 
 TEST_F(PowerReaderTest, Gap)
@@ -393,19 +404,16 @@ TEST_F(PowerReaderTest, Gap)
     const auto powerSignal = fb.getSignals()[0];
 
     auto timePacket = DataPacket(timeSignal.getDescriptor(), 100, 0);
-    timeSignal.sendPacket(timePacket);
 
     auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 100);
     auto voltageData = static_cast<float*>(voltagePacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *voltageData++ = static_cast<float>(i);
-    voltageSignal.sendPacket(voltagePacket);
 
     auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 100);
     auto currentData = static_cast<float*>(currentPacket.getRawData());
     for (size_t i = 0; i < 100; i++)
         *currentData++ = static_cast<float>(i);
-    currentSignal.sendPacket(currentPacket);
 
     const auto reader = StreamReaderBuilder()
                             .setSkipEvents(True)
@@ -415,6 +423,10 @@ TEST_F(PowerReaderTest, Gap)
                             .setReadMode(ReadMode::Scaled)
                             .setReadTimeoutType(ReadTimeoutType::All)
                             .build();
+
+    timeSignal.sendPacket(timePacket);
+    voltageSignal.sendPacket(voltagePacket);
+    currentSignal.sendPacket(currentPacket);
 
     timePacket = DataPacket(timeSignal.getDescriptor(), 100, 150);
     timeSignal.sendPacket(timePacket);
@@ -456,4 +468,6 @@ TEST_F(PowerReaderTest, Gap)
     std::vector<int64_t> expectedTime(100);
     std::generate(expectedTime.begin(), expectedTime.end(), [n = 0]() mutable { return n++; });
     ASSERT_THAT(time, testing::ElementsAreArray(expectedTime.data(), 100));
+
+    ctx.getScheduler().stop();
 }

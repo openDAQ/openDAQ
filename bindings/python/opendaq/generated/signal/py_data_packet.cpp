@@ -38,15 +38,15 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
 {
     cls.doc() = "Packet that contains data sent by a signal. The data can be either explicit, or implicit.";
 
-    m.def("DataPacket", [](daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset){
+    m.def("DataPacket", [](daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset){
         return daq::DataPacket_Create(descriptor, sampleCount, getVariantValue<daq::INumber*>(offset));
     }, py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"));
 
-    m.def("DataPacketWithExternalMemory", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset, void* externalMemory, daq::IDeleter* deleter, const size_t bufferSize){
+    m.def("DataPacketWithExternalMemory", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset, void* externalMemory, daq::IDeleter* deleter, const size_t bufferSize){
         return daq::DataPacketWithExternalMemory_Create(domainPacket, descriptor, sampleCount, getVariantValue<daq::INumber*>(offset), externalMemory, deleter, bufferSize);
     }, py::arg("domain_packet"), py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"), py::arg("external_memory"), py::arg("deleter"), py::arg("buffer_size"));
 
-    m.def("DataPacketWithDomain", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, daq::IEvalValue*>& offset){
+    m.def("DataPacketWithDomain", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset){
         return daq::DataPacketWithDomain_Create(domainPacket, descriptor, sampleCount, getVariantValue<daq::INumber*>(offset));
     }, py::arg("domain_packet"), py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"));
 

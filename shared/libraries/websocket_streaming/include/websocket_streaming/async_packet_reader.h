@@ -35,8 +35,8 @@ public:
     void stop();
     void onPacket(const OnPacketCallback& callback);
     void setLoopFrequency(uint32_t freqency);
-    void startReadSignal(const SignalPtr& signal);
-    void stopReadSignal(const SignalPtr& signal);
+    void startReadSignals(const ListPtr<ISignal>& signals);
+    void stopReadSignals(const ListPtr<ISignal>& signals);
 
 protected:
     void startReadThread();

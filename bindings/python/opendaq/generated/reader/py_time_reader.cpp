@@ -50,10 +50,11 @@ void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq:
 
     cls.def(
         "read_with_timestamps",
-        [](daq::TimeReader<daq::StreamReaderPtr>* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs); },
+        [](daq::TimeReader<daq::StreamReaderPtr>* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Returns the next `count` unread samples and clock-stamps.");
 }
 
@@ -70,10 +71,11 @@ void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::T
 
     cls.def(
         "read_with_timestamps",
-        [](daq::TimeReader<daq::TailReaderPtr>* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs); },
+        [](daq::TimeReader<daq::TailReaderPtr>* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Returns the next `count` last unread samples and clock-stamps.");
 }
 
@@ -90,10 +92,11 @@ void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::
 
     cls.def(
         "read_with_timestamps",
-        [](daq::TimeReader<daq::BlockReaderPtr>* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs); },
+        [](daq::TimeReader<daq::BlockReaderPtr>* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Returns the next `count` unread blocks of samples and clock-stamps.");
 }
 
@@ -110,9 +113,10 @@ void defineTimeMultiReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::
 
     cls.def(
         "read_with_timestamps",
-        [](daq::TimeReader<daq::MultiReaderPtr>* object, size_t count, const size_t timeoutMs)
-        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs); },
+        [](daq::TimeReader<daq::MultiReaderPtr>* object, size_t count, const size_t timeoutMs, bool returnStatus)
+        { return PyTypedReader::readValuesWithDomain(*object, count, timeoutMs, returnStatus); },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
+        py::arg("return_status") = false,
         "Returns the next `count` unread samples and clock-stamps.");
 }

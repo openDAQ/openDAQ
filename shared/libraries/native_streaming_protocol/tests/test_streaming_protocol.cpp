@@ -160,7 +160,7 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
+        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user)
         {
             return std::make_pair(nullptr, nullptr);
         };

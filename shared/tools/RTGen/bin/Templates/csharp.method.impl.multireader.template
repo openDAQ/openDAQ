@@ -1,0 +1,64 @@
+﻿    public $ReturnTypePtr$ $Name$($Arguments$)
+    {$CSNativeOutputArgument$
+        if (count == 0)
+        {
+            return$CSDefaultReturnValue$;
+            //ToDo: or throw exception?
+        }
+
+        //get the number of elements in the smallest sub-array
+        nuint maxReadCount = $CSArrayLength$;
+
+        if (maxReadCount == 0)
+        {
+            count = 0;
+            return$CSDefaultReturnValue$;
+            //ToDo: or throw exception?
+        }
+
+        if (count > maxReadCount)
+        {
+            //adapt
+            count = maxReadCount;
+        }
+
+        $CSCheckArrayTypeAndThrow$
+        //declare arrays for pinning
+        $CSDeclareJaggedArrayPointers$
+
+        try
+        {
+            //pin the sub-arrays so that the GC cannot move them
+            $CSPinJaggedArrays$
+
+            unsafe //use native method pointer
+            {
+                //"pin a variable for pointer operations"
+                //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/fixed
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+                $CSFixedArrays$
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+                {
+                    //call native method
+                    $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+                    if (Result.Failed($CSReturnVariable$))
+                    {
+                        throw new OpenDaqException($CSReturnVariable$);
+                    }
+                }
+            }
+        }
+        catch (OpenDaqException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_GENERALERROR, $"{ex.GetType().Name} - {ex.Message}", ex);
+        }
+        finally
+        {
+            $CSFreeJaggedArrays$
+        }$CSReturnTheOutputValue$
+    }

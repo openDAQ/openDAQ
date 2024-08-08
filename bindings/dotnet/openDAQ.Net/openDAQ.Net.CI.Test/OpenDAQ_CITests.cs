@@ -1,9 +1,16 @@
+//#define HBK_TEST
+
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Numerics;
 
 using Daq.Core;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
+
+using Newtonsoft.Json.Linq;
 
 
 namespace openDaq.Net.Test;
@@ -28,6 +35,26 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Block,
         Multi,
         //Packet
+    }
+
+
+    private static void FillArray<TValueType>(TValueType[] array, TValueType value)
+        where TValueType : struct
+    {
+        if (array == null)
+            return;
+
+        Array.Fill(array, value);
+    }
+
+    private static void FillArray<TValueType>(TValueType[][] arrays, TValueType value)
+        where TValueType : struct
+    {
+        foreach (var array in arrays)
+        {
+            for (int index = 0; index < array.Length; index++)
+                array[index] = value;
+        }
     }
 
 
@@ -275,7 +302,6 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"  Name: '{info.Name}', Connection string: '{info.ConnectionString}'");
 
             device.PrintReferenceCount();
-            //device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
         }
     }
 
@@ -413,39 +439,585 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
 
         Console.WriteLine("OpenDAQFactory.CreateStreamReader()");
+        int loopCount    = 10;
+        nuint maxCount   = 150;
+        TValue[] samples = new TValue[maxCount];
+        FillArray(samples, (TValue)Convert.ChangeType(99999, typeof(TValue)));
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
         //here using-sub-scope to free resources asap
-        nuint count = 500;
-        TValue defaultValue = (TValue)Convert.ChangeType(99999, typeof(TValue));
-        TValue[] samples = new TValue[count];
-        Array.Fill(samples, defaultValue);
-        nuint samplesCount = 0;
         using (var reader = OpenDAQFactory.CreateStreamReader<TValue>(signal))
         {
             Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
 
-            for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
             {
                 //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
-                Thread.Sleep(25);
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //StreamReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                count = (nuint)samples.Length; //reset to array size
-                reader.Read(samples, ref count, 1000);
-                samplesCount += count;
+                reader.Read(samples, ref count, timeoutMs: 5000);
+                readSamplesCount += count;
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count - 1}: {samples[count - 1]:+0.000;-0.000;±0.000})";
-                Console.WriteLine($"  Block {readBlockNo + 1,2} read {count,3} values {values}");
+                sw.Stop();
+
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
 
-        Assert.That(samplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
     }
+
+    [TestCase(int.MinValue)]
+    [TestCase(ulong.MinValue)]
+    [TestCase(double.MinValue)]
+    public void Test_0402_TailReaderTest<TValue>(TValue _)
+        where TValue : struct
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        ulong signalCount = (ulong)signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(1));
+
+        int analogSignalNo = 0; //one-based
+        int signalNo = 0;
+        using (var signalIterator = signals.GetEnumerator())
+        {
+            int i = 0;
+            while (signalIterator.MoveNext() && (i++ < 10))
+            {
+                using var sig = signalIterator.Current;
+                var sigName = sig.Name;
+
+                Console.WriteLine($"  - {i,2}: {sigName}");
+
+                ++signalNo;
+                if ((sigName.Equals("AnalogValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
+                {
+                    analogSignalNo = signalNo;
+                }
+            }
+        }
+        Assert.That(analogSignalNo, Is.GreaterThanOrEqualTo(1));
+
+        //take the first available signal
+        using var signal = signals[analogSignalNo - 1];
+        var signalName = signal.Name;
+        Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
+
+        Console.WriteLine("OpenDAQFactory.CreateTailReader()");
+        int loopCount    = 10;
+        nuint maxCount   = 150;
+        TValue[] samples = new TValue[maxCount];
+        FillArray(samples, (TValue)Convert.ChangeType(99999, typeof(TValue)));
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateTailReader<TValue>(signal, maxCount))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //TailReader does not need to wait for 'AvailableCount == count'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
+
+                //read up to 'count' samples, storing the amount read into array 'samples'
+                reader.Read(samples, ref count);
+                readSamplesCount += count;
+
+                sw.Stop();
+
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+            }
+        }
+
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [TestCase(int.MinValue)]
+    [TestCase(ulong.MinValue)]
+    [TestCase(double.MinValue)]
+    public void Test_0403_BlockReaderTest<TValue>(TValue _)
+        where TValue : struct
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        ulong signalCount = (ulong)signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(1));
+
+        int analogSignalNo = 0; //one-based
+        int signalNo = 0;
+        using (var signalIterator = signals.GetEnumerator())
+        {
+            int i = 0;
+            while (signalIterator.MoveNext() && (i++ < 10))
+            {
+                using var sig = signalIterator.Current;
+                var sigName = sig.Name;
+
+                Console.WriteLine($"  - {i,2}: {sigName}");
+
+                ++signalNo;
+                if ((sigName.Equals("AnalogValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
+                {
+                    analogSignalNo = signalNo;
+                }
+            }
+        }
+        Assert.That(analogSignalNo, Is.GreaterThanOrEqualTo(1));
+
+        //take the first available signal
+        using var signal = signals[analogSignalNo - 1];
+        var signalName = signal.Name;
+        Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
+
+        Console.WriteLine("OpenDAQFactory.CreateBlockReader()");
+        int loopCount    = 10;
+        nuint blockSize  = 30;
+        nuint maxCount   = 10;
+        TValue[] samples = new TValue[blockSize * maxCount];
+        FillArray(samples, (TValue)Convert.ChangeType(99999, typeof(TValue)));
+        int sleepTime        = 25;
+        nuint readBlockCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateBlockReader<TValue>(signal, blockSize))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length / blockSize; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //BlockReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+
+                //read up to 'count' blocks, storing the amount read into array 'samples'
+                reader.Read(samples, ref count, 5000);
+                readBlockCount += count;
+                Debug.Print($"+++>     read {count} blocks");
+
+                sw.Stop();
+
+                nuint valueCount = count * blockSize;
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
+            }
+        }
+
+        Assert.That(readBlockCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [TestCase(int.MinValue)]
+    [TestCase(ulong.MinValue)]
+    [TestCase(double.MinValue)]
+    public void Test_0404_MultiReaderTest<TValue>(TValue _)
+        where TValue : struct
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        int signalCount = signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
+
+        //take the first two signals
+        using var signalList = CoreTypesFactory.CreateList<Signal>();
+        signalList.Add(signals[0]);
+        signalList.Add(signals[1]);
+
+        Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
+        Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
+
+        Console.WriteLine("OpenDAQFactory.CreateMultiReader()");
+        int loopCount     = 10;
+        nuint maxCount    = 200;
+        TValue[][] samples = new TValue[2][] { new TValue[maxCount], new TValue[maxCount] };
+        FillArray(samples, (TValue)Convert.ChangeType(99999, typeof(TValue)));
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateMultiReader<TValue>(signalList))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = maxCount; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //MultiReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
+
+                //read up to 'count' samples, storing the amount read into array 'samples'
+                reader.Read(samples, ref count/*, timeoutMs: 5000*/);
+                readSamplesCount += count;
+
+                sw.Stop();
+
+                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
+                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+                Console.WriteLine($"                                                       {valueString2}");
+            }
+        }
+
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+
+    [Test]
+    public void Test_0411_StreamReaderWithDomainTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        ulong signalCount = (ulong)signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(1));
+
+        //take the first available signal
+        using var signal = signals[0];
+        var signalName   = signal.Name;
+        Console.WriteLine($"  using signal 0 '{signalName}'");
+
+        using Ratio tickResolution = signals[0].DomainSignal.Descriptor.TickResolution;
+        double factor = (double)tickResolution.Numerator / tickResolution.Denominator;
+        Console.WriteLine($"  tick resolution: {tickResolution.Numerator} / {tickResolution.Denominator} = {factor}");
+
+        Console.WriteLine("OpenDAQFactory.CreateStreamReader()");
+        int loopCount     = 10;
+        nuint maxCount    = 150;
+        double[] samples  = new double[maxCount];
+        long[] timeStamps = new long[maxCount];
+        FillArray(samples, 99999D);
+        FillArray(timeStamps, 99999L);
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateStreamReader<double>(signal))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //StreamReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
+
+                //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
+                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                readSamplesCount += count;
+
+                sw.Stop();
+
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+            }
+        }
+
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [Test]
+    public void Test_0412_TailReaderWithDomainTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        ulong signalCount = (ulong)signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(1));
+
+        //take the first available signal
+        using var signal = signals[0];
+        var signalName   = signal.Name;
+        Console.WriteLine($"  using signal 0 '{signalName}'");
+
+        using Ratio tickResolution = signals[0].DomainSignal.Descriptor.TickResolution;
+        double factor = (double)tickResolution.Numerator / tickResolution.Denominator;
+        Console.WriteLine($"  tick resolution: {tickResolution.Numerator} / {tickResolution.Denominator} = {factor}");
+
+        Console.WriteLine("OpenDAQFactory.CreateTailReader()");
+        int loopCount     = 10;
+        nuint maxCount    = 150;
+        double[] samples  = new double[maxCount];
+        long[] timeStamps = new long[maxCount];
+        FillArray(samples, 99999D);
+        FillArray(timeStamps, 99999L);
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateTailReader<double>(signal, maxCount))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //TailReader does not need to wait for 'AvailableCount == count'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
+
+                //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
+                reader.ReadWithDomain(samples, timeStamps, ref count);
+                readSamplesCount += count;
+                sw.Stop();
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+            }
+        }
+
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [Test]
+    public void Test_0413_BlockReaderWithDomainTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        ulong signalCount = (ulong)signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(1));
+
+        //take the first available signal
+        using var signal = signals[0];
+        var signalName   = signal.Name;
+        Console.WriteLine($"  using signal 0 '{signalName}'");
+
+        using Ratio tickResolution = signals[0].DomainSignal.Descriptor.TickResolution;
+        double factor = (double)tickResolution.Numerator / tickResolution.Denominator;
+        Console.WriteLine($"  tick resolution: {tickResolution.Numerator} / {tickResolution.Denominator} = {factor}");
+
+        Console.WriteLine("OpenDAQFactory.CreateBlockReader()");
+        int loopCount     = 10;
+        nuint blockSize   = 30;
+        nuint maxCount    = 10;
+        double[] samples  = new double[blockSize * maxCount];
+        long[] timeStamps = new long[blockSize * maxCount];
+        FillArray(samples, 99999D);
+        FillArray(timeStamps, 99999L);
+        int sleepTime        = 25;
+        nuint readBlockCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateBlockReader<double>(signal, blockSize))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = (nuint)samples.Length / blockSize; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //BlockReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
+
+                //read up to 'count' blocks, storing the amount read into arrays 'samples' and 'timeStamps'
+                reader.ReadWithDomain(samples, timeStamps, ref count, 5000);
+                readBlockCount += count;
+                Debug.Print($"+++>     read {count} blocks");
+
+                sw.Stop();
+
+                nuint valueCount = count * blockSize;
+                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
+            }
+        }
+
+        Assert.That(readBlockCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
+    [Test]
+    public void Test_0414_MultiReaderWithDomainTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        Console.WriteLine("addedDevice.GetSignalsRecursive()");
+        var signals = device.GetSignalsRecursive();
+
+        int signalCount = signals.Count;
+        Console.WriteLine($"  found {signalCount} signals");
+        Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
+
+        //take the first two signals
+        using var signalList = CoreTypesFactory.CreateList<Signal>();
+        signalList.Add(signals[0]);
+        signalList.Add(signals[1]);
+
+        Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
+        Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
+
+        using Ratio tickResolution = signals[0].DomainSignal.Descriptor.TickResolution;
+        double factor = (double)tickResolution.Numerator / tickResolution.Denominator;
+        Console.WriteLine($"  tick resolution: {tickResolution.Numerator} / {tickResolution.Denominator} = {factor}");
+
+        Console.WriteLine("OpenDAQFactory.CreateMultiReader()");
+        int loopCount      = 10;
+        nuint maxCount     = 150;
+        double[][] samples  = new double[2][] { new double[maxCount], new double[maxCount] };
+        long[][] timeStamps = new long[2][]   { new long[maxCount],   new long[maxCount] };
+        FillArray(samples, 99999D);
+        FillArray(timeStamps, 99999L);
+        int sleepTime          = 25;
+        nuint readSamplesCount = 0;
+        //here using-sub-scope to free resources asap
+        using (var reader = OpenDAQFactory.CreateMultiReader<double>(signalList))
+        {
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} values (waiting {sleepTime}ms before reading)");
+
+            Stopwatch sw = new Stopwatch();
+
+            for (int loopNo = 0; loopNo < loopCount; ++loopNo)
+            {
+                //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
+
+                sw.Restart();
+
+                nuint count = maxCount; //reset to array size
+
+                //just wait a bit
+                Thread.Sleep(sleepTime); //MultiReader does not need to wait for 'AvailableCount == count' as it has 'timeoutMs'
+
+                nuint availableCount = reader.AvailableCount;
+                Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
+
+                //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
+                //reader.Read(samples, ref count, timeoutMs: 5000);
+                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                readSamplesCount += count;
+
+                sw.Stop();
+
+                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
+                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
+                Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
+                Console.WriteLine($"                                                       {valueString2}");
+            }
+        }
+
+        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+    }
+
 
     [TestCase(eDesiredReader.Stream, double.MinValue)]
     [TestCase(eDesiredReader.Tail, double.MinValue)]
     [TestCase(eDesiredReader.Block, double.MinValue)]
-    //[TestCase(eDesiredReader.Multi, double.MinValue)]
-    public void Test_0411_TimeReaderTest<TValueType>(eDesiredReader desiredReader, TValueType _)
+    [TestCase(eDesiredReader.Multi, double.MinValue)]
+    public void Test_0451_TimeReaderTest<TValueType>(eDesiredReader desiredReader, TValueType _)
         where TValueType : struct
     {
         //Hint: below it makes no sense checking objects for null since the functions throw 'OpenDaqException' in case of an error ( Result.Failed(errorCode) )
@@ -457,22 +1029,42 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(addedDevice, Is.Not.Null);
 
         Console.WriteLine("addedDevice.GetSignalsRecursive()");
-        using var signal = addedDevice.GetSignalsRecursive()[0]; //Hint: here addedDevice.GetSignals() returns an empty list
+        using var signals      = addedDevice.GetSignalsRecursive(); //Hint: here addedDevice.GetSignals() returns an empty list
+        using var signal0      = signals[0];
+        using var signal1      = signals[1];
+        using var signalsMulti = CoreTypesFactory.CreateList<Signal>();
+        if (desiredReader == eDesiredReader.Multi)
+        {
+            signalsMulti.Add(signal0);
+            signalsMulti.Add(signal1);
+        }
 
-        var signalName = signal.Name;
-        var tickResolution = signal.DomainSignal.Descriptor.TickResolution;
-        Console.WriteLine($"  using signal 0 '{signalName}'");
+        Console.WriteLine($"  using signal 0 '{signal0.Name}'");
+        if (desiredReader == eDesiredReader.Multi) Console.WriteLine($"  using signal 1 '{signal1.Name}'");
+
+        var tickResolution = signal0.DomainSignal.Descriptor.TickResolution;
         Console.WriteLine($"  domain signal tick-resolution = '{tickResolution.Numerator}/{tickResolution.Denominator:N0}'");
 
-        nuint count = 100;
-        nuint blockSize = 1;     //10 for BlockReader (see switch/case below)
-        nuint historySize = count; //only for TailReader; must not be lower than count, otherwise there will always status=fail and count=0
+        nuint maxCount    = 100;
+        nuint blockSize   = 1;        //10 for BlockReader (see switch/case below)
+        nuint historySize = maxCount; //only for TailReader; must not be lower than count, otherwise there will always status=fail and count=0
 
-        TValueType[] samples = new TValueType[count];
-        DateTime[] timeStamps = new DateTime[count];
+        TValueType[]?   samples         = (desiredReader != eDesiredReader.Multi) ? new TValueType[maxCount] : null;
+        DateTime[]?     timeStamps      = (desiredReader != eDesiredReader.Multi) ? new DateTime[maxCount]   : null;
+        TValueType[][]? samplesMulti    = (desiredReader == eDesiredReader.Multi) ? new TValueType[2][] { new TValueType[maxCount], new TValueType[maxCount] } : null;
+        DateTime[][]?   timeStampsMulti = (desiredReader == eDesiredReader.Multi) ? new DateTime[2][]   { new DateTime[maxCount],   new DateTime[maxCount] }   : null;
 
         TValueType defaultValue = (TValueType)Convert.ChangeType(99999, typeof(TValueType));
-        Array.Fill(samples, defaultValue);
+        if (samples != null)
+        {
+            FillArray(samples, defaultValue);
+            FillArray(timeStamps!, DateTime.MinValue);
+        }
+        else if (samplesMulti != null)
+        {
+            FillArray(samplesMulti, defaultValue);
+            FillArray(timeStampsMulti!, DateTime.MinValue);
+        }
 
         SampleReader? sampleReader = null;
 
@@ -481,35 +1073,35 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         {
             case eDesiredReader.Block:
                 blockSize = 10;
-                Console.WriteLine($"  buffer size = {count}");
-                Console.WriteLine($"  block size  = {blockSize}");
-                sampleReader = OpenDAQFactory.CreateBlockReader<TValueType, Int64>(signal, blockSize); //not working when data not available (native exception)
+                Console.WriteLine($"  buffer size = {maxCount}");
+                Console.WriteLine($"  block  size = {blockSize}");
+                sampleReader = OpenDAQFactory.CreateBlockReader<TValueType, Int64>(signal0, blockSize); //not working when data not available (native exception)
                 break;
 
-            //case eDesiredReader.Multi:
-            //    sampleReader = OpenDAQFactory.CreateMultiReader<TValueType, Int64>(signals);
-            //    break;
+            case eDesiredReader.Multi:
+                sampleReader = OpenDAQFactory.CreateMultiReader<TValueType, Int64>(signalsMulti);
+                break;
 
             case eDesiredReader.Stream:
-                Console.WriteLine($"  buffer size = {count}");
-                sampleReader = OpenDAQFactory.CreateStreamReader<TValueType, Int64>(signal);
+                Console.WriteLine($"  buffer size = {maxCount}");
+                sampleReader = OpenDAQFactory.CreateStreamReader<TValueType, Int64>(signal0);
                 break;
 
             case eDesiredReader.Tail:
-                Console.WriteLine($"  buffer size  = {count}");
+                Console.WriteLine($"  buffer  size = {maxCount}");
                 Console.WriteLine($"  history size = {historySize}");
-                sampleReader = OpenDAQFactory.CreateTailReader<TValueType, Int64>(signal, historySize); //not working when historySize < count (always reading count=0)
+                sampleReader = OpenDAQFactory.CreateTailReader<TValueType, Int64>(signal0, historySize); //not working when historySize < count (always reading count=0)
                 break;
 
             default:
                 Assert.Fail($"Desired reader not (yet) supported: {nameof(eDesiredReader)}.{desiredReader}");
                 break;
-        } //switch
+        }
 
         Assert.That(sampleReader, Is.Not.Null, "*** No SampleReader instance available.");
 
         Console.WriteLine("OpenDAQFactory.CreateTimeReader()");
-        TimeReader timeReader = OpenDAQFactory.CreateTimeReader(sampleReader, signal);
+        TimeReader timeReader = OpenDAQFactory.CreateTimeReader(sampleReader, signal0);
         int readFailures = 0;
 
         Console.WriteLine($"  ValueReadType = {sampleReader.ValueReadType}, DomainReadType = {sampleReader.DomainReadType}");
@@ -518,39 +1110,46 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine("looping timeReader.ReadWithDomain()");
         const int sleepTime = 25;
-        for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
+        for (int loopNo = 0; loopNo < 10; ++loopNo)
         {
-            //read up to 'count' samples or blocks, storing the amount read into array 'samples' and 'timeStamps'
-            count = (nuint)samples.Length / blockSize; //reset to array size or block count
+            //read up to 'count' samples or blocks, storing the amount read into arrays 'samples' and 'timeStamps'
+            nuint count = maxCount / blockSize; //reset to array size or block count
 
             //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
 
-            //wait until there are enough samples available for our buffers (up to one second)
-            int loopCount = 1000 / sleepTime;
-            do
-            {
-                Thread.Sleep(sleepTime);
-            }
-            while ((sampleReader.Empty) && (--loopCount > 0));
+            //just wait a bit
+            Thread.Sleep(sleepTime);
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
 
-            Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
-
-            Assert.That(!sampleReader.Empty, "*** No data available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
-
-            using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
+            using var status = (samples != null)
+                               ? timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000)
+                               : timeReader.ReadWithDomain(samplesMulti, timeStampsMulti, ref count, 1000);
 
             nuint samplesCount = count * blockSize; //recalculate for BlockReader (otherwise x1)
             readSamplesCount += samplesCount;
 
             if (status?.ReadStatus == ReadStatus.Ok)
             {
-                string valueString = (samplesCount == 0)
-                                     ? string.Empty
-                                     : $"(0: {samples[0]:+0.000;-0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000;�0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fff})";
+                string valueString  = string.Empty;
+                string valueString2 = string.Empty;
+
+                if (samplesCount > 0)
+                {
+                    if ((samples != null) && (timeStamps != null))
+                    {
+                        valueString = $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {samplesCount - 1}: {samples[samplesCount - 1]:+0.000;-0.000; 0.000} @ {timeStamps[0]:yyyy-MM-dd HH:mm:ss.fffffff} ... {timeStamps[samplesCount - 1]:HH:mm:ss.fffffff})";
+                    }
+                    else if ((samplesMulti != null) && (timeStampsMulti != null))
+                    {
+                        valueString  = $"(0: {samplesMulti[0][0]:+0.000;-0.000; 0.000} ... {samplesCount - 1}: {samplesMulti[0][samplesCount - 1]:+0.000;-0.000; 0.000} @ {timeStampsMulti[0][0]:yyyy-MM-dd HH:mm:ss.fffffff} ... {timeStampsMulti[0][samplesCount - 1]:HH:mm:ss.fffffff})";
+                        valueString2 = $"(0: {samplesMulti[1][0]:+0.000;-0.000; 0.000} ... {samplesCount - 1}: {samplesMulti[1][samplesCount - 1]:+0.000;-0.000; 0.000} @ {timeStampsMulti[1][0]:yyyy-MM-dd HH:mm:ss.fffffff} ... {timeStampsMulti[1][samplesCount - 1]:HH:mm:ss.fffffff})";
+                    }
+                }
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
+                if (!string.IsNullOrEmpty(valueString2))
+                    Console.WriteLine($"                            {valueString2}");
             }
             else if (status?.ReadStatus == ReadStatus.Event)
             {
@@ -570,7 +1169,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             sampleReader = null;
         }
 
-        Assert.That(readFailures, Is.EqualTo(0), "*** There have been read failures.");
-        Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(readFailures, Is.EqualTo(0), "*** There have been read failures.");
+            Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
+        });
     }
 }

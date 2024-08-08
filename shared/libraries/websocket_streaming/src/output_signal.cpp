@@ -110,7 +110,8 @@ bool OutputSignalBase::isSubscribed()
 
 void OutputSignalBase::submitSignalChanges()
 {
-    stream->writeSignalMetaInformation();
+    if (stream)
+        stream->writeSignalMetaInformation();
 }
 
 void OutputSignalBase::writeDescriptorChangedEvent(const DataDescriptorPtr& descriptor)
@@ -138,7 +139,7 @@ bool OutputSignalBase::isTimeConfigChanged(const DataDescriptorPtr& domainDescri
 
 OutputValueSignalBase::OutputValueSignalBase(daq::streaming_protocol::BaseValueSignalPtr valueStream,
                                              const SignalPtr& signal,
-                                             OutputDomainSignaBaselPtr outputDomainSignal,
+                                             OutputDomainSignalBasePtr outputDomainSignal,
                                              daq::streaming_protocol::LogCallback logCb)
     : OutputSignalBase(signal, outputDomainSignal->getDaqSignal().getDescriptor(), valueStream, logCb)
     , outputDomainSignal(outputDomainSignal)
@@ -383,11 +384,11 @@ LinearTimeSignalPtr OutputLinearDomainSignal::createSignalStream(
     daq::SampleType daqSampleType = descriptor.getSampleType();
     if (daqSampleType != daq::SampleType::Int64 &&
         daqSampleType != daq::SampleType::UInt64)
-        throw InvalidParameterException("Unsupported domain signal sample type");
+        throw InvalidParameterException("Unsupported domain signal sample type - only 64bit integer types are supported");
 
     auto dataRule = descriptor.getRule();
     if (dataRule.getType() != DataRuleType::Linear)
-        throw InvalidParameterException("Invalid domain signal data rule {}.", (size_t)dataRule.getType());
+        throw InvalidParameterException("Invalid domain signal data rule - linear rule only is supported");
 
     auto unit = descriptor.getUnit();
     if (!unit.assigned() ||
@@ -468,7 +469,7 @@ BaseSynchronousSignalPtr OutputSyncValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type");
+            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, syncStream, getSignalProps(signal));
@@ -477,7 +478,7 @@ BaseSynchronousSignalPtr OutputSyncValueSignal::createSignalStream(
 }
 
 OutputSyncValueSignal::OutputSyncValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
-                                             const SignalPtr& signal, OutputDomainSignaBaselPtr outputDomainSignal,
+                                             const SignalPtr& signal, OutputDomainSignalBasePtr outputDomainSignal,
                                              const std::string& tableId,
                                              daq::streaming_protocol::LogCallback logCb)
     : OutputValueSignalBase(createSignalStream(writer, signal, tableId, logCb), signal, outputDomainSignal, logCb)
@@ -573,7 +574,7 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type");
+            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, constStream, getSignalProps(signal));
@@ -582,7 +583,7 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
 }
 
 OutputConstValueSignal::OutputConstValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
-                                               const SignalPtr& signal, OutputDomainSignaBaselPtr outputDomainSignal,
+                                               const SignalPtr& signal, OutputDomainSignalBasePtr outputDomainSignal,
                                                const std::string& tableId,
                                                daq::streaming_protocol::LogCallback logCb)
     : OutputValueSignalBase(createSignalStream(writer, signal, tableId, logCb), signal, outputDomainSignal, logCb)
@@ -724,6 +725,31 @@ void OutputConstValueSignal::setSubscribed(bool subscribed)
             outputDomainSignal->unsubscribeByDataSignal();
         }
     }
+}
+
+OutputNullSignal::OutputNullSignal(const SignalPtr& signal, daq::streaming_protocol::LogCallback logCb)
+    : OutputSignalBase(signal, nullptr, nullptr, logCb)
+{
+}
+
+void OutputNullSignal::writeDaqPacket(const PacketPtr& packet)
+{
+}
+
+void OutputNullSignal::setSubscribed(bool subscribed)
+{
+    std::scoped_lock lock(subscribedSync);
+
+    this->subscribed = subscribed;
+}
+
+bool OutputNullSignal::isDataSignal()
+{
+    return daqSignal.getDomainSignal().assigned();
+}
+
+void OutputNullSignal::toStreamedSignal(const SignalPtr& signal, const SignalProps& sigProps)
+{
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

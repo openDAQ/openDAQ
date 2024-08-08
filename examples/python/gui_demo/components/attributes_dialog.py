@@ -44,18 +44,22 @@ class AttributesDialog(Dialog):
         tree.bind("<Button-3>", self.handle_right_click)
 
         self.additional_tree = None
-
+        self.notebook = None
         if daq.ISignal.can_cast_from(node) or daq.IDevice.can_cast_from(node):
-
+            additional_tree_frame = tk.Frame(self)
             if daq.ISignal.can_cast_from(node):
-                tk.Label(self, text='Signal Desciptor').pack(
-                    anchor=tk.W, pady=5)
+                self.notebook = ttk.Notebook(self)
+                self.notebook.pack(fill="both", anchor=tk.W)
+                signal_desc_frame = tk.Frame(self.notebook)
+                signal_domain_desc_frame = tk.Frame(self.notebook)
+                self.notebook.add(signal_desc_frame, text='Signal Descriptor')
+                if node.domain_signal is not None:
+                    self.notebook.add(signal_domain_desc_frame, text='Signal Domain Descriptor')
+                self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
             elif daq.IDevice.can_cast_from(node):
                 tk.Label(self, text='Device Info').pack(
                     anchor=tk.W, pady=5)
-
             # additional treeview for specific attributes
-            additional_tree_frame = tk.Frame(self)
 
             additional_tree = ttk.Treeview(additional_tree_frame, columns=(
                 'value'), show='tree headings')
@@ -80,6 +84,14 @@ class AttributesDialog(Dialog):
         self.tree = tree
         self.initial_update_func = lambda: self.tree_update()
 
+    def get_selected_tab(self):
+        if self.notebook:
+            return self.notebook.index(self.notebook.select())
+        return None
+
+    def on_tab_change(self, event):
+        self.additional_tree_update()
+
     def handle_copy(self):
         sel = treeview_get_first_selection(self.tree)
         if sel not in self.attributes:
@@ -97,7 +109,6 @@ class AttributesDialog(Dialog):
         value_to_copy = item['values'][0] if item['values'] else ''
         self.clipboard_clear()
         self.clipboard_append(value_to_copy)
-
 
     def handle_right_click(self, event):
         menu = tk.Menu(self, tearoff=0)
@@ -233,7 +244,10 @@ class AttributesDialog(Dialog):
 
     def additional_tree_update_signal(self):
         signal = daq.ISignal.cast_from(self.node)
-        desc = signal.descriptor
+        if self.get_selected_tab() == 0:
+            desc = signal.descriptor
+        else:
+            desc = signal.domain_signal.descriptor
 
         if not desc:
             return
@@ -262,7 +276,10 @@ class AttributesDialog(Dialog):
                 descriptor['rule']['type']['name'] = desc.rule.type.name
                 descriptor['rule']['type']['value'] = desc.rule.type.value
             descriptor['rule']['core_type'] = desc.rule.core_type
-            descriptor['rule']['parameters'] = desc.rule.parameters
+            if desc.rule.parameters:
+                descriptor['rule']['parameters'] = {name: value for name, value in desc.rule.parameters.items()}
+            else:
+                descriptor['rule']['parameters'] = {}
 
         descriptor['origin'] = desc.origin
 
@@ -308,7 +325,7 @@ class AttributesDialog(Dialog):
                     value) is not daq.IDict else ''
                 iid = parent_node_name + '.' + name
                 self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=name, values=(display_value))
+                    parent_node_name, tk.END, iid=iid, text=name, values=(display_value,))
                 if type(value) is dict or type(value) is daq.IDict:
                     self.fill_additional_tree(iid, value)
         elif type(attributes) is daq.IDeviceInfo:
@@ -316,4 +333,4 @@ class AttributesDialog(Dialog):
                 iid = parent_node_name + '.' + property.name
                 value = attributes.get_property_value(property.name)
                 self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=property.name, values=(value))
+                    parent_node_name, tk.END, iid=iid, text=property.name, values=(value,))

@@ -717,7 +717,16 @@ configure_package_config_file(
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
+write_basic_package_version_file(${SDK_NAME}ConfigVersion.cmake
+  VERSION ${OPENDAQ_PACKAGE_VERSION}
+  COMPATIBILITY ExactVersion )
+  
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
+        DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
+        COMPONENT ${SDK_NAME}_Development
+)
+  
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )

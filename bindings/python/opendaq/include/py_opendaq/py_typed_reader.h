@@ -17,13 +17,13 @@
 #pragma once
 
 #include <cstddef>
+#include <tuple>
 #include <type_traits>
 
 #include "coretypes/exceptions.h"
 #include "opendaq/block_reader_ptr.h"
 #include "opendaq/multi_reader_ptr.h"
 #include "opendaq/reader_config_ptr.h"
-#include "opendaq/reader_status_ptr.h"
 #include "opendaq/time_reader.h"
 #include "py_core_types/py_converter.h"
 
@@ -47,6 +47,20 @@ using SampleTypeVariant = std::variant<py::array_t<daq::SampleTypeToType<daq::Sa
 
 using DomainTypeVariant = SampleTypeVariant;
 
+template <typename ReaderType>
+using ReaderStatusType = typename daq::ReaderStatusType<ReaderType>::IType*;
+
+template <typename ReaderType>
+using SampleTypeReaderStatusVariant = std::variant<SampleTypeVariant, std::tuple<SampleTypeVariant, ReaderStatusType<ReaderType>>>;
+
+template <typename ReaderType>
+using SampleTypeDomainTypeReaderStatusVariant =
+    std::variant<std::tuple<SampleTypeVariant, DomainTypeVariant>,
+                 std::tuple<SampleTypeVariant, DomainTypeVariant, ReaderStatusType<ReaderType>>>;
+
+template <typename ReaderType>
+using SizeReaderStatusVariant = std::variant<daq::SizeT, std::tuple<daq::SizeT, ReaderStatusType<ReaderType>>>;
+
 struct PyTypedReader
 {
     template <typename ReaderType>
@@ -67,38 +81,35 @@ struct PyTypedReader
     }
 
     template <typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readValues(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline SampleTypeReaderStatusVariant<ReaderType> readValues(const ReaderType& reader,
+                                                                       size_t count,
+                                                                       size_t timeoutMs,
+                                                                       bool returnStatus)
     {
-        if (count == 0)
-        {
-            auto status = readZeroValues(reader, timeoutMs);
-            return {SampleTypeVariant{}, status.detach()};
-        }
-
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
         switch (valueType)
         {
             case daq::SampleType::Float32:
-                return read<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Float64:
-                return read<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt32:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int32:
-                return read<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt64:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int64:
-                return read<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt8:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int8:
-                return read<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt16:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int16:
-                return read<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs);
+                return read<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::RangeInt64:
             case daq::SampleType::ComplexFloat64:
             case daq::SampleType::ComplexFloat32:
@@ -111,41 +122,35 @@ struct PyTypedReader
     }
 
     template <typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readValuesWithDomain(const ReaderType& reader,
-                                                                                                             size_t count,
-                                                                                                             size_t timeoutMs)
+    static inline SampleTypeDomainTypeReaderStatusVariant<ReaderType> readValuesWithDomain(const ReaderType& reader,
+                                                                                           size_t count,
+                                                                                           size_t timeoutMs,
+                                                                                           bool returnStatus)
     {
-        if (count == 0)
-        {
-            auto status = readZeroValues(reader, timeoutMs);
-            return {SampleTypeVariant{}, DomainTypeVariant{}, status.detach()};
-        }
-
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
-
         switch (valueType)
         {
             case daq::SampleType::Float32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Float64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::UInt16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::Int16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
             case daq::SampleType::RangeInt64:
             case daq::SampleType::ComplexFloat64:
             case daq::SampleType::ComplexFloat32:
@@ -165,13 +170,14 @@ struct PyTypedReader
 
 private:
     template <typename ValueType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> readWithDomain(const ReaderType& reader,
-                                                                                                       size_t count,
-                                                                                                       size_t timeoutMs)
+    static inline SampleTypeDomainTypeReaderStatusVariant<ReaderType> readWithDomain(const ReaderType& reader,
+                                                                                     size_t count,
+                                                                                     size_t timeoutMs,
+                                                                                     bool returnStatus)
     {
         if constexpr (std::is_base_of<daq::TimeReaderBase, ReaderType>::value)
         {
-            return read<ValueType, std::chrono::system_clock::time_point>(reader, count, timeoutMs);
+            return read<ValueType, std::chrono::system_clock::time_point>(reader, count, timeoutMs, returnStatus);
         }
         else
         {
@@ -180,25 +186,25 @@ private:
             switch (domainType)
             {
                 case daq::SampleType::Float32:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::Float64:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::UInt32:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::Int32:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::UInt64:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::Int64:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::UInt8:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::Int8:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::UInt16:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::Int16:
-                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs);
+                    return read<ValueType, daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
                 case daq::SampleType::RangeInt64:
                 case daq::SampleType::ComplexFloat64:
                 case daq::SampleType::ComplexFloat32:
@@ -212,10 +218,18 @@ private:
     }
 
     template <typename ValueType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> read(const ReaderType& reader,
-                                                                          size_t count,
-                                                                          [[maybe_unused]] size_t timeoutMs)
+    static inline SampleTypeReaderStatusVariant<ReaderType> read(const ReaderType& reader,
+                                                                 size_t count,
+                                                                 [[maybe_unused]] size_t timeoutMs,
+                                                                 bool returnStatus)
     {
+        if (count == 0)
+        {
+            auto status = readZeroValues(reader, timeoutMs);
+            return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>{std::make_tuple(SampleTypeVariant{}, status.detach())}
+                                : SampleTypeReaderStatusVariant<ReaderType>{};
+        }
+
         size_t blockSize = 1, initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
 
@@ -272,18 +286,30 @@ private:
         if (blockSize > 1 && isMultiReader)
             strides = {sizeof(ValueType) * initialCount, sizeof(ValueType)};
 
-        return {toPyArray(std::move(values), shape, strides), status.detach()};
+        return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>{std::make_tuple(toPyArray(std::move(values), shape, strides),
+                                                                                        status.detach())}
+                            : SampleTypeReaderStatusVariant<ReaderType>{toPyArray(std::move(values), shape, strides)};
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant, typename daq::ReaderStatusType<ReaderType>::IType*> read(const ReaderType& reader,
-                                                                                             size_t count,
-                                                                                             [[maybe_unused]] size_t timeoutMs)
+    static inline SampleTypeDomainTypeReaderStatusVariant<ReaderType> read(const ReaderType& reader,
+                                                                           size_t count,
+                                                                           [[maybe_unused]] size_t timeoutMs,
+                                                                           bool returnStatus)
     {
         static_assert(sizeof(std::chrono::system_clock::time_point::rep) == sizeof(int64_t));
         using DomainVectorType = typename std::conditional<std::is_same<DomainType, std::chrono::system_clock::time_point>::value,
                                                            std::vector<int64_t>,
                                                            std::vector<DomainType>>::type;
+
+        if (count == 0)
+        {
+            auto status = readZeroValues(reader, timeoutMs);
+            return returnStatus
+                       ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(
+                             SampleTypeVariant{}, DomainTypeVariant{}, status.detach())}
+                       : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(SampleTypeVariant{}, DomainTypeVariant{})};
+        }
 
         size_t blockSize = 1, initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
@@ -365,7 +391,10 @@ private:
         if (!domainDtype.empty())
             domainArray.attr("dtype") = domainDtype;
 
-        return {std::move(valuesArray), std::move(domainArray), status.detach()};
+        return returnStatus
+                   ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(
+                         std::move(valuesArray), std::move(domainArray), status.detach())}
+                   : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(std::move(valuesArray), std::move(domainArray))};
     }
 
     static inline void checkSampleType(daq::SampleType type)

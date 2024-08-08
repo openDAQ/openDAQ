@@ -777,7 +777,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
                 const std::string fbId = item.getLocalId();
                 if (fbId.rfind(static_cast<std::string>(typeId), 0) == 0)
                 {
-                    const auto lastDelim = fbId.find_last_of('_');
+                    const auto lastDelim = fbId.find_last_not_of("0123456789");
                     if (lastDelim == std::string::npos)
                         continue;
 

@@ -671,7 +671,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
     
     if (coreType == ctDict)
     {
-        const auto dict = value.asPtrOrNull<IDict>();
+        const auto dict = value.asPtr<IDict>();
         const auto keyType = prop.getKeyType();
         const auto itemType = prop.getItemType();
         IterablePtr<IBaseObject> it;
@@ -1369,7 +1369,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             throw InvalidPropertyException(R"(Selection property "{}" has no selection values assigned)", propName);
 
         auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
-        if (!valuesList.assigned())
+        if (valuesList.assigned())
+        {
+            valuePtr = valuesList.getItemAt(valuePtr);
+        }
+        else
         {
             auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
             if (!valuesDict.assigned())
@@ -1378,10 +1382,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             }
 
             valuePtr = valuesDict.get(valuePtr);
-        }
-        else
-        {
-            valuePtr = valuesList.getItemAt(valuePtr);
         }
 
         if (prop.getItemType() != valuePtr.getCoreType())
@@ -2176,7 +2176,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreE
     {
         if (item.second.assigned())
         {
-            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
+            const auto propInternal = item.second.template asPtr<IPropertyInternal>();
             if (propInternal.getValueTypeUnresolved() == ctObject)
             {
                 const auto defaultVal = item.second.getDefaultValue();
@@ -2318,7 +2318,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
     const int numOfSerializablePropertyValues = std::count_if(
         propValues.begin(),
         propValues.end(),
-        [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) { return keyValue.second.asPtrOrNull<ISerializable>(true).assigned(); });
+        [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) { return keyValue.second.supportsInterface<ISerializable>(); });
 
     if (numOfSerializablePropertyValues == 0)
         return OPENDAQ_SUCCESS;

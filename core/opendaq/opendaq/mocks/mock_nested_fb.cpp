@@ -19,7 +19,7 @@ MockNestedFunctionBlockImpl::MockNestedFunctionBlockImpl(
 void MockNestedFunctionBlockImpl::createFunctionBlocks()
 {
     auto childFB = daq::createWithImplementation<daq::IFunctionBlock, FunctionBlockImpl<>>(
-        FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, "Nested function block");
+        FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, "NestedFB");
     this->addNestedFunctionBlock(childFB);
 }
 

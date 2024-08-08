@@ -28,7 +28,7 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     rootDevice = Client(this->context, instanceId);
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
@@ -58,7 +58,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     else
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
 InstanceImpl::~InstanceImpl()
@@ -374,7 +374,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 
-    this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    this->rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
 }
 

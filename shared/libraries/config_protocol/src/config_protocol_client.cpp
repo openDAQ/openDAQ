@@ -259,7 +259,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
 
     if (typeId == "ComponentHolder")
     {
-        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>(true);
+        const auto remoteContext = context.asPtr<IConfigProtocolDeserializeContext>(true);
         if(serObj.hasKey("parentGlobalId") && context.assigned())
             remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }

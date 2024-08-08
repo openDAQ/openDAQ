@@ -58,7 +58,7 @@ public:
         folder.serverFolder = testFolder;
         folder.serverObject = std::make_shared<TmsServerFolder>(folder.serverFolder, this->getServer(), ctx, serverContext);
         auto nodeId = folder.serverObject->registerOpcUaNode();
-        if (testFolder.asPtrOrNull<IIoFolderConfig>().assigned())
+        if (testFolder.supportsInterface<IIoFolderConfig>())
             folder.clientFolder = TmsClientIoFolder(NullContext(), nullptr, "test", clientContext, nodeId);
         else
             folder.clientFolder = TmsClientFolder(NullContext(), nullptr, "test", clientContext, nodeId);

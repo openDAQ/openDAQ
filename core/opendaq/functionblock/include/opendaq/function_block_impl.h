@@ -158,7 +158,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignals(IList** signals
         return this->signals->getItems(signals);
 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -216,7 +216,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
         return this->inputPorts->getItems(ports);
 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -376,7 +376,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
         return this->functionBlocks->getItems(functionBlocks);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {

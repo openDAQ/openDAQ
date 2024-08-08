@@ -113,7 +113,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToArrayVariant(const ListPtr<IBaseOb
     if (targetType == &UA_TYPES[UA_TYPES_VARIANT])
         return ListConversionUtils::ToVariantTypeArrayVariant(list, context);
 
-    const auto elementType = list.asPtrOrNull<IListElementType>();
+    const auto elementType = list.asPtr<IListElementType>();
     IntfID elementId;
     elementType->getElementInterfaceId(&elementId);
 
@@ -138,7 +138,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
 
     const auto ids = object.asPtr<IInspectable>().getInterfaceIds();
     auto wrapConvertedValue = targetType == &UA_TYPES[UA_TYPES_EXTENSIONOBJECT] || targetType == &UA_TYPES[UA_TYPES_VARIANT];
-    wrapConvertedValue = wrapConvertedValue && !object.asPtrOrNull<IList>().assigned();
+    wrapConvertedValue = wrapConvertedValue && !object.supportsInterface<IList>();
 
     if (wrapConvertedValue)
     {

@@ -41,16 +41,22 @@ Bool NativeStreamingSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket
 void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal)
 {
     if (domainSignal.assigned())
-        if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
+    {
+        if (auto mirrorDomainSignal = domainSignal.asPtrOrNull<IMirroredSignalConfig>(); mirrorDomainSignal.assigned())
+        {
+            setMirroredDomainSignal(mirrorDomainSignal);  
+        }
+        else
         {
             throw NoInterfaceException(
                 fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
                             domainSignal.getGlobalId()));
         }
-    if (domainSignal.assigned())
-        setMirroredDomainSignal(domainSignal.asPtr<IMirroredSignalConfig>());
+    }
     else
+    {
         setMirroredDomainSignal(nullptr);
+    }
 }
 
 ErrCode NativeStreamingSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)

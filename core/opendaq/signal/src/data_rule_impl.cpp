@@ -162,7 +162,7 @@ ErrCode DataRuleImpl::verifyParametersInternal()
                                  R"(Linear rule has invalid parameters. Required parameters are "delta" and "start")");
         }
 
-        if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned())
+        if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>())
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
         }

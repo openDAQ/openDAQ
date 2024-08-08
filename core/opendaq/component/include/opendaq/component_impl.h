@@ -868,7 +868,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
         if (searchFilter.acceptsComponent(item))
             allItems.insert(item);
 
-    if (searchFilter.asPtrOrNull<IRecursiveSearch>().assigned())
+    if (searchFilter.supportsInterface<IRecursiveSearch>())
     {
         for (const auto& item : items)
         {

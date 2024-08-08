@@ -36,7 +36,7 @@ ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, Scal
 {
     checkErrorInfo(verifyParametersInternal());
 
-    if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
+    if (params.assigned() && params.supportsInterface<IFreezable>())
         params.freeze();
 }
 
@@ -57,7 +57,7 @@ ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
 
     checkErrorInfo(verifyParametersInternal());
 
-    if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
+    if (params.assigned() && params.supportsInterface<IFreezable>())
         params.freeze();
 }
 
@@ -199,7 +199,7 @@ ErrCode ScalingImpl::verifyParametersInternal() const
                                  R"(Linear scaling has invalid parameters. Required parameters are "scale" and "offset".)");
         }
 
-        if (!params.get("scale").asPtrOrNull<INumber>().assigned() || !params.get("offset").asPtrOrNull<INumber>().assigned())
+        if (!params.get("scale").supportsInterface<INumber>() || !params.get("offset").supportsInterface<INumber>())
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
 

@@ -850,7 +850,7 @@ public:
         if (selectionValues.assigned())
         {
             bool valid = valueType == ctInt;
-            valid = valid && (selectionValues.asPtrOrNull<IList>().assigned() || selectionValues.asPtrOrNull<IDict>().assigned());
+            valid = valid && (selectionValues.supportsInterface<IList>() || selectionValues.supportsInterface<IDict>());
             if (!valid)
                 return this->makeErrorInfo(
                     OPENDAQ_ERR_INVALIDSTATE,

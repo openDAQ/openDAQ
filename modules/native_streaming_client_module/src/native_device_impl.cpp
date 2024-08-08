@@ -401,7 +401,7 @@ void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
         {
             const auto propValue = deviceInfo.getPropertyValue(propName);
             if (propValue.assigned())
-                newDeviceInfo.asPtrOrNull<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
+                newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
         }
     }
 

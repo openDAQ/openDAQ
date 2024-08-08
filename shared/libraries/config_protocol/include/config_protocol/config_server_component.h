@@ -93,7 +93,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
     if (propValueCoreType == CoreType::ctFunc)
     {
         BaseObjectPtr result;
-        checkErrorInfo(propValue.asPtrOrNull<IFunction>()->call(callParams, &result));
+        checkErrorInfo(propValue.asPtr<IFunction>()->call(callParams, &result));
         return result;
     }
 

@@ -28,7 +28,7 @@ public:
     void SetUp() override
     {
         serverDevice = test_utils::createServerDevice();
-        serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+        serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
 
         clientContext = NullContext();

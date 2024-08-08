@@ -299,7 +299,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals, IS
         return this->signals->getItems(signals);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -562,7 +562,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** func
         return this->functionBlocks->getItems(functionBlocks);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -612,7 +612,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels, 
     }
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -837,7 +837,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices,
         return devices->getItems(subDevices);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {

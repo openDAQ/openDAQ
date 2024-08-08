@@ -505,13 +505,13 @@ nlohmann::json SignalDescriptorConverter::DictToJson(const DictPtr<IString, IBas
 
     for (const auto& [key, value] : dict)
     {
-        if (value.asPtrOrNull<IList>().assigned())
+        if (value.supportsInterface<IList>())
             json[key.getCharPtr()] = value.asPtr<IList>().toVector();
-        else if (value.asPtrOrNull<IDict>().assigned())
+        else if (value.supportsInterface<IDict>())
             json[key.getCharPtr()] = DictToJson(value);
-        else if (value.asPtrOrNull<IFloat>().assigned())
+        else if (value.supportsInterface<IFloat>())
             json[key.getCharPtr()] = (Float) value;
-        else if (value.asPtrOrNull<IInteger>().assigned())
+        else if (value.supportsInterface<IInteger>())
             json[key.getCharPtr()] = (Int) value;
         else
             json[key.getCharPtr()] = value;

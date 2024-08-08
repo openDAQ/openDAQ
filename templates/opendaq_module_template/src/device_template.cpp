@@ -27,7 +27,12 @@ DeviceDomainPtr DeviceTemplate::getDeviceDomain()
     return nullptr;
 }
 
-Int DeviceTemplate::getTicksSinceOrigin()
+uint64_t DeviceTemplate::getTicksSinceOrigin()
+{
+    return 0;
+}
+
+uint64_t DeviceTemplate::onGetTicksSinceOrigin()
 {
     return 0;
 }

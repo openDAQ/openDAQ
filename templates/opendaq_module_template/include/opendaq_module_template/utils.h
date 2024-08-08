@@ -71,7 +71,7 @@ struct ModuleTemplateParams
     std::string logName;
 };
 
-struct GetDeviceParams
+struct CreateDeviceParams
 {
     std::string typeId;
     std::string address;
@@ -102,19 +102,25 @@ public:
 class ModuleTemplateParamsValidation
 {
 public:
-    ModuleTemplateParamsValidation(const ModuleTemplateParams& config)
+    virtual ~ModuleTemplateParamsValidation() = default;
+
+    ModuleTemplateParamsValidation(const ModuleTemplateParams& params)
     {
-        if (!config.version.assigned())
+        if (!params.version.assigned())
             throw InvalidParameterException("Module version is not set");
-        if (!config.context.assigned())
+        if (!params.context.assigned())
             throw InvalidParameterException("Context is not set");
-        if (config.name.empty())
+        if (params.name.empty())
             throw InvalidParameterException("Module is not set");
-        if (config.logName.empty())
+        if (params.logName.empty())
             throw InvalidParameterException("Log name is not set");
-        if (config.id.empty())
+        if (params.id.empty())
             throw InvalidParameterException("Module ID is not set");
+
+        this->params = params; 
     }
+
+    ModuleTemplateParams params;
 };
 
 class FunctionBlockTemplateParamsValidation

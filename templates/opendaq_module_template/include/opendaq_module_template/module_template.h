@@ -33,32 +33,59 @@ struct DeviceInfoFields
     std::map<std::string, std::string> other;
 };
 
-class ModuleTemplate : public ModuleTemplateParamsValidation, public Module
+class ModuleTemplateHooks;
+
+class ModuleTemplate
 {
 public:
-    ModuleTemplate(const ModuleTemplateParams& params)
-        : ModuleTemplateParamsValidation(params)
-        , Module(params.name, params.version, params.context, params.id)
+    ModuleTemplate(const ContextPtr& context)
+        : context(context)
     {
-        loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
     }
-
+    virtual ~ModuleTemplate() = default;
 
 protected:
+
     virtual std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options);
-    virtual std::vector<DeviceTypePtr> getDeviceTypes();
-    virtual DevicePtr getDevice(const GetDeviceParams& params);
+    virtual std::vector<DeviceTypePtr> getAvailableDeviceTypes();
+    virtual DevicePtr createDevice(const CreateDeviceParams& params);
     virtual void deviceRemoved(const std::string& deviceLocalId);
+    virtual ModuleTemplateParams buildModuleTemplateParams(const ContextPtr& context);
+
+    friend class ModuleTemplateHooks;
 
     std::mutex sync;
+    ContextPtr context;
     LoggerComponentPtr loggerComponent;
+    std::weak_ptr<ModuleTemplateHooks> moduleImpl;
 
 private:
+
+    static DeviceInfoPtr createDeviceInfo(const DeviceInfoFields& fields, const DeviceTypePtr& type);
+};
+
+class ModuleTemplateHooks : public ModuleTemplateParamsValidation, public Module, std::enable_shared_from_this<ModuleTemplateHooks>
+{
+public:
+
+    ModuleTemplateHooks(std::unique_ptr<ModuleTemplate> module_, const ContextPtr& context)
+        : ModuleTemplateParamsValidation(module_->buildModuleTemplateParams(context))
+        , Module(params.name, params.version, params.context, params.id)
+        , module_(std::move(module_))
+    {
+        this->module_->moduleImpl = weak_from_this();
+        this->module_->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+    }   
+
+private:
+
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
-    static DeviceInfoPtr createDeviceInfo(const DeviceInfoFields& fields, const DeviceTypePtr& type);
-
+    
+    friend class ModuleTemplate;
+    std::unique_ptr<ModuleTemplate> module_;
 };
+
 
 END_NAMESPACE_OPENDAQ

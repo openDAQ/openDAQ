@@ -5,25 +5,25 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ListPtr<IDeviceInfo> ModuleTemplate::onGetAvailableDevices()
+ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
     auto deviceInfo = List<IDeviceInfo>();
     const auto options = context.getModuleOptions(id);
 
-    const auto types = getDeviceTypes();
+    const auto types = module_->getAvailableDeviceTypes();
     for (const auto& type : types)
     {
         const auto id = type.getId();
-        for (const auto& fields: getDeviceInfoFields(id, options))
-            deviceInfo.pushBack(createDeviceInfo(fields, type));
+        for (const auto& fields: module_->getDeviceInfoFields(id, options))
+            deviceInfo.pushBack(module_->createDeviceInfo(fields, type));
     }
 
     return deviceInfo.detach();
 }
 
-DictPtr<IString, IDeviceType> ModuleTemplate::onGetAvailableDeviceTypes()
+DictPtr<IString, IDeviceType> ModuleTemplateHooks::onGetAvailableDeviceTypes()
 {
-    const ListPtr<IDeviceType> deviceTypes = getDeviceTypes();
+    const ListPtr<IDeviceType> deviceTypes = module_->getAvailableDeviceTypes();
 
     DictPtr<IString, IDeviceType> typesDict = Dict<IString, IDeviceType>();
     for (const auto& deviceType : deviceTypes)
@@ -32,12 +32,12 @@ DictPtr<IString, IDeviceType> ModuleTemplate::onGetAvailableDeviceTypes()
     return typesDict.detach();
 }
 
-DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
+DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned() || connectionString == "")
         throw InvalidParameterException("Connection string must not be empty");
 
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(module_->sync);
     std::string s = connectionString;
     const std::string delimiter = "://";
     const std::string prefix = s.substr(0, s.find(delimiter));
@@ -46,7 +46,7 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
     DeviceTypePtr type;
     DeviceInfoPtr info;
 
-    for (const auto& deviceType : getDeviceTypes())
+    for (const auto& deviceType : module_->getAvailableDeviceTypes())
     {
         if (deviceType.getConnectionStringPrefix() == prefix)
         {
@@ -58,11 +58,11 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
     if (!type.assigned())
         throw InvalidParameterException("Device with given connection string prefix was not found");
 
-    for (const auto& infoFields : getDeviceInfoFields(type.getId(), context.getModuleOptions(id)))
+    for (const auto& infoFields : module_->getDeviceInfoFields(type.getId(), context.getModuleOptions(id)))
     {
         if (infoFields.address == address)
         {
-            info = createDeviceInfo(infoFields, type);
+            info = module_->createDeviceInfo(infoFields, type);
             break;
         }
     }
@@ -72,7 +72,7 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
 
     const auto options = context.getModuleOptions(id);
 
-    GetDeviceParams params;
+    CreateDeviceParams params;
     params.typeId = type.getId().toStdString();
     params.address = address;
     params.info = info;
@@ -80,7 +80,7 @@ DevicePtr ModuleTemplate::onCreateDevice(const StringPtr& connectionString, cons
     params.config = config;
     params.options = options.assigned() ? options : Dict<IString, IBaseObject>();
 
-    return getDevice(params);
+    return module_->createDevice(params);
 }
 
 DeviceInfoPtr ModuleTemplate::createDeviceInfo(const DeviceInfoFields& fields, const DeviceTypePtr& type)
@@ -129,18 +129,23 @@ std::vector<DeviceInfoFields> ModuleTemplate::getDeviceInfoFields(const std::str
     return {};
 }
 
-std::vector<DeviceTypePtr> ModuleTemplate::getDeviceTypes()
+std::vector<DeviceTypePtr> ModuleTemplate::getAvailableDeviceTypes()
 {
     return {};
 }
 
-DevicePtr ModuleTemplate::getDevice(const GetDeviceParams& /*params*/)
+DevicePtr ModuleTemplate::createDevice(const CreateDeviceParams& /*params*/)
 {
     return nullptr;
 }
 
 void ModuleTemplate::deviceRemoved(const std::string& /*deviceLocalId*/)
 {
+}
+
+ModuleTemplateParams ModuleTemplate::buildModuleTemplateParams(const ContextPtr& /*context*/)
+{
+	return {};
 }
 
 END_NAMESPACE_OPENDAQ

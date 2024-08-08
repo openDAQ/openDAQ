@@ -20,6 +20,12 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+class RefDeviceModuleBase final : public ModuleTemplateHooks
+{
+public:
+    RefDeviceModuleBase(const ContextPtr& context);
+};
+
 class RefDeviceModule final : public ModuleTemplate
 {
 public:
@@ -27,12 +33,12 @@ public:
 
 protected:
     std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options) override;
-    std::vector<DeviceTypePtr> getDeviceTypes() override;
-    DevicePtr getDevice(const GetDeviceParams& params) override;
+    std::vector<DeviceTypePtr> getAvailableDeviceTypes() override;
+    DevicePtr createDevice(const CreateDeviceParams& params) override;
+    ModuleTemplateParams buildModuleTemplateParams(const ContextPtr& context) override;
 
 private:
     static size_t getIdFromAddress(const std::string& address);
-    static ModuleTemplateParams buildModuleTemplateParams(const ContextPtr& context);
 
     std::unordered_map<std::string, WeakRefPtr<IDevice>> devices;
     size_t maxNumberOfDevices;

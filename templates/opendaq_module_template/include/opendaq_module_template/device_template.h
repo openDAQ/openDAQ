@@ -34,7 +34,7 @@ protected:
     //virtual void configureSyncComponent(); // TODO: Add once sync component is implemented
 
     virtual DeviceDomainPtr getDeviceDomain();
-    virtual Int getTicksSinceOrigin();
+    virtual uint64_t getTicksSinceOrigin();
 
     LoggerComponentPtr loggerComponent;
 
@@ -44,6 +44,7 @@ private:
 
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
+    uint64_t onGetTicksSinceOrigin() override;
 
     DeviceInfoPtr info;
     bool allowAddDevices;

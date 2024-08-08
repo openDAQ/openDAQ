@@ -23,8 +23,13 @@ ModuleTemplateParams RefDeviceModule::buildModuleTemplateParams(const ContextPtr
     return params;
 }
 
+RefDeviceModuleBase::RefDeviceModuleBase(const ContextPtr& context)
+    : ModuleTemplateHooks(std::make_unique<RefDeviceModule>(context), context)
+{
+}
+
 RefDeviceModule::RefDeviceModule(const ContextPtr& context)
-    : ModuleTemplate(buildModuleTemplateParams(context))
+    : ModuleTemplate(context)
     , maxNumberOfDevices(DEFAULT_MAX_REFERENCE_DEVICE_COUNT)
 {
     const auto options = this->context.getModuleOptions(REF_MODULE_ID);
@@ -78,7 +83,7 @@ std::vector<DeviceInfoFields> RefDeviceModule::getDeviceInfoFields(const std::st
     return fields;
 }
 
-std::vector<DeviceTypePtr> RefDeviceModule::getDeviceTypes()
+std::vector<DeviceTypePtr> RefDeviceModule::getAvailableDeviceTypes()
 {
     return {DeviceTypeBuilder()
                 .setId(DEVICE_TYPE_ID)
@@ -88,11 +93,11 @@ std::vector<DeviceTypePtr> RefDeviceModule::getDeviceTypes()
                 .build()};
 }
 
-DevicePtr RefDeviceModule::getDevice(const GetDeviceParams& params)
+DevicePtr RefDeviceModule::createDevice(const CreateDeviceParams& params)
 {
     if (devices.count(params.address) && devices[params.address].assigned() && devices[params.address].getRef().assigned())
     {
-        LOG_W("Device with id \"{}\" already exist", id)
+        LOG_W("Device with address \"{}\" already exist", params.address)
         throw AlreadyExistsException();
     }
 

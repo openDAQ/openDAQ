@@ -199,6 +199,12 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
+    IUnit*, unit
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomain,
+    IRatio*, tickResolution,
+    IString*, origin,
     IUnit*, unit,
     IString*, referenceDomainId,
     INumber*, referenceDomainOffset,

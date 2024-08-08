@@ -145,9 +145,10 @@ private:
     DataDescriptorPtr mainDomainDescriptor;
 
     void isDomainValid(const ListPtr<IInputPortConfig>& list);
-    static void checkEarlyPreconditions(const ListPtr<IComponent>& list);
+    void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     struct DomainBin;
+    ContextPtr context;
 };
 
 END_NAMESPACE_OPENDAQ

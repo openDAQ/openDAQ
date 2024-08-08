@@ -37,8 +37,8 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     this->internalAddRef();
     try
     {
-        checkEarlyPreconditions(list);
-        loggerComponent = list[0].getContext().getLogger().getOrAddComponent("MultiReader");
+        checkEarlyPreconditionsAndCacheContext(list);
+        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
         auto ports = checkPreconditions(list, true, fromInputPorts);
 
@@ -78,7 +78,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     bool fromInputPorts;
 
     auto oldSignals = old->getSignals();
-    checkEarlyPreconditions(oldSignals);
+    checkEarlyPreconditionsAndCacheContext(oldSignals);
     checkPreconditions(oldSignals, false, fromInputPorts);
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
@@ -108,8 +108,8 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 
     auto ports = readerConfig.getInputPorts();
 
-    checkEarlyPreconditions(ports);
-    loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
+    checkEarlyPreconditionsAndCacheContext(ports);
+    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
     bool fromInputPorts;
     checkPreconditions(ports, false, fromInputPorts);
 
@@ -131,8 +131,8 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
 {
     auto sourceComponents = builder.getSourceComponents();
-    checkEarlyPreconditions(sourceComponents);
-    loggerComponent = sourceComponents[0].getContext().getLogger().getOrAddComponent("MultiReader");
+    checkEarlyPreconditionsAndCacheContext(sourceComponents);
+    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
     bool fromInputPorts;
     auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
 
@@ -361,12 +361,13 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     }
 }
 
-void MultiReaderImpl::checkEarlyPreconditions(const ListPtr<IComponent>& list)
+void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list)
 {
     if (!list.assigned())
         throw NotAssignedException("List of inputs is not assigned");
     if (list.getCount() == 0)
         throw InvalidParameterException("Need at least one signal.");
+    context = list[0].getContext();
 }
 
 ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
@@ -381,7 +382,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         {
             if (haveInputPorts)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
-            auto port = InputPort(signal.getContext(), nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
+            auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);

@@ -272,7 +272,8 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         // Check domain ID existence
         if (!refDom.id.assigned())
         {
-            LOG_W(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
+            // This will be bumped up to a higher severity later on (warning)
+            LOG_I(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
         }
 
         // Check reference domain (is absolute / ID matching)

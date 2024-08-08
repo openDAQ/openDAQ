@@ -19,7 +19,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
+RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init, const StringPtr deviceLocalId)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::Sine)
     , freq(0)
@@ -37,6 +37,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
+    , deviceLocalId(deviceLocalId)
 {
     initProperties();
     waveformChangedInternal();
@@ -423,12 +424,14 @@ void RefChannelImpl::buildSignalDescriptors()
     deltaT = getDeltaT(sampleRate);
 
     const auto timeDescriptor = DataDescriptorBuilder()
-                                .setSampleType(SampleType::Int64)
-                                .setUnit(Unit("s", -1, "seconds", "time"))
-                                .setTickResolution(getResolution())
-                                .setRule(LinearDataRule(deltaT, 0))
-                                .setOrigin(getEpoch())
-                                .setName("Time AI " + std::to_string(index + 1));
+                                            .setSampleType(SampleType::Int64)
+                                            .setUnit(Unit("s", -1, "seconds", "time"))
+                                            .setTickResolution(getResolution())
+                                            .setRule(LinearDataRule(deltaT, 0))
+                                            .setOrigin(getEpoch())
+                                            .setName("Time AI " + std::to_string(index + 1))
+                                            .setReferenceDomainId(deviceLocalId)
+                                            .setReferenceDomainOffset(0);
 
     timeSignal.setDescriptor(timeDescriptor.build());
 }

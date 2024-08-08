@@ -281,11 +281,9 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         {
             // Is not absolute
 
-            // Check if there exists
-            // a reference domain "group" (that has a different domain ID)
-            // without a signal that is absolute among valid signals
-
-            // If so, invalid state
+            // Set state to invalid if a reference domain "group"
+            // (group = signals with the same reference domain ID)
+            // exists in which none of its member signals are absolute
 
             // Set is ordered by domain ID and domain is absolute (nullptr first), so we can do the following:
 

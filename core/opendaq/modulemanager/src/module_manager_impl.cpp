@@ -795,7 +795,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
                 }
             }
 
-            localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
+            localIdStr = fmt::format("{}{}", typeId, maxNum + 1);
         }
 
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);

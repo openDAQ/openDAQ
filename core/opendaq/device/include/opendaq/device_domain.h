@@ -97,11 +97,16 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
+    IUnit*, unit
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomain,
+    IRatio*, tickResolution,
+    IString*, origin,
     IUnit*, unit,
     IString*, referenceDomainId,
     INumber*, referenceDomainOffset,
     IBoolean*, referenceDomainIsAbsolute
 )
-
 
 END_NAMESPACE_OPENDAQ

@@ -48,6 +48,8 @@ do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
 done
 
+run_rtgen CoreTypes coretypes coretypes core_types/generated version_info
+
 #
 # core objects
 #

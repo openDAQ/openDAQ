@@ -156,7 +156,10 @@
     /// <inheritdoc/>
     IEnumerator<KeyValuePair<$CSGenericClassParameters$>> IEnumerable<KeyValuePair<$CSGenericClassParameters$>>.GetEnumerator()
     {
-        throw new NotImplementedException();
+        foreach (var key in this.KeyList)
+        {
+            yield return new KeyValuePair<TKey, TValue>(key, this.Get(key));
+        }
     }
 
     #endregion IEnumerable<T> implementation

@@ -93,6 +93,16 @@ namespace openDAQDemoNet.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap device16 {
+            get {
+                object obj = ResourceManager.GetObject("device16", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap down {
             get {
                 object obj = ResourceManager.GetObject("down", resourceCulture);
@@ -123,6 +133,16 @@ namespace openDAQDemoNet.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap function_block16 {
+            get {
+                object obj = ResourceManager.GetObject("function_block16", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap input_port {
             get {
                 object obj = ResourceManager.GetObject("input_port", resourceCulture);
@@ -143,9 +163,19 @@ namespace openDAQDemoNet.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap locked {
+        internal static System.Drawing.Bitmap locked16 {
             get {
-                object obj = ResourceManager.GetObject("locked", resourceCulture);
+                object obj = ResourceManager.GetObject("locked16", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap refresh16 {
+            get {
+                object obj = ResourceManager.GetObject("refresh16", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

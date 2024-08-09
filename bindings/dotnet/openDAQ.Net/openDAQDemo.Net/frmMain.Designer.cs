@@ -87,13 +87,13 @@
             // 
             contextMenuStripTreeComponents.Items.AddRange(new ToolStripItem[] { contextMenuItemTreeComponentsRemove });
             contextMenuStripTreeComponents.Name = "contextMenuStrip1";
-            contextMenuStripTreeComponents.Size = new Size(181, 48);
+            contextMenuStripTreeComponents.Size = new Size(118, 26);
             contextMenuStripTreeComponents.Opening += contextMenuStripTreeComponents_Opening;
             // 
             // contextMenuItemTreeComponentsRemove
             // 
             contextMenuItemTreeComponentsRemove.Name = "contextMenuItemTreeComponentsRemove";
-            contextMenuItemTreeComponentsRemove.Size = new Size(180, 22);
+            contextMenuItemTreeComponentsRemove.Size = new Size(117, 22);
             contextMenuItemTreeComponentsRemove.Text = "Remove";
             contextMenuItemTreeComponentsRemove.Click += contextMenuItemTreeComponentsRemove_Click;
             // 
@@ -173,22 +173,25 @@
             // 
             // btnAddDevice
             // 
+            btnAddDevice.Image = Properties.Resources.device16;
             btnAddDevice.Name = "btnAddDevice";
-            btnAddDevice.Size = new Size(70, 22);
+            btnAddDevice.Size = new Size(86, 22);
             btnAddDevice.Text = "Add device";
             btnAddDevice.Click += btnAddDevice_Click;
             // 
             // btnAddFunctionBlock
             // 
+            btnAddFunctionBlock.Image = Properties.Resources.function_block16;
             btnAddFunctionBlock.Name = "btnAddFunctionBlock";
-            btnAddFunctionBlock.Size = new Size(113, 22);
+            btnAddFunctionBlock.Size = new Size(129, 22);
             btnAddFunctionBlock.Text = "Add function block";
             btnAddFunctionBlock.Click += btnAddFunctionBlock_Click;
             // 
             // btnRefresh
             // 
+            btnRefresh.Image = Properties.Resources.refresh16;
             btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(50, 22);
+            btnRefresh.Size = new Size(66, 22);
             btnRefresh.Text = "Refresh";
             btnRefresh.Click += btnRefresh_Click;
             // 

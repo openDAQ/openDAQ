@@ -149,7 +149,7 @@ void NativeStreamingServerImpl::startTransportOperations()
         [this]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(transportIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*transportIOContextPtr);
             transportIOContextPtr->run();
             LOG_I("Transport IO thread finished");
         });
@@ -182,7 +182,7 @@ void NativeStreamingServerImpl::startProcessingOperations()
         [this]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContext.get_executor());
+            auto workGuard = make_work_guard(processingIOContext);
             processingIOContext.run();
             LOG_I("Processing thread finished");
         }
@@ -259,15 +259,13 @@ void NativeStreamingServerImpl::prepareServerHandler()
             [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
         {
             auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
-            boost::asio::dispatch(
-                processingIOContext,
-                processingStrand.wrap(
-                    [configServer, sendConfigPacketCb, packetBufferPtr]()
-                    {
-                        auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
-                        sendConfigPacketCb(replyPacketBuffer);
-                    }
-                )
+            boost::asio::post(
+                processingStrand,
+                [configServer, sendConfigPacketCb, packetBufferPtr]()
+                {
+                    auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
+                    sendConfigPacketCb(replyPacketBuffer);
+                }
             );
         };
 

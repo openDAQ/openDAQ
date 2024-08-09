@@ -33,7 +33,9 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     this->name = "NativeStreamingClientPseudoDevice";
 
     initStatuses(ctx);
-    createNativeStreaming(transportProtocolClient, processingIOContextPtr, initTimeout);
+    createNativeStreaming(transportProtocolClient,
+                          processingIOContextPtr,
+                          initTimeout);
     activateStreaming();
 }
 
@@ -106,6 +108,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,
                                                                   onConnectionStatusChangedCallback);
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
 }
 
 void NativeStreamingDeviceImpl::activateStreaming()

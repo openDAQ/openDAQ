@@ -613,9 +613,10 @@ class App(tk.Tk):
     def show_graphviz_error(self):
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        label_text = ('Graphviz is not installed. Please install it from '
-                      'https://graphviz.org/download/ \n or by running the command '
-                      '\'winget install graphviz\' in the terminal.')
+        label_text = (f'Graphviz is not installed. Please install it from '
+                      f'https://graphviz.org/download/ \n or by running the command '
+                      f'\'winget install graphviz\' in the terminal and add \n'
+                      r'C:\Program Files\Graphviz\bin\ to PATH environment variable')
         label = tk.Label(self.main_frame, text=label_text, font=('Arial', 18), fg='red')
         label.pack(expand=True, padx=5, pady=5, anchor=tk.N, side=tk.TOP)
 

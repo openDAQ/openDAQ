@@ -323,6 +323,18 @@ class ConnectionView(tk.Frame):
         self.png = None
         self.svg = None
         self.canvas = None
+        self.edge_color = "orange"
+        self.node_color = "#A0A0A0"
+        self.font_color = "white"
+        self.cluster_color = "#A0A0A0"
+        self.edge_fontsize = "15"
+        self.node_fontsize = "18"
+        self.additional_properties = False
+        self.attributes_show = False
+        self.input_ports = False
+        self.show_disconnected_signals = False
+        self.show_connected_signals_only = False
+
         self.draw()
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
@@ -345,14 +357,12 @@ class ConnectionView(tk.Frame):
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
 
-    def draw(self, edge_color="orange", node_color="#A0A0A0", font_color="white", cluster_color="#A0A0A0",
-             edge_fontsize="15", node_fontsize="18", additionalproperties=False, attributesshow=False,
-             inputports=False, show_disconnectedsignals=False, show_connected_signalsonly=False):
+    def draw(self):
         devices = opendaq.List()
         devices.push_back(self.context.instance)
-        ConnectionMap(devices, edge_color, node_color, font_color, cluster_color, edge_fontsize, node_fontsize,
-                      additionalproperties, attributesshow, inputports, show_disconnectedsignals,
-                      show_connected_signalsonly)
+        ConnectionMap(devices, self.edge_color, self.node_color, self.font_color, self.cluster_color,
+                      self.edge_fontsize, self.node_fontsize, self.additional_properties, self.attributes_show,
+                      self.input_ports, self.show_disconnected_signals, self.show_connected_signals_only)
 
         png_path = "connection_map.png"
         svg_path = "connection_map.svg"
@@ -407,25 +417,33 @@ class ConnectionView(tk.Frame):
         right_header = tk.Label(main_frame, text="Font and Color Options", font=('Arial', 12, 'bold'))
         right_header.grid(row=0, column=2, padx=5, pady=5)
 
-        self.checkbox_vars = [tk.IntVar() for _ in range(5)]
-        checkbox_texts = ["Additional properties", "Show attributes", "Show Input ports", "Show disconnected signals",
-                          "Show connected signals only"]
+        self.checkbox_vars = [tk.IntVar(value=int(self.additional_properties)),
+                              tk.IntVar(value=int(self.attributes_show)),
+                              tk.IntVar(value=int(self.input_ports)),
+                              tk.IntVar(value=int(self.show_disconnected_signals)),
+                              tk.IntVar(value=int(self.show_connected_signals_only))]
+        checkbox_texts = ["Show properties", "Show attributes", "Show Input ports", "Show disconnected signals",
+                          "Show connected function blocks only"]
         for i, text in enumerate(checkbox_texts):
             checkbox = tk.Checkbutton(left_column, text=text, variable=self.checkbox_vars[i])
             checkbox.pack(anchor=tk.W, padx=5, pady=2)
 
-        self.textbox_vars = [tk.StringVar() for _ in range(2)]
+        self.textbox_vars = [tk.StringVar(value=self.edge_fontsize), tk.StringVar(value=self.node_fontsize)]
         font_labels = ["Edge Font Size", "Node Font Size"]
         v_list = [str(i) for i in range(10, 31)]
         for i in range(2):
             label = tk.Label(right_column, text=font_labels[i])
             label.pack(anchor=tk.W, padx=5, pady=2)
             Combo = ttk.Combobox(right_column, values=v_list, textvariable=self.textbox_vars[i], state="readonly")
-            Combo.set("Font size")
+            Combo.set(self.textbox_vars[i].get())
             Combo.pack(padx=5, pady=5)
 
-        self.color_vars = [tk.StringVar() for _ in range(4)]
-        self.color_labels = [tk.Label(right_column, text="", width=10, bg="white") for _ in range(4)]
+        self.color_vars = [tk.StringVar(value=self.edge_color), tk.StringVar(value=self.node_color),
+                           tk.StringVar(value=self.font_color), tk.StringVar(value=self.cluster_color)]
+        self.color_labels = [tk.Label(right_column, text="", width=10, bg=self.edge_color),
+                             tk.Label(right_column, text="", width=10, bg=self.node_color),
+                             tk.Label(right_column, text="", width=10, bg=self.font_color),
+                             tk.Label(right_column, text="", width=10, bg=self.cluster_color)]
         array = ['Edge', 'Node', 'Font', 'Cluster']
         for i in range(4):
             color_button = tk.Button(right_column, text=f"Choose Color {array[i]}",
@@ -453,33 +471,15 @@ class ConnectionView(tk.Frame):
             label.config(bg=color)
 
     def apply_settings(self):
-        edge_color = self.color_vars[0].get()
-        if not edge_color:
-            edge_color = "orange"
-        node_color = self.color_vars[1].get()
-        if not node_color:
-            node_color = "gray17"
-        font_color = self.color_vars[2].get()
-        if not font_color:
-            font_color = "white"
-        cluster_color = self.color_vars[3].get()
-        if not cluster_color:
-            cluster_color = "#A0A0A0"
-        edge_fontsize = self.textbox_vars[0].get()
-        if not edge_fontsize.isdigit():
-            edge_fontsize = 15
-        node_fontsize = self.textbox_vars[1].get()
-        if not node_fontsize.isdigit():
-            node_fontsize = 15
-        additional_properties = self.checkbox_vars[0].get()
-        attributes_show = self.checkbox_vars[1].get()
-        input_ports = self.checkbox_vars[2].get()
-        show_disconnected_signals = self.checkbox_vars[3].get()
-        show_connected_signals_only = self.checkbox_vars[4].get()
-
-        self.draw(edge_color=edge_color, node_color=node_color, font_color=font_color, cluster_color=cluster_color,
-                  edge_fontsize=edge_fontsize, node_fontsize=node_fontsize,
-                  additionalproperties=additional_properties,
-                  attributesshow=attributes_show, inputports=input_ports,
-                  show_disconnectedsignals=show_disconnected_signals,
-                  show_connected_signalsonly=show_connected_signals_only)
+        self.edge_color = self.color_vars[0].get() or "orange"
+        self.node_color = self.color_vars[1].get() or "gray17"
+        self.font_color = self.color_vars[2].get() or "white"
+        self.cluster_color = self.color_vars[3].get() or "#A0A0A0"
+        self.edge_fontsize = self.textbox_vars[0].get() or "15"
+        self.node_fontsize = self.textbox_vars[1].get() or "18"
+        self.additional_properties = bool(self.checkbox_vars[0].get())
+        self.attributes_show = bool(self.checkbox_vars[1].get())
+        self.input_ports = bool(self.checkbox_vars[2].get())
+        self.show_disconnected_signals = bool(self.checkbox_vars[3].get())
+        self.show_connected_signals_only = bool(self.checkbox_vars[4].get())
+        self.draw()

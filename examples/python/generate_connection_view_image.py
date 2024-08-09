@@ -21,7 +21,7 @@ class ConnectionMap:
         self.draw_connection_map()
 
     def draw_connection_map(self):
-        graph = pydot.Dot(graph_type='digraph', rankdir="LR", splines="ortho")
+        graph = pydot.Dot(graph_type='digraph', rankdir="LR", splines="ortho", compound="true")
         for device in self.devs:
             if not opendaq.IDevice.can_cast_from(device):
                 print(f"Device {device} cannot be cast to IDevice.")
@@ -133,7 +133,7 @@ class ConnectionMap:
                     graph.add_edge(pydot.Edge(midway_node_id, dest, xlabel=sig_name, fontsize=self.Edge_fontsize,
                                               arrowhead="obox", tailport="e", headport="w", labelfloat="true",
                                               labeldistance="0", minlen="1", color=self.Edge_color, tailclip="true",
-                                              headclip="true",
+                                              headclip="true", lhead="cluster_" + dest, ltail="cluster_" + source_id,
                                               headlabel=portlabel, fontname="Courier New Bold",
                                               fontcolor=self.Font_color))
 
@@ -158,9 +158,10 @@ class ConnectionMap:
                                     pydot.Edge(self.fixup_id(entity.global_id), dest, fontsize=self.Edge_fontsize,
                                                arrowhead="obox", tailport="e", headport="w",
                                                labelfloat="true",
-                                               labeldistance="0", minlen="1", xlabel=self.fixup_id(sig.name),
+                                               labeldistance="0", minlen="1.5", xlabel=self.fixup_id(sig.name),
                                                color=self.Edge_color, tailclip="true", headclip="true",
-                                               headlabel=portlabel,
+                                               headlabel=portlabel, lhead="cluster_" + dest,
+                                               ltail="cluster_" + self.fixup_id(entity.global_id),
                                                fontname="Courier New Bold", fontcolor=self.Font_color))
             for fb in entity.function_blocks:
                 process_entity_signals(fb)
@@ -259,7 +260,7 @@ class ConnectionMap:
             chan_label += '</table>'
             chan_node = pydot.Node(self.fixup_id(chan.global_id), label=f'<{chan_label}>', shape="box",
                                    style="filled, rounded",
-                                   fillcolor=darker_color, padding="2", height="1", fontcolor=self.Font_color,
+                                   fillcolor=darker_color, padding="0", fontcolor=self.Font_color,
                                    fontname="Courier New Bold", color=darker_color)
             chan_cluster.add_node(chan_node)
             device_cluster.add_subgraph(chan_cluster)

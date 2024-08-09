@@ -1,4 +1,4 @@
-#include "opcuatms_client/objects/tms_client_device_impl.h"
+#include <opcuatms_client/objects/tms_client_device_impl.h>
 #include <coreobjects/unit_factory.h>
 #include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
@@ -8,20 +8,21 @@
 #include <opcuatms_client/objects/tms_client_function_block_factory.h>
 #include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <opcuatms_client/objects/tms_client_signal_factory.h>
-#include "opcuatms_client/objects/tms_client_component_factory.h"
-#include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opcuatms_client/objects/tms_client_server_capability_factory.h"
+#include <opcuatms_client/objects/tms_client_component_factory.h>
+#include <opcuatms_client/objects/tms_client_io_folder_factory.h>
+#include <opcuatms_client/objects/tms_client_server_capability_factory.h>
+#include <opcuatms_client/objects/tms_client_sync_component_factory.h>
 #include <open62541/daqbsp_nodeids.h>
-#include "open62541/daqbt_nodeids.h"
+#include <open62541/daqbt_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/custom_log.h>
-#include "opcuatms/core_types_utils.h"
-#include "opcuatms/exceptions.h"
-#include "opcuatms/converters/list_conversion_utils.h"
-#include "opcuatms/converters/property_object_conversion_utils.h"
+#include <opcuatms/core_types_utils.h>
+#include <opcuatms/exceptions.h>
+#include <opcuatms/converters/list_conversion_utils.h>
+#include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <opendaq/mirrored_device_ptr.h>
@@ -32,7 +33,7 @@ using namespace daq::opcua;
 
 namespace detail
 {
-    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities"};
+    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities", "Synchronization"};
 
     static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
@@ -83,6 +84,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
+    findAndCreateSyncComponent();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -229,6 +231,17 @@ void TmsClientDeviceImpl::fetchTimeDomain()
 
     setDeviceDomainNoCoreEvent(DeviceDomain(resolution, origin, domainUnit));
     ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
+}
+
+void TmsClientDeviceImpl::findAndCreateSyncComponent()
+{
+    this->removeComponentById("Sync");
+    auto syncComponentNodeId = getNodeId("Synchronization");
+    syncComponent = this->addExistingComponent(TmsClientSyncComponent(context,
+                                       this->thisPtr<ComponentPtr>(),
+                                       "Sync",
+                                       clientContext,
+                                       syncComponentNodeId));
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

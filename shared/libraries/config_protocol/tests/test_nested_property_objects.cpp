@@ -14,6 +14,8 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/sync_component_ptr.h>
+#include <opendaq/sync_component_private_ptr.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
@@ -296,4 +298,93 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientProcedureCall)
     ASSERT_THROW(proc1(0), InvalidParameterException);
     ASSERT_NO_THROW(proc2(5));
     ASSERT_THROW(proc2(0), InvalidParameterException);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
+{
+    auto typeManager = serverDevice.getContext().getTypeManager();
+
+    // update the sync component in the server side
+    SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
+    ASSERT_ANY_THROW(syncComponentPrivate.addInterface(PropertyObject(typeManager, "SyncInterfaceBase")));
+    syncComponentPrivate.addInterface(PropertyObject(typeManager, "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(typeManager, "InterfaceClockSync"));
+    syncComponent.setSelectedSource(1);
+    syncComponentPrivate.setSyncLocked(true);
+
+    // check that the client side has the same sync component
+    SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getKeyList(), syncComponent.getInterfaces().getKeyList());
+    ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
+
+    // update the sync component in the client side
+    clientSyncComponent.setSelectedSource(0);
+
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0); 
+
+    // check that the server side has the same sync component
+    ASSERT_EQ(syncComponent.getSelectedSource(), 0);    
+}
+
+
+TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
+{
+    auto typeManager = serverDevice.getContext().getTypeManager();
+
+    // update the sync component in the server side
+    SyncComponentPtr syncComponent = serverDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
+
+    auto ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
+    ptpSyncInterface.setPropertyValue("Mode", 2);
+    
+    PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
+    status.setPropertyValue("State", 2);
+    status.setPropertyValue("Grandmaster", "1234");
+
+    PropertyObjectPtr parameters = ptpSyncInterface.getPropertyValue("Parameters");
+
+    StructPtr configuration = parameters.getPropertyValue("PtpConfigurationStructure");
+
+    auto newConfiguration = StructBuilder(configuration)
+                    .set("ClockType",  Enumeration("PtpClockTypeEnumeration", "OrdinaryBoundary", typeManager))
+                    .set("TransportProtocol", Enumeration("PtpProtocolEnumeration", "UDP6_SCOPE", typeManager))
+                    .set("StepFlag", Enumeration("PtpStepFlagEnumeration", "Two", typeManager))
+                    .set("DomainNumber", 123)
+                    .set("LeapSeconds", 123)
+                    .set("DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "E2E", typeManager))
+                    .set("Priority1", 123)
+                    .set("Priority2", 123)
+                    .set("Profiles", Enumeration("PtpProfileEnumeration", "802_1AS", typeManager))
+                    .build();
+
+    parameters.setPropertyValue("PtpConfigurationStructure", newConfiguration);
+
+    PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
+    ports.addProperty(BoolProperty("Port1", true));
+        
+    syncComponentPrivate.addInterface(ptpSyncInterface);
+
+    SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
+
+    auto serverInterfaces = syncComponent.getInterfaces();
+    auto clientInterfaces = clientSyncComponent.getInterfaces();
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+
+    auto clientPtpSyncInterface = clientInterfaces.get("PtpSyncInterface");
+    ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);
+
+    PropertyObjectPtr clientStatus = clientPtpSyncInterface.getPropertyValue("Status");
+    ASSERT_EQ(clientStatus.getPropertyValue("State"), 2);
+    ASSERT_EQ(clientStatus.getPropertyValue("Grandmaster"), "1234");
+
+    PropertyObjectPtr clientParameters = clientPtpSyncInterface.getPropertyValue("Parameters");
+    ASSERT_EQ(clientParameters.getPropertyValue("PtpConfigurationStructure"), newConfiguration);
+    
+    PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
+    ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);
 }

@@ -130,3 +130,12 @@ TEST_F(ModuleManagerTest, EnumDriver)
     }
 #endif
 }
+
+TEST_F(ModuleManagerTest, RegisterDaqTypes)
+{
+    auto typeManager = context.getTypeManager();
+
+    ASSERT_TRUE(typeManager.hasType("PtpSyncInterface"));
+    ASSERT_TRUE(typeManager.hasType("SyncInterfaceBase"));
+    ASSERT_TRUE(typeManager.hasType("InterfaceClockSync"));
+}

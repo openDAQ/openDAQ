@@ -3,6 +3,7 @@
 #include <coretypes/validation.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/integer_factory.h>
+#include <coretypes/type_manager_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -151,10 +152,25 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
 
     try
     {
+        TypeManagerPtr typeManager;
+        if (context)
+        {
+            context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+        }
+    
         EnumerationTypePtr enumerationType;
         createEnumerationTypeWithValues(&enumerationType,
                                         typeName,
                                         enumerators.asPtr<IDict>());
+
+        // In TypeManager, types are added after all of them are deserialized.
+        // At this point, types that reference to enumeration type, cannot find this in TypeManager.
+        // Therefore, we need to add enumeration type while deserializing.
+        if (typeManager.assigned())
+        {
+            typeManager.addType(enumerationType);
+        }
+
         *obj = enumerationType.detach();
     }
     catch (const DaqException& e)

@@ -1,5 +1,6 @@
 #include <coretypes/struct_type_impl.h>
 #include <coretypes/baseobject_factory.h>
+#include <coretypes/type_manager_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -213,6 +214,17 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
             createStructType(&structType, typeName, names.asPtr<IList>(), defaultValues.asPtr<IList>(), types.asPtr<IList>());
         else
             createStructTypeNoDefaults(&structType, typeName, names.asPtr<IList>(), types.asPtr<IList>());
+
+
+        TypeManagerPtr typeManager;
+        if (context)
+        {
+            context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+        }
+        if (typeManager.assigned())
+        {
+            typeManager.addType(structType);
+        }
         *obj = structType.detach();
     }
     catch (const DaqException& e)

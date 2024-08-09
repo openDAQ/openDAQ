@@ -16,6 +16,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/listobject_factory.h>
 
 using namespace daq;
 
@@ -2022,6 +2023,28 @@ TEST_F(PropertyObjectTest, EnumerationPropertyValidation)
                                 .setDefaultValue(Enumeration("EnumType", "Option2", objManager))
                                 .setMinValue(Enumeration("EnumType", "Option1", objManager))
                                 .build(), NoInterfaceException);
+}
+
+TEST_F(PropertyObjectTest, EvalValuePropertyNames)
+{
+    auto childObjectNames = List<IString>("interface1", "interface2");
+    
+    auto testProp = PropertyObject();
+    auto interfaces = PropertyObject();
+    for (const auto& name : childObjectNames)
+    {
+        interfaces.addProperty(ObjectProperty(name, PropertyObject()));
+    }
+    testProp.addProperty(ObjectProperty("Interfaces", interfaces));
+    testProp.addProperty(SelectionProperty("ChosenInterface", EvalValue("%Interfaces:PropertyNames"), 0));
+
+    auto source = testProp.getProperty(String("ChosenInterface"));
+    ASSERT_EQ(source.getSelectionValues(), childObjectNames);
+
+    testProp.setPropertyValue(String("ChosenInterface"), Integer(1));
+    ASSERT_EQ(testProp.getPropertyValue("ChosenInterface"), Integer(1));
+
+    ASSERT_ANY_THROW(testProp.setPropertyValue("ChosenInterface", Integer(2)));
 }
 
 using BeginEndUpdatePropertyObjectTest = testing::Test;

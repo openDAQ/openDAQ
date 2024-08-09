@@ -9,6 +9,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
+#include <opendaq/sync_component_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -127,11 +128,14 @@ void RefDeviceImpl::initIoFolder()
 
 void RefDeviceImpl::initSyncComponent()
 {
-    syncComponent = this->addComponent("sync");
+    SyncComponentPtr syncComponent;
+    this->getSyncComponent(&syncComponent);
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
-    syncComponent.addProperty(BoolProperty("UseSync", False));
-    syncComponent.getOnPropertyValueWrite("UseSync") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { };
+    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
+    syncComponent.setSelectedSource(1);
+    syncComponentPrivate.setSyncLocked(true);
 }
 
 void RefDeviceImpl::acqLoop()

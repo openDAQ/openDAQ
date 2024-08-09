@@ -285,6 +285,8 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
             refType = daq::RefType::Value;
         else if (propertyItem == "selectedvalue")
             refType = daq::RefType::SelectedValue;
+        else if (propertyItem == "propertynames")
+            refType = daq::RefType::PropertyNames;
         else
             throw daq::ParseFailedException("syntax error");
         str += ":" + propertyItem;

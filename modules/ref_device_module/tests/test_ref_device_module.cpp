@@ -507,17 +507,6 @@ TEST_F(RefDeviceModuleTest, Folders)
     ASSERT_EQ(chX, chY);
 }
 
-TEST_F(RefDeviceModuleTest, Sync)
-{
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
-    ComponentPtr syncComponent = device.getItem("sync");
-
-    ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
-    syncComponent.setPropertyValue("UseSync", True);
-    ASSERT_TRUE(syncComponent.getPropertyValue("UseSync"));
-}
-
 TEST_F(RefDeviceModuleTest, Serialize)
 {
     auto module = CreateModule();

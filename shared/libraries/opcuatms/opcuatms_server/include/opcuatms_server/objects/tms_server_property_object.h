@@ -52,6 +52,7 @@ public:
     void bindCallbacks() override;
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
     void setMethodParentNodeId(const opcua::OpcUaNodeId& methodParentNodeId);
+    std::unordered_set<std::string> ignoredProps;
 
 protected:
     void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;
@@ -65,7 +66,6 @@ protected:
     std::unordered_map<opcua::OpcUaNodeId, TmsServerObjectPtr> childEvalValues;
     std::unordered_map<opcua::OpcUaNodeId, std::pair<std::string, CoreType>> methodProps;
 
-private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback);
     void addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList);
     void bindMethodCallbacks();
@@ -75,7 +75,6 @@ private:
     StringPtr name;
     PropertyInternalPtr objProp;
     opcua::OpcUaNodeId methodParentNodeId;
-    std::unordered_set<std::string> ignoredProps;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

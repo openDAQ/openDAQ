@@ -31,10 +31,16 @@ def auto_python_version(opendaq_filename):
 def auto_wheel_tag(opendaq_path):
     linux_pattern = r'linux'
     windows_pattern = r'win'
-    machine_pattern = r'x86_64|amd64'
+    macos_pattern = r'macos|darwin'
+    machine_pattern = r'x86_64|amd64|arm64'
 
     wheel_tag = ''
-    if re.search(machine_pattern, opendaq_path):
+    if re.search(macos_pattern, opendaq_path):
+        if 'arm64' in opendaq_path:
+            wheel_tag = 'macosx_11_0_arm64'
+        else:
+            wheel_tag = 'macosx_10_9_x86_64'
+    elif re.search(machine_pattern, opendaq_path):
         if re.search(linux_pattern, opendaq_path):
             wheel_tag = 'manylinux_2_17_x86_64.manylinux2014_x86_64'
         elif re.search(windows_pattern, opendaq_path):

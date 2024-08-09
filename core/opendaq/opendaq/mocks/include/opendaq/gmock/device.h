@@ -46,6 +46,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, getTicksSinceOrigin, (UInt*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, addStreaming, (IStreaming**, IString*, IPropertyObject*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, createDefaultAddDeviceConfig, (IPropertyObject**), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, getSyncComponent, (ISyncComponent**), (override MOCK_CALL));
 };
 
 END_NAMESPACE_OPENDAQ

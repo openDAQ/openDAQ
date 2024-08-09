@@ -75,7 +75,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         }
 
         StringPtr str = propertyName;
-        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not  found.)", str));
+        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
     }
 
     *property = res.value().addRefAndReturn();
@@ -385,7 +385,18 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
                 builder.addProperty(prop);
             }
 
-            *obj = builder.build().detach();
+            PropertyObjectClassPtr serilizedObj = builder.build();
+
+            TypeManagerPtr typeManager;
+            if (context)
+            {
+                context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+            }
+            if (typeManager.assigned())
+            {
+                typeManager.addType(serilizedObj);
+            }
+            *obj = serilizedObj.detach();
         });
 }
 

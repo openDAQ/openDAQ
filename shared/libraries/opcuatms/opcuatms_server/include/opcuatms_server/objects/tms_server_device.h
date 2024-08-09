@@ -22,6 +22,7 @@
 #include "opcuatms_server/objects/tms_server_component.h"
 #include "opcuatms_server/objects/tms_server_property_object.h"
 #include "opcuatms_server/objects/tms_server_function_block_type.h"
+#include "opcuatms_server/objects/tms_server_sync_component.h"
 
 #include <list>
 
@@ -68,6 +69,7 @@ protected:
     std::list<TmsServerComponentPtr> components;
     std::list<TmsServerPropertyObjectPtr> serverCapabilities;
     std::list<TmsServerFunctionBlockTypePtr> functionBlockTypes;
+    std::list<TmsServerSyncComponentPtr> syncComponents;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

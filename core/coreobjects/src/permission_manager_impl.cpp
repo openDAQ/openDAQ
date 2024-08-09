@@ -50,7 +50,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
     OPENDAQ_PARAM_NOT_NULL(authorizedOut);
     *authorizedOut = false;
 
-    UserPtr userPtr = user;
+    const UserPtr userPtr = UserPtr::Borrow(user);
     const auto& groups = userPtr.getGroups();
     const Int targetPermissionInt = (Int) permission;
     Int permissionMask;

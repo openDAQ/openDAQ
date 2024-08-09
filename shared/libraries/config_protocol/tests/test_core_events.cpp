@@ -20,6 +20,7 @@
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -29,8 +30,10 @@ class ConfigCoreEventTest : public testing::Test
 public:
     void SetUp() override
     {
+        const auto anonymousUser = User("", "");
+
         serverDevice = test_utils::createServerDevice();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigCoreEventTest::sendRequest, this, std::placeholders::_1), nullptr);

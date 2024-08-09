@@ -38,7 +38,7 @@ public:
     {
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
         server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), nullptr, std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
 
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
@@ -332,6 +332,20 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     auto params = ParamsDict({{"SignalId", "sig"}});
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
 }
+
+//TEST_F(ConfigProtocolTest, ConnectClientSignalToInputPort)
+//{
+//    MockInputPort::Strict inputPort;
+//    MockSignal::Strict signal;
+
+//    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
+//        .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
+//        .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
+//    EXPECT_CALL(inputPort.mock(), connect(_)).WillOnce(Return(OPENDAQ_SUCCESS));
+
+//    auto params = ParamsDict({{"SignalId", "sig"}});
+//    client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectExternalSignal", params);
+//}
 
 TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
 {

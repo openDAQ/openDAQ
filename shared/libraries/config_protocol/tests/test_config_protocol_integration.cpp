@@ -29,7 +29,7 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr, nullptr);
 
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -129,7 +129,7 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     
-    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr, nullptr);
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 

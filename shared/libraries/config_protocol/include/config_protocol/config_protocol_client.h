@@ -29,6 +29,7 @@
 #include <coreobjects/core_event_args_factory.h>
 
 #include "opendaq/custom_log.h"
+#include <config_protocol/config_protocol_streaming_producer.h>
 
 namespace daq::config_protocol
 {
@@ -37,6 +38,8 @@ using SendRequestCallback = std::function<PacketBuffer(PacketBuffer&)>;
 using ServerNotificationReceivedCallback = std::function<bool(const BaseObjectPtr& obj)>;
 using ComponentDeserializeCallback = std::function<ErrCode(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)>;
 
+using ConfigProtocolStreamingProducerPtr = std::shared_ptr<ConfigProtocolStreamingProducer>;
+
 class ConfigProtocolClientComm : public std::enable_shared_from_this<ConfigProtocolClientComm>
 {
 public:
@@ -44,6 +47,7 @@ public:
     friend class ConfigProtocolClient;
     explicit ConfigProtocolClientComm(const ContextPtr& daqContext,
                                       SendRequestCallback sendRequestCallback,
+                                      const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                       ComponentDeserializeCallback rootDeviceDeserializeCallback);
 
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
@@ -81,6 +85,10 @@ public:
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback,
                                              ComponentDeserializeCallback deviceDeserialzeCallback);
+    bool isComponentNested(const StringPtr& componentGlobalId);
+    void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    SignalPtr resolveConnectedExternalSignal(const StringPtr& signalRemoteGlobalId, const StringPtr& inputPortRemoteGlobalId);
 
 private:
     ContextPtr daqContext;
@@ -90,6 +98,7 @@ private:
     DeserializerPtr deserializer;
     bool connected;
     WeakRefPtr<IDevice> rootDeviceRef;
+    std::weak_ptr<ConfigProtocolStreamingProducer> streamingProducerRef;
 
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
@@ -119,6 +128,8 @@ private:
     void forEachComponent(const ComponentPtr& component, const F& f);
     [[maybe_unused]]
     void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
+    std::tuple<uint32_t, StringPtr, StringPtr> getExternalSignalParams(const SignalPtr& signal,
+                                                                       const ConfigProtocolStreamingProducerPtr& streamingProducer);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -135,6 +146,7 @@ public:
 
     explicit ConfigProtocolClient(const ContextPtr& daqContext,
                                   const SendRequestCallback& sendRequestCallback,
+                                  const SendDaqPacketCallback& sendDaqPacketCallback,
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
@@ -151,8 +163,10 @@ public:
 private:
     ContextPtr daqContext;
     SendRequestCallback sendRequestCallback;
+    SendDaqPacketCallback sendDaqPacketCallback;
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
+    ConfigProtocolStreamingProducerPtr streamingProducer;
 
     ConfigProtocolClientCommPtr clientComm;
     
@@ -164,19 +178,26 @@ private:
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
     CoreEventArgsPtr unpackCoreEvents(const CoreEventArgsPtr& args);
+    CoreEventArgsPtr unpackSignalConnectedCoreEvent(const StringPtr& inputPortRemoteGlobalId, const CoreEventArgsPtr& args);
     void handleNonComponentEvent(const CoreEventArgsPtr& args) const;
 };
 
 template<class TRootDeviceImpl>
-ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext, const SendRequestCallback& sendRequestCallback, const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
+ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext,
+                                                            const SendRequestCallback& sendRequestCallback,
+                                                            const SendDaqPacketCallback& sendDaqPacketCallback,
+                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
+    , sendDaqPacketCallback(sendDaqPacketCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
+    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, sendDaqPacketCallback))
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,
               sendRequestCallback,
+              streamingProducer,
               [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
               {
                   return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
@@ -336,28 +357,36 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const Base
     if (!packedEvent.assigned() || packedEvent.getCount() != 2)
         return;
 
-    const ComponentPtr component = findComponent(packedEvent[0]);
-    const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
 
+    const StringPtr senderRemoteGlobalId = packedEvent[0];
+    const CoreEventArgsPtr packedArgsPtr = packedEvent[1];
+
+    auto coreEventId = static_cast<CoreEventId>(packedArgsPtr.getEventId());
+    const CoreEventArgsPtr unpackedArgsPtr =
+        (coreEventId == CoreEventId::SignalConnected)
+            ? unpackSignalConnectedCoreEvent(senderRemoteGlobalId, packedArgsPtr)
+            : unpackCoreEvents(packedArgsPtr);
+
+    const ComponentPtr component = findComponent(senderRemoteGlobalId);
     if (component.assigned())
     {
-        component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
+        component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, unpackedArgsPtr);
     }
     else
     {
         try
         {
-            handleNonComponentEvent(argsPtr);
+            handleNonComponentEvent(unpackedArgsPtr);
         }
         catch([[maybe_unused]] const std::exception& e)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
+            LOG_D("Failed to handle non-component event {}: {}", unpackedArgsPtr.getEventName(), e.what());
         }
         catch(...)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+            LOG_D("Failed to handle non-component event {}", unpackedArgsPtr.getEventName());
         }
     }
 }
@@ -413,6 +442,26 @@ CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackCoreEvents(const C
         const ComponentPtr comp = compHolder.getComponent();
 
         dict.set("Component", comp);
+    }
+
+    return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
+}
+
+template<class TRootDeviceImpl>
+CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackSignalConnectedCoreEvent(const StringPtr& inputPortRemoteGlobalId,
+                                                                                       const CoreEventArgsPtr& args)
+{
+    BaseObjectPtr cloned;
+    checkErrorInfo(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
+    DictPtr<IString, IBaseObject> dict = cloned;
+
+    if (dict.hasKey("Signal"))
+    {
+        const auto signalGlobalId = dict.get("Signal");
+        if (!clientComm->isComponentNested(signalGlobalId))
+            dict.set("Signal", clientComm->resolveConnectedExternalSignal(signalGlobalId, inputPortRemoteGlobalId));
+        else
+            dict.set("Signal", findComponent(signalGlobalId));
     }
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);

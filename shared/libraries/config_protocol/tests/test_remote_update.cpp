@@ -24,7 +24,7 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigRemoteUpdateTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigRemoteUpdateTest::sendRequest, this, std::placeholders::_1), nullptr, nullptr);
 
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();

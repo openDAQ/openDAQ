@@ -18,6 +18,7 @@
 
 #include <config_protocol/config_protocol.h>
 #include <opendaq/device_ptr.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
 
 #include <opendaq/component_holder_ptr.h>
 
@@ -65,7 +66,7 @@ public:
     void setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder);
     std::unique_ptr<IComponentFinder>& getComponentFinder();
 
-    void processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
+    void processClientToServerStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
@@ -80,6 +81,7 @@ private:
     std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
+    std::unordered_map<uint32_t, MirroredSignalConfigPtr> mirroredExternalSignals;
 
     PacketBuffer processPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpc(const StringPtr& jsonStr);
@@ -102,6 +104,9 @@ private:
     ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+
+    SignalPtr addOrUpdateMirroredExternalSignal(const ParamsDictPtr& params);
+    SignalPtr createMirroredExternalSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 };
 
 }

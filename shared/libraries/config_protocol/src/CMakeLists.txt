@@ -35,10 +35,12 @@ set(SRC_PublicHeaders config_protocol.h
                       config_server_device.h
                       config_server_signal.h
                       config_protocol_deserialize_context.h
+                      config_protocol_streaming_producer.h
 )
 
 set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h
                        config_server_input_port.h
+                       config_mirrored_ext_sig_impl.h
 )                       
 
 
@@ -48,6 +50,8 @@ set(SRC_Cpp config_protocol.cpp
             server_wrappers.cpp
             config_client_object_impl.cpp
             config_protocol_deserialize_context_impl.cpp
+            config_mirrored_ext_sig_impl.cpp
+            config_protocol_streaming_producer.cpp
 )
 
 prepend_include(${BASE_NAME} SRC_PublicHeaders)

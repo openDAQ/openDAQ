@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/data_descriptor_builder_ptr.h>
-#include <coretypes/struct_type_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <coretypes/simple_type_factory.h>
+#include <coretypes/struct_type_factory.h>
+#include <opendaq/data_descriptor_builder_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/range_factory.h>
-#include <coreobjects/unit_factory.h>
 #include <opendaq/scaling_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -77,7 +77,10 @@ inline StructTypePtr DataDescriptorStructType()
                                     "Origin",
                                     "TickResolution",
                                     "StructFields",
-                                    "Metadata"),
+                                    "Metadata",
+                                    "ReferenceDomainId",
+                                    "ReferenceDomainOffset",
+                                    "ReferenceDomainIsAbsolute"),
                       List<IBaseObject>(List<IDimension>(),
                                         "",
                                         0,
@@ -88,7 +91,10 @@ inline StructTypePtr DataDescriptorStructType()
                                         nullptr,
                                         nullptr,
                                         nullptr,
-                                        Dict<IString, IBaseObject>()),
+                                        Dict<IString, IBaseObject>(),
+                                        nullptr,
+                                        nullptr,
+                                        nullptr),
                       List<IType>(SimpleType(ctList),
                                   SimpleType(ctString),
                                   SimpleType(ctInt),
@@ -99,7 +105,11 @@ inline StructTypePtr DataDescriptorStructType()
                                   SimpleType(ctString),
                                   RatioStructType(),
                                   SimpleType(ctList),
-                                  SimpleType(ctDict)));
+                                  SimpleType(ctDict),
+                                  SimpleType(ctString),
+                                  SimpleType(ctInt),
+                                  SimpleType(ctBool)
+                      ));
 }
 
 /*!@}*/

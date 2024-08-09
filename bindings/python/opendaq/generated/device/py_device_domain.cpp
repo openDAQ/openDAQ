@@ -42,6 +42,10 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
         return daq::DeviceDomain_Create(getVariantValue<daq::IRatio*>(tickResolution), getVariantValue<daq::IString*>(origin), unit);
     }, py::arg("tick_resolution"), py::arg("origin"), py::arg("unit"));
 
+    m.def("DeviceDomain", [](std::variant<daq::IRatio*, std::pair<int64_t, int64_t>>& tickResolution, std::variant<daq::IString*, py::str, daq::IEvalValue*>& origin, daq::IUnit* unit, std::variant<daq::IString*, py::str, daq::IEvalValue*>& referenceDomainId, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& referenceDomainOffset, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& referenceDomainIsAbsolute){
+        return daq::DeviceDomain_Create(getVariantValue<daq::IRatio*>(tickResolution), getVariantValue<daq::IString*>(origin), unit, getVariantValue<daq::IString*>(referenceDomainId), getVariantValue<daq::IInteger*>(referenceDomainOffset), getVariantValue<daq::IBoolean*>(referenceDomainIsAbsolute));
+    }, py::arg("tick_resolution"), py::arg("origin"), py::arg("unit"), py::arg("reference_domain_id"), py::arg("reference_domain_offset"), py::arg("reference_domain_is_absolute"));
+
 
     cls.def_property_readonly("tick_resolution",
         [](daq::IDeviceDomain *object)
@@ -66,4 +70,27 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
         },
         py::return_value_policy::take_ownership,
         "Gets the domain unit (eg. seconds, hours, degrees...)");
+    cls.def_property_readonly("reference_domain_id",
+        [](daq::IDeviceDomain *object)
+        {
+            const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
+            return objectPtr.getReferenceDomainId().toStdString();
+        },
+        "Gets the reference domain id.");
+    cls.def_property_readonly("reference_domain_offset",
+        [](daq::IDeviceDomain *object)
+        {
+            const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
+            return objectPtr.getReferenceDomainOffset().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the reference domain offset.");
+    cls.def_property_readonly("reference_domain_is_absolute",
+        [](daq::IDeviceDomain *object)
+        {
+            const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
+            return objectPtr.getReferenceDomainIsAbsolute().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the flag that indicates if the reference domain is absolute.");
 }

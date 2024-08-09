@@ -123,25 +123,6 @@ class MultiReaderTest : public ReaderTest<>
 public:
     using Super = ReaderTest<>;
 
-    daq::LoggerPtr getLogger() override
-    {
-        LoggerSinkPtr sink;
-
-#if defined(_WIN32)
-        sink = WinDebugLoggerSink();
-#else
-        sink = StdOutLoggerSink();
-#endif
-
-#if defined(NDEBUG)
-        sink.setLevel(LogLevel::Info);
-#else
-        sink.setLevel(LogLevel::Trace);
-#endif
-
-        return LoggerWithSinks(List<ILoggerSink>(sink), LogLevel::Trace);
-    }
-
     ReadSignal& addSignal(Int packetOffset, Int packetSize, const SignalPtr& domain, SampleType valueType = SampleType::Float64)
     {
         auto newSignal = Signal(context, nullptr, fmt::format("sig{}", counter++));
@@ -154,10 +135,12 @@ public:
     [[nodiscard]]
     SignalConfigPtr createDomainSignal(std::string epoch = "",
                                        const daq::RatioPtr& resolution = nullptr,
-                                       const daq::DataRulePtr& rule = nullptr) const
+                                       const daq::DataRulePtr& rule = nullptr,
+                                       const daq::StringPtr& referenceDomainId = nullptr,
+                                       const daq::BooleanPtr& referenceDomainIsAbsolute = nullptr) const
     {
         auto domain = Signal(context, nullptr, "time");
-        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule));
+        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule, referenceDomainId, referenceDomainIsAbsolute));
 
         return domain;
     }
@@ -2292,3 +2275,539 @@ TEST_F(MultiReaderTest, ReconnectWhileReading)
     ASSERT_EQ(status.getEventPackets().getCount(), 3u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 }
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEquality01)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993"));
+    addSignal(0, 113, createDomainSignal("1993"));
+    addSignal(0, 133, createDomainSignal("1993"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+
+    auto received = privateSink.waitForMessage(9001);
+    ASSERT_EQ(received, true);
+    auto str = privateSink.getLastMessage();
+    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEquality02)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEquality03)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+TEST_F(MultiReaderTest, ReferenceDomainIdEquality04)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEquality05)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality01)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality02)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality03)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "B"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality04)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality05)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B"));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B"));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A"));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality01)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+
+    auto received = privateSink.waitForMessage(9001);
+    ASSERT_EQ(received, true);
+    auto str = privateSink.getLastMessage();
+    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality02)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+
+    auto received = privateSink.waitForMessage(9001);
+    ASSERT_EQ(received, true);
+    auto str = privateSink.getLastMessage();
+    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality03)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality04)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality01)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality02)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality03)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality04)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality05)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality06)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality07)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality08)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality09)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality10)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality11)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality12)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteInequality13)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality01)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality02)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality03)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "B", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality04)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "B", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality05)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality06)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, R"(Reference domain incompatible.)");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality07)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality08)
+{
+    constexpr const auto NUM_SIGNALS = 4;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality09)
+{
+    constexpr const auto NUM_SIGNALS = 4;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality10)
+{
+    constexpr const auto NUM_SIGNALS = 6;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality11)
+{
+    constexpr const auto NUM_SIGNALS = 6;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality12)
+{
+    constexpr const auto NUM_SIGNALS = 12;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityIsAbsoluteInequality13)
+{
+    constexpr const auto NUM_SIGNALS = 12;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "B", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", False));
+    addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, "A", nullptr));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, "A", True));
+    addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, nullptr, nullptr));
+
+    ASSERT_NO_THROW(MultiReader(signalsToList()));
+}
+

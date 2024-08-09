@@ -32,6 +32,9 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("TickResolution", builderPtr.getTickResolution());
     params.set("StructFields", builderPtr.getStructFields());
     params.set("Metadata", builderPtr.getMetadata());
+    params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
+    params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
+    params.set("ReferenceDomainIsAbsolute", builderPtr.getReferenceDomainIsAbsolute());
 
     return params;
 }
@@ -53,6 +56,9 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
+    this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
+    this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
+    this->referenceDomainIsAbsolute = dataDescriptorBuilderPtr.getReferenceDomainIsAbsolute();
     checkErrorInfo(validate());
     calculateSampleMemSize();
 }
@@ -164,6 +170,33 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainId(IString** referenceDomainId)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+
+    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
+
+    *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+
+    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
 void DataDescriptorImpl::calculateSampleMemSize()
 {
     size_t elementCnt = 1;
@@ -246,6 +279,26 @@ ErrCode DataDescriptorImpl::validate()
                 if (sampleType > SampleType::RangeInt64)
                     return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
             }
+
+            if (dataRule.getType() == DataRuleType::Constant)
+            {
+                if (referenceDomainId.assigned())
+                    throw InvalidParameterException("Reference domain id not supported for constant data rule type.");
+                if (referenceDomainOffset.assigned())
+                    throw InvalidParameterException("Reference domain offset not supported for constant data rule type.");
+                if (referenceDomainIsAbsolute.assigned())
+                    throw InvalidParameterException("Reference domain is absolute not supported for constant data rule type.");
+            }
+            else if (scaling.assigned())
+            {
+                if (referenceDomainId.assigned())
+                    throw InvalidParameterException("Reference domain id not supported with post scaling.");
+                if (referenceDomainOffset.assigned())
+                    throw InvalidParameterException("Reference domain offset not supported with post scaling.");
+                if (referenceDomainIsAbsolute.assigned())
+                    throw InvalidParameterException("Reference domain is absolute not supported with post scaling.");
+            }
+                
         }
 
         if (dimensions.assigned())
@@ -311,6 +364,13 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         if (!BaseObjectPtr::Equals(structFields, descriptor.getStructFields()))
             return OPENDAQ_SUCCESS;
         if (!BaseObjectPtr::Equals(metadata, descriptor.getMetadata()))
+            return OPENDAQ_SUCCESS;
+
+        if (!BaseObjectPtr::Equals(referenceDomainId, descriptor.getReferenceDomainId()))
+            return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainOffset, descriptor.getReferenceDomainOffset()))
+            return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainIsAbsolute, descriptor.getReferenceDomainIsAbsolute()))
             return OPENDAQ_SUCCESS;
 
         *equals = true;
@@ -420,6 +480,25 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
 
         serializer->key("structFields");
         structFields.serialize(serializer);
+
+        if (referenceDomainId.assigned()) // TODO: maybe check for empty string?
+        {
+            serializer->key("referenceDomainId");
+            serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());
+        }
+
+        if (referenceDomainOffset.assigned())
+        {
+            serializer->key("referenceDomainOffset");
+            serializer->writeInt(referenceDomainOffset);
+        }
+
+        if (referenceDomainIsAbsolute.assigned())
+        {
+            serializer->key("referenceDomainIsAbsolute");
+            serializer->writeBool(referenceDomainIsAbsolute);
+        }
+
     }
     serializer->endObject();
 
@@ -496,6 +575,24 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     ListPtr<IDataDescriptor> structFields = serializedObj.readObject("structFields");
     dataDescriptor.setStructFields(structFields);
+
+    if (serializedObj.hasKey("referenceDomainId"))
+    {
+        auto referenceDomainId = serializedObj.readString("referenceDomainId");
+        dataDescriptor.setReferenceDomainId(referenceDomainId);
+    }
+
+    if (serializedObj.hasKey("referenceDomainOffset"))
+    {
+        auto referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
+        dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
+    }
+
+    if (serializedObj.hasKey("referenceDomainIsAbsolute"))
+    {
+        auto referenceDomainIsAbsolute = serializedObj.readBool("referenceDomainIsAbsolute");
+        dataDescriptor.setReferenceDomainIsAbsolute(referenceDomainIsAbsolute);
+    }
 
     *obj = dataDescriptor.build().as<IBaseObject>();
 

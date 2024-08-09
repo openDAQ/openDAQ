@@ -67,6 +67,15 @@ public:
     ErrCode INTERFACE_FUNC setStructFields(IList* structFields) override;
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
 
+    ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+
+    ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
+
+    ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+
 protected:
     ListPtr<IDimension> dimensions;
     StringPtr name;
@@ -79,6 +88,9 @@ protected:
     RatioPtr resolution;
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
+    StringPtr referenceDomainId;
+    IntegerPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
 };
 
 END_NAMESPACE_OPENDAQ

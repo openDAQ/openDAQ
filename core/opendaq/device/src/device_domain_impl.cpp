@@ -6,14 +6,23 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-    static const StructTypePtr unitStructType = UnitStructType();
+    static const StructTypePtr deviceDomainStructType = DeviceDomainStructType();
 }
 
-DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution, StringPtr origin, UnitPtr unit)
+DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution,
+                                   StringPtr origin,
+                                   UnitPtr unit,
+                                   StringPtr referenceDomainId,
+                                   IntegerPtr referenceDomainOffset,
+                                   BoolPtr referenceDomainIsAbsolute)
     : GenericStructImpl<IDeviceDomain, IStruct>(
-        detail::unitStructType,
-        Dict<IString, IBaseObject>(
-            {{"TickResolution", std::move(tickResolution)}, {"Origin", std::move(origin)}, {"Unit", std::move(unit)}}))
+          detail::deviceDomainStructType,
+          Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
+                                      {"Origin", std::move(origin)},
+                                      {"Unit", std::move(unit)},
+                                      {"ReferenceDomainId", std::move(referenceDomainId)},
+                                      {"ReferenceDomainOffset", std::move(referenceDomainOffset)},
+                                      {"ReferenceDomainIsAbsolute", std::move(referenceDomainIsAbsolute)}}))
 {
 }
 
@@ -38,6 +47,39 @@ ErrCode DeviceDomainImpl::getUnit(IUnit** unit)
     OPENDAQ_PARAM_NOT_NULL(unit);
 
     *unit = this->fields.get("Unit").asPtr<IUnit>().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getReferenceDomainId(IString** referenceDomainId)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+
+    auto ptr = this->fields.get("ReferenceDomainId");
+    if (ptr.assigned())
+        *referenceDomainId = ptr.asPtr<IString>().addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
+
+    auto ptr = this->fields.get("ReferenceDomainOffset");
+    if (ptr.assigned())
+        *referenceDomainOffset = ptr.asPtr<IInteger>().addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+
+    auto ptr = this->fields.get("ReferenceDomainIsAbsolute");
+    if (ptr.assigned())
+        *referenceDomainIsAbsolute = ptr.asPtr<IBoolean>().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -67,6 +109,27 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             serializer->key("unit");
             unit.serialize(serializer);
         }
+
+        const StringPtr referenceDomainId = this->fields.get("ReferenceDomainId");
+        if (referenceDomainId.assigned()) // TODO: maybe check for empty string?
+        {
+            serializer->key("referenceDomainId");
+            serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());
+        }
+
+        const IntegerPtr referenceDomainOffset = this->fields.get("ReferenceDomainOffset");
+        if (referenceDomainOffset.assigned())
+        {
+            serializer->key("referenceDomainOffset");
+            serializer->writeInt(referenceDomainOffset);
+        }
+
+        const BoolPtr referenceDomainIsAbsolute = this->fields.get("ReferenceDomainIsAbsolute");
+        if (referenceDomainIsAbsolute.assigned())
+        {
+            serializer->key("referenceDomainIsAbsolute");
+            serializer->writeBool(referenceDomainIsAbsolute);
+        }
     }
 
     serializer->endObject();
@@ -95,6 +158,9 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     RatioPtr resolution;
     StringPtr origin;
     UnitPtr unit;
+    StringPtr referenceDomainId;
+    IntegerPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
     
     if (serializedObj.hasKey("tickResolution"))
     {
@@ -111,7 +177,22 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         unit = serializedObj.readObject("unit");
     }
 
-    *obj = DeviceDomain(resolution, origin, unit).as<IBaseObject>();
+    if (serializedObj.hasKey("referenceDomainId"))
+    {
+        referenceDomainId = serializedObj.readString("referenceDomainId");
+    }
+
+    if (serializedObj.hasKey("referenceDomainOffset"))
+    {
+        referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
+    }
+
+    if (serializedObj.hasKey("referenceDomainIsAbsolute"))
+    {
+        referenceDomainIsAbsolute = serializedObj.readBool("referenceDomainIsAbsolute");
+    }
+
+    *obj = DeviceDomain(resolution, origin, unit, referenceDomainId, referenceDomainOffset, referenceDomainIsAbsolute).as<IBaseObject>();
     return OPENDAQ_SUCCESS;
 }
 
@@ -119,6 +200,15 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
     IUnit*, unit
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomain,
+    IRatio*, tickResolution,
+    IString*, origin,
+    IUnit*, unit,
+    IString*, referenceDomainId,
+    IInteger*, referenceDomainOffset,
+    IBoolean*, referenceDomainIsAbsolute
 )
 
 END_NAMESPACE_OPENDAQ

@@ -94,7 +94,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             return objectPtr.addStandardServers().detach();
         },
-        "Creates and adds streaming and \"openDAQ OpcUa\" servers with default configurations.");
+        "Creates and adds streaming and \"OpenDAQOPCUA\" servers with default configurations.");
     cls.def("remove_server",
         [](daq::IInstance *object, daq::IServer* server)
         {

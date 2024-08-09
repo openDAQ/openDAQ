@@ -25,8 +25,11 @@
 #include <opendaq/signal_factory.h>
 #include <testutils/testutils.h>
 #include <opendaq/reader_utils.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 #include <thread>
+
+using namespace daq;
 
 #if !defined(SKIP_TEST_MAC_CI)
     #if defined(__clang__) && !defined(__RESHARPER__)
@@ -36,10 +39,14 @@
     #endif   
 #endif
 
-daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule = nullptr, daq::ScalingPtr scaling = nullptr);
+daq::DataDescriptorPtr setupDescriptor(daq::SampleType type,
+                                       daq::DataRulePtr rule = nullptr,
+                                       daq::ScalingPtr scaling = nullptr);
 daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
                                                           daq::DataRulePtr rule = nullptr,
-                                                          daq::ScalingPtr scaling = nullptr);
+                                                          daq::ScalingPtr scaling = nullptr,
+                                                          daq::StringPtr referenceDomainId = nullptr,
+                                                          daq::BooleanPtr referenceDomainIsAbsolute = nullptr);
 
 template <typename T = void>
 class ReaderTest : public testing::Test
@@ -47,17 +54,18 @@ class ReaderTest : public testing::Test
 protected:
     void SetUp() override
     {
-        logger = getLogger();
+        auto debugSink = LastMessageLoggerSink();
+        debugSink.setLevel(LogLevel::Info);
+        auto sinks = DefaultSinks(nullptr);
+        sinks.pushBack(debugSink);
+        privateSink = debugSink;
+        logger =  LoggerWithSinks(sinks);
         context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
         scheduler = context.getScheduler();
         signal = daq::Signal(context, nullptr, "sig");
     }
 
 public:
-    virtual daq::LoggerPtr getLogger()
-    {
-        return daq::Logger();
-    }
 
     void sendPacket(const daq::PacketPtr& packet, bool wait = true) const
     {
@@ -97,7 +105,9 @@ public:
 
     auto createDomainDescriptor(std::string epoch = "",
                                 daq::RatioPtr resolution = nullptr,
-                                daq::DataRulePtr rule = nullptr) const
+                                daq::DataRulePtr rule = nullptr,
+                                daq::StringPtr referenceDomainId = nullptr,
+                                daq::BooleanPtr referenceDomainIsAbsolute = nullptr) const
     {
         if (epoch.empty())
         {
@@ -114,7 +124,7 @@ public:
             rule = daq::LinearDataRule(1, 0);
         }
 
-        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr)
+        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, referenceDomainId, referenceDomainIsAbsolute)
             .setOrigin(epoch)
             .setTickResolution(resolution)
             .setUnit(daq::Unit("s", -1, "seconds", "time"))
@@ -134,14 +144,17 @@ protected:
     daq::ContextPtr context;
     daq::SchedulerPtr scheduler;
     daq::SignalConfigPtr signal;
+    daq::LastMessageLoggerSinkPrivatePtr privateSink;
 };
 
 [[nodiscard]]
 inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
-                                                                daq::DataRulePtr rule,
-                                                                daq::ScalingPtr scaling)
+                                                                 daq::DataRulePtr rule,
+                                                                 daq::ScalingPtr scaling,
+                                                                 daq::StringPtr referenceDomainId,
+                                                                 daq::BooleanPtr referenceDomainIsAbsolute)
 {
-    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling);
+    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling).setReferenceDomainId(referenceDomainId).setReferenceDomainIsAbsolute(referenceDomainIsAbsolute);
 
     if (rule.assigned())
         dataDescriptor.setRule(rule);

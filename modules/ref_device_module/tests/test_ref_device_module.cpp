@@ -164,6 +164,39 @@ TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
     ASSERT_FALSE(static_cast<std::string>(res).empty());
 }
 
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainId();
+    ASSERT_EQ(res, "RefDev1");
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainOffset();
+    ASSERT_EQ(res, 0);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIsAbsolute)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainIsAbsolute();
+    ASSERT_EQ(res, nullptr);
+}
+
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();

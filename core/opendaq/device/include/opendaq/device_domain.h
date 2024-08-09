@@ -18,6 +18,8 @@
 #include <coreobjects/unit.h>
 #include <coretypes/ratio.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/boolean.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IUnit, CoreObjects)]
+ * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -65,6 +69,30 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
      * @param[out] unit The domain unit.
      */
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
+
+    /*!
+     * @brief Gets the reference domain id.
+     * @param[out] referenceDomainId The reference domain id.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
+
+    /*!
+     * @brief Gets the reference domain offset.
+     * @param[out] referenceDomainOffset The reference domain offset.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
+
+    /*!
+     * @brief Gets the flag that indicates if the reference domain is absolute.
+     * @param[out] referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
 };
 /*!@}*/
 
@@ -74,5 +102,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IUnit*, unit
 )
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomain,
+    IRatio*, tickResolution,
+    IString*, origin,
+    IUnit*, unit,
+    IString*, referenceDomainId,
+    IInteger*, referenceDomainOffset,
+    IBoolean*, referenceDomainIsAbsolute
+)
 
 END_NAMESPACE_OPENDAQ

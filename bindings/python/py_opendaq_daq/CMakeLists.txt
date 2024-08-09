@@ -24,3 +24,22 @@ if(UNIX)
             BUILD_RPATH_USE_ORIGIN ON
     )
 endif()
+
+
+if (OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS)  
+    execute_process(COMMAND ${Python_EXECUTABLE} -m pybind11_stubgen -h RESULT_VARIABLE PYBIND11_STUBGEN_RESULT OUTPUT_QUIET)
+    if (${PYBIND11_STUBGEN_RESULT} GREATER 0)
+        message(FATAL_ERROR "Failed to execute pybind11-stubgen python module. Make sure it is installed with `pip install pybind11-stubgen` or `python -m pip install pybind11_stubgen`.")    
+    endif()
+
+    if(MSVC OR GENERATOR_IS_MULTI_CONFIG)
+        set(OutputBinDir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
+    else()
+        set(OutputBinDir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    endif()
+    
+    add_custom_command(TARGET ${LIB_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputBinDir} -- ${Python_EXECUTABLE} -m pybind11_stubgen opendaq -o .
+        WORKING_DIRECTORY ${OutputBinDir}
+        COMMENT "Generate python bindings stubs (.pyi)")
+endif()

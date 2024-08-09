@@ -33,7 +33,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
 
     if (config.assigned())
     {
-        if (config.hasProperty("LocalId"))
+        if (config.hasProperty("SerialNumber"))
             serialNumber = config.getPropertyValue("SerialNumber");
     }
     
@@ -64,7 +64,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
+    devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
@@ -72,10 +72,16 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
 
 DeviceTypePtr RefDeviceImpl::CreateType()
 {
+    const auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
+    defaultConfig.addProperty(BoolProperty("EnableCANChannel", False));
+    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+
     return DeviceType("daqref",
                       "Reference device",
                       "Reference device",
-                      "daqref");
+                      "daqref",
+                      defaultConfig);
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()

@@ -350,6 +350,16 @@ TEST_F(RefModulesTest, FindComponentChannel)
     ASSERT_TRUE(comp.supportsInterface<IChannel>());
 }
 
+TEST_F(RefModulesTest, OptionViaConnectionString)
+{
+    auto instance = Instance("", "localInstance");
+    auto device = instance.addDevice("daqref://device0?NumberOfChannels=3&EnableCANChannel=True");
+
+    const auto numOfChannels = device.getChannelsRecursive().getCount();
+
+    ASSERT_EQ(numOfChannels, 4);
+}
+
 TEST_F(RefModulesTest, FindComponentDevice)
 {
     auto instance = Instance("", "localInstance");

@@ -94,6 +94,11 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(miniaudio EXCLUDE_FROM_ALL)
 endif()
 
+if (DAQMODULES_FILE_WRITER_MODULE)
+    add_subdirectory(thrift EXCLUDE_FROM_ALL)
+    add_subdirectory(arrow EXCLUDE_FROM_ALL)
+endif()
+
 if(OPENDAQ_ENABLE_OPCUA)
     add_subdirectory(opcua_daq_types EXCLUDE_FROM_ALL)
 endif()

@@ -1,48 +1,27 @@
 #include <ref_device_module/ref_device_impl.h>
-#include <opendaq/device_info_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_can_channel_impl.h>
-#include <opendaq/module_manager_ptr.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
-    : GenericDevice<>(ctx, parent, localId, nullptr, name)
-    , id(id)
+RefDeviceImpl::RefDeviceImpl(const DeviceTemplateParams& params)
+    : DeviceTemplate(params)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
-    , logger(ctx.getLogger())
-    , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent(REF_MODULE_NAME)
-                          : throw ArgumentNullException("Logger must not be null"))
 {
     initIoFolder();
     initSyncComponent();
     initClock();
-    initProperties(config);
+    initProperties(params.config);
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
-
-    if (config.assigned())
-    {
-        if (config.hasProperty("LocalId"))
-            serialNumber = config.getPropertyValue("SerialNumber");
-    }
-    
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned())
-    {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
-    }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -58,48 +37,11 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
-{
-    auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
-    devInfo.setName(fmt::format("Device {}", id));
-    devInfo.setManufacturer("openDAQ");
-    devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
-    devInfo.setDeviceType(CreateType());
-
-    return devInfo;
-}
-
-DeviceTypePtr RefDeviceImpl::CreateType()
-{
-    return DeviceType("daqref",
-                      "Reference device",
-                      "Reference device",
-                      "daqref");
-}
-
-DeviceInfoPtr RefDeviceImpl::onGetInfo()
-{
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
-    deviceInfo.freeze();
-    return deviceInfo;
-}
-
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
 {
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
     return static_cast<SizeT>(ticksSinceEpoch.count());
-}
-
-bool RefDeviceImpl::allowAddDevicesFromModules()
-{
-    return true;
-}
-
-bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
-{
-    return true;
 }
 
 std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
@@ -185,7 +127,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
     
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(REF_MODULE_ID);
     if (options.assigned())
     {
         if (options.hasKey("NumberOfChannels"))

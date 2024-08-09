@@ -270,7 +270,7 @@ public:
      * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
      * @returns The device object created to communicate with and control the device.
      */
-    virtual DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
+    virtual DevicePtr onCreateDevice(const StringPtr& /*connectionString*/, const ComponentPtr& /*parent*/, const PropertyObjectPtr& /*config*/)
     {
         return nullptr;
     }
@@ -289,9 +289,11 @@ public:
      * The function block is not automatically added to the FB list of the caller.
      * @param id The id of the function block to create. Ids can be retrieved by calling `getAvailableFunctionBlockTypes()`.
      * @param parent The parent component/folder/device to which the device attaches.
+     * @param localId The local ID of the function block that will be created.
+     * @param config Configuration parameters used during function block construction.
      * @returns The created function block.
      */
-    virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
+    virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& /*id*/, const ComponentPtr& /*parent*/, const StringPtr& /*localId*/, const PropertyObjectPtr& /*config*/)
     {
         throw NotFoundException();
     }
@@ -310,17 +312,17 @@ public:
         return Dict<IString, IStreamingType>();
     }
 
-    virtual ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice)
+    virtual ServerPtr onCreateServer(StringPtr /*serverType*/, PropertyObjectPtr /*serverConfig*/, DevicePtr /*rootDevice*/)
     {
         return nullptr;
     }
 
-    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
+    virtual StreamingPtr onCreateStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
     {
         return nullptr;
     }
 
-    virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
+    virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& /*source*/, const ServerCapabilityConfigPtr& /*target*/)
     {
         return false;
     }

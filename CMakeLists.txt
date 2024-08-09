@@ -680,6 +680,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
 endif()
 
 add_subdirectory(core)
+add_subdirectory(templates)
 add_subdirectory(modules)
 add_subdirectory(bindings)
 add_subdirectory(shared)

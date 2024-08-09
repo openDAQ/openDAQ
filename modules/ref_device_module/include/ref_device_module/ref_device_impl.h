@@ -17,29 +17,20 @@
 #pragma once
 #include <ref_device_module/common.h>
 #include <opendaq/channel_ptr.h>
-#include <opendaq/device_impl.h>
-#include <opendaq/logger_ptr.h>
-#include <opendaq/logger_component_ptr.h>
+#include <opendaq_module_template/device_template.h>
 #include <thread>
 #include <condition_variable>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceImpl final : public Device
+class RefDeviceImpl final : public DeviceTemplate
 {
 public:
-    explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
+    explicit RefDeviceImpl(const DeviceTemplateParams& config);
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
-    static DeviceTypePtr CreateType();
-
     // IDevice
-    DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
-
-    bool allowAddDevicesFromModules() override;
-    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     void initClock();
@@ -52,9 +43,6 @@ private:
     void updateAcqLoopTime();
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
-
-    size_t id;
-    StringPtr serialNumber;
 
     std::thread acqThread;
     std::condition_variable cv;
@@ -70,9 +58,6 @@ private:
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
     ComponentPtr syncComponent;
-
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

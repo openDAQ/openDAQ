@@ -1,0 +1,4 @@
+#include <opendaq_module_template/channel_template.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ

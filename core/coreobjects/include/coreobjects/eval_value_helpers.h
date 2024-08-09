@@ -182,6 +182,8 @@ public:
     virtual ErrCode Property_GetStructType(IStructType** structType)  = 0;
     virtual ErrCode Property_GetOnPropertyValueWrite(IEvent** event)  = 0;
     virtual ErrCode Property_GetOnPropertyValueRead(IEvent** event)  = 0;
+    virtual ErrCode Property_GetValue(IBaseObject** value)  = 0;
+    virtual ErrCode Property_SetValue(IBaseObject* value)  = 0;
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
     {
@@ -286,6 +288,16 @@ public:
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
     {
         return Property_GetOnPropertyValueRead(event);
+    }
+
+    ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override
+    {
+        return Property_GetValue(value);
+    }
+
+    ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
+    {
+        return Property_SetValue(value);
     }
 };
 

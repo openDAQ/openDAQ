@@ -52,6 +52,8 @@ public:
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event);
     // [ignore(Wrapper)]
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event);
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value);
+    virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value);
 
 private:
     PropertyPtr property;

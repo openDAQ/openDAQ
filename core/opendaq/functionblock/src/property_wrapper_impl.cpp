@@ -159,4 +159,14 @@ ErrCode PropertyWrapperImpl::getOnPropertyValueRead(IEvent** event)
     return property->getOnPropertyValueRead(event);
 }
 
+ErrCode PropertyWrapperImpl::getValue(IBaseObject** value)
+{
+    return property->getValue(value);
+}
+
+ErrCode PropertyWrapperImpl::setValue(IBaseObject* value)
+{
+    return property->setValue(value);
+}
+
 END_NAMESPACE_OPENDAQ

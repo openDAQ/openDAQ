@@ -385,6 +385,26 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * value to be overridden.
      */
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) = 0;
+
+    /*!
+     * @brief Gets the value of the Property. Available only if the Property is bound to a Property object.
+     * @param value The Property value.
+     * @return OPENDAQ_ERR_NO_OWNER if the Property is not bound to a Property object.
+     *
+     * The call is equivalent to calling `getPropertyValue` on the Property object and all the limitations
+     * and implications of that call still apply.
+     */
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value) = 0;
+    
+    /*!
+     * @brief Sets the value of the Property. Available only if the Property is bound to a Property object.
+     * @param value The Property value.
+     * @return OPENDAQ_ERR_NO_OWNER if the Property is not bound to a Property object.
+     *
+     * The call is equivalent to calling `getPropertyValue` on the Property object and all the limitations
+     * and implications of that call still apply.
+     */
+    virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
 };
 /*!@}*/
 

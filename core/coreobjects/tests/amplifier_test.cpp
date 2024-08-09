@@ -346,6 +346,26 @@ TEST_F(STGAmplifierTest, Measurement0)
     ASSERT_EQ(rangeValues[0], rangeValue);
 }
 
+TEST_F(STGAmplifierTest, Measurement0PropertySetValue)
+{
+    auto lvAmpl = PropertyObject(objManager, "LvAmp");
+    lvAmpl.getProperty("Measurement").setValue(0);
+
+    lvAmpl.getProperty("Range").setValue(0);
+    Float rangeValue = lvAmpl.getPropertySelectionValue("Range");
+    auto rangeProp = lvAmpl.getProperty("Range");
+    ListPtr<Float> rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues[0], rangeValue);
+    
+    lvAmpl.setPropertyValue("Measurement", 1);
+    rangeValue = lvAmpl.getPropertySelectionValue("Range");
+    rangeProp = lvAmpl.getProperty("Range");
+    rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues[0], rangeValue);
+}
+
 TEST_F(STGAmplifierTest, Measurement1)
 {
     auto stgAmpl = PropertyObject(objManager, "LvAmp");
@@ -414,6 +434,34 @@ TEST_F(STGAmplifierTest, SetAndGetRefProperty)
 
     stgAmpl.setPropertyValue("Range", 2);
     stgAmpl.setPropertyValue("Measurement", 0);
+
+    ASSERT_EQ(stgAmpl.getPropertyValue("Range"), 1);
+}
+
+TEST_F(STGAmplifierTest, SetAndGetRefPropertyPropertySetValue)
+{
+    // create instance
+    auto stgAmpl = PropertyObject(objManager, "StgAmp");
+
+    stgAmpl.getProperty("Measurement").setValue(0);
+
+    auto rangeProp = stgAmpl.getProperty("Range");
+    ListPtr<Float> rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues.getCount(), 4u);
+    ASSERT_EQ(rangeValues.getItemAt(0), 50.0);
+
+    stgAmpl.getProperty("Range").setValue(1);
+    stgAmpl.getProperty("Measurement").setValue(1);
+
+    rangeProp = stgAmpl.getProperty("Range");
+    rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues.getCount(), 4u);
+    ASSERT_EQ(rangeValues.getItemAt(0), 1000.0);
+
+    stgAmpl.getProperty("Range").setValue(2);
+    stgAmpl.getProperty("Measurement").setValue(0);
 
     ASSERT_EQ(stgAmpl.getPropertyValue("Range"), 1);
 }
@@ -775,4 +823,12 @@ TEST_F(STGAmplifierTest, TestBeginEndUpdateOrder)
     ASSERT_EQ(ampl.getPropertyValue("ResistanceRange"), 2);
     ASSERT_EQ(ampl.getPropertyValue("BridgeRange"), 1);
     ASSERT_EQ(ampl.getPropertyValue("VoltageInputType"), 0);
+}
+
+TEST_F(STGAmplifierTest, TestPropertyGetValue)
+{
+    auto ampl = PropertyObject(objManager, "StgAmp");
+
+    for (const auto& prop : ampl.getAllProperties())
+        ASSERT_EQ(ampl.getPropertyValue(prop.getName()), prop.getValue());
 }

@@ -35,6 +35,7 @@
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
+#include <coreobjects/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -767,6 +768,22 @@ public:
 
         *event = onValueRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef()->getPropertyValue(this->name, value);
+    }
+
+    ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef()->setPropertyValue(this->name, value);
     }
 
     ErrCode INTERFACE_FUNC validate()

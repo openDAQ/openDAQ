@@ -123,7 +123,6 @@ run_rtgen opendaq opendaq/scheduler       opendaq opendaq/generated/scheduler   
 run_rtgen opendaq opendaq/scheduler       opendaq opendaq/generated/scheduler     task_graph
 run_rtgen opendaq opendaq/server          opendaq opendaq/generated/server        server
 run_rtgen opendaq opendaq/server          opendaq opendaq/generated/server        server_type
-run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal        allocator
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal        connection
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal        data_descriptor
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal        data_descriptor_builder

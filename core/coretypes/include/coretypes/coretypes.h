@@ -80,6 +80,8 @@
 #include <coretypes/enumeration_factory.h>
 #include <coretypes/enumeration_type_factory.h>
 
+#include <coretypes/version_info_factory.h>
+
 /*!
  * @defgroup coretypes Core Types
  * @brief Core types

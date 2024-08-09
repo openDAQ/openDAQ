@@ -73,7 +73,7 @@ GenericSyncComponentImpl<MainInterface, Interfaces...>::GenericSyncComponentImpl
                              const StringPtr& localId,
                              const StringPtr& className,
                              const StringPtr& name)
-    : Super(context, parent, localId, className, name)
+    : Super(context, parent, localId, nullptr, "Sync")
 {
     Super::addProperty(ObjectProperty("Interfaces", PropertyObject()));
     Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));

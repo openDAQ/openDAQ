@@ -235,12 +235,13 @@ void TmsClientDeviceImpl::fetchTimeDomain()
 
 void TmsClientDeviceImpl::findAndCreateSyncComponent()
 {
+    this->removeComponentById("Sync");
     auto syncComponentNodeId = getNodeId("Synchronization");
-    syncComponent = TmsClientSyncComponent(context,
-                                       devices,
-                                       "Synchronization",
+    syncComponent = this->addExistingComponent(TmsClientSyncComponent(context,
+                                       this->thisPtr<ComponentPtr>(),
+                                       "Sync",
                                        clientContext,
-                                       syncComponentNodeId);
+                                       syncComponentNodeId));
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

@@ -11,23 +11,27 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
-    auto device = instance.addDevice("daq.opcua://qemux86-64:4840");
-    auto sync = device.getSyncComponent();
+    auto device = instance.addDevice("daq.opcua://192.168.0.38:4840/");
 
-    for (const auto prop: sync.getAllProperties())
+    auto items = device.getItems();
+    for (const auto item: items)
     {
-        auto name = prop.getName();
-        auto value = sync.getPropertyValue(name);
-        if (name == "Interfaces")
+        std::cout << item.getLocalId() << std::endl;
+        if (item.getLocalId() == "Sync")
         {
-            auto interfacePO = value.asPtr<IPropertyObject>(true);
-            auto interfaces = interfacePO.getAllProperties();
-            for (const auto interface: interfaces)
+            for (const auto prop: item.getAllProperties())
             {
-                std::cout << interface.getName() << std::endl;
+                auto name = prop.getName();
+                auto value = item.getPropertyValue(name);
+                if (name == "Interfaces")
+                {
+                    auto interfacePO = value.asPtr<IPropertyObject>(true);
+                    PropertyObjectPtr ptp = interfacePO.getPropertyValue("Ptp");
+                    auto selection_value = ptp.getPropertySelectionValue("Mode");
+                }
+                std::cout << name  << std::endl;
             }
         }
-        std::cout << name  << std::endl;
     }
 
     // // Find and connect to a simulator device

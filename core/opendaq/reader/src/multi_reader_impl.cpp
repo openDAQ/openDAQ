@@ -173,20 +173,20 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     return list;
 }
 
-struct MultiReaderImpl::DomainBin
+struct MultiReaderImpl::ReferenceDomainBin
 {
     StringPtr id;
-    BoolPtr isAbs;
+    BoolPtr isAbsolute;
 
-    bool operator<(const DomainBin& rhs) const
+    bool operator<(const ReferenceDomainBin& rhs) const
     {
         if (id == rhs.id)
         {
             // Both ids are the same
-            if (!rhs.isAbs.assigned())
+            if (!rhs.isAbsolute.assigned())
                 return false;  // Right one doesn't have absolute assigned
-            if (isAbs.assigned() && rhs.isAbs.assigned())
-                return isAbs < rhs.isAbs;  // Absolute not the same, but both are assigned
+            if (isAbsolute.assigned() && rhs.isAbsolute.assigned())
+                return isAbsolute < rhs.isAbsolute;  // Absolute not the same, but both are assigned
             return true;
         }
         if (id.assigned() && rhs.id.assigned())
@@ -202,7 +202,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
 
-    auto referenceDomainElts = std::set<DomainBin>();
+    auto referenceDomainElts = std::set<ReferenceDomainBin>();
 
     for (const auto& port : list)
     {
@@ -267,7 +267,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             }
         }
 
-        DomainBin refDom = {domainDescriptor.getReferenceDomainId(), domainDescriptor.getReferenceDomainIsAbsolute()};
+        ReferenceDomainBin refDom = {domainDescriptor.getReferenceDomainId(), domainDescriptor.getReferenceDomainIsAbsolute()};
 
         // Check domain ID existence
         if (!refDom.id.assigned())
@@ -277,7 +277,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         }
 
         // Check reference domain (is absolute / ID matching)
-        if (!refDom.isAbs.assigned() || !refDom.isAbs)
+        if (!refDom.isAbsolute.assigned() || !refDom.isAbsolute)
         {
             // Is not absolute
 
@@ -305,7 +305,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
                         // Needs absolute
                         needsAbs = true;
                     }
-                    if (elt->isAbs.assigned() && elt->isAbs)
+                    if (elt->isAbsolute.assigned() && elt->isAbsolute)
                     {
                         // Group (domain signals with identical domain ID) has at least one absolute
                         hasAbs = true;

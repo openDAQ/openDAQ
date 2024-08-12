@@ -14,3 +14,45 @@
  * limitations under the License.
  */
 
+#pragma once
+#include <coretypes/struct_impl.h>
+#include <opendaq/reference_domain_info_builder_ptr.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+class ReferenceDomainInfoImpl : public GenericStructImpl<IReferenceDomainInfo, IStruct>
+{
+public:
+    using Super = GenericStructImpl<IReferenceDomainInfo, IStruct>;
+
+    explicit ReferenceDomainInfoImpl(IReferenceDomainInfoBuilder* referenceDomainInfoBuilder);
+
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+
+    ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
+
+protected:
+    StringPtr referenceDomainId;
+    IntegerPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
+
+private:
+    static DictPtr<IString, IBaseObject> PackBuilder(IReferenceDomainInfoBuilder* referenceDomainInfoBuilder);
+};
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ReferenceDomainInfoImpl)
+
+END_NAMESPACE_OPENDAQ

@@ -23,6 +23,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct IReferenceDomainInfoBuilder;
 
+/*#
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
+ */
+
 /*!
  * @ingroup opendaq_signals
  * @addtogroup opendaq_reference_domain_info Reference Domain Info

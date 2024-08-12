@@ -83,7 +83,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         if (cnt != 0)
             id += std::to_string(cnt);
         cnt++;
-        devicePtr = MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config);
+        devicePtr = DevicePtr(MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config));
     }
     else
     {

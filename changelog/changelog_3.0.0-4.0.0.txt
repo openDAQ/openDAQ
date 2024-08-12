@@ -1,4 +1,14 @@
 12.08.2024
+Description:
+	- Changed logic of IProperty::getOnPropertyValue events.
+	- Now returns the owner's event when called, if the owner is assigned.
+	- A new function is available to get the class's event. That function is used internally to trigger class value change events.
+	
++ [function] IEvent::getSubscribers(IList** subscribers)
++ [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
++ [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
+
+12.08.2024
 Description
   - Intergration the Sync Component
   - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property

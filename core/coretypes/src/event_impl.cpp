@@ -81,6 +81,22 @@ ErrCode EventImpl::getSubscriberCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode EventImpl::getSubscribers(IList** subscribers)
+{
+    if (!subscribers)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+	std::scoped_lock lock(sync);
+
+    auto list = List<IEventHandler>();
+
+    for (const auto& handler : handlers)
+        list.pushBack(handler.eventHandler);
+
+	*subscribers = list.detach();
+	return OPENDAQ_SUCCESS;
+}
+
 ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
 {
     std::scoped_lock lock(sync);

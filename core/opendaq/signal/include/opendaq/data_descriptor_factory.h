@@ -43,7 +43,7 @@ inline DataDescriptorBuilderPtr DataDescriptorBuilder()
 /*!
  * @brief Data descriptor copy factory that creates a Data descriptor builder object from a
  * different Data descriptor, copying its parameters.
- * @param descriptorToCopy The Data descriptor of which configuration should be copied.
+ * @param dataDescriptor The Data descriptor of which configuration should be copied.
  */
 inline DataDescriptorBuilderPtr DataDescriptorBuilderCopy(const DataDescriptorPtr& dataDescriptor)
 {
@@ -52,8 +52,8 @@ inline DataDescriptorBuilderPtr DataDescriptorBuilderCopy(const DataDescriptorPt
 }
 
 /*!
- * @brief Creates a DataDescriptor using Builder
- * @param builder DataDescriptor Builder
+ * @brief Creates a Data Descriptor using Builder
+ * @param builder Data Descriptor Builder
  */
 inline DataDescriptorPtr DataDescriptorFromBuilder(const DataDescriptorBuilderPtr& builder)
 {

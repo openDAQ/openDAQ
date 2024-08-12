@@ -269,8 +269,8 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
  */
 
 /*!
- * @brief Creates a DataDescriptor using Builder
- * @param builder DataDescriptor Builder
+ * @brief Creates a Data Descriptor using Builder
+ * @param builder Data Descriptor Builder
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataDescriptorFromBuilder, IDataDescriptor,

@@ -101,17 +101,17 @@ public static partial class CoreTypesFactory
             case CoreType.ctInt:             return propertyValue.Cast<IntegerObject>();
             case CoreType.ctFloat:           return propertyValue.Cast<FloatObject>();
             case CoreType.ctString:          return propertyValue.Cast<StringObject>();
-            //case CoreType.ctList:          return null;
-            //case CoreType.ctDict:          return null;
-            //case CoreType.ctRatio:         return null;
-            //case CoreType.ctProc:          return null;
-            //case CoreType.ctObject:        return null;
-            //case CoreType.ctBinaryData:    return null;
-            //case CoreType.ctFunc:          return null;
-            //case CoreType.ctComplexNumber: return null;
-            //case CoreType.ctStruct:        return null;
-            //case CoreType.ctEnumeration:   return null;
-            //case CoreType.ctUndefined:     return null;
+            case CoreType.ctList:            return propertyValue.Cast<ListObject<BaseObject>>();
+            case CoreType.ctDict:            return propertyValue.Cast<DictObject<BaseObject, BaseObject>>();
+            case CoreType.ctRatio:           return propertyValue.Cast<Ratio>();
+            case CoreType.ctProc:            return propertyValue.Cast<Procedure>();
+            case CoreType.ctObject:          return propertyValue.Cast<BaseObject>();
+            //case CoreType.ctBinaryData:      return propertyValue.Cast<>();
+            case CoreType.ctFunc:            return propertyValue.Cast<Function>();
+            //case CoreType.ctComplexNumber:   return propertyValue.Cast<>();
+            case CoreType.ctStruct:          return propertyValue.Cast<Struct>();
+            case CoreType.ctEnumeration:     return propertyValue.Cast<Enumeration>();
+            //case CoreType.ctUndefined:       return propertyValue.Cast<>();
             default:                         return $"<{propertyType}>"; //StringObject ;)
         }
     }

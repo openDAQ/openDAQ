@@ -356,6 +356,28 @@ TEST_F(TMSAmplifierTest, Measurement0)
     ASSERT_EQ(rangeValues[0], rangeValue);
 }
 
+TEST_F(TMSAmplifierTest, Measurement0PropertySEtter)
+{
+    const auto obj = PropertyObject(objManager, "LvAmp");
+    auto [serverObj, lvAmpl] = registerPropertyObject(obj);
+
+    lvAmpl.getProperty("Measurement").setValue(0);
+
+    lvAmpl.getProperty("Range").setValue(0);
+    Float rangeValue = lvAmpl.getPropertySelectionValue("Range");
+    auto rangeProp = lvAmpl.getProperty("Range");
+    ListPtr<Float> rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues[0], rangeValue);
+    
+    lvAmpl.getProperty("Measurement").setValue(1);
+    rangeValue = lvAmpl.getPropertySelectionValue("Range");
+    rangeProp = lvAmpl.getProperty("Range");
+    rangeValues = rangeProp.getSelectionValues();
+
+    ASSERT_EQ(rangeValues[0], rangeValue);
+}
+
 TEST_F(TMSAmplifierTest, Measurement1)
 {
     const auto obj = PropertyObject(objManager, "LvAmp");
@@ -772,4 +794,12 @@ TEST_F(TMSAmplifierTest, PropertyOrder2)
 
     for (SizeT i = 0; i < serverProps.getCount(); ++i)
         ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
+}
+
+TEST_F(TMSAmplifierTest, PropertyGetValue)
+{
+    const auto obj = PropertyObject(objManager, "LvAmp");
+    auto [serverObj, lvAmpl] = registerPropertyObject(obj);
+    for (const auto& prop : lvAmpl.getAllProperties())
+        ASSERT_EQ(lvAmpl.getPropertyValue(prop.getName()), prop.getValue());
 }

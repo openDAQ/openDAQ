@@ -19,7 +19,6 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
         , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
-        , serializer(JsonSerializer())
         , deserializer(JsonDeserializer())
         , connected(false)
 {
@@ -182,7 +181,7 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
-    serializer.reset();
+    auto serializer = JsonSerializer();
     obj.serialize(serializer);
     return serializer.getOutput();
 }

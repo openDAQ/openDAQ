@@ -14,10 +14,9 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-static std::chrono::milliseconds requestTimeout = std::chrono::milliseconds(10000);
-
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
+                                       SizeT configProtocolRequestTimeout,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId)
@@ -29,6 +28,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(ClientConnectionStatus::Connected)
+    , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
 {
     setupProtocolClients(context);
 }
@@ -301,7 +301,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
     std::future<PacketBuffer> future = replyPackets.at(reqId).get_future();
     transportClientHandler->sendConfigRequest(reqPacket);
 
-    if (future.wait_for(requestTimeout) == std::future_status::ready)
+    if (future.wait_for(configProtocolRequestTimeout) == std::future_status::ready)
     {
         auto result = future.get();
         replyPackets.erase(reqId);

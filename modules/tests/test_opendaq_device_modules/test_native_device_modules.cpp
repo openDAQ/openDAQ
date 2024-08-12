@@ -1247,7 +1247,8 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
             "InactivityTimeout": 200,
             "ConnectionTimeout": 300,
             "StreamingInitTimeout": 400,
-            "ReconnectionPeriod": 500
+            "ReconnectionPeriod": 500,
+            "ConfigProtocolRequestTimeout": 6000
             }
         }
     }
@@ -1260,6 +1261,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
 
     auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
+    ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 6000);
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 

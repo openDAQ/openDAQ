@@ -1,10 +1,11 @@
-08.08.2024
+12.08.2024
 Description
   - Intergration the Sync Component
   - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
 Required integeration changes:
   - Each device now has a sync component, which is visible in default components as `Sync`. 
   Meantime the sync component transfers over OPC UA by node id `Synchronization`. 
+  - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
   - Sync component is replacing dummy property object in the ref device.
 
 + [interface] ISyncComponent : public IComponent
@@ -19,6 +20,14 @@ Required integeration changes:
 + [function] ISyncComponentPrivate::removeInterface(IString* syncInterfaceName);
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+
+08.08.2024
+Description:
+	- Add get/setValue method to IProperty
+	- Helpers allowing easier access to the property's value when iterating through an object's properties
+	
++ [function] IProperty::getValue(IBaseObject** value)
++ [function] IProperty::setValue(IBaseObject* value)
 
 26.07.2024
 Description:

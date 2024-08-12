@@ -24,7 +24,7 @@
 // https://pybind11-numpy-example.readthedocs.io/en/latest/index.html
 // source: https://github.com/pybind/pybind11/issues/1042#issuecomment-642215028
 template <typename Sequence>
-inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq,
+inline py::array toPyArray(Sequence&& seq,
                                                             const py::array::ShapeContainer& shape = {},
                                                             const py::array::StridesContainer& strides = {},
                                                             const std::string& dtype = {})

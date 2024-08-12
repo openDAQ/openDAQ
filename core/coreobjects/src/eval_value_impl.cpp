@@ -699,6 +699,16 @@ ErrCode EvalValueImpl::Property_GetOnPropertyValueRead(IEvent** /*event*/)
     return OPENDAQ_ERR_ACCESSDENIED;
 }
 
+ErrCode EvalValueImpl::Property_GetValue(IBaseObject** /*value*/)
+{
+    return OPENDAQ_ERR_ACCESSDENIED;
+}
+
+ErrCode EvalValueImpl::Property_SetValue(IBaseObject* /*value*/)
+{
+    return OPENDAQ_ERR_ACCESSDENIED;
+}
+
 ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 {
     if (id == nullptr)

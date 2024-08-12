@@ -24,26 +24,24 @@ using Daq.Core.Types;
 namespace openDAQDemoNet;
 
 
-public partial class frmAddDeviceDialog : Form
+public partial class frmAddFunctionBlockDialog : Form
 {
     /// <summary>The openDAQ instance.</summary>
     private readonly Instance _instance;
-    /// <summary>The list of used (connected) device instances which can be parent for new connections. To determine the used-state in <c>DataGridView</c>.</summary>
-    private readonly List<Device> _usedDevices = new();
-    /// <summary>The list of available device information (from device scan). Bound to <c>DataGridView</c>.</summary>
-    private readonly BindingList<ChildDevice> _childDevices = new();
+    /// <summary>The list of available function blocks. Bound to <c>DataGridView</c>.</summary>
+    private readonly BindingList<FunctionBlockInfo> _functionBlocks = new();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="frmAddDeviceDialog"/> class.
+    /// Initializes a new instance of the <see cref="frmAddFunctionBlockDialog"/> class.
     /// </summary>
     /// <param name="instance">The openDAQ instance.</param>
-    public frmAddDeviceDialog(Instance instance)
+    public frmAddFunctionBlockDialog(Instance instance)
     {
         InitializeComponent();
 
         this.treeParentDevices.HideSelection = false;
 
-        InitializeDataGridView(this.gridChildDevices);
+        InitializeDataGridView(this.gridFunctionBlocks);
 
         this._instance = instance;
     }
@@ -51,22 +49,21 @@ public partial class frmAddDeviceDialog : Form
     #region event handlers
 
     /// <summary>
-    /// Handles the Shown event of the <c>frmAddDeviceDialog</c> control.<br/>
+    /// Handles the Shown event of the <c>frmAddFunctionBlockDialog</c> control.<br/>
     /// Populates the <c>TreeView</c> and the <c>DataGridView</c>.
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-    private void frmAddDeviceDialog_Shown(object sender, EventArgs e)
+    private void frmAddFunctionBlockDialog_Shown(object sender, EventArgs e)
     {
         SetWaitCursor();
         this.Update();
 
         PopulateParentDevices(_instance);
-        PopulateChildDevices();
+        PopulateFunctionBlocks();
 
         //binding data late to not to "trash" GUI display beforehand
-        this.gridChildDevices.DataSource = _childDevices;
-        this.gridChildDevices.Columns["Used"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        this.gridFunctionBlocks.DataSource = _functionBlocks;
 
         ResetWaitCursor();
     }
@@ -75,18 +72,18 @@ public partial class frmAddDeviceDialog : Form
 
     private void contextMenuStripChildDevices_Opening(object sender, CancelEventArgs e)
     {
-        if (this.gridChildDevices.SelectedRows.Count == 0)
-            return;
+        //if (this.gridFunctionBlocks.SelectedRows.Count == 0)
+        //    return;
 
-        //set enabled state of "Add device" menu according to its "Used" flag
-        int rowIndex = this.gridChildDevices.SelectedRows[0].Index;
-        this.contextMenuItemChildDevicesAddDevice.Enabled = !_childDevices[rowIndex].IsUsed;
+        ////set enabled state of "Add device" menu according to its "Used" flag
+        //int rowIndex = this.gridFunctionBlocks.SelectedRows[0].Index;
+        //this.contextMenuItemChildDevicesAddDevice.Enabled = !_functionBlocks[rowIndex].IsUsed;
     }
 
     private void contextMenuItemChildDevicesAddDevice_Click(object sender, EventArgs e)
     {
-        //this.txtConnectionString.Text has already been set after (right-)clicking on the row
-        this.btnAdd.PerformClick();
+        int rowIndex = this.gridFunctionBlocks.SelectedRows[0].Index;
+        CreateAndAddFunctionBlockToParent(_functionBlocks[rowIndex].Id);
     }
 
     /// <summary>
@@ -97,14 +94,14 @@ public partial class frmAddDeviceDialog : Form
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
     private void contextMenuItemChildDevicesRefresh_Click(object sender, EventArgs e)
     {
-        PopulateChildDevices();
+        PopulateFunctionBlocks();
     }
 
     #endregion
 
     #region DataGridView
 
-    private void gridChildDevices_CellContextMenuStripNeeded(object sender, DataGridViewCellContextMenuStripNeededEventArgs e)
+    private void gridFunctionBlocks_CellContextMenuStripNeeded(object sender, DataGridViewCellContextMenuStripNeededEventArgs e)
     {
         DataGridView dataGridView = ((DataGridView)sender);
 
@@ -113,28 +110,12 @@ public partial class frmAddDeviceDialog : Form
     }
 
     /// <summary>
-    /// Handles the SelectionChanged event of the <c>gridChildDevices</c> control.<br/>
-    /// Populate the <c>txtConnectionString</c> control with the selected item.
-    /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-    private void gridChildDevices_SelectionChanged(object sender, EventArgs e)
-    {
-        if (this.gridChildDevices.SelectedRows.Count == 0)
-            return;
-
-        //set the selected connection string into the text box
-        int rowIndex = this.gridChildDevices.SelectedRows[0].Index;
-        this.txtConnectionString.Text = _childDevices[rowIndex].ConnectionString;
-    }
-
-    /// <summary>
-    /// Handles the CellDoubleClick event of the <c>gridChildDevices</c> control.<br/>
+    /// Handles the CellDoubleClick event of the <c>gridFunctionBlocks</c> control.<br/>
     /// Connect the device and add it to the selected node in the <c>TreeView</c> when not already used.
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="e">The <see cref="DataGridViewCellEventArgs"/> instance containing the event data.</param>
-    private void gridChildDevices_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    private void gridFunctionBlocks_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0)
         {
@@ -142,57 +123,11 @@ public partial class frmAddDeviceDialog : Form
             return;
         }
 
-        ChildDevice childDevice = _childDevices[e.RowIndex];
-
-        if (childDevice.IsUsed)
-        {
-            MessageBox.Show("Device already in use", "Add", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            return;
-        }
-
-        string connectionString = childDevice.ConnectionString;
-
-        if (ConnectAndAddDeviceToParent(connectionString))
-        {
-            childDevice.SetUsed();
-            this.gridChildDevices.Refresh(); //Update() does not paint the check-mark somehow
-        }
+        int rowIndex = this.gridFunctionBlocks.SelectedRows[0].Index;
+        CreateAndAddFunctionBlockToParent(_functionBlocks[rowIndex].Id);
     }
 
     #endregion
-
-    /// <summary>
-    /// Handles the Click event of the <c>btnAdd</c> control.<br/>
-    /// Connect the device with the given connection string and add it to the selected node in the <c>TreeView</c> when not already used.
-    /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-    private void btnAdd_Click(object sender, EventArgs e)
-    {
-        string connectionString = this.txtConnectionString.Text;
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            MessageBox.Show("No connection string given", "Add", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            return;
-        }
-
-        //search the connection string in the child device list (null when manually entered connection string)
-        ChildDevice? childDevice = _childDevices.FirstOrDefault(device => device.ConnectionString?.Equals(connectionString, StringComparison.InvariantCultureIgnoreCase) ?? false);
-
-        //found that child device in grid and it is already used?
-        if (childDevice?.IsUsed ?? false)
-        {
-            MessageBox.Show("Device already in use", "Add", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            return;
-        }
-
-        if (ConnectAndAddDeviceToParent(connectionString))
-        {
-            childDevice?.SetUsed(); //mark as used if exists in grid
-            this.gridChildDevices.Refresh();
-        }
-    }
 
     #endregion //event handlers .................................................................................
 
@@ -255,16 +190,11 @@ public partial class frmAddDeviceDialog : Form
 
         //first call of recursion?
         if (rootNode == null)
-        {
-            _usedDevices.Clear();
             nodesCollection.Clear();
-        }
 
         //create new tree node
         var deviceNode = nodesCollection.Add(device.Name);
         deviceNode.Tag = device;
-
-        _usedDevices.Add(device);
 
         IListObject<Device> childDevices = device.GetDevices();
 
@@ -288,19 +218,20 @@ public partial class frmAddDeviceDialog : Form
     /// <summary>
     /// Populates the child devices in the <c>DataGridView</c>.
     /// </summary>
-    private void PopulateChildDevices()
+    private void PopulateFunctionBlocks()
     {
         bool isWaitCursorAlreadyOn = this.UseWaitCursor;
 
         if (!isWaitCursorAlreadyOn)
             SetWaitCursor();
 
-        _childDevices.Clear();
-        this.gridChildDevices.Refresh(); //clear in GUI
+        _functionBlocks.Clear();
+        this.gridFunctionBlocks.Refresh(); //clear in GUI
 
-        foreach (var deviceInfo in _instance.AvailableDevices)
+        var availableFunctionBlockTypes = _instance.AvailableFunctionBlockTypes;
+        foreach (var functionBlockType in availableFunctionBlockTypes.Values)
         {
-            AddChildDeviceToGrid(deviceInfo.Name, deviceInfo.ConnectionString);
+            _functionBlocks.Add(new FunctionBlockInfo(functionBlockType));
         }
 
         if (!isWaitCursorAlreadyOn)
@@ -308,23 +239,11 @@ public partial class frmAddDeviceDialog : Form
     }
 
     /// <summary>
-    /// Adds the child device information to the <c>DataGridView</c>.
+    /// Creates a function block from the given <paramref name="typeId"/> and adds it to the selected parent device in the tree.
     /// </summary>
-    /// <param name="name">The device name.</param>
-    /// <param name="connectionString">The connection string.</param>
-    private void AddChildDeviceToGrid(string name, string connectionString)
-    {
-        bool isUsed = _usedDevices.Any(parentDevice => parentDevice.Info?.ConnectionString?.Equals(connectionString, StringComparison.InvariantCultureIgnoreCase) ?? false);
-
-        _childDevices.Add(new ChildDevice(isUsed, name, connectionString));
-    }
-
-    /// <summary>
-    /// Connects the device given by the <paramref name="connectionString"/> and adds it to the selected parent device in the tree.
-    /// </summary>
-    /// <param name="connectionString">The connection string.</param>
+    /// <param name="typeId">The function-block type-ID.</param>
     /// <returns></returns>
-    private bool ConnectAndAddDeviceToParent(string connectionString)
+    private bool CreateAndAddFunctionBlockToParent(string typeId)
     {
         TreeNode? selectedParentDeviceNode = this.treeParentDevices.SelectedNode;
         Device?   selectedParentDevice     = selectedParentDeviceNode?.Tag as Device;
@@ -335,35 +254,22 @@ public partial class frmAddDeviceDialog : Form
             return false;
         }
 
-        //check if the device is already connected
-        ChildDevice? childDevice = _childDevices.FirstOrDefault(device => device.ConnectionString?.Equals(connectionString, StringComparison.InvariantCultureIgnoreCase) ?? false);
-
         SetWaitCursor();
 
         try
         {
-            //HACK: just for now, as HBK devices cannot handle port numbers at the moment
-            if (childDevice?.Name.StartsWith("HBK") ?? false)
-            {
-                //remove port number for now
-                connectionString = string.Join(':', connectionString.Split(':'), 0, 2) + "/";
-            }
-
-            //connect the device
-            Device newDevice = selectedParentDevice.AddDevice(connectionString);
+            //add the function block
+            var functionBlock = selectedParentDevice.AddFunctionBlock(typeId);
 
             //add to tree
-            TreeNode deviceNode = selectedParentDeviceNode!.Nodes.Add(newDevice.Name);
-            deviceNode.Tag = newDevice;
-
-            //remember for connection-string check
-            _usedDevices.Add(newDevice);
+            TreeNode deviceNode = selectedParentDeviceNode!.Nodes.Add(functionBlock.Name);
+            deviceNode.Tag = functionBlock;
 
             this.treeParentDevices.ExpandAll();
         }
         catch (Exception ex) //most probably an OpenDaqException
         {
-            MessageBox.Show($"Error connecting:\n{ex.Message}", "Connection error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            MessageBox.Show($"Error ´creating function block:\n{ex.Message}", "Function-block error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             return false;
         }
         finally

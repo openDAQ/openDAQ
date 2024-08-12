@@ -29,6 +29,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net.NuGet.Test", "o
 		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8} = {3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{BA998B72-C00D-4C5F-88E2-1740117D4474}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Build|x64 = Debug_Build|x64
@@ -112,6 +117,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA998B72-C00D-4C5F-88E2-1740117D4474} = {C3C25B1F-F67F-4F57-8FCD-AFE81B5598BA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1ACD5DFC-002B-415B-BB54-A971C7DD95D1}

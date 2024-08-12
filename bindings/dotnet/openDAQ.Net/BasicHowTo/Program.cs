@@ -13,6 +13,6 @@ var availableDevices = instance.AvailableDevices;
 
 Console.WriteLine($"> found {availableDevices.Count} devices:");
 foreach (var device in availableDevices)
-    Console.WriteLine($"  - {device.Name} ({device.ConnectionString})");
+    Console.WriteLine($"  - {device.Name,-30} ({device.ConnectionString})");
 
 //ToDo: your code goes here

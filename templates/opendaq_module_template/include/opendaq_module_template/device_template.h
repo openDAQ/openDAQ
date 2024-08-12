@@ -9,44 +9,62 @@ class DeviceTemplateHooks;
 class DeviceTemplate : ComponentTemplateBase 
 {
 public:
-    DeviceTemplate(const DeviceParams& params)
-        : params(params)
-    {
-    }
+    DevicePtr getDevice() const;
+
+    template <class ChannelImpl, class... Params>
+    ChannelPtr createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const;
+    void removeComponentWithId(const FolderConfigPtr& parentFolder, const std::string& componentId) const;
+    void removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const;
+    IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
+
+    void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
 
 protected:
-    
-    virtual void configureSignals(const FolderConfigPtr& signalsFolder);
-    virtual void configureDevices(const FolderConfigPtr& devicesFolder);
-    virtual void configureFunctionBlocks(const FolderConfigPtr& fbFolder);
-    virtual void configureIOComponents(const IoFolderConfigPtr& ioFolder);
-    virtual void configureCustomComponents();
 
-    
+    virtual void handleConfig(const PropertyObjectPtr& config);
+    virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
+    virtual void initSignals(const FolderConfigPtr& signalsFolder);
+    virtual void initDevices(const FolderConfigPtr& devicesFolder);
+    virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
+    virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
+    virtual void initCustomComponents();
+    virtual DeviceDomainPtr initDeviceDomain();  // TODO: Pass builder as param when implemented
+
+    virtual void start();
+
     //virtual void configureSyncComponent(); // TODO: Add once sync component is implemented
 
     virtual DeviceDomainPtr getDeviceDomain();
     virtual uint64_t getTicksSinceOrigin();
 
+    virtual BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
+    virtual BaseObjectPtr onPropertyRead(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
+
     virtual bool allowAddDevicesFromModules();
     virtual bool allowAddFunctionBlocksFromModules();
-
     
-    std::weak_ptr<DeviceTemplateHooks> deviceImpl;
+    
+    DeviceTemplateHooks* deviceImpl;
     LoggerComponentPtr loggerComponent;
     std::mutex sync;
 
 private:
     friend class DeviceTemplateHooks;
-    DeviceParams params;
 };
 
-class DeviceTemplateHooks : public DeviceParamsValidation, public Device, std::enable_shared_from_this<DeviceTemplateHooks>
+template <class ChannelImpl, class ... Params>
+ChannelPtr DeviceTemplate::createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const
+{
+    LOG_T("Adding channel {}", channelId)
+    return deviceImpl->createAndAddChannel<ChannelImpl, Params...>(parentFolder, channelId, std::forward<Params>(params)...);
+}
+
+class DeviceTemplateHooks : public DeviceParamsValidation, public Device, public std::enable_shared_from_this<DeviceTemplateHooks>
 {
 public:
 
-    DeviceTemplateHooks(std::unique_ptr<DeviceTemplate> device, const StringPtr& className = "")
-        : DeviceParamsValidation(device->params)
+    DeviceTemplateHooks(std::unique_ptr<DeviceTemplate> device, const DeviceParams& params, const StringPtr& className = "")
+        : DeviceParamsValidation(params)
         , Device(params.context, params.parent, params.localId, className, params.info.getName())
         , device(std::move(device))
         , info(params.info)
@@ -54,9 +72,19 @@ public:
     {
         if (!this->info.isFrozen())
             this->info.freeze();
-
-        this->device->deviceImpl = weak_from_this();
+            
+        this->device->deviceImpl = this; // TODO: Figure out safe ptr operations for this
         this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+
+        std::scoped_lock lock(sync);
+
+        this->device->handleConfig(params.config);
+        this->device->handleOptions(params.options);
+        this->device->initProperties();
+        registerCallbacks(objPtr);
+        setDeviceDomain(this->device->initDeviceDomain());
+        this->device->initIOFolder(ioFolder);
+        this->device->start();
     }   
 
 private:
@@ -64,6 +92,7 @@ private:
     void onObjectReady() override;
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    void registerCallbacks(const PropertyObjectPtr& obj);
     
     friend class DeviceTemplate;
     std::unique_ptr<DeviceTemplate> device;

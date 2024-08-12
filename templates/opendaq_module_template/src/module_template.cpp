@@ -101,7 +101,8 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     params.typeId = typeInfo.id;
     params.address = address;
 
-    params.config = config;
+    params.config = config.assigned() ? config : typeInfo.defaultConfiguration;
+    params.config = params.config.assigned() ? params.config : PropertyObject();
     params.options = options.assigned() ? options : Dict<IString, IBaseObject>();
 
     params.logName = typeInfo.name;
@@ -115,9 +116,10 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
         throw InvalidParameterException("Device creation failed");
     module_->devices.insert(device.getLocalId());
 
-    const auto deviceParent = device.getParent();
-    deviceParent.getOnComponentCoreEvent() +=
-        [this](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    if (parent.assigned())
+    {
+        parent.getOnComponentCoreEvent() +=
+            [this](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
             {
                 if (args.getEventId() == static_cast<Int>(CoreEventId::ComponentRemoved))
                 {
@@ -129,6 +131,7 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
                     }
                 }
             };
+    }
 
     return device.detach();
 }

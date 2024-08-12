@@ -29,11 +29,11 @@ protected:
     std::mutex sync;
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
-    std::weak_ptr<ModuleTemplateHooks> moduleImpl;
+    ModuleTemplateHooks* moduleImpl;
     std::unordered_set<std::string> devices;
 };
 
-class ModuleTemplateHooks : public ModuleParamsValidation, public Module, std::enable_shared_from_this<ModuleTemplateHooks>
+class ModuleTemplateHooks : public ModuleParamsValidation, public Module, public std::enable_shared_from_this<ModuleTemplateHooks>
 {
 public:
 
@@ -42,7 +42,7 @@ public:
         , Module(params.name, params.version, module_->context, params.id)
         , module_(std::move(module_))
     {
-        this->module_->moduleImpl = weak_from_this();
+        this->module_->moduleImpl = this;
         this->module_->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
     }   
 

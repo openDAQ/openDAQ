@@ -32,38 +32,44 @@ public:
 class RefDeviceImpl final : public DeviceTemplate
 {
 public:
-    explicit RefDeviceImpl(const DeviceParams& config);
+    explicit RefDeviceImpl();
     ~RefDeviceImpl() override;
 
-    // IDevice
+protected:
+    
     uint64_t getTicksSinceOrigin() override;
-
+    void handleConfig(const PropertyObjectPtr& config) override;
+    void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
+    void initProperties() override;
+    void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
+    DeviceDomainPtr initDeviceDomain() override;
+    void start() override;
+    
+    BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
 private:
-    void initClock();
-    void initIoFolder();
-    void initSyncComponent();
-    void initProperties(const PropertyObjectPtr& config);
+
     void acqLoop();
-    void updateNumberOfChannels();
-    void enableCANChannel();
-    void updateAcqLoopTime();
-    void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
+    void updateNumberOfChannels(size_t numberOfChannels);
+    void enableCANChannel(bool enableCANChannel);
+    void updateAcqLoopTime(size_t loopTime);
+    void updateDeviceSampleRate(double sampleRate);
+
     std::thread acqThread;
+    size_t acqLoopTime;
     std::condition_variable cv;
+    bool stopAcq;
 
     std::chrono::steady_clock::time_point startTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
-    size_t acqLoopTime;
-    bool stopAcq;
-
+    
+    UnitPtr domainUnit;
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
-    ComponentPtr syncComponent;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

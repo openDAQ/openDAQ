@@ -45,7 +45,7 @@ struct SignalAttributeConfig : ComponentAttributeConfig
     SignalListAttribute relatedSignals{true, {}};
 };
 
-// Device type information
+// Device information
 
 struct DeviceInfoParams
 {
@@ -126,7 +126,7 @@ public:
             throw InvalidParameterException("Log name is not set");
         if (!params.context.assigned())
             throw InvalidParameterException("Context is not set");
-        
+
         this->params = params; 
     }
 

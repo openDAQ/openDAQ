@@ -9,87 +9,130 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+static constexpr size_t DEFAULT_NUMBER_OF_CHANNELS = 2;
+static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
+static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
+static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
+
 RefDeviceBase::RefDeviceBase(const DeviceParams& params)
-    : DeviceTemplateHooks(std::make_unique<RefDeviceImpl>(params))
+    : DeviceTemplateHooks(std::make_unique<RefDeviceImpl>(), params)
 {
 }
 
-RefDeviceImpl::RefDeviceImpl(const DeviceParams& params)
-    : DeviceTemplate(params)
-    , microSecondsFromEpochToDeviceStart(0)
-    , acqLoopTime(0)
+RefDeviceImpl::RefDeviceImpl()
+    : acqLoopTime(0)
     , stopAcq(false)
+    , microSecondsFromEpochToDeviceStart(0)
+    , domainUnit(UnitBuilder().setName("microsecond").setSymbol("us").setQuantity("time").build())
 {
-    initIoFolder();
-    initSyncComponent();
-    initClock();
-    initProperties(params.config);
-    updateNumberOfChannels();
-    enableCANChannel();
-    updateAcqLoopTime();
-
-    acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
 
 RefDeviceImpl::~RefDeviceImpl()
 {
     {
-        std::scoped_lock<std::mutex> lock(sync);
+        std::scoped_lock lock(sync);
         stopAcq = true;
     }
-    cv.notify_one();
 
+    cv.notify_one();
     acqThread.join();
 }
 
-uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
+void RefDeviceImpl::handleConfig(const PropertyObjectPtr& config)
 {
-    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
-    return static_cast<SizeT>(ticksSinceEpoch.count());
+    const auto obj = getDevice();
+
+    if (config.hasProperty("NumberOfChannels"))
+        obj.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
+
+    if (config.hasProperty("EnableCANChannel"))
+        obj.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
+}
+
+void RefDeviceImpl::handleOptions(const DictPtr<IString, IBaseObject>& options)
+{
+    const auto obj = getDevice();
+
+    if (options.hasKey("NumberOfChannels"))
+        obj.setPropertyValue("NumberOfChannels", options.get("NumberOfChannels"));
+
+    if (options.hasKey("EnableCANChannel"))
+        obj.setPropertyValue("EnableCANChannel", options.get("EnableCANChannel"));
+}
+
+void RefDeviceImpl::initProperties()
+{
+    const auto obj = getDevice();
+
+    const auto globalSampleRateProp =
+        FloatPropertyBuilder("SampleRate", DEFAULT_DEVICE_SAMPLE_RATE).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
+
+    const auto acqLoopTimeProp =
+        IntPropertyBuilder("AcquisitionLoopTime", DEFAULT_ACQ_LOOP_TIME).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
+    
+    obj.addProperty(globalSampleRateProp);
+    obj.addProperty(acqLoopTimeProp);
+    obj.addProperty(IntProperty("NumberOfChannels", DEFAULT_NUMBER_OF_CHANNELS));
+    obj.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
+}
+
+BaseObjectPtr RefDeviceImpl::onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value)
+{
+    if (propertyName == "NumberOfChannels")
+        updateNumberOfChannels(value);
+    else if (propertyName == "SampleRate")
+        updateDeviceSampleRate(value);
+    else if (propertyName == "AcquisitionLoopTime")
+        updateAcqLoopTime(value);
+    else if (propertyName == "EnableCANChannel")
+        enableCANChannel(value);
+
+    return nullptr;
+}
+
+uint64_t RefDeviceImpl::getTicksSinceOrigin()
+{
+    return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
 }
 
 std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
 {
-    auto currentTime = std::chrono::steady_clock::now();
-    auto microSecondsSinceDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
-    return microSecondsSinceDeviceStart;
+    const auto currentTime = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
 }
 
-void RefDeviceImpl::initClock()
+void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
+{
+    aiFolder = createAndAddIOFolder("AI", ioFolder);
+    canFolder = createAndAddIOFolder("CAN", ioFolder);
+
+    const auto obj = getDevice();
+    updateNumberOfChannels(obj.getPropertyValue("NumberOfChannels"));
+    enableCANChannel(obj.getPropertyValue("EnableCANChannel"));
+}
+
+DeviceDomainPtr RefDeviceImpl::initDeviceDomain()
 {
     startTime = std::chrono::steady_clock::now();
-    auto startAbsTime = std::chrono::system_clock::now();
-
-    microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
-
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
+    microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    return DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), domainUnit);
 }
 
-void RefDeviceImpl::initIoFolder()
+void RefDeviceImpl::start()
 {
-    aiFolder = this->addIoFolder("AI", ioFolder);
-    canFolder = this->addIoFolder("CAN", ioFolder);
-}
-
-void RefDeviceImpl::initSyncComponent()
-{
-    syncComponent = this->addComponent("sync");
-
-    syncComponent.addProperty(BoolProperty("UseSync", False));
-    syncComponent.getOnPropertyValueWrite("UseSync") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { };
+    updateAcqLoopTime(getDevice().getPropertyValue("AcquisitionLoopTime"));
+    acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
 
 void RefDeviceImpl::acqLoop()
 {
     using namespace std::chrono_literals;
-    using  milli = std::chrono::milliseconds;
+    using milli = std::chrono::milliseconds;
 
     auto startLoopTime = std::chrono::high_resolution_clock::now();
     const auto loopTime = milli(acqLoopTime);
 
-    std::unique_lock<std::mutex> lock(sync);
+    std::unique_lock lock(sync);
 
     while (!stopAcq)
     {
@@ -101,142 +144,78 @@ void RefDeviceImpl::acqLoop()
         cv.wait_for(lock, waitTime);
         if (!stopAcq)
         {
-            auto curTime = getMicroSecondsSinceDeviceStart();
+            const auto curTime = getMicroSecondsSinceDeviceStart();
 
             for (auto& ch : channels)
-            {
-                auto chPrivate = ch.asPtr<IRefChannel>();
-                chPrivate->collectSamples(curTime);
-            }
+                ch.asPtr<IRefChannel>()->collectSamples(curTime);
 
             if (canChannel.assigned())
-            {
-                auto chPrivate = canChannel.asPtr<IRefChannel>();
-                chPrivate->collectSamples(curTime);
-            }
+                canChannel.asPtr<IRefChannel>()->collectSamples(curTime);
         }
     }
 }
 
-void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
+void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
 {
-    size_t numberOfChannels = 2;
-    bool enableCANChannel = false;
-
-    if (config.assigned())
-    {
-        if (config.hasProperty("NumberOfChannels"))
-            numberOfChannels = config.getPropertyValue("NumberOfChannels");
-
-        if (config.hasProperty("EnableCANChannel"))
-            enableCANChannel = config.getPropertyValue("EnableCANChannel");
-    } 
-    
-    const auto options = this->context.getModuleOptions(REF_MODULE_ID);
-    if (options.assigned())
-    {
-        if (options.hasKey("NumberOfChannels"))
-            numberOfChannels = options.get("NumberOfChannels");
-
-        if (options.hasKey("EnableCANChannel"))
-            enableCANChannel = options.get("EnableCANChannel");
-    }
-
-    if (numberOfChannels < 1 || numberOfChannels > 4096)
-        throw InvalidParameterException("Invalid number of channels");
-
-    objPtr.addProperty(IntProperty("NumberOfChannels", numberOfChannels));
-    objPtr.getOnPropertyValueWrite("NumberOfChannels") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
-		
-    const auto globalSampleRatePropInfo =
-        FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
-
-    objPtr.addProperty(globalSampleRatePropInfo);
-    objPtr.getOnPropertyValueWrite("GlobalSampleRate") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateGlobalSampleRate(); };
-
-    const auto acqLoopTimePropInfo =
-        IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
-
-    objPtr.addProperty(acqLoopTimePropInfo);
-    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {
-        updateAcqLoopTime();
-    };
-
-    objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
-    objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
-}
-
-void RefDeviceImpl::updateNumberOfChannels()
-{
-    std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
-    LOG_I("Properties: NumberOfChannels {}", num);
-    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-
+    LOG_I("Properties: NumberOfChannels {}", numberOfChannels)
+        
     std::scoped_lock lock(sync);
+    const auto deviceSampleRate = getDevice().getPropertyValue("SampleRate");
 
-    if (num < channels.size())
+    if (numberOfChannels < channels.size())
     {
-        std::for_each(std::next(channels.begin(), num), channels.end(), [this](const ChannelPtr& ch)
+        std::for_each(std::next(channels.begin(), numberOfChannels), channels.end(), [this](const ChannelPtr& ch)
             {
-                removeChannel(nullptr, ch);
+                LOG_T("Removed AI Channel: {}", ch.getLocalId())
+                removeComponent(aiFolder, ch);
             });
-        channels.erase(std::next(channels.begin(), num), channels.end());
+        channels.erase(std::next(channels.begin(), numberOfChannels), channels.end());
     }
 
-    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    for (auto i = channels.size(); i < num; i++)
+    const auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+    for (auto i = channels.size() + 1; i < numberOfChannels + 1; i++)
     {
-        RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
-        channels.push_back(std::move(ch));
+        RefChannelInit init{ i, deviceSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
+        channels.push_back(createAndAddChannel<RefChannelImpl>(aiFolder, fmt::format("AI_{}", i), init));
     }
 }
 
-void RefDeviceImpl::enableCANChannel()
+void RefDeviceImpl::enableCANChannel(bool enableCANChannel)
 {
-    bool enableCANChannel = objPtr.getPropertyValue("EnableCANChannel");
-
+    LOG_I("Properties: EnableCANChannel {}", enableCANChannel)
+        
     std::scoped_lock lock(sync);
-
     if (!enableCANChannel)
     {
-        if (canChannel.assigned() && hasChannel(nullptr, canChannel))
-            removeChannel(nullptr, canChannel);
+        if (canChannel.assigned())
+            removeComponent(canFolder, canChannel);
         canChannel.release();
     }
     else
     {
-        auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-        RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
-        canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
+        RefCANChannelInit init{getMicroSecondsSinceDeviceStart(), microSecondsFromEpochToDeviceStart};
+        canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "CAN", init);
     }
 }
 
-void RefDeviceImpl::updateGlobalSampleRate()
+void RefDeviceImpl::updateAcqLoopTime(size_t loopTime)
 {
-    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-    LOG_I("Properties: GlobalSampleRate {}", globalSampleRate);
-
+    LOG_I("Properties: AcquisitionLoopTime {}", loopTime)
+        
     std::scoped_lock lock(sync);
+    this->acqLoopTime = loopTime;
+}
 
+void RefDeviceImpl::updateDeviceSampleRate(double sampleRate)
+{
+    LOG_I("Properties: GlobalSampleRate {}", sampleRate)
+        
+    std::scoped_lock lock(sync);
     for (auto& ch : channels)
     {
-        auto chPriv = ch.asPtr<IRefChannel>();
-        chPriv->globalSampleRateChanged(globalSampleRate);
+        const auto chPrivate = ch.asPtr<IRefChannel>();
+        chPrivate->globalSampleRateChanged(sampleRate);
     }
-}
-
-void RefDeviceImpl::updateAcqLoopTime()
-{
-    Int loopTime = objPtr.getPropertyValue("AcquisitionLoopTime");
-    LOG_I("Properties: AcquisitionLoopTime {}", loopTime);
-
-    std::scoped_lock lock(sync);
-    this->acqLoopTime = static_cast<size_t>(loopTime);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

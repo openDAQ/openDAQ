@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2022-2024 openDAQ d.o.o.
  *

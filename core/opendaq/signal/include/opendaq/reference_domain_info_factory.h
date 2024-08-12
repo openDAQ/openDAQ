@@ -59,9 +59,9 @@ inline ReferenceDomainInfoPtr ReferenceDomainInfoFromBuilder(const ReferenceDoma
 /*!
  * @brief Creates the Struct type object that defines the Reference Domain Info struct.
  */
-inline StructTypePtr ReferencnceDomainInfoStructType()
+inline StructTypePtr ReferenceDomainInfoStructType()
 {
-    return StructType("ReferencnceDomainInfo",
+    return StructType("ReferenceDomainInfo",
                       List<IString>("ReferenceDomainId", "ReferenceDomainOffset", "ReferenceDomainIsAbsolute"),
                       List<IBaseObject>(nullptr, nullptr, nullptr),
                       List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctBool)));

@@ -43,12 +43,18 @@ public partial class frmMain : Form
         FullTopology
     }
 
-    private const bool LOCKED = true;
-    private const bool FREE   = false;
+    private const bool         LOCKED           = true;
+    private const bool         FREE             = false;
+    private const int          FLOW_ITEM_HEIGHT = 24 + 2*4;  //24 for 16x16 -> 2x margin of 4
+    private const AnchorStyles ANCHOR_L         = AnchorStyles.Left;
+    private const AnchorStyles ANCHOR_LR        = AnchorStyles.Left | AnchorStyles.Right;
 
     private readonly BindingList<PropertyItem>  _propertyItems  = new();
     private readonly BindingList<AttributeItem> _attributeItems = new();
     private Instance? _instance;
+
+    private int _tableLayoutRowHeight = -1;
+    private int _tableLayoutMarginLR  = -1;
 
     private Component? _selectedComponent;
 
@@ -59,6 +65,8 @@ public partial class frmMain : Form
     public frmMain()
     {
         InitializeComponent();
+
+        this.Width = 1200;
 
         //for easy selected-tab identification
         this.tabSystemOverview.Tag = eTabstrip.SystemOverview;
@@ -76,7 +84,7 @@ public partial class frmMain : Form
 
         InitializeDataGridView(this.gridProperties);
         InitializeDataGridView(this.gridAttributes);
-
+        InitializeInputPortView();
     }
 
     #region event handlers
@@ -209,6 +217,7 @@ public partial class frmMain : Form
 
             UpdateProperties(_selectedComponent);
             UpdateAttributes(_selectedComponent);
+            UpdateInputPorts(_selectedComponent);
         }
         finally
         {
@@ -390,7 +399,8 @@ public partial class frmMain : Form
         //init
         this.conetxtMenuItemGridPropertiesEdit.Enabled = false;
 
-        var grid = this.gridProperties;
+        //get the DataGridView on which the context menu has been triggered
+        var grid = (DataGridView)((ContextMenuStrip)sender).SourceControl;
 
         if (grid.SelectedRows.Count == 0)
         {
@@ -407,14 +417,20 @@ public partial class frmMain : Form
             return;
         }
 
-        var selectedProperty = (PropertyItem)grid.SelectedRows[0].DataBoundItem;
+        var selectedProperty = (AttributeItem)grid.SelectedRows[0].DataBoundItem;
 
         this.conetxtMenuItemGridPropertiesEdit.Enabled = !selectedProperty.IsLocked;
     }
 
     private void conetxtMenuItemGridPropertiesEdit_Click(object sender, EventArgs e)
     {
-        EditSelectedProperty();
+        var toolStripMenuItem = (ToolStripMenuItem)sender;
+        var sourceControl     = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl;
+
+        if (sourceControl == this.gridProperties)
+            EditSelectedProperty();
+        else if (sourceControl == this.gridAttributes)
+            EditSelectedAttribute();
     }
 
     #endregion conetxtMenuItemGridPropertiesEdit
@@ -439,55 +455,11 @@ public partial class frmMain : Form
             return;
         }
 
-        EditSelectedAttribute();
+        AttributeItem selectedAttributeObject = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
+
+        EditSelectedAttribute(this, selectedAttributeObject);
+        UpdateAttributes((Component)selectedAttributeObject.OpenDaqObject);
     }
-
-    #region conetxtMenuItemGridPropertiesEdit
-
-    private void gridAttributes_CellContextMenuStripNeeded(object sender, DataGridViewCellContextMenuStripNeededEventArgs e)
-    {
-        if ((e.RowIndex < 0) || (e.ColumnIndex < 0))
-            return;
-
-        DataGridView dataGridView = ((DataGridView)sender);
-
-        //select the clicked cell/row for context menu (which opens automatically after this)
-        dataGridView.CurrentCell = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex];
-    }
-
-    //private void contextMenuStripGridAttributes_Opening(object sender, CancelEventArgs e)
-    //{
-    //    //init
-    //    this.conetxtMenuItemGridAttributesEdit.Enabled = false;
-
-    //    var grid = this.gridAttributes;
-
-    //    if (grid.SelectedRows.Count == 0)
-    //    {
-    //        e.Cancel = true;
-    //        return;
-    //    }
-
-    //    Point cursor = grid.PointToClient(Cursor.Position);
-    //    var info = grid.HitTest(cursor.X, cursor.Y);
-    //    if (info.Type != DataGridViewHitTestType.Cell)
-    //    {
-    //        //no node clicked
-    //        e.Cancel = true;
-    //        return;
-    //    }
-
-    //    var selectedProperty = (PropertyItem)grid.SelectedRows[0].DataBoundItem;
-
-    //    this.conetxtMenuItemGridAttributesEdit.Enabled = !selectedProperty.IsReadOnly;
-    //}
-
-    //private void conetxtMenuItemGridAttributesEdit_Click(object sender, EventArgs e)
-    //{
-    //    EditSelectedAttribute();
-    //}
-
-    #endregion conetxtMenuItemGridPropertiesEdit
 
     #endregion gridProperties
 
@@ -499,7 +471,7 @@ public partial class frmMain : Form
     /// Initializes the given <c>DataGridView</c>.
     /// </summary>
     /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
-    private static void InitializeDataGridView(DataGridView grid)
+    internal static void InitializeDataGridView(DataGridView grid)
     {
         var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
 
@@ -523,6 +495,11 @@ public partial class frmMain : Form
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
         grid.AutoSizeRowsMode    = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
         grid.ShowCellToolTips    = false;
+    }
+
+    private static int GetPreferredGridWidth(DataGridView grid)
+    {
+        return Math.Max(100, grid.GetPreferredSize(Size.Empty).Width);
     }
 
     /// <summary>
@@ -933,7 +910,7 @@ public partial class frmMain : Form
                 }
             }
 
-            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description));
+            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description, property));
         }
     }
 
@@ -946,7 +923,7 @@ public partial class frmMain : Form
         var selectedPropertyItem = (PropertyItem)this.gridProperties.SelectedRows[0].DataBoundItem;
 
         var propertyName            = selectedPropertyItem.Name;
-        var property                = selectedComponent.GetProperty(propertyName);
+        var property                = (Property)selectedPropertyItem.OpenDaqObject; //selectedComponent.GetProperty(propertyName);
         var propertyValueObject     = selectedComponent.GetPropertyValue(propertyName);
         var propertyValue           = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, property.ValueType);
         var propertySelectionValues = property.SelectionValues;
@@ -1077,90 +1054,106 @@ public partial class frmMain : Form
     #region Attributes view
 
     /// <summary>
-    /// Updates the attributes grid.
+    /// Updates the given attributes grid content.
     /// </summary>
     /// <param name="component">The openDAQ <c>Component</c> to get the attributes from.</param>
     private void UpdateAttributes(Component? component)
     {
-        _attributeItems.Clear();
-
-        if (component == null)
-            return;
-
-        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
-
-        ListAttributes(component.Cast<Component>()); //cast to interface so that only Component attributes are visible
-
-        if (component.Cast<Device>() is Device device)
-            ListAttributes(device);
-        else if (component.Cast<Signal>() is Signal signal)
-            ListAttributes(signal);
-        else if (component.Cast<InputPort>() is InputPort inputPort)
-            ListAttributes(inputPort);
-        else if (component.Cast<FunctionBlock>() is FunctionBlock functionBlock)
-            ListAttributes(functionBlock);
+        UpdateAttributes(component, _attributeItems);
 
         this.gridAttributes.ClearSelection();
         this.gridAttributes.AutoResizeColumns();
     }
 
     /// <summary>
+    /// Updates the given attributes grid content.
+    /// </summary>
+    /// <param name="component">The openDAQ <c>Component</c> to get the attributes from.</param>
+    /// <param name="attributeItems">The list to be updated.</param>
+    /// <remarks>
+    /// This is <c>internal static</c> to offer the functionality to other classes (forms).<br/>
+    /// Updating the GUI has to be done outside.
+    /// </remarks>
+    internal static void UpdateAttributes(Component? component, BindingList<AttributeItem> attributeItems)
+    {
+        attributeItems.Clear();
+
+        if (component == null)
+            return;
+
+        ListAttributes(component.Cast<Component>(), attributeItems); //cast to interface so that only Component attributes are visible
+
+        if (component.Cast<Device>() is Device device)
+            ListAttributes(device, attributeItems);
+        else if (component.Cast<Signal>() is Signal signal)
+            ListAttributes(signal, attributeItems);
+        else if (component.Cast<InputPort>() is InputPort inputPort)
+            ListAttributes(inputPort, attributeItems);
+        else if (component.Cast<FunctionBlock>() is FunctionBlock functionBlock)
+            ListAttributes(functionBlock, attributeItems);
+    }
+
+    /// <summary>
     /// Lists the <see cref="Daq.Core.OpenDAQ.Component"/> attributes.
     /// </summary>
     /// <param name="component">The object with the attributes.</param>
-    private void ListAttributes(Component component)
+    /// <param name="attributeItems">The list to be updated.</param>
+    private static void ListAttributes(Component component, BindingList<AttributeItem> attributeItems)
     {
-       _attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
-       _attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
-       _attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
-       _attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
-       _attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
-       _attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
-       _attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
+       attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
+       attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
+       attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
+       attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
+       attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
+       attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
+       attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
     }
 
     /// <summary>
     /// Lists the <see cref="Daq.Core.OpenDAQ.Device"/> attributes.
     /// </summary>
     /// <param name="device">The object with the attributes.</param>
-    private void ListAttributes(Device device)
+    /// <param name="attributeItems">The list to be updated.</param>
+    private static void ListAttributes(Device device, BindingList<AttributeItem> attributeItems)
     {
-        //_attributeItems.Add(new(FREE, "", "", device., CoreType., device));
+        //attributeItems.Add(new(FREE, "", "", device., CoreType., device));
     }
 
     /// <summary>
     /// Lists the <see cref="Daq.Core.OpenDAQ.Signal"/> attributes.
     /// </summary>
     /// <param name="signal">The object with the attributes.</param>
-    private void ListAttributes(Signal signal)
+    /// <param name="attributeItems">The list to be updated.</param>
+    private static void ListAttributes(Signal signal, BindingList<AttributeItem> attributeItems)
     {
         string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? Array.Empty<string>());
 
-       _attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
-       _attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
-       _attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
-       _attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
-       _attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
+       attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
+       attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
+       attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
+       attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
+       attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
     }
 
     /// <summary>
     /// Lists the <see cref="Daq.Core.OpenDAQ.InputPort"/> attributes.
     /// </summary>
     /// <param name="inputPort">The object with the attributes.</param>
-    private void ListAttributes(InputPort inputPort)
+    /// <param name="attributeItems">The list to be updated.</param>
+    private static void ListAttributes(InputPort inputPort, BindingList<AttributeItem> attributeItems)
     {
-       _attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
-       _attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
+       attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
+       attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
     }
 
     /// <summary>
     /// Lists the <see cref="Daq.Core.OpenDAQ.FunctionBlock"/> attributes.
     /// </summary>
     /// <param name="functionBlock">The object with the attributes.</param>
-    private void ListAttributes(FunctionBlock functionBlock)
+    /// <param name="attributeItems">The list to be updated.</param>
+    private static void ListAttributes(FunctionBlock functionBlock, BindingList<AttributeItem> attributeItems)
     {
-        //_attributeItems.Add(new(LOCKED, "", "", functionBlock., CoreType., functionBlock));
+        //attributeItems.Add(new(LOCKED, "", "", functionBlock., CoreType., functionBlock));
     }
 
     /// <summary>
@@ -1168,52 +1161,68 @@ public partial class frmMain : Form
     /// </summary>
     private void EditSelectedAttribute()
     {
-        var selectedAttributeItem   = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
-        var selectedAttributeName   = selectedAttributeItem.Name;
-        var selectedAttributeValue  = selectedAttributeItem.Value;
-        var selectedAttributeObject = selectedAttributeItem.OpenDaqObject;
+        var selectedAttributeItem = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
+
+        EditSelectedAttribute(this, selectedAttributeItem);
+        UpdateAttributes((Component)selectedAttributeItem.OpenDaqObject);
+    }
+
+    /// <summary>
+    /// Open edit-dialog for the given attribute.
+    /// </summary>
+    /// <param name="owner">The owner control for the edit dialog.</param>
+    /// <param name="attributeItem">The attribute to edit.</param>
+    /// <remarks>
+    /// This is <c>internal static</c> to offer the functionality to other classes (forms).<br/>
+    /// Updating the GUI has to be done outside.
+    /// </remarks>
+    internal static void EditSelectedAttribute(IWin32Window owner, AttributeItem attributeItem)
+    {
+        var selectedAttributeName   = attributeItem.Name;
+        var selectedAttributeValue  = attributeItem.Value;
+        var selectedAttributeObject = attributeItem.OpenDaqObject;
 
         string stringValue = string.Empty;
         long   intValue    = long.MinValue;
         double floatValue  = double.NaN;
 
-        string askDialogTitle       = $"Edit attribute \"{selectedAttributeItem.DisplayName}\"";
+        string askDialogTitle       = $"Edit attribute \"{attributeItem.DisplayName}\"";
         string askDialogCaption     = "Please enter the new value below";
         string askDialogCaptionList = "Please select the new value below";
 
         //ask for the new attribute value (just return when unchanged)
-        switch (selectedAttributeItem.ValueType)
+        switch (attributeItem.ValueType)
         {
             case CoreType.ctBool:
                 //will just toggle
                 break;
 
             case CoreType.ctInt:
-                intValue = frmInputDialog.AskInteger(this, askDialogTitle, askDialogCaption, 0);
+                intValue = frmInputDialog.AskInteger(owner, askDialogTitle, askDialogCaption, 0);
                 if (intValue.ToString() == selectedAttributeValue)
                     return;
                 break;
 
             case CoreType.ctFloat:
-                floatValue = frmInputDialog.AskFloat(this, askDialogTitle, askDialogCaption, 0);
+                floatValue = frmInputDialog.AskFloat(owner, askDialogTitle, askDialogCaption, 0);
                 if (floatValue.ToString() == selectedAttributeValue)
                     return;
                 break;
 
             case CoreType.ctString:
-                stringValue = frmInputDialog.AskString(this, askDialogTitle, askDialogCaption, selectedAttributeItem.Value);
+                stringValue = frmInputDialog.AskString(owner, askDialogTitle, askDialogCaption, attributeItem.Value);
                 if (stringValue == selectedAttributeValue)
                     return;
                 break;
 
             //case CoreType.ctList:
-            //    intValue = frmInputDialog.AskList(this, askDialogTitle, askDialogCaptionList, 0, null);
+            //    intValue = frmInputDialog.AskList(owner, askDialogTitle, askDialogCaptionList, 0, null);
             //    if (intValue == oldIndex)
             //        return;
             //    break;
 
             //case CoreType.ctDict:
-            //    intValue = frmInputDialog.AskDict(this, askDialogTitle, askDialogCaptionList, 0, null);
+            //    intValue = frmInputDialog.AskDict(owner, askDialogTitle, askDialogCaptionList, 0, null);
             //    if (intValue == oldIndex)
             //        return;
             //    break;
@@ -1239,7 +1248,7 @@ public partial class frmMain : Form
             //case CoreType.ctUndefined:
             //    break;
             default:
-                MessageBox.Show($"Sorry, opeanDAQ value type '{selectedAttributeItem.ValueType}' is not editable here.",
+                MessageBox.Show($"Sorry, opeanDAQ value type '{attributeItem.ValueType}' is not editable here.",
                                 askDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
         }
@@ -1247,6 +1256,7 @@ public partial class frmMain : Form
         //set the new attribute value
         switch (selectedAttributeObject)
         {
+            case Instance rootDevice:
             case Device device:
                 //nothing
                 break;
@@ -1268,34 +1278,280 @@ public partial class frmMain : Form
                 //nothing
                 break;
 
-            case Component component: //inherited by all of the above so do this last
-                switch (selectedAttributeName)
-                {
-                    case "Name":
-                        component.Name = stringValue;
-                        break;
-
-                    case "Description":
-                        component.Description = stringValue;
-                        break;
-
-                    case "Active":
-                        component.Active ^= true; //toggle
-                        break;
-
-                    case "Tags":
-                        //ToDo: tags
-                        //component.Tags
-                        break;
-                }
-                break;
+            //inherited by all of the above so do this last but outside switch()
+            //case Component component:
+            //    break;
         }
 
-        UpdateAttributes((Component)selectedAttributeObject);
+        var component = (Component) selectedAttributeObject;
+        switch (selectedAttributeName)
+        {
+            case "Name":
+                component.Name = stringValue;
+                break;
+
+            case "Description":
+                component.Description = stringValue;
+                break;
+
+            case "Active":
+                component.Active ^= true; //toggle
+                break;
+
+            case "Tags":
+                //ToDo: tags
+                //component.Tags
+                break;
+        }
     }
 
-
     #endregion Attributes view
+
+    #region Input-ports view
+
+    /// <summary>
+    /// Initializes the input-port view.
+    /// </summary>
+    private void InitializeInputPortView()
+    {
+        _tableLayoutMarginLR  = this.tableInputPorts.Margin.Left + this.tableInputPorts.Margin.Right;
+        _tableLayoutRowHeight = this.tableInputPorts.Margin.Top + FLOW_ITEM_HEIGHT + this.tableInputPorts.Margin.Bottom;
+
+        this.tableInputPorts.GrowStyle = TableLayoutPanelGrowStyle.FixedSize; //we take care of RowCount ourselves
+
+        //RowCount / RowStyles dynamically set in UpdateInputPorts()
+
+        this.tableInputPorts.ColumnStyles.Clear();
+        this.tableInputPorts.ColumnCount = 4;
+        this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+        this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));//SizeType.AutoSize));
+        this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+        this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+    }
+
+    /// <summary>
+    /// Updates the input-ports view.
+    /// </summary>
+    /// <param name="component">The component.</param>
+    private void UpdateInputPorts(Component? component)
+    {
+        this.tableInputPorts.Controls.Clear();
+        this.tableInputPorts.RowStyles.Clear();
+        this.tableInputPorts.RowCount = 0;
+
+        if ((component == null) || !component.CanCastTo<FunctionBlock>() || component.CanCastTo<Channel>())
+        {
+            this.splitContainerPropertiesInputs.Panel2Collapsed = true;
+            return;
+        }
+
+        this.splitContainerPropertiesInputs.Panel2Collapsed = false;
+
+        int preferredSplitterDistance = Math.Min(GetPreferredGridWidth(this.gridProperties), this.splitContainerPropertiesInputs.Width * 60 / 100);
+        if (this.splitContainerPropertiesInputs.SplitterDistance < preferredSplitterDistance)
+            this.splitContainerPropertiesInputs.SplitterDistance = preferredSplitterDistance;
+
+        var functionBlock = component.Cast<FunctionBlock>();
+        var rootDevice    = GetRootComponent(functionBlock)?.Cast<Device>();
+        var allSignals    = rootDevice?.GetSignalsRecursive() ?? Enumerable.Empty<Signal>();
+
+        var inputSignals = new List<KeyValuePair<string, Signal?>>();
+        inputSignals.Clear();
+        inputSignals.Add(new KeyValuePair<string, Signal?>("none", null));
+        inputSignals.AddRange(allSignals.Select(signal => new KeyValuePair<string, Signal?>(GetShortId(signal), signal)));
+
+        foreach (var inputPort in functionBlock.GetInputPorts())
+        {
+            int selectedSignalIndex = inputSignals.FindIndex(kvp => kvp.Value?.GlobalId == inputPort.Signal?.GlobalId);
+
+            //always create new BindingList<>, otherwise all ComboBoxes are linked and they would change their selected item
+            AddInputPort(inputPort, new BindingList<KeyValuePair<string, Signal?>>(inputSignals), selectedSignalIndex);
+        }
+
+        this.tableInputPorts.Left  = this.groupInputPorts.Margin.Left;
+        this.tableInputPorts.Width = this.groupInputPorts.ClientRectangle.Width - this.groupInputPorts.Margin.Left - this.groupInputPorts.Margin.Right;
+        this.tableInputPorts.PerformLayout();
+    }
+
+    /// <summary>
+    /// Adds the given input port with the given signals.
+    /// </summary>
+    /// <param name="inputPort">The input port.</param>
+    /// <param name="signalsDataSource">The data source with the <c>Signal</c>s.</param>
+    /// <param name="selectedIndex">Index of the <c>Signal</c> to select.</param>
+    private void AddInputPort(InputPort inputPort, BindingList<KeyValuePair<string, Signal?>> signalsDataSource, int selectedIndex)
+    {
+        string longestDataSourceKey = signalsDataSource
+                                      .Select(kvp => kvp.Key)
+                                      .Aggregate((longest, next) => (next.Length > longest.Length) ? next : longest);
+        int dropDownWidth = TextRenderer.MeasureText(longestDataSourceKey, this.tableInputPorts.Font).Width;
+
+        //create controls
+        var lblCaption = CreateCaptionLabel(inputPort.Name);
+        var cmbSignals = CreateComboBox(signalsDataSource, dropDownWidth);
+        var btnLink    = CreateLinkButton();
+        var btnEdit    = CreateEditButton();
+
+        //add row
+        ++this.tableInputPorts.RowCount;
+        this.tableInputPorts.RowStyles.Add(new RowStyle(SizeType.Absolute, _tableLayoutRowHeight));
+        int rowNo = this.tableInputPorts.RowCount - 1;
+
+        //add controls
+        this.tableInputPorts.Controls.Add(lblCaption, 0, rowNo);
+        this.tableInputPorts.Controls.Add(cmbSignals, 1, rowNo);
+        this.tableInputPorts.Controls.Add(btnLink,    2, rowNo);
+        this.tableInputPorts.Controls.Add(btnEdit,    3, rowNo);
+
+        //resize label column if necessary
+        int preferredWidth = this.tableInputPorts.Margin.Left + lblCaption.PreferredWidth + this.tableInputPorts.Margin.Right;
+        if (this.tableInputPorts.ColumnStyles[0].Width < preferredWidth)
+            this.tableInputPorts.ColumnStyles[0].Width = preferredWidth;
+
+        //add event handlers
+        cmbSignals.SelectedIndexChanged += comboBoxSignals_SelectedIndexChanged;
+        btnLink.Click                   += btnLink_Click;
+        btnEdit.Click                   += btnEdit_Click;
+
+        //store original selection
+        cmbSignals.Tag = selectedIndex;
+
+        //only after control has been added to GUI (TableLayoutPanel) we can set SelectedIndex
+        cmbSignals.SelectedIndex = selectedIndex;
+
+        //store the InputPort
+        btnLink.Tag = inputPort;
+        btnEdit.Tag = inputPort;
+
+
+        //--- local functions --------------------------------------------------
+
+        static Label CreateCaptionLabel(string caption)
+        {
+            return new Label()
+            {
+                AutoSize  = false,
+                Text      = caption,
+                TextAlign = ContentAlignment.MiddleRight,
+                Anchor    = ANCHOR_LR
+            };
+        }
+
+        static ComboBox CreateComboBox(BindingList<KeyValuePair<string, Signal?>> dataSource, int dropDownWidth)
+        {
+            return new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Anchor        = ANCHOR_LR,
+                Height        = FLOW_ITEM_HEIGHT,
+                DropDownWidth = dropDownWidth,
+                DataSource    = dataSource,
+                DisplayMember = "Key",
+                ValueMember   = "Value"
+            };
+        }
+
+        static Button CreateLinkButton()
+        {
+            return new Button()
+            {
+                Enabled = false,
+                Text    = null,
+                Anchor  = ANCHOR_L,
+                Width   = FLOW_ITEM_HEIGHT,
+                Height  = FLOW_ITEM_HEIGHT,
+                Image   = GetLinkImage(isLinked: false)
+            };
+        }
+
+        static Button CreateEditButton()
+        {
+            return new Button()
+            {
+                Enabled = true,
+                Text    = null,
+                Anchor  = ANCHOR_L,
+                Width   = FLOW_ITEM_HEIGHT,
+                Height  = FLOW_ITEM_HEIGHT,
+                Image   = new Bitmap(GlblRes.settings, 24, 24)
+            };
+        }
+
+        void comboBoxSignals_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (sender is not ComboBox comboBox)
+                return;
+
+            //get the link Button
+            var cellPos = this.tableInputPorts.GetCellPosition(comboBox);
+            if (this.tableInputPorts.GetControlFromPosition(cellPos.Column + 1, cellPos.Row) is not Button btnLink)
+                return;
+
+            int  originalSelection    = (int)comboBox.Tag;
+            bool isOriginalSelected   = (originalSelection == comboBox.SelectedIndex);
+            bool isInputPortConnected = (originalSelection > 0);
+
+            btnLink.Enabled = !isOriginalSelected;
+            btnLink.Image   = GetLinkImage(isLinked: isInputPortConnected);
+        }
+
+        void btnLink_Click(object? sender, EventArgs e)
+        {
+            if (sender is not Button btnLink)
+                return;
+
+            //get the ComboBox
+            var cellPos = this.tableInputPorts.GetCellPosition(btnLink);
+            if (this.tableInputPorts.GetControlFromPosition(cellPos.Column - 1, cellPos.Row) is not ComboBox comboBox)
+                return;
+
+            if (btnLink.Tag is not InputPort inputPort)
+                return;
+
+
+            if (comboBox.SelectedValue is not Signal signal) //"none"
+            {
+                inputPort.Disconnect();
+            }
+            else
+            {
+                inputPort.Connect(signal);
+            }
+
+            UpdateInputPorts(_selectedComponent);
+        }
+
+        void btnEdit_Click(object? sender, EventArgs e)
+        {
+            if (sender is not Button btnEdit)
+                return;
+
+            EditInputPort(btnEdit.Tag as InputPort);
+        }
+    }
+
+    /// <summary>
+    /// Gets the image for the link-button (open or closed link symbol).
+    /// </summary>
+    /// <param name="isLinked">If set to <c>true</c> get the linked symbol (closed), otherwise the unlinked symbol (open).</param>
+    /// <returns>The image.</returns>
+    private static Image GetLinkImage(bool isLinked)
+    {
+        return new Bitmap(isLinked ? GlblRes.link : GlblRes.unlink, 24, 24);
+    }
+
+    private void EditInputPort(InputPort? inputPort)
+    {
+        if (inputPort == null)
+            return;
+
+        using (var frm = new frmEditComponent(inputPort))
+        {
+            frm.ShowDialog(this);
+        }
+    }
+
+    #endregion Input-ports view
 
     /// <summary>
     /// Gets the value of the given <see cref="BaseObject"/>.
@@ -1313,5 +1569,40 @@ public partial class frmMain : Form
             return ((double)baseObject).ToString();
 
         return baseObject.ToString();
+    }
+
+    /// <summary>
+    /// Gets the root <see cref="Component"/> for the given component object.
+    /// </summary>
+    /// <param name="component">The <c>Component</c>.</param>
+    /// <returns>The root <c>Component</c>.</returns>
+    private static Component GetRootComponent(Component component)
+    {
+        while (component.Parent != null)
+            component = component.Parent;
+
+        return component;
+    }
+
+    /// <summary>
+    /// Gets the short identifier for the given <see cref="Signal"/>.
+    /// </summary>
+    /// <param name="signal">The <c>Signal</c>.</param>
+    /// <returns>The short identifier.</returns>
+    private string GetShortId(Signal? signal)
+    {
+        if (signal == null)
+            return string.Empty;
+
+        // /4aa5533b-e463-4f8b-9d81-7995ed56274c/Dev/RefDev0/Dev/RefDev1/IO/AI/RefCh0/Sig/AI0
+        // -> RefDev0/RefDev1/RefCh0/AI0
+
+        var parts       = signal.GlobalId.Split('/', StringSplitOptions.RemoveEmptyEntries).ToList();
+        var ignoreParts = new List<string>() { "IO", "FB", "Sig", "Dev" };
+
+        parts.RemoveAt(0); //remove root
+        parts.RemoveAll(part => ignoreParts.Contains(part));
+
+        return string.Join('/', parts.ToArray());
     }
 }

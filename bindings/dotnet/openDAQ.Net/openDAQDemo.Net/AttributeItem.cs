@@ -16,6 +16,7 @@
 
 
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 using Daq.Core.Objects;
 using Daq.Core.Types;

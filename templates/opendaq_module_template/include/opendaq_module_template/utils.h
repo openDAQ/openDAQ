@@ -45,48 +45,78 @@ struct SignalAttributeConfig : ComponentAttributeConfig
     SignalListAttribute relatedSignals{true, {}};
 };
 
+// Device type information
+
+struct DeviceInfoParams
+{
+    std::string address;
+    std::string typeId;
+    std::string name;
+    std::string manufacturer;
+    std::string manufacturerUri;
+    std::string model;
+    std::string productCode;
+    std::string deviceRevision;
+    std::string hardwareRevision;
+    std::string softwareRevision;
+    std::string deviceManual;
+    std::string deviceClass;
+    std::string serialNumber;
+    std::string productInstanceUri;
+    int revisionCounter;
+    std::string assetId;
+    std::string macAddress;
+    std::string parentMacAddress;
+    std::string platform;
+    int position;
+    std::string systemType;
+    std::string systemUuid;
+    std::string location;
+    std::map<std::string, std::string> other;
+};
+
+struct DeviceTypeParams
+{
+    std::string id;
+    std::string name;
+    std::string description;
+    std::string connectionStringPrefix;
+    PropertyObjectPtr defaultConfiguration;
+};
+
 // Constructor parameter definitions
 
-struct DeviceTemplateParams
+struct DeviceParams
 {
     DeviceInfoPtr info;
     ContextPtr context;
     ComponentPtr parent;
-    PropertyObjectPtr config;
 
+    PropertyObjectPtr config;
+    DictPtr<IString, IBaseObject> options;
+
+    std::string typeId;
+    std::string address;
+    
     std::string logName;
     std::string localId;
-    std::string className;
-
-    bool allowAddDevices = false;
-    bool allowAddFunctionBlocks = false;
 };
 
-struct ModuleTemplateParams
+struct ModuleParams
 {
     VersionInfoPtr version;
-    ContextPtr context;
     std::string name;
     std::string id;
     std::string logName;
 };
 
-struct CreateDeviceParams
-{
-    std::string typeId;
-    std::string address;
-    DeviceInfoPtr info;
-    FolderPtr parent;
-    PropertyObjectPtr config;
-    DictPtr<IString, IBaseObject> options;
-};
 
 // Validation classes
 
-class DeviceTemplateParamsValidation
+class DeviceParamsValidation
 {
 public:
-    DeviceTemplateParamsValidation(const DeviceTemplateParams& params)
+    DeviceParamsValidation(const DeviceParams& params)
     {
         if (params.localId.empty())
             throw InvalidParameterException("Local id is not set");
@@ -99,17 +129,15 @@ public:
     }
 };
 
-class ModuleTemplateParamsValidation
+class ModuleParamsValidation
 {
 public:
-    virtual ~ModuleTemplateParamsValidation() = default;
+    virtual ~ModuleParamsValidation() = default;
 
-    ModuleTemplateParamsValidation(const ModuleTemplateParams& params)
+    ModuleParamsValidation(const ModuleParams& params)
     {
         if (!params.version.assigned())
             throw InvalidParameterException("Module version is not set");
-        if (!params.context.assigned())
-            throw InvalidParameterException("Context is not set");
         if (params.name.empty())
             throw InvalidParameterException("Module is not set");
         if (params.logName.empty())
@@ -120,7 +148,7 @@ public:
         this->params = params; 
     }
 
-    ModuleTemplateParams params;
+    ModuleParams params;
 };
 
 class FunctionBlockTemplateParamsValidation

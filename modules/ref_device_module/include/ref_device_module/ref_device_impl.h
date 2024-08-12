@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public DeviceTemplate
 {
 public:
-    explicit RefDeviceImpl(const DeviceTemplateParams& config);
+    explicit RefDeviceImpl(const DeviceParams& config);
     ~RefDeviceImpl() override;
 
     // IDevice

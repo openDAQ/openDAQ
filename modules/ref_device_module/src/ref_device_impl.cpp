@@ -9,7 +9,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(const DeviceTemplateParams& params)
+RefDeviceImpl::RefDeviceImpl(const DeviceParams& params)
     : DeviceTemplate(params)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)

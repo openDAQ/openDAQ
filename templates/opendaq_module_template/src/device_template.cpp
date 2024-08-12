@@ -32,6 +32,16 @@ uint64_t DeviceTemplate::getTicksSinceOrigin()
     return 0;
 }
 
+bool DeviceTemplate::allowAddDevicesFromModules()
+{
+    return false;
+}
+
+bool DeviceTemplate::allowAddFunctionBlocksFromModules()
+{
+    return false;
+}
+
 uint64_t DeviceTemplate::onGetTicksSinceOrigin()
 {
     return 0;
@@ -43,23 +53,12 @@ void DeviceTemplate::onObjectReady()
     if (initialized)
         return;
 
-
     initialized = true;
 }
 
 DeviceInfoPtr DeviceTemplate::onGetInfo()
 {
     return info;
-}
-
-bool DeviceTemplate::allowAddDevicesFromModules()
-{
-    return allowAddDevices;
-}
-
-bool DeviceTemplate::allowAddFunctionBlocksFromModules()
-{
-    return allowAddFunctionBlocks;
 }
 
 END_NAMESPACE_OPENDAQ

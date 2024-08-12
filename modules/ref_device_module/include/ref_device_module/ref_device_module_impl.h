@@ -32,15 +32,13 @@ public:
     explicit RefDeviceModule(const ContextPtr& context);
 
 protected:
-    std::vector<DeviceInfoFields> getDeviceInfoFields(const std::string& typeId, const DictPtr<IString, IBaseObject>& options) override;
-    std::vector<DeviceTypePtr> getAvailableDeviceTypes() override;
-    DevicePtr createDevice(const CreateDeviceParams& params) override;
-    ModuleTemplateParams buildModuleTemplateParams(const ContextPtr& context) override;
+    ModuleParams buildModuleParams() override;
+    std::vector<DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
+    std::vector<DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
+    DevicePtr createDevice(const DeviceParams& params) override;
 
 private:
-    static size_t getIdFromAddress(const std::string& address);
 
-    std::unordered_map<std::string, WeakRefPtr<IDevice>> devices;
     size_t maxNumberOfDevices;
 };
 

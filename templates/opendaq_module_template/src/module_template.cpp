@@ -7,15 +7,21 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
+    std::scoped_lock lock(module_->sync);
     auto deviceInfo = List<IDeviceInfo>();
     const auto options = context.getModuleOptions(id);
 
-    const auto types = module_->getAvailableDeviceTypes();
-    for (const auto& type : types)
+    const auto availableDevTypes = module_->getAvailableDeviceTypes(options);
+    std::map<std::string, DeviceTypeParams> devTypesMap;
+    for (const auto& devTypeInfo : availableDevTypes)
+        devTypesMap[devTypeInfo.id] = devTypeInfo;
+    
+    const auto availableDevInfo = module_->getAvailableDeviceInfo(options);
+    for (const auto& devInfoParams : availableDevInfo)
     {
-        const auto id = type.getId();
-        for (const auto& fields: module_->getDeviceInfoFields(id, options))
-            deviceInfo.pushBack(module_->createDeviceInfo(fields, type));
+        if (devTypesMap.find(devInfoParams.typeId) == devTypesMap.end())
+            deviceInfo.pushBack(createDeviceInfo(devInfoParams, {}));
+        deviceInfo.pushBack(createDeviceInfo(devInfoParams, devTypesMap.at(devInfoParams.typeId)));
     }
 
     return deviceInfo.detach();
@@ -23,11 +29,20 @@ ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 
 DictPtr<IString, IDeviceType> ModuleTemplateHooks::onGetAvailableDeviceTypes()
 {
-    const ListPtr<IDeviceType> deviceTypes = module_->getAvailableDeviceTypes();
+    std::scoped_lock lock(module_->sync);
+    const auto options = context.getModuleOptions(id);
+    const auto deviceTypes = module_->getAvailableDeviceTypes(options);
 
-    DictPtr<IString, IDeviceType> typesDict = Dict<IString, IDeviceType>();
-    for (const auto& deviceType : deviceTypes)
-        typesDict.set(String(deviceType.getId()), deviceType);
+    auto typesDict = Dict<IString, IDeviceType>();
+    for (const auto& typeInfo : deviceTypes)
+    {
+        auto type = DeviceTypeBuilder().setId(typeInfo.id)
+                                       .setConnectionStringPrefix(typeInfo.connectionStringPrefix)
+                                       .setDescription(typeInfo.description)
+                                       .setDefaultConfig(typeInfo.defaultConfiguration)
+                                       .build();
+        typesDict.set(typeInfo.id, type);
+    }
 
     return typesDict.detach();
 }
@@ -43,98 +58,140 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     const std::string prefix = s.substr(0, s.find(delimiter));
     const std::string address = s.substr(s.find(delimiter) + delimiter.length(), s.length());
 
-    DeviceTypePtr type;
-    DeviceInfoPtr info;
+    DeviceTypeParams typeInfo;
+    const auto options = context.getModuleOptions(id);
 
-    for (const auto& deviceType : module_->getAvailableDeviceTypes())
+    bool found = false;
+    for (const auto& availableDeviceType : module_->getAvailableDeviceTypes(options))
     {
-        if (deviceType.getConnectionStringPrefix() == prefix)
+        if (availableDeviceType.connectionStringPrefix == prefix)
         {
-            type = deviceType;
+            typeInfo = availableDeviceType;
+            found = true;
             break;
         }
     }
 
-    if (!type.assigned())
+    if (!found)
         throw InvalidParameterException("Device with given connection string prefix was not found");
 
-    for (const auto& infoFields : module_->getDeviceInfoFields(type.getId(), context.getModuleOptions(id)))
+    DeviceInfoParams deviceInfo;
+    
+    found = false;
+    for (const auto& availableDeviceInfo : module_->getAvailableDeviceInfo(options))
     {
-        if (infoFields.address == address)
+        if (availableDeviceInfo.address == address)
         {
-            info = module_->createDeviceInfo(infoFields, type);
+            deviceInfo = availableDeviceInfo;
+            found = true;
             break;
         }
     }
     
-    if (!info.assigned())
-        throw NotFoundException("Device with given connection string was not found.");
+    if (!found)
+        throw InvalidParameterException("Device with address {} was not found", address);
 
-    const auto options = context.getModuleOptions(id);
+    DeviceInfoPtr info = createDeviceInfo(deviceInfo, typeInfo);
 
-    CreateDeviceParams params;
-    params.typeId = type.getId().toStdString();
-    params.address = address;
+    DeviceParams params;
     params.info = info;
     params.parent = parent;
+    params.context = context;
+
+    params.typeId = typeInfo.id;
+    params.address = address;
+
     params.config = config;
     params.options = options.assigned() ? options : Dict<IString, IBaseObject>();
 
-    return module_->createDevice(params);
+    params.logName = typeInfo.name;
+    params.localId = deviceInfo.manufacturer + "_" + deviceInfo.serialNumber;
+
+    if (module_->devices.count(params.localId))
+        throw AlreadyExistsException{"Device with local ID \"{}\" already exist", params.localId};
+
+    auto device = module_->createDevice(params);
+    if (!device.assigned())
+        throw InvalidParameterException("Device creation failed");
+    module_->devices.insert(device.getLocalId());
+
+    const auto deviceParent = device.getParent();
+    deviceParent.getOnComponentCoreEvent() +=
+        [this](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+            {
+                if (args.getEventId() == static_cast<Int>(CoreEventId::ComponentRemoved))
+                {
+                    const auto id = args.getParameters().get("Id");
+                    if (module_->devices.count(id))
+                    {
+                        module_->deviceRemoved(id);
+                        module_->devices.erase(id);
+                    }
+                }
+            };
+
+    return device.detach();
 }
 
-DeviceInfoPtr ModuleTemplate::createDeviceInfo(const DeviceInfoFields& fields, const DeviceTypePtr& type)
+DeviceInfoPtr ModuleTemplateHooks::createDeviceInfo(const DeviceInfoParams& infoParams, const DeviceTypeParams& typeParams)
 {
-    if (fields.serialNumber.empty())
+    if (infoParams.serialNumber.empty())
         throw ArgumentNullException("Serial number must not be empty");
-    if (fields.manufacturer.empty())
+    if (infoParams.manufacturer.empty())
         throw ArgumentNullException("Manufacturer must not be empty");
-    if (type.getConnectionStringPrefix() == "")
-        throw ArgumentNullException("Connection string prefix must not be empty");
-    if (type.getId() == "")
-        throw ArgumentNullException("Device type ID must not be empty");
+    
+    auto deviceInfo = DeviceInfo(typeParams.connectionStringPrefix + "://" + infoParams.address);
 
-    auto deviceInfo = DeviceInfo(type.getConnectionStringPrefix() + "://" + fields.address);
-    deviceInfo.setDeviceType(type);
-    deviceInfo.setName(fields.name);
-    deviceInfo.setManufacturer(fields.manufacturer);
-    deviceInfo.setManufacturerUri(fields.manufacturerUri);
-    deviceInfo.setModel(fields.model);
-    deviceInfo.setProductCode(fields.productCode);
-    deviceInfo.setDeviceRevision(fields.deviceRevision);
-    deviceInfo.setHardwareRevision(fields.hardwareRevision);
-    deviceInfo.setSoftwareRevision(fields.softwareRevision);
-    deviceInfo.setDeviceManual(fields.deviceManual);
-    deviceInfo.setDeviceClass(fields.deviceClass);
-    deviceInfo.setSerialNumber(fields.serialNumber);
-    deviceInfo.setProductInstanceUri(fields.productInstanceUri);
-    deviceInfo.setRevisionCounter(fields.revisionCounter);
-    deviceInfo.setAssetId(fields.assetId);
-    deviceInfo.setMacAddress(fields.macAddress);
-    deviceInfo.setParentMacAddress(fields.parentMacAddress);
-    deviceInfo.setPlatform(fields.platform);
-    deviceInfo.setPosition(fields.position);
-    deviceInfo.setSystemType(fields.systemType);
-    deviceInfo.setSystemUuid(fields.systemUuid);
-    deviceInfo.setLocation(fields.location);
+    if (!typeParams.id.empty() && !typeParams.connectionStringPrefix.empty())
+    {
+        auto deviceType = DeviceTypeBuilder().setId(typeParams.id)
+                                             .setConnectionStringPrefix(typeParams.connectionStringPrefix)
+                                             .setDescription(typeParams.description)
+                                             .setDefaultConfig(typeParams.defaultConfiguration)
+                                             .build();
 
-    for (const auto& [key, value] : fields.other)
+        deviceInfo.setDeviceType(deviceType.detach());
+    }
+
+    deviceInfo.setName(infoParams.name);
+    deviceInfo.setManufacturer(infoParams.manufacturer);
+    deviceInfo.setManufacturerUri(infoParams.manufacturerUri);
+    deviceInfo.setModel(infoParams.model);
+    deviceInfo.setProductCode(infoParams.productCode);
+    deviceInfo.setDeviceRevision(infoParams.deviceRevision);
+    deviceInfo.setHardwareRevision(infoParams.hardwareRevision);
+    deviceInfo.setSoftwareRevision(infoParams.softwareRevision);
+    deviceInfo.setDeviceManual(infoParams.deviceManual);
+    deviceInfo.setDeviceClass(infoParams.deviceClass);
+    deviceInfo.setSerialNumber(infoParams.serialNumber);
+    deviceInfo.setProductInstanceUri(infoParams.productInstanceUri);
+    deviceInfo.setRevisionCounter(infoParams.revisionCounter);
+    deviceInfo.setAssetId(infoParams.assetId);
+    deviceInfo.setMacAddress(infoParams.macAddress);
+    deviceInfo.setParentMacAddress(infoParams.parentMacAddress);
+    deviceInfo.setPlatform(infoParams.platform);
+    deviceInfo.setPosition(infoParams.position);
+    deviceInfo.setSystemType(infoParams.systemType);
+    deviceInfo.setSystemUuid(infoParams.systemUuid);
+    deviceInfo.setLocation(infoParams.location);
+
+    for (const auto& [key, value] : infoParams.other)
         deviceInfo.addProperty(StringProperty(key, value));
 
     return deviceInfo.detach();
 }
 
-std::vector<DeviceInfoFields> ModuleTemplate::getDeviceInfoFields(const std::string& /*typeId*/, const DictPtr<IString, IBaseObject>& /*options*/)
+std::vector<DeviceTypeParams> ModuleTemplate::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& /*options*/)
 {
     return {};
 }
 
-std::vector<DeviceTypePtr> ModuleTemplate::getAvailableDeviceTypes()
+std::vector<DeviceInfoParams> ModuleTemplate::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& /*options*/)
 {
-    return {};
+	return {};
 }
 
-DevicePtr ModuleTemplate::createDevice(const CreateDeviceParams& /*params*/)
+DevicePtr ModuleTemplate::createDevice(const DeviceParams& /*params*/)
 {
     return nullptr;
 }
@@ -143,7 +200,7 @@ void ModuleTemplate::deviceRemoved(const std::string& /*deviceLocalId*/)
 {
 }
 
-ModuleTemplateParams ModuleTemplate::buildModuleTemplateParams(const ContextPtr& /*context*/)
+ModuleParams ModuleTemplate::buildModuleParams()
 {
 	return {};
 }

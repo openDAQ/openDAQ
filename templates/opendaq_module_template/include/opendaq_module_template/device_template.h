@@ -4,15 +4,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class DeviceTemplate : public DeviceTemplateParamsValidation, public Device, ComponentTemplateBase 
+class DeviceTemplate : public DeviceParamsValidation, public Device, ComponentTemplateBase 
 {
 public:
-    DeviceTemplate(const DeviceTemplateParams& params)
-        : DeviceTemplateParamsValidation(params)
-        , Device(params.context, params.parent, params.localId, params.className, params.info.getName())
+    DeviceTemplate(const DeviceParams& params, const std::string& className = "")
+        : DeviceParamsValidation(params)
+        , Device(params.context, params.parent, params.localId, className, params.info.getName())
         , info(params.info)
-        , allowAddDevices(params.allowAddDevices)
-        , allowAddFunctionBlocks(params.allowAddFunctionBlocks)
         , initialized(false)
     {
         this->info = params.info;
@@ -36,19 +34,18 @@ protected:
     virtual DeviceDomainPtr getDeviceDomain();
     virtual uint64_t getTicksSinceOrigin();
 
+    virtual bool allowAddDevicesFromModules();
+    virtual bool allowAddFunctionBlocksFromModules();
+
     LoggerComponentPtr loggerComponent;
 
 private:
     void onObjectReady() override;
     DeviceInfoPtr onGetInfo() override;
 
-    bool allowAddDevicesFromModules() override;
-    bool allowAddFunctionBlocksFromModules() override;
     uint64_t onGetTicksSinceOrigin() override;
 
     DeviceInfoPtr info;
-    bool allowAddDevices;
-    bool allowAddFunctionBlocks;
     bool initialized;
 };
 

@@ -229,14 +229,14 @@ void ContextImpl::registerOpenDaqTypes()
 
     // Declaration of the SyncComponentBase class
     auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
-                                    .addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}})))
+                                    .addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false))
                                     .addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3))
                                     .build();
     typeManager->addType(syncInterfaceBase);
 
     // Declaration of the InterfaceClockSync class
     PropertyObjectPtr interfaceClockSyncStatusProperty = PropertyObject();
-    interfaceClockSyncStatusProperty.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}})));
+    interfaceClockSyncStatusProperty.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}}), false));
     interfaceClockSyncStatusProperty.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
 
     auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
@@ -247,7 +247,7 @@ void ContextImpl::registerOpenDaqTypes()
 
     // Declaration of the PtpSyncInterface class
     PropertyObjectPtr PtpSyncInterfaceStatus = PropertyObject();
-    PtpSyncInterfaceStatus.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}})));
+    PtpSyncInterfaceStatus.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}}), false));
     PtpSyncInterfaceStatus.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
     PtpSyncInterfaceStatus.addProperty(StringProperty("Grandmaster", ""));
 

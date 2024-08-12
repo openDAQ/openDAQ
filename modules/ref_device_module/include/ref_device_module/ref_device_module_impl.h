@@ -29,9 +29,11 @@ public:
 class RefDeviceModule final : public ModuleTemplate
 {
 public:
+
     explicit RefDeviceModule(const ContextPtr& context);
 
 protected:
+
     ModuleParams buildModuleParams() override;
     std::vector<DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
     std::vector<DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;

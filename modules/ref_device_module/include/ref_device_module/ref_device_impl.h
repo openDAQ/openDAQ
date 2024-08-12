@@ -23,6 +23,12 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+class RefDeviceBase final : public DeviceTemplateHooks
+{
+public:
+    RefDeviceBase(const DeviceParams& params);
+};
+
 class RefDeviceImpl final : public DeviceTemplate
 {
 public:
@@ -30,7 +36,7 @@ public:
     ~RefDeviceImpl() override;
 
     // IDevice
-    uint64_t onGetTicksSinceOrigin() override;
+    uint64_t getTicksSinceOrigin() override;
 
 private:
     void initClock();

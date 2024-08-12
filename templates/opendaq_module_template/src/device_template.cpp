@@ -42,12 +42,12 @@ bool DeviceTemplate::allowAddFunctionBlocksFromModules()
     return false;
 }
 
-uint64_t DeviceTemplate::onGetTicksSinceOrigin()
+uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()
 {
     return 0;
 }
 
-void DeviceTemplate::onObjectReady()
+void DeviceTemplateHooks::onObjectReady()
 {
     GenericDevice<IDevice>::onObjectReady();
     if (initialized)
@@ -56,7 +56,7 @@ void DeviceTemplate::onObjectReady()
     initialized = true;
 }
 
-DeviceInfoPtr DeviceTemplate::onGetInfo()
+DeviceInfoPtr DeviceTemplateHooks::onGetInfo()
 {
     return info;
 }

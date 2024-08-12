@@ -84,8 +84,7 @@ std::vector<DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const Dict
 
 DevicePtr RefDeviceModule::createDevice(const DeviceParams& params)
 {
-    const auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(params);
-    return devicePtr;
+    return createWithImplementation<IDevice, RefDeviceImpl>(params);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

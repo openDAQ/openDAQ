@@ -9,6 +9,11 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+RefDeviceBase::RefDeviceBase(const DeviceParams& params)
+    : DeviceTemplateHooks(std::make_unique<RefDeviceImpl>(params))
+{
+}
+
 RefDeviceImpl::RefDeviceImpl(const DeviceParams& params)
     : DeviceTemplate(params)
     , microSecondsFromEpochToDeviceStart(0)

@@ -2,10 +2,8 @@
 #include <opendaq/module_impl.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq_module_template/utils.h>
-#include <map>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 
 class ModuleTemplateHooks;
 

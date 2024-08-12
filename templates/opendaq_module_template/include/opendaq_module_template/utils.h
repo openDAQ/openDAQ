@@ -126,14 +126,16 @@ public:
             throw InvalidParameterException("Log name is not set");
         if (!params.context.assigned())
             throw InvalidParameterException("Context is not set");
+        
+        this->params = params; 
     }
+
+    DeviceParams params;
 };
 
 class ModuleParamsValidation
 {
 public:
-    virtual ~ModuleParamsValidation() = default;
-
     ModuleParamsValidation(const ModuleParams& params)
     {
         if (!params.version.assigned())

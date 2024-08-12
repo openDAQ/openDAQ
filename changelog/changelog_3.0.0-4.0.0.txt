@@ -1,3 +1,11 @@
+08.08.2024
+Description:
+	- Add get/setValue method to IProperty
+	- Helpers allowing easier access to the property's value when iterating through an object's properties
+	
++ [function] IProperty::getValue(IBaseObject** value)
++ [function] IProperty::setValue(IBaseObject* value)
+
 26.07.2024
 Description:
   - Add method to IPropertyObject to detect begin/end update status  

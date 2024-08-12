@@ -1,6 +1,6 @@
 ﻿namespace openDAQDemoNet
 {
-    partial class frmAddDeviceDialog
+    partial class frmAddFunctionBlockDialog
     {
         /// <summary>
         /// Required designer variable.
@@ -29,26 +29,21 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmAddDeviceDialog));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmAddFunctionBlockDialog));
             splitContainer1 = new SplitContainer();
             treeParentDevices = new TreeView();
             textBox1 = new TextBox();
-            gridChildDevices = new DataGridView();
-            contextMenuStripChildDevices = new ContextMenuStrip(components);
+            gridFunctionBlocks = new DataGridView();
+            contextMenuStripFunctionBlocks = new ContextMenuStrip(components);
             contextMenuItemChildDevicesAddDevice = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             contextMenuItemChildDevicesRefresh = new ToolStripMenuItem();
-            panel1 = new Panel();
-            label1 = new Label();
-            btnAdd = new Button();
-            txtConnectionString = new TextBox();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)gridChildDevices).BeginInit();
-            contextMenuStripChildDevices.SuspendLayout();
-            panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)gridFunctionBlocks).BeginInit();
+            contextMenuStripFunctionBlocks.SuspendLayout();
             SuspendLayout();
             // 
             // splitContainer1
@@ -64,8 +59,7 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(gridChildDevices);
-            splitContainer1.Panel2.Controls.Add(panel1);
+            splitContainer1.Panel2.Controls.Add(gridFunctionBlocks);
             splitContainer1.Size = new Size(984, 461);
             splitContainer1.SplitterDistance = 327;
             splitContainer1.TabIndex = 0;
@@ -90,91 +84,51 @@
             textBox1.Text = "Parent device";
             textBox1.TextAlign = HorizontalAlignment.Center;
             // 
-            // gridChildDevices
+            // gridFunctionBlocks
             // 
-            gridChildDevices.AllowUserToAddRows = false;
-            gridChildDevices.AllowUserToDeleteRows = false;
-            gridChildDevices.BackgroundColor = SystemColors.Window;
-            gridChildDevices.ContextMenuStrip = contextMenuStripChildDevices;
-            gridChildDevices.Dock = DockStyle.Fill;
-            gridChildDevices.Location = new Point(0, 0);
-            gridChildDevices.Name = "gridChildDevices";
-            gridChildDevices.ReadOnly = true;
-            gridChildDevices.RowTemplate.Height = 25;
-            gridChildDevices.Size = new Size(653, 432);
-            gridChildDevices.TabIndex = 0;
-            gridChildDevices.CellContextMenuStripNeeded += gridChildDevices_CellContextMenuStripNeeded;
-            gridChildDevices.CellDoubleClick += gridChildDevices_CellDoubleClick;
-            gridChildDevices.SelectionChanged += gridChildDevices_SelectionChanged;
+            gridFunctionBlocks.AllowUserToAddRows = false;
+            gridFunctionBlocks.AllowUserToDeleteRows = false;
+            gridFunctionBlocks.BackgroundColor = SystemColors.Window;
+            gridFunctionBlocks.ContextMenuStrip = contextMenuStripFunctionBlocks;
+            gridFunctionBlocks.Dock = DockStyle.Fill;
+            gridFunctionBlocks.Location = new Point(0, 0);
+            gridFunctionBlocks.Name = "gridFunctionBlocks";
+            gridFunctionBlocks.ReadOnly = true;
+            gridFunctionBlocks.RowTemplate.Height = 25;
+            gridFunctionBlocks.Size = new Size(653, 461);
+            gridFunctionBlocks.TabIndex = 0;
+            gridFunctionBlocks.CellContextMenuStripNeeded += gridFunctionBlocks_CellContextMenuStripNeeded;
+            gridFunctionBlocks.CellDoubleClick += gridFunctionBlocks_CellDoubleClick;
             // 
-            // contextMenuStripChildDevices
+            // contextMenuStripFunctionBlocks
             // 
-            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { contextMenuItemChildDevicesAddDevice, toolStripSeparator1, contextMenuItemChildDevicesRefresh });
-            contextMenuStripChildDevices.Name = "contextMenuStrip1";
-            contextMenuStripChildDevices.Size = new Size(223, 76);
-            contextMenuStripChildDevices.Opening += contextMenuStripChildDevices_Opening;
+            contextMenuStripFunctionBlocks.Items.AddRange(new ToolStripItem[] { contextMenuItemChildDevicesAddDevice, toolStripSeparator1, contextMenuItemChildDevicesRefresh });
+            contextMenuStripFunctionBlocks.Name = "contextMenuStrip1";
+            contextMenuStripFunctionBlocks.Size = new Size(266, 76);
+            contextMenuStripFunctionBlocks.Opening += contextMenuStripChildDevices_Opening;
             // 
             // contextMenuItemChildDevicesAddDevice
             // 
             contextMenuItemChildDevicesAddDevice.Name = "contextMenuItemChildDevicesAddDevice";
             contextMenuItemChildDevicesAddDevice.ShortcutKeyDisplayString = "<double-click>";
-            contextMenuItemChildDevicesAddDevice.Size = new Size(222, 22);
-            contextMenuItemChildDevicesAddDevice.Text = "Add device";
+            contextMenuItemChildDevicesAddDevice.Size = new Size(265, 22);
+            contextMenuItemChildDevicesAddDevice.Text = "Add function block";
             contextMenuItemChildDevicesAddDevice.Click += contextMenuItemChildDevicesAddDevice_Click;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(219, 6);
+            toolStripSeparator1.Size = new Size(262, 6);
             // 
             // contextMenuItemChildDevicesRefresh
             // 
             contextMenuItemChildDevicesRefresh.Image = Properties.Resources.refresh16;
             contextMenuItemChildDevicesRefresh.Name = "contextMenuItemChildDevicesRefresh";
-            contextMenuItemChildDevicesRefresh.Size = new Size(222, 22);
+            contextMenuItemChildDevicesRefresh.Size = new Size(265, 22);
             contextMenuItemChildDevicesRefresh.Text = "Refresh list";
             contextMenuItemChildDevicesRefresh.Click += contextMenuItemChildDevicesRefresh_Click;
             // 
-            // panel1
-            // 
-            panel1.Controls.Add(label1);
-            panel1.Controls.Add(btnAdd);
-            panel1.Controls.Add(txtConnectionString);
-            panel1.Dock = DockStyle.Bottom;
-            panel1.Location = new Point(0, 432);
-            panel1.Name = "panel1";
-            panel1.Size = new Size(653, 29);
-            panel1.TabIndex = 2;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(3, 6);
-            label1.Name = "label1";
-            label1.Size = new Size(102, 15);
-            label1.TabIndex = 4;
-            label1.Text = "Connection string";
-            // 
-            // btnAdd
-            // 
-            btnAdd.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnAdd.Location = new Point(600, 3);
-            btnAdd.Name = "btnAdd";
-            btnAdd.Size = new Size(50, 23);
-            btnAdd.TabIndex = 3;
-            btnAdd.Text = "Add";
-            btnAdd.UseVisualStyleBackColor = true;
-            btnAdd.Click += btnAdd_Click;
-            // 
-            // txtConnectionString
-            // 
-            txtConnectionString.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txtConnectionString.Location = new Point(111, 3);
-            txtConnectionString.Name = "txtConnectionString";
-            txtConnectionString.Size = new Size(486, 23);
-            txtConnectionString.TabIndex = 2;
-            // 
-            // frmAddDeviceDialog
+            // frmAddFunctionBlockDialog
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -182,19 +136,17 @@
             Controls.Add(splitContainer1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(1000, 500);
-            Name = "frmAddDeviceDialog";
+            Name = "frmAddFunctionBlockDialog";
             StartPosition = FormStartPosition.CenterParent;
-            Text = "Add device";
-            Shown += frmAddDeviceDialog_Shown;
+            Text = "Add function block";
+            Shown += frmAddFunctionBlockDialog_Shown;
             splitContainer1.Panel1.ResumeLayout(false);
             splitContainer1.Panel1.PerformLayout();
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)gridChildDevices).EndInit();
-            contextMenuStripChildDevices.ResumeLayout(false);
-            panel1.ResumeLayout(false);
-            panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)gridFunctionBlocks).EndInit();
+            contextMenuStripFunctionBlocks.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -203,12 +155,8 @@
         private SplitContainer splitContainer1;
         private TextBox textBox1;
         private TreeView treeParentDevices;
-        private DataGridView gridChildDevices;
-        private Panel panel1;
-        private Button btnAdd;
-        private TextBox txtConnectionString;
-        private Label label1;
-        private ContextMenuStrip contextMenuStripChildDevices;
+        private DataGridView gridFunctionBlocks;
+        private ContextMenuStrip contextMenuStripFunctionBlocks;
         private ToolStripMenuItem contextMenuItemChildDevicesRefresh;
         private ToolStripMenuItem contextMenuItemChildDevicesAddDevice;
         private ToolStripSeparator toolStripSeparator1;

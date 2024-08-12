@@ -52,28 +52,40 @@
             tabChannels = new TabPage();
             tabFunctionBlocks = new TabPage();
             tabFullTopology = new TabPage();
-            splitContainer1 = new SplitContainer();
+            splitContainerMain = new SplitContainer();
+            splitContainerPropertiesAttributes = new SplitContainer();
+            splitContainerPropertiesInputs = new SplitContainer();
             gridProperties = new DataGridView();
             contextMenuStripGridProperties = new ContextMenuStrip(components);
             conetxtMenuItemGridPropertiesEdit = new ToolStripMenuItem();
+            groupInputPorts = new GroupBox();
+            tableInputPorts = new TableLayoutPanel();
+            label1 = new Label();
+            comboBox1 = new ComboBox();
+            button1 = new Button();
             gridAttributes = new DataGridView();
             imglTreeImages = new ImageList(components);
-            splitContainer2 = new SplitContainer();
             contextMenuStripTreeComponents.SuspendLayout();
             menuStrip1.SuspendLayout();
             toolStrip1.SuspendLayout();
             tabControl1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
-            splitContainer1.Panel1.SuspendLayout();
-            splitContainer1.Panel2.SuspendLayout();
-            splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainerMain).BeginInit();
+            splitContainerMain.Panel1.SuspendLayout();
+            splitContainerMain.Panel2.SuspendLayout();
+            splitContainerMain.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainerPropertiesAttributes).BeginInit();
+            splitContainerPropertiesAttributes.Panel1.SuspendLayout();
+            splitContainerPropertiesAttributes.Panel2.SuspendLayout();
+            splitContainerPropertiesAttributes.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainerPropertiesInputs).BeginInit();
+            splitContainerPropertiesInputs.Panel1.SuspendLayout();
+            splitContainerPropertiesInputs.Panel2.SuspendLayout();
+            splitContainerPropertiesInputs.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridProperties).BeginInit();
             contextMenuStripGridProperties.SuspendLayout();
+            groupInputPorts.SuspendLayout();
+            tableInputPorts.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridAttributes).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)splitContainer2).BeginInit();
-            splitContainer2.Panel1.SuspendLayout();
-            splitContainer2.Panel2.SuspendLayout();
-            splitContainer2.SuspendLayout();
             SuspendLayout();
             // 
             // treeComponents
@@ -264,25 +276,62 @@
             tabFullTopology.Text = "Full topology";
             tabFullTopology.UseVisualStyleBackColor = true;
             // 
-            // splitContainer1
+            // splitContainerMain
             // 
-            splitContainer1.Dock = DockStyle.Fill;
-            splitContainer1.FixedPanel = FixedPanel.Panel1;
-            splitContainer1.Location = new Point(0, 72);
-            splitContainer1.Name = "splitContainer1";
+            splitContainerMain.Dock = DockStyle.Fill;
+            splitContainerMain.FixedPanel = FixedPanel.Panel1;
+            splitContainerMain.Location = new Point(0, 72);
+            splitContainerMain.Name = "splitContainerMain";
             // 
-            // splitContainer1.Panel1
+            // splitContainerMain.Panel1
             // 
-            splitContainer1.Panel1.Controls.Add(treeComponents);
-            splitContainer1.Panel1.Padding = new Padding(3, 3, 0, 3);
+            splitContainerMain.Panel1.Controls.Add(treeComponents);
+            splitContainerMain.Panel1.Padding = new Padding(3, 3, 0, 3);
             // 
-            // splitContainer1.Panel2
+            // splitContainerMain.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(splitContainer2);
-            splitContainer1.Panel2.Padding = new Padding(0, 3, 3, 3);
-            splitContainer1.Size = new Size(984, 689);
-            splitContainer1.SplitterDistance = 400;
-            splitContainer1.TabIndex = 0;
+            splitContainerMain.Panel2.Controls.Add(splitContainerPropertiesAttributes);
+            splitContainerMain.Panel2.Padding = new Padding(0, 3, 3, 3);
+            splitContainerMain.Size = new Size(984, 689);
+            splitContainerMain.SplitterDistance = 400;
+            splitContainerMain.TabIndex = 0;
+            // 
+            // splitContainerPropertiesAttributes
+            // 
+            splitContainerPropertiesAttributes.Dock = DockStyle.Fill;
+            splitContainerPropertiesAttributes.FixedPanel = FixedPanel.Panel2;
+            splitContainerPropertiesAttributes.Location = new Point(0, 3);
+            splitContainerPropertiesAttributes.Name = "splitContainerPropertiesAttributes";
+            splitContainerPropertiesAttributes.Orientation = Orientation.Horizontal;
+            // 
+            // splitContainerPropertiesAttributes.Panel1
+            // 
+            splitContainerPropertiesAttributes.Panel1.Controls.Add(splitContainerPropertiesInputs);
+            // 
+            // splitContainerPropertiesAttributes.Panel2
+            // 
+            splitContainerPropertiesAttributes.Panel2.Controls.Add(gridAttributes);
+            splitContainerPropertiesAttributes.Size = new Size(577, 683);
+            splitContainerPropertiesAttributes.SplitterDistance = 400;
+            splitContainerPropertiesAttributes.TabIndex = 6;
+            // 
+            // splitContainerPropertiesInputs
+            // 
+            splitContainerPropertiesInputs.Dock = DockStyle.Fill;
+            splitContainerPropertiesInputs.FixedPanel = FixedPanel.Panel1;
+            splitContainerPropertiesInputs.Location = new Point(0, 0);
+            splitContainerPropertiesInputs.Name = "splitContainerPropertiesInputs";
+            // 
+            // splitContainerPropertiesInputs.Panel1
+            // 
+            splitContainerPropertiesInputs.Panel1.Controls.Add(gridProperties);
+            // 
+            // splitContainerPropertiesInputs.Panel2
+            // 
+            splitContainerPropertiesInputs.Panel2.Controls.Add(groupInputPorts);
+            splitContainerPropertiesInputs.Size = new Size(577, 400);
+            splitContainerPropertiesInputs.SplitterDistance = 300;
+            splitContainerPropertiesInputs.TabIndex = 8;
             // 
             // gridProperties
             // 
@@ -295,7 +344,7 @@
             gridProperties.Name = "gridProperties";
             gridProperties.ReadOnly = true;
             gridProperties.RowTemplate.Height = 25;
-            gridProperties.Size = new Size(577, 400);
+            gridProperties.Size = new Size(300, 400);
             gridProperties.TabIndex = 4;
             gridProperties.CellContextMenuStripNeeded += gridProperties_CellContextMenuStripNeeded;
             gridProperties.CellDoubleClick += gridProperties_CellDoubleClick;
@@ -315,6 +364,64 @@
             conetxtMenuItemGridPropertiesEdit.Text = "Edit...";
             conetxtMenuItemGridPropertiesEdit.Click += conetxtMenuItemGridPropertiesEdit_Click;
             // 
+            // groupInputPorts
+            // 
+            groupInputPorts.Controls.Add(tableInputPorts);
+            groupInputPorts.Dock = DockStyle.Fill;
+            groupInputPorts.Location = new Point(0, 0);
+            groupInputPorts.Name = "groupInputPorts";
+            groupInputPorts.Size = new Size(273, 400);
+            groupInputPorts.TabIndex = 6;
+            groupInputPorts.TabStop = false;
+            groupInputPorts.Text = "Input ports";
+            // 
+            // tableInputPorts
+            // 
+            tableInputPorts.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            tableInputPorts.AutoSize = true;
+            tableInputPorts.ColumnCount = 3;
+            tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
+            tableInputPorts.ColumnStyles.Add(new ColumnStyle());
+            tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableInputPorts.Controls.Add(label1, 0, 0);
+            tableInputPorts.Controls.Add(comboBox1, 1, 0);
+            tableInputPorts.Controls.Add(button1, 2, 0);
+            tableInputPorts.Location = new Point(3, 22);
+            tableInputPorts.Name = "tableInputPorts";
+            tableInputPorts.RowCount = 1;
+            tableInputPorts.RowStyles.Add(new RowStyle(SizeType.Absolute, 29F));
+            tableInputPorts.Size = new Size(262, 29);
+            tableInputPorts.TabIndex = 0;
+            // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            label1.AutoSize = true;
+            label1.Location = new Point(3, 7);
+            label1.Name = "label1";
+            label1.Size = new Size(69, 15);
+            label1.TabIndex = 0;
+            label1.Text = "label1";
+            label1.TextAlign = ContentAlignment.MiddleRight;
+            // 
+            // comboBox1
+            // 
+            comboBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            comboBox1.FormattingEnabled = true;
+            comboBox1.Location = new Point(78, 3);
+            comboBox1.Name = "comboBox1";
+            comboBox1.Size = new Size(121, 23);
+            comboBox1.TabIndex = 1;
+            // 
+            // button1
+            // 
+            button1.Anchor = AnchorStyles.Left;
+            button1.Location = new Point(205, 3);
+            button1.Name = "button1";
+            button1.Size = new Size(54, 23);
+            button1.TabIndex = 2;
+            button1.UseVisualStyleBackColor = true;
+            // 
             // gridAttributes
             // 
             gridAttributes.AllowUserToAddRows = false;
@@ -328,7 +435,7 @@
             gridAttributes.RowTemplate.Height = 25;
             gridAttributes.Size = new Size(577, 279);
             gridAttributes.TabIndex = 5;
-            gridAttributes.CellContextMenuStripNeeded += gridAttributes_CellContextMenuStripNeeded;
+            gridAttributes.CellContextMenuStripNeeded += gridProperties_CellContextMenuStripNeeded;
             gridAttributes.CellDoubleClick += gridAttributes_CellDoubleClick;
             // 
             // imglTreeImages
@@ -337,31 +444,12 @@
             imglTreeImages.ImageSize = new Size(16, 16);
             imglTreeImages.TransparentColor = Color.Transparent;
             // 
-            // splitContainer2
-            // 
-            splitContainer2.Dock = DockStyle.Fill;
-            splitContainer2.FixedPanel = FixedPanel.Panel2;
-            splitContainer2.Location = new Point(0, 3);
-            splitContainer2.Name = "splitContainer2";
-            splitContainer2.Orientation = Orientation.Horizontal;
-            // 
-            // splitContainer2.Panel1
-            // 
-            splitContainer2.Panel1.Controls.Add(gridProperties);
-            // 
-            // splitContainer2.Panel2
-            // 
-            splitContainer2.Panel2.Controls.Add(gridAttributes);
-            splitContainer2.Size = new Size(577, 683);
-            splitContainer2.SplitterDistance = 400;
-            splitContainer2.TabIndex = 6;
-            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(984, 761);
-            Controls.Add(splitContainer1);
+            Controls.Add(splitContainerMain);
             Controls.Add(tabControl1);
             Controls.Add(toolStrip1);
             Controls.Add(menuStrip1);
@@ -378,17 +466,25 @@
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
             tabControl1.ResumeLayout(false);
-            splitContainer1.Panel1.ResumeLayout(false);
-            splitContainer1.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
-            splitContainer1.ResumeLayout(false);
+            splitContainerMain.Panel1.ResumeLayout(false);
+            splitContainerMain.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainerMain).EndInit();
+            splitContainerMain.ResumeLayout(false);
+            splitContainerPropertiesAttributes.Panel1.ResumeLayout(false);
+            splitContainerPropertiesAttributes.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainerPropertiesAttributes).EndInit();
+            splitContainerPropertiesAttributes.ResumeLayout(false);
+            splitContainerPropertiesInputs.Panel1.ResumeLayout(false);
+            splitContainerPropertiesInputs.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainerPropertiesInputs).EndInit();
+            splitContainerPropertiesInputs.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)gridProperties).EndInit();
             contextMenuStripGridProperties.ResumeLayout(false);
+            groupInputPorts.ResumeLayout(false);
+            groupInputPorts.PerformLayout();
+            tableInputPorts.ResumeLayout(false);
+            tableInputPorts.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridAttributes).EndInit();
-            splitContainer2.Panel1.ResumeLayout(false);
-            splitContainer2.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)splitContainer2).EndInit();
-            splitContainer2.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -408,7 +504,7 @@
         private TabPage tabChannels;
         private TabPage tabFunctionBlocks;
         private TabPage tabFullTopology;
-        private SplitContainer splitContainer1;
+        private SplitContainer splitContainerMain;
         private ImageList imglTreeImages;
         private ToolStripMenuItem loadConfigurationToolStripMenuItem;
         private ToolStripMenuItem saveConfigurationToolStripMenuItem;
@@ -422,6 +518,12 @@
         private ContextMenuStrip contextMenuStripGridProperties;
         private ToolStripMenuItem conetxtMenuItemGridPropertiesEdit;
         private DataGridView gridAttributes;
-        private SplitContainer splitContainer2;
+        private SplitContainer splitContainerPropertiesAttributes;
+        private GroupBox groupInputPorts;
+        private TableLayoutPanel tableInputPorts;
+        private Label label1;
+        private ComboBox comboBox1;
+        private Button button1;
+        private SplitContainer splitContainerPropertiesInputs;
     }
 }

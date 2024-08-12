@@ -229,23 +229,26 @@ void ContextImpl::registerOpenDaqTypes()
 
     // Declaration of the SyncComponentBase class
     auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
-                                    .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "Off"), 3))
+                                    .addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}})))
+                                    .addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3))
                                     .build();
     typeManager->addType(syncInterfaceBase);
 
     // Declaration of the InterfaceClockSync class
-    PropertyObjectPtr InterfaceClockSyncStatusProperty = PropertyObject();
-    InterfaceClockSyncStatusProperty.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
+    PropertyObjectPtr interfaceClockSyncStatusProperty = PropertyObject();
+    interfaceClockSyncStatusProperty.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}})));
+    interfaceClockSyncStatusProperty.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
 
     auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
                                     .setParentName("SyncInterfaceBase")
-                                    .addProperty(ObjectProperty("Status", InterfaceClockSyncStatusProperty))
+                                    .addProperty(ObjectProperty("Status", interfaceClockSyncStatusProperty))
                                     .build();
     typeManager->addType(interfaceClockSync);
 
     // Declaration of the PtpSyncInterface class
     PropertyObjectPtr PtpSyncInterfaceStatus = PropertyObject();
-    PtpSyncInterfaceStatus.addProperty(SelectionProperty("State", List<IString>("Ok", "Error", "Warning"), 0));
+    PtpSyncInterfaceStatus.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}})));
+    PtpSyncInterfaceStatus.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
     PtpSyncInterfaceStatus.addProperty(StringProperty("Grandmaster", ""));
 
     const auto enumClockType = EnumerationType(
@@ -264,7 +267,6 @@ void ContextImpl::registerOpenDaqTypes()
     typeManager->addType(enumTransportProtocol);
     typeManager->addType(enumDelayMechanism);
     typeManager->addType(enumProfiles);
-
 
     PropertyObjectPtr parameters = PropertyObject();
     parameters.addProperty(StructProperty("PtpConfigurationStructure",

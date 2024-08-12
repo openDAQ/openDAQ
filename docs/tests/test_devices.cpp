@@ -63,6 +63,10 @@ TEST_F(DevicesTest, SettingSyncComponent)
     // Create a new PTP interface from property objects class `PtpSyncInterface`
     PropertyObjectPtr ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
 
+    // Set custom selection options for the mode property
+    auto modeOptions = Dict<IInteger, IString>({{2, "Auto"}, {3, "Off"}});
+    ptpSyncInterface.setPropertyValue("ModeOptions", modeOptions);
+
     // Overwrite the default sync component parameters
     ptpSyncInterface.setPropertyValue("Mode", 2); // set the mode to `Auto`
     
@@ -97,8 +101,13 @@ TEST_F(DevicesTest, SettingSyncComponent)
     ASSERT_TRUE(interfaces.hasKey("PtpSyncInterface"));
     PropertyObjectPtr newPtpSyncInterface = interfaces.get("PtpSyncInterface");
 
+    // Check that mode has new selecton options
+    auto modeProperty = newPtpSyncInterface.getProperty("Mode");
+    ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
+    ASSERT_EQ(newPtpSyncInterface.getPropertySelectionValue("Mode"), "Auto");
+
     // We can edit the existing PTP interface as well
-    newPtpSyncInterface.setPropertyValue("Mode", 0); // set the mode to `Input`
+    newPtpSyncInterface.setPropertyValue("Mode", 3); // set the mode to `Input`
 }
 
 END_NAMESPACE_OPENDAQ

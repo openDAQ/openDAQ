@@ -329,6 +329,7 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
 {
     this->triggerCoreEvent = triggerCoreEvent;
+    this->manager = manager;
 
     if (className.assigned() && className != "")
     {
@@ -350,9 +351,6 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
         for (const auto& prop : objectClass.getProperties(true))
             cloneAndSetChildPropertyObject(prop);
     }
-
-    if (manager.assigned())
-        this->manager = manager;
 }
 
 template <class PropObjInterface, class... Interfaces>

@@ -12,6 +12,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_class_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -431,11 +432,12 @@ TEST_F(TmsIntegrationTest, SyncComponent)
 
     ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
     ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
-    ASSERT_EQ(serverSync.getInterfaces().getKeyList(), clientSync.getInterfaces().getKeyList());
 
     auto serverInterfaces = serverSync.getInterfaces();
     auto clientInterfaces = clientSync.getInterfaces();
+
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
 }
 
 TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
@@ -509,4 +511,77 @@ TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
     
     PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
     ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);   
+}
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomInterface)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+
+    {
+        auto customSyncInterface = PropertyObjectClassBuilder(serverTypeManager, "CustomInterface")
+                                        .setParentName("SyncInterfaceBase")
+                                        .addProperty(SelectionProperty("CustomState", List<IString>("Cool", "Awesome"), 1))
+                                        .build();
+        serverTypeManager->addType(customSyncInterface);
+        syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "CustomInterface"));
+    }
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+
+    auto customInterface = clientInterfaces.get("CustomInterface");
+    ASSERT_TRUE(customInterface.hasProperty("CustomState"));
+    ASSERT_EQ(customInterface.getProperty("CustomState").getSelectionValues(), List<IString>("Cool", "Awesome"));
+    ASSERT_EQ(customInterface.getPropertyValue("CustomState"), 1);
+    ASSERT_EQ(customInterface.getPropertySelectionValue("CustomState"), "Awesome");
+}
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomModeOptions)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+    auto modeOptions = Dict<IInteger, IString>({{2, "Auto"}, {3, "Off"}});
+
+    {
+        auto interfaceClockSync = PropertyObject(serverTypeManager, "InterfaceClockSync");
+        interfaceClockSync.setPropertyValue("ModeOptions", modeOptions);
+        syncComponentPrivate.addInterface(interfaceClockSync);
+    }
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+
+    auto interfaceClockSync = clientInterfaces.get("InterfaceClockSync");
+    auto modeProperty = interfaceClockSync.getProperty("Mode");
+    ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
+    ASSERT_EQ(interfaceClockSync.getPropertySelectionValue("Mode"), "Off");
 }

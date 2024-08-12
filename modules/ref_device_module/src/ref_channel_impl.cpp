@@ -429,9 +429,9 @@ void RefChannelImpl::buildSignalDescriptors()
                                     .setTickResolution(getResolution())
                                     .setRule(LinearDataRule(deltaT, 0))
                                     .setOrigin(getEpoch())
-                                    .setName("Time AI " + std::to_string(index + 1));
-                                    //.setReferenceDomainId(deviceLocalId)
-                                    //.setReferenceDomainOffset(Integer(0));
+                                    .setName("Time AI " + std::to_string(index + 1))
+                                    .setReferenceDomainId(deviceLocalId)
+                                    .setReferenceDomainOffset(0);
 
     timeSignal.setDescriptor(timeDescriptor.build());
 }

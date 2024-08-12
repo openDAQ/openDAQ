@@ -52,6 +52,10 @@ TEST_F(QuickStartTest, QuickStartAppReader)
     {
         daq::SizeT count = 0;
         reader.read(nullptr, &count, 1000);
+        // TODO: needed becuase there are two descriptor changes,
+        // due to reference domain "stuff" not being supported over OPC UA
+        // can be deleted once full support is added
+        reader.read(nullptr, &count, 1000);
     }
 
     double samples[100];
@@ -90,6 +94,10 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
 
     {
         daq::SizeT count = 0;
+        reader.read(nullptr, &count, 1000);
+        // TODO: needed becuase there are two descriptor changes,
+        // due to reference domain "stuff" not being supported over OPC UA
+        // can be deleted once full support is added
         reader.read(nullptr, &count, 1000);
     }
 

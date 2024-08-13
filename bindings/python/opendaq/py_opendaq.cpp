@@ -114,6 +114,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
     auto classIAddressInfo = declareIAddressInfo(m);
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
+    auto classISyncComponent = declareISyncComponent(m);
+    auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
 
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
@@ -204,6 +206,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
     defineIAddressInfo(m, classIAddressInfo);
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
+
+    defineISyncComponent(m, classISyncComponent);
+    defineISyncComponentPrivate(m, classISyncComponentPrivate);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

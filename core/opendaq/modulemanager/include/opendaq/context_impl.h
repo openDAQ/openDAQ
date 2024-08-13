@@ -51,6 +51,7 @@ public:
 
 private:
     void componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
+    void registerOpenDaqTypes();
 
     LoggerPtr logger;
     SchedulerPtr scheduler;

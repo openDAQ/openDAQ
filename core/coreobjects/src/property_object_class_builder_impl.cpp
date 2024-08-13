@@ -107,7 +107,7 @@ ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
     {
         if (!props.hasKey(propertyName))
         {
-            return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not  found.)", StringPtr::Borrow(propertyName)));
+            return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
         }
 
         props.remove(propertyName);

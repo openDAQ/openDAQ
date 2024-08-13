@@ -299,6 +299,9 @@ class App(tk.Tk):
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
             component_name = self.get_standard_folder_name(component_name)
+        elif daq.ISyncComponent.can_cast_from(component):
+            icon = self.context.icons['link']
+            component_name = self.get_standard_folder_name(component_name)
         else:  # skipping unknown type components
             skip = not show_unknown
 
@@ -317,6 +320,8 @@ class App(tk.Tk):
             component = 'Input ports'
         elif component == 'IO':
             component = 'Inputs/Outputs'
+        elif component == 'Sync':
+            component = 'Synchronization'
         return component
 
     def tree_restore_selection(self, old_node=None):
@@ -455,6 +460,8 @@ class App(tk.Tk):
             return daq.IFunctionBlock.cast_from(node)
         elif daq.IDevice.can_cast_from(node):
             return daq.IDevice.cast_from(node)
+        elif daq.ISyncComponent.can_cast_from(node):
+            return daq.ISyncComponent.cast_from(node)
         else:
             if daq.IFolderConfig.can_cast_from(node):
                 folder = daq.IFolderConfig.cast_from(node)
@@ -481,6 +488,8 @@ class App(tk.Tk):
                 while current is not None:
                     if daq.IDevice.can_cast_from(current):
                         break  # stop at device
+                    if daq.ISyncComponent.can_cast_from(current):
+                        break  # stop at sync component
                     if daq.IFolder.can_cast_from(current):
                         if current.local_id == 'IO':
                             break  # stop at IO folder
@@ -517,7 +526,7 @@ class App(tk.Tk):
 
             draw_sub_fbs(found)
 
-        elif type(found) in (daq.IDevice, daq.IComponent):
+        elif type(found) in (daq.IDevice, daq.IComponent, daq.ISyncComponent):
             block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X, padx=5, pady=5)

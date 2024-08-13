@@ -83,6 +83,9 @@ void TmsAttributeCollector::collectDeviceAttributes(const OpcUaNodeId& nodeId)
 
     const auto methodSetId = browser->getChildNodeId(nodeId, "MethodSet");
     collectMethodSetNode(methodSetId);
+
+    const auto synchronizationNoded = browser->getChildNodeId(nodeId, "Synchronization");
+    collectComponentAttributes(synchronizationNoded);
 }
 
 void TmsAttributeCollector::collectFunctionBlockAttributes(const OpcUaNodeId& nodeId)
@@ -191,8 +194,8 @@ void TmsAttributeCollector::collectBaseObjectAttributes(const OpcUaNodeId& nodeI
 {
     attributes.insert({nodeId, UA_ATTRIBUTEID_NODECLASS});
 
-    const auto numberInListId = browser->getChildNodeId(nodeId, "NumberInList");
-    attributes.insert({numberInListId, UA_ATTRIBUTEID_VALUE});
+    if (browser->hasReference(nodeId, "NumberInList"))
+        attributes.insert({browser->getChildNodeId(nodeId, "NumberInList"), UA_ATTRIBUTEID_VALUE});
 }
 
 void TmsAttributeCollector::collectMethodAttributes(const OpcUaNodeId& nodeId)

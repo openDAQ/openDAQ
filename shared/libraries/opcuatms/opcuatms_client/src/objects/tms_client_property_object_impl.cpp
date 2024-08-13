@@ -1,19 +1,20 @@
-#include "opcuatms_client/objects/tms_client_property_object_impl.h"
-#include "coreobjects/callable_info_factory.h"
-#include "coreobjects/eval_value_factory.h"
-#include "coreobjects/property_object_factory.h"
-#include "opcuaclient/browser/opcuabrowser.h"
-#include "opcuatms_client/objects/tms_client_property_factory.h"
-#include "open62541/daqbt_nodeids.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms_client/objects/tms_client_property_object_factory.h"
-#include "opcuatms_client/objects/tms_client_function_factory.h"
-#include "opcuatms_client/objects/tms_client_procedure_factory.h"
-#include "opendaq/mirrored_signal_impl.h"
-#include "opendaq/input_port_impl.h"
-#include "opendaq/channel_impl.h"
-#include "opendaq/mirrored_device_impl.h"
-#include "opendaq/io_folder_impl.h"
+#include <opcuatms_client/objects/tms_client_property_object_impl.h>
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/eval_value_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <opcuaclient/browser/opcuabrowser.h>
+#include <opcuatms_client/objects/tms_client_property_factory.h>
+#include <open62541/daqbt_nodeids.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms_client/objects/tms_client_property_object_factory.h>
+#include <opcuatms_client/objects/tms_client_function_factory.h>
+#include <opcuatms_client/objects/tms_client_procedure_factory.h>
+#include <opendaq/mirrored_signal_impl.h>
+#include <opendaq/input_port_impl.h>
+#include <opendaq/channel_impl.h>
+#include <opendaq/mirrored_device_impl.h>
+#include <opendaq/io_folder_impl.h>
+#include <opendaq/sync_component_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -501,6 +502,7 @@ template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>
 template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<ServerCapabilityConfigImpl>;
+template class TmsClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, ITmsClientComponent>>;
 
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

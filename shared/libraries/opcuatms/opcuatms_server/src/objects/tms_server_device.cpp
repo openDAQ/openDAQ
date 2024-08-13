@@ -81,6 +81,8 @@ bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)
         return true;
     if (name == "ProductInstanceUri" && object.getInfo().getProductInstanceUri() != "")
         return true;
+    if (name == "Synchronization" && object.getSyncComponent().assigned())
+        return true;
 
     return Super::createOptionalNode(nodeId);
 }
@@ -462,12 +464,20 @@ void TmsServerDevice::addChildNodes()
     auto inputsOutputsNode = std::make_unique<TmsServerFolder>(topFolder, server, daqContext, tmsContext);
     inputsOutputsNode->registerToExistingOpcUaNode(inputsOutputsNodeId);
     folders.push_back(std::move(inputsOutputsNode));
+
+    auto syncComponentNodeId = getChildNodeId("Synchronization");
+    assert(!syncComponentNodeId.isNull());
+    auto syncComponent = object.getSyncComponent();
+    auto syncComponentNode = std::make_unique<TmsServerSyncComponent>(syncComponent, server, daqContext, tmsContext);
+    syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
+    syncComponents.push_back(std::move(syncComponentNode));
+
     
     numberInList = 0;
     for (auto component : object.getItems(search::Any()))
     {
         auto id = component.getLocalId();
-        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig")
+        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Sync")
             continue;
 
         if (component.asPtrOrNull<IFolder>().assigned())

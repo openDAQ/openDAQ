@@ -12,14 +12,14 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
                                              const daq::ComponentPtr& parent,
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& config)
-    : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId, nullptr, config)
+    : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
 {
     this->tags.add("mock_fb");
 
     createFunctionBlocks();
     createSignals();
     createInputPorts();
-    createTestConfigProperties();
+    createTestConfigProperties(config);
 }
 
 void MockFunctionBlockImpl::createFunctionBlocks()
@@ -54,10 +54,13 @@ void MockFunctionBlockImpl::createSignals()
     createAndAddSignal("UniqueId_5", createDescriptor("Signal5"), true, false);
 }
 
-void MockFunctionBlockImpl::createTestConfigProperties()
+void MockFunctionBlockImpl::createTestConfigProperties(const PropertyObjectPtr& config)
 {
     addProperty(IntProperty("TestConfigInt", 0));
     addProperty(StringProperty("TestConfigString", ""));
+
+    if (!config.assigned())
+        return;
 
     if (config.hasProperty("TestConfigInt"))
         setPropertyValue((StringPtr) "TestConfigInt", config.getPropertyValue("TestConfigInt"));

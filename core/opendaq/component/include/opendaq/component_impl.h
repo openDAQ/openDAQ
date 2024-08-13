@@ -101,7 +101,7 @@ public:
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IDict* updateEndProcedures) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
@@ -150,7 +150,7 @@ protected:
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
-    virtual void updateObject(const SerializedObjectPtr& obj);
+    virtual void updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures);
     void onUpdatableUpdateEnd() override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
@@ -701,12 +701,13 @@ ErrCode ComponentImpl<Intf, Intfs ...>::isRemoved(Bool* removed)
 }
 
 template <class Intf, class... Intfs>
-ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IDict* updateEndProcedures)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const auto updateEndProcedurePtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
 
     return daqTry(
-        [&objPtr, this]()
+        [&objPtr, &updateEndProcedurePtr, this]()
         {
             const bool muted = this->coreEventMuted;
             const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -714,9 +715,9 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
             if (!muted)
                 propInternalPtr.disableCoreEventTrigger();
 
-            const auto err = Super::update(objPtr);
+            const auto err = Super::update(objPtr, updateEndProcedurePtr);
 
-            updateObject(objPtr);
+            updateObject(objPtr, updateEndProcedurePtr);
             onUpdatableUpdateEnd();
 
             if (!muted && this->coreEvent.assigned())
@@ -946,7 +947,7 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
     const auto flags = getSerializeFlags();
     if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))

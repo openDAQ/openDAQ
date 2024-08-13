@@ -78,14 +78,16 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     virtual void updateFunctionBlock(const std::string& fbId,
-                                          const SerializedObjectPtr& serializedFunctionBlock);
+                                     const SerializedObjectPtr& serializedFunctionBlock,
+                                     const DictPtr<IString, IProcedure>& updateEndProcedures);
     virtual void updateSignal(const std::string& sigId,
-                              const SerializedObjectPtr& serializedSignal);
+                              const SerializedObjectPtr& serializedSignal,
+                              const DictPtr<IString, IProcedure>& updateEndProcedures);
 
     template <class F>
     void updateFolder(const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures) override;
     void onUpdatableUpdateEnd() override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
@@ -555,9 +557,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
-    Super::updateObject(obj);
+    Super::updateObject(obj, updateEndProcedures);
 
     if (obj.hasKey("FB"))
     {
@@ -570,9 +572,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         updateFolder(fbFolder,
                      "Folder",
                      "FunctionBlock",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
+                     [&updateEndProcedures, this](const std::string& localId, const SerializedObjectPtr& obj)
                      {
-                         updateFunctionBlock(localId, obj);
+                        updateFunctionBlock(localId, obj, updateEndProcedures);
                      });
     }
 
@@ -584,8 +586,10 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         updateFolder(sigFolder,
                      "Folder",
                      "Signal",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateSignal(localId, obj); });
+                     [&updateEndProcedures, this](const std::string& localId, const SerializedObjectPtr& obj)
+                     { 
+                        updateSignal(localId, obj, updateEndProcedures); 
+                     });
     }
 }
 
@@ -656,15 +660,17 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedOb
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& /*fbId*/,
-                                                                          const SerializedObjectPtr& /* serializedFunctionBlock */)
+void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string&, /*fbId*/
+                                                                     const SerializedObjectPtr&, /* serializedFunctionBlock */
+                                                                     const DictPtr<IString, IProcedure>& /* updateEndProcedures */)
 {
 
 }
 
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string& sigId,
-                                                              const SerializedObjectPtr& serializedSignal)
+                                                              const SerializedObjectPtr& serializedSignal,
+                                                              const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
     if (!signals.hasItem(sigId))
     {
@@ -680,7 +686,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
 
     const auto updatableSignal = signal.template asPtr<IUpdatable>(true);
 
-    updatableSignal.update(serializedSignal);
+    updatableSignal.update(serializedSignal, updateEndProcedures);
 }
 
 END_NAMESPACE_OPENDAQ

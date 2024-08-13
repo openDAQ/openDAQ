@@ -18,6 +18,8 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/serialized_object.h>
 #include <coretypes/serializer.h>
+#include <coretypes/dictobject.h>
+#include <coretypes/procedure.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,7 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
+    // [templateType(updateEndProcedures, IString, IProcedure)]
+    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update, IDict* updateEndProcedures) = 0;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
     virtual ErrCode INTERFACE_FUNC updateEnded() = 0;
 };

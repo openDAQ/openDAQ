@@ -18,6 +18,7 @@
 #include <coretypes/updatable.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/serialized_object_ptr.h>
+#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -83,12 +84,12 @@ public:
         return *this;
     }
 
-    void update(const SerializedObjectPtr& update) const
+    void update(const SerializedObjectPtr& update, const ObjectPtr<IDict>& updateEndProcedures) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->update(update);
+        auto errCode = this->object->update(update, updateEndProcedures);
         daq::checkErrorInfo(errCode);
     }
 

@@ -749,11 +749,12 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
+ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj, IDict* updateEndProcedures)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const auto updateEndProceduresPtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
 
-    return daqTry([&objPtr, this]()
+    return daqTry([&objPtr, &updateEndProceduresPtr, this]()
         {
             objPtr.checkObjectType("Instance");
 
@@ -766,7 +767,7 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
             rootDevicePtr.checkObjectType("Device");
 
             auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
-            rootDeviceUpdatable.update(rootDevicePtr);
+            rootDeviceUpdatable.update(rootDevicePtr, updateEndProceduresPtr);
 
             return OPENDAQ_SUCCESS;
         });

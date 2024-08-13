@@ -97,14 +97,18 @@ protected:
     void removed() override;
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj);
-    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
+    void updateInputPort(const std::string& localId, 
+                         const SerializedObjectPtr& obj,
+                         const DictPtr<IString, IProcedure>& updateEndProcedures);
+    void updateFunctionBlock(const std::string& fbId, 
+                             const SerializedObjectPtr& serializedFunctionBlock,
+                             const DictPtr<IString, IProcedure>& updateEndProcedures) override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures) override;
     void initConfigObject(const daq::PropertyObjectPtr& userConfig);
 
     template <class Impl>
@@ -263,7 +267,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
     if (obj.hasKey("IP"))
     {
@@ -271,11 +275,11 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
         this->updateFolder(ipFolder,
                      "Folder",                    
                      "InputPort",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj); });
+                     [this, &updateEndProcedures](const std::string& localId, const SerializedObjectPtr& obj)
+                     { updateInputPort(localId, obj, updateEndProcedures); });
     }
 
-    return Super::updateObject(obj);
+    return Super::updateObject(obj, updateEndProcedures);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -303,7 +307,8 @@ void FunctionBlockImpl<TInterface, Interfaces...>::initConfigObject(const daq::P
 
 template <class Intf, class... Intfs>
 void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& localId,
-                                                             const SerializedObjectPtr& obj)
+                                                        const SerializedObjectPtr& obj,
+                                                        const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
     InputPortPtr inputPort;
     if (!inputPorts.hasItem(localId))
@@ -327,12 +332,13 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
 
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
-    updatableIp.update(obj);
+    updatableIp.update(obj, updateEndProcedures);
 }
 
 template <typename TInterface, typename ... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-    const SerializedObjectPtr& serializedFunctionBlock)
+                                                                       const SerializedObjectPtr& serializedFunctionBlock,
+                                                                       const DictPtr<IString, IProcedure>& updateEndProcedures)
 {
     if (!this->functionBlocks.hasItem(fbId))
     {
@@ -348,7 +354,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
 
     const auto updatableFb = fb.template asPtr<IUpdatable>(true);
 
-    updatableFb.update(serializedFunctionBlock);
+    updatableFb.update(serializedFunctionBlock, updateEndProcedures);
 }
 
 template <typename TInterface, typename... Interfaces>

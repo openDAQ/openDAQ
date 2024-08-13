@@ -14,4 +14,33 @@
  * limitations under the License.
  */
 
+#pragma once
+#include <coretypes/impl.h>
+#include <opendaq/reference_domain_info_builder_ptr.h>
 
+BEGIN_NAMESPACE_OPENDAQ
+
+class ReferenceDomainInfoBuilderImpl : public ImplementationOf<IReferenceDomainInfoBuilder>
+{
+public:
+    explicit ReferenceDomainInfoBuilderImpl();
+    explicit ReferenceDomainInfoBuilderImpl(const ReferenceDomainInfoPtr& infoCopy);
+
+    ErrCode INTERFACE_FUNC build(IReferenceDomainInfo** info) override;
+
+    ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+
+    ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
+
+    ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+
+protected:
+    StringPtr referenceDomainId;
+    IntegerPtr referenceDomainOffset;
+    BoolPtr referenceDomainIsAbsolute;
+};
+
+END_NAMESPACE_OPENDAQ

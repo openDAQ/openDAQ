@@ -81,8 +81,7 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
     connectionInfo.setPrefix("miniaudio://")
-                  .setConnectionString(connectionString)
-                  .freeze();
+                  .setConnectionString(connectionString);
     return devicePtr;
 }
 

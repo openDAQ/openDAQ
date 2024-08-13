@@ -92,8 +92,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
 
     ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
     connectionInfo.setPrefix("daqmock://")
-                  .setConnectionString(connectionString)
-                  .freeze();
+                  .setConnectionString(connectionString);
     
     *device = devicePtr.detach();
 

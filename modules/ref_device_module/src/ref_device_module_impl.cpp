@@ -109,8 +109,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
     connectionInfo.setPrefix("daqref://")
-                  .setConnectionString(connectionString)
-                  .freeze();
+                  .setConnectionString(connectionString);
     return devicePtr;
 }
 

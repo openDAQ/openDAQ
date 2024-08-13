@@ -10,6 +10,8 @@
 #include <opendaq/device_domain_factory.h>
 #include <utility>
 #include <opendaq/sync_component_private_ptr.h>
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -115,6 +117,34 @@ std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
     auto currentTime = std::chrono::steady_clock::now();
     auto microSecondsSinceDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
     return microSecondsSinceDeviceStart;
+}
+
+PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+{
+    const auto func = Function([](Int a, Int b) { return a + b; });
+
+    const auto funcProp =
+        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(false)
+            .build();
+
+    auto protectedObject = PropertyObject();
+    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
+    protectedObject.addProperty(funcProp);
+    protectedObject.setPropertyValue("Sum", func);
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+
+    protectedObject.getPermissionManager().setPermissions(permissions);
+
+    return protectedObject;
 }
 
 void RefDeviceImpl::initClock()
@@ -235,6 +265,9 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
+
+    auto protectedObject = createProtectedObject();
+    objPtr.addProperty(ObjectProperty("Protected", protectedObject));
 }
 
 void RefDeviceImpl::updateNumberOfChannels()

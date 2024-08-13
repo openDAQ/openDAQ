@@ -52,6 +52,7 @@ private:
     void updateAcqLoopTime();
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
+    PropertyObjectPtr createProtectedObject() const;
 
     size_t id;
     StringPtr serialNumber;

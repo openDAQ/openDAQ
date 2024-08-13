@@ -30,7 +30,7 @@ protected:
     void createFunctionBlocks();
     void createSignals();
     void createInputPorts();
-    void createTestConfigProperties();
+    void createTestConfigProperties(const daq::PropertyObjectPtr& config);
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

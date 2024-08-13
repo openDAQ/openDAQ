@@ -23,7 +23,6 @@
 
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
-PyDaqIntf<daq::IAllocator, daq::IBaseObject> declareIAllocator(pybind11::module_ m);
 PyDaqIntf<daq::IInstance, daq::IDevice> declareIInstance(pybind11::module_ m);
 PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> declareIInstanceBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IConfigProvider, daq::IBaseObject> declareIConfigProvider(pybind11::module_ m);
@@ -117,7 +116,6 @@ py::class_<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11
 
 py::class_<daq::MockSignal> declareMockSignal(py::module_ m);
 
-void defineIAllocator(pybind11::module_ m, PyDaqIntf<daq::IAllocator, daq::IBaseObject> cls);
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
 void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> cls);
 void defineIConfigProvider(pybind11::module_ m, PyDaqIntf<daq::IConfigProvider, daq::IBaseObject> cls);

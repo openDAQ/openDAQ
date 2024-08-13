@@ -29,6 +29,7 @@ set(TEST_SOURCES
     test_signal_event_packets.cpp
     test_data_path.cpp
     test_gap_checks.cpp
+    test_reference_domain_info.cpp
 )
 
 if (OPENDAQ_MIMALLOC_SUPPORT)

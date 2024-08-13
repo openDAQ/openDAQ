@@ -182,9 +182,9 @@ TEST_F(DataDescriptorTest, DeserializeBackwardsCompat)
     std::string serialized = R"({"__type":"DataDescriptor","name":"testName","sampleType":3,"unit":{"__type":"Unit","symbol":"s","id":10,"name":"","quantity":""},"dimensions":[{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""}],"valueRange":{"__type":"Range","low":10,"high":11.5},"rule":{"__type":"DataRule","ruleType":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10}]}},"origin":"testRef","tickResolution":{"__type":"Ratio","num":1,"den":1000},"metadata":{"__type":"Dict","values":[{"key":"key","value":"value"}]},"structFields":[]})";
 
     auto deserializer = JsonDeserializer();
-    DataDescriptorPtr dataDescriptor;
-    ASSERT_NO_THROW(dataDescriptor = deserializer.deserialize(serialized));
-    ASSERT_EQ(dataDescriptor.getName(), "testName");
+    DataDescriptorPtr descriptor;
+    ASSERT_NO_THROW(descriptor = deserializer.deserialize(serialized));
+    ASSERT_EQ(descriptor.getName(), "testName");
 }
 
 TEST_F(DataDescriptorTest, StructType)
@@ -248,7 +248,7 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     auto linearScaling = LinearScaling(10, 10);
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
-    const auto dataDescriptorBuilder = DataDescriptorBuilder()
+    const auto descriptorBuilder = DataDescriptorBuilder()
                                         .setSampleType(SampleType::Float64)
                                         .setValueRange(Range(10, 1000))
                                         .setDimensions(dimensions)
@@ -263,19 +263,19 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
                                         .setReferenceDomainOffset(53)
                                         .setReferenceDomainIsAbsolute(False);
     
-    ASSERT_EQ(dataDescriptorBuilder.getSampleType(), SampleType::Float64);
-    ASSERT_EQ(dataDescriptorBuilder.getValueRange(), Range(10, 1000));
-    ASSERT_EQ(dataDescriptorBuilder.getDimensions(), dimensions);
-    ASSERT_EQ(dataDescriptorBuilder.getOrigin(), "testRef");
-    ASSERT_EQ(dataDescriptorBuilder.getTickResolution(), Ratio(1, 1000));
-    ASSERT_EQ(dataDescriptorBuilder.getUnit(), Unit("s", 10));
-    ASSERT_EQ(dataDescriptorBuilder.getRule(), LinearDataRule(10, 10));
-    ASSERT_EQ(dataDescriptorBuilder.getName(), "testName");
-    ASSERT_EQ(dataDescriptorBuilder.getPostScaling(), linearScaling);
-    ASSERT_EQ(dataDescriptorBuilder.getMetadata(), metaData);
-    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(dataDescriptorBuilder.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(descriptorBuilder.getSampleType(), SampleType::Float64);
+    ASSERT_EQ(descriptorBuilder.getValueRange(), Range(10, 1000));
+    ASSERT_EQ(descriptorBuilder.getDimensions(), dimensions);
+    ASSERT_EQ(descriptorBuilder.getOrigin(), "testRef");
+    ASSERT_EQ(descriptorBuilder.getTickResolution(), Ratio(1, 1000));
+    ASSERT_EQ(descriptorBuilder.getUnit(), Unit("s", 10));
+    ASSERT_EQ(descriptorBuilder.getRule(), LinearDataRule(10, 10));
+    ASSERT_EQ(descriptorBuilder.getName(), "testName");
+    ASSERT_EQ(descriptorBuilder.getPostScaling(), linearScaling);
+    ASSERT_EQ(descriptorBuilder.getMetadata(), metaData);
+    ASSERT_EQ(descriptorBuilder.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(descriptorBuilder.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(descriptorBuilder.getReferenceDomainIsAbsolute(), False);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
@@ -284,7 +284,7 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     auto linearScaling = LinearScaling(10, 10);
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
-    const auto dataDescriptorBuilder = DataDescriptorBuilder()
+    const auto descriptorBuilder = DataDescriptorBuilder()
                                         .setSampleType(SampleType::Float64)
                                         .setValueRange(Range(10, 1000))
                                         .setDimensions(dimensions)
@@ -298,48 +298,48 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
                                         .setReferenceDomainOffset(53)
                                         .setReferenceDomainIsAbsolute(False);
 
-    const auto dataDescriptor = DataDescriptorFromBuilder(dataDescriptorBuilder);
+    const auto descriptor = DataDescriptorFromBuilder(descriptorBuilder);
 
-    ASSERT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
-    ASSERT_EQ(dataDescriptor.getValueRange(), Range(10, 1000));
-    ASSERT_EQ(dataDescriptor.getDimensions(), dimensions);
-    ASSERT_EQ(dataDescriptor.getOrigin(), "testRef");
-    ASSERT_EQ(dataDescriptor.getTickResolution(), Ratio(1, 1000));
-    ASSERT_EQ(dataDescriptor.getUnit(), Unit("s", 10));
-    ASSERT_EQ(dataDescriptor.getRule(), LinearDataRule(10, 10));
-    ASSERT_EQ(dataDescriptor.getName(), "testName");
-    ASSERT_EQ(dataDescriptor.getMetadata(), metaData);
-    ASSERT_EQ(dataDescriptor.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(dataDescriptor.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(dataDescriptor.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(descriptor.getSampleType(), SampleType::Float64);
+    ASSERT_EQ(descriptor.getValueRange(), Range(10, 1000));
+    ASSERT_EQ(descriptor.getDimensions(), dimensions);
+    ASSERT_EQ(descriptor.getOrigin(), "testRef");
+    ASSERT_EQ(descriptor.getTickResolution(), Ratio(1, 1000));
+    ASSERT_EQ(descriptor.getUnit(), Unit("s", 10));
+    ASSERT_EQ(descriptor.getRule(), LinearDataRule(10, 10));
+    ASSERT_EQ(descriptor.getName(), "testName");
+    ASSERT_EQ(descriptor.getMetadata(), metaData);
+    ASSERT_EQ(descriptor.getReferenceDomainId(), "testReferenceDomainId");
+    ASSERT_EQ(descriptor.getReferenceDomainOffset(), 53);
+    ASSERT_EQ(descriptor.getReferenceDomainIsAbsolute(), False);
 }
 
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimple)
 {
-    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 8u);
+    ASSERT_EQ(descriptor.getSampleSize(), 8u);
+    ASSERT_EQ(descriptor.getRawSampleSize(), 8u);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimplePostScaling)
 {
-    const auto dataDescriptor = DataDescriptorBuilder()
+    const auto descriptor = DataDescriptorBuilder()
         .setSampleType(SampleType::Float64)
         .setPostScaling(LinearScaling(1, 0, SampleType::Int32, ScaledSampleType::Float64))
         .build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 4u);
+    ASSERT_EQ(descriptor.getSampleSize(), 8u);
+    ASSERT_EQ(descriptor.getRawSampleSize(), 4u);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeImplicitSimple)
 {
-    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(LinearDataRule(10, 10)).build();
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(LinearDataRule(10, 10)).build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 0u);
+    ASSERT_EQ(descriptor.getSampleSize(), 8u);
+    ASSERT_EQ(descriptor.getRawSampleSize(), 0u);
 }
 
 /*
@@ -364,7 +364,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeStruct)
         .setSampleType(SampleType::UInt8)
         .build();
 
-    const auto dataDescriptor = DataDescriptorBuilder()
+    const auto descriptor = DataDescriptorBuilder()
         .setName("Data")
         .setSampleType(SampleType::UInt8)
         .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
@@ -373,7 +373,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeStruct)
     const auto canMsgDescriptor = DataDescriptorBuilder()
         .setName("Struct")
         .setSampleType(SampleType::Struct)
-        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
+        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
         .build();
 
     ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
@@ -388,7 +388,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
     const auto lengthDescriptor =
         DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(LinearDataRule(10, 10)).build();
 
-    const auto dataDescriptor = DataDescriptorBuilder()
+    const auto descriptor = DataDescriptorBuilder()
                                     .setName("Data")
                                     .setSampleType(SampleType::UInt8)
                                     .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
@@ -398,7 +398,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
     const auto canMsgDescriptor = DataDescriptorBuilder()
         .setName("Struct")
         .setSampleType(SampleType::Struct)
-        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
+        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
         .build();
 
     ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);

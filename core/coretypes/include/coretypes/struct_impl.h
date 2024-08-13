@@ -208,7 +208,7 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl (const Stru
             if (!field.assigned())
                 continue;
 
-            if (fieldType.getCoreType() == ctStruct && fieldType.supportsInterface<IStructType>())
+            if (fieldType.getCoreType() == ctStruct && fieldType.template supportsInterface<IStructType>())
             {
                 StructPtr structObj = field;
                 if (structObj.getStructType() != fieldType)

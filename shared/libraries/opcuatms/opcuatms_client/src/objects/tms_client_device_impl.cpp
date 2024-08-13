@@ -171,14 +171,28 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         {
             if (value.isScalar())
             {
-                if (value.isString())
-                    deviceInfo.addProperty(StringProperty(browseName, value.toString()));
-                else if (value.isBool())
-                    deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
-                else if (value.isDouble())
-                    deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
-                else if (value.isInteger())
-                    deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
+                if (deviceInfo.hasProperty(browseName))
+                {
+                    if (value.isString())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toString());
+                    else if (value.isBool())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toBool());
+                    else if (value.isDouble())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toDouble());
+                    else if (value.isInteger())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toInteger());
+                }
+                else
+                {
+                    if (value.isString())
+                        deviceInfo.addProperty(StringProperty(browseName, value.toString()));
+                    else if (value.isBool())
+                        deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
+                    else if (value.isDouble())
+                        deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
+                    else if (value.isInteger())
+                        deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
+                }
             }
         }
         catch (const std::exception& e)

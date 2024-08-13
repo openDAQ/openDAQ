@@ -489,7 +489,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
 template <class Impl>
 bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::string& browseName)
 {
-    return browseName == "BeginUpdate" || browseName == "EndUpdate";
+    return browseName == "BeginUpdate" || browseName == "EndUpdate" || browseName == "GetErrorInformation";
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

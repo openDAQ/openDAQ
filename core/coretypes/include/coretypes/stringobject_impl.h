@@ -58,6 +58,7 @@ public:
 
 private:
     char* str;
+    const SizeT length;
     SizeT hashCode;
     bool hashCalculated;
 };

@@ -58,6 +58,8 @@ public partial class frmMain : Form
 
     private Component? _selectedComponent;
 
+    private readonly System.Windows.Forms.Timer _outputValueTimer;
+
 
     /// <summary>
     /// Initializes a new instance of the <see cref="frmMain"/> class.
@@ -65,6 +67,9 @@ public partial class frmMain : Form
     public frmMain()
     {
         InitializeComponent();
+
+        _outputValueTimer = new() { Enabled = false, Interval = 1000 };
+        _outputValueTimer.Tick += _outputValueTimer_Tick;
 
         this.Width = 1200;
 
@@ -84,7 +89,10 @@ public partial class frmMain : Form
 
         InitializeDataGridView(this.gridProperties);
         InitializeDataGridView(this.gridAttributes);
-        InitializeInputPortView();
+        InitializeInputPortsView();
+        InitializeOutputSignalsView();
+
+        SetInputsOutputsAreaVisibility(isVisible: false);
     }
 
     #region event handlers
@@ -102,10 +110,15 @@ public partial class frmMain : Form
 
     private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
     {
-        this.treeComponents.Nodes.Clear();
+        _outputValueTimer.Stop();
+
+        Clear(this.tableInputPorts);
+        Clear(this.tableOutputSignals);
 
         _propertyItems.Clear();
         _attributeItems.Clear();
+
+        this.treeComponents.Nodes.Clear();
 
         _instance?.Dispose();
     }
@@ -135,11 +148,13 @@ public partial class frmMain : Form
     private void loadConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //ToDo: load config
+        MessageBox.Show("ToDo: load config");
     }
 
     private void saveConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //ToDo: save config
+        MessageBox.Show("ToDo: save config");
     }
 
     private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -213,11 +228,24 @@ public partial class frmMain : Form
 
         try
         {
+            _outputValueTimer.Stop();
+
             _selectedComponent = e.Node?.Tag as Component;
 
             UpdateProperties(_selectedComponent);
             UpdateAttributes(_selectedComponent);
-            UpdateInputPorts(_selectedComponent);
+
+            if (SetInputsOutputsViewsVisibility(_selectedComponent))
+            {
+                UpdateInputPorts(_selectedComponent);
+                UpdateOutputSignals(_selectedComponent);
+
+                SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: (this.tableInputPorts.RowCount == 0));
+                SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: (this.tableOutputSignals.RowCount == 0));
+
+                if (this.tableOutputSignals.RowCount > 0)
+                    _outputValueTimer.Start();
+            }
         }
         finally
         {
@@ -236,9 +264,6 @@ public partial class frmMain : Form
 
     private void contextMenuStripTreeComponents_Opening(object sender, CancelEventArgs e)
     {
-        //init
-        this.contextMenuItemTreeComponentsRemove.Enabled = false;
-
         TreeView  tree         = this.treeComponents;
         TreeNode? selectedNode = tree.SelectedNode;
 
@@ -270,14 +295,14 @@ public partial class frmMain : Form
         {
             case Component component when useComponentApproach:
                 {
-                    if ((component.CanCastTo<Device>() && !selectedNode.Equals(tree.Nodes?[0]))
-                        || (component.CanCastTo<FunctionBlock>() && !component.CanCastTo<Channel>()))
+                    if ((component.CanCastTo<Device>() && !selectedNode.Equals(tree.Nodes?[0]))       //can remove a Device but not the instance (root)
+                        || (component.CanCastTo<FunctionBlock>() && !component.CanCastTo<Channel>())) //can remove a FunctionBlock but not a Channel
                     {
                         this.contextMenuItemTreeComponentsRemove.Enabled = true;
                     }
                     else
                     {
-                        e.Cancel = true;
+                        e.Cancel = true; //no other menu items yet so we can cancel opening
                     }
                 }
                 break;
@@ -292,7 +317,7 @@ public partial class frmMain : Form
             //case Channel: //this is also a FunctionBlock
             //case Signal:
             default:
-                e.Cancel = true;
+                e.Cancel = true; //no menu items for other objects yet so we can cancel opening
                 break;
         }
     }
@@ -425,11 +450,11 @@ public partial class frmMain : Form
     private void conetxtMenuItemGridPropertiesEdit_Click(object sender, EventArgs e)
     {
         var toolStripMenuItem = (ToolStripMenuItem)sender;
-        var sourceControl     = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl;
+        var gridControl       = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl;
 
-        if (sourceControl == this.gridProperties)
+        if (gridControl == this.gridProperties)
             EditSelectedProperty();
-        else if (sourceControl == this.gridAttributes)
+        else if (gridControl == this.gridAttributes)
             EditSelectedAttribute();
     }
 
@@ -462,6 +487,26 @@ public partial class frmMain : Form
     }
 
     #endregion gridProperties
+
+    private void _outputValueTimer_Tick(object? sender, EventArgs e)
+    {
+        if (this.tableOutputSignals.RowCount == 0)
+        {
+            (sender as System.Windows.Forms.Timer)?.Stop();
+            return;
+        }
+
+        //try to get the Signal.LastValue for each output signal and show in the label
+        for (int row = 0; row < this.tableOutputSignals.RowCount; ++ row)
+        {
+            var label  = this.tableOutputSignals.GetControlFromPosition(1, row) as Label;
+            var button = this.tableOutputSignals.GetControlFromPosition(2, row) as Button;
+            var signal = button?.Tag as Signal;
+
+            if (label != null)
+                label.Text = GetLastValueForSignal(signal);
+        }
+    }
 
     #endregion //event handlers .................................................................................
 
@@ -497,13 +542,18 @@ public partial class frmMain : Form
         grid.ShowCellToolTips    = false;
     }
 
+    /// <summary>
+    /// Gets the preferred width of the specified grid control.
+    /// </summary>
+    /// <param name="grid">The grid control.</param>
+    /// <returns>The preferred width.</returns>
     private static int GetPreferredGridWidth(DataGridView grid)
     {
         return Math.Max(100, grid.GetPreferredSize(Size.Empty).Width);
     }
 
     /// <summary>
-    /// Initializes the image list (designer would remove transparency over time).
+    /// Initializes the image list (designer would remove transparency over time when saving designer changes).
     /// </summary>
     /// <param name="imageList">The image list.</param>
     private static void InitializeImageList(ImageList imageList)
@@ -516,6 +566,40 @@ public partial class frmMain : Form
         imageList.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
         imageList.Images.Add(nameof(GlblRes.channel),        (Bitmap)GlblRes.channel.Clone());
         imageList.Images.Add(nameof(GlblRes.signal),         (Bitmap)GlblRes.signal.Clone());
+    }
+
+    /// <summary>
+    /// Sets the specified information label visibility.
+    /// </summary>
+    /// <param name="label">The label.</param>
+    /// <param name="isVisible">If set to <c>true</c> the label is visible and <c>Dock.Fill</c>, otherwise <c>false</c>.</param>
+    private static void SetInfoLabelVisibility(Label label, bool isVisible)
+    {
+        if (!isVisible)
+        {
+            label.Dock     = DockStyle.None;
+            label.AutoSize = true;
+            label.Visible  = false;
+        }
+        else
+        {
+            label.Visible  = true;
+            label.AutoSize = false;
+            label.Dock     = DockStyle.Fill;
+            label.BringToFront();
+            label.Refresh();
+        }
+    }
+
+    /// <summary>
+    /// Clears the specified table layout panel.
+    /// </summary>
+    /// <param name="tableLayoutPanel">The table layout panel.</param>
+    private static void Clear(TableLayoutPanel tableLayoutPanel)
+    {
+        tableLayoutPanel.Controls.Clear();
+        tableLayoutPanel.RowStyles.Clear();
+        tableLayoutPanel.RowCount = 0;
     }
 
     /// <summary>
@@ -544,7 +628,7 @@ public partial class frmMain : Form
     #region Tree view
 
     /// <summary>
-    /// Updates the <c>TreeView</c>.
+    /// Updates the openDAQ-<c>Components</c> <c>TreeView</c>.
     /// </summary>
     private void UpdateTree()
     {
@@ -578,14 +662,15 @@ public partial class frmMain : Form
 
     #region Components approach (as in Python Demo)
 
+    /// <summary>
+    /// Traverses the components recursively to fill the tree.
+    /// </summary>
+    /// <param name="component">The component.</param>
     private void TreeTraverseComponentsRecursive(Component? component)
     {
         if (component == null)
             return;
 
-        // tree view only in topology mode + parent exists
-        //parent_id = '' if display_type not in (
-        //    DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, None) or component.parent is None else component.parent.global_id
         string parentId = component.Parent?.GlobalId ?? string.Empty;
 
         Folder? folder = component.Cast<Folder>();
@@ -633,6 +718,11 @@ public partial class frmMain : Form
         }
     }
 
+    /// <summary>
+    /// Adds the openDAQ-<c>Component</c> to the tree.
+    /// </summary>
+    /// <param name="parentId">The parent ID.</param>
+    /// <param name="component">The <c>Component</c>.</param>
     private void TreeAddComponent(string parentId, Component component)
     {
         string componentNodeId = component.GlobalId;
@@ -705,6 +795,11 @@ public partial class frmMain : Form
 
     #region Object lists approach
 
+    /// <summary>
+    /// Populates the system overview tree.
+    /// </summary>
+    /// <param name="device">The device.</param>
+    /// <param name="rootNode">The root node.</param>
     private void PopulateSystemOverviewTree(Device device, TreeNode? rootNode = null)
     {
         /*
@@ -751,7 +846,7 @@ public partial class frmMain : Form
         }
 
         //there are either signals OR channels with signals
-        IListObject<Signal> signals = device.GetSignals();
+        IListObject<Signal>  signals  = device.GetSignals();
         IListObject<Channel> channels = device.GetChannels();
 
         if ((signals.Count > 0) || (channels.Count > 0))
@@ -771,6 +866,11 @@ public partial class frmMain : Form
         }
     }
 
+    /// <summary>
+    /// Populates the <c>Signals</c> in system overview tree.
+    /// </summary>
+    /// <param name="nodes">The nodes.</param>
+    /// <param name="signals">The signals.</param>
     private void PopulateSignalsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Signal> signals)
     {
         foreach (var signal in signals)
@@ -780,6 +880,11 @@ public partial class frmMain : Form
         }
     }
 
+    /// <summary>
+    /// Populates the <c>Channels</c> in system overview tree.
+    /// </summary>
+    /// <param name="nodes">The nodes.</param>
+    /// <param name="channels">The channels.</param>
     private void PopulateChannelsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Channel> channels)
     {
         foreach (var channel in channels)
@@ -1116,7 +1221,7 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(Device device, BindingList<AttributeItem> attributeItems)
     {
-        //attributeItems.Add(new(FREE, "", "", device., CoreType., device));
+        //nothing to list here
     }
 
     /// <summary>
@@ -1153,7 +1258,7 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(FunctionBlock functionBlock, BindingList<AttributeItem> attributeItems)
     {
-        //attributeItems.Add(new(LOCKED, "", "", functionBlock., CoreType., functionBlock));
+        //nothing to list here
     }
 
     /// <summary>
@@ -1188,7 +1293,7 @@ public partial class frmMain : Form
 
         string askDialogTitle       = $"Edit attribute \"{attributeItem.DisplayName}\"";
         string askDialogCaption     = "Please enter the new value below";
-        string askDialogCaptionList = "Please select the new value below";
+        //string askDialogCaptionList = "Please select the new value below";
 
         //ask for the new attribute value (just return when unchanged)
         switch (attributeItem.ValueType)
@@ -1283,7 +1388,7 @@ public partial class frmMain : Form
             //    break;
         }
 
-        var component = (Component) selectedAttributeObject;
+        var component = (Component)selectedAttributeObject;
         switch (selectedAttributeName)
         {
             case "Name":
@@ -1307,12 +1412,82 @@ public partial class frmMain : Form
 
     #endregion Attributes view
 
+    /// <summary>
+    /// Sets the visibility of the inputs- and/or outputs-view.
+    /// </summary>
+    /// <param name="component">The openDAQ <c>Component</c> determining whether to display a view or not.</param>
+    /// <returns><c>true</c> when an inputs or outputs view is visible.</returns>
+    private bool SetInputsOutputsViewsVisibility(Component? component)
+    {
+        if (component == null)
+        {
+            SetInputsOutputsAreaVisibility(isVisible: false);
+            return false;
+        }
+
+        bool isDevice        = component.CanCastTo<Device>();
+        bool isChannel       = component.CanCastTo<Channel>();
+        bool isFunctionBlock = component.CanCastTo<FunctionBlock>() && !isChannel;
+
+        SetInputsOutputsAreaVisibility(isVisible: (isDevice || isFunctionBlock));
+
+        if (isFunctionBlock)
+        {
+            //both, input ports and output signals visible
+            this.groupInputPorts.Visible    = true;
+            this.groupOutputSignals.Visible = true;
+
+            this.groupOutputSignals.Dock = DockStyle.Bottom;
+            this.groupInputPorts.BringToFront();
+        }
+        else if (isDevice || isChannel)
+        {
+            //only output signals visible
+            this.groupInputPorts.Visible    = false;
+            this.groupOutputSignals.Visible = true;
+
+            this.groupOutputSignals.Dock = DockStyle.Fill;
+        }
+        else
+        {
+            //neither is visible
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the visibility of the inputs/outputs area.
+    /// </summary>
+    /// <param name="isVisible">If set to <c>true</c> inputs/outputs should be visible.</param>
+    private void SetInputsOutputsAreaVisibility(bool isVisible)
+    {
+        this.splitContainerPropertiesInputs.Panel2Collapsed = !isVisible;
+
+        if (!isVisible)
+            return;
+
+        //set splitter to the properties grid width (but only to a maximum of 60% of the container width)
+        int preferredSplitterDistance = Math.Min(GetPreferredGridWidth(this.gridProperties), this.splitContainerPropertiesInputs.Width * 60 / 100);
+        if (this.splitContainerPropertiesInputs.SplitterDistance < preferredSplitterDistance)
+            this.splitContainerPropertiesInputs.SplitterDistance = preferredSplitterDistance;
+
+        this.tableInputPorts.Left  = this.groupInputPorts.Margin.Left;
+        this.tableInputPorts.Width = this.groupInputPorts.ClientRectangle.Width - this.groupInputPorts.Margin.Left - this.groupInputPorts.Margin.Right;
+        //this.tableInputPorts.PerformLayout();
+
+        this.tableOutputSignals.Left  = this.groupOutputSignals.Margin.Left;
+        this.tableOutputSignals.Width = this.groupOutputSignals.ClientRectangle.Width - this.groupOutputSignals.Margin.Left - this.groupOutputSignals.Margin.Right;
+        //this.tableOutputSignals.PerformLayout();
+    }
+
     #region Input-ports view
 
     /// <summary>
     /// Initializes the input-port view.
     /// </summary>
-    private void InitializeInputPortView()
+    private void InitializeInputPortsView()
     {
         _tableLayoutMarginLR  = this.tableInputPorts.Margin.Left + this.tableInputPorts.Margin.Right;
         _tableLayoutRowHeight = this.tableInputPorts.Margin.Top + FLOW_ITEM_HEIGHT + this.tableInputPorts.Margin.Bottom;
@@ -1320,6 +1495,7 @@ public partial class frmMain : Form
         this.tableInputPorts.GrowStyle = TableLayoutPanelGrowStyle.FixedSize; //we take care of RowCount ourselves
 
         //RowCount / RowStyles dynamically set in UpdateInputPorts()
+        Clear(this.tableInputPorts);
 
         this.tableInputPorts.ColumnStyles.Clear();
         this.tableInputPorts.ColumnCount = 4;
@@ -1327,40 +1503,44 @@ public partial class frmMain : Form
         this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));//SizeType.AutoSize));
         this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
         this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+
+        SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: true);
     }
 
     /// <summary>
     /// Updates the input-ports view.
     /// </summary>
     /// <param name="component">The component.</param>
-    private void UpdateInputPorts(Component? component)
+    /// <returns><c>true</c> when input ports have been rendered, otherwise <c>false</c>.</returns>
+    private bool UpdateInputPorts(Component? component)
     {
-        this.tableInputPorts.Controls.Clear();
-        this.tableInputPorts.RowStyles.Clear();
-        this.tableInputPorts.RowCount = 0;
+        Clear(this.tableInputPorts);
 
-        if ((component == null) || !component.CanCastTo<FunctionBlock>() || component.CanCastTo<Channel>())
+        //let only FunctionBlock through (no Channel which inherits from FunctionBlock)
+        if ((component == null)
+            || !component.CanCastTo<FunctionBlock>()
+            || component.CanCastTo<Channel>())
         {
-            this.splitContainerPropertiesInputs.Panel2Collapsed = true;
-            return;
+            return false;
         }
 
-        this.splitContainerPropertiesInputs.Panel2Collapsed = false;
-
-        int preferredSplitterDistance = Math.Min(GetPreferredGridWidth(this.gridProperties), this.splitContainerPropertiesInputs.Width * 60 / 100);
-        if (this.splitContainerPropertiesInputs.SplitterDistance < preferredSplitterDistance)
-            this.splitContainerPropertiesInputs.SplitterDistance = preferredSplitterDistance;
-
         var functionBlock = component.Cast<FunctionBlock>();
-        var rootDevice    = GetRootComponent(functionBlock)?.Cast<Device>();
-        var allSignals    = rootDevice?.GetSignalsRecursive() ?? Enumerable.Empty<Signal>();
+        var inputPorts    = functionBlock.GetInputPorts();
+
+        SetInputsOutputsAreaVisibility(isVisible: true);
+
+        if ((inputPorts == null) || (inputPorts.Count == 0))
+            return true; //true, because it could have input ports
+
+        var rootDevice = GetRootComponent(functionBlock)?.Cast<Device>();
+        var allSignals = rootDevice?.GetSignalsRecursive() ?? Enumerable.Empty<Signal>();
 
         var inputSignals = new List<KeyValuePair<string, Signal?>>();
         inputSignals.Clear();
         inputSignals.Add(new KeyValuePair<string, Signal?>("none", null));
         inputSignals.AddRange(allSignals.Select(signal => new KeyValuePair<string, Signal?>(GetShortId(signal), signal)));
 
-        foreach (var inputPort in functionBlock.GetInputPorts())
+        foreach (var inputPort in inputPorts)
         {
             int selectedSignalIndex = inputSignals.FindIndex(kvp => kvp.Value?.GlobalId == inputPort.Signal?.GlobalId);
 
@@ -1368,9 +1548,7 @@ public partial class frmMain : Form
             AddInputPort(inputPort, new BindingList<KeyValuePair<string, Signal?>>(inputSignals), selectedSignalIndex);
         }
 
-        this.tableInputPorts.Left  = this.groupInputPorts.Margin.Left;
-        this.tableInputPorts.Width = this.groupInputPorts.ClientRectangle.Width - this.groupInputPorts.Margin.Left - this.groupInputPorts.Margin.Right;
-        this.tableInputPorts.PerformLayout();
+        return (this.tableInputPorts.RowCount > 0);
     }
 
     /// <summary>
@@ -1553,6 +1731,158 @@ public partial class frmMain : Form
 
     #endregion Input-ports view
 
+    #region Output-signals view
+
+    /// <summary>
+    /// Initializes the output-signals view.
+    /// </summary>
+    private void InitializeOutputSignalsView()
+    {
+        _tableLayoutMarginLR  = this.tableOutputSignals.Margin.Left + this.tableOutputSignals.Margin.Right;
+        _tableLayoutRowHeight = this.tableOutputSignals.Margin.Top + FLOW_ITEM_HEIGHT + this.tableOutputSignals.Margin.Bottom;
+
+        this.tableOutputSignals.GrowStyle = TableLayoutPanelGrowStyle.FixedSize; //we take care of RowCount ourselves
+
+        //RowCount / RowStyles dynamically set in UpdateOutputSignals()
+        Clear(this.tableOutputSignals);
+
+        this.tableOutputSignals.ColumnStyles.Clear();
+        this.tableOutputSignals.ColumnCount = 3;
+        this.tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+        this.tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));//SizeType.AutoSize));
+        this.tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
+
+        SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: true);
+    }
+
+    /// <summary>
+    /// Updates the output-signals view.
+    /// </summary>
+    /// <param name="component">The component.</param>
+    /// <returns><c>true</c> when output signals have been rendered, otherwise <c>false</c>.</returns>
+    private bool UpdateOutputSignals(Component? component)
+    {
+        Clear(this.tableOutputSignals);
+
+        //let only Device and FunctionBlock through (no Channel which inherits from FunctionBlock)
+        if ((component == null)
+            || (!component.CanCastTo<Device>() && !component.CanCastTo<FunctionBlock>())
+            /*|| component.CanCastTo<Channel>()*/)
+        {
+            return false;
+        }
+
+        //component is either Device or FunctionBlock
+        var outputSignals = component.Cast<Device>()?.GetSignals()
+                            ?? component.Cast<FunctionBlock>().GetSignals();
+
+        SetInputsOutputsAreaVisibility(isVisible: true);
+
+        if ((outputSignals == null) || (outputSignals.Count == 0))
+            return true; //true, because it could have output signals
+
+        foreach (var outputSignal in outputSignals)
+        {
+            AddOutputSignal(outputSignal);
+        }
+
+        return (this.tableOutputSignals.RowCount > 0);
+    }
+
+    /// <summary>
+    /// Adds the given input port with the given signals.
+    /// </summary>
+    /// <param name="outputSignal">The input port.</param>
+    /// <param name="signalsDataSource">The data source with the <c>Signal</c>s.</param>
+    /// <param name="selectedIndex">Index of the <c>Signal</c> to select.</param>
+    private void AddOutputSignal(Signal outputSignal)
+    {
+        //create controls
+        var lblCaption = CreateCaptionLabel(outputSignal.Name);
+        var lblValue   = CreateValueLabel(GetLastValueForSignal(outputSignal));
+        var btnEdit    = CreateEditButton();
+
+        //add row
+        ++this.tableOutputSignals.RowCount;
+        this.tableOutputSignals.RowStyles.Add(new RowStyle(SizeType.Absolute, _tableLayoutRowHeight));
+        int rowNo = this.tableOutputSignals.RowCount - 1;
+
+        //add controls
+        this.tableOutputSignals.Controls.Add(lblCaption, 0, rowNo);
+        this.tableOutputSignals.Controls.Add(lblValue,   1, rowNo);
+        this.tableOutputSignals.Controls.Add(btnEdit,    2, rowNo);
+
+        //resize label column if necessary
+        int preferredWidth = this.tableOutputSignals.Margin.Left + lblCaption.PreferredWidth + this.tableOutputSignals.Margin.Right;
+        if (this.tableOutputSignals.ColumnStyles[0].Width < preferredWidth)
+            this.tableOutputSignals.ColumnStyles[0].Width = preferredWidth;
+
+        //add event handlers
+        btnEdit.Click += btnEdit_Click;
+
+        //store the OutputSignal
+        btnEdit.Tag = outputSignal;
+
+
+        //--- local functions --------------------------------------------------
+
+        static Label CreateCaptionLabel(string caption)
+        {
+            return new Label()
+            {
+                AutoSize  = false,
+                Text      = caption,
+                TextAlign = ContentAlignment.MiddleRight,
+                Anchor    = ANCHOR_LR
+            };
+        }
+
+        static Label CreateValueLabel(string value)
+        {
+            return new Label()
+            {
+                AutoSize  = false,
+                Text      = value,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Anchor    = ANCHOR_LR
+            };
+        }
+
+        static Button CreateEditButton()
+        {
+            return new Button()
+            {
+                Enabled = true,
+                Text    = null,
+                Anchor  = ANCHOR_L,
+                Width   = FLOW_ITEM_HEIGHT,
+                Height  = FLOW_ITEM_HEIGHT,
+                Image   = new Bitmap(GlblRes.settings, 24, 24)
+            };
+        }
+
+        void btnEdit_Click(object? sender, EventArgs e)
+        {
+            if (sender is not Button btnEdit)
+                return;
+
+            EditOutputSignal(btnEdit.Tag as Signal);
+        }
+    }
+
+    private void EditOutputSignal(Signal? outputSignal)
+    {
+        if (outputSignal == null)
+            return;
+
+        using (var frm = new frmEditComponent(outputSignal))
+        {
+            frm.ShowDialog(this);
+        }
+    }
+
+    #endregion Output-signals view
+
     /// <summary>
     /// Gets the value of the given <see cref="BaseObject"/>.
     /// </summary>
@@ -1604,5 +1934,29 @@ public partial class frmMain : Form
         parts.RemoveAll(part => ignoreParts.Contains(part));
 
         return string.Join('/', parts.ToArray());
+    }
+
+    /// <summary>
+    /// Gets the last value for the specified signal.
+    /// </summary>
+    /// <param name="outputSignal">The output signal.</param>
+    /// <returns>The last sample.</returns>
+    private string GetLastValueForSignal(Signal? outputSignal)
+    {
+        string lastValue = "N/A";
+
+        if (outputSignal != null)
+        {
+            try
+            {
+                lastValue = GetValue(outputSignal.LastValue);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Print($"Error reading last value: {ex.GetType().Name} - {ex.Message}");
+            }
+        }
+
+        return lastValue;
     }
 }

@@ -153,7 +153,8 @@ void DeviceTemplateHooks::onObjectReady()
     GenericDevice<IDevice>::onObjectReady();
     if (initialized)
         return;
-
+    
+    this->device->start();
     initialized = true;
 }
 

@@ -33,7 +33,7 @@ protected:
     std::unordered_set<std::string> devices;
 };
 
-class ModuleTemplateHooks : public ModuleParamsValidation, public Module, public std::enable_shared_from_this<ModuleTemplateHooks>
+class ModuleTemplateHooks : public ModuleParamsValidation, public Module
 {
 public:
 

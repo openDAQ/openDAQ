@@ -86,6 +86,19 @@ struct DeviceTypeParams
 
 // Constructor parameter definitions
 
+struct FunctionBlockParams
+{
+    FunctionBlockTypePtr type;
+    ContextPtr context;
+    ComponentPtr parent;
+
+    PropertyObjectPtr config;
+    DictPtr<IString, IBaseObject> options;
+
+    std::string logName;
+    std::string localId;
+};
+
 struct DeviceParams
 {
     DeviceInfoPtr info;
@@ -112,6 +125,26 @@ struct ModuleParams
 
 
 // Validation classes
+
+class FunctionBlockParamsValidation
+{
+public:
+    FunctionBlockParamsValidation(const FunctionBlockParams& params)
+    {
+        if (params.localId.empty())
+            throw InvalidParameterException("Local id is not set");
+        if (!params.type.assigned())
+            throw InvalidParameterException("Function block type is not set");
+        if (params.logName.empty())
+            throw InvalidParameterException("Log name is not set");
+        if (!params.context.assigned())
+            throw InvalidParameterException("Context is not set");
+
+        this->params = params; 
+    }
+
+    FunctionBlockParams params;
+};
 
 class DeviceParamsValidation
 {
@@ -153,9 +186,5 @@ public:
     ModuleParams params;
 };
 
-class FunctionBlockTemplateParamsValidation
-{
-
-};
 
 END_NAMESPACE_OPENDAQ

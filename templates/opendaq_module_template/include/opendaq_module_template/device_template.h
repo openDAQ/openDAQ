@@ -13,6 +13,10 @@ public:
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const;
+
+    template <class FBImpl, class... Params>
+    FunctionBlockPtr createAndAddFunctionBlock(const std::string& fbId, Params&&... params) const;
+
     void removeComponentWithId(const FolderConfigPtr& parentFolder, const std::string& componentId) const;
     void removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const;
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
@@ -43,9 +47,9 @@ protected:
     virtual bool allowAddDevicesFromModules();
     virtual bool allowAddFunctionBlocksFromModules();
     
-    
     DeviceTemplateHooks* deviceImpl;
     LoggerComponentPtr loggerComponent;
+    ContextPtr context;
     std::mutex sync;
 
 private:
@@ -59,7 +63,16 @@ ChannelPtr DeviceTemplate::createAndAddChannel(const IoFolderConfigPtr& parentFo
     return deviceImpl->createAndAddChannel<ChannelImpl, Params...>(parentFolder, channelId, std::forward<Params>(params)...);
 }
 
-class DeviceTemplateHooks : public DeviceParamsValidation, public Device, public std::enable_shared_from_this<DeviceTemplateHooks>
+template <class FBImpl, class ... Params>
+FunctionBlockPtr DeviceTemplate::createAndAddFunctionBlock(const std::string& fbId, Params&&... params) const
+{
+    LOG_T("Adding function block {}", fbId)
+    auto fb = createWithImplementation<IFunctionBlock, FBImpl>(context, deviceImpl->functionBlocks, fbId, std::forward<Params>(params)...);
+    deviceImpl->functionBlocks.addItem(fb);
+    return fb;
+}
+
+class DeviceTemplateHooks : public DeviceParamsValidation, public Device
 {
 public:
 
@@ -75,6 +88,7 @@ public:
             
         this->device->deviceImpl = this; // TODO: Figure out safe ptr operations for this
         this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        this->device->context = this->context;
 
         std::scoped_lock lock(sync);
 
@@ -84,7 +98,6 @@ public:
         registerCallbacks(objPtr);
         setDeviceDomain(this->device->initDeviceDomain());
         this->device->initIOFolder(ioFolder);
-        this->device->start();
     }   
 
 private:

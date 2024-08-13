@@ -96,15 +96,13 @@ private:
     BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);
 
     template <class SmartPtr, class Handler>
-    void addHandler(const std::string& name, const Handler& handler, const std::vector<Permission>& requiredPermissions);
+    void addHandler(const std::string& name, const Handler& handler);
     
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     
     ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
-    void protectComponent(const ComponentPtr& component, const std::vector<Permission>& requiredPermissions) const;
-    void protectComponent(const ComponentPtr& component, Permission requiredPermission) const;
 };
 
 }

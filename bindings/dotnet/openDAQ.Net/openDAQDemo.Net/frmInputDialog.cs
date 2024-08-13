@@ -125,7 +125,7 @@ public partial class frmInputDialog : Form
 
         if ((_minValue is double minValue) && (_maxValue is double maxValue))
         {
-            if ((_integerValue < minValue) || (_integerValue > maxValue))
+            if ((_floatValue < minValue) || (_floatValue > maxValue))
             {
                 MessageBox.Show(this, $"The input is not within min/max range.\nPlease try again.",
                                 this.Text, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);

@@ -72,7 +72,12 @@ TEST_F(TailReaderTest, GetSamplesBelowHistorySize)
     constexpr auto PACKET_SAMPLES = 5u;
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
+
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), PACKET_SAMPLES);
@@ -110,7 +115,11 @@ TEST_F(TailReaderTest, GetSamplesBelowHistorySizeTwice)
     constexpr auto PACKET_SAMPLES = 5u;
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), PACKET_SAMPLES);
@@ -160,7 +169,11 @@ TEST_F(TailReaderTest, GetSamplesEqualHistory)
 
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), HISTORY_SIZE);
@@ -207,7 +220,11 @@ TEST_F(TailReaderTest, GetSamplesEqualHistoryTwice)
 
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), HISTORY_SIZE);
@@ -224,8 +241,6 @@ TEST_F(TailReaderTest, GetSamplesEqualHistoryTwice)
     dataPtr[9] = 99;
 
     this->sendPacket(dataPacket);
-
-    ASSERT_EQ(reader.getAvailableCount(), HISTORY_SIZE);
 
     SizeT count{HISTORY_SIZE};
     double values[HISTORY_SIZE]{};
@@ -328,7 +343,11 @@ TEST_F(TailReaderTest, GetSamplesRolling)
 
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     auto dataPacket = DataPacket(this->signal.getDescriptor(), HISTORY_SIZE);
@@ -407,7 +426,13 @@ TEST_F(TailReaderTest, GetSamplesRollingDomain)
 
     constexpr auto HISTORY_SIZE = 10u;
 
-    auto reader = TailReader(this->signal, HISTORY_SIZE);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setHistorySize(HISTORY_SIZE)
+        .setValueReadType(SampleTypeFromType<double>::SampleType)
+        .setDomainReadType(SampleTypeFromType<ClockTick>::SampleType)
+        .setSkipEvents(true)
+        .build();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     ///////////////////////////
@@ -438,11 +463,6 @@ TEST_F(TailReaderTest, GetSamplesRollingDomain)
     dataPtr[9] = 9;
 
     this->sendPacket(dataPacket);
-
-    ///////////////////////////
-    ///////////////////////////
-
-    ASSERT_EQ(reader.getAvailableCount(), HISTORY_SIZE);
 
     SizeT count{HISTORY_SIZE};
     double values[HISTORY_SIZE]{};
@@ -698,6 +718,12 @@ TEST_F(TailReaderTest, SmallPackets)
         SIXTH_PACKET_SAMPLES
     );
 
+    {
+        SizeT count = 0;
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     implicitValue += SIXTH_PACKET_SAMPLES;
 
     ///////////////////////////
@@ -731,6 +757,12 @@ TEST_F(TailReaderTest, ReadUndefinedNoDomain)
 
     auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
+    {
+        SizeT count = 0;
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 }
@@ -740,10 +772,21 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
     const SizeT HISTORY_SIZE = 2u;
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    {
+        size_t tmpCnt = 0u;
+        auto status = reader.read(nullptr, &tmpCnt);
+
+        ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+        ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    }
 
     auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
     auto eventPacket = DataDescriptorChangedEventPacket(nullptr, domainDescriptor);
@@ -759,12 +802,6 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
-
-    {
-        size_t tmpCnt = 1;
-        auto status = reader.read(&samples, &tmpCnt);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, HISTORY_SIZE);
@@ -780,10 +817,21 @@ TEST_F(TailReaderTest, ReadUndefinedWithNoDomainFromPacket)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    {
+        size_t tmpCnt = 0u;
+        auto status = reader.read(nullptr, &tmpCnt);
+
+        ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+        ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -810,10 +858,21 @@ TEST_F(TailReaderTest, ReadUndefinedWithWithDomainFromPacket)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    {
+        size_t tmpCnt = 0u;
+        auto status = reader.read(nullptr, &tmpCnt);
+
+        ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+        ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -842,8 +901,14 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = TailReaderBuilder()
+        .setInputPort(port)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
     port.connect(this->signal);
-    auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -856,10 +921,7 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
     RangeType64 domain[HISTORY_SIZE]{};
-    while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
-    {
-        count = HISTORY_SIZE;
-    }
+    reader.readWithDomain(&samples, &domain, &count);
 
     ASSERT_EQ(count, HISTORY_SIZE);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -875,7 +937,13 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = TailReaderBuilder()
+        .setInputPort(port)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -890,14 +958,6 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
     RangeType64 domain[HISTORY_SIZE]{};
-
-    {
-        size_t tmpCount = 1;
-        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-        ASSERT_TRUE(status.getValid());
-    }
-
     auto status = reader.readWithDomain(&samples, &domain, &count);
     
     ASSERT_EQ(count, HISTORY_SIZE);
@@ -914,7 +974,6 @@ TEST_F(TailReaderTest, MultipleTailReaderToInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
     ASSERT_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
@@ -927,7 +986,6 @@ TEST_F(TailReaderTest, TailReaderReuseInputPort)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     {
         auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
@@ -947,14 +1005,26 @@ TEST_F(TailReaderTest, TailReaderOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    auto reader = TailReaderBuilder()
+        .setSignal(this->signal)
+        .setValueReadType(SampleType::Undefined)
+        .setDomainReadType(SampleType::Undefined)
+        .setHistorySize(HISTORY_SIZE)
+        .setSkipEvents(true)
+        .build();
+
+    {
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
+       
+        ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+        ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    }
+
+    reader.setOnDataAvailable([&] {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
     });
-
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
@@ -986,14 +1056,18 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+    port.connect(this->signal);
+
+    reader.setOnDataAvailable([&] {
+        SizeT tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
+        if (status.getReadStatus() != ReadStatus::Event)
         {
-            count = HISTORY_SIZE;
+            count = 0;
         }
+        reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
     });
 
@@ -1028,18 +1102,25 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
     TailReaderPtr reader = daq::TailReader(this->signal, 1, SampleType::Undefined, SampleType::Undefined);
+
+    {
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     TailReaderPtr newReader;
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+    reader.setOnDataAvailable([&] {
         if (!newReader.assigned())
         {
-            SizeT tmpCount = 1;
-            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            SizeT tmpCount = 0;
+            auto status = reader.read(nullptr, &tmpCount);
             if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
             }
         }
-        if (newReader.assigned())
+        else if (newReader.assigned())
         {
             auto status = newReader.readWithDomain(&samples, &domain, &count);
             promise.set_value();
@@ -1058,4 +1139,81 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
     ASSERT_EQ(count, HISTORY_SIZE);
+}
+
+TEST_F(TailReaderTest, ReadingNotConnectedPort)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::TailReaderFromPort(port, 1, SampleType::Float64, SampleType::RangeInt64);
+
+    auto availableCount = reader.getAvailableCount();
+    ASSERT_EQ(availableCount, 0u);
+
+    SizeT count{1};
+    double samples[1]{};
+    auto status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    // connecting port
+    port.connect(this->signal);
+
+    // check that event is encountered
+    count = 1;
+    status = reader.read(&samples, &count);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TEST_F(TailReaderTest, NotifyPortIsConnected)
+{
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::TailReaderFromPort(port, 1, SampleType::Float64, SampleType::RangeInt64);
+
+    ReaderStatusPtr status;
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    reader.setOnDataAvailable([&] {
+        SizeT count{0};
+        status = reader.read(nullptr, &count);
+        promise.set_value();
+    });
+
+    port.connect(this->signal);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+}
+
+TEST_F(TailReaderTest, DeltaCheck)
+{
+    const SizeT HISTORY_SIZE = 2u;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 0);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    {
+        size_t tmpCount = 0u;
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    SizeT count{1};
+    double samples[1]{};
+    RangeType64 domain[1]{};
+    auto status = reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1);
+    ASSERT_EQ(status.getOffset(), 1);
 }

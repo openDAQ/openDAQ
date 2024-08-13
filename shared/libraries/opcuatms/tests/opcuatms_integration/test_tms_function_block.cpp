@@ -27,7 +27,7 @@ using namespace opcua;
 class TmsFunctionBlockTest : public TmsObjectIntegrationTest
 {
 public:
-    FunctionBlockPtr createFunctionBlock(const FunctionBlockTypePtr& type = FunctionBlockType("uid", "name", "desc"))
+    FunctionBlockPtr createFunctionBlock(const FunctionBlockTypePtr& type = FunctionBlockType("UID", "Name", "Desc"))
     {
         const auto context = NullContext();
         return MockFunctionBlock(type, context, nullptr, "mockfb");

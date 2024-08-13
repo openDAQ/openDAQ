@@ -191,12 +191,23 @@ ErrCode InstanceImpl::getAvailableServerTypes(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
+StringPtr InstanceImpl::convertIfOldIdProtocol(const StringPtr& id)
+{
+    if (id == "openDAQ LT Streaming")
+        return "OpenDAQLTStreaming";
+    if (id == "openDAQ Native Streaming")
+        return "OpenDAQNativeStreaming";
+    if (id == "openDAQ OpcUa")
+        return "OpenDAQOPCUA";
+    return id;
+}
+
 ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server)
 {
     OPENDAQ_PARAM_NOT_NULL(serverTypeId);
     OPENDAQ_PARAM_NOT_NULL(server);
 
-    auto typeId = toStdString(serverTypeId);
+    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
 
     for (const auto module : moduleManager.getModules())
     {
@@ -262,7 +273,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ServerPtr nativeStreamingServer;
-    serverName = "openDAQ Native Streaming";
+    serverName = "OpenDAQNativeStreaming";
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {
@@ -274,7 +285,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 
     ServerPtr websocketServer;
-    serverName = "openDAQ LT Streaming";
+    serverName = "OpenDAQLTStreaming";
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
@@ -285,7 +296,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 #endif
 
     ServerPtr opcUaServer;
-    serverName = "openDAQ OpcUa";
+    serverName = "OpenDAQOPCUA";
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {
@@ -538,6 +549,11 @@ ErrCode InstanceImpl::addStreaming(IStreaming** streaming, IString* connectionSt
     return rootDevice->addStreaming(streaming, connectionString, config);
 }
 
+ErrCode InstanceImpl::getSyncComponent(ISyncComponent** syncComponent)
+{
+    return rootDevice->getSyncComponent(syncComponent);
+}
+
 ErrCode InstanceImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
 {
     return rootDevice->createDefaultAddDeviceConfig(defaultConfig);
@@ -684,6 +700,11 @@ ErrCode InstanceImpl::beginUpdate()
 ErrCode InstanceImpl::endUpdate()
 {
     return rootDevice->endUpdate();
+}
+
+ErrCode InstanceImpl::getUpdating(Bool* updating)
+{
+    return rootDevice->getUpdating(updating);
 }
 
 ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)

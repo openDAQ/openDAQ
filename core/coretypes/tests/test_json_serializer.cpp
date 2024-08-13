@@ -396,3 +396,11 @@ TEST_F(JsonSerializerTest, SerializableString)
 {
     ASSERT_EQ(daqInterfaceIdString<ISerializable>(), "{831915F2-C42F-5520-A420-56524D2AC552}");
 }
+
+TEST_F(JsonSerializerTest, UserContext)
+{
+    StringPtr userContext = "User context";
+    serializer.setUser(userContext);
+    auto userContextOut = serializer.getUser();
+    ASSERT_EQ(userContext, userContextOut);
+}

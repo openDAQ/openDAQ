@@ -143,6 +143,19 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReaderBuilder, IBaseObject)
      * @param[out] mode The overlap[
      */
     virtual ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the skip events
+     * @param skipEvents The skip events
+     */
+    virtual ErrCode INTERFACE_FUNC setSkipEvents(Bool skipEvents) = 0;
+
+    /*!
+     * @brief Gets the skip events
+     * @param[out] skipEvents The skip events
+     */
+    virtual ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, BlockReaderBuilder, IBlockReaderBuilder)

@@ -44,13 +44,13 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
 {
     cls.doc() = "Rule that defines how a signal value is calculated from an implicit initialization value when the rule type is not `Explicit`.";
 
-    m.def("LinearDataRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, daq::IEvalValue*>& start){
+    m.def("LinearDataRule", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& delta, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& start){
         return daq::LinearDataRule_Create(getVariantValue<daq::INumber*>(delta), getVariantValue<daq::INumber*>(start));
     }, py::arg("delta"), py::arg("start"));
 
     m.def("ConstantDataRule", &daq::ConstantDataRule_Create);
     m.def("ExplicitDataRule", &daq::ExplicitDataRule_Create);
-    m.def("ExplicitDomainDataRule", [](std::variant<daq::INumber*, double, daq::IEvalValue*>& minExpectedDelta, std::variant<daq::INumber*, double, daq::IEvalValue*>& maxExpectedDelta){
+    m.def("ExplicitDomainDataRule", [](std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& minExpectedDelta, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& maxExpectedDelta){
         return daq::ExplicitDomainDataRule_Create(getVariantValue<daq::INumber*>(minExpectedDelta), getVariantValue<daq::INumber*>(maxExpectedDelta));
     }, py::arg("min_expected_delta"), py::arg("max_expected_delta"));
 

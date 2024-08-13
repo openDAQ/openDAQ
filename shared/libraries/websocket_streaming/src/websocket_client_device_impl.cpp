@@ -5,6 +5,7 @@
 #include "websocket_streaming/websocket_client_signal_factory.h"
 #include "websocket_streaming/websocket_streaming_factory.h"
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/component_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -56,31 +57,43 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     {
         this->onSignalInit(signalId, sInfo);
     };
-    streamingClient->onAvailableSignalInit(signalInitCallback);
+    streamingClient->onDeviceAvailableSignalInit(signalInitCallback);
 
     auto signalUpdatedCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
         this->onSignalUpdated(signalId, sInfo);
     };
-    streamingClient->onSignalUpdated(signalUpdatedCallback);
+    streamingClient->onDeviceSignalUpdated(signalUpdatedCallback);
 
     auto domainSignalInitCallback = [this](const StringPtr& dataSignalId,const StringPtr& domainSignalId)
     {
         this->onDomainSignalInit(dataSignalId, domainSignalId);
     };
-    streamingClient->onDomainSingalInit(domainSignalInitCallback);
+    streamingClient->onDeviceDomainSingalInit(domainSignalInitCallback);
 
     auto availableSignalsCallback = [this](const std::vector<std::string>& signalIds)
     {
-        this->createDeviceSignals(signalIds);
+        this->registerAvailableSignals(signalIds);
     };
-    streamingClient->onAvailableDeviceSignals(availableSignalsCallback);
+    streamingClient->onDeviceAvailableSignals(availableSignalsCallback);
+
+    auto unavailableSignalsCallback = [this](const std::vector<std::string>& signalIds)
+    {
+        this->removeSignals(signalIds);
+    };
+    streamingClient->onDeviceUnavailableSignals(unavailableSignalsCallback);
 
     auto hiddenSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
-        this->addHiddenSignal(signalId, sInfo);
+        this->registerHiddenSignal(signalId, sInfo);
     };
-    streamingClient->onHiddenDeviceSignal(hiddenSignalCallback);
+    streamingClient->onDeviceHiddenSignal(hiddenSignalCallback);
+
+    auto signalsInitDoneCallback = [this]()
+    {
+        this->addInitializedSignals();
+    };
+    streamingClient->onDeviceSignalsInitDone(signalsInitDoneCallback);
 
     websocketStreaming = WebsocketStreaming(streamingClient, connectionString, context);
 }
@@ -92,7 +105,7 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
 
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
     {
-        // sets signal name as it appeared in metadata "name"
+        // sets signal name as it appeared in metadata "Name"
         signalIt->second.asPtr<IComponentPrivate>().unlockAllAttributes();
         signalIt->second.setName(sInfo.signalName);
         signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -127,7 +140,7 @@ void WebsocketClientDeviceImpl::onDomainSignalInit(const StringPtr& signalId, co
     }
 }
 
-void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::string>& signalIds)
+void WebsocketClientDeviceImpl::registerAvailableSignals(const std::vector<std::string>& signalIds)
 {
     // Adds to device only signals published by server explicitly and in the same order these were published
     for (const auto& signalId : signalIds)
@@ -135,18 +148,70 @@ void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::strin
         // TODO Streaming do not support some types of signals and do not provide META info -
         // - for those the mirrored signals will stay incomplete (without descriptors set)
         auto signal = WebsocketClientSignal(this->context, this->signals, signalId);
-        this->addSignal(signal);
         deviceSignals.insert({signalId, signal});
+        orderedSignalIds.push_back(signalId);
     }
 }
 
-void WebsocketClientDeviceImpl::addHiddenSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+void WebsocketClientDeviceImpl::removeSignals(const std::vector<std::string>& signalIds)
+{
+    for (const auto& removedSignalId : signalIds)
+    {
+        auto signalIter = deviceSignals.find(removedSignalId);
+        if (signalIter == deviceSignals.end())
+        {
+            LOG_E("Signal with id {} is not found in LT streaming device", removedSignalId);
+            continue;
+        }
+
+        auto signalToRemove = signalIter->second;
+
+        // recreate signal -> domainSignal relations in the same way as on server
+        for (const auto& [_, dataSignal] : deviceSignals)
+        {
+            auto domainSignal = dataSignal.getDomainSignal();
+            if (domainSignal.assigned() && domainSignal.asPtr<IMirroredSignalConfig>().getRemoteId() == removedSignalId)
+            {
+                dataSignal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(nullptr);
+            }
+        }
+
+        this->removeSignal(signalToRemove);
+        deviceSignals.erase(signalIter);
+        orderedSignalIds.erase(std::remove(orderedSignalIds.begin(), orderedSignalIds.end(), removedSignalId), orderedSignalIds.end());
+    }
+}
+
+void WebsocketClientDeviceImpl::registerHiddenSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
 {
     // Adds 'hidden' signal which were not published by server explicitly as available
     auto signal = WebsocketClientSignal(this->context, this->signals, signalId);
-    this->addSignal(signal);
     deviceSignals.insert({signalId, signal});
     onSignalInit(signalId, sInfo);
+    orderedSignalIds.push_back(signalId.toStdString());
+}
+
+void WebsocketClientDeviceImpl::addInitializedSignals()
+{
+    for (const auto& signalId : orderedSignalIds)
+    {
+        if (auto signalIt = deviceSignals.find(String(signalId)); signalIt != deviceSignals.end())
+        {
+            auto signal = signalIt->second;
+
+            if (!this->signals.findComponent(signal.getLocalId()).assigned())
+            {
+                if (websocketStreaming.assigned())
+                {
+                    websocketStreaming.addSignals({signal});
+                    auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+                    mirroredSignalConfigPtr.setActiveStreamingSource(websocketStreaming.getConnectionString());
+                }
+
+                this->addSignal(signal);
+            }
+        }
+    }
 }
 
 void WebsocketClientDeviceImpl::updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo)

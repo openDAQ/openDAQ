@@ -37,8 +37,8 @@ inline SimplifiedRatioPtr SimplifiedRatio(Int num, Int den)
 
 inline StructTypePtr RatioStructType()
 {
-    return StructType("ratio",
-                      List<IString>("numerator", "denominator"),
+    return StructType("Ratio",
+                      List<IString>("Numerator", "Denominator"),
                       List<Int>(0, 1),
                       List<IType>(SimpleType(ctInt), SimpleType(ctInt)));
 }

@@ -86,6 +86,9 @@
 
 #include <opendaq/core_opendaq_event_args_factory.h>
 
+#include <opendaq/sync_component_factory.h>
+#include <opendaq/sync_component_private_ptr.h>
+
 
 /*!
  * @ingroup opendaq

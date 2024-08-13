@@ -45,6 +45,7 @@ Devices. It mandates a specific organization of the above Components into pre-cr
 * `sig`: Contains global Device Signals that are not part of its other Components (Function Blocks, Channels, etc.)
 * `fb`: Contains the Device's Function blocks
 * `dev`: Contains sub-devices of the Device
+* `sync`: Contains synchronization component
 
 Devices often provide a set of pre-configured Components and some additional configurable parts
 such as dynamically added Function blocks. The section on <<Configuring a Device>> contains more
@@ -78,6 +79,9 @@ ListPtr<IChannel> channels =  device.getChannels();
 
 // Gets all custom Components of the Device
 ListPtr<IComponent> customComponents = device.getCustomComponents();
+
+// Gets the SyncComponent of the Device
+SyncComponentPtr syncComponent = device.getSyncComponent();
 ----
 Python::
 +
@@ -90,6 +94,7 @@ def access_device_components(device: opendaq.IDevice):
     io_folder = device.inputs_outputs_folder
     channels = device.channels
     custom_components = device.custom_components
+    sync_component = device.sync_component
 ----
 C#::
 +
@@ -111,6 +116,9 @@ IListObject<Channel> channels =  device.GetChannels();
 
 // Gets all custom Components of the Device
 IListObject<Component> customComponents = device.CustomComponents;
+
+// Gets the SyncComponent of the Device
+SyncComponent syncComponent = device.SyncComponent;
 ----
 ====
 

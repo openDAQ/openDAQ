@@ -45,6 +45,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classIStructBuilder = declareIStructBuilder(m);
     auto classIEnumerationType = declareIEnumerationType(m);
     auto classIEnumeration = declareIEnumeration(m);
+    auto classIVersionInfo = declareIVersionInfo(m);
 
     defineIInteger(m, classIInteger);
     defineIFloat(m, classIFloat);
@@ -70,4 +71,5 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIStructBuilder(m, classIStructBuilder);
     defineIEnumerationType(m, classIEnumerationType);
     defineIEnumeration(m, classIEnumeration);
+    defineIVersionInfo(m, classIVersionInfo);
 }

@@ -30,8 +30,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-static const char* NativeConfigurationDeviceTypeId = "opendaq_native_config";
-static const char* NativeStreamingTypeId = "opendaq_native_streaming";
+static const char* NativeConfigurationDeviceTypeId = "OpenDAQNativeConfiguration";
+static const char* NativeStreamingTypeId = "OpenDAQNativeStreaming";
 static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;
@@ -41,6 +41,7 @@ class NativeDeviceHelper
 public:
     explicit NativeDeviceHelper(const ContextPtr& context,
                                 opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
+                                SizeT configProtocolRequestTimeout,
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId);
@@ -77,6 +78,7 @@ private:
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
+    std::chrono::milliseconds configProtocolRequestTimeout;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)

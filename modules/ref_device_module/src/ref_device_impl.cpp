@@ -9,6 +9,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
+#include <opendaq/sync_component_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -121,17 +122,20 @@ void RefDeviceImpl::initClock()
 
 void RefDeviceImpl::initIoFolder()
 {
-    aiFolder = this->addIoFolder("ai", ioFolder);
-    canFolder = this->addIoFolder("can", ioFolder);
+    aiFolder = this->addIoFolder("AI", ioFolder);
+    canFolder = this->addIoFolder("CAN", ioFolder);
 }
 
 void RefDeviceImpl::initSyncComponent()
 {
-    syncComponent = this->addComponent("sync");
+    SyncComponentPtr syncComponent;
+    this->getSyncComponent(&syncComponent);
+    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
-    syncComponent.addProperty(BoolProperty("UseSync", False));
-    syncComponent.getOnPropertyValueWrite("UseSync") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { };
+    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
+    syncComponent.setSelectedSource(1);
+    syncComponentPrivate.setSyncLocked(true);
 }
 
 void RefDeviceImpl::acqLoop()
@@ -243,7 +247,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     for (auto i = channels.size(); i < num; i++)
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("refch{}", i);
+        auto localId = fmt::format("RefCh{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
     }

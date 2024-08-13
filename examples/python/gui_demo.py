@@ -206,6 +206,8 @@ class App(tk.Tk):
         popup = tk.Menu(tree, tearoff=0)
         popup.add_command(label="Remove")
         popup.add_command(label="Close")
+        popup.add_command(label="Begin update", command=self.handle_begin_update)
+        popup.add_command(label="End update", command=self.handle_end_update)
         self.tree_popup = popup
 
     def tree_update(self, new_selected_node=None):
@@ -218,6 +220,7 @@ class App(tk.Tk):
             self.context.instance, self.current_tab())
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
+        self.set_node_update_status()
 
     def tree_traverse_components_recursive(self, component, display_type=DisplayType.UNSPECIFIED):
         if component is None:
@@ -295,22 +298,31 @@ class App(tk.Tk):
             icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
-            if component_name == 'Sig':
-                component_name = 'Signals'
-            elif component_name == 'FB':
-                component_name = 'Function blocks'
-            elif component_name == 'Dev':
-                component_name = 'Devices'
-            elif component_name == 'IP':
-                component_name = 'Input ports'
-            elif component_name == 'IO':
-                component_name = 'Inputs/Outputs'
+            component_name = self.get_standard_folder_name(component_name)
+        elif daq.ISyncComponent.can_cast_from(component):
+            icon = self.context.icons['link']
+            component_name = self.get_standard_folder_name(component_name)
         else:  # skipping unknown type components
             skip = not show_unknown
 
         if not skip:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
-                             text=component_name, open=True, values=(component_node_id))
+                             text=component_name, open=True, values=(component_node_id,))
+
+    def get_standard_folder_name(self, component):
+        if component == 'Sig':
+            component = 'Signals'
+        elif component == 'FB':
+            component = 'Function blocks'
+        elif component == 'Dev':
+            component = 'Devices'
+        elif component == 'IP':
+            component = 'Input ports'
+        elif component == 'IO':
+            component = 'Inputs/Outputs'
+        elif component == 'Sync':
+            component = 'Synchronization'
+        return component
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''
@@ -448,6 +460,8 @@ class App(tk.Tk):
             return daq.IFunctionBlock.cast_from(node)
         elif daq.IDevice.can_cast_from(node):
             return daq.IDevice.cast_from(node)
+        elif daq.ISyncComponent.can_cast_from(node):
+            return daq.ISyncComponent.cast_from(node)
         else:
             if daq.IFolderConfig.can_cast_from(node):
                 folder = daq.IFolderConfig.cast_from(node)
@@ -474,6 +488,8 @@ class App(tk.Tk):
                 while current is not None:
                     if daq.IDevice.can_cast_from(current):
                         break  # stop at device
+                    if daq.ISyncComponent.can_cast_from(current):
+                        break  # stop at sync component
                     if daq.IFolder.can_cast_from(current):
                         if current.local_id == 'IO':
                             break  # stop at IO folder
@@ -510,7 +526,7 @@ class App(tk.Tk):
 
             draw_sub_fbs(found)
 
-        elif type(found) in (daq.IDevice, daq.IComponent):
+        elif type(found) in (daq.IDevice, daq.IComponent, daq.ISyncComponent):
             block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X, padx=5, pady=5)
@@ -573,6 +589,48 @@ class App(tk.Tk):
 
     def current_tab(self):
         return DisplayType.from_tab_index(self.nb.index('current')) if self.nb is not None else DisplayType.UNSPECIFIED
+
+    def handle_begin_update(self):
+        selected_item = treeview_get_first_selection(self.tree)
+        if selected_item:
+            self.begin_update_on_node(selected_item)
+            self.set_node_update_status()
+            self.tree_update(self.context.selected_node)
+
+    def handle_end_update(self):
+        selected_item = treeview_get_first_selection(self.tree)
+        if selected_item:
+            self.end_update_on_node(selected_item)
+            self.set_node_update_status()
+            self.tree_update(self.context.selected_node)
+
+    def begin_update_on_node(self, node):
+        node_obj = find_component(node, self.context.instance)
+        node_obj = daq.IPropertyObject.cast_from(node_obj)
+        node_obj.begin_update()
+
+    def end_update_on_node(self, node):
+        node_obj = find_component(node, self.context.instance)
+        node_obj = daq.IPropertyObject.cast_from(node_obj)
+        node_obj.end_update()
+
+    def set_node_update_status(self):
+        for node in self.tree.get_children():
+            self._set_node_update_status_recursive(node)
+
+    def _set_node_update_status_recursive(self, node):
+        color = 'red'
+        node_obj = find_component(node, self.context.instance)
+        node_text = self.get_standard_folder_name(node_obj.name)
+        if node_obj.updating:
+            self.tree.item(node, tags=('selected',),
+                           text=node_text + " [*]")
+            self.tree.tag_configure('selected', foreground=color)
+        else:
+            self.tree.item(node, tags=())
+        children = self.tree.get_children(node)
+        for child in children:
+            self._set_node_update_status_recursive(child)
 
 
 # MARK: - Entry point

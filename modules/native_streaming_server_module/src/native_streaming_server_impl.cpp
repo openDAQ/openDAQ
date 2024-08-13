@@ -22,7 +22,7 @@ using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("NativeStreamingServer", config, rootDevice, context, nullptr)
+    : Server("OpenDAQNativeStreamingServerModule", config, rootDevice, context, nullptr)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
@@ -39,14 +39,14 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     serverHandler->startServer(port);
 
     ServerCapabilityConfigPtr serverCapabilityStreaming =
-        ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming)
+        ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
         .setPrefix("daq.ns")
         .setConnectionType("TCP/IP")
         .setPort(port);
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig =
-        ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming)
+        ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
         .setPrefix("daq.nd")
         .setConnectionType("TCP/IP")
         .setPort(port);
@@ -222,10 +222,10 @@ void NativeStreamingServerImpl::stopServerInternal()
     {
         const auto info = this->rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("opendaq_native_streaming"))
-            infoInternal.removeServerCapability("opendaq_native_streaming");
-        if (info.hasServerCapability("opendaq_native_config"))
-            infoInternal.removeServerCapability("opendaq_native_config");
+        if (info.hasServerCapability("OpenDAQNativeStreaming"))
+            infoInternal.removeServerCapability("OpenDAQNativeStreaming");
+        if (info.hasServerCapability("OpenDAQNativeConfiguration"))
+            infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
     }
 
     stopReading();
@@ -252,9 +252,9 @@ void NativeStreamingServerImpl::prepareServerHandler()
     // a new packet streaming client (used for client to device streaming);
     // and transfers ownership of these objects to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
-        [this](SendConfigProtocolPacketCb sendConfigPacketCb)
+        [this](SendConfigProtocolPacketCb sendConfigPacketCb, const UserPtr& user)
     {
-        auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb);
+        auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user);
         ProcessConfigProtocolPacketCb processConfigRequestCb =
             [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
         {
@@ -311,7 +311,7 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
     if (!config.assigned())
         return;
 
-    auto options = context.getModuleOptions("NativeStreamingServer");
+    auto options = context.getModuleOptions("OpenDAQNativeStreamingServerModule");
     for (const auto& [key, value] : options)
     {
         if (config.hasProperty(key))
@@ -365,7 +365,7 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerType(
-        "openDAQ Native Streaming",
+        "OpenDAQNativeStreaming",
         "openDAQ Native Streaming server",
         "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
         NativeStreamingServerImpl::createDefaultConfig(context));

@@ -7,6 +7,9 @@
 #include <coretypes/type_manager_private.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/coreobjects.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -61,6 +64,8 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     if (this->typeManager.assigned())
         this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
     Event(this->coreEvent) += event(&ContextImpl::componentCoreEventCallback);
+
+    registerOpenDaqTypes();
 }
 
 ContextImpl::~ContextImpl()
@@ -215,6 +220,78 @@ ErrCode ContextImpl::getDiscoveryServers(IDict** services)
     }
     *services = this->discoveryServices.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+void ContextImpl::registerOpenDaqTypes()
+{
+    if (typeManager == nullptr)
+        return;
+
+    // Declaration of the SyncComponentBase class
+    auto syncInterfaceBase = PropertyObjectClassBuilder(typeManager, "SyncInterfaceBase")
+                                    .addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false))
+                                    .addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3))
+                                    .build();
+    typeManager->addType(syncInterfaceBase);
+
+    // Declaration of the InterfaceClockSync class
+    PropertyObjectPtr interfaceClockSyncStatusProperty = PropertyObject();
+    interfaceClockSyncStatusProperty.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}}), false));
+    interfaceClockSyncStatusProperty.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
+
+    auto interfaceClockSync = PropertyObjectClassBuilder(typeManager, "InterfaceClockSync")
+                                    .setParentName("SyncInterfaceBase")
+                                    .addProperty(ObjectProperty("Status", interfaceClockSyncStatusProperty))
+                                    .build();
+    typeManager->addType(interfaceClockSync);
+
+    // Declaration of the PtpSyncInterface class
+    PropertyObjectPtr PtpSyncInterfaceStatus = PropertyObject();
+    PtpSyncInterfaceStatus.addProperty(DictProperty("StateOptions", Dict<IInteger, IString>({{0, "Ok"}, {1, "Error"}, {2, "Warning"}}), false));
+    PtpSyncInterfaceStatus.addProperty(SelectionProperty("State", EvalValue("$StateOptions"), 0));
+    PtpSyncInterfaceStatus.addProperty(StringProperty("Grandmaster", ""));
+
+    const auto enumClockType = EnumerationType(
+        "PtpClockTypeEnumeration", List<IString>("Transparent", "OrdinaryBoundary", "SlaveOnly", "MasterOnly"));
+    const auto enumStepFlag = EnumerationType(
+        "PtpStepFlagEnumeration", List<IString>("One", "Two"));
+    const auto enumTransportProtocol = EnumerationType(
+        "PtpProtocolEnumeration", List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6", "UDP6_SCOPE"));
+    const auto enumDelayMechanism = EnumerationType(
+        "PtpDelayMechanismEnumeration", List<IString>("P2P", "E2E"));
+    const auto enumProfiles = EnumerationType(
+        "PtpProfileEnumeration", List<IString>("I558", "802_1AS"));
+
+    typeManager->addType(enumClockType);
+    typeManager->addType(enumStepFlag);
+    typeManager->addType(enumTransportProtocol);
+    typeManager->addType(enumDelayMechanism);
+    typeManager->addType(enumProfiles);
+
+    PropertyObjectPtr parameters = PropertyObject();
+    parameters.addProperty(StructProperty("PtpConfigurationStructure",
+                                        Struct("PtpConfigurationStructure",
+                                                Dict<IString, IBaseObject>({{"ClockType", Enumeration("PtpClockTypeEnumeration", "Transparent", typeManager)},
+                                                            {"TransportProtocol", Enumeration("PtpProtocolEnumeration", "IEEE802_3", typeManager)},
+                                                            {"StepFlag", Enumeration("PtpStepFlagEnumeration", "One", typeManager)},
+                                                            {"DomainNumber", 0},
+                                                            {"LeapSeconds", 0},
+                                                            {"DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "P2P", typeManager)},
+                                                            {"Priority1", 0},
+                                                            {"Priority2", 0},
+                                                            {"Profiles", Enumeration("PtpProfileEnumeration", "I558", typeManager)}}),
+                                                            typeManager)));
+
+    PropertyObjectPtr ports = PropertyObject();
+    parameters.addProperty(ObjectProperty("Ports", ports));
+
+    auto ptpSyncInterface = PropertyObjectClassBuilder(typeManager, "PtpSyncInterface")
+                                    .setParentName("SyncInterfaceBase")
+                                    .addProperty(ObjectProperty("Status", PtpSyncInterfaceStatus))
+                                    .addProperty(ObjectProperty("Parameters", parameters))
+                                    .build();
+
+    typeManager->addType(ptpSyncInterface);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

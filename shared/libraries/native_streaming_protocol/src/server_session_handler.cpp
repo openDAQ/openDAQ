@@ -225,6 +225,13 @@ bool ServerSessionHandler::getReconnected()
     return this->reconnected;
 }
 
+UserPtr ServerSessionHandler::getUser()
+{
+    auto user = (IUser*) session->getUserContext().get();
+    UserPtr userPtr = user;
+    return userPtr;
+}
+
 void ServerSessionHandler::setClientId(const std::string& clientId)
 {
     this->clientId = clientId;

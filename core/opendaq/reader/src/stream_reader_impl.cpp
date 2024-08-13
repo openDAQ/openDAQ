@@ -1,15 +1,15 @@
 #include <opendaq/stream_reader_impl.h>
+
+#include <coreobjects/ownable_ptr.h>
+#include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/ownable_ptr.h>
-#include <opendaq/reader_factory.h>
 
-#include <coretypes/validation.h>
 #include <coretypes/function.h>
+#include <coretypes/validation.h>
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
@@ -41,24 +41,16 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
                                    ReadTimeoutType timeoutType)
     : readMode(mode)
     , timeoutType(timeoutType)
-    , portBinder(PropertyObject())
 {
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
-    
-    inputPort = port;
-    inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     valueReader = createReaderForType(valueReadType, nullptr);
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
 
-    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
-
-    if (inputPort.getConnection().assigned())
-        connection = inputPort.getConnection();
+    connectInputPort(port);
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -89,6 +81,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
                                    SampleType domainReadType)
     : readMode(old->readMode)
     , timeoutType(ReadTimeoutType::All)
+    , skipEvents(old->skipEvents)
 {
     std::scoped_lock lock(old->mutex);
     dataDescriptor = old->dataDescriptor;
@@ -109,10 +102,39 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    if (portBinder.assigned())
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
-    else
-        readDescriptorFromPort();
+    inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+}
+
+StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
+{
+    if (!builder.assigned())
+        throw ArgumentNullException("Builder must not be null");
+    
+    readMode = builder.getReadMode();
+    timeoutType = builder.getReadTimeoutType();
+    skipEvents = builder.getSkipEvents();
+
+    valueReader = createReaderForType(builder.getValueReadType(), nullptr);
+    domainReader = createReaderForType(builder.getDomainReadType(), nullptr);
+
+    this->internalAddRef();
+
+    if (auto port = builder.getInputPort(); port.assigned())
+    {
+        if (port.getConnection().assigned())
+            throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+        connectInputPort(port);
+    }
+    else if (auto signal = builder.getSignal(); signal.assigned())
+    {
+        connectSignal(builder.getSignal());
+    }
+    else 
+    {
+        throw ArgumentNullException("Signal or port must be set");
+    }
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -150,9 +172,19 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
 
     inputPort.connect(signal);
-    connection = inputPort.getConnection();
+}
 
-    readDescriptorFromPort();
+void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
+{
+    inputPort = port;
+    if (inputPort.getConnection().assigned())
+        throw InvalidParameterException("Signal has to be connected to port after reader is created");
+
+    portBinder = PropertyObject();
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
+
+    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
@@ -169,8 +201,8 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(this->mutex);
-    connection = InputPortConfigPtr::Borrow(port).getConnection();
+    std::scoped_lock lock(notify.mutex);
+    port->getConnection(&connection);
     return OPENDAQ_SUCCESS;
 }
 
@@ -178,7 +210,7 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(this->mutex);
+    std::scoped_lock lock(notify.mutex);
     connection = nullptr;
     return OPENDAQ_SUCCESS;
 }
@@ -186,14 +218,14 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    return onPacketReady();
-}
-
-ErrCode StreamReaderImpl::onPacketReady()
-{
+    ProcedurePtr callback;
+    {
+        std::scoped_lock lock(notify.mutex);
+        callback = readCallback;
+    }
     notify.condition.notify_one();
-    if (readCallback.assigned())
-        return wrapHandler(readCallback);
+    if (callback.assigned())
+        return wrapHandler(callback);
     return OPENDAQ_SUCCESS;
 }
 
@@ -228,11 +260,53 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
         *count = 0;
         if (info.dataPacket.assigned())
         {
-            *count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
+            *count += info.dataPacket.getSampleCount() - info.prevSampleIndex;
+        }
+        if (connection.assigned())
+        {
+            *count += skipEvents 
+                ? connection.getSamplesUntilNextGapPacket()
+                : connection.getSamplesUntilNextEventPacket();
+        }
+    });
+}
+
+ErrCode StreamReaderImpl::getEmpty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+
+    std::scoped_lock lock(mutex);
+
+    *empty = false;
+    if (connection.assigned())
+    {
+        if (!skipEvents && connection.hasEventPacket())
+        {
+            return OPENDAQ_SUCCESS;
         }
 
-        *count += connection.getAvailableSamples();
-    });
+        if (skipEvents && connection.hasGapPacket())
+        {
+            return OPENDAQ_SUCCESS;
+        }
+    }
+
+    if (info.dataPacket.assigned())
+    {
+        if (info.dataPacket.getSampleCount() > info.prevSampleIndex)
+        {
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    if (connection.assigned())
+    {
+        if (connection.getAvailableSamples() > 0)
+        {
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    *empty = true;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::getInputPorts(IList** ports)
@@ -384,7 +458,6 @@ ErrCode StreamReaderImpl::readPacketData()
     }
     else
     {
-        std::unique_lock lock(notify.mutex);
         info.reset();
     }
 
@@ -392,102 +465,120 @@ ErrCode StreamReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
+ReaderStatusPtr StreamReaderImpl::readPackets()
 {
-    bool firstData = false;
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
-    ReadInfo::Duration remainingTime = info.timeout;
-    while (info.remainingToRead > 0 && remainingTime.count() >= 0)
+    std::unique_lock notifyLock(notify.mutex);
+    if (info.timeout.count() > 0)
     {
-        PacketPtr packet;
+        SizeT samplesToRead = info.remainingToRead;
+        if (info.dataPacket.assigned())
         {
-            std::unique_lock lock(notify.mutex);
+            samplesToRead -= info.dataPacket.getSampleCount() - info.prevSampleIndex;
+        }
 
+        auto condition = [this, samplesToRead]
+        {
+            if (!connection.assigned())
+            {
+                return false;
+            }
+
+            if (skipEvents)
+            {
+                if (connection.hasGapPacket())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (connection.hasEventPacket())
+                {
+                    return true;
+                }
+            }
+
+            auto samples = connection.getAvailableSamples();
+            if (timeoutType == ReadTimeoutType::Any)
+            {
+                return samples != 0;
+            }
+            return samples >= samplesToRead;
+        };
+        notify.condition.wait_for(notifyLock, info.timeout, condition);
+    }
+
+    NumberPtr offset;
+    while (true)
+    {
+        PacketPtr packet = info.dataPacket;
+        if (!packet.assigned() && connection.assigned())
+        {
             packet = connection.dequeue();
         }
 
         if (!packet.assigned())
         {
-            // Don't wait for any data if we already read some
-            if (timeoutType == ReadTimeoutType::Any && firstData)
-            {
-                break; 
-            }
-
-            std::unique_lock notifyLock(notify.mutex);
-            if (notify.condition.wait_for(notifyLock, remainingTime, [this]
-            {
-                return connection.peek().assigned();
-            }))
-            {
-                packet = connection.dequeue();
-            }
-            else
-            {
-                break;
-            }
+            break;
         }
 
-        assert(packet.assigned());
-        switch (packet.getType())
+        if (packet.getType() == PacketType::Event)
         {
-            case PacketType::Data:
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                info.dataPacket = packet;
-
-                errCode = readPacketData();
-                firstData = true;
-                break;
-            }
-            case PacketType::Event:
+                ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
+                if (OPENDAQ_FAILED(errCode))
+                {
+                    invalid = true;
+                }
+            } 
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
-                // Handle events
-
-                auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
-                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                {
-                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
-                    
-                    if (status)
-                        *status = ReaderStatus(eventPacket, !invalid).detach();
-                    
-                    if (OPENDAQ_FAILED(errCode))
-                    {
-                        invalid = true;
-                        return this->makeErrorInfo(
-                            OPENDAQ_ERR_INVALID_DATA,
-                            "Exception occurred while processing a signal descriptor change"
-                        );
-                    }
-
-                    return errCode;
-                }
-
-                if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
-                {
-                    if (status)
-                        *status = ReaderStatus(eventPacket, !invalid).detach();
-
-                    return OPENDAQ_SUCCESS;
-                }
-                break;
+                return ReaderStatus(eventPacket, !invalid, offset);
             }
-            case PacketType::None:
-                break;
         }
 
-        if (info.timeout.count() != 0)
-            remainingTime = info.timeout - info.durationFromStart();
+        if (packet.getType() == PacketType::Data)
+        {
+            info.dataPacket = packet;
+            if (info.remainingToRead == 0)
+            {
+                break;
+            }
+            if (!offset.assigned())
+            {
+                const auto domainPacket = info.dataPacket.getDomainPacket();
+                if (domainPacket.assigned() && domainPacket.getOffset().assigned())
+                {
+                    Int delta = 0;
+                    const auto domainRule = domainPacket.getDataDescriptor().getRule();
+                    if (domainRule.getType() == DataRuleType::Linear)
+                    {
+                        const auto domainRuleParams = domainRule.getParameters();
+                        delta = domainRuleParams.get("delta");
+                    }
+                    offset = domainPacket.getOffset().getIntValue() + (info.prevSampleIndex * delta);
+                }
+                if (!offset.assigned())
+                {
+                    offset = 0;
+                }
+            }
+            readPacketData();
+        }
     }
 
-    return errCode;
+    return ReaderStatus(nullptr, !invalid, offset);
 }
 
 ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+    }
 
     std::scoped_lock lock(mutex);
 
@@ -495,31 +586,19 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRe
     {
         if (status)
             *status = ReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
 
-    if (status)
-        *status = nullptr;
-
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
     info.prepare(samples, *count, milliseconds(timeoutMs));
-    if (info.dataPacket.assigned())
-    {
-        errCode = readPacketData();
-    }
 
-    bool shouldReturnEarly = timeoutType == ReadTimeoutType::Any
-                             && info.remainingToRead != *count;
+    auto statusPtr = readPackets();
 
-    if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets(status);
-
-    if (status && *status == nullptr)
-        *status = ReaderStatus(nullptr, !invalid).detach();
+    if (status)
+        *status = statusPtr.detach();
 
     *count = *count - info.remainingToRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::readWithDomain(void* samples,
@@ -528,9 +607,12 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
                                          SizeT timeoutMs,
                                          IReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(samples);
-    OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(samples);
+        OPENDAQ_PARAM_NOT_NULL(domain);
+    }
 
     std::scoped_lock lock(mutex);
 
@@ -538,31 +620,18 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
     {
         if (status)
             *status = ReaderStatus(nullptr, !invalid).detach();
+        *count = 0;
         return OPENDAQ_IGNORED;
     }
-
-    if (status)
-        *status = nullptr;
-
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
     info.prepareWithDomain(samples, domain, *count, milliseconds(timeoutMs));
-    if (info.dataPacket.assigned())
-    {
-        errCode = readPacketData();
-    }
 
-    bool shouldReturnEarly = timeoutType == ReadTimeoutType::Any
-                             && info.remainingToRead != *count;
-
-    if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets(status);
+    auto statusPtr = readPackets();
 
     *count = *count - info.remainingToRead;
 
-    if (status && *status == nullptr)
-        *status = ReaderStatus(nullptr, !invalid).detach();
-    return errCode;
+    if (status)
+        *status = statusPtr.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
@@ -580,16 +649,15 @@ ErrCode StreamReaderImpl::skipSamples(SizeT* count, IReaderStatus** status)
         return OPENDAQ_IGNORED;
     }
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
     info.prepare(nullptr, *count, milliseconds(0));
-    if (info.dataPacket.assigned())
-        errCode = readPacketData();
 
-    if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count)
-        errCode = readPackets(status);
+    auto statusPtr = readPackets();
 
     *count = *count - info.remainingToRead;
-    return errCode;
+
+    if (status)
+        *status = statusPtr.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
@@ -693,5 +761,11 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, valueReadType,
     SampleType, domainReadType
 )
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createStreamReaderFromBuilder(IStreamReader** objTmp, IStreamReaderBuilder* builder)
+{
+    return daq::createObject<IStreamReader, StreamReaderImpl>(objTmp, builder);
+}
 
 END_NAMESPACE_OPENDAQ

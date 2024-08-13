@@ -47,7 +47,7 @@ private:
 class ConfigProtocolServer
 {
 public:
-    ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback);
+    ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback, const UserPtr& user);
     ~ConfigProtocolServer();
 
     void buildRpcDispatchStructure();
@@ -79,6 +79,7 @@ private:
     std::unordered_map<std::string, DispatchFunction> rpcDispatch;
     std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
+    UserPtr user;
 
     PacketBuffer processPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpc(const StringPtr& jsonStr);

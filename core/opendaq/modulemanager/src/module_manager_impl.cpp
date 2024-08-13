@@ -545,6 +545,24 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         {
             const auto connectedDeviceInfo = devicePtr.getInfo();
             const auto connectedDeviceInfoInternal = connectedDeviceInfo.asPtr<IDeviceInfoInternal>();
+
+            using namespace search;
+            auto devices = devicePtr.getDevices(Recursive(Any()));
+            devices.pushBack(devicePtr);
+
+            for (const auto& dev : devices)
+            {
+                const auto devInfo = dev.getInfo();
+                const auto devInfoInternal = devInfo.asPtr<IDeviceInfoInternal>();
+
+                for (const auto& cap : devInfo.getServerCapabilities())
+                {
+                    const auto newCap = replaceOldProtocolIds(cap);
+                    devInfoInternal.removeServerCapability(cap.getProtocolId());
+                    devInfoInternal.addServerCapability(newCap);
+                }
+            }
+
             if (discoveredDeviceInfo.assigned())
             {
                 // Replaces the default fields of capabilities retrieved from the config/structure protocol
@@ -635,12 +653,46 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     return OPENDAQ_SUCCESS;
 }
 
+StringPtr ModuleManagerImpl::convertIfOldIdFB(const StringPtr& id)
+{
+    if (id == "ref_fb_module_classifier")
+        return "RefFBModuleClassifier";
+    if (id == "ref_fb_module_fft")
+        return "RefFBModuleFFT";
+    if (id == "ref_fb_module_power")
+        return "RefFBModulePower";
+    if (id == "ref_fb_module_renderer")
+        return "RefFBModuleRenderer";
+    if (id == "ref_fb_module_scaling")
+        return "RefFBModuleScaling";
+    if (id == "ref_fb_module_statistics")
+        return "RefFBModuleStatistics";
+    if (id == "ref_fb_module_trigger")
+        return "RefFBModuleTrigger";
+    if (id == "audio_device_module_wav_writer")
+        return "AudioDeviceModuleWavWriter";
+    return id;
+}
+
+StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
+{
+    if (id == "opendaq_native_config")
+        return "OpenDAQNativeConfiguration";
+    if (id == "opendaq_opcua_config")
+        return "OpenDAQOPCUAConfiguration";
+    if (id == "opendaq_native_streaming")
+        return "OpenDAQNativeStreaming";
+    if (id == "opendaq_lt_streaming")
+        return "OpenDAQLTStreaming";
+    return id;
+}
+
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    const StringPtr typeId = StringPtr::Borrow(id);
+    const StringPtr typeId = convertIfOldIdFB(StringPtr::Borrow(id));
 
     for (const auto& library : libraries)
     {
@@ -800,7 +852,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
-    const std::string nativeId = "opendaq_native_config";
+    const std::string nativeId = "OpenDAQNativeConfiguration";
     if (cap.getProtocolId() == nativeId)
         return 42;
 
@@ -1094,7 +1146,7 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
                                                                     0);
     obj.addProperty(streamingConnectionHeuristicProp);
 
-    auto prioritizedStreamingProtocols = List<IString>("opendaq_native_streaming", "opendaq_lt_streaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
     obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
@@ -1119,6 +1171,39 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     }
 
     return "";
+}
+
+ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabilityPtr& cap)
+{
+    const auto oldProtocolId = cap.getProtocolId();
+    const auto newProtocolId = convertIfOldIdProtocol(oldProtocolId);
+
+    if (oldProtocolId == newProtocolId)
+        return cap;
+
+    auto newCap = ServerCapability(newProtocolId, cap.getProtocolName(), cap.getProtocolType());
+
+    for (const auto& prop : cap.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (name == "protocolId")
+            continue;
+
+        const auto val = cap.getPropertyValue(name);
+        const bool hasProp = newCap.hasProperty(name);
+
+        if (val == prop.getDefaultValue() && hasProp)
+            continue;
+
+        if (hasProp)
+            newCap.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
+        else
+            newCap.addProperty(prop.asPtr<IPropertyInternal>().clone());
+    }
+
+    newCap.freeze();
+    return newCap.detach();
 }
 
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap,

@@ -42,6 +42,7 @@ set(SRC_Cpp
     generated/py_struct_builder.cpp
     generated/py_enumeration_type.cpp
     generated/py_enumeration.cpp
+    generated/py_version_info.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

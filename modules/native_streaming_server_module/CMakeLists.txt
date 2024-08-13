@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(NativeStreamingServerModule VERSION 3.1.0 LANGUAGES CXX)
+project(NativeStreamingServerModule VERSION 3.3.0 LANGUAGES CXX)
 
 add_subdirectory(src)
 

@@ -52,8 +52,8 @@ inline CallableInfoPtr ProcedureInfo(ListPtr<IArgumentInfo> arguments = nullptr)
  */
 inline StructTypePtr CallableInfoStructType()
 {
-    return StructType("callableInfo",
-                      List<IString>("arguments", "returnType"),
+    return StructType("CallableInfo",
+                      List<IString>("Arguments", "ReturnType"),
                       List<IBaseObject>(List<IArgumentInfo>(), ""),
                       List<IType>(SimpleType(ctList), SimpleType(ctInt)));
 }

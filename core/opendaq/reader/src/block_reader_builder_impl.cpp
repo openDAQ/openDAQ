@@ -15,6 +15,7 @@ BlockReaderBuilderImpl::BlockReaderBuilderImpl()
     , signal(nullptr)
     , inputPort(nullptr)
     , used(false)
+    , skipEvents(false)
 {
 }
 
@@ -127,6 +128,18 @@ ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::getOverlap(SizeT* overlap)
 {
     OPENDAQ_PARAM_NOT_NULL(overlap);
     *overlap = this->overlap;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::setSkipEvents(Bool skipEvents)
+{
+    this->skipEvents = skipEvents;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::getSkipEvents(Bool* skipEvents)
+{
+    OPENDAQ_PARAM_NOT_NULL(skipEvents);
+    *skipEvents = this->skipEvents;
     return OPENDAQ_SUCCESS;
 }
 

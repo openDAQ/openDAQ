@@ -150,6 +150,32 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * Removing all packets can be more efficient than dequeuing packet by packet in heavily loaded systems.
      */
     virtual ErrCode INTERFACE_FUNC dequeueAll(IList** packets) = 0;
+
+    /*!
+     * @brief Gets the number of samples available in the queued packets until the next event packet.
+     * The returned value is up-to the next Event packet if any.
+     * @param[out] samples The total amount of samples currently available in the stored packets until the next event packet.
+     */
+    virtual ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) = 0;
+
+    /*!
+     * @brief Gets the number of samples available in the queued packets until the next gap packet.
+     * The returned value is up-to the next Gap packet if any.
+     * @param[out] samples The total amount of samples currently available in the stored packets until the next gap packet.
+     */
+    virtual ErrCode INTERFACE_FUNC getSamplesUntilNextGapPacket(SizeT* samples) = 0;
+
+    /*!
+     * @brief Queries if the connection has an event packet.
+     * @param[out] hasEventPacket True if the connection has an event packet.
+     */
+    virtual ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) = 0;
+
+    /*!
+     * @brief Queries if the connection has a gap packet.
+     * @param[out] hasGapPacket True if the connection has a gap packet.
+     */
+    virtual ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) = 0;
 };
 /*!@}*/
 

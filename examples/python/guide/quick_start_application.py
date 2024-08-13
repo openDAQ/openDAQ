@@ -63,12 +63,12 @@ for i in range (0, 40):
         print(f'Value: {samples[-1]}, Domain: {time_stamps[-1]}')
 
 # Create an instance of the renderer function block
-renderer = instance.add_function_block('ref_fb_module_renderer')
+renderer = instance.add_function_block('RefFBModuleRenderer')
 # Connect the first output signal of the device to the renderer
 renderer.input_ports[0].connect(signal)
 
 # Create an instance of the statistics function block
-statistics = instance.add_function_block('ref_fb_module_statistics')
+statistics = instance.add_function_block('RefFBModuleStatistics')
 # Connect the first output signal of the device to the statistics
 statistics.input_ports[0].connect(signal)
 # Connect the first output signal of the statistics to the renderer

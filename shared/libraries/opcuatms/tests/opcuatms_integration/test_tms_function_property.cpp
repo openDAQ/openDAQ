@@ -45,13 +45,13 @@ public:
 TEST_F(TmsFunctionTest, ProcedureNoArgs)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("proc", ProcedureInfo()));
+    obj.addProperty(FunctionProperty("Proc", ProcedureInfo()));
     bool called = false;
     auto proc = Procedure([&called]() { called = true; });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
     ASSERT_NO_THROW(clientProc());
     ASSERT_EQ(called, true);
 }
@@ -59,25 +59,25 @@ TEST_F(TmsFunctionTest, ProcedureNoArgs)
 TEST_F(TmsFunctionTest, FunctionNoArgs)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("func", FunctionInfo(ctBool)));
+    obj.addProperty(FunctionProperty("Func", FunctionInfo(ctBool)));
     auto func = Function([]() { return true; });
-    obj.setPropertyValue("func", func);
+    obj.setPropertyValue("Func", func);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    FunctionPtr clientFunc = clientObj.getPropertyValue("func");
+    FunctionPtr clientFunc = clientObj.getPropertyValue("Func");
     ASSERT_TRUE(clientFunc());
 }
 
 TEST_F(TmsFunctionTest, ProcedureOneArg)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt)))));
+    obj.addProperty(FunctionProperty("Proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt)))));
     Int callValue;
     auto proc = Procedure([&callValue](const IntegerPtr& arg) { callValue = arg; });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
 
     ASSERT_NO_THROW(clientProc(10));
     ASSERT_EQ(callValue, 10);
@@ -89,13 +89,13 @@ TEST_F(TmsFunctionTest, ProcedureOneArg)
 TEST_F(TmsFunctionTest, FunctionOneArg)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("func", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("int", ctInt)))));
+    obj.addProperty(FunctionProperty("Func", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("Int", ctInt)))));
     Int callValue;
     auto func = Function([&callValue](const IntegerPtr& arg) { return arg; });
-    obj.setPropertyValue("func", func);
+    obj.setPropertyValue("Func", func);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    FunctionPtr clientFunc = clientObj.getPropertyValue("func");
+    FunctionPtr clientFunc = clientObj.getPropertyValue("Func");
     
     ASSERT_EQ(clientFunc(10), 10);
     ASSERT_EQ(clientFunc(100), 100);
@@ -105,7 +105,7 @@ TEST_F(TmsFunctionTest, ProcedureMultipleArgs)
 {
     auto obj = PropertyObject();
     obj.addProperty(FunctionProperty(
-        "proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt), ArgumentInfo("ratio", ctRatio), ArgumentInfo("string", ctString)))));
+        "Proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt), ArgumentInfo("Ratio", ctRatio), ArgumentInfo("String", ctString)))));
 
     Int intArg;
     RatioPtr ratioArg;
@@ -116,10 +116,10 @@ TEST_F(TmsFunctionTest, ProcedureMultipleArgs)
             ratioArg = args[1];
             stringArg = args[2];
         });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
 
     clientProc(10, Ratio(1, 20), "foo");
 
@@ -132,8 +132,8 @@ TEST_F(TmsFunctionTest, FunctionMultipleArgs)
 {
     auto obj = PropertyObject();
     obj.addProperty(FunctionProperty(
-        "func",
-        FunctionInfo(ctBool, List<IArgumentInfo>(ArgumentInfo("int", ctInt), ArgumentInfo("ratio", ctRatio), ArgumentInfo("string", ctString)))));
+        "Func",
+        FunctionInfo(ctBool, List<IArgumentInfo>(ArgumentInfo("Int", ctInt), ArgumentInfo("Ratio", ctRatio), ArgumentInfo("String", ctString)))));
 
     auto func = Function([](const ListPtr<IBaseObject>& args)
         {
@@ -142,10 +142,10 @@ TEST_F(TmsFunctionTest, FunctionMultipleArgs)
             valid = valid && args[2] == "foo";
             return valid;
         });
-    obj.setPropertyValue("func", func);
+    obj.setPropertyValue("Func", func);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    FunctionPtr clientProc = clientObj.getPropertyValue("func");
+    FunctionPtr clientProc = clientObj.getPropertyValue("Func");
 
     ASSERT_EQ(clientProc(10, Ratio(1, 20), "foo"), true);
     ASSERT_EQ(clientProc(10, Ratio(1, 20), "bar"), false);
@@ -155,12 +155,12 @@ TEST_F(TmsFunctionTest, AllArgTypes)
 {
     auto obj = PropertyObject();
     obj.addProperty(FunctionProperty(
-        "proc",
-        ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt),
-                                          ArgumentInfo("ratio", ctRatio),
-                                          ArgumentInfo("string", ctString),
-                                          ArgumentInfo("bool", ctBool),
-                                          ArgumentInfo("float", ctFloat)))));
+        "Proc",
+        ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt),
+                                          ArgumentInfo("Ratio", ctRatio),
+                                          ArgumentInfo("String", ctString),
+                                          ArgumentInfo("Bool", ctBool),
+                                          ArgumentInfo("Float", ctFloat)))));
 
     Int intArg;
     RatioPtr ratioArg;
@@ -176,10 +176,10 @@ TEST_F(TmsFunctionTest, AllArgTypes)
             boolArg = args[3];
             floatArg = args[4];
         });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
 
     clientProc(10, Ratio(1, 20), "foo", false, 1.123);
 
@@ -193,13 +193,13 @@ TEST_F(TmsFunctionTest, AllArgTypes)
 TEST_F(TmsFunctionTest, InvalidArgTypes)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt)))));
+    obj.addProperty(FunctionProperty("Proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt)))));
     Int callValue;
     auto proc = Procedure([&callValue](const IntegerPtr& arg) { callValue = arg; });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
 
     ASSERT_NO_THROW(clientProc("foo"));
     ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
@@ -209,12 +209,12 @@ TEST_F(TmsFunctionTest, InvalidArgTypes)
 TEST_F(TmsFunctionTest, InvalidReturnType)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("func", FunctionInfo(ctBool)));
+    obj.addProperty(FunctionProperty("Func", FunctionInfo(ctBool)));
     auto func = Function([]() { return "str"; });
-    obj.setPropertyValue("func", func);
+    obj.setPropertyValue("Func", func);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    FunctionPtr clientFunc = clientObj.getPropertyValue("func");
+    FunctionPtr clientFunc = clientObj.getPropertyValue("Func");
     
     ASSERT_EQ(clientFunc(), "str");
 }
@@ -222,13 +222,13 @@ TEST_F(TmsFunctionTest, InvalidReturnType)
 TEST_F(TmsFunctionTest, InvalidArgCount)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt)))));
+    obj.addProperty(FunctionProperty("Proc", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt)))));
     Int callValue;
     auto proc = Procedure([&callValue](const IntegerPtr& arg) { callValue = arg; });
-    obj.setPropertyValue("proc", proc);
+    obj.setPropertyValue("Proc", proc);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
+    ProcedurePtr clientProc = clientObj.getPropertyValue("Proc");
 
     ASSERT_NO_THROW(clientProc());
     ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
@@ -241,43 +241,43 @@ TEST_F(TmsFunctionTest, ProcedureArgumentInfo)
 {
     auto obj = PropertyObject();
     obj.addProperty(FunctionProperty(
-        "proc",
-        ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt),
-                                          ArgumentInfo("ratio", ctRatio),
-                                          ArgumentInfo("string", ctString),
-                                          ArgumentInfo("bool", ctBool),
-                                          ArgumentInfo("float", ctFloat)))));
+        "Proc",
+        ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Int", ctInt),
+                                          ArgumentInfo("Ratio", ctRatio),
+                                          ArgumentInfo("String", ctString),
+                                          ArgumentInfo("Bool", ctBool),
+                                          ArgumentInfo("Float", ctFloat)))));
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(obj.getProperty("proc").getCallableInfo(), clientObj.getProperty("proc").getCallableInfo());
+    ASSERT_EQ(obj.getProperty("Proc").getCallableInfo(), clientObj.getProperty("Proc").getCallableInfo());
 }
 
 TEST_F(TmsFunctionTest, FunctionArgumentInfo)
 {
     auto obj = PropertyObject();
     obj.addProperty(FunctionProperty(
-        "func",
-        FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("int", ctInt),
-                                                ArgumentInfo("ratio", ctRatio),
-                                                ArgumentInfo("string", ctString),
-                                                ArgumentInfo("bool", ctBool),
-                                                ArgumentInfo("float", ctFloat)))));
+        "Func",
+        FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("Int", ctInt),
+                                                ArgumentInfo("Ratio", ctRatio),
+                                                ArgumentInfo("String", ctString),
+                                                ArgumentInfo("Bool", ctBool),
+                                                ArgumentInfo("Float", ctFloat)))));
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(obj.getProperty("func").getCallableInfo(), clientObj.getProperty("func").getCallableInfo());
+    ASSERT_EQ(obj.getProperty("Func").getCallableInfo(), clientObj.getProperty("Func").getCallableInfo());
 }
 
 TEST_F(TmsFunctionTest, UnsupportedArgumentInfo)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("proc1", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("list", ctList)))));
-    obj.addProperty(FunctionProperty("proc2", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("dict", ctDict)))));
-    obj.addProperty(FunctionProperty("proc3", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("proc", ctProc)))));
-    obj.addProperty(FunctionProperty("proc4", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("object", ctObject)))));
+    obj.addProperty(FunctionProperty("proc1", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("List", ctList)))));
+    obj.addProperty(FunctionProperty("proc2", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Dict", ctDict)))));
+    obj.addProperty(FunctionProperty("proc3", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Proc", ctProc)))));
+    obj.addProperty(FunctionProperty("proc4", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Object", ctObject)))));
     obj.addProperty(FunctionProperty("proc5", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("binary_data", ctBinaryData)))));
-    obj.addProperty(FunctionProperty("proc6", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("func", ctFunc)))));
+    obj.addProperty(FunctionProperty("proc6", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Func", ctFunc)))));
     obj.addProperty(FunctionProperty("proc7", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("complex_number", ctComplexNumber)))));
-    obj.addProperty(FunctionProperty("proc8", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("undefined", ctUndefined)))));
+    obj.addProperty(FunctionProperty("proc8", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("Undefined", ctUndefined)))));
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
     ASSERT_EQ(clientObj.getAllProperties().getCount(), 0u);
@@ -302,16 +302,16 @@ TEST_F(TmsFunctionTest, UnsupportedReturnType)
 TEST_F(TmsFunctionTest, ServerThrow)
 {
     auto obj = PropertyObject();
-    obj.addProperty(FunctionProperty("func", FunctionInfo(ctBool)));
+    obj.addProperty(FunctionProperty("Func", FunctionInfo(ctBool)));
     auto func = Function([]()
     {
         throw GeneralErrorException{};
         return false;
     });
-    obj.setPropertyValue("func", func);
+    obj.setPropertyValue("Func", func);
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-    FunctionPtr clientFunc = clientObj.getPropertyValue("func");
+    FunctionPtr clientFunc = clientObj.getPropertyValue("Func");
     ASSERT_NO_THROW(clientFunc());
     ASSERT_EQ(getLastMessage(), "Failed to call function on OpcUA client. Error in \"Calling function\""); 
 }

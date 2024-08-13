@@ -26,11 +26,11 @@ TEST_F(ComponentsTest, DeviceFolders)
     for (auto item : items)
     {
         auto id = item.getLocalId();
-        if (id == "Sig" || id == "IO" || id == "FB" || id == "Dev")
+        if (id == "Sig" || id == "IO" || id == "FB" || id == "Dev"  || id == "Sync")
             knownFolderCount++;
     }
 
-    ASSERT_EQ(knownFolderCount, 4);
+    ASSERT_EQ(knownFolderCount, 5);
 }
 
 // Corresponding document: Antora/modules/explanation/pages/components.adoc
@@ -47,7 +47,7 @@ TEST_F(ComponentsTest, DeviceFolderTypes)
 TEST_F(ComponentsTest, ComponentStatuses)
 {
     auto instance = docs_test_helpers::setupInstance();
-    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+    const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
     auto statuses = scalingFb.getStatusContainer().getStatuses();
 
     ASSERT_GT(statuses.getCount(), 0u);

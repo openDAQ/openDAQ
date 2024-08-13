@@ -47,19 +47,6 @@ public:
                                  const PacketPtr& packet,
                                  const SendPacketBufferCallback& sendPacketBufferCb);
 
-    /// Pushes a packet associated with a specified signal ID to the packet streaming server
-    /// associated with a client identified by the specified ID. Retrieves all ready packet buffers from that
-    /// server and sends them to the client using the specified callback.
-    /// @param signalStringId The unique string ID of the signal.
-    /// @param packet The openDAQ packet to be processed and delivered to the client.
-    /// @param sendPacketBufferCb The callback used to send the created packet buffer to the client.
-    /// @param clientId The ID of the client to which the packet should be delivered.
-    /// @throw NativeStreamingProtocolException if the signal or client is not registered.
-    void sendPacketToClient(const std::string& signalStringId,
-                            const PacketPtr& packet,
-                            const SendPacketBufferCallback& sendPacketBufferCb,
-                            const std::string& clientId);
-
     /// Registers a signal using its global ID as a unique key
     /// and assigns a numeric ID to it.
     /// @param signal The openDAQ signal to register.
@@ -89,9 +76,12 @@ public:
     /// Adds a client with the specified ID to the list of signal subscribers.
     /// @param signalStringId The unique string ID of the signal.
     /// @param subscribedClientId The ID of the client to be registered as a subscriber.
+    /// @param sendPacketBufferCb The callback used to send the packet buffer created from initial event packet to the client.
     /// @return true if no subscribers were registered before, false otherwise.
     /// @throw NativeStreamingProtocolException if the signal or client is not registered.
-    bool registerSignalSubscriber(const std::string& signalStringId, const std::string& subscribedClientId);
+    bool registerSignalSubscriber(const std::string& signalStringId,
+                                  const std::string& subscribedClientId,
+                                  const SendPacketBufferCallback& sendPacketBufferCb);
 
     /// Removes a client with the specified ID from the list of signal subscribers.
     /// @param signalStringId The unique string ID of the signal.
@@ -100,18 +90,6 @@ public:
     /// false otherwise.
     /// @throw NativeStreamingProtocolException if the signal or client is not registered.
     bool removeSignalSubscriber(const std::string& signalStringId, const std::string& subscribedClientId);
-
-    /// Caches the last read data descriptor changed event packet associated with the signal with the specified ID.
-    /// @param signalStringId The unique string ID of the signal.
-    /// @param packet The data descriptor changed event packet to be cached.
-    /// @throw NativeStreamingProtocolException if the signal is not registered.
-    void setLastEventPacket(const std::string& signalStringId, const EventPacketPtr& packet);
-
-    /// Gets the last cached data descriptor changed event packet associated with the signal with the specified ID.
-    /// @param signalStringId The unique string ID of the signal.
-    /// @return The data descriptor changed event packet.
-    /// @throw NativeStreamingProtocolException if the signal is not registered.
-    EventPacketPtr getLastEventPacket(const std::string& signalStringId);
 
     /// Gets an openDAQ signal registered under the specified ID.
     /// @param signalStringId The unique string ID of the signal.
@@ -135,6 +113,7 @@ public:
     std::vector<std::string> getRegisteredClientsIds();
 
 private:
+    using PacketStreamingServerPtr = std::shared_ptr<packet_streaming::PacketStreamingServer>;
     struct RegisteredSignal
     {
         explicit RegisteredSignal(SignalPtr daqSignal, SignalNumericIdType numericId);
@@ -142,8 +121,14 @@ private:
         SignalPtr daqSignal;
         SignalNumericIdType numericId;
         std::unordered_set<std::string> subscribedClientsIds;
-        EventPacketPtr lastEventPacket;
+        DataDescriptorPtr lastDataDescriptor;
     };
+
+    void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
+                       const PacketStreamingServerPtr& registeredSignal,
+                       const PacketPtr& packet,
+                       const std::string& clientId,
+                       SignalNumericIdType singalNumericId);
 
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
@@ -152,7 +137,7 @@ private:
     // key: signal global id
     std::unordered_map<std::string, RegisteredSignal> registeredSignals;
 
-    std::unordered_map<std::string, std::shared_ptr<packet_streaming::PacketStreamingServer>> packetStreamingServers;
+    std::unordered_map<std::string, PacketStreamingServerPtr> packetStreamingServers;
     std::unordered_set<std::string> streamingClientsIds;
 
     std::mutex sync;

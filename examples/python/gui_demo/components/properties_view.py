@@ -5,6 +5,7 @@ from functools import cmp_to_key
 
 from ..utils import *
 from ..event_port import EventPort
+from .function_dialog import FunctionDialog
 
 
 class PropertiesView(tk.Frame):
@@ -49,6 +50,12 @@ class PropertiesView(tk.Frame):
                 self.fillProperties(
                     '', daq.IPropertyObject.cast_from(self.node))
 
+    def fillStruct(self, parent_iid, node):
+        for key, value in node.as_dictionary.items():
+            iid = key if parent_iid is None else parent_iid + "." + key
+            self.nodes_by_iids[iid] = node
+            self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=key, values=(value,))
+                    
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:
@@ -59,25 +66,33 @@ class PropertiesView(tk.Frame):
         properties_info = node.visible_properties
         sorted_properties_info = self.properties_sort(properties_info)
         for property_info in sorted_properties_info:
-            iid = property_info.name if parent_iid == None else parent_iid + "." + property_info.name
+            iid = property_info.name if parent_iid is None else parent_iid + "." + property_info.name
             self.nodes_by_iids[iid] = node
 
             if property_info.selection_values is not None:
-                property_value = printed_value(
-                    property_info.item_type, node.get_property_selection_value(property_info.name))
+                if len(property_info.selection_values) > 0:
+                    property_value = printed_value(
+                        property_info.item_type, node.get_property_selection_value(property_info.name))
+                else:
+                    property_value = "Selection list is empty"
             elif property_info.value_type == daq.CoreType.ctProc:
                 property_value = "Method"
             elif property_info.value_type == daq.CoreType.ctFunc:
                 property_value = "Method"
+            elif property_info.value_type == daq.CoreType.ctStruct:
+                property_value = "Struct"
             else:
                 property_value = printed_value(
                     property_info.item_type, node.get_property_value(property_info.name))
 
             self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=property_info.name, values=(
-                property_value))
+                property_value,))
 
             if property_info.value_type == daq.CoreType.ctObject:
                 self.fillProperties(
+                    iid, node.get_property_value(property_info.name))
+            elif property_info.value_type == daq.CoreType.ctStruct:
+                self.fillStruct(
                     iid, node.get_property_value(property_info.name))
 
     def properties_sort(self, list):
@@ -146,6 +161,10 @@ class PropertiesView(tk.Frame):
         item = self.tree.item(selected_item)
         property_name = item['text']
         node = self.nodes_by_iids.get(selected_item)
+        if not node:
+            return
+        if not daq.IPropertyObject.can_cast_from(node):
+            return
         node = daq.IPropertyObject.cast_from(node)
         if not node:
             return
@@ -158,15 +177,15 @@ class PropertiesView(tk.Frame):
 
         if property_info.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(property_value)
-            f()  # only functions without parameters
+            FunctionDialog(self, property_info, f, self.context).show()
             return
 
         if property_info.value_type == daq.CoreType.ctProc:
             p = daq.IProcedure.cast_from(property_value)
-            p()  # only functions without parameters
+            FunctionDialog(self, property_info, p, self.context).show()
             return
 
-        if (property_info == None or property_info.read_only):
+        if (property_info is None or property_info.read_only):
             return
 
         prompt = 'Enter the new value for {}:'.format(property_name)

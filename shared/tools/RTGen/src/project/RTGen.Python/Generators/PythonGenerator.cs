@@ -29,7 +29,7 @@ namespace RTGen.Python.Generators
             { "IBoolean" , "bool" },
             { "IInteger", "int64_t" },
             { "IFloat", "double" },
-            { "INumber", "double" },
+            { "INumber", "double, int64_t" },
             { "IRatio", "std::pair<int64_t, int64_t>" },
             { "IComplexNumber", "std::complex<double>" },
             { "IList", "py::list" },

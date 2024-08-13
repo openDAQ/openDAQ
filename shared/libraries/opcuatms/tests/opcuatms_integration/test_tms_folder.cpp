@@ -31,7 +31,7 @@ public:
 
         folder2.addProperty(StringProperty("foo", "bar"));
         auto obj = PropertyObject();
-        obj.addProperty(IntProperty("int", 0));
+        obj.addProperty(IntProperty("Int", 0));
         leafFolder.addProperty(ObjectProperty("obj", obj));
 
         folder1.getTags().asPtr<ITagsPrivate>().add("tag1");
@@ -127,7 +127,7 @@ TEST_F(TmsFolderTest, Properties)
 
     PropertyObjectPtr serverObj = folder.serverFolder.getItems()[0].asPtr<IFolder>().getItems()[0].getPropertyValue("obj");
     PropertyObjectPtr clientObj = folder.clientFolder.getItems()[0].asPtr<IFolder>().getItems()[0].getPropertyValue("obj");
-    ASSERT_EQ(serverObj.getPropertyValue("int"), clientObj.getPropertyValue("int"));
+    ASSERT_EQ(serverObj.getPropertyValue("Int"), clientObj.getPropertyValue("Int"));
 
     ASSERT_EQ(folder.serverFolder.getItems()[0].getPropertyValue("foo"), folder.clientFolder.getItems()[0].getPropertyValue("foo"));
 

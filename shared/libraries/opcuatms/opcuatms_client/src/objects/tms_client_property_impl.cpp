@@ -89,11 +89,15 @@ void TmsClientPropertyImpl::configurePropertyFields()
 
         if (browseName == "CoercionExpression")
         {
-            this->coercer = Coercer(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
+            const auto eval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
+            if (eval.assigned() && eval.getLength() > 0)
+                this->coercer = Coercer(eval);
         }
         else if (browseName == "ValidationExpression")
         {
-            this->validator = Validator(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
+            const auto eval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
+            if (eval.assigned() && eval.getLength() > 0)
+                this->validator = Validator(eval);
         }
         else if (clientContext->getReferenceBrowser()->isSubtypeOf(ref->typeDefinition.nodeId, evaluationVariableTypeId))
         {
@@ -178,7 +182,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                                 value = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
                                 LOG_W(
-                                    "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time.",
+                                    "Failed to read default value of property {} on OpcUa client. Default value is set to the value at connection time.",
                                     this->name);
                             }
 

@@ -75,8 +75,8 @@ inline DimensionBuilderPtr DimensionBuilderCopy(const DimensionPtr& dimension)
  */
 inline StructTypePtr DimensionStructType()
 {
-    return StructType("dimension",
-                      List<IString>("name", "unit", "rule"),
+    return StructType("Dimension",
+                      List<IString>("Name", "Unit", "Rule"),
                       List<IBaseObject>("", "", ""),
                       List<IType>(SimpleType(ctString), UnitStructType(), DimensionRuleStructType()));
 }

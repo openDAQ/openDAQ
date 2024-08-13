@@ -87,6 +87,7 @@ private:
     void signalTypeChanged();
     void signalTypeChangedInternal();
     void resetCounter();
+    void setCounter(uint64_t cnt, bool shouldLock = true);
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
     std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);

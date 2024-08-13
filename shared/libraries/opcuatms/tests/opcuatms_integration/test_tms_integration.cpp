@@ -9,6 +9,10 @@
 #include <thread>
 #include <testutils/test_comparators.h>
 #include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <opendaq/sync_component_private_ptr.h>
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_class_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -403,4 +407,181 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
 
     ASSERT_NO_THROW(clientDevice.beginUpdate());
     ASSERT_NO_THROW(clientDevice.endUpdate());
+}
+
+TEST_F(TmsIntegrationTest, SyncComponent)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+
+    serverSync.setSelectedSource(1);
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+}
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomInterfaceValues)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+
+    auto ptpSyncInterface = PropertyObject(serverTypeManager, "PtpSyncInterface");
+    ptpSyncInterface.setPropertyValue("Mode", 2);
+    
+    PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
+    status.setPropertyValue("State", 2);
+    status.setPropertyValue("Grandmaster", "1234");
+
+    PropertyObjectPtr parameters = ptpSyncInterface.getPropertyValue("Parameters");
+
+    StructPtr configuration = parameters.getPropertyValue("PtpConfigurationStructure");
+
+    auto newConfiguration = StructBuilder(configuration)
+                    .set("ClockType",  Enumeration("PtpClockTypeEnumeration", "OrdinaryBoundary", serverTypeManager))
+                    .set("TransportProtocol", Enumeration("PtpProtocolEnumeration", "UDP6_SCOPE", serverTypeManager))
+                    .set("StepFlag", Enumeration("PtpStepFlagEnumeration", "Two", serverTypeManager))
+                    .set("DomainNumber", 123)
+                    .set("LeapSeconds", 123)
+                    .set("DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "E2E", serverTypeManager))
+                    .set("Priority1", 123)
+                    .set("Priority2", 123)
+                    .set("Profiles", Enumeration("PtpProfileEnumeration", "802_1AS", serverTypeManager))
+                    .build();
+
+    parameters.setPropertyValue("PtpConfigurationStructure", newConfiguration);
+
+    PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
+    ports.addProperty(BoolProperty("Port1", true));
+        
+    syncComponentPrivate.addInterface(ptpSyncInterface);
+
+    syncComponentPrivate.setSyncLocked(true);
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serveSyncInterface = serverSync.getInterfaces();
+    auto clientSyncInterface = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
+   
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+
+    auto clientPtpSyncInterface = clientInterfaces.get("PtpSyncInterface");
+    ASSERT_EQ(clientPtpSyncInterface.getPropertyValue("Mode"), 2);
+
+    PropertyObjectPtr clientStatus = clientPtpSyncInterface.getPropertyValue("Status");
+    ASSERT_EQ(clientStatus.getPropertyValue("State"), 2);
+    ASSERT_EQ(clientStatus.getPropertyValue("Grandmaster"), "1234");
+
+    PropertyObjectPtr clientParameters = clientPtpSyncInterface.getPropertyValue("Parameters");
+    ASSERT_EQ(clientParameters.getPropertyValue("PtpConfigurationStructure"), newConfiguration);
+    
+    PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
+    ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);   
+}
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomInterface)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+
+    {
+        auto customSyncInterface = PropertyObjectClassBuilder(serverTypeManager, "CustomInterface")
+                                        .setParentName("SyncInterfaceBase")
+                                        .addProperty(SelectionProperty("CustomState", List<IString>("Cool", "Awesome"), 1))
+                                        .build();
+        serverTypeManager->addType(customSyncInterface);
+        syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "CustomInterface"));
+    }
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+
+    auto customInterface = clientInterfaces.get("CustomInterface");
+    ASSERT_TRUE(customInterface.hasProperty("CustomState"));
+    ASSERT_EQ(customInterface.getProperty("CustomState").getSelectionValues(), List<IString>("Cool", "Awesome"));
+    ASSERT_EQ(customInterface.getPropertyValue("CustomState"), 1);
+    ASSERT_EQ(customInterface.getPropertySelectionValue("CustomState"), "Awesome");
+}
+
+TEST_F(TmsIntegrationTest, SyncComponentCustomModeOptions)
+{
+    InstancePtr device = createDevice();
+    auto serverTypeManager = device.getContext().getTypeManager();
+    auto serverSubDevice = device.getDevices()[1];
+    auto serverSync = serverSubDevice.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+    auto modeOptions = Dict<IInteger, IString>({{2, "Auto"}, {3, "Off"}});
+
+    {
+        auto interfaceClockSync = PropertyObject(serverTypeManager, "InterfaceClockSync");
+        interfaceClockSync.setPropertyValue("ModeOptions", modeOptions);
+        syncComponentPrivate.addInterface(interfaceClockSync);
+    }
+
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSubDevice = clientDevice.getDevices()[1];
+    auto clientSync = clientSubDevice.getSyncComponent();
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+
+    auto interfaceClockSync = clientInterfaces.get("InterfaceClockSync");
+    auto modeProperty = interfaceClockSync.getProperty("Mode");
+    ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
+    ASSERT_EQ(interfaceClockSync.getPropertySelectionValue("Mode"), "Off");
 }

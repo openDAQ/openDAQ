@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <opendaq/event_packet.h>
+#include <coretypes/number.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -61,16 +62,23 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 
     /*!
      * @brief Checks the validity of the reader.
-     * @param[out] status Boolean value indicating the validity of the reader
+     * @param[out] valid Boolean value indicating the validity of the reader
      */
     virtual ErrCode INTERFACE_FUNC getValid(Bool* valid) = 0;
+
+    /*!
+     * @brief Retrieves the offset of the the read values
+     * @param[out] offset The offset of the read values
+     */
+    virtual ErrCode INTERFACE_FUNC getOffset(INumber** offset) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, valid
+    Bool, valid,
+    INumber*, offset
 )
 
 END_NAMESPACE_OPENDAQ

@@ -5,5 +5,5 @@
 
 using namespace daq::modules::ref_fb_module;
 
-DEFINE_MODULE_EXPORTS(RefFbModule)
+DEFINE_MODULE_EXPORTS(RefFBModule)
 

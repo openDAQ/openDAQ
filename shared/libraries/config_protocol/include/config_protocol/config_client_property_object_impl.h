@@ -25,7 +25,7 @@
 #include <opendaq/custom_log.h>
 
 #include "config_protocol_deserialize_context_impl.h"
-#include "opendaq/context_factory.h"
+#include <opendaq/context_factory.h>
 
 namespace daq::config_protocol
 {

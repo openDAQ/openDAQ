@@ -1,17 +1,27 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 
 #include <opendaq/custom_log.h>
-#include <opendaq/packet_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <config_protocol/config_protocol_server.h>
 
 #include <opendaq/ids_parser.h>
 
 #include <coreobjects/property_object_factory.h>
+#include <memory>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
+
+
+struct UserContextDeleter
+{
+    void operator()(void* obj)
+    {
+        ((IUser*) (obj))->releaseRef();
+    }
+};
+
 
 NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& context,
                                                            std::shared_ptr<boost::asio::io_context> ioContextPtr,
@@ -42,9 +52,9 @@ void NativeStreamingServerHandler::startServer(uint16_t port)
         initSessionHandler(session);
     };
 
-    OnAuthenticateCallback onAuthenticateCallback = [this](const daq::native_streaming::Authentication& authentication)
+    OnAuthenticateCallback onAuthenticateCallback = [this](const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut)
     {
-        return onAuthenticate(authentication);
+        return onAuthenticate(authentication, userContextOut);
     };
 
     daq::native_streaming::LogCallback logCallback =
@@ -116,30 +126,16 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
         LOG_D("Server received subscribe command for signal: {}, numeric Id {}", signalStringId, signalNumericId);
         try
         {
-            if (streamingManager.registerSignalSubscriber(signalStringId, clientId))
-            {
-                // creates reader
-                // automatically generates first event packet that will initialize packet streaming
-                signalSubscribedHandler(streamingManager.findRegisteredSignal(signalStringId));
-            }
-            else
-            {
-                // does not create reader
-                // so send last event packet to initialize packet streaming
-                // packet not assigned means initial event packet is not yet processed by streaming
-                auto packet = streamingManager.getLastEventPacket(signalStringId);
-                if (packet.assigned())
+            bool doSignalSubscribe = streamingManager.registerSignalSubscriber(
+                signalStringId,
+                clientId,
+                [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
                 {
-                    streamingManager.sendPacketToClient(
-                        signalStringId,
-                        packet,
-                        [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
-                        {
-                            sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
-                        },
-                        clientId
-                    );
-                }
+                    sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
+                });
+            if (doSignalSubscribe)
+            {
+                signalSubscribedHandler(streamingManager.findRegisteredSignal(signalStringId));
             }
         }
         catch (const std::exception& e)
@@ -170,7 +166,8 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
     return true;
 }
 
-bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::Authentication& authentication)
+bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::Authentication& authentication,
+                                                  std::shared_ptr<void>& userContextOut)
 {
     const auto authProvider = context.getAuthenticationProvider();
 
@@ -188,7 +185,8 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
         {
             try
             {
-                authProvider.authenticate(authentication.getUsername(), authentication.getPassword());
+                UserPtr user = authProvider.authenticate(authentication.getUsername(), authentication.getPassword());
+                userContextOut = std::shared_ptr<daq::IUser>(user.detach(), UserContextDeleter());
                 return true;
             }
             catch (const DaqException& e)
@@ -205,12 +203,6 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
 {
     auto signalStringId = signal.getGlobalId().toStdString();
-
-    if (packet.getType() == PacketType::Event &&
-        packet.asPtr<IEventPacket>().getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        streamingManager.setLastEventPacket(signalStringId, packet.asPtr<IEventPacket>(true));
-    }
 
     streamingManager.sendPacketToSubscribers(
         signalStringId,
@@ -336,7 +328,9 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
         if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
-    ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb);
+
+    UserPtr user = sessionHandler->getUser();
+    ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb, user);
     ProcessConfigProtocolPacketCb receiveConfigPacketCb = configServerCallbacks.first;
     OnPacketBufferReceivedCallback clientToDeviceStreamingCb = configServerCallbacks.second;
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);

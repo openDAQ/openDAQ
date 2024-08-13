@@ -1,6 +1,5 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/tail_reader_impl.h>
-#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -8,21 +7,23 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
                                SizeT historySize,
                                SampleType valueReadType,
                                SampleType domainReadType,
-                               ReadMode mode)
-    : Super(SignalPtr(signal), mode, valueReadType, domainReadType)
+                               ReadMode mode,
+                               Bool skipEvents)
+    : Super(SignalPtr(signal), mode, valueReadType, domainReadType, skipEvents)
     , historySize(historySize)
     , cachedSamples(0)
 {
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    readDescriptorFromPort();
+    packetReceived(port.as<IInputPort>(true));
 }
 
 TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
                                SizeT historySize,
                                SampleType valueReadType,
                                SampleType domainReadType,
-                               ReadMode mode)
-    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+                               ReadMode mode,
+                               Bool skipEvents)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType, skipEvents)
     , historySize(historySize)
     , cachedSamples(0)
 {
@@ -38,7 +39,6 @@ TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    readDescriptorFromPort();
 }
 
 TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
@@ -51,10 +51,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    if (portBinder.assigned())
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
-    else
-        readDescriptorFromPort();
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
@@ -64,6 +61,15 @@ ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
     std::unique_lock lock(mutex);
 
     *count = cachedSamples;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode TailReaderImpl::getEmpty(Bool* empty)
+{
+    OPENDAQ_PARAM_NOT_NULL(empty);
+    SizeT count;
+    getAvailableCount(&count);
+    *empty = count == 0;
     return OPENDAQ_SUCCESS;
 }
 
@@ -132,91 +138,118 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
+TailReaderStatusPtr TailReaderImpl::readData(TailReaderInfo& info)
 {
-    if (info.remainingToRead == 0)
-    {
-        if (status)
-            *status = TailReaderStatus().detach();
-        return OPENDAQ_SUCCESS;
-    }
-
     std::unique_lock lock(mutex);
 
     if (info.remainingToRead > cachedSamples && info.remainingToRead > historySize)
     {
-        if (status)
-            *status = TailReaderStatus(nullptr, !invalid, false).detach();
-        return OPENDAQ_SUCCESS;
+        return TailReaderStatus(nullptr, !invalid, 0, false);
     }
 
     if (cachedSamples > info.remainingToRead)
         info.offset = cachedSamples - info.remainingToRead;
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
     size_t readCachedSamples = 0;
 
+    NumberPtr offset;
     for (auto it = packets.begin(); it != packets.end();)
     {
-        const auto & packet = *it;
+        const auto packet = *it;
         if (packet.getType() == PacketType::Event)
         {
-            handleDescriptorChanged(packet);
-            if (status)
-                *status = TailReaderStatus(packet, !invalid).detach();
-
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            handleDescriptorChanged(eventPacket);
             it = packets.erase(packets.begin(), it + 1);
             cachedSamples -= readCachedSamples;
-            return errCode;
+
+            if (!skipEvents || invalid || eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                return TailReaderStatus(packet, !invalid, offset);
+            }
         } 
         else
         {
-            auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+            auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
             if (dataPacket.assigned())
             {
+                if (!offset.assigned() && info.offset < dataPacket.getSampleCount())
+                {
+                    offset = calculateOffset(dataPacket, info.offset);
+                }
+                readPacket(info, packet);
                 readCachedSamples += dataPacket.getSampleCount();
-                errCode = readPacket(info, packet);
             }            
             it++;
         }
     }
 
-    if (status)
-    {
-        *status = TailReaderStatus().detach();
-    }
-
-    return errCode;
+    return TailReaderStatus(nullptr, !invalid, offset);
 }
 
-ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
+ErrCode TailReaderImpl::read(void* values, SizeT* count, ITailReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(values);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(values);
+    }
+
+    if (invalid)
+    {
+        if (status != nullptr)
+        {
+            *status = TailReaderStatus(nullptr, false).detach();
+        }
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
 
     TailReaderInfo info{values, nullptr, *count};
 
-    ErrCode errCode = readData(info, status);
+    auto statusPtr = readData(info);
+    if (status != nullptr)
+    {
+        *status = statusPtr.detach();
+    }
     *count = *count - info.remainingToRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status)
+ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count, ITailReaderStatus** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(values);
-    OPENDAQ_PARAM_NOT_NULL(domain);
     OPENDAQ_PARAM_NOT_NULL(count);
+    if (*count != 0)
+    {
+        OPENDAQ_PARAM_NOT_NULL(values);
+        OPENDAQ_PARAM_NOT_NULL(domain);
+    }
+
+    if (invalid)
+    {
+        if (status != nullptr)
+        {
+            *status = TailReaderStatus(nullptr, false).detach();
+        }
+        *count = 0;
+        return OPENDAQ_IGNORED;
+    }
 
     TailReaderInfo info{values, domain, *count};
 
-    ErrCode errCode = readData(info, status);
+    auto statusPtr = readData(info);
+    if (status != nullptr)
+    {
+        *status = statusPtr.detach();
+    }
     *count = *count - info.remainingToRead;
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
 {
     std::unique_lock lock(mutex);
+    bool hasEventPacket = false;
     PacketPtr packet = connection.dequeue();
     while (packet.assigned())
     {
@@ -264,6 +297,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
             }
             case PacketType::Event:
             {
+                hasEventPacket = true;
                 packets.push_back(packet);
                 break;
             }
@@ -275,7 +309,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
     }
 
     auto callback = readCallback;
-    if (callback.assigned() && cachedSamples >= historySize)
+    if (callback.assigned() && (hasEventPacket || (cachedSamples >= historySize)))
     {
         lock.unlock();
         return wrapHandler(callback);
@@ -338,5 +372,36 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     SampleType, domainReadType,
     ReadMode, mode
 )
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITailReaderBuilder* builder)
+{
+    OPENDAQ_PARAM_NOT_NULL(builder);
+
+    auto builderPtr = TailReaderBuilderPtr::Borrow(builder);
+
+    if (auto port = builderPtr.getInputPort(); port.assigned())
+    {
+        return createObject<ITailReader, TailReaderImpl>(objTmp,
+                                                         port.as<IInputPortConfig>(true),
+                                                         builderPtr.getHistorySize(),
+                                                         builderPtr.getValueReadType(),
+                                                         builderPtr.getDomainReadType(),
+                                                         builderPtr.getReadMode(),
+                                                         builderPtr.getSkipEvents());
+    }
+    else if (auto signal = builderPtr.getSignal(); signal.assigned())
+    {
+        return createObject<ITailReader, TailReaderImpl>(objTmp,
+                                                         signal,
+                                                         builderPtr.getHistorySize(),
+                                                         builderPtr.getValueReadType(),
+                                                         builderPtr.getDomainReadType(),
+                                                         builderPtr.getReadMode(),
+                                                         builderPtr.getSkipEvents());
+    }
+
+    return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Neither signal nor input port is not set in TailReader builder", nullptr);
+}
 
 END_NAMESPACE_OPENDAQ

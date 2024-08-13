@@ -1172,7 +1172,7 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value)
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);

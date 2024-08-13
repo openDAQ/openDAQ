@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 25.06.2024 08:46:37.
+//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -530,7 +530,10 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
     /// <inheritdoc/>
     IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
     {
-        throw new NotImplementedException();
+        foreach (var key in this.KeyList)
+        {
+            yield return new KeyValuePair<TKey, TValue>(key, this.Get(key));
+        }
     }
 
     #endregion IEnumerable<T> implementation

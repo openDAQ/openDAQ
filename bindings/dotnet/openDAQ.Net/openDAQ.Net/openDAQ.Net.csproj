@@ -13,15 +13,15 @@
 
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
-    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.0.0</OPENDAQ_PACKAGE_VERSION>
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.3.0</OPENDAQ_PACKAGE_VERSION>
     <_BuildNumber>17</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
     <Authors>openDAQ</Authors>
     <Description>.Net bindings to the openDAQ SDK (open data-acquisition source-development-kit)</Description>
-    <Company>Blueberry d.o.o., Slovenia</Company>
-    <Copyright>2024 by Blueberry d.o.o.</Copyright>
+    <Company>openDAQ d.o.o., Slovenia</Company>
+    <Copyright>2024 by openDAQ d.o.o.</Copyright>
     <!--<Version>2.0.0.12</Version>-->
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->

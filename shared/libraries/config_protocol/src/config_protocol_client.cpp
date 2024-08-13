@@ -6,6 +6,7 @@
 #include <config_protocol/config_client_io_folder_impl.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
+#include <config_protocol/config_client_sync_component_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 
 namespace daq::config_protocol
@@ -18,7 +19,6 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
         , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
-        , serializer(JsonSerializer())
         , deserializer(JsonDeserializer())
         , connected(false)
 {
@@ -181,7 +181,7 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
-    serializer.reset();
+    auto serializer = JsonSerializer();
     obj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -313,6 +313,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }    
+    
+    if (typeId == "SyncComponent")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

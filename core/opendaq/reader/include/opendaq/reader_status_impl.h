@@ -27,7 +27,7 @@ template <class MainInterface, class ... Interfaces>
 class GenericReaderStatusImpl : public ImplementationOf<MainInterface, Interfaces...>
 {
 public:
-    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
+    explicit GenericReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset);
 
     virtual ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
@@ -35,9 +35,12 @@ public:
 
     ErrCode INTERFACE_FUNC getValid(Bool* valid) override;
 
+    ErrCode INTERFACE_FUNC getOffset(INumber** offset) override;
+
 private:
     EventPacketPtr eventPacket;
     Bool valid;
+    NumberPtr offset;
 };
 
 using ReaderStatusImpl = GenericReaderStatusImpl<IReaderStatus>;
@@ -46,7 +49,7 @@ class BlockReaderStatusImpl final : public GenericReaderStatusImpl<IBlockReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IBlockReaderStatus>;
-    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, SizeT readSamples);
+    explicit BlockReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset, SizeT readSamples);
 
     ErrCode INTERFACE_FUNC getReadSamples(SizeT* readSamples) override;
 
@@ -58,7 +61,7 @@ class TailReaderStatusImpl final : public GenericReaderStatusImpl<ITailReaderSta
 {
 public:
     using Super = GenericReaderStatusImpl<ITailReaderStatus>;
-    explicit TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, Bool sufficientHistory);
+    explicit TailReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid, const NumberPtr& offset, Bool sufficientHistory);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
@@ -71,14 +74,18 @@ class MultiReaderStatusImpl final : public GenericReaderStatusImpl<IMultiReaderS
 {
 public:
     using Super = GenericReaderStatusImpl<IMultiReaderStatus>;
-    explicit MultiReaderStatusImpl(const DictPtr<ISignal, IEventPacket>& eventPackets, Bool valid);
+    explicit MultiReaderStatusImpl(const EventPacketPtr& mainDescriptor, const DictPtr<IString, IEventPacket>& eventPackets, Bool valid, const NumberPtr& offset);
 
     ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
     ErrCode INTERFACE_FUNC getEventPackets(IDict** events) override;
 
+    ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
+
+    ErrCode INTERFACE_FUNC getMainDescriptor(IEventPacket** descriptor) override;
+
 private:
-    DictPtr<ISignal, IEventPacket> eventPackets;
+    DictPtr<IString, IEventPacket> eventPackets;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -16,6 +16,7 @@
 #pragma once
 #include <opendaq/block_reader.h>
 #include <opendaq/block_reader_builder_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -185,34 +186,53 @@ class BlockReaderImpl final : public ReaderImpl<IBlockReader>
 public:
     using Super = ReaderImpl<IBlockReader>;
 
-    explicit BlockReaderImpl(
-        const SignalPtr& signal, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, SizeT overlap = 0);
+    explicit BlockReaderImpl(const SignalPtr& signal, 
+                             SizeT blockSize, 
+                             SampleType valueReadType, 
+                             SampleType domainReadType, 
+                             ReadMode readMode, 
+                             SizeT overlap = 0,
+                             Bool skipEvents = true);
 
-    explicit BlockReaderImpl(
-        IInputPortConfig* port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, SizeT overlap = 0);
+    explicit BlockReaderImpl(IInputPortConfig* port, 
+                             SizeT blockSize, 
+                             SampleType valueReadType, 
+                             SampleType domainReadType, 
+                             ReadMode readMode, 
+                             SizeT overlap = 0,
+                             Bool skipEvents = false);
 
-    BlockReaderImpl(
-        const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, ReadMode mode, SizeT overlap = 0);
+    BlockReaderImpl(const ReaderConfigPtr& readerConfig, 
+                    SampleType valueReadType, 
+                    SampleType domainReadType, 
+                    SizeT blockSize, 
+                    ReadMode mode, 
+                    SizeT overlap = 0);
 
     BlockReaderImpl(BlockReaderImpl* old, SampleType valueReadType, SampleType domainReadType, SizeT blockSize, SizeT overlap = 0);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
+    ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override;
+    ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override;
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
+    
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
-    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) override;
     ErrCode INTERFACE_FUNC
-    readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IBlockReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
     ErrCode INTERFACE_FUNC getOverlap(SizeT* overlap) override;
 
 private:
-    ErrCode readPackets(IReaderStatus** status, SizeT* count);
+    BlockReaderStatusPtr readPackets();
     ErrCode readPacketData();
 
     SizeT getAvailable() const;
     SizeT getAvailableSamples() const;
+    SizeT getTotalSamples() const;
 
     void initOverlap();
     SizeT calculateBlockCount(SizeT sampleCount) const;
@@ -224,5 +244,4 @@ private:
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
 };
-
 END_NAMESPACE_OPENDAQ

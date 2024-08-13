@@ -74,7 +74,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @param[out] name The name of the device.
      *
      * If the info object is obtained from a device that is already added (not through discovery),
-     * the name string value matches that of the device's "name" attribute.
+     * the name string value matches that of the device's "Name" attribute.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
@@ -259,7 +259,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
 
     /*!
      * @brief Retrieves the configuration connection information of the server to which the client is connected.
-     * @param[out] connectionInfo the server capability with the configuration connection information.
+     * @param[out] connectionInfo The server capability with the configuration connection information.
      *
      * This method returns the configuration connection information of the server to which the client is connected.
      * If the connection to the server is not established, the fields of the server capability object are empty.

@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, OwningList, IList, IPropertyObject*, owner, IString*, ref)
 
 template <class TValueInterface, class TValuePtr = typename InterfaceToSmartPtr<TValueInterface>::SmartPtr>
-ListObjectPtr<IList, TValueInterface, TValuePtr> OwningList(const PropertyObjectPtr& owner, StringPtr ref = "list")
+ListObjectPtr<IList, TValueInterface, TValuePtr> OwningList(const PropertyObjectPtr& owner, StringPtr ref = "List")
 {
     ListObjectPtr<IList, TValueInterface, TValuePtr> obj(OwningList_Create(owner, ref));
     return obj;
@@ -47,7 +47,7 @@ auto OwningList(StringPtr ref, PropertyObjectPtr owner, Elements&&... elements)
 template <typename... Elements>
 auto OwningList(PropertyObjectPtr owner, Elements&&... elements)
 {
-    return OwningList<IBaseObject, ObjectPtr<IBaseObject>>("list", owner, std::forward<Elements>(elements)...);
+    return OwningList<IBaseObject, ObjectPtr<IBaseObject>>("List", owner, std::forward<Elements>(elements)...);
 }
 
 END_NAMESPACE_OPENDAQ

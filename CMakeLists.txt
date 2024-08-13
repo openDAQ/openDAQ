@@ -157,6 +157,7 @@ cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindi
 if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
+cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
 
 if (OPENDAQ_ENABLE_TESTS)
     set(OPENDAQ_ENABLE_TEST_UTILS ON)
@@ -716,7 +717,16 @@ configure_package_config_file(
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
+write_basic_package_version_file(${SDK_NAME}ConfigVersion.cmake
+  VERSION ${OPENDAQ_PACKAGE_VERSION}
+  COMPATIBILITY ExactVersion )
+  
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
+        DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
+        COMPONENT ${SDK_NAME}_Development
+)
+  
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )

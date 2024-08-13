@@ -29,6 +29,7 @@
 //------------------------------------------------------------------------------
 
 //#define USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
+//#define DEBUG_PRINT_CREATE_AND_DISPOSE
 
 
 using System.Reflection;
@@ -97,7 +98,9 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             _name = _name.Substring(0, _name.IndexOf('`')) + $"<{string.Join(", ", type.GenericTypeArguments.Select(arg => arg.Name).ToArray())}>";
         _name = $"{_name}_{__instanceCounter}";
 
+# if DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Print("----- Create " + _name);
+# endif
 
         //check if the native object implements this object's topmost interface
         CheckNativeInterfaceGuid(nativePointer);
@@ -265,7 +268,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BaseObject"/> to <see cref="bool"/>.</summary>
     /// <param name="baseObject">The <see cref="Daq.Core.Types.BaseObject"/> to be converted.</param>
     /// <returns>The result of the conversion.</returns>
-    public static implicit operator bool(BaseObject baseObject) { using (BoolObject boolObject = baseObject.Cast<BoolObject>()) return boolObject; }
+    public static implicit operator bool(BaseObject baseObject) { using (BoolObject boolObject = baseObject?.Cast<BoolObject>()) return boolObject; }
 
     /// <summary>Performs an implicit conversion from <see cref="long"/> to <see cref="Daq.Core.Types.BaseObject"/>.</summary>
     /// <param name="value">The value to be converted.</param>
@@ -274,7 +277,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BaseObject"/> to <see cref="long"/>.</summary>
     /// <param name="baseObject">The <see cref="Daq.Core.Types.BaseObject"/> to be converted.</param>
     /// <returns>The result of the conversion.</returns>
-    public static implicit operator long(BaseObject baseObject) { using (IntegerObject integerObject = baseObject.Cast<IntegerObject>()) return integerObject; }
+    public static implicit operator long(BaseObject baseObject) { using (IntegerObject integerObject = baseObject?.Cast<IntegerObject>()) return integerObject; }
 
     /// <summary>Performs an implicit conversion from <see cref="double"/> to <see cref="Daq.Core.Types.BaseObject"/>.</summary>
     /// <param name="value">The value to be converted.</param>
@@ -283,7 +286,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BaseObject"/> to <see cref="double"/>.</summary>
     /// <param name="baseObject">The <see cref="Daq.Core.Types.BaseObject"/> to be converted.</param>
     /// <returns>The result of the conversion.</returns>
-    public static implicit operator double(BaseObject baseObject) { using (FloatObject floatObject = baseObject.Cast<FloatObject>()) return floatObject; }
+    public static implicit operator double(BaseObject baseObject) { using (FloatObject floatObject = baseObject?.Cast<FloatObject>()) return floatObject; }
 
     /// <summary>Performs an implicit conversion from <see cref="string"/> to <see cref="Daq.Core.Types.BaseObject"/>.</summary>
     /// <param name="value">The value to be converted.</param>
@@ -292,7 +295,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BaseObject"/> to <see cref="string"/>.</summary>
     /// <param name="baseObject">The <see cref="Daq.Core.Types.BaseObject"/> to be converted.</param>
     /// <returns>The result of the conversion.</returns>
-    public static implicit operator string(BaseObject baseObject) { using (StringObject stringObject = baseObject.Cast<StringObject>()) return stringObject; }
+    public static implicit operator string(BaseObject baseObject) { using (StringObject stringObject = baseObject?.Cast<StringObject>()) return stringObject; }
 
     /// <summary>Returns a value that indicates whether two specified SDK objects are equal.</summary>
     /// <remarks>
@@ -643,7 +646,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             return;
         }
 
-#if DEBUG
+#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
 #endif
         PrintReferenceCount(debugPrintOnly: true);
@@ -705,7 +708,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
             if (!debugPrintOnly)
                 Console.WriteLine(message);
+
+#if DEBUG_PRINT_CREATE_AND_DISPOSE
             System.Diagnostics.Debug.Print(message);
+#endif
 
             return;
         }
@@ -719,7 +725,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
             if (!debugPrintOnly)
                 Console.WriteLine(message);
+
+#if DEBUG_PRINT_CREATE_AND_DISPOSE
             System.Diagnostics.Debug.Print(message);
+#endif
         }
 #endif
     }

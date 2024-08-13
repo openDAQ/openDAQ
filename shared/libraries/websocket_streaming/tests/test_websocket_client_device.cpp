@@ -71,24 +71,99 @@ TEST_F(WebsocketClientDeviceTest, DeviceInfo)
     ASSERT_EQ(clientDeviceInfo.getConnectionString(), HOST);
 }
 
-TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
+class WebsocketClientDeviceTestP : public WebsocketClientDeviceTest, public testing::WithParamInterface<bool>
 {
+public:
+    bool addSignals(const ListPtr<ISignal>& signals,
+                    const StreamingServerPtr& server,
+                    const ContextPtr& context)
+    {
+        SizeT addedSigCount = 0;
+        std::promise<void> addSigPromise;
+        std::future<void> addSigFuture = addSigPromise.get_future();
+
+        auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            auto params = args.getParameters();
+            if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+            {
+                ComponentPtr component = params.get("Component");
+                if (component.asPtrOrNull<ISignal>().assigned())
+                {
+                    addedSigCount++;
+                    if (addedSigCount == signals.getCount())
+                        addSigPromise.set_value();
+                }
+            }
+        };
+
+        context.getOnCoreEvent() += eventHandler;
+
+        server->addSignals(signals);
+
+        bool result = (addSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+        context.getOnCoreEvent() -= eventHandler;
+        return result;
+    }
+
+    bool removeSignals(const ListPtr<ISignal>& signals,
+                       const StreamingServerPtr& server,
+                       const ContextPtr& context)
+    {
+        SizeT removedSigCount = 0;
+        std::promise<void> rmSigPromise;
+        std::future<void> rmSigFuture = rmSigPromise.get_future();
+
+        auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+            {
+                removedSigCount++;
+                if (removedSigCount == signals.getCount())
+                    rmSigPromise.set_value();
+            }
+        };
+
+        context.getOnCoreEvent() += eventHandler;
+
+        for (const auto& signal : signals)
+            server->removeComponentSignals(signal.getGlobalId());
+
+        bool result = (rmSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+        context.getOnCoreEvent() -= eventHandler;
+        return result;
+    }
+};
+
+TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
+{
+    const bool signalsAddedAfterConnect = GetParam();
+
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
     server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
-        auto signals = List<ISignal>();
-        signals.pushBack(testValueSignal);
-        signals.pushBack(testDomainSignal);
-        return signals;
+        if (signalsAddedAfterConnect)
+            return List<ISignal>();
+        else
+            return signals;
     });
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    if (signalsAddedAfterConnect)
+    {
+        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+    }
 
     // Check the mirrored signal
     ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
@@ -140,100 +215,114 @@ TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
                                       descriptor));
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
                                       testValueSignal.getDomainSignal().getDescriptor()));
+
+    ASSERT_TRUE(removeSignals({testDomainSignal}, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 1u);
+    ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+
+    ASSERT_TRUE(removeSignals({testValueSignal}, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
-TEST_F(WebsocketClientDeviceTest, SingleDomainSignal)
+TEST_P(WebsocketClientDeviceTestP, SingleDomainSignal)
 {
+    const bool signalsAddedAfterConnect = GetParam();
+
     // Create server signal
     auto testSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto signals = List<ISignal>(testSignal);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
-    server->onAccept([&testSignal](const daq::streaming_protocol::StreamWriterPtr& writer) {
-        auto signals = List<ISignal>();
-        signals.pushBack(testSignal);
-        return signals;
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
+        if (signalsAddedAfterConnect)
+            return List<ISignal>();
+        else
+            return signals;
     });
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    if (signalsAddedAfterConnect)
+    {
+        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+    }
 
     // The mirrored signal exists and has descriptor
     ASSERT_EQ(clientDevice.getSignals().getCount(), 1u);
     ASSERT_TRUE(clientDevice.getSignals()[0].getDescriptor().assigned());
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+
+    ASSERT_TRUE(removeSignals(signals, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
-TEST_F(WebsocketClientDeviceTest, SingleUnsupportedSignal)
+TEST_P(WebsocketClientDeviceTestP, SingleUnsupportedSignal)
 {
+    const bool signalsAddedAfterConnect = GetParam();
+
     // Create server signal
     auto testSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestSignal", nullptr);
+    auto signals = List<ISignal>(testSignal);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
-    server->onAccept([&testSignal](const daq::streaming_protocol::StreamWriterPtr& writer) {
-        auto signals = List<ISignal>();
-        signals.pushBack(testSignal);
-        return signals;
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
+        if (signalsAddedAfterConnect)
+            return List<ISignal>();
+        else
+            return signals;
     });
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    if (signalsAddedAfterConnect)
+    {
+        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+    }
 
     // The mirrored signal exists but does not have descriptor
     ASSERT_EQ(clientDevice.getSignals().getCount(), 1u);
     ASSERT_FALSE(clientDevice.getSignals()[0].getDescriptor().assigned());
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+
+    ASSERT_TRUE(removeSignals(signals, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
-TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
+TEST_P(WebsocketClientDeviceTestP, SignalsWithSharedDomain)
 {
-    // Create server side device
-    auto serverInstance = streaming_test_helpers::createServerInstance();
+    const bool signalsAddedAfterConnect = GetParam();
 
-    // Setup and start streaming server
-    auto server = WebsocketStreamingServer(serverInstance);
-    server.setStreamingPort(STREAMING_PORT);
-    server.setControlPort(CONTROL_PORT);
-    server.start();
-
-    // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
-
-    // There should not be any difference if we get signals recursively or not,
-    // since client device doesn't know anything about hierarchy
-    size_t expectedSignalCount = 0;
-    for (const auto& signal : serverInstance.getSignals(search::Recursive(search::Visible())))
-        expectedSignalCount += signal.getPublic();
-
-    ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = clientDevice.getSignals());
-    ASSERT_EQ(signals.getCount(), expectedSignalCount);
-    ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), expectedSignalCount);
-}
-
-TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
-{
     // Create server signals
     auto timeSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto dataSignal1 = streaming_test_helpers::createExplicitValueSignal(context, "Data1", timeSignal);
     auto dataSignal2 = streaming_test_helpers::createExplicitValueSignal(context, "Data2", timeSignal);
+    auto signals = List<ISignal>(dataSignal1, timeSignal, dataSignal2);
 
     auto server = std::make_shared<StreamingServer>(context);
     server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
-        auto signals = List<ISignal>();
-        signals.pushBack(dataSignal1);
-        signals.pushBack(timeSignal);
-        signals.pushBack(dataSignal2);
-        return signals;
+        if (signalsAddedAfterConnect)
+            return List<ISignal>();
+        else
+            return signals;
     });
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    if (signalsAddedAfterConnect)
+    {
+        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+    }
 
     ASSERT_EQ(clientDevice.getSignals().getCount(), 3u);
 
@@ -262,4 +351,41 @@ TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
 
     ASSERT_EQ(clientDevice.getSignals()[2].getDomainSignal(), clientDevice.getSignals()[1]);
     ASSERT_EQ(clientDevice.getSignals()[0].getDomainSignal(), clientDevice.getSignals()[1]);
+
+    ASSERT_TRUE(removeSignals({timeSignal}, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+    ASSERT_FALSE(clientDevice.getSignals()[1].getDomainSignal().assigned());
+
+    ASSERT_TRUE(removeSignals({dataSignal1, dataSignal2}, server, clientDevice.getContext()));
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
+}
+
+INSTANTIATE_TEST_SUITE_P(SignalsAddedAfterConnect, WebsocketClientDeviceTestP, testing::Values(true, false));
+
+TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
+{
+    // Create server side device
+    auto serverInstance = streaming_test_helpers::createServerInstance();
+
+    // Setup and start streaming server
+    auto server = WebsocketStreamingServer(serverInstance);
+    server.setStreamingPort(STREAMING_PORT);
+    server.setControlPort(CONTROL_PORT);
+    server.start();
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+
+    // There should not be any difference if we get signals recursively or not,
+    // since client device doesn't know anything about hierarchy
+    size_t expectedSignalCount = 0;
+    for (const auto& signal : serverInstance.getSignals(search::Recursive(search::Visible())))
+        expectedSignalCount += signal.getPublic();
+
+    ListPtr<ISignal> signals;
+    ASSERT_NO_THROW(signals = clientDevice.getSignals());
+    ASSERT_EQ(signals.getCount(), expectedSignalCount);
+    ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
+    ASSERT_EQ(signals.getCount(), expectedSignalCount);
 }

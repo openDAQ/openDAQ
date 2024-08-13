@@ -42,8 +42,8 @@ class StreamingServer
 {
 public:
     using OnAcceptCallback = std::function<ListPtr<ISignal>(const daq::streaming_protocol::StreamWriterPtr& writer)>;
-    using OnSubscribeCallback = std::function<void(const daq::SignalPtr& signal)>;
-    using OnUnsubscribeCallback = std::function<void(const daq::SignalPtr& signal)>;
+    using OnStartSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
+    using OnStopSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
 
     StreamingServer(const ContextPtr& context);
     ~StreamingServer();
@@ -51,11 +51,16 @@ public:
     void start(uint16_t port = daq::streaming_protocol::WEBSOCKET_LISTENING_PORT,
                uint16_t controlPort = daq::streaming_protocol::HTTP_CONTROL_PORT);
     void stop();
+
     void onAccept(const OnAcceptCallback& callback);
-    void onSubscribe(const OnSubscribeCallback& callback);
-    void onUnsubscribe(const OnUnsubscribeCallback& callback);
-    void unicastPacket(const std::string& streamId, const std::string& signalId, const PacketPtr& packet);
-    void broadcastPacket(const std::string& signalId, const PacketPtr &packet);
+    void onStartSignalsRead(const OnStartSignalsReadCallback& callback);
+    void onStopSignalsRead(const OnStopSignalsReadCallback& callback);
+
+    void broadcastPacket(const std::string& signalId, const PacketPtr& packet);
+
+    void addSignals(const ListPtr<ISignal>& signals);
+    void removeComponentSignals(const StringPtr& componentId);
+    void updateComponentSignals(const DictPtr<IString, ISignal>& signals, const StringPtr& componentId);
 
 protected:
     using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;
@@ -71,17 +76,38 @@ protected:
     void addToOutputSignals(const SignalPtr& signal,
                             SignalMap& outputSignals,
                             const streaming_protocol::StreamWriterPtr& writer);
+    void publishSignalsToClient(const streaming_protocol::StreamWriterPtr& writer,
+                                const ListPtr<ISignal>& signals,
+                                SignalMap& outputSignals);
     void onAcceptInternal(const daq::stream::StreamPtr& stream);
+    OutputDomainSignalBasePtr createOutputDomainSignal(const SignalPtr& daqDomainSignal,
+                                                       const std::string& tableId,
+                                                       const streaming_protocol::StreamWriterPtr& writer);
+    OutputSignalBasePtr createOutputValueSignal(const SignalPtr& daqSignal,
+                                                const OutputDomainSignalBasePtr& outputDomainSignal,
+                                                const std::string& tableId,
+                                                const streaming_protocol::StreamWriterPtr& writer);
+    void updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
+                                 SignalMap& outputSignals,
+                                 const streaming_protocol::StreamWriterPtr& writer);
+
     void writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer);
-    void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer, const ListPtr<ISignal>& signals);
+    void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                               const std::vector<std::string>& signalIds);
+    void writeSignalsUnavailable(const daq::streaming_protocol::StreamWriterPtr& writer,
+                                 const std::vector<std::string>& signalIds);
     void writeInit(const daq::streaming_protocol::StreamWriterPtr& writer);
+
     bool isSignalSubscribed(const std::string& signalId) const;
-    void subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
-    void unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
+    bool subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
+    bool unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
     int onControlCommand(const std::string& streamId,
                          const std::string& command,
                          const daq::streaming_protocol::SignalIds& signalIds,
                          std::string& errorMessage);
+
+    void startReadSignals(const ListPtr<ISignal>& signals);
+    void stopReadSignals(const ListPtr<ISignal>& signals);
 
     uint16_t port;
     boost::asio::io_context ioContext;
@@ -91,12 +117,13 @@ protected:
     std::thread serverThread;
     ClientMap clients;
     OnAcceptCallback onAcceptCallback;
-    OnSubscribeCallback onSubscribeCallback;
-    OnUnsubscribeCallback onUnsubscribeCallback;
+    OnStartSignalsReadCallback onStartSignalsReadCallback;
+    OnStopSignalsReadCallback onStopSignalsReadCallback;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     daq::streaming_protocol::LogCallback logCallback;
     bool serverRunning{false};
+    std::mutex sync;
 
 private:
     static DataRuleType getSignalRuleType(const SignalPtr& domainSignal);

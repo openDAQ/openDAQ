@@ -70,22 +70,22 @@ public:
         auto structureProtocolType = std::get<0>(GetParam());
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT + index);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT + index);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;
@@ -108,29 +108,29 @@ public:
         for (auto index = 1; index <= 2; index++)
         {
             auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
-                                            ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                            : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                            ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                            : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
             const auto config = createDeviceConfig(instance, streamingProtocolIds, MIN_CONNECTIONS);
             const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
 
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ LT Streaming", ws_config);
+            instance.addServer("OpenDAQLTStreaming", ws_config);
         }
         {
-            auto ns_config = instance.getAvailableServerTypes().get("openDAQ Native Streaming").createDefaultConfig();
+            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT);
-            instance.addServer("openDAQ Native Streaming", ns_config);
+            instance.addServer("OpenDAQNativeStreaming", ns_config);
         }
 
         if (structureProtocolType == StructureProtocolType::OpcUa)
         {
-            auto ua_config = instance.getAvailableServerTypes().get("openDAQ OpcUa").createDefaultConfig();
+            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             ua_config.setPropertyValue("Port", OPCUA_PORT);
-            instance.addServer("openDAQ OpcUa", ua_config);
+            instance.addServer("OpenDAQOPCUA", ua_config);
         }
 
         return instance;
@@ -149,8 +149,8 @@ public:
         auto gatewayStreamingType = std::get<2>(GetParam());
 
         auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
-                                        ? List<IString>("opendaq_native_streaming", "opendaq_lt_streaming")
-                                        : List<IString>("opendaq_lt_streaming", "opendaq_native_streaming");
+                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
 
@@ -196,16 +196,21 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
-    double samples[100];
-    for (int i = 0; i < 10; ++i)
+
     {
-        std::this_thread::sleep_for(100ms);
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
+    double samples[100];
+    for (int i = 0; i < 5; ++i)
+    {
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -241,15 +246,20 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
                                            clientSignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
     
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
-    double samples[100];
-    for (int i = 0; i < 10; ++i)
+
     {
-        std::this_thread::sleep_for(100ms);
+        daq::SizeT count = 0;
+        reader.read(nullptr, &count, 100);
+    }
+
+    double samples[100];
+    for (int i = 0; i < 5; ++i)
+    {
         daq::SizeT count = 100;
-        reader.read(samples, &count);
+        reader.read(samples, &count, 1000);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
@@ -299,24 +309,28 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
                                            gatewaySignal);
 
     using namespace std::chrono_literals;
-    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal);
-    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal);
+    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
 
+    {
+        daq::SizeT count = 0;
+        clientReader.read(nullptr, &count, 100);
+        gatewayReader.read(nullptr, &count, 100);
+    }
+
     double clientSamples[100];
     double gatewaySamples[100];
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
     {
-        std::this_thread::sleep_for(100ms);
-
         daq::SizeT clientSamplesCount = 100;
-        clientReader.read(clientSamples, &clientSamplesCount);
+        clientReader.read(clientSamples, &clientSamplesCount, 1000);
         EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
-
+        
         daq::SizeT gatewaySamplesCount = 100;
-        gatewayReader.read(gatewaySamples, &gatewaySamplesCount);
+        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 1000);
         EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
     }
 }

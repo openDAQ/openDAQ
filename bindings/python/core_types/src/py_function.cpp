@@ -35,6 +35,6 @@ void defineIFunction(pybind11::module_ m, PyDaqIntf<daq::IFunction> cls)
                 daq::checkErrorInfo(funcObjPtr->call(daqList, &result));
             }
                 
-            return PyConverter::ToPyObject(result);
+            return baseObjectToPyObject(result);
         });
 }

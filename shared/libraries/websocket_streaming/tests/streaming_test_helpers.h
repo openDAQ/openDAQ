@@ -85,7 +85,7 @@ namespace streaming_test_helpers
 
         auto descriptor = daq::DataDescriptorBuilder()
                               .setSampleType(daq::SampleType::Float64)
-                              .setUnit(daq::Unit("V", 1, "voltage", "quantity"))
+                              .setUnit(daq::Unit("V", 1, "voltage", "Quantity"))
                               .setValueRange(daq::Range(0, 10))
                               .setRule(daq::ExplicitDataRule())
                               .setPostScaling(daq::LinearScaling(1.0, 0.0, daq::SampleType::Int16, daq::ScaledSampleType::Float64))
@@ -93,7 +93,6 @@ namespace streaming_test_helpers
                               .setMetadata(meta)
                               .build();
 
-        auto timeSignal = createLinearTimeSignal(ctx);
         auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
         signal.setDomainSignal(domainSignal);
         signal.setName(name);

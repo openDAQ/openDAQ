@@ -75,6 +75,8 @@ public:
 
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
+    ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
@@ -128,6 +130,8 @@ public:
 
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
+    ErrCode INTERFACE_FUNC getUpdating(Bool* updating) override;
+
     ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
     ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
 
@@ -159,6 +163,8 @@ private:
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);
+
+    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
 };
 
 END_NAMESPACE_OPENDAQ

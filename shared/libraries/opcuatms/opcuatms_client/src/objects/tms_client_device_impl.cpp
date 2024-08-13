@@ -1,4 +1,4 @@
-#include "opcuatms_client/objects/tms_client_device_impl.h"
+#include <opcuatms_client/objects/tms_client_device_impl.h>
 #include <coreobjects/unit_factory.h>
 #include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
@@ -8,20 +8,21 @@
 #include <opcuatms_client/objects/tms_client_function_block_factory.h>
 #include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <opcuatms_client/objects/tms_client_signal_factory.h>
-#include "opcuatms_client/objects/tms_client_component_factory.h"
-#include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opcuatms_client/objects/tms_client_server_capability_factory.h"
+#include <opcuatms_client/objects/tms_client_component_factory.h>
+#include <opcuatms_client/objects/tms_client_io_folder_factory.h>
+#include <opcuatms_client/objects/tms_client_server_capability_factory.h>
+#include <opcuatms_client/objects/tms_client_sync_component_factory.h>
 #include <open62541/daqbsp_nodeids.h>
-#include "open62541/daqbt_nodeids.h"
+#include <open62541/daqbt_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/custom_log.h>
-#include "opcuatms/core_types_utils.h"
-#include "opcuatms/exceptions.h"
-#include "opcuatms/converters/list_conversion_utils.h"
-#include "opcuatms/converters/property_object_conversion_utils.h"
+#include <opcuatms/core_types_utils.h>
+#include <opcuatms/exceptions.h>
+#include <opcuatms/converters/list_conversion_utils.h>
+#include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <opendaq/mirrored_device_ptr.h>
@@ -32,11 +33,11 @@ using namespace daq::opcua;
 
 namespace detail
 {
-    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities"};
+    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities", "Synchronization"};
 
-    static std::unordered_map<std::string, std::function<void (const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
+    static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
-        {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v){ info.setName(v.toString()); }},
+        {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setName(v.toString()); }},
         {"DeviceClass", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceClass(v.toString()); }},
         {"DeviceManual", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceManual(v.toString()); }},
         {"DeviceRevision", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceRevision(v.toString()); }},
@@ -55,9 +56,11 @@ namespace detail
         {"Position", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setPosition(v.toInteger()); }},
         {"SystemType", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setSystemType(v.toString()); }},
         {"SystemUUID", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setSystemUuid(v.toString()); }},
-        {"OpenDaqPackageVersion",[](const DeviceInfoConfigPtr& info, const OpcUaVariant& v){ info.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("sdkVersion", v.toString()); }},
+        {"OpenDaqPackageVersion",
+         [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v)
+         { info.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("sdkVersion", v.toString()); }},
     };
-}
+    }
 
 TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                          const ComponentPtr& parent,
@@ -81,6 +84,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
+    findAndCreateSyncComponent();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -167,14 +171,28 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         {
             if (value.isScalar())
             {
-                if (value.isString())
-                    deviceInfo.addProperty(StringProperty(browseName, value.toString()));
-                else if (value.isBool())
-                    deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
-                else if (value.isDouble())
-                    deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
-                else if (value.isInteger())
-                    deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
+                if (deviceInfo.hasProperty(browseName))
+                {
+                    if (value.isString())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toString());
+                    else if (value.isBool())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toBool());
+                    else if (value.isDouble())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toDouble());
+                    else if (value.isInteger())
+                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toInteger());
+                }
+                else
+                {
+                    if (value.isString())
+                        deviceInfo.addProperty(StringProperty(browseName, value.toString()));
+                    else if (value.isBool())
+                        deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
+                    else if (value.isDouble())
+                        deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
+                    else if (value.isInteger())
+                        deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
+                }
             }
         }
         catch (const std::exception& e)
@@ -187,7 +205,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     for (const auto & cap : deviceInfo.getServerCapabilities())
     {
-        if (cap.getProtocolId() == "opendaq_opcua_config")
+        if (cap.getProtocolId() == "OpenDAQOPCUAConfiguration")
         {
             deviceInfo.setConnectionString(cap.getConnectionString());
         }
@@ -227,6 +245,17 @@ void TmsClientDeviceImpl::fetchTimeDomain()
 
     setDeviceDomainNoCoreEvent(DeviceDomain(resolution, origin, domainUnit));
     ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
+}
+
+void TmsClientDeviceImpl::findAndCreateSyncComponent()
+{
+    this->removeComponentById("Sync");
+    auto syncComponentNodeId = getNodeId("Synchronization");
+    syncComponent = this->addExistingComponent(TmsClientSyncComponent(context,
+                                       this->thisPtr<ComponentPtr>(),
+                                       "Sync",
+                                       clientContext,
+                                       syncComponentNodeId));
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

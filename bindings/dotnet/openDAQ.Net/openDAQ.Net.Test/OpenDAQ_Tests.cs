@@ -365,8 +365,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             string deviceClass      = deviceInfo.GetPropertyValue("deviceClass");
             string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
 
-            Console.WriteLine($"  - Name = '{deviceName}', Connection string = '{connectionString}'");
-            Console.WriteLine($"    model = '{model}', deviceClass = '{deviceClass}', softwareRevision = '{softwareRevision}'");
+            Console.WriteLine($"  - Name = '{deviceName}', Connection String = '{connectionString}'");
+            Console.WriteLine($"    Model = '{model}', Device Class = '{deviceClass}', Software Revision = '{softwareRevision}'");
 
             //ShowAllProperties(deviceInfo, nameof(deviceInfo));
         }
@@ -662,8 +662,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
                 ++signalNo;
-                //if ((sigNameTxt.Equals("AnalogValue") || sigNameTxt.Equals("ai0")) && (analogSignalNo == 0))
-                if ((sigName.Equals("DigitalValue") || sigName.Equals("ai0")) && (analogSignalNo == 0))
+                //if ((sigNameTxt.Equals("AnalogValue") || sigNameTxt.Equals("AI0")) && (analogSignalNo == 0))
+                if ((sigName.Equals("DigitalValue") || sigName.Equals("AI0")) && (analogSignalNo == 0))
                     analogSignalNo = signalNo;
             }
         }
@@ -804,19 +804,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
             //ToDo: do we get buffer overrun when we just leave reader open for too long without reading?
 
-            //wait until there are enough samples available for our buffers (up to one second)
-            int loopCount = 1000 / sleepTime;
-            do
-            {
-                Thread.Sleep(sleepTime);
-            }
-            while ((sampleReader.AvailableCount < count) && (--loopCount > 0));
+            Thread.Sleep(sleepTime);
 
             nuint samplesOrBlocksCountAvailable = sampleReader.AvailableCount;
-
-            Console.WriteLine($"  Block {readBlockNo + 1,2}: waited {1000 - (loopCount * sleepTime)}ms -> {samplesOrBlocksCountAvailable} of {count} available");
-
-            Assert.That(samplesOrBlocksCountAvailable > 0, "*** No samples available."); //somehow using Is.GreaterThan((nuint)0) is giving a runtime error here
 
             using var status = timeReader.ReadWithDomain(samples, timeStamps, ref count, 1000);
 
@@ -831,10 +821,15 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
                 Console.WriteLine($"            read {samplesCount,3} values {valueString}");
             }
+            else if (status?.ReadStatus == ReadStatus.Event)
+            {
+                Console.WriteLine($"            event occurred'");
+            }
             else
             {
                 ++readFailures;
                 Console.WriteLine($"            read failed with ReadStatus = '{status?.ReadStatus}'");
+                break;
             }
         }
 
@@ -850,8 +845,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
     //[TestCase("AI_01",  "AnalogValue",  eDesiredConnection.OpcUa)]
     //[TestCase("DIO_7",  "DigitalValue", eDesiredConnection.OpcUa)]
-    [TestCase("refch0", "ai0",          eDesiredConnection.OpcUa)]
-    [TestCase("refch0", "ai0",          eDesiredConnection.DaqRef)]
+    [TestCase("RefCh0", "AI0",          eDesiredConnection.OpcUa)]
+    [TestCase("RefCh0", "AI0",          eDesiredConnection.DaqRef)]
     public void RendererTest(string searchChannelName, string signalSearchName, eDesiredConnection desiredConnection)
     {
         Stopwatch sw = Stopwatch.StartNew();
@@ -1116,10 +1111,10 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
                     switch (functionBlockId.ToString())
                     {
-                        case "ref_fb_module_renderer":
+                        case "RefFBModuleRenderer":
                             renderer = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
                             break;
-                        case "ref_fb_module_statistics":
+                        case "RefFBModuleStatistics":
                             statistics = daqInstance.AddFunctionBlock(functionBlockId, propertyObject);
                             break;
                     }

@@ -44,6 +44,7 @@
             gridAttributes.ContextMenuStrip = contextMenuStripGridAttributes;
             gridAttributes.Dock = DockStyle.Fill;
             gridAttributes.Location = new Point(0, 0);
+            gridAttributes.MultiSelect = false;
             gridAttributes.Name = "gridAttributes";
             gridAttributes.ReadOnly = true;
             gridAttributes.RowTemplate.Height = 25;

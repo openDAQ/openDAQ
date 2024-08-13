@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            TreeNode treeNode1 = new TreeNode("treeComponents");
+            TreeNode treeNode2 = new TreeNode("treeComponents");
             treeComponents = new TreeView();
             contextMenuStripTreeComponents = new ContextMenuStrip(components);
             contextMenuItemTreeComponentsRemove = new ToolStripMenuItem();
@@ -63,6 +63,14 @@
             label1 = new Label();
             comboBox1 = new ComboBox();
             button1 = new Button();
+            button2 = new Button();
+            lblNoInputPorts = new Label();
+            groupOutputSignals = new GroupBox();
+            tableOutputSignals = new TableLayoutPanel();
+            label2 = new Label();
+            button3 = new Button();
+            label3 = new Label();
+            lblNoOutputSignals = new Label();
             gridAttributes = new DataGridView();
             imglTreeImages = new ImageList(components);
             contextMenuStripTreeComponents.SuspendLayout();
@@ -85,6 +93,8 @@
             contextMenuStripGridProperties.SuspendLayout();
             groupInputPorts.SuspendLayout();
             tableInputPorts.SuspendLayout();
+            groupOutputSignals.SuspendLayout();
+            tableOutputSignals.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridAttributes).BeginInit();
             SuspendLayout();
             // 
@@ -94,9 +104,9 @@
             treeComponents.Dock = DockStyle.Fill;
             treeComponents.Location = new Point(3, 3);
             treeComponents.Name = "treeComponents";
-            treeNode1.Name = "Node0";
-            treeNode1.Text = "treeComponents";
-            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode1 });
+            treeNode2.Name = "Node0";
+            treeNode2.Text = "treeComponents";
+            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode2 });
             treeComponents.Size = new Size(397, 683);
             treeComponents.TabIndex = 2;
             treeComponents.AfterSelect += treeComponents_AfterSelect;
@@ -329,6 +339,7 @@
             // splitContainerPropertiesInputs.Panel2
             // 
             splitContainerPropertiesInputs.Panel2.Controls.Add(groupInputPorts);
+            splitContainerPropertiesInputs.Panel2.Controls.Add(groupOutputSignals);
             splitContainerPropertiesInputs.Size = new Size(577, 400);
             splitContainerPropertiesInputs.SplitterDistance = 300;
             splitContainerPropertiesInputs.TabIndex = 8;
@@ -341,6 +352,7 @@
             gridProperties.ContextMenuStrip = contextMenuStripGridProperties;
             gridProperties.Dock = DockStyle.Fill;
             gridProperties.Location = new Point(0, 0);
+            gridProperties.MultiSelect = false;
             gridProperties.Name = "gridProperties";
             gridProperties.ReadOnly = true;
             gridProperties.RowTemplate.Height = 25;
@@ -367,10 +379,11 @@
             // groupInputPorts
             // 
             groupInputPorts.Controls.Add(tableInputPorts);
+            groupInputPorts.Controls.Add(lblNoInputPorts);
             groupInputPorts.Dock = DockStyle.Fill;
             groupInputPorts.Location = new Point(0, 0);
             groupInputPorts.Name = "groupInputPorts";
-            groupInputPorts.Size = new Size(273, 400);
+            groupInputPorts.Size = new Size(273, 316);
             groupInputPorts.TabIndex = 6;
             groupInputPorts.TabStop = false;
             groupInputPorts.Text = "Input ports";
@@ -379,48 +392,142 @@
             // 
             tableInputPorts.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             tableInputPorts.AutoSize = true;
-            tableInputPorts.ColumnCount = 3;
+            tableInputPorts.ColumnCount = 4;
             tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
-            tableInputPorts.ColumnStyles.Add(new ColumnStyle());
             tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40F));
+            tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40F));
             tableInputPorts.Controls.Add(label1, 0, 0);
             tableInputPorts.Controls.Add(comboBox1, 1, 0);
             tableInputPorts.Controls.Add(button1, 2, 0);
+            tableInputPorts.Controls.Add(button2, 3, 0);
             tableInputPorts.Location = new Point(3, 22);
             tableInputPorts.Name = "tableInputPorts";
             tableInputPorts.RowCount = 1;
-            tableInputPorts.RowStyles.Add(new RowStyle(SizeType.Absolute, 29F));
-            tableInputPorts.Size = new Size(262, 29);
+            tableInputPorts.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            tableInputPorts.Size = new Size(262, 40);
             tableInputPorts.TabIndex = 0;
             // 
             // label1
             // 
             label1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             label1.AutoSize = true;
-            label1.Location = new Point(3, 7);
+            label1.Location = new Point(3, 12);
             label1.Name = "label1";
             label1.Size = new Size(69, 15);
             label1.TabIndex = 0;
-            label1.Text = "label1";
+            label1.Text = "name";
             label1.TextAlign = ContentAlignment.MiddleRight;
             // 
             // comboBox1
             // 
             comboBox1.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(78, 3);
+            comboBox1.Location = new Point(78, 8);
             comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(121, 23);
+            comboBox1.Size = new Size(101, 23);
             comboBox1.TabIndex = 1;
             // 
             // button1
             // 
             button1.Anchor = AnchorStyles.Left;
-            button1.Location = new Point(205, 3);
+            button1.Location = new Point(185, 3);
             button1.Name = "button1";
-            button1.Size = new Size(54, 23);
+            button1.Size = new Size(34, 34);
             button1.TabIndex = 2;
             button1.UseVisualStyleBackColor = true;
+            // 
+            // button2
+            // 
+            button2.Anchor = AnchorStyles.Left;
+            button2.Location = new Point(225, 3);
+            button2.Name = "button2";
+            button2.Size = new Size(34, 34);
+            button2.TabIndex = 2;
+            button2.UseVisualStyleBackColor = true;
+            // 
+            // lblNoInputPorts
+            // 
+            lblNoInputPorts.AutoSize = true;
+            lblNoInputPorts.Location = new Point(92, 4);
+            lblNoInputPorts.Name = "lblNoInputPorts";
+            lblNoInputPorts.Size = new Size(84, 15);
+            lblNoInputPorts.TabIndex = 1;
+            lblNoInputPorts.Text = "No input ports";
+            lblNoInputPorts.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // groupOutputSignals
+            // 
+            groupOutputSignals.AutoSize = true;
+            groupOutputSignals.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            groupOutputSignals.Controls.Add(tableOutputSignals);
+            groupOutputSignals.Controls.Add(lblNoOutputSignals);
+            groupOutputSignals.Dock = DockStyle.Bottom;
+            groupOutputSignals.Location = new Point(0, 316);
+            groupOutputSignals.Name = "groupOutputSignals";
+            groupOutputSignals.Size = new Size(273, 84);
+            groupOutputSignals.TabIndex = 6;
+            groupOutputSignals.TabStop = false;
+            groupOutputSignals.Text = "Output signals";
+            // 
+            // tableOutputSignals
+            // 
+            tableOutputSignals.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            tableOutputSignals.AutoSize = true;
+            tableOutputSignals.ColumnCount = 3;
+            tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
+            tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40F));
+            tableOutputSignals.Controls.Add(label2, 0, 0);
+            tableOutputSignals.Controls.Add(button3, 2, 0);
+            tableOutputSignals.Controls.Add(label3, 1, 0);
+            tableOutputSignals.Location = new Point(3, 22);
+            tableOutputSignals.Name = "tableOutputSignals";
+            tableOutputSignals.RowCount = 1;
+            tableOutputSignals.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            tableOutputSignals.Size = new Size(262, 40);
+            tableOutputSignals.TabIndex = 0;
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            label2.AutoSize = true;
+            label2.Location = new Point(3, 12);
+            label2.Name = "label2";
+            label2.Size = new Size(69, 15);
+            label2.TabIndex = 0;
+            label2.Text = "name";
+            label2.TextAlign = ContentAlignment.MiddleRight;
+            // 
+            // button3
+            // 
+            button3.Anchor = AnchorStyles.Left;
+            button3.Location = new Point(225, 3);
+            button3.Name = "button3";
+            button3.Size = new Size(34, 34);
+            button3.TabIndex = 2;
+            button3.UseVisualStyleBackColor = true;
+            // 
+            // label3
+            // 
+            label3.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            label3.AutoSize = true;
+            label3.Location = new Point(78, 12);
+            label3.Name = "label3";
+            label3.Size = new Size(141, 15);
+            label3.TabIndex = 0;
+            label3.Text = "vlaue";
+            label3.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // lblNoOutputSignals
+            // 
+            lblNoOutputSignals.AutoSize = true;
+            lblNoOutputSignals.Location = new Point(92, 4);
+            lblNoOutputSignals.Name = "lblNoOutputSignals";
+            lblNoOutputSignals.Size = new Size(101, 15);
+            lblNoOutputSignals.TabIndex = 2;
+            lblNoOutputSignals.Text = "No output signals";
+            lblNoOutputSignals.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // gridAttributes
             // 
@@ -430,6 +537,7 @@
             gridAttributes.ContextMenuStrip = contextMenuStripGridProperties;
             gridAttributes.Dock = DockStyle.Fill;
             gridAttributes.Location = new Point(0, 0);
+            gridAttributes.MultiSelect = false;
             gridAttributes.Name = "gridAttributes";
             gridAttributes.ReadOnly = true;
             gridAttributes.RowTemplate.Height = 25;
@@ -476,6 +584,7 @@
             splitContainerPropertiesAttributes.ResumeLayout(false);
             splitContainerPropertiesInputs.Panel1.ResumeLayout(false);
             splitContainerPropertiesInputs.Panel2.ResumeLayout(false);
+            splitContainerPropertiesInputs.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainerPropertiesInputs).EndInit();
             splitContainerPropertiesInputs.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)gridProperties).EndInit();
@@ -484,6 +593,10 @@
             groupInputPorts.PerformLayout();
             tableInputPorts.ResumeLayout(false);
             tableInputPorts.PerformLayout();
+            groupOutputSignals.ResumeLayout(false);
+            groupOutputSignals.PerformLayout();
+            tableOutputSignals.ResumeLayout(false);
+            tableOutputSignals.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridAttributes).EndInit();
             ResumeLayout(false);
             PerformLayout();
@@ -525,5 +638,13 @@
         private ComboBox comboBox1;
         private Button button1;
         private SplitContainer splitContainerPropertiesInputs;
+        private GroupBox groupOutputSignals;
+        private TableLayoutPanel tableOutputSignals;
+        private Label label2;
+        private Button button3;
+        private Label label3;
+        private Button button2;
+        private Label lblNoInputPorts;
+        private Label lblNoOutputSignals;
     }
 }

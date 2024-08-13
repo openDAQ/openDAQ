@@ -82,6 +82,26 @@ public:
         client->triggerNotificationPacket(notificationPacket);
     }
 
+    PropertyObjectPtr createAdvancedObject()
+    {
+        const auto func = Function([](Int a, Int b) { return a + b; });
+
+        const auto funcProp =
+            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+                .setReadOnly(false)
+                .build();
+
+        auto advancedObject = PropertyObject();
+
+        advancedObject.addProperty(funcProp);
+        advancedObject.setPropertyValue("SumProp", func);
+
+        advancedObject.addProperty(StringProperty("StringProp", "-"));
+        advancedObject.setPropertyValue("StringProp", "Hello World!");
+
+        return advancedObject;
+    }
+
 protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
@@ -375,4 +395,118 @@ TEST_F(ConfigProtocolAccessControlTest, DisconnectSignal)
         inputPort.disconnect();
         ASSERT_FALSE(inputPort.getSignal().assigned());
     }
+}
+
+TEST_F(ConfigProtocolAccessControlTest, NestedGetValue)
+{
+    auto permissionsDevice =
+        PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+    auto permissionsAdvanced = PermissionsBuilder()
+                                   .inherit(false)
+                                   .assign("everyone", PermissionMaskBuilder())
+                                   .assign("admin", PermissionMaskBuilder().read().write())
+                                   .build();
+
+    auto device = createDevice();
+    device.getPermissionManager().setPermissions(permissionsDevice);
+
+    auto advanced = createAdvancedObject();
+    advanced.getPermissionManager().setPermissions(permissionsAdvanced);
+    device.addProperty(ObjectProperty("Advanced", advanced));
+
+    setupServerAndClient(device, UserRegular);
+
+    ASSERT_THROW(clientDevice.getPropertyValue("Advanced.StringProp"), NotFoundException);
+
+    setupServerAndClient(device, UserAdmin);
+
+    auto value = clientDevice.getPropertyValue("Advanced.StringProp");
+    ASSERT_EQ(value, "Hello World!");
+}
+
+TEST_F(ConfigProtocolAccessControlTest, NestedSetValue)
+{
+    auto permissionsDevice =
+        PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+    auto permissionsAdvanced = PermissionsBuilder()
+                                   .inherit(false)
+                                   .assign("everyone", PermissionMaskBuilder().read())
+                                   .assign("admin", PermissionMaskBuilder().read().write())
+                                   .build();
+
+    auto device = createDevice();
+    device.getPermissionManager().setPermissions(permissionsDevice);
+
+    auto advanced = createAdvancedObject();
+    advanced.getPermissionManager().setPermissions(permissionsAdvanced);
+    device.addProperty(ObjectProperty("Advanced", advanced));
+
+    setupServerAndClient(device, UserRegular);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("Advanced.StringProp", "Changed"), AccessDeniedException);
+
+    setupServerAndClient(device, UserAdmin);
+
+    clientDevice.setPropertyValue("Advanced.StringProp", "Changed");
+    auto value = clientDevice.getPropertyValue("Advanced.StringProp");
+    ASSERT_EQ(value, "Changed");
+}
+
+TEST_F(ConfigProtocolAccessControlTest, NestedClearValue)
+{
+    auto permissionsDevice =
+        PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+    auto permissionsAdvanced = PermissionsBuilder()
+                                   .inherit(false)
+                                   .assign("everyone", PermissionMaskBuilder().read())
+                                   .assign("admin", PermissionMaskBuilder().read().write())
+                                   .build();
+
+    auto device = createDevice();
+    device.getPermissionManager().setPermissions(permissionsDevice);
+
+    auto advanced = createAdvancedObject();
+    advanced.getPermissionManager().setPermissions(permissionsAdvanced);
+    device.addProperty(ObjectProperty("Advanced", advanced));
+
+    setupServerAndClient(device, UserRegular);
+
+    ASSERT_THROW(clientDevice.clearPropertyValue("Advanced.StringProp"), AccessDeniedException);
+
+    setupServerAndClient(device, UserAdmin);
+
+    clientDevice.clearPropertyValue("Advanced.StringProp");
+    auto value = clientDevice.getPropertyValue("Advanced.StringProp");
+    ASSERT_EQ(value, "-");
+}
+
+TEST_F(ConfigProtocolAccessControlTest, NestedCallProperty)
+{
+    auto permissionsDevice =
+        PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+    auto permissionsAdvanced = PermissionsBuilder()
+                                   .inherit(false)
+                                   .assign("everyone", PermissionMaskBuilder().read())
+                                   .assign("admin", PermissionMaskBuilder().read().write().execute())
+                                   .build();
+
+    auto device = createDevice();
+    device.getPermissionManager().setPermissions(permissionsDevice);
+
+    auto advanced = createAdvancedObject();
+    advanced.getPermissionManager().setPermissions(permissionsAdvanced);
+    device.addProperty(ObjectProperty("Advanced", advanced));
+
+    setupServerAndClient(device, UserRegular);
+
+    ASSERT_THROW(clientDevice.getPropertyValue("Advanced.SumProp").call(1, 2), AccessDeniedException);
+
+    setupServerAndClient(device, UserAdmin);
+
+    auto result = clientDevice.getPropertyValue("Advanced.SumProp").call(1, 2);
+    ASSERT_EQ(result, 3);
 }

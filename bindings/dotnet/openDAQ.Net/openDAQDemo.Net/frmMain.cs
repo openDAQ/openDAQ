@@ -1683,17 +1683,7 @@ public partial class frmMain : Form
             if (btnLink.Tag is not InputPort inputPort)
                 return;
 
-
-            if (comboBox.SelectedValue is not Signal signal) //"none"
-            {
-                inputPort.Disconnect();
-            }
-            else
-            {
-                inputPort.Connect(signal);
-            }
-
-            UpdateInputPorts(_selectedComponent);
+            LinkInputPort(inputPort, comboBox.SelectedValue as Signal);
         }
 
         void btnEdit_Click(object? sender, EventArgs e)
@@ -1715,6 +1705,29 @@ public partial class frmMain : Form
         return new Bitmap(isLinked ? GlblRes.link : GlblRes.unlink, 24, 24);
     }
 
+    /// <summary>
+    /// Links or unlinks the specified <c>Signal</c> to the specified <c>InputPort</c>.
+    /// </summary>
+    /// <param name="inputPort">The input port.</param>
+    /// <param name="signal">The signal.</param>
+    private void LinkInputPort(InputPort inputPort, Signal? signal)
+    {
+        if (signal == null) //"none"
+        {
+            inputPort.Disconnect();
+        }
+        else
+        {
+            inputPort.Connect(signal);
+        }
+
+        UpdateInputPorts(_selectedComponent);
+    }
+
+    /// <summary>
+    /// Edits the specified <c>InputPort</c> attributes.
+    /// </summary>
+    /// <param name="inputPort">The input port.</param>
     private void EditInputPort(InputPort? inputPort)
     {
         if (inputPort == null)
@@ -1869,6 +1882,10 @@ public partial class frmMain : Form
         }
     }
 
+    /// <summary>
+    /// Edits the output signal attributes.
+    /// </summary>
+    /// <param name="outputSignal">The output signal.</param>
     private void EditOutputSignal(Signal? outputSignal)
     {
         if (outputSignal == null)

@@ -71,10 +71,7 @@ public partial class frmEditComponent : Form
             return;
         }
 
-        AttributeItem selectedAttributeObject = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
-
-        frmMain.EditSelectedAttribute(this, selectedAttributeObject);
-        frmMain.UpdateAttributes((Component)selectedAttributeObject.OpenDaqObject, _attributeItems);
+        EditSelectedAttribute();
     }
 
     #region conetxtMenuItemGridAttributesEdit
@@ -121,16 +118,26 @@ public partial class frmEditComponent : Form
     private void conetxtMenuItemGridAttributesEdit_Click(object sender, EventArgs e)
     {
         var toolStripMenuItem = (ToolStripMenuItem)sender;
-        var sourceControl = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl;
+        var gridControl = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl as DataGridView;
 
-        if (sourceControl == this.gridAttributes)
-        {
-            frmMain.EditSelectedAttribute(this, (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem);
-            frmMain.UpdateAttributes(_component, _attributeItems);
-        }
+        if (gridControl != this.gridAttributes)
+            return;
+
+        EditSelectedAttribute();
     }
 
     #endregion conetxtMenuItemGridAttributesEdit
+
+    private void EditSelectedAttribute()
+    {
+        var selectedAttributeItem = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
+
+        frmMain.EditSelectedAttribute(this, selectedAttributeItem);
+        frmMain.UpdateAttributes((Component)selectedAttributeItem.OpenDaqObject, _attributeItems);
+
+        this.gridAttributes.ClearSelection();
+        this.gridAttributes.AutoResizeColumns();
+    }
 
     #endregion gridAttributes
 

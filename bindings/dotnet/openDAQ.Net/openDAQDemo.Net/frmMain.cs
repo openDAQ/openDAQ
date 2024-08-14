@@ -16,6 +16,7 @@
 
 
 using System.ComponentModel;
+using System.Text;
 using System.Windows.Forms;
 
 using Daq.Core.Objects;
@@ -147,14 +148,59 @@ public partial class frmMain : Form
 
     private void loadConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        //ToDo: load config
-        MessageBox.Show("ToDo: load config");
+        using (var dlgLoad = new OpenFileDialog())
+        {
+            dlgLoad.Title           = "Load configuration";
+            dlgLoad.Filter          = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            dlgLoad.DefaultExt      = ".json";
+            dlgLoad.FileName        = "config.json";
+            dlgLoad.CheckFileExists = true;
+
+            if ((dlgLoad.ShowDialog(this) != DialogResult.OK) || string.IsNullOrWhiteSpace(dlgLoad.FileName) || !File.Exists(dlgLoad.FileName))
+                return;
+
+            try
+            {
+                string configString = File.ReadAllText(dlgLoad.FileName);
+
+                _instance!.LoadConfiguration(configString);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred:\n{ex.GetType().Name} - {ex.Message}", "Load configuration",
+                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+            finally
+            {
+                UpdateTree();
+            }
+        }
     }
 
     private void saveConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        //ToDo: save config
-        MessageBox.Show("ToDo: save config");
+        using (var dlgSave = new SaveFileDialog())
+        {
+            dlgSave.Title           = "Save configuration";
+            dlgSave.Filter          = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            dlgSave.DefaultExt      = ".json";
+            dlgSave.FileName        = "config.json";
+            dlgSave.OverwritePrompt = true;
+
+            if ((dlgSave.ShowDialog(this) != DialogResult.OK) || string.IsNullOrWhiteSpace(dlgSave.FileName))
+                return;
+
+            try
+            {
+                string configString = _instance!.SaveConfiguration();
+                File.WriteAllText(dlgSave.FileName, configString, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred:\n{ex.GetType().Name} - {ex.Message}", "Save configuration",
+                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+        }
     }
 
     private void exitToolStripMenuItem_Click(object sender, EventArgs e)

@@ -29,7 +29,7 @@ public:
 
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+    ErrCode INTERFACE_FUNC getReferenceTimeSource(IBoolean** referenceTimeSource) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -47,7 +47,7 @@ public:
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
-    BoolPtr referenceDomainIsAbsolute;
+    BoolPtr referenceTimeSource;
 
 private:
     static DictPtr<IString, IBaseObject> PackBuilder(IReferenceDomainInfoBuilder* referenceDomainInfoBuilder);

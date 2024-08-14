@@ -276,7 +276,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         }
         else
         {
-            ReferenceDomainBin refDomBin = {refDomInfo.getReferenceDomainId(), refDomInfo.getReferenceDomainIsAbsolute()};
+            ReferenceDomainBin refDomBin = {refDomInfo.getReferenceDomainId(), refDomInfo.getReferenceTimeSource()};
 
             // Check domain ID existence
             if (!refDomBin.id.assigned())

@@ -27,7 +27,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::Float64)
@@ -66,7 +66,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::Float64)
@@ -152,7 +152,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::UInt8)
@@ -210,7 +210,7 @@ TEST_F(DataDescriptorTest, StructFields)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     const StructPtr descriptor = DataDescriptorBuilder()
                                      .setSampleType(SampleType::UInt8)
@@ -255,7 +255,7 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
                                        .setSampleType(SampleType::Float64)
@@ -292,7 +292,7 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceDomainIsAbsolute(False)
+                    .setReferenceTimeSource(False)
                     .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
                                        .setSampleType(SampleType::Float64)
@@ -449,12 +449,12 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
                      "Reference Domain Info not supported for constant data rule type.");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForConstantDataRule)
+TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceForConstantDataRule)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Int32)
                          .setRule(ConstantDataRule())
-                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainIsAbsolute(False).build())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(False).build())
                          .build(),
                      InvalidParameterException,
                      "Reference Domain Info not supported for constant data rule type.");
@@ -484,13 +484,13 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
                      "Reference Domain Info not supported with post scaling.");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteWithPostScaling)
+TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceWithPostScaling)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Float64)
                          .setRule(ExplicitDataRule())
                          .setPostScaling(LinearScaling(2, 3))
-                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainIsAbsolute(False).build())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(False).build())
                          .build(),
                      InvalidParameterException,
                      "Reference Domain Info not supported with post scaling.");

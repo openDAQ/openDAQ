@@ -8,14 +8,14 @@ BEGIN_NAMESPACE_OPENDAQ
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     : referenceDomainId(nullptr)
     , referenceDomainOffset(nullptr)
-    , referenceDomainIsAbsolute(nullptr)
+    , referenceTimeSource(nullptr)
 {
 }
 
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl(const ReferenceDomainInfoPtr& infoCopy)
     : referenceDomainId(infoCopy.getReferenceDomainId())
     , referenceDomainOffset(infoCopy.getReferenceDomainOffset())
-    , referenceDomainIsAbsolute(infoCopy.getReferenceDomainIsAbsolute())
+    , referenceTimeSource(infoCopy.getReferenceTimeSource())
 {
 }
 
@@ -59,16 +59,16 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainOffset(IInteger** refe
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute)
+ErrCode ReferenceDomainInfoBuilderImpl::setReferenceTimeSource(IBoolean* referenceTimeSource)
 {
-    this->referenceDomainIsAbsolute = referenceDomainIsAbsolute;
+    this->referenceTimeSource = referenceTimeSource;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeSource(IBoolean** referenceTimeSource)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
-    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
+    *referenceTimeSource = this->referenceTimeSource.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -17,7 +17,7 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     auto params = Dict<IString, IBaseObject>();
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
-    params.set("ReferenceDomainIsAbsolute", builderPtr.getReferenceDomainIsAbsolute());
+    params.set("ReferenceTimeSource", builderPtr.getReferenceTimeSource());
     return params;
 }
 
@@ -27,7 +27,7 @@ ReferenceDomainInfoImpl::ReferenceDomainInfoImpl(IReferenceDomainInfoBuilder* re
     const auto dataDescriptorBuilderPtr = ReferenceDomainInfoBuilderPtr(referenceDomainInfoBuilder);
     this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
     this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
-    this->referenceDomainIsAbsolute = dataDescriptorBuilderPtr.getReferenceDomainIsAbsolute();
+    this->referenceTimeSource = dataDescriptorBuilderPtr.getReferenceTimeSource();
 }
 
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainId(IString** referenceDomainId)
@@ -48,11 +48,11 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainOffset(IIntege
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
+ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeSource(IBoolean** referenceTimeSource)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
+    OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
 
-    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
+    *referenceTimeSource = this->referenceTimeSource.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -77,7 +77,7 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool*
                 return OPENDAQ_SUCCESS;
             if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
                 return OPENDAQ_SUCCESS;
-            if (!BaseObjectPtr::Equals(referenceDomainIsAbsolute, info.getReferenceDomainIsAbsolute()))
+            if (!BaseObjectPtr::Equals(referenceTimeSource, info.getReferenceTimeSource()))
                 return OPENDAQ_SUCCESS;
 
             *equals = true;
@@ -103,10 +103,10 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
             serializer->writeInt(referenceDomainOffset);
         }
 
-        if (referenceDomainIsAbsolute.assigned())
+        if (referenceTimeSource.assigned())
         {
-            serializer->key("referenceDomainIsAbsolute");
-            serializer->writeBool(referenceDomainIsAbsolute);
+            serializer->key("referenceTimeSource");
+            serializer->writeBool(referenceTimeSource);
         }
     }
     serializer->endObject();
@@ -152,10 +152,10 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
         dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
     }
 
-    if (serializedObj.hasKey("referenceDomainIsAbsolute"))
+    if (serializedObj.hasKey("referenceTimeSource"))
     {
-        auto referenceDomainIsAbsolute = serializedObj.readBool("referenceDomainIsAbsolute");
-        dataDescriptor.setReferenceDomainIsAbsolute(referenceDomainIsAbsolute);
+        auto referenceTimeSource = serializedObj.readBool("referenceTimeSource");
+        dataDescriptor.setReferenceTimeSource(referenceTimeSource);
     }
 
     *obj = dataDescriptor.build().as<IBaseObject>();

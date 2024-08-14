@@ -34,13 +34,13 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
-    ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) override;
+    ErrCode INTERFACE_FUNC setReferenceTimeSource(IBoolean* referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC getReferenceTimeSource(IBoolean** referenceTimeSource) override;
 
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
-    BoolPtr referenceDomainIsAbsolute;
+    BoolPtr referenceTimeSource;
 };
 
 END_NAMESPACE_OPENDAQ

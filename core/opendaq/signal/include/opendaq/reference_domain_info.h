@@ -58,12 +58,12 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
 
     /*!
-     * @brief Gets the flag that indicates if the Reference Domain Is Absolute.
-     * @param[out] referenceDomainIsAbsolute The flag that indicates if the Reference Domain Is Absolute.
+     * @brief Gets the value that indicates the Reference Time Source.
+     * @param[out] referenceTimeSource The value that indicates the Reference Time Source.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(IBoolean** referenceTimeSource) = 0;
 };
 /*!@}*/
 

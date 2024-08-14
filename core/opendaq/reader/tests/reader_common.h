@@ -46,7 +46,7 @@ daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType type,
                                                           daq::DataRulePtr rule = nullptr,
                                                           daq::ScalingPtr scaling = nullptr,
                                                           daq::StringPtr referenceDomainId = nullptr,
-                                                          daq::BooleanPtr referenceDomainIsAbsolute = nullptr);
+                                                          daq::BooleanPtr referenceTimeSource = nullptr);
 
 template <typename T = void>
 class ReaderTest : public testing::Test
@@ -107,7 +107,7 @@ public:
                                 daq::RatioPtr resolution = nullptr,
                                 daq::DataRulePtr rule = nullptr,
                                 daq::StringPtr referenceDomainId = nullptr,
-                                daq::BooleanPtr referenceDomainIsAbsolute = nullptr) const
+                                daq::BooleanPtr referenceTimeSource = nullptr) const
     {
         if (epoch.empty())
         {
@@ -124,7 +124,7 @@ public:
             rule = daq::LinearDataRule(1, 0);
         }
 
-        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, referenceDomainId, referenceDomainIsAbsolute)
+        return setupConfigurableDescriptor(daq::SampleTypeFromType<daq::ClockTick>::SampleType, rule, nullptr, referenceDomainId, referenceTimeSource)
             .setOrigin(epoch)
             .setTickResolution(resolution)
             .setUnit(daq::Unit("s", -1, "seconds", "time"))
@@ -152,17 +152,17 @@ inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType
                                                                  daq::DataRulePtr rule,
                                                                  daq::ScalingPtr scaling,
                                                                  daq::StringPtr referenceDomainId,
-                                                                 daq::BooleanPtr referenceDomainIsAbsolute)
+                                                                 daq::BooleanPtr referenceTimeSource)
 {
     auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling);
 
     if (rule.assigned())
         dataDescriptor.setRule(rule);
 
-    if (referenceDomainId.assigned() || referenceDomainIsAbsolute.assigned())
+    if (referenceDomainId.assigned() || referenceTimeSource.assigned())
         dataDescriptor.setReferenceDomainInfo(ReferenceDomainInfoBuilder()
                                                   .setReferenceDomainId(referenceDomainId)
-                                                  .setReferenceDomainIsAbsolute(referenceDomainIsAbsolute)
+                                                  .setReferenceTimeSource(referenceTimeSource)
                                                   .build());
 
     return dataDescriptor;

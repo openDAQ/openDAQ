@@ -137,10 +137,10 @@ public:
                                        const daq::RatioPtr& resolution = nullptr,
                                        const daq::DataRulePtr& rule = nullptr,
                                        const daq::StringPtr& referenceDomainId = nullptr,
-                                       const daq::BooleanPtr& referenceDomainIsAbsolute = nullptr) const
+                                       const daq::BooleanPtr& referenceTimeSource = nullptr) const
     {
         auto domain = Signal(context, nullptr, "time");
-        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule, referenceDomainId, referenceDomainIsAbsolute));
+        domain.setDescriptor(createDomainDescriptor(std::move(epoch), resolution, rule, referenceDomainId, referenceTimeSource));
 
         return domain;
     }

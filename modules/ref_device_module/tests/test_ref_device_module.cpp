@@ -186,14 +186,14 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
     ASSERT_EQ(res, 0);
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIsAbsolute)
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
 {
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getReferenceDomainInfo().getReferenceDomainIsAbsolute();
+    auto res = domain.getReferenceDomainInfo().getReferenceTimeSource();
     ASSERT_EQ(res, nullptr);
 }
 

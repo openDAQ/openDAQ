@@ -88,9 +88,6 @@
       <Item Name="resolution">resolution</Item>
       <Item Name="structFields">structFields</Item>
       <Item Name="metadata">metadata</Item>
-      <Item Name="referenceDomainId">referenceDomainId</Item>
-      <Item Name="referenceDomainOffset">referenceDomainOffset</Item>
-      <Item Name="referenceDomainIsAbsolute">referenceDomainIsAbsolute</Item>
     </Expand>
   </Type>
   <Type Name="daq::DataRuleImpl">

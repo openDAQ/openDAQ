@@ -2290,7 +2290,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality01)
     auto received = privateSink.waitForMessage(9001);
     ASSERT_EQ(received, true);
     auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+    ASSERT_EQ(str, R"("Domain signal "time" Reference Domain Info is not assigned.")");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEquality02)
@@ -2426,7 +2426,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality01)
     auto received = privateSink.waitForMessage(9001);
     ASSERT_EQ(received, true);
     auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+    ASSERT_EQ(str, R"("Domain signal "time" Reference Domain ID is not assigned.")");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality02)
@@ -2443,7 +2443,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality02)
     auto received = privateSink.waitForMessage(9001);
     ASSERT_EQ(received, true);
     auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"("Domain signal "time" domain ID  is not assigned.")");
+    ASSERT_EQ(str, R"("Domain signal "time" Reference Domain ID is not assigned.")");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityIsAbsoluteEquality03)

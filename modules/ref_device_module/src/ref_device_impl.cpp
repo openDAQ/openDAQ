@@ -123,7 +123,10 @@ void RefDeviceImpl::initClock()
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(), localId, 0));
+    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(),
+                                       RefChannelImpl::getEpoch(),
+                                       UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                                       ReferenceDomainInfoBuilder().setReferenceDomainId(localId).setReferenceDomainOffset(0).build()));
 }
 
 void RefDeviceImpl::initIoFolder()

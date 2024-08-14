@@ -154,10 +154,16 @@ inline daq::DataDescriptorBuilderPtr setupConfigurableDescriptor(daq::SampleType
                                                                  daq::StringPtr referenceDomainId,
                                                                  daq::BooleanPtr referenceDomainIsAbsolute)
 {
-    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling).setReferenceDomainId(referenceDomainId).setReferenceDomainIsAbsolute(referenceDomainIsAbsolute);
+    auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type).setPostScaling(scaling);
 
     if (rule.assigned())
         dataDescriptor.setRule(rule);
+
+    if (referenceDomainId.assigned() || referenceDomainIsAbsolute.assigned())
+        dataDescriptor.setReferenceDomainInfo(ReferenceDomainInfoBuilder()
+                                                  .setReferenceDomainId(referenceDomainId)
+                                                  .setReferenceDomainIsAbsolute(referenceDomainIsAbsolute)
+                                                  .build());
 
     return dataDescriptor;
 }

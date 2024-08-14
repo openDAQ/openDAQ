@@ -180,7 +180,7 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
                                       .setRule(LinearDataRule(5, 3))
                                       .setOrigin("1970")
                                       .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainOffset(100)
+                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
                                       .build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
     const auto sampleCount = 5;

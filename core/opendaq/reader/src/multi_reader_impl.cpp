@@ -267,60 +267,69 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             }
         }
 
-        ReferenceDomainBin refDom = {domainDescriptor.getReferenceDomainId(), domainDescriptor.getReferenceDomainIsAbsolute()};
+        auto refDomInfo = domainDescriptor.getReferenceDomainInfo();
 
-        // Check domain ID existence
-        if (!refDom.id.assigned())
+        if (!refDomInfo.assigned())
         {
             // This will be bumped up to a higher severity later on (warning)
-            LOG_I(R"("Domain signal "{}" domain ID  is not assigned.")", domain.getLocalId());
+            LOG_I(R"("Domain signal "{}" Reference Domain Info is not assigned.")", domain.getLocalId());
         }
-
-        // Check reference domain (is absolute / ID matching)
-        if (!refDom.isAbsolute.assigned() || !refDom.isAbsolute)
+        else
         {
-            // Is not absolute
+            ReferenceDomainBin refDomBin = {refDomInfo.getReferenceDomainId(), refDomInfo.getReferenceDomainIsAbsolute()};
 
-            // Set state to invalid if a reference domain "group"
-            // (group = signals with the same reference domain ID)
-            // exists in which none of its member signals are absolute
-
-            // Set is ordered by domain ID and domain is absolute (nullptr first), so we can do the following:
-
-            auto elt = referenceDomainElts.begin();
-
-            while (elt != referenceDomainElts.end())
+            // Check domain ID existence
+            if (!refDomBin.id.assigned())
             {
-                // Traverse one group
+                // This will be bumped up to a higher severity later on (warning)
+                LOG_I(R"("Domain signal "{}" Reference Domain ID is not assigned.")", domain.getLocalId());
+            }
 
-                bool needsAbs = false;
-                bool hasAbs = false;
-                auto groupDomainId = elt->id;
+            // Check reference domain (is absolute / ID matching)
+            if (!refDomBin.isAbsolute.assigned() || !refDomBin.isAbsolute)
+            {
+                // Is not absolute
 
-                while (elt != referenceDomainElts.end() && elt->id == groupDomainId)
+                // Set state to invalid if a reference domain "group"
+                // (group = signals with the same reference domain ID)
+                // exists in which none of its member signals are absolute
+
+                // Set is ordered by domain ID and domain is absolute (nullptr first), so we can do the following:
+
+                auto elt = referenceDomainElts.begin();
+
+                while (elt != referenceDomainElts.end())
                 {
-                    if (groupDomainId.assigned() && refDom.id.assigned() && groupDomainId != refDom.id)
-                    {
-                        // Both are assigned, but not matching
-                        // Needs absolute
-                        needsAbs = true;
-                    }
-                    if (elt->isAbsolute.assigned() && elt->isAbsolute)
-                    {
-                        // Group (domain signals with identical domain ID) has at least one absolute
-                        hasAbs = true;
-                    }
-                    ++elt;
-                }
+                    // Traverse one group
 
-                if (needsAbs && !hasAbs)
-                {
-                    throw InvalidStateException("Reference domain incompatible.");
+                    bool needsAbs = false;
+                    bool hasAbs = false;
+                    auto groupDomainId = elt->id;
+
+                    while (elt != referenceDomainElts.end() && elt->id == groupDomainId)
+                    {
+                        if (groupDomainId.assigned() && refDomBin.id.assigned() && groupDomainId != refDomBin.id)
+                        {
+                            // Both are assigned, but not matching
+                            // Needs absolute
+                            needsAbs = true;
+                        }
+                        if (elt->isAbsolute.assigned() && elt->isAbsolute)
+                        {
+                            // Group (domain signals with identical domain ID) has at least one absolute
+                            hasAbs = true;
+                        }
+                        ++elt;
+                    }
+
+                    if (needsAbs && !hasAbs)
+                    {
+                        throw InvalidStateException("Reference domain incompatible.");
+                    }
                 }
             }
+            referenceDomainElts.insert(refDomBin);
         }
-
-        referenceDomainElts.insert(refDom);
     }
 }
 

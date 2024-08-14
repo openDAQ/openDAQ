@@ -1,14 +1,13 @@
-#include <opendaq/signal_exceptions.h>
-#include <opendaq/data_descriptor_factory.h>
-#include <opendaq/data_descriptor_factory.h>
 #include <gtest/gtest.h>
-#include <opendaq/dimension_factory.h>
+#include <opendaq/data_descriptor_factory.h>
+#include <opendaq/data_rule_calc_private.h>
 #include <opendaq/data_rule_factory.h>
+#include <opendaq/dimension_factory.h>
 #include <opendaq/dimension_rule_factory.h>
 #include <opendaq/range_factory.h>
-#include <opendaq/scaling_factory.h>
 #include <opendaq/scaling_calc_private.h>
-#include <opendaq/data_rule_calc_private.h>
+#include <opendaq/scaling_factory.h>
+#include <opendaq/signal_exceptions.h>
 #include "testutils/testutils.h"
 
 using DataDescriptorTest = testing::Test;
@@ -25,21 +24,23 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
 
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     auto descriptor = DataDescriptorBuilder()
-                      .setSampleType(SampleType::Float64)
-                      .setValueRange(Range(10, 11.5))
-                      .setDimensions(dimensions)
-                      .setOrigin("testRef")
-                      .setTickResolution(Ratio(1, 1000))
-                      .setUnit(Unit("s", 10))
-                      .setRule(LinearDataRule(10, 10))
-                      .setName("testName")
-                      .setMetadata(metaData)
-                      .setReferenceDomainId("testReferenceDomainId")
-                      .setReferenceDomainOffset(53)
-                      .setReferenceDomainIsAbsolute(False)
-                      .build();
-
+                          .setSampleType(SampleType::Float64)
+                          .setValueRange(Range(10, 11.5))
+                          .setDimensions(dimensions)
+                          .setOrigin("testRef")
+                          .setTickResolution(Ratio(1, 1000))
+                          .setUnit(Unit("s", 10))
+                          .setRule(LinearDataRule(10, 10))
+                          .setName("testName")
+                          .setMetadata(metaData)
+                          .setReferenceDomainInfo(info)
+                          .build();
 
     ASSERT_EQ(descriptor.getValueRange().getLowValue(), 10);
     ASSERT_EQ(descriptor.getValueRange().getHighValue(), 11.5);
@@ -49,9 +50,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     ASSERT_EQ(descriptor.getRule().getParameters().get("delta"), 10);
     ASSERT_EQ(descriptor.getName(), "testName");
     ASSERT_EQ(descriptor.getMetadata().get("key"), "value");
-    ASSERT_EQ(descriptor.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(descriptor.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(descriptor.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(descriptor.getReferenceDomainInfo(), info);
 }
 
 TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
@@ -64,6 +63,11 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
 
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::Float64)
                           .setValueRange(Range(10, 11.5))
@@ -74,9 +78,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
                           .setRule(LinearDataRule(1, 2))
                           .setName("testName")
                           .setMetadata(metaData)
-                          .setReferenceDomainId("testReferenceDomainId")
-                          .setReferenceDomainOffset(53)
-                          .setReferenceDomainIsAbsolute(False)
+                          .setReferenceDomainInfo(info)
                           .build();
 
     auto copy = DataDescriptorBuilderCopy(descriptor).build();
@@ -91,9 +93,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getRule().getType(), DataRuleType::Linear);
     ASSERT_EQ(copy.getName(), "testName");
     ASSERT_EQ(copy.getMetadata().get("key"), "value");
-    ASSERT_EQ(copy.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(copy.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(copy.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(copy.getReferenceDomainInfo(), info);
 }
 
 TEST_F(DataDescriptorTest, RuleScalingInteraction)
@@ -149,6 +149,11 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
 
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     auto descriptor = DataDescriptorBuilder()
                           .setSampleType(SampleType::UInt8)
                           .setValueRange(Range(10, 11.5))
@@ -159,9 +164,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
                           .setRule(LinearDataRule(10, 10))
                           .setName("testName")
                           .setMetadata(metaData)
-                          .setReferenceDomainId("testReferenceDomainId")
-                          .setReferenceDomainOffset(53)
-                          .setReferenceDomainIsAbsolute(False)
+                          .setReferenceDomainInfo(info)
                           .build();
 
     auto serializer = JsonSerializer(False);
@@ -177,9 +180,10 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
 
 TEST_F(DataDescriptorTest, DeserializeBackwardsCompat)
 {
-    // Without referenceDomainId/referenceDomainOffset/referenceDomainIsAbsolute
+    // Without Reference Domain Info
 
-    std::string serialized = R"({"__type":"DataDescriptor","name":"testName","sampleType":3,"unit":{"__type":"Unit","symbol":"s","id":10,"name":"","quantity":""},"dimensions":[{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""}],"valueRange":{"__type":"Range","low":10,"high":11.5},"rule":{"__type":"DataRule","ruleType":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10}]}},"origin":"testRef","tickResolution":{"__type":"Ratio","num":1,"den":1000},"metadata":{"__type":"Dict","values":[{"key":"key","value":"value"}]},"structFields":[]})";
+    std::string serialized =
+        R"({"__type":"DataDescriptor","name":"testName","sampleType":3,"unit":{"__type":"Unit","symbol":"s","id":10,"name":"","quantity":""},"dimensions":[{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""},{"__type":"Dimension","rule":{"__type":"DimensionRule","rule_type":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10},{"key":"size","value":10}]}},"name":""}],"valueRange":{"__type":"Range","low":10,"high":11.5},"rule":{"__type":"DataRule","ruleType":1,"params":{"__type":"Dict","values":[{"key":"delta","value":10},{"key":"start","value":10}]}},"origin":"testRef","tickResolution":{"__type":"Ratio","num":1,"den":1000},"metadata":{"__type":"Dict","values":[{"key":"key","value":"value"}]},"structFields":[]})";
 
     auto deserializer = JsonDeserializer();
     DataDescriptorPtr descriptor;
@@ -203,21 +207,23 @@ TEST_F(DataDescriptorTest, StructFields)
 
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     const StructPtr descriptor = DataDescriptorBuilder()
-                      .setSampleType(SampleType::UInt8)
-                      .setValueRange(Range(10, 11.5))
-                      .setDimensions(dimensions)
-                      .setOrigin("testRef")
-                      .setTickResolution(Ratio(1, 1000))
-                      .setUnit(Unit("s", 10))
-                      .setRule(LinearDataRule(10, 10))
-                      .setName("testName")
-                      .setMetadata(metaData)
-                      .setReferenceDomainId("testReferenceDomainId")
-                      .setReferenceDomainOffset(53)
-                      .setReferenceDomainIsAbsolute(False)
-                      .build();
-
+                                     .setSampleType(SampleType::UInt8)
+                                     .setValueRange(Range(10, 11.5))
+                                     .setDimensions(dimensions)
+                                     .setOrigin("testRef")
+                                     .setTickResolution(Ratio(1, 1000))
+                                     .setUnit(Unit("s", 10))
+                                     .setRule(LinearDataRule(10, 10))
+                                     .setName("testName")
+                                     .setMetadata(metaData)
+                                     .setReferenceDomainInfo(info)
+                                     .build();
 
     ASSERT_EQ(descriptor.get("SampleType"), static_cast<Int>(SampleType::UInt8));
     ASSERT_EQ(descriptor.get("ValueRange"), Range(10, 11.5));
@@ -230,9 +236,7 @@ TEST_F(DataDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("StructField"), nullptr);
     ASSERT_EQ(descriptor.get("Scaling"), nullptr);
     ASSERT_EQ(descriptor.get("DataRule"), LinearDataRule(10, 10));
-    ASSERT_EQ(descriptor.get("ReferenceDomainId"), "testReferenceDomainId");
-    ASSERT_EQ(descriptor.get("ReferenceDomainOffset"), 53);
-    ASSERT_EQ(descriptor.get("ReferenceDomainIsAbsolute"), False);
+    ASSERT_EQ(descriptor.get("ReferenceDomainInfo"), info);
 }
 
 TEST_F(DataDescriptorTest, StructNames)
@@ -248,21 +252,24 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     auto linearScaling = LinearScaling(10, 10);
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
-                                        .setSampleType(SampleType::Float64)
-                                        .setValueRange(Range(10, 1000))
-                                        .setDimensions(dimensions)
-                                        .setOrigin("testRef")
-                                        .setTickResolution(Ratio(1, 1000))
-                                        .setUnit(Unit("s", 10))
-                                        .setRule(LinearDataRule(10, 10))
-                                        .setName("testName")
-                                        .setPostScaling(linearScaling)
-                                        .setMetadata(metaData)
-                                        .setReferenceDomainId("testReferenceDomainId")
-                                        .setReferenceDomainOffset(53)
-                                        .setReferenceDomainIsAbsolute(False);
-    
+                                       .setSampleType(SampleType::Float64)
+                                       .setValueRange(Range(10, 1000))
+                                       .setDimensions(dimensions)
+                                       .setOrigin("testRef")
+                                       .setTickResolution(Ratio(1, 1000))
+                                       .setUnit(Unit("s", 10))
+                                       .setRule(LinearDataRule(10, 10))
+                                       .setName("testName")
+                                       .setPostScaling(linearScaling)
+                                       .setMetadata(metaData)
+                                       .setReferenceDomainInfo(info);
+
     ASSERT_EQ(descriptorBuilder.getSampleType(), SampleType::Float64);
     ASSERT_EQ(descriptorBuilder.getValueRange(), Range(10, 1000));
     ASSERT_EQ(descriptorBuilder.getDimensions(), dimensions);
@@ -273,9 +280,7 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     ASSERT_EQ(descriptorBuilder.getName(), "testName");
     ASSERT_EQ(descriptorBuilder.getPostScaling(), linearScaling);
     ASSERT_EQ(descriptorBuilder.getMetadata(), metaData);
-    ASSERT_EQ(descriptorBuilder.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(descriptorBuilder.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(descriptorBuilder.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(descriptorBuilder.getReferenceDomainInfo(), info);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
@@ -284,19 +289,22 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     auto linearScaling = LinearScaling(10, 10);
     auto metaData = Dict<IString, IString>();
     metaData["key"] = "value";
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainOffset(53)
+                    .setReferenceDomainIsAbsolute(False)
+                    .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
-                                        .setSampleType(SampleType::Float64)
-                                        .setValueRange(Range(10, 1000))
-                                        .setDimensions(dimensions)
-                                        .setOrigin("testRef")
-                                        .setTickResolution(Ratio(1, 1000))
-                                        .setUnit(Unit("s", 10))
-                                        .setRule(LinearDataRule(10, 10))
-                                        .setName("testName")
-                                        .setMetadata(metaData)
-                                        .setReferenceDomainId("testReferenceDomainId")
-                                        .setReferenceDomainOffset(53)
-                                        .setReferenceDomainIsAbsolute(False);
+                                       .setSampleType(SampleType::Float64)
+                                       .setValueRange(Range(10, 1000))
+                                       .setDimensions(dimensions)
+                                       .setOrigin("testRef")
+                                       .setTickResolution(Ratio(1, 1000))
+                                       .setUnit(Unit("s", 10))
+                                       .setRule(LinearDataRule(10, 10))
+                                       .setName("testName")
+                                       .setMetadata(metaData)
+                                       .setReferenceDomainInfo(info);
 
     const auto descriptor = DataDescriptorFromBuilder(descriptorBuilder);
 
@@ -309,11 +317,8 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     ASSERT_EQ(descriptor.getRule(), LinearDataRule(10, 10));
     ASSERT_EQ(descriptor.getName(), "testName");
     ASSERT_EQ(descriptor.getMetadata(), metaData);
-    ASSERT_EQ(descriptor.getReferenceDomainId(), "testReferenceDomainId");
-    ASSERT_EQ(descriptor.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(descriptor.getReferenceDomainIsAbsolute(), False);
+    ASSERT_EQ(descriptor.getReferenceDomainInfo(), info);
 }
-
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimple)
 {
@@ -326,9 +331,9 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimple)
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimplePostScaling)
 {
     const auto descriptor = DataDescriptorBuilder()
-        .setSampleType(SampleType::Float64)
-        .setPostScaling(LinearScaling(1, 0, SampleType::Int32, ScaledSampleType::Float64))
-        .build();
+                                .setSampleType(SampleType::Float64)
+                                .setPostScaling(LinearScaling(1, 0, SampleType::Int32, ScaledSampleType::Float64))
+                                .build();
 
     ASSERT_EQ(descriptor.getSampleSize(), 8u);
     ASSERT_EQ(descriptor.getRawSampleSize(), 4u);
@@ -343,38 +348,32 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeImplicitSimple)
 }
 
 /*
-*  Sample type represent C++ structured type
-*
-* struct CanMessage
-* {
-*     uint32_t arbId;
-*     uint8_t length;
-*     uint8_t data[64];
-* }
-*/
+ *  Sample type represent C++ structured type
+ *
+ * struct CanMessage
+ * {
+ *     uint32_t arbId;
+ *     uint8_t length;
+ *     uint8_t data[64];
+ * }
+ */
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeStruct)
 {
-    const auto arbIdDescriptor = DataDescriptorBuilder()
-        .setName("ArbId")
-        .setSampleType(SampleType::UInt32)
-        .build();
+    const auto arbIdDescriptor = DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).build();
 
-    const auto lengthDescriptor = DataDescriptorBuilder()
-        .setName("Length")
-        .setSampleType(SampleType::UInt8)
-        .build();
+    const auto lengthDescriptor = DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).build();
 
     const auto descriptor = DataDescriptorBuilder()
-        .setName("Data")
-        .setSampleType(SampleType::UInt8)
-        .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
-        .build();
+                                .setName("Data")
+                                .setSampleType(SampleType::UInt8)
+                                .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
-        .setName("Struct")
-        .setSampleType(SampleType::Struct)
-        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
-        .build();
+                                      .setName("Struct")
+                                      .setSampleType(SampleType::Struct)
+                                      .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
+                                      .build();
 
     ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
     ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 69u);
@@ -389,17 +388,17 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
         DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(LinearDataRule(10, 10)).build();
 
     const auto descriptor = DataDescriptorBuilder()
-                                    .setName("Data")
-                                    .setSampleType(SampleType::UInt8)
-                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
-                                    .setRule(ExplicitDataRule())
-                                    .build();
+                                .setName("Data")
+                                .setSampleType(SampleType::UInt8)
+                                .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                .setRule(ExplicitDataRule())
+                                .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
-        .setName("Struct")
-        .setSampleType(SampleType::Struct)
-        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
-        .build();
+                                      .setName("Struct")
+                                      .setSampleType(SampleType::Struct)
+                                      .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, descriptor))
+                                      .build();
 
     ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
     ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 68u);
@@ -430,26 +429,35 @@ TEST_F(DataDescriptorTest, QueryInterface)
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForConstantDataRule)
 {
-    ASSERT_THROW_MSG(
-        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainId("RefDomId").build(),
-        InvalidParameterException,
-        "Reference domain id not supported for constant data rule type.");
+    ASSERT_THROW_MSG(DataDescriptorBuilder()
+                         .setSampleType(SampleType::Int32)
+                         .setRule(ConstantDataRule())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId("RefDomId").build())
+                         .build(),
+                     InvalidParameterException,
+                     "Reference Domain Info not supported for constant data rule type.");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
 {
-    ASSERT_THROW_MSG(
-        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainOffset(100).build(),
-        InvalidParameterException,
-        "Reference domain offset not supported for constant data rule type.");
+    ASSERT_THROW_MSG(DataDescriptorBuilder()
+                         .setSampleType(SampleType::Int32)
+                         .setRule(ConstantDataRule())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
+                         .build(),
+                     InvalidParameterException,
+                     "Reference Domain Info not supported for constant data rule type.");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteForConstantDataRule)
 {
-    ASSERT_THROW_MSG(
-        DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).setReferenceDomainIsAbsolute(False).build(),
-        InvalidParameterException,
-        "Reference domain is absolute not supported for constant data rule type.");
+    ASSERT_THROW_MSG(DataDescriptorBuilder()
+                         .setSampleType(SampleType::Int32)
+                         .setRule(ConstantDataRule())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainIsAbsolute(False).build())
+                         .build(),
+                     InvalidParameterException,
+                     "Reference Domain Info not supported for constant data rule type.");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainIdWithPostScaling)
@@ -458,10 +466,10 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIdWithPostScaling)
                          .setSampleType(SampleType::Float64)
                          .setRule(ExplicitDataRule())
                          .setPostScaling(LinearScaling(2, 3))
-                         .setReferenceDomainId("RefDomId")
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId("RefDomId").build())
                          .build(),
                      InvalidParameterException,
-                     "Reference domain id not supported with post scaling.");
+                     "Reference Domain Info not supported with post scaling.");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
@@ -470,10 +478,10 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
                          .setSampleType(SampleType::Float64)
                          .setRule(ExplicitDataRule())
                          .setPostScaling(LinearScaling(2, 3))
-                         .setReferenceDomainOffset(100)
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference domain offset not supported with post scaling.");
+                     "Reference Domain Info not supported with post scaling.");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteWithPostScaling)
@@ -482,10 +490,10 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIsAbsoluteWithPostScaling)
                          .setSampleType(SampleType::Float64)
                          .setRule(ExplicitDataRule())
                          .setPostScaling(LinearScaling(2, 3))
-                         .setReferenceDomainIsAbsolute(False)
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainIsAbsolute(False).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference domain is absolute not supported with post scaling.");
+                     "Reference Domain Info not supported with post scaling.");
 }
 
 END_NAMESPACE_OPENDAQ

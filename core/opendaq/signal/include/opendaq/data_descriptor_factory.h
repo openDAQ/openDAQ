@@ -22,6 +22,7 @@
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/scaling_factory.h>
+#include "reference_domain_info_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -78,9 +79,7 @@ inline StructTypePtr DataDescriptorStructType()
                                     "TickResolution",
                                     "StructFields",
                                     "Metadata",
-                                    "ReferenceDomainId",
-                                    "ReferenceDomainOffset",
-                                    "ReferenceDomainIsAbsolute"),
+                                    "ReferenceDomainInfo"),
                       List<IBaseObject>(List<IDimension>(),
                                         "",
                                         0,
@@ -92,8 +91,6 @@ inline StructTypePtr DataDescriptorStructType()
                                         nullptr,
                                         nullptr,
                                         Dict<IString, IBaseObject>(),
-                                        nullptr,
-                                        nullptr,
                                         nullptr),
                       List<IType>(SimpleType(ctList),
                                   SimpleType(ctString),
@@ -106,9 +103,7 @@ inline StructTypePtr DataDescriptorStructType()
                                   RatioStructType(),
                                   SimpleType(ctList),
                                   SimpleType(ctDict),
-                                  SimpleType(ctString),
-                                  SimpleType(ctInt),
-                                  SimpleType(ctBool)
+                                  ReferenceDomainInfoStructType()
                       ));
 }
 

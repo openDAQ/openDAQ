@@ -20,8 +20,8 @@
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/deleter_ptr.h>
 #include <opendaq/generic_data_packet_impl.h>
-#include <opendaq/reference_domain_offset_adder.h>
 #include <opendaq/range_factory.h>
+#include <opendaq/reference_domain_offset_adder.h>
 #include <opendaq/reusable_data_packet.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
@@ -123,7 +123,8 @@ void DataPacketImpl<TInterface>::initPacket()
 
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
 
-    hasReferenceDomainOffset = descriptor.getReferenceDomainOffset() != nullptr;
+    hasReferenceDomainOffset =
+        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
 
     hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
@@ -253,7 +254,8 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
         throw InvalidParameterException("Constant data rule with post scaling not supported.");
     hasRawDataOnly = false;
 
-    hasReferenceDomainOffset = descriptor.getReferenceDomainOffset() != nullptr;
+    hasReferenceDomainOffset =
+        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
 }
 
 template <typename TInterface>
@@ -335,7 +337,7 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     if (hasReferenceDomainOffset)
                     {
                         auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetAdderTyped(
-                            descriptor.getSampleType(), descriptor.getReferenceDomainOffset(), sampleCount));
+                            descriptor.getSampleType(), descriptor.getReferenceDomainInfo().getReferenceDomainOffset(), sampleCount));
 
                         if (data)
                         {

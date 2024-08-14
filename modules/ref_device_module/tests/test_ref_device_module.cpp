@@ -171,7 +171,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getReferenceDomainId();
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
     ASSERT_EQ(res, "RefDev1");
 }
 
@@ -182,7 +182,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getReferenceDomainOffset();
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainOffset();
     ASSERT_EQ(res, 0);
 }
 
@@ -193,7 +193,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIsAbsolute)
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getReferenceDomainIsAbsolute();
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainIsAbsolute();
     ASSERT_EQ(res, nullptr);
 }
 

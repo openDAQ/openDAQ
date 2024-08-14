@@ -423,15 +423,15 @@ void RefChannelImpl::buildSignalDescriptors()
 
     deltaT = getDeltaT(sampleRate);
 
-    const auto timeDescriptor = DataDescriptorBuilder()
-                                    .setSampleType(SampleType::Int64)
-                                    .setUnit(Unit("s", -1, "seconds", "time"))
-                                    .setTickResolution(getResolution())
-                                    .setRule(LinearDataRule(deltaT, 0))
-                                    .setOrigin(getEpoch())
-                                    .setName("Time AI " + std::to_string(index + 1))
-                                    .setReferenceDomainId(deviceLocalId)
-                                    .setReferenceDomainOffset(0);
+    const auto timeDescriptor =
+        DataDescriptorBuilder()
+            .setSampleType(SampleType::Int64)
+            .setUnit(Unit("s", -1, "seconds", "time"))
+            .setTickResolution(getResolution())
+            .setRule(LinearDataRule(deltaT, 0))
+            .setOrigin(getEpoch())
+            .setName("Time AI " + std::to_string(index + 1))
+            .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId(deviceLocalId).setReferenceDomainOffset(0).build());
 
     timeSignal.setDescriptor(timeDescriptor.build());
 }

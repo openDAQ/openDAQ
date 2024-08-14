@@ -20,9 +20,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
     , resolution(nullptr)
     , structFields(List<IDataDescriptor>())
     , metadata(Dict<IString, IString>())
-    , referenceDomainId(nullptr)
-    , referenceDomainOffset(nullptr)
-    , referenceDomainIsAbsolute(nullptr)
+    , referenceDomainInfo(nullptr)
 {
 }
 
@@ -38,9 +36,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , resolution(descriptorCopy.getTickResolution())
     , structFields(descriptorCopy.getStructFields())
     , metadata(descriptorCopy.getMetadata())
-    , referenceDomainId(descriptorCopy.getReferenceDomainId())
-    , referenceDomainOffset(descriptorCopy.getReferenceDomainOffset())
-    , referenceDomainIsAbsolute(descriptorCopy.getReferenceDomainIsAbsolute())
+    , referenceDomainInfo(descriptorCopy.getReferenceDomainInfo())
 {
 }
 
@@ -209,42 +205,16 @@ ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::setReferenceDomainId(IString* referenceDomainId)
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
 {
-    this->referenceDomainId = referenceDomainId;
+    this->referenceDomainInfo = referenceDomainInfo;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::getReferenceDomainId(IString** referenceDomainId)
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setReferenceDomainOffset(IInteger* referenceDomainOffset)
-{
-    this->referenceDomainOffset = referenceDomainOffset;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getReferenceDomainOffset(IInteger** referenceDomainOffset)
-{
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainOffset);
-    *referenceDomainOffset = this->referenceDomainOffset.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute)
-{
-    this->referenceDomainIsAbsolute = referenceDomainIsAbsolute;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute)
-{
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainIsAbsolute);
-    *referenceDomainIsAbsolute = this->referenceDomainIsAbsolute.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainInfo);
+    *referenceDomainInfo = this->referenceDomainInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

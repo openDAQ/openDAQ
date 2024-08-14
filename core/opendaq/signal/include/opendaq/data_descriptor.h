@@ -23,8 +23,7 @@
 #include <opendaq/data_rule.h>
 #include <opendaq/scaling.h>
 #include <opendaq/sample_type.h>
-#include <coretypes/boolean.h>
-#include <coretypes/integer.h>
+#include <opendaq/reference_domain_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,8 +32,6 @@ struct IDataDescriptorBuilder;
 /*#
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
- * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -236,28 +233,13 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) = 0;
 
     /*!
-     * @brief Gets the reference domain id.
-     * @param[out] referenceDomainId The reference domain id.
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
 
-    /*!
-     * @brief Gets the reference domain offset.
-     * @param[out] referenceDomainOffset The reference domain offset.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
-
-    /*!
-     * @brief Gets the flag that indicates if the reference domain is absolute.
-     * @param[out] referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
 };
 /*!@}*/
 

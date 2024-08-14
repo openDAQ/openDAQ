@@ -22,8 +22,6 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [include(ISampleType)]
  * [interfaceLibrary(IUnit, CoreObjects)]
- * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -215,54 +213,20 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the reference domain id.
-     * @param referenceDomainId The reference domain id.
+     * @brief Sets the Reference Domain Info.
+     * @param referenceDomainInfo The Reference Domain Info.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) = 0;
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo) = 0;
 
     /*!
-     * @brief Gets the reference domain id.
-     * @param[out] referenceDomainId The reference domain id.
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the reference domain offset.
-     * @param referenceDomainOffset The reference domain offset.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) = 0;
-
-    /*!
-     * @brief Gets the reference domain offset.
-     * @param[out] referenceDomainOffset The reference domain offset.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the flag that indicates if the reference domain is absolute.
-     * @param referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC setReferenceDomainIsAbsolute(IBoolean* referenceDomainIsAbsolute) = 0;
-
-    /*!
-     * @brief Gets the flag that indicates if the reference domain is absolute.
-     * @param[out] referenceDomainIsAbsolute The flag that indicates if the reference domain is absolute.
-     *
-     * TODO description
-     */
-    virtual ErrCode INTERFACE_FUNC getReferenceDomainIsAbsolute(IBoolean** referenceDomainIsAbsolute) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
 };
 /*!@}*/
 

@@ -480,10 +480,7 @@ public partial class frmMain : Form
             return;
         }
 
-        AttributeItem selectedAttributeObject = (AttributeItem)this.gridAttributes.SelectedRows[0].DataBoundItem;
-
-        EditSelectedAttribute(this, selectedAttributeObject);
-        UpdateAttributes((Component)selectedAttributeObject.OpenDaqObject);
+        EditSelectedAttribute();
     }
 
     #endregion gridProperties

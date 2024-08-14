@@ -704,27 +704,40 @@ template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IDict* updateEndProcedures)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
-    const auto updateEndProcedurePtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
+    auto updateEndProcedurePtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
 
     return daqTry(
-        [&objPtr, &updateEndProcedurePtr, this]()
+        [&objPtr, &updateEndProcedurePtr, this]
         {
             const bool muted = this->coreEventMuted;
-            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
-            const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+            const auto propInternalPtr = this->template thisPtr<PropertyObjectInternalPtr>();
             if (!muted)
                 propInternalPtr.disableCoreEventTrigger();
 
             const auto err = Super::update(objPtr, updateEndProcedurePtr);
 
             updateObject(objPtr, updateEndProcedurePtr);
-            onUpdatableUpdateEnd();
 
-            if (!muted && this->coreEvent.assigned())
+            auto finalyzeCallback = [this, propInternalPtr]
             {
-                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
-                triggerCoreEvent(args);
-                propInternalPtr.enableCoreEventTrigger();
+                onUpdatableUpdateEnd();
+                if (!this->coreEventMuted && this->coreEvent.assigned())
+                {
+                    const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+                    triggerCoreEvent(args);
+                    propInternalPtr.enableCoreEventTrigger();
+                }
+            };
+
+            if (updateEndProcedurePtr.assigned())
+            {
+                StringPtr globalId;
+                getGlobalId(&globalId);
+                updateEndProcedurePtr.set(globalId, Procedure(finalyzeCallback));
+            }
+            else
+            {
+                finalyzeCallback();
             }
             return err;
         });
@@ -947,7 +960,7 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& /*updateEndProcedures*/)
 {
     const auto flags = getSerializeFlags();
     if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))

@@ -1724,6 +1724,8 @@ public partial class frmMain : Form
         {
             frm.ShowDialog(this);
         }
+
+        UpdateInputPorts(_selectedComponent);
     }
 
     #endregion Input-ports view
@@ -1876,6 +1878,8 @@ public partial class frmMain : Form
         {
             frm.ShowDialog(this);
         }
+
+        UpdateOutputSignals(_selectedComponent);
     }
 
     #endregion Output-signals view

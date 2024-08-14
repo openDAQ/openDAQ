@@ -188,42 +188,17 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");
-    cls.def_property("reference_domain_id",
+    cls.def_property("reference_domain_info",
         [](daq::IDataDescriptorBuilder *object)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            return objectPtr.getReferenceDomainId().toStdString();
+            return objectPtr.getReferenceDomainInfo().detach();
         },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& referenceDomainId)
+        [](daq::IDataDescriptorBuilder *object, daq::IReferenceDomainInfo* referenceDomainInfo)
         {
             const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setReferenceDomainId(getVariantValue<daq::IString*>(referenceDomainId));
-        },
-        "Gets the reference domain id. / Sets the reference domain id.");
-    cls.def_property("reference_domain_offset",
-        [](daq::IDataDescriptorBuilder *object)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            return objectPtr.getReferenceDomainOffset().detach();
-        },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& referenceDomainOffset)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setReferenceDomainOffset(getVariantValue<daq::IInteger*>(referenceDomainOffset));
+            objectPtr.setReferenceDomainInfo(referenceDomainInfo);
         },
         py::return_value_policy::take_ownership,
-        "Gets the reference domain offset. / Sets the reference domain offset.");
-    cls.def_property("reference_domain_is_absolute",
-        [](daq::IDataDescriptorBuilder *object)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            return objectPtr.getReferenceDomainIsAbsolute().detach();
-        },
-        [](daq::IDataDescriptorBuilder *object, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& referenceDomainIsAbsolute)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setReferenceDomainIsAbsolute(getVariantValue<daq::IBoolean*>(referenceDomainIsAbsolute));
-        },
-        py::return_value_policy::take_ownership,
-        "Gets the flag that indicates if the reference domain is absolute. / Sets the flag that indicates if the reference domain is absolute.");
+        "Gets the Reference Domain Info. / Sets the Reference Domain Info.");
 }

@@ -139,27 +139,12 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
             return objectPtr.getRawSampleSize();
         },
         "Gets the actual sample size in buffer of one sample in bytes.");
-    cls.def_property_readonly("reference_domain_id",
+    cls.def_property_readonly("reference_domain_info",
         [](daq::IDataDescriptor *object)
         {
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
-            return objectPtr.getReferenceDomainId().toStdString();
-        },
-        "Gets the reference domain id.");
-    cls.def_property_readonly("reference_domain_offset",
-        [](daq::IDataDescriptor *object)
-        {
-            const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
-            return objectPtr.getReferenceDomainOffset().detach();
+            return objectPtr.getReferenceDomainInfo().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the reference domain offset.");
-    cls.def_property_readonly("reference_domain_is_absolute",
-        [](daq::IDataDescriptor *object)
-        {
-            const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
-            return objectPtr.getReferenceDomainIsAbsolute().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Gets the flag that indicates if the reference domain is absolute.");
+        "Gets the Reference Domain Info.");
 }

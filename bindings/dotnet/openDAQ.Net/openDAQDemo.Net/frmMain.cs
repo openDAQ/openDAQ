@@ -1041,24 +1041,44 @@ public partial class frmMain : Form
             var propertySelectionValues = property.SelectionValues;
 
             if (propertySelectionValues != null)
-            {
-                if (propertySelectionValues.CanCastTo<ListObject<StringObject>>())
-                {
-                    IList<StringObject> listObject = propertySelectionValues.Cast<ListObject<StringObject>>();
-                    propertyValue = listObject[(int)propertyValue];
-                }
-                else if (propertySelectionValues.CanCastTo<DictObject<IntegerObject, StringObject>>())
-                {
-                    IDictionary<IntegerObject, StringObject> listObject = propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>();
-                    propertyValue = listObject[(int)propertyValue];
-                }
-                else
-                {
-                    propertyValue = "( unknown selection-value type )";
-                }
-            }
+                propertyValue = HandleSelectionValues(propertyValue, propertySelectionValues);
 
             _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description, property));
+        }
+
+
+        //----- local functions ------------------------------------------------
+
+        static BaseObject HandleSelectionValues(BaseObject propertyValue, BaseObject propertySelectionValues)
+        {
+            if (propertySelectionValues.CanCastTo<ListObject<StringObject>>())
+            {
+                int propertyValueIndex = (int)propertyValue;
+
+                IList<StringObject> listObject = propertySelectionValues.Cast<ListObject<StringObject>>();
+
+                if ((propertyValueIndex >= 0) && (propertyValueIndex < listObject.Count))
+                    propertyValue = listObject[propertyValueIndex];
+                else
+                    propertyValue = $"n/a ({propertyValueIndex})";
+            }
+            else if (propertySelectionValues.CanCastTo<DictObject<IntegerObject, StringObject>>())
+            {
+                int propertyValueIndex = (int)propertyValue;
+
+                IDictionary<IntegerObject, StringObject> dictObject = propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>();
+
+                if ((propertyValueIndex >= 0) && (propertyValueIndex < dictObject.Count))
+                    propertyValue = dictObject[propertyValueIndex];
+                else
+                    propertyValue = $"n/a ({propertyValueIndex})";
+            }
+            else
+            {
+                propertyValue = "( unknown selection-value type )";
+            }
+
+            return propertyValue;
         }
     }
 
@@ -1248,13 +1268,13 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(Component component, BindingList<AttributeItem> attributeItems)
     {
-       attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
-       attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
-       attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
-       attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
+        attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
+        attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
+        attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
+        attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
     }
 
     /// <summary>
@@ -1276,11 +1296,11 @@ public partial class frmMain : Form
     {
         string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? Array.Empty<string>());
 
-       attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
-       attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
-       attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
-       attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
-       attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
+        attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
+        attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
+        attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
     }
 
     /// <summary>
@@ -1290,8 +1310,8 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(InputPort inputPort, BindingList<AttributeItem> attributeItems)
     {
-       attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
-       attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
+        attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
+        attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
     }
 
     /// <summary>

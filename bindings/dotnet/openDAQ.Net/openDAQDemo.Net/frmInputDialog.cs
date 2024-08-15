@@ -272,6 +272,10 @@ public partial class frmInputDialog : Form
                                long originalValue,
                                IList<StringObject> selectionValues)
     {
+        int    selectedIndex = (int)originalValue;
+        if (selectedIndex >= selectionValues.Count)
+            selectedIndex = -1;
+
         using (var dlg = new frmInputDialog())
         {
             dlg.Text            = title;
@@ -281,7 +285,9 @@ public partial class frmInputDialog : Form
 
             dlg.comboBoxValue.Items.AddRange(selectionValues.ToArray());
             dlg.comboBoxValue.DropDownStyle = ComboBoxStyle.DropDownList;
-            dlg.comboBoxValue.Text          = selectionValues[(int)originalValue];
+            dlg.comboBoxValue.SelectedIndex = selectedIndex;
+
+            dlg.btnOK.Enabled = (dlg.comboBoxValue.Items.Count > 0);
 
             if (dlg.ShowDialog(owner) == DialogResult.OK)
                 return dlg.comboBoxValue.SelectedIndex;
@@ -305,6 +311,10 @@ public partial class frmInputDialog : Form
                                long originalValue,
                                IDictionary<IntegerObject, StringObject> selectionValues)
     {
+        int    selectedIndex = (int)originalValue;
+        if (selectedIndex >= selectionValues.Count)
+            selectedIndex = -1;
+
         using (var dlg = new frmInputDialog())
         {
             dlg.Text            = title;
@@ -314,7 +324,9 @@ public partial class frmInputDialog : Form
 
             dlg.comboBoxValue.Items.AddRange(selectionValues.Values.ToArray());
             dlg.comboBoxValue.DropDownStyle = ComboBoxStyle.DropDownList;
-            dlg.comboBoxValue.Text          = selectionValues[(int)originalValue];
+            dlg.comboBoxValue.SelectedIndex = selectedIndex;
+
+            dlg.btnOK.Enabled = (dlg.comboBoxValue.Items.Count > 0);
 
             if (dlg.ShowDialog(owner) == DialogResult.OK)
                 return dlg.comboBoxValue.SelectedIndex;

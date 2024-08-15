@@ -609,6 +609,7 @@ public partial class frmMain : Form
         imageList.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
         imageList.Images.Add(nameof(GlblRes.channel),        (Bitmap)GlblRes.channel.Clone());
         imageList.Images.Add(nameof(GlblRes.signal),         (Bitmap)GlblRes.signal.Clone());
+        imageList.Images.Add(nameof(GlblRes.link),           (Bitmap)GlblRes.link.Clone());
     }
 
     /// <summary>
@@ -786,18 +787,13 @@ public partial class frmMain : Form
             iconKey = nameof(GlblRes.device);
         else if (component.CanCastTo<Folder>())
         {
-            iconKey = nameof(GlblRes.folder);
-
-            if (componentName == "Sig")
-                componentName = "Signals";
-            else if (componentName == "FB")
-                componentName = "Function blocks";
-            else if (componentName == "Dev")
-                componentName = "Devices";
-            else if (componentName == "IP")
-                componentName = "Input ports";
-            else if (componentName == "IO")
-                componentName = "Inputs/Outputs";
+            iconKey       = nameof(GlblRes.folder);
+            componentName = GetStandardFolderName(componentName);
+        }
+        else if (component.CanCastTo<SyncComponent>())
+        {
+            iconKey       = nameof(GlblRes.link);
+            componentName = GetStandardFolderName(componentName);
         }
         else
         {
@@ -809,8 +805,25 @@ public partial class frmMain : Form
         if (!skip)
         {
             var parentNodesCollection = GetNodesCollection(parentId);
-            var node = AddNode(parentNodesCollection, key: componentNodeId, componentName, iconKey);
-            node.Tag = component;
+            var node                  = AddNode(parentNodesCollection, key: componentNodeId, componentName, iconKey);
+            node.Tag                  = component;
+        }
+
+
+        //----- local functions ----------------------------------------------
+
+        static string GetStandardFolderName(string folderName)
+        {
+            return folderName switch
+            {
+                "Sig"  => "Signals",
+                "FB"   => "Function blocks",
+                "Dev"  => "Devices",
+                "IP"   => "Input ports",
+                "IO"   => "Inputs/Outputs'",
+                "Sync" => "Synchronization'",
+                _      => folderName,
+            };
         }
     }
 
@@ -989,33 +1002,7 @@ public partial class frmMain : Form
         if (component == null)
             return;
 
-        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
-
-        switch (component)
-        {
-            case Component when useComponentApproach:
-                ListProperties(component);
-                break;
-
-            //the following cases are meant for the object list approach of the system overview
-
-            case Device device:
-                ListProperties(device);
-                break;
-
-            case Channel channel: //this is also a FunctionBlock
-                ListProperties(channel);
-                break;
-
-            case Signal signal:
-                ListProperties(signal);
-                break;
-
-            case FunctionBlock functionBlock:
-                ListProperties(functionBlock);
-                break;
-        }
+        ListProperties(component);
 
         this.gridProperties.ClearSelection();
         this.gridProperties.AutoResizeColumns();
@@ -1259,6 +1246,8 @@ public partial class frmMain : Form
             ListAttributes(inputPort, attributeItems);
         else if (component.Cast<FunctionBlock>() is FunctionBlock functionBlock)
             ListAttributes(functionBlock, attributeItems);
+
+        //no <SyncComponent> here as its attributes are also properties
     }
 
     /// <summary>

@@ -92,6 +92,23 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * TODO description
      */
     virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the value that indicates if offset is used.
+     * @param[out] usesOffset The value that indicates if offset is used.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset usesOffset) = 0;
+
+    /*!
+     * @brief Gets the value that indicates if offset is used.
+     * @param[out] usesOffset The value that indicates if offset is used.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* usesOffset) = 0;
 };
 /*!@}*/
 

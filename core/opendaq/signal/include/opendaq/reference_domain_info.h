@@ -29,6 +29,13 @@ enum class TimeSource : EnumType
     Utc
 };
 
+enum class UsesOffset : EnumType
+{
+    Unknown,
+    True,
+    False
+};
+
 struct IReferenceDomainInfoBuilder;
 
 /*#
@@ -72,6 +79,14 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * TODO description
      */
     virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) = 0;
+
+    /*!
+     * @brief Gets the value that indicates if offset is used.
+     * @param[out] usesOffset The value that indicates if offset is used.
+     *
+     * TODO description
+     */
+    virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset * usesOffset) = 0;
 };
 /*!@}*/
 

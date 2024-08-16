@@ -62,9 +62,9 @@ inline ReferenceDomainInfoPtr ReferenceDomainInfoFromBuilder(const ReferenceDoma
 inline StructTypePtr ReferenceDomainInfoStructType()
 {
     return StructType("ReferenceDomainInfo",
-                      List<IString>("ReferenceDomainId", "ReferenceDomainOffset", "ReferenceTimeSource"),
-                      List<IBaseObject>(nullptr, nullptr, 0),
-                      List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctInt)));
+                      List<IString>("ReferenceDomainId", "ReferenceDomainOffset", "ReferenceTimeSource", "UsesOffset"),
+                      List<IBaseObject>(nullptr, nullptr, 0, 0),
+                      List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt)));
 }
 
 /*!@}*/

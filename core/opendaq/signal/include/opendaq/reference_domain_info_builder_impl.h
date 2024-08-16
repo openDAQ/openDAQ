@@ -37,10 +37,14 @@ public:
     ErrCode INTERFACE_FUNC setReferenceTimeSource(TimeSource referenceTimeSource) override;
     ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) override;
 
+    ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* referenceTimeSource) override;
+
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
     TimeSource referenceTimeSource;
+    UsesOffset usesOffset;
 };
 
 END_NAMESPACE_OPENDAQ

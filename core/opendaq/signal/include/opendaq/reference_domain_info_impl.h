@@ -30,6 +30,7 @@ public:
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* usesOffset) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -48,6 +49,7 @@ protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
     TimeSource referenceTimeSource;
+    UsesOffset usesOffset;
 
 private:
     static DictPtr<IString, IBaseObject> PackBuilder(IReferenceDomainInfoBuilder* referenceDomainInfoBuilder);

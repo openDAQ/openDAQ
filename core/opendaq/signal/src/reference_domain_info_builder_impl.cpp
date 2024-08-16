@@ -9,6 +9,7 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     : referenceDomainId(nullptr)
     , referenceDomainOffset(nullptr)
     , referenceTimeSource(TimeSource::Unknown)
+    , usesOffset(UsesOffset::Unknown)
 {
 }
 
@@ -16,6 +17,7 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl(const ReferenceDo
     : referenceDomainId(infoCopy.getReferenceDomainId())
     , referenceDomainOffset(infoCopy.getReferenceDomainOffset())
     , referenceTimeSource(infoCopy.getReferenceTimeSource())
+    , usesOffset(infoCopy.getUsesOffset())
 {
 }
 
@@ -69,6 +71,19 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeSource(TimeSource* refer
 {
     OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
     *referenceTimeSource = this->referenceTimeSource;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ReferenceDomainInfoBuilderImpl::setUsesOffset(UsesOffset usesOffset)
+{
+    this->usesOffset = usesOffset;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ReferenceDomainInfoBuilderImpl::getUsesOffset(UsesOffset* usesOffset)
+{
+    OPENDAQ_PARAM_NOT_NULL(usesOffset);
+    *usesOffset = this->usesOffset;
     return OPENDAQ_SUCCESS;
 }
 

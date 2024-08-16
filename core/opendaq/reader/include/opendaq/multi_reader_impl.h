@@ -147,7 +147,6 @@ private:
     void isDomainValid(const ListPtr<IInputPortConfig>& list);
     void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
-    struct ReferenceDomainBin;
     ContextPtr context;
 };
 

@@ -173,36 +173,11 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     return list;
 }
 
-struct MultiReaderImpl::ReferenceDomainBin
-{
-    StringPtr id;
-    BoolPtr isAbsolute;
-
-    bool operator<(const ReferenceDomainBin& rhs) const
-    {
-        if (id == rhs.id)
-        {
-            // Both ids are the same
-            if (!rhs.isAbsolute.assigned())
-                return false;  // Right one doesn't have absolute assigned
-            if (isAbsolute.assigned() && rhs.isAbsolute.assigned())
-                return isAbsolute < rhs.isAbsolute;  // Absolute not the same, but both are assigned
-            return true;
-        }
-        if (id.assigned() && rhs.id.assigned())
-            return id < rhs.id;  // Ids not the same, but both are assigned
-        if (id.assigned())
-            return false;  // Ids are not the same, only left one is assigned
-        return true;       // Ids are not the same, only right one is assigned
-    }
-};
-
 void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
-
-    auto referenceDomainElts = std::set<ReferenceDomainBin>();
+    TimeSource timeSource = TimeSource::Unknown;
 
     for (const auto& port : list)
     {
@@ -267,68 +242,33 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             }
         }
 
-        auto refDomInfo = domainDescriptor.getReferenceDomainInfo();
+        auto referenceDomainInfo = domainDescriptor.getReferenceDomainInfo();
 
-        if (!refDomInfo.assigned())
+        if (!referenceDomainInfo.assigned())
         {
-            // This will be bumped up to a higher severity later on (warning)
-            LOG_I(R"("Domain signal "{}" Reference Domain Info is not assigned.")", domain.getLocalId());
+            LOG_I(R"(Domain signal "{}" Reference Domain Info not assigned.)", domain.getLocalId());
         }
         else
         {
-            ReferenceDomainBin refDomBin = {refDomInfo.getReferenceDomainId(), refDomInfo.getReferenceTimeSource()};
+            auto referenceDomainID = referenceDomainInfo.getReferenceDomainId();
 
-            // Check domain ID existence
-            if (!refDomBin.id.assigned())
+            if (!referenceDomainID.assigned() || referenceDomainID.getLength() == 0)
             {
-                // This will be bumped up to a higher severity later on (warning)
-                LOG_I(R"("Domain signal "{}" Reference Domain ID is not assigned.")", domain.getLocalId());
+                // This will perhaps be bumped up to a higher severity later on (warning)
+                LOG_I(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
             }
 
-            // Check reference domain (is absolute / ID matching)
-            if (!refDomBin.isAbsolute.assigned() || !refDomBin.isAbsolute)
+            if (referenceDomainInfo.getReferenceTimeSource() == TimeSource::Unknown)
             {
-                // Is not absolute
-
-                // Set state to invalid if a reference domain "group"
-                // (group = signals with the same reference domain ID)
-                // exists in which none of its member signals are absolute
-
-                // Set is ordered by domain ID and domain is absolute (nullptr first), so we can do the following:
-
-                auto elt = referenceDomainElts.begin();
-
-                while (elt != referenceDomainElts.end())
-                {
-                    // Traverse one group
-
-                    bool needsAbs = false;
-                    bool hasAbs = false;
-                    auto groupDomainId = elt->id;
-
-                    while (elt != referenceDomainElts.end() && elt->id == groupDomainId)
-                    {
-                        if (groupDomainId.assigned() && refDomBin.id.assigned() && groupDomainId != refDomBin.id)
-                        {
-                            // Both are assigned, but not matching
-                            // Needs absolute
-                            needsAbs = true;
-                        }
-                        if (elt->isAbsolute.assigned() && elt->isAbsolute)
-                        {
-                            // Group (domain signals with identical domain ID) has at least one absolute
-                            hasAbs = true;
-                        }
-                        ++elt;
-                    }
-
-                    if (needsAbs && !hasAbs)
-                    {
-                        throw InvalidStateException("Reference domain incompatible.");
-                    }
-                }
+                // This will perhaps be bumped up to a higher severity later on (warning)
+                LOG_I(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
             }
-            referenceDomainElts.insert(refDomBin);
+            else
+            {
+                if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
+                    throw InvalidStateException("One known Reference Time Source is allowed per Multi Reader.");
+                timeSource = referenceDomainInfo.getReferenceTimeSource();
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ TEST_F(DeviceDomainTest, DeviceDomainGetters)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("ReferenceDomainId")
                     .setReferenceDomainOffset(666)
-                    .setReferenceTimeSource(False).build();
+                    .setReferenceTimeSource(TimeSource::Unknown).build();
     auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), info);
 
     ASSERT_EQ(deviceDomain.getTickResolution(), Ratio(1, 3));
@@ -36,7 +36,7 @@ TEST_F(DeviceDomainTest, SerializeDeserialize)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("ReferenceDomainId")
                     .setReferenceDomainOffset(666)
-                    .setReferenceTimeSource(False)
+                    .setReferenceTimeSource(TimeSource::Unknown)
                     .build();
     auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), info);
     auto serializer = JsonSerializer(False);

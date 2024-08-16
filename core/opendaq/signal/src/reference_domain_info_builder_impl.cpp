@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     : referenceDomainId(nullptr)
     , referenceDomainOffset(nullptr)
-    , referenceTimeSource(nullptr)
+    , referenceTimeSource(TimeSource::Unknown)
 {
 }
 
@@ -59,16 +59,16 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainOffset(IInteger** refe
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::setReferenceTimeSource(IBoolean* referenceTimeSource)
+ErrCode ReferenceDomainInfoBuilderImpl::setReferenceTimeSource(TimeSource referenceTimeSource)
 {
     this->referenceTimeSource = referenceTimeSource;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeSource(IBoolean** referenceTimeSource)
+ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeSource(TimeSource* referenceTimeSource)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
-    *referenceTimeSource = this->referenceTimeSource.addRefAndReturn();
+    *referenceTimeSource = this->referenceTimeSource;
     return OPENDAQ_SUCCESS;
 }
 

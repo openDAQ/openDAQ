@@ -11,11 +11,11 @@ TEST_F(ReferenceDomainInfoTest, ValueDescriptorSetGet)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(False)
+                    .setReferenceTimeSource(TimeSource::Gps)
                     .build();
     ASSERT_EQ(info.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(info.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(info.getReferenceTimeSource(), False);
+    ASSERT_EQ(info.getReferenceTimeSource(), TimeSource::Gps);
 }
 
 TEST_F(ReferenceDomainInfoTest, ValueDescriptorCopyFactory)
@@ -23,14 +23,14 @@ TEST_F(ReferenceDomainInfoTest, ValueDescriptorCopyFactory)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(False)
+                    .setReferenceTimeSource(TimeSource::Gps)
                     .build();
 
     auto copy = ReferenceDomainInfoBuilderCopy(info).build();
 
     ASSERT_EQ(copy.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(copy.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(copy.getReferenceTimeSource(), False);
+    ASSERT_EQ(copy.getReferenceTimeSource(), TimeSource::Gps);
 }
 
 TEST_F(ReferenceDomainInfoTest, SerializeDeserialize)
@@ -38,7 +38,7 @@ TEST_F(ReferenceDomainInfoTest, SerializeDeserialize)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(False)
+                    .setReferenceTimeSource(TimeSource::Gps)
                     .build();
 
     auto serializer = JsonSerializer(False);
@@ -64,12 +64,12 @@ TEST_F(ReferenceDomainInfoTest, StructFields)
     const StructPtr info = ReferenceDomainInfoBuilder()
                                .setReferenceDomainId("testReferenceDomainId")
                                .setReferenceDomainOffset(53)
-                               .setReferenceTimeSource(False)
+                               .setReferenceTimeSource(TimeSource::Gps)
                                .build();
 
     ASSERT_EQ(info.get("ReferenceDomainId"), "testReferenceDomainId");
     ASSERT_EQ(info.get("ReferenceDomainOffset"), 53);
-    ASSERT_EQ(info.get("ReferenceTimeSource"), False);
+    ASSERT_EQ(info.get("ReferenceTimeSource"), TimeSource::Gps);
 }
 
 TEST_F(ReferenceDomainInfoTest, StructNames)
@@ -84,11 +84,11 @@ TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoBuilderSetGet)
     const auto infoBuilder = ReferenceDomainInfoBuilder()
                                  .setReferenceDomainId("testReferenceDomainId")
                                  .setReferenceDomainOffset(53)
-                                 .setReferenceTimeSource(False);
+                                 .setReferenceTimeSource(TimeSource::Gps);
 
     ASSERT_EQ(infoBuilder.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(infoBuilder.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(infoBuilder.getReferenceTimeSource(), False);
+    ASSERT_EQ(infoBuilder.getReferenceTimeSource(), TimeSource::Gps);
 }
 
 TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoCreateFactory)
@@ -96,27 +96,27 @@ TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoCreateFactory)
     const auto infoBuilder = ReferenceDomainInfoBuilder()
                                  .setReferenceDomainId("testReferenceDomainId")
                                  .setReferenceDomainOffset(53)
-                                 .setReferenceTimeSource(False);
+                                 .setReferenceTimeSource(TimeSource::Gps);
 
     const auto info = ReferenceDomainInfoFromBuilder(infoBuilder);
     ASSERT_EQ(info.getReferenceDomainId(), "testReferenceDomainId");
     ASSERT_EQ(info.getReferenceDomainOffset(), 53);
-    ASSERT_EQ(info.getReferenceTimeSource(), False);
+    ASSERT_EQ(info.getReferenceTimeSource(), TimeSource::Gps);
 }
 
 TEST_F(ReferenceDomainInfoTest, QueryInterface)
 {
     auto info =
-        ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(False).setReferenceDomainOffset(5).build();
+        ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).setReferenceDomainOffset(5).build();
 
     auto info1 = info.asPtr<IReferenceDomainInfo>();
     ASSERT_EQ(info1.getReferenceDomainId(), "A");
-    ASSERT_EQ(info1.getReferenceTimeSource(), False);
+    ASSERT_EQ(info1.getReferenceTimeSource(), TimeSource::Gps);
     ASSERT_EQ(info1.getReferenceDomainOffset(), 5);
 
     auto info2 = info.asPtr<IReferenceDomainInfo>(true);
     ASSERT_EQ(info2.getReferenceDomainId(), "A");
-    ASSERT_EQ(info2.getReferenceTimeSource(), False);
+    ASSERT_EQ(info2.getReferenceTimeSource(), TimeSource::Gps);
     ASSERT_EQ(info2.getReferenceDomainOffset(), 5);
 }
 

@@ -194,7 +194,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceTimeSource();
-    ASSERT_EQ(res, nullptr);
+    ASSERT_EQ(res, TimeSource::Unknown);
 }
 
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)

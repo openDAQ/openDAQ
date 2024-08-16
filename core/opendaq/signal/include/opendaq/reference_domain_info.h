@@ -21,6 +21,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+enum class TimeSource : EnumType
+{
+    Unknown,
+    Tai,
+    Gps,
+    Utc
+};
+
 struct IReferenceDomainInfoBuilder;
 
 /*#
@@ -63,7 +71,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      *
      * TODO description
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(IBoolean** referenceTimeSource) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) = 0;
 };
 /*!@}*/
 

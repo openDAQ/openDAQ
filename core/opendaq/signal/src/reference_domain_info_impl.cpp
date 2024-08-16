@@ -17,7 +17,7 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     auto params = Dict<IString, IBaseObject>();
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
-    params.set("ReferenceTimeSource", builderPtr.getReferenceTimeSource());
+    params.set("ReferenceTimeSource", static_cast<Int>(builderPtr.getReferenceTimeSource()));
     return params;
 }
 
@@ -48,11 +48,11 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainOffset(IIntege
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeSource(IBoolean** referenceTimeSource)
+ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeSource(TimeSource* referenceTimeSource)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
 
-    *referenceTimeSource = this->referenceTimeSource.addRefAndReturn();
+    *referenceTimeSource = this->referenceTimeSource;
 
     return OPENDAQ_SUCCESS;
 }
@@ -77,7 +77,7 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool*
                 return OPENDAQ_SUCCESS;
             if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
                 return OPENDAQ_SUCCESS;
-            if (!BaseObjectPtr::Equals(referenceTimeSource, info.getReferenceTimeSource()))
+            if (referenceTimeSource != info.getReferenceTimeSource())
                 return OPENDAQ_SUCCESS;
 
             *equals = true;
@@ -103,11 +103,8 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
             serializer->writeInt(referenceDomainOffset);
         }
 
-        if (referenceTimeSource.assigned())
-        {
-            serializer->key("referenceTimeSource");
-            serializer->writeBool(referenceTimeSource);
-        }
+        serializer->key("referenceTimeSource");
+        serializer->writeInt(static_cast<Int>(referenceTimeSource));
     }
     serializer->endObject();
 
@@ -154,7 +151,7 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
 
     if (serializedObj.hasKey("referenceTimeSource"))
     {
-        auto referenceTimeSource = serializedObj.readBool("referenceTimeSource");
+        auto referenceTimeSource = static_cast<TimeSource>(serializedObj.readInt("referenceTimeSource"));
         dataDescriptor.setReferenceTimeSource(referenceTimeSource);
     }
 

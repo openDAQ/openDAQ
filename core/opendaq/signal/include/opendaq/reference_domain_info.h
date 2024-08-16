@@ -59,7 +59,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * @param[out] referenceDomainId The Reference Domain ID.
      *
      * If set, gives the common identifier of one domain group. 
-     * Signals with the same reference Domain ID share a common synchronization source
+     * Signals with the same Reference Domain ID share a common synchronization source
      * (all the signals in a group either come from the same device 
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader 
@@ -72,7 +72,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * @param[out] referenceDomainOffset The Reference Domain Offset.
      *
      * If set, denotes the offset in ticks that must be added to the domain values of the signal 
-     * for them to be equal of that of the sync source. The sync source will always have an offset of 0. 
+     * for them to be equal to that of the sync source. The sync source will always have an offset of 0. 
      * This offset is changed only if the sync source changes and should be kept at 0 otherwise, 
      * allowing clients to differentiate between data loss and resync events. 
      * Any device can choose to always keep the offset at 0, representing changes in the offset in 

@@ -80,7 +80,7 @@ class PropertiesView(tk.Frame):
             elif property_info.value_type == daq.CoreType.ctFunc:
                 property_value = "Method"
             elif property_info.value_type == daq.CoreType.ctStruct:
-                property_value = "Struct"
+                property_value = "Struct {{{}}}".format(property_info.name)
             else:
                 property_value = printed_value(
                     property_info.item_type, node.get_property_value(property_info.name))

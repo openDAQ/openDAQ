@@ -460,9 +460,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
 
 template <class PropObjInterface, class... Interfaces>
 BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyValueWrite(const PropertyPtr& prop,
-                                                                                        const BaseObjectPtr& newValue,
-                                                                                        PropertyEventType changeType,
-                                                                                        bool isUpdating)
+                                                                                                 const BaseObjectPtr& newValue,
+                                                                                                 PropertyEventType changeType,
+                                                                                                 bool isUpdating)
 {
     if (!prop.assigned())
     {
@@ -471,9 +471,9 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
 
     auto args = PropertyValueEventArgs(prop, newValue, changeType, isUpdating);
 
-    if (prop.assigned())
+    if (!localProperties.count(prop.getName()))
     {
-        PropertyValueEventEmitter propEvent{prop.getOnPropertyValueWrite()};
+        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite()};
         if (propEvent.hasListeners())
         {
             propEvent(objPtr, args);
@@ -513,10 +513,14 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
     }
 
     auto args = PropertyValueEventArgs(prop, readValue, PropertyEventType::Read, False);
-    PropertyValueEventEmitter propEvent{prop.getOnPropertyValueRead()};
-    if (propEvent.hasListeners())
+
+    if (!localProperties.count(prop.getName()))
     {
-        propEvent(objPtr, args);
+        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueRead()};
+        if (propEvent.hasListeners())
+        {
+            propEvent(objPtr, args);
+        }
     }
 
     const auto name = prop.getName();
@@ -1636,13 +1640,31 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
 
         if (hasDuplicateReferences(propPtr))
             return this->makeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
-
+        
         propPtr.asPtr<IOwnable>().setOwner(objPtr);
 
         const auto res = localProperties.insert(std::make_pair(propName, propPtr));
         if (!res.second)
             return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
         
+        auto readEvent = propPtr.asPtr<IPropertyInternal>().getClassOnPropertyValueRead();
+        if (readEvent.getListenerCount())
+        {
+            PropertyValueEventEmitter emitter;
+            valueReadEvents.emplace(propName, emitter);
+            for (const auto& listener : readEvent.getListeners())
+                emitter.addHandler(listener);
+        }
+
+        auto writeEvent = propPtr.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite();
+        if (writeEvent.getListenerCount())
+        {
+            PropertyValueEventEmitter emitter;
+            valueWriteEvents.emplace(propName, emitter);
+            for (const auto& listener : writeEvent.getListeners())
+                emitter.addHandler(listener);
+        }
+
         cloneAndSetChildPropertyObject(propPtr);
 
         if (!coreEventMuted && triggerCoreEvent.assigned())

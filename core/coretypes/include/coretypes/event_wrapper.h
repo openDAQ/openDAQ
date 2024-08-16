@@ -130,6 +130,16 @@ public:
         return eventPtr.getListenerCount();
     }
 
+    ListPtr<IEventHandler> getListeners()
+    {
+        if (!eventPtr.assigned())
+        {
+            throw InvalidParameterException("Invalid or uninitialized event.");
+        }
+
+        return eventPtr.getListeners();
+    }
+
     void mute() const
     {
         if (!eventPtr.assigned())

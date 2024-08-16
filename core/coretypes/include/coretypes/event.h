@@ -38,6 +38,7 @@ DECLARE_OPENDAQ_INTERFACE(IEvent, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC clear() = 0;
     virtual ErrCode INTERFACE_FUNC getSubscriberCount(SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC getSubscribers(IList** subscribers) = 0;
 
     virtual ErrCode INTERFACE_FUNC mute() = 0;
     virtual ErrCode INTERFACE_FUNC unmute() = 0;

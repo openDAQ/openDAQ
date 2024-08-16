@@ -73,17 +73,16 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
         },
         py::return_value_policy::take_ownership,
         "Gets the Reference Domain Offset. / Sets the Reference Domain Offset.");
-    cls.def_property("reference_domain_is_absolute",
+    cls.def_property("reference_time_source",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            return objectPtr.getReferenceDomainIsAbsolute().detach();
+            return objectPtr.getReferenceTimeSource();
         },
-        [](daq::IReferenceDomainInfoBuilder *object, std::variant<daq::IBoolean*, bool, daq::IEvalValue*>& referenceDomainIsAbsolute)
+        [](daq::IReferenceDomainInfoBuilder *object, daq::TimeSource referenceTimeSource)
         {
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            objectPtr.setReferenceDomainIsAbsolute(getVariantValue<daq::IBoolean*>(referenceDomainIsAbsolute));
+            objectPtr.setReferenceTimeSource(referenceTimeSource);
         },
-        py::return_value_policy::take_ownership,
-        "Gets the flag that indicates if the Reference Domain Is Absolute. / Sets the flag that indicates if the Reference Domain Is Absolute.");
+        "Gets the value that indicates the Reference Time Source. / Sets the value that indicates the Reference Time Source.");
 }

@@ -31,6 +31,12 @@
 
 PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainInfo(pybind11::module_ m)
 {
+    py::enum_<daq::TimeSource>(m, "TimeSource")
+        .value("Unknown", daq::TimeSource::Unknown)
+        .value("Tai", daq::TimeSource::Tai)
+        .value("Gps", daq::TimeSource::Gps)
+        .value("Utc", daq::TimeSource::Utc);
+
     return wrapInterface<daq::IReferenceDomainInfo, daq::IBaseObject>(m, "IReferenceDomainInfo");
 }
 
@@ -55,12 +61,11 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
         },
         py::return_value_policy::take_ownership,
         "Gets the Reference Domain Offset.");
-    cls.def_property_readonly("reference_domain_is_absolute",
+    cls.def_property_readonly("reference_time_source",
         [](daq::IReferenceDomainInfo *object)
         {
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
-            return objectPtr.getReferenceDomainIsAbsolute().detach();
+            return objectPtr.getReferenceTimeSource();
         },
-        py::return_value_policy::take_ownership,
-        "Gets the flag that indicates if the Reference Domain Is Absolute.");
+        "Gets the value that indicates the Reference Time Source.");
 }

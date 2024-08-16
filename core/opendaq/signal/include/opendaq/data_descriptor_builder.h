@@ -216,7 +216,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * @brief Sets the Reference Domain Info.
      * @param referenceDomainInfo The Reference Domain Info.
      *
-     * TODO description
+     * If set, gives additional information about the reference domain.
      */
     virtual ErrCode INTERFACE_FUNC setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo) = 0;
 
@@ -224,7 +224,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * @brief Gets the Reference Domain Info.
      * @param[out] referenceDomainInfo The Reference Domain Info.
      *
-     * TODO description
+     * If set, gives additional information about the reference domain.
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
 };

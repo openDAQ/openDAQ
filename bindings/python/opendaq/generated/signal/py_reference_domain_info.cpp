@@ -46,7 +46,7 @@ PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainIn
 
 void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> cls)
 {
-    cls.doc() = "TODO brief";
+    cls.doc() = "If set, gives additional information about the reference domain.";
 
     m.def("ReferenceDomainInfoFromBuilder", &daq::ReferenceDomainInfoFromBuilder_Create);
 

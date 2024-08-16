@@ -229,7 +229,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
                 throw InvalidValueException("Remote type different than local");*/
             localTypeManager.addType(type);
         }
-        catch (const AlreadyExistsException& e)
+        catch (const AlreadyExistsException&)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
             LOG_D("Type {} already exists in local type manager", type.getName());

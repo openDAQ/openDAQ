@@ -103,8 +103,7 @@ The Packet offset is contained in every packet with a _non-explicit_ rule.
 * If the Data rule is _explicit_, samples are found as part of the data buffer.
 * If the Data rule is _linear_, or _constant_, the buffer is `null`, and each sample is calculated with a given packet offset
 (the packet offset is available in every <<data_packet>> when required for the rule calculation):
-** *Linear rule*: `Sample value = Packet offset + Index * Delta + Start`; Where `Index` is the index of the sample in a
-packet. `Delta` and `Start` are given by the Data rule.
+** *Linear rule*: `ReferenceDomainOffset + PacketOffset + SampleIndex * delta + start`; Where `SampleIndex` is the index of the sample in a packet. `delta` and `start` are given by the Data rule. `ReferenceDomainOffset` is only applied if available in Reference Domain Info of the Domain Signal's Data Descriptor.
 ** *Constant rule*: `Sample value = Constant`; Where `Constant` is given by the Data rule.
 
 == Post-scaling

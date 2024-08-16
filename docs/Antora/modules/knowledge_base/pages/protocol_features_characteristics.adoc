@@ -263,6 +263,9 @@ The above table shows what features are enabled by what protocol. However, in re
 | Read last value
 | Struct-type signal data must exactly match an OPC UA struct/enumeration type for them to be readable.
 
+| Read signal data descriptor
+| Reference Domain Info not yet supported.
+
 | **Structure**
 |
 

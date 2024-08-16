@@ -104,7 +104,7 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
 
     serializer->startTaggedObject(this);
     {
-        if (referenceDomainId.assigned())  // TODO: maybe check for empty string?
+        if (referenceDomainId.assigned())
         {
             serializer->key("referenceDomainId");
             serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());

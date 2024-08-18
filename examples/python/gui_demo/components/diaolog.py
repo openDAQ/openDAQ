@@ -1,12 +1,14 @@
 import tkinter as tk
 
+from gui_demo.app_context import AppContext
+
 
 class Dialog(tk.Toplevel):
-    def __init__(self, parent, title, context, **kwargs):
+    def __init__(self, parent, title, context: AppContext, **kwargs):
         tk.Toplevel.__init__(self, parent, **kwargs)
         self.title(title)
         self.parent = parent
-        self.context = context
+        self.context: AppContext = context
         self.initial_update_func = None
 
         self.configure(padx=10, pady=5)

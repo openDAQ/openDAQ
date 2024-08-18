@@ -8,18 +8,20 @@ from ..event_port import *
 from .diaolog import Dialog
 
 
-class AddConfigDialog(tk.Toplevel):
-    def __init__(self, parent, context, connection_string=None):
-        super().__init__(parent)
-        self.context = context
+class AddConfigDialog(Dialog):
+    def __init__(self, parent, context: AppContext, connection_string=None):
+        super().__init__(parent, "Add with config", context)
         self.connection_string = connection_string
-        self.title("Add Config")
         self.geometry('{}x{}'.format(
             1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
 
         tk.Label(self, text=self.connection_string).pack(pady=10, padx=10, anchor=tk.NW, side=tk.TOP)
 
-        tk.Button(self, text="add", command=self.save_config).pack(pady=10, padx=10, anchor=tk.SE, side=tk.BOTTOM)
+        button_frame = tk.Frame(self)
+        button_frame.pack(side = tk.BOTTOM)
+
+        tk.Button(button_frame, text="Add", command=self.add).pack(padx=10, ipadx=20 * self.context.ui_scaling_factor, side=tk.LEFT)
+        tk.Button(button_frame, text="Cancel", command=self.cancel).pack(padx=10, ipadx=10 * self.context.ui_scaling_factor, side=tk.LEFT)
 
         self.frame = tk.Frame(self)
         self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -31,6 +33,8 @@ class AddConfigDialog(tk.Toplevel):
 
         self.device_config = context.instance.create_default_add_device_config()
         self.display_config_options('', self.device_config)
+        
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
 
         self.grab_set()
         self.transient(parent)
@@ -58,7 +62,6 @@ class AddConfigDialog(tk.Toplevel):
         new_value = entry.get()
         self.tree.set(item_id, column, new_value)
         entry.destroy()
-        print(path, new_value)
         self.update_property_value(path, new_value)
 
     # after pressing enter or if entry is out of focus it changes property value
@@ -67,8 +70,7 @@ class AddConfigDialog(tk.Toplevel):
             for property in context.visible_properties:
                 if property.name == path[depth]:
                     if depth == len(path) - 1:
-                        context.set_property_value(property.name,
-                                                   int(new_value))  # for now it only handles CoreType.ctInt type values, it also needs support for ctList, ctBool and ctString
+                        context.set_property_value(property.name, daq.EvalValue(new_value))
                         return
                     prop = context.get_property_value(property.name)
                     if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
@@ -91,26 +93,12 @@ class AddConfigDialog(tk.Toplevel):
             entry.bind('<Return>', lambda e: self.save_value(entry, item_id, column, path))
             entry.bind('<FocusOut>', lambda e: self.save_value(entry, item_id, column, path))
 
-    def save_config(self):
-        self.print_config()
-        try:
-            self.context.instance.add_device(self.connection_string, self.device_config)
-        except RuntimeError as e:
-            print(f"{e}")
+    def add(self):
         self.destroy()
 
-    # checker if config actually changes
-    def print_config(self):
-        def print_property_recursive(context):
-            for property in context.visible_properties:
-                prop = context.get_property_value(property.name)
-                if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
-                    casted_property = daq.IPropertyObject.cast_from(prop)
-                    print_property_recursive(casted_property)
-                else:
-                    print(f"{property.name}: {prop}")
-
-        print_property_recursive(self.device_config)
+    def cancel(self):
+        self.device_config = None
+        self.destroy()
 
     # my solution for having multiple properties with the same name
     def get_item_path(self, item_id):
@@ -123,7 +111,7 @@ class AddConfigDialog(tk.Toplevel):
 
 
 class AddDeviceDialog(Dialog):
-    def __init__(self, parent, context, node, **kwargs):
+    def __init__(self, parent, context: AppContext, node, **kwargs):
         Dialog.__init__(self, parent, 'Add device', context, **kwargs)
         self.node = node
         # send events to parent window
@@ -179,9 +167,7 @@ class AddDeviceDialog(Dialog):
         device_tree.column('#2', anchor=tk.CENTER, width=200, stretch=True)
         device_tree.column('#3', anchor=tk.CENTER, width=350, stretch=True)
 
-        device_tree.bind(
-            '<Double-1>', self.handle_device_tree_double_click)
-        device_tree.bind('<Button-3>', self.handle_right_click)
+        device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
         device_tree.pack(fill="both", expand=True)
         device_tree_frame.pack(fill="both", expand=True)
 
@@ -191,10 +177,15 @@ class AddDeviceDialog(Dialog):
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(
             side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
+        self.add_device_option = tk.StringVar(add_device_frame)
+        self.add_device_option.set("no config")
+        add_device_options = ["no config", "with config"]
+        tk.OptionMenu(add_device_frame, self.add_device_option, *add_device_options).pack(side=tk.RIGHT)     
+
         tk.Button(add_device_frame, text='Add',
                   command=self.handle_add_device).pack(side=tk.RIGHT)
-        tk.Button(add_device_frame, text='Add Config',
-                  command=self.handle_add_config).pack(side=tk.RIGHT)  # New button
+
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
 
@@ -211,25 +202,10 @@ class AddDeviceDialog(Dialog):
             self.parent_device_tree, '', self.context.instance)
         self.after(1, lambda: self.parent_device_tree.selection_set(
             self.context.instance.global_id))
-
-    def handle_add_config(self):
-        if not self.device_tree.selection() is None:
-            selected_item = treeview_get_first_selection(
-                self.device_tree)
-            if selected_item is None:
-                return
-            item = self.device_tree.item(selected_item)
-            connection_string = item['values'][2]
-        else:
-            connection_string = self.conn_string_entry.get()
-        add_config_dialog = AddConfigDialog(self, self.context, connection_string)
-        self.wait_window(add_config_dialog)
-
-    def handle_right_click(self, event):
-        menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Copy", command=self.handle_add_config)
-        menu.tk_popup(event.x_root, event.y_root)
-
+        
+    def is_add_with_config(self):
+        return self.add_device_option.get() == "with config"
+            
     def handle_parent_device_selected(self, event):
         selected_item = treeview_get_first_selection(
             self.parent_device_tree)
@@ -252,27 +228,39 @@ class AddDeviceDialog(Dialog):
             return
         item = self.device_tree.item(selected_item)
 
-        conn = item['values'][2]
-        if conn not in self.context.enabled_devices:
-            device = self.context.add_device(
-                DeviceInfoLocal(conn), nearest_device)
+        connection_string = item['values'][2]
+        if connection_string not in self.context.enabled_devices:
+            config = None
+    
+            if self.is_add_with_config():
+                add_config_dialog = AddConfigDialog(self, self.context, connection_string)
+                self.wait_window(add_config_dialog)
+                config = add_config_dialog.device_config
+                if config is None:
+                    return
+
+            self.add_device(connection_string, config)
+
+    def add_device(self, connection_string, config):
+        if connection_string and self.dialog_parent_device is not None:
+            device = self.context.add_device(DeviceInfoLocal(connection_string), self.dialog_parent_device, config)
             if device:
                 self.update_parent_devices(
                     self.parent_device_tree, '', self.context.instance)
                 self.parent_device_tree.selection_set(device.global_id)
-                self.event_port.emit()
+                self.event_port.emit()        
 
     def handle_add_device(self):
+        config = None
         connection_string = self.conn_string_entry.get()
-        if connection_string and self.dialog_parent_device is not None:
-            DeviceInfoLocal(connection_string)
-            device = self.context.add_device(DeviceInfoLocal(
-                connection_string), self.dialog_parent_device)
-            if device:
-                self.update_parent_devices(
-                    self.parent_device_tree, '', self.context.instance)
-                self.parent_device_tree.selection_set(device.global_id)
-                self.event_port.emit()
+        if self.is_add_with_config():
+            add_config_dialog = AddConfigDialog(self, self.context, connection_string)
+            self.wait_window(add_config_dialog)
+            config = add_config_dialog.device_config
+            if config is None:
+                return
+
+        self.add_device(connection_string, config)
 
     def handle_entry_enter(self, event):
         self.handle_add_device()

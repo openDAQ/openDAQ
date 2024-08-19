@@ -16,6 +16,71 @@
 using RefFbModuleTest = testing::Test;
 using namespace daq;
 
+class RefernceDomainOffsetHelper
+{
+public:
+    ModulePtr module;
+    DataDescriptorPtr signalDescriptor;
+    SignalConfigPtr signal;
+    uint64_t sampleCount;
+    DataPacketPtr domainPacket;
+    SignalConfigPtr domainSignal;
+    ContextPtr context;
+
+    RefernceDomainOffsetHelper(uint64_t count = 5)
+    {
+        // Save desired sample count for later
+        sampleCount = count;
+        // Create domain signal
+        auto logger = Logger();
+        context = Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
+        auto domainSignalDescriptor = DataDescriptorBuilder()
+                                          .setUnit(Unit("s", -1, "seconds", "time"))
+                                          .setSampleType(SampleType::Int64)
+                                          .setRule(LinearDataRule(5, 3))
+                                          .setOrigin("1970")
+                                          .setTickResolution(Ratio(1, 1000))
+                                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
+                                          .build();
+        domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
+        domainPacket = DataPacket(domainSignalDescriptor, count, 1);
+        // Create signal with descriptor
+        signalDescriptor =
+            DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
+        signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
+        // Set domain signal of signal
+        signal.setDomainSignal(domainSignal);
+        // Create module
+        createModule(&module, context);
+    }
+
+    int64_t* sendAndReceive(SignalPtr fbSignal)
+    {
+        // Create reader
+        auto reader = PacketReader(fbSignal);
+
+        // Create data packet
+        auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
+        auto packetData = static_cast<double*>(dataPacket.getRawData());
+        for (size_t i = 0; i < sampleCount; i++)
+            *packetData++ = static_cast<double>(i);
+
+        // Send packet
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        // Receive packet
+        PacketPtr receivedPacket;
+        while (true)
+        {
+            receivedPacket = reader.read();
+            if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
+                break;
+        }
+        return static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+    }
+};
+
 static ModulePtr CreateModule()
 {
     ModulePtr module;
@@ -171,63 +236,23 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 
 TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 {
-    // Create domain signal
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
-    auto domainSignalDescriptor = DataDescriptorBuilder()
-                                      .setUnit(Unit("s", -1, "seconds", "time"))
-                                      .setSampleType(SampleType::Int64)
-                                      .setRule(LinearDataRule(5, 3))
-                                      .setOrigin("1970")
-                                      .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
-                                      .build();
-    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
-    const auto sampleCount = 5;
-    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
-    // Set domain signal of signal
-    signal.setDomainSignal(domainSignal);
-
-    // Create module
-    ModulePtr module;
-    createModule(&module, context);
+    // Create helper
+    auto help = RefernceDomainOffsetHelper();
 
     // Fix for race condition
-    auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
+    auto config = help.module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
     config.setPropertyValue("UseMultiThreadedScheduler", false);
 
     // Create function block
-    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "FB", config);
+    auto fb = help.module.createFunctionBlock("RefFBModuleTrigger", nullptr, "FB", config);
 
     // Set input (port) and output (signal) of the function block
-    fb.getInputPorts()[0].connect(signal);
-    auto reader = PacketReader(fb.getSignals()[0]);
+    fb.getInputPorts()[0].connect(help.signal);
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
-    auto packetData = static_cast<double*>(dataPacket.getRawData());
-    for (size_t i = 0; i < sampleCount; i++)
-        *packetData++ = static_cast<double>(i);
-
-    // Send packet
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    // Receive packet
-    PacketPtr receivedPacket;
-    while (true)
-    {
-        receivedPacket = reader.read();
-        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-            break;
-    }
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // Check domain data
-    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
 
     // input data:      0, 1, 2, 3, 4
     //                     ^ trigger, becauase greater than 0.5
@@ -239,59 +264,19 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 
 TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 {
-    // Create domain signal
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
-    auto domainSignalDescriptor = DataDescriptorBuilder()
-                                      .setUnit(Unit("s", -1, "seconds", "time"))
-                                      .setSampleType(SampleType::Int64)
-                                      .setRule(LinearDataRule(5, 3))
-                                      .setOrigin("1970")
-                                      .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
-                                      .build();
-    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
-    const auto sampleCount = 5;
-    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
-    // Set domain signal of signal
-    signal.setDomainSignal(domainSignal);
-
-    // Create module
-    ModulePtr module;
-    createModule(&module, context);
+    // Create helper
+    auto help = RefernceDomainOffsetHelper();
 
     // Create function block
-    auto fb = module.createFunctionBlock("RefFBModuleScaling", nullptr, "FB");
+    auto fb = help.module.createFunctionBlock("RefFBModuleScaling", nullptr, "FB");
 
     // Set input (port) and output (signal) of the function block
-    fb.getInputPorts()[0].connect(signal);
-    auto reader = PacketReader(fb.getSignals()[0]);
+    fb.getInputPorts()[0].connect(help.signal);
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
-    auto packetData = static_cast<double*>(dataPacket.getRawData());
-    for (size_t i = 0; i < sampleCount; i++)
-        *packetData++ = static_cast<double>(i);
-
-    // Send packet
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    // Receive packet
-    PacketPtr receivedPacket;
-    while (true)
-    {
-        receivedPacket = reader.read();
-        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-            break;
-    }
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // Check domain data
-    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
 
     // input data:             0, 1, 2, 3, 4
     // input/output domain:    104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
@@ -305,60 +290,20 @@ TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 
 TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 {
-    // Create domain signal
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
-    auto domainSignalDescriptor = DataDescriptorBuilder()
-                                      .setUnit(Unit("s", -1, "seconds", "time"))
-                                      .setSampleType(SampleType::Int64)
-                                      .setRule(LinearDataRule(5, 3))
-                                      .setOrigin("1970")
-                                      .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
-                                      .build();
-    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
-    const auto sampleCount = 5;
-    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
-    // Set domain signal of signal
-    signal.setDomainSignal(domainSignal);
-
-    // Create module
-    ModulePtr module;
-    createModule(&module, context);
+    // Create helper
+    auto help = RefernceDomainOffsetHelper();
 
     // Create function block
-    auto fb = module.createFunctionBlock("RefFBModulePower", nullptr, "FB");
+    auto fb = help.module.createFunctionBlock("RefFBModulePower", nullptr, "FB");
 
     // Set input (port) and output (signal) of the function block
-    fb.getInputPorts()[0].connect(signal);
-    fb.getInputPorts()[1].connect(signal);
-    auto reader = PacketReader(fb.getSignals()[0]);
+    fb.getInputPorts()[0].connect(help.signal);
+    fb.getInputPorts()[1].connect(help.signal);
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
-    auto packetData = static_cast<double*>(dataPacket.getRawData());
-    for (size_t i = 0; i < sampleCount; i++)
-        *packetData++ = static_cast<double>(i);
-
-    // Send packet
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    // Receive packet
-    PacketPtr receivedPacket;
-    while (true)
-    {
-        receivedPacket = reader.read();
-        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-            break;
-    }
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // Check domain data
-    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
 
     // input data:             2x 0, 1, 2, 3, 4
     // input/output domain:    104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
@@ -372,60 +317,20 @@ TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 
 TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 {
-    // Create domain signal
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
-    auto domainSignalDescriptor = DataDescriptorBuilder()
-                                      .setUnit(Unit("s", -1, "seconds", "time"))
-                                      .setSampleType(SampleType::Int64)
-                                      .setRule(LinearDataRule(5, 3))
-                                      .setOrigin("1970")
-                                      .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
-                                      .build();
-    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
-    const auto sampleCount = 5;
-    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
-    // Set domain signal of signal
-    signal.setDomainSignal(domainSignal);
-
-    // Create module
-    ModulePtr module;
-    createModule(&module, context);
+    // Create helper
+    auto help = RefernceDomainOffsetHelper();
 
     // Create function block
-    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "FB");
+    auto fb = help.module.createFunctionBlock("RefFBModulePowerReader", nullptr, "FB");
 
     // Set input (port) and output (signal) of the function block
-    fb.getInputPorts()[0].connect(signal);
-    fb.getInputPorts()[1].connect(signal);
-    auto reader = PacketReader(fb.getSignals()[0]);
+    fb.getInputPorts()[0].connect(help.signal);
+    fb.getInputPorts()[1].connect(help.signal);
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
-    auto packetData = static_cast<double*>(dataPacket.getRawData());
-    for (size_t i = 0; i < sampleCount; i++)
-        *packetData++ = static_cast<double>(i);
-
-    // Send packet
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    // Receive packet
-    PacketPtr receivedPacket;
-    while (true)
-    {
-        receivedPacket = reader.read();
-        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-            break;
-    }
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // Check domain data
-    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
 
     // input data:             2x 0, 1, 2, 3, 4
     // input domain:           104, 109, 114, 119, 124
@@ -433,71 +338,50 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
     // starts later probably due to a philosohpical decision, however reference domain offset is certainly applied
     // also 1 fewer sample is provided in the output domain
 
-    ASSERT_EQ(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getSampleCount(), 4);
-
     ASSERT_EQ(domainData[0], 109);
     ASSERT_EQ(domainData[1], 114);
     ASSERT_EQ(domainData[2], 119);
     ASSERT_EQ(domainData[3], 124);
 
-    context.getScheduler().stop();
+    help.context.getScheduler().stop();
 }
 
 TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 {
-    // Create domain signal
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
-    auto domainSignalDescriptor = DataDescriptorBuilder()
-                                      .setUnit(Unit("s", -1, "seconds", "time"))
-                                      .setSampleType(SampleType::Int64)
-                                      .setRule(LinearDataRule(5, 3))
-                                      .setOrigin("1970")
-                                      .setTickResolution(Ratio(1, 1000))
-                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
-                                      .build();
-    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
-    const auto sampleCount = 10;
-    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
-    // Set domain signal of signal
-    signal.setDomainSignal(domainSignal);
-
-    // Create module
-    ModulePtr module;
-    createModule(&module, context);
+    // Create helper
+    auto help = RefernceDomainOffsetHelper(10);
 
     // Create function block
-    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "FB");
+    auto fb = help.module.createFunctionBlock("RefFBModuleStatistics", nullptr, "FB");
 
     // Set input (port) and output (signal) of the function block
-    fb.getInputPorts()[0].connect(signal);
-    auto reader = PacketReader(fb.getSignals()[0]);
+    fb.getInputPorts()[0].connect(help.signal);
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
-    auto packetData = static_cast<double*>(dataPacket.getRawData());
-    for (size_t i = 0; i < sampleCount; i++)
-        *packetData++ = static_cast<double>(i);
-
-    // Send packet
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    // Receive packet
-    PacketPtr receivedPacket;
-    while (true)
-    {
-        receivedPacket = reader.read();
-        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-            break;
-    }
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // Check domain data
-    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+
+    // input data:             0, 1, 2, 3, 4
+    // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+
+    ASSERT_EQ(domainData[0], 104);
+}
+
+TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
+{
+    // Create helper
+    auto help = RefernceDomainOffsetHelper(2048);
+
+    // Create function block
+    auto fb = help.module.createFunctionBlock("RefFBModuleFFT", nullptr, "FB");
+
+    // Set input (port) and output (signal) of the function block
+    fb.getInputPorts()[0].connect(help.signal);
+    auto reader = PacketReader(fb.getSignals()[0]);
+
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
     // input data:             0, 1, 2, 3, 4
     // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)

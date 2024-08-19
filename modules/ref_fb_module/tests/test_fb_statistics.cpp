@@ -167,7 +167,7 @@ private:
         for (size_t i = 0; i < mockTriggerPackets.size(); i++)
         {
             auto domainPacket = DataPacket(triggerDomainSignalDescriptor, mockTriggerPackets[i].size());
-            auto domainPacketData = static_cast<Int*>(domainPacket.getData());
+            auto domainPacketData = static_cast<Int*>(domainPacket.getRawData());
             for (size_t ii = 0; ii < mockTriggerDomainPackets[i].size(); ii++)
                 *domainPacketData++ = static_cast<Int>(mockTriggerDomainPackets[i][ii]);
             triggerDomainPackets.push_back(domainPacket);
@@ -244,7 +244,7 @@ private:
                 // Prepare data packet for trigger
                 auto triggerDataPacket =
                     DataPacketWithDomain(triggerDomainPackets[i], triggerSignalDescriptor, mockTriggerPackets[i].size());
-                auto triggerPacketData = static_cast<TT*>(triggerDataPacket.getData());
+                auto triggerPacketData = static_cast<TT*>(triggerDataPacket.getRawData());
                 for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
                     *triggerPacketData++ = static_cast<TT>(mockTriggerPackets[i][ii]);
 
@@ -269,7 +269,7 @@ private:
 
             // Create data packet for statistics
             auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
-            auto packetData = static_cast<T*>(dataPacket.getData());
+            auto packetData = static_cast<T*>(dataPacket.getRawData());
             for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
                 *packetData++ = static_cast<T>(mockPackets[i][ii]);
 

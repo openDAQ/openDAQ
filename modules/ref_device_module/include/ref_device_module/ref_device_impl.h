@@ -49,6 +49,7 @@ private:
     void acqLoop();
     void updateNumberOfChannels();
     void enableCANChannel();
+    void enableProtectedChannel();
     void updateAcqLoopTime();
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
@@ -65,6 +66,7 @@ private:
 
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
+    ChannelPtr protectedChannel;
     size_t acqLoopTime;
     bool stopAcq;
 

@@ -71,6 +71,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
     target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
 
+    add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
+    target_link_libraries(client_authentication PRIVATE daq::opendaq)
+
     set(SRC_HeadersConsoleApp cpp/console_application/console_application.h
                               cpp/console_application/app_channel.h
                               cpp/console_application/app_device.h

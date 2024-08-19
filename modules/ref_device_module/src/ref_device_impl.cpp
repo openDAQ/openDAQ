@@ -46,6 +46,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     initProperties(config);
     updateNumberOfChannels();
     enableCANChannel();
+    enableProtectedChannel();
     updateAcqLoopTime();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
@@ -212,6 +213,12 @@ void RefDeviceImpl::acqLoop()
                 auto chPrivate = canChannel.asPtr<IRefChannel>();
                 chPrivate->collectSamples(curTime);
             }
+
+            if (protectedChannel.assigned())
+            {
+                auto chPrivate = protectedChannel.asPtr<IRefChannel>();
+                chPrivate->collectSamples(curTime);
+            }
         }
     }
 }
@@ -220,6 +227,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
     size_t numberOfChannels = 2;
     bool enableCANChannel = false;
+    bool enableProtectedChannel = false;
 
     if (config.assigned())
     {
@@ -228,6 +236,9 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableCANChannel"))
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
+
+        if (config.hasProperty("EnableProtectedChannel"))
+            enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
     } 
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -265,6 +276,10 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
+
+    objPtr.addProperty(BoolProperty("EnableProtectedChannel", enableProtectedChannel));
+    objPtr.getOnPropertyValueWrite("EnableProtectedChannel") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableProtectedChannel(); };
 
     auto protectedObject = createProtectedObject();
     objPtr.addProperty(ObjectProperty("Protected", protectedObject));
@@ -305,8 +320,9 @@ void RefDeviceImpl::enableCANChannel()
 
     if (!enableCANChannel)
     {
-        if (canChannel.assigned() && hasChannel(nullptr, canChannel))
-            removeChannel(nullptr, canChannel);
+        if (canChannel.assigned() && hasChannel(canFolder, canChannel))
+            removeChannel(canFolder, canChannel);
+
         canChannel.release();
     }
     else
@@ -314,6 +330,37 @@ void RefDeviceImpl::enableCANChannel()
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
         RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
         canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
+    }
+}
+
+void RefDeviceImpl::enableProtectedChannel()
+{
+    bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
+
+    std::scoped_lock lock(sync);
+
+    if (!enabled)
+    {
+        if (protectedChannel.assigned() && hasChannel(aiFolder, protectedChannel))
+            removeChannel(aiFolder, protectedChannel);
+
+        protectedChannel.release();
+    }
+    else
+    {
+        auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
+        auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+        size_t index = channels.size();
+
+        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
+        auto localId = "ProtectedChannel";
+
+        auto permissions = PermissionsBuilder()
+                               .inherit(false)
+                               .assign("admin", PermissionMaskBuilder().read().write().execute())
+                               .build();
+
+        protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, localId, permissions, init);
     }
 }
 

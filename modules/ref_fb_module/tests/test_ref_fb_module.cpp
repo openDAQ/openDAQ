@@ -364,6 +364,7 @@ TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 
     // input data:             0, 1, 2, 3, 4
     // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+    //                          ^
 
     ASSERT_EQ(domainData[0], 104);
 }
@@ -383,8 +384,38 @@ TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
     // Call helper method
     auto domainData = help.sendAndReceive(fb.getSignals()[0]);
 
+    // Check domain data
+
     // input data:             0, 1, 2, 3, 4
     // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+    //                          ^
 
     ASSERT_EQ(domainData[0], 104);
+}
+
+TEST_F(RefFbModuleTest, ClassifierWithReferenceDomainOffset)
+{
+    // Create helper
+    auto help = RefernceDomainOffsetHelper(100);
+
+    // Create function block
+    auto fb = help.module.createFunctionBlock("RefFBModuleClassifier", nullptr, "FB");
+    fb.setPropertyValue("BlockSize", 5);
+
+    // Set input (port) and output (signal) of the function block
+    fb.getInputPorts()[0].connect(help.signal);
+    auto reader = PacketReader(fb.getSignals()[0]);
+
+    // Call helper method
+    auto domainData = help.sendAndReceive(fb.getSignals()[0]);
+
+    // Check domain data
+
+    // input data:             0, 1, 2, 3, 4
+    // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+    //                          ^
+
+    ASSERT_EQ(domainData[0], 104);
+
+    help.context.getScheduler().stop();
 }

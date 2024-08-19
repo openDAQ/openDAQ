@@ -16,8 +16,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Set username and password
     auto config = instance.createDefaultAddDeviceConfig();
     PropertyObjectPtr generalConfig = config.getPropertyValue("General");
-    generalConfig.setPropertyValue("Username", "opendaq");
-    generalConfig.setPropertyValue("Password", "opendaq");
+    generalConfig.setPropertyValue("Username", "root");
+    generalConfig.setPropertyValue("Password", "root");
 
     // Connect to device on localhost
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);

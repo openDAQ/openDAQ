@@ -13,8 +13,7 @@ Description
   - Intergration the Sync Component
   - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
 Required integeration changes:
-  - Each device now has a sync component, which is visible in default components as `Sync`. 
-  Meantime the sync component transfers over OPC UA by node id `Synchronization`. 
+  - Each device now has a sync component, which is visible in default components as `Synchronization`.
   - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
   - Sync component is replacing dummy property object in the ref device.
 

@@ -76,10 +76,6 @@ protected:
         , visible(true)
         , readOnly(false)
     {
-        if (valueType == ctBinaryData)
-        {
-            throw InvalidTypeException{"Properties cannot be BinaryData types"};
-        }
         propPtr = this->borrowPtr<PropertyPtr>();
     }
 

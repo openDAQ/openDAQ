@@ -320,8 +320,6 @@ class App(tk.Tk):
             component = 'Input ports'
         elif component == 'IO':
             component = 'Inputs/Outputs'
-        elif component == 'Sync':
-            component = 'Synchronization'
         return component
 
     def tree_restore_selection(self, old_node=None):

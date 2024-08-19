@@ -106,13 +106,8 @@ void TmsClientPropertyImpl::configurePropertyFields()
             StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
             if (details::stringToPropertyFieldEnum.count(browseName))
             {
-                bool strHasValue = false;
                 const auto propertyField = details::stringToPropertyFieldEnum[browseName];
-                if (evalStr.assigned())
-                {
-                    if (evalStr.getLength() > 0)
-                        strHasValue = true;
-                }
+                bool strHasValue = evalStr.assigned() && evalStr.getLength() > 0;
                 if (strHasValue)
                 {
                     switch (propertyField)

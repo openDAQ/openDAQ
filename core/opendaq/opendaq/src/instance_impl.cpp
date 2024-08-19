@@ -749,28 +749,27 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj, IDict* updateEndProcedures)
+ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
-    const auto updateEndProceduresPtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
 
-    return daqTry([&objPtr, &updateEndProceduresPtr, this]()
-        {
-            objPtr.checkObjectType("Instance");
+    return daqTry([&objPtr, this]
+    {
+        objPtr.checkObjectType("Instance");
 
-            const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
-            const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
-            if (rootDeviceWrapperKeysPtr.getCount() != 1)
-                throw InvalidValueException("Invalid root device object");
+        const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
+        const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
+        if (rootDeviceWrapperKeysPtr.getCount() != 1)
+            throw InvalidValueException("Invalid root device object");
 
-            const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
-            rootDevicePtr.checkObjectType("Device");
+        const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
+        rootDevicePtr.checkObjectType("Device");
 
-            auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
-            rootDeviceUpdatable.update(rootDevicePtr, updateEndProceduresPtr);
+        auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
+        rootDeviceUpdatable.update(rootDevicePtr);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode InstanceImpl::updateEnded()

@@ -105,7 +105,7 @@ protected:
     void visibleChanged() override;
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures) override;
+    void updateObject(const SerializedObjectPtr& obj) override;
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
@@ -1048,14 +1048,13 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures)
+void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
     if (obj.hasKey("public"))
         isPublic = obj.readBool("public");
 
-    Super::updateObject(obj, updateEndProcedures);
+    Super::updateObject(obj);
 }
-
 
 template <typename TInterface, typename... Interfaces>
 int SignalBase<TInterface, Interfaces...>::getSerializeFlags()

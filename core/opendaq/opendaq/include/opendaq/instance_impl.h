@@ -141,7 +141,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IDict* updateEndProcedures) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC updateEnded() override;
 

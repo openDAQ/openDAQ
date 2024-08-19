@@ -62,7 +62,7 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IDict* updateEndProcedures) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
     ErrCode INTERFACE_FUNC complete() override;
 
@@ -308,7 +308,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdat
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj, IDict* updateEndProcedures)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 

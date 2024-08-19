@@ -107,7 +107,7 @@ public:
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
 
     // IUpdatable
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IDict* updateEndProcedures) override;
+    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     virtual ErrCode INTERFACE_FUNC updateEnded() override;
 
@@ -2656,7 +2656,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, nullptr);
+                return updatable->update(serializedNestedObj);
             }
 
             propValue = serialized.readObject(propName);
@@ -2752,7 +2752,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 }
 
 template <class PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj, IDict* /*updateEndProcedures*/)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
 {
     if (obj == nullptr)
     {

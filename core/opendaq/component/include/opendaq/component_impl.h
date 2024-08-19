@@ -101,7 +101,7 @@ public:
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IDict* updateEndProcedures) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
@@ -150,7 +150,7 @@ protected:
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
-    virtual void updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& updateEndProcedures);
+    virtual void updateObject(const SerializedObjectPtr& obj);
     void onUpdatableUpdateEnd() override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
@@ -701,46 +701,31 @@ ErrCode ComponentImpl<Intf, Intfs ...>::isRemoved(Bool* removed)
 }
 
 template <class Intf, class... Intfs>
-ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IDict* updateEndProcedures)
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
-    auto updateEndProcedurePtr = DictPtr<IString, IProcedure>::Borrow(updateEndProcedures);
 
-    return daqTry(
-        [&objPtr, &updateEndProcedurePtr, this]
+    return daqTry([&objPtr, this]
+    {
+        const bool muted = this->coreEventMuted;
+        const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+        const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+        if (!muted)
+            propInternalPtr.disableCoreEventTrigger();
+
+        const auto err = Super::update(objPtr);
+
+        updateObject(objPtr);
+        onUpdatableUpdateEnd();
+
+        if (!muted && this->coreEvent.assigned())
         {
-            const bool muted = this->coreEventMuted;
-            const auto propInternalPtr = this->template thisPtr<PropertyObjectInternalPtr>();
-            if (!muted)
-                propInternalPtr.disableCoreEventTrigger();
-
-            const auto err = Super::update(objPtr, updateEndProcedurePtr);
-
-            updateObject(objPtr, updateEndProcedurePtr);
-
-            auto finalyzeCallback = [this, propInternalPtr]
-            {
-                onUpdatableUpdateEnd();
-                if (!this->coreEventMuted && this->coreEvent.assigned())
-                {
-                    const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
-                    triggerCoreEvent(args);
-                    propInternalPtr.enableCoreEventTrigger();
-                }
-            };
-
-            if (updateEndProcedurePtr.assigned())
-            {
-                StringPtr globalId;
-                getGlobalId(&globalId);
-                updateEndProcedurePtr.set(globalId, Procedure(finalyzeCallback));
-            }
-            else
-            {
-                finalyzeCallback();
-            }
-            return err;
-        });
+            const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+            triggerCoreEvent(args);
+            propInternalPtr.enableCoreEventTrigger();
+        }
+        return err;
+    });
 }
 
 template <class Intf, class ... Intfs>
@@ -960,7 +945,7 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const DictPtr<IString, IProcedure>& /*updateEndProcedures*/)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 {
     const auto flags = getSerializeFlags();
     if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))

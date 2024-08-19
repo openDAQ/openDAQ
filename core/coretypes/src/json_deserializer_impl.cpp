@@ -256,28 +256,8 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
     {
         return errCode;
     }
-    
-   auto updateEndCallbacks = Dict<IString, IProcedure>();
 
-    errCode = updatable->update(jsonSerObj, updateEndCallbacks);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    for (const auto& [componentName, proc] : updateEndCallbacks)
-    {
-        errCode = daqTry([&proc]
-        {
-            proc();
-        });
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return makeErrorInfo(errCode, fmt::format("Error calling update end callback for component '{}'", componentName));
-        }
-    }
-
-    return OPENDAQ_SUCCESS;
+    return updatable->update(jsonSerObj);
 }
 
 ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IString* serialized)

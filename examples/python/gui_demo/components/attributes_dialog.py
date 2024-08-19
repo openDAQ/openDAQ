@@ -5,7 +5,7 @@ from tkinter import ttk, simpledialog
 
 from ..utils import *
 from ..event_port import EventPort
-from .diaolog import Dialog
+from .dialog import Dialog
 
 
 class AttributesDialog(Dialog):

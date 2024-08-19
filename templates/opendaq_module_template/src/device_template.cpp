@@ -103,49 +103,19 @@ void DeviceTemplateHooks::registerCallbacks(const PropertyObjectPtr& obj)
 
 DevicePtr DeviceTemplate::getDevice() const
 {
-    return deviceImpl->objPtr;
-}
-
-void DeviceTemplate::removeComponentWithId(const FolderConfigPtr& parentFolder, const std::string& componentId) const
-{
-    if (parentFolder.assigned())
-        throw NotAssignedException{"Parent component is not assigned."};
-    if (componentId.empty())
-        throw NotAssignedException{"Missing component removal target local ID."};
-
-    if(parentFolder.hasItem(componentId))
-        parentFolder.removeItemWithLocalId(componentId);
-    else
-        LOG_W("Component with id {} not found in parent folder", componentId);
-
-    LOG_T("Component with id {} removed from parent folder", componentId)
-}
-
-void DeviceTemplate::removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const
-{
-    if (parentFolder.assigned())
-        throw NotAssignedException{"Parent component is not assigned."};
-    if (component.assigned())
-        throw NotAssignedException{"Component slated for removal is not assigned."};
-
-    if(parentFolder.hasItem(component.getLocalId()))
-        parentFolder.removeItem(component);
-    else
-        LOG_W("Component with id {} not found in parent folder", component.getLocalId());
-
-    LOG_T("Component with id {} removed from parent folder", component.getLocalId())
+    return componentImpl->objPtr;
 }
 
 IoFolderConfigPtr DeviceTemplate::createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const
 {
     LOG_T("Creating and adding IO folder with id {}", folderId)
-	return deviceImpl->addIoFolder(folderId, parent);
+	return componentImpl->addIoFolder(folderId, parent);
 }
 
 void DeviceTemplate::setDeviceDomain(const DeviceDomainPtr& deviceDomain) const
 {
     LOG_T("Setting device domain")
-    deviceImpl->setDeviceDomain(deviceDomain);
+    componentImpl->setDeviceDomain(deviceDomain);
 }
 
 void DeviceTemplateHooks::onObjectReady()

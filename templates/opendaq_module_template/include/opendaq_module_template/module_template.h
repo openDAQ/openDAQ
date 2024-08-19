@@ -11,9 +11,10 @@ class ModuleTemplate
 {
 public:
     ModuleTemplate(const ContextPtr& context)
-        : context(context)
+        : context(context), moduleImpl(nullptr)
     {
     }
+
     virtual ~ModuleTemplate() = default;
 
 protected:

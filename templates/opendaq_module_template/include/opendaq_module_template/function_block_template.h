@@ -6,16 +6,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class FunctionBlockTemplateHooks;
 
-class FunctionBlockTemplate : ComponentTemplateBase 
+class FunctionBlockTemplate : public ComponentTemplateBase<FunctionBlockTemplateHooks>
 {
 public:
     FunctionBlockPtr getFunctionBlock() const;
-
-    template <class FBImpl, class... Params>
-    FunctionBlockPtr createAndAddFunctionBlock(const std::string& fbId, Params&&... params) const;
-
-    void removeComponentWithId(const FolderConfigPtr& parentFolder, const std::string& componentId) const;
-    void removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const;
 
 protected:
 
@@ -28,11 +22,7 @@ protected:
 
     virtual BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
     virtual BaseObjectPtr onPropertyRead(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-    
-    FunctionBlockTemplateHooks* functionBlockImpl;
-    LoggerComponentPtr loggerComponent;
-    ContextPtr context;
-    std::mutex sync;
+
 
 private:
     friend class FunctionBlockTemplateHooks;
@@ -48,7 +38,7 @@ public:
         , functionBlock(std::move(functionBlock))
         , initialized(false)
     {
-        this->functionBlock->functionBlockImpl = this; // TODO: Figure out safe ptr operations for this
+        this->functionBlock->componentImpl = this; // TODO: Figure out safe ptr operations for this
         this->functionBlock->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->functionBlock->context = this->context;
 

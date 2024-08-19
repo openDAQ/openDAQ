@@ -442,3 +442,65 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 
     context.getScheduler().stop();
 }
+
+TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
+{
+    // Create domain signal
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
+    auto domainSignalDescriptor = DataDescriptorBuilder()
+                                      .setUnit(Unit("s", -1, "seconds", "time"))
+                                      .setSampleType(SampleType::Int64)
+                                      .setRule(LinearDataRule(5, 3))
+                                      .setOrigin("1970")
+                                      .setTickResolution(Ratio(1, 1000))
+                                      .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
+                                      .build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "DomainSignal");
+    const auto sampleCount = 10;
+    auto domainPacket = DataPacket(domainSignalDescriptor, sampleCount, 1);
+    // Create signal with descriptor
+    auto signalDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(0, 300)).setRule(ExplicitDataRule()).build();
+    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "Signal");
+    // Set domain signal of signal
+    signal.setDomainSignal(domainSignal);
+
+    // Create module
+    ModulePtr module;
+    createModule(&module, context);
+
+    // Create function block
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "FB");
+
+    // Set input (port) and output (signal) of the function block
+    fb.getInputPorts()[0].connect(signal);
+    auto reader = PacketReader(fb.getSignals()[0]);
+
+    // Create data packet
+    auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
+    auto packetData = static_cast<double*>(dataPacket.getRawData());
+    for (size_t i = 0; i < sampleCount; i++)
+        *packetData++ = static_cast<double>(i);
+
+    // Send packet
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    // Receive packet
+    PacketPtr receivedPacket;
+    while (true)
+    {
+        receivedPacket = reader.read();
+        if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
+            break;
+    }
+
+    // Check domain data
+    auto domainData = static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+
+    // input data:             0, 1, 2, 3, 4
+    // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+
+    ASSERT_EQ(domainData[0], 104);
+}

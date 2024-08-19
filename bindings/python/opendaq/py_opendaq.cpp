@@ -26,7 +26,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
         .value("Float32", daq::ScaledSampleType::Float32)
         .value("Float64", daq::ScaledSampleType::Float64);
 
-    auto classIAllocator = declareIAllocator(m);
     auto classIRemovable = declareIRemovable(m);
     auto classIComponent = declareIComponent(m);
     auto classIFolder = declareIFolder(m);
@@ -115,8 +114,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
     auto classIAddressInfo = declareIAddressInfo(m);
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
+    auto classISyncComponent = declareISyncComponent(m);
+    auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
 
-    defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
     defineIFolder(m, classIFolder);
@@ -206,6 +206,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
     defineIAddressInfo(m, classIAddressInfo);
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
+
+    defineISyncComponent(m, classISyncComponent);
+    defineISyncComponentPrivate(m, classISyncComponentPrivate);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

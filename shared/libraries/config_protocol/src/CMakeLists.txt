@@ -31,6 +31,7 @@ set(SRC_PublicHeaders config_protocol.h
                       config_client_procedure_impl.h                      
                       config_client_connection_impl.h
                       config_client_input_port.h
+                      config_client_sync_component_impl.h
                       config_server_component.h
                       config_server_device.h
                       config_server_signal.h

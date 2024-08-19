@@ -25,22 +25,42 @@ class BlockView(tk.Frame):
             node = daq.IComponent.cast_from(self.node)
             active = node.active
             name = node.name
-
         self.configure(relief=tk.SOLID, border=0.5, padx=5, pady=5)
-        self.edit_image = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
-        self.collapsed_img = self.context.icons['right'] if self.context and self.context.icons and 'right' in self.context.icons else None
-        self.expanded_img = self.context.icons['down'] if self.context and self.context.icons and 'down' in self.context.icons else None
+
+        self.edit_image = None
+        self.collapsed_img = None
+        self.expanded_img = None
+        
+        self.device_img = None
+        self.function_block_img = None
+        self.folder_img = None
+        self.component_img = None
+        self.sync_component_img = None
+        
+        if context and context.icons:
+            if 'settings' in context.icons:
+                self.edit_image = context.icons['settings']
+            if 'right' in context.icons:
+                self.collapsed_img = context.icons['right']
+            if 'down' in context.icons:
+                self.expanded_img = context.icons['down']
+            
+            if 'device' in context.icons:
+                self.device_img = context.icons['device']
+            if 'function_block' in context.icons:
+                self.function_block_img = context.icons['function_block']
+            if 'folder' in context.icons:
+                self.folder_img = context.icons['folder']
+            if 'circle' in context.icons:
+                self.component_img = context.icons['circle']
+            if 'link' in context.icons:
+                self.sync_component_img = context.icons['link']
+
         self.header_frame = tk.Frame(self)
         self.header_frame.pack(fill=tk.X)
         self.toggle_button = tk.Button(
             self.header_frame, text='+', image=self.collapsed_img, borderwidth=0, command=self.handle_expand_toggle)
         self.toggle_button.pack(side=tk.LEFT)
-
-        self.device_img = self.context.icons['device'] if self.context and self.context.icons and 'device' in self.context.icons else None
-        self.function_block_img = self.context.icons[
-            'function_block'] if self.context and self.context.icons and 'function_block' in self.context.icons else None
-        self.folder_img = self.context.icons['folder'] if self.context and self.context.icons and 'folder' in self.context.icons else None
-        self.component_img = self.context.icons['circle'] if self.context and self.context.icons and 'circle' in self.context.icons else None
 
         self.label_icon = tk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
@@ -83,6 +103,11 @@ class BlockView(tk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.folder_img)
+            elif daq.ISyncComponent.can_cast_from(self.node):
+                self.node = daq.ISyncComponent.cast_from(self.node)
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context)
+                self.label_icon.config(image=self.sync_component_img)
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(

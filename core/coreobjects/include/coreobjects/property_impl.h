@@ -748,7 +748,7 @@ public:
             });
     }
 
-    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
     {
         if (event == nullptr)
         {
@@ -759,11 +759,44 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            return ownerPtr->getOnPropertyValueWrite(this->name, event);
+        }
+
+        *event = onValueWrite.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getClassOnPropertyValueRead(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+
+        *event = onValueRead.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
     {
         if (event == nullptr)
         {
             return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+
+        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            return ownerPtr->getOnPropertyValueRead(this->name, event);
         }
 
         *event = onValueRead.addRefAndReturn();

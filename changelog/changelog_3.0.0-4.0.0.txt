@@ -1,3 +1,36 @@
+12.08.2024
+Description:
+	- Changed logic of IProperty::getOnPropertyValue events.
+	- Now returns the owner's event when called, if the owner is assigned.
+	- A new function is available to get the class's event. That function is used internally to trigger class value change events.
+	
++ [function] IEvent::getSubscribers(IList** subscribers)
++ [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
++ [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
+
+12.08.2024
+Description
+  - Intergration the Sync Component
+  - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
+Required integeration changes:
+  - Each device now has a sync component, which is visible in default components as `Sync`. 
+  Meantime the sync component transfers over OPC UA by node id `Synchronization`. 
+  - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
+  - Sync component is replacing dummy property object in the ref device.
+
++ [interface] ISyncComponent : public IComponent
++ [function] ISyncComponent::getSyncLocked(Bool* synchronizationLocked)
++ [function] ISyncComponent::getSelectedSource(Int* selectedSource)
++ [function] ISyncComponent::setSelectedSource(Int selectedSource)
++ [function] ISyncComponent::getInterfaces(IDict** interfaces)
+
++ [interface] ISyncComponentPrivate : public IBaseObject
++ [function] ISyncComponentPrivate::setSyncLocked(Bool synchronizationLocked);
++ [function] ISyncComponentPrivate::addInterface(IPropertyObject* syncInterface);
++ [function] ISyncComponentPrivate::removeInterface(IString* syncInterfaceName);
+
++ [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+
 08.08.2024
 Description:
 	- Add get/setValue method to IProperty

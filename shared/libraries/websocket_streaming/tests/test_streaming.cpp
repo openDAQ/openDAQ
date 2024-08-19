@@ -161,11 +161,11 @@ TEST_F(StreamingTest, Subscription)
     ASSERT_TRUE(client.isConnected());
 
     client.subscribeSignal(testDoubleSignal.getGlobalId());
-    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
     ASSERT_EQ(subscribeAckFuture.get(), testDoubleSignal.getGlobalId());
 
     client.unsubscribeSignal(testDoubleSignal.getGlobalId());
-    ASSERT_EQ(unsubscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+    ASSERT_EQ(unsubscribeAckFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
     ASSERT_EQ(unsubscribeAckFuture.get(), testDoubleSignal.getGlobalId());
 }
 

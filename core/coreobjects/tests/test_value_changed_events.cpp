@@ -3,6 +3,9 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <coretypes/type_manager_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_internal_ptr.h>
+
+#include "coreobjects/exceptions.h"
 
 using namespace daq;
 
@@ -198,4 +201,136 @@ TEST_F(PropertyValueChangedEventsTest, MultipleObjectsClear)
 
     ASSERT_EQ(obj1.getPropertyValue("PropClearCount"), 2);
     ASSERT_EQ(obj2.getPropertyValue("PropClearCount"), 2);
+}
+
+TEST_F(PropertyValueChangedEventsTest, PropertyEventsOnClass)
+{
+    int callCount = 0;
+    PropertyPtr prop = StringProperty("str", "test");
+    prop.getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        callCount++;
+    };
+
+    const auto propClass = PropertyObjectClassBuilder("test").addProperty(prop).build();
+    const auto manager = TypeManager();
+    manager.addType(propClass);
+
+    const auto obj1 = PropertyObject(manager, "test");
+    const auto obj2 = PropertyObject(manager, "test");
+    const auto obj3 = PropertyObject(manager, "test");
+
+    obj1.setPropertyValue("str", "test1");
+    obj2.setPropertyValue("str", "test1");
+    obj3.setPropertyValue("str", "test1");
+
+    ASSERT_EQ(callCount, 3);
+}
+
+TEST_F(PropertyValueChangedEventsTest, PropertyEventsOnObject)
+{
+    int callCount = 0;
+    PropertyPtr prop = StringProperty("str", "test");
+    prop.getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        callCount++;
+    };
+
+    const auto propClass = PropertyObjectClassBuilder("test").addProperty(prop).build();
+    const auto manager = TypeManager();
+    manager.addType(propClass);
+
+    const auto obj1 = PropertyObject(manager, "test");
+    const auto obj2 = PropertyObject(manager, "test");
+    const auto obj3 = PropertyObject(manager, "test");
+
+    obj1.getProperty("str").getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        callCount++;
+    };
+
+    obj1.setPropertyValue("str", "test1");
+    obj2.setPropertyValue("str", "test1");
+    obj3.setPropertyValue("str", "test1");
+
+    ASSERT_EQ(callCount, 4);
+}
+
+TEST_F(PropertyValueChangedEventsTest, PropertyEventClassGetter)
+{
+    PropertyPtr prop = StringProperty("str", "test");
+    prop.getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
+    prop.getOnPropertyValueRead() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
+    ASSERT_EQ(prop.getOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(prop.getOnPropertyValueRead().getListenerCount(), 1);
+
+    const auto propClass = PropertyObjectClassBuilder("test").addProperty(prop).build();
+    const auto manager = TypeManager();
+    manager.addType(propClass);
+    
+    const auto obj1 = PropertyObject(manager, "test");
+    const auto obj2 = PropertyObject(manager, "test");
+    const auto obj3 = PropertyObject();
+    obj3.addProperty(prop);
+
+    obj1.getProperty("str").getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
+    obj1.getProperty("str").getOnPropertyValueRead() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
+    
+    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+
+    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+
+    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    
+    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+    
+    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    
+    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueRead().getListenerCount(), 0);
+    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 0);
+
+    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    
+    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+}
+
+
+TEST_F(PropertyValueChangedEventsTest, PropertyEventClassCall)
+{
+    PropertyPtr prop = StringProperty("str", "test");
+    const auto propClass = PropertyObjectClassBuilder("test").addProperty(prop).build();
+    const auto manager = TypeManager();
+    manager.addType(propClass);
+    
+    const auto obj1 = PropertyObject(manager, "test");
+    const auto obj2 = PropertyObject(manager, "test");
+    const auto obj3 = PropertyObject();
+
+    int callCount = 0;
+
+    prop.getOnPropertyValueWrite() +=
+        [&callCount](const PropertyObjectPtr&, const PropertyValueEventArgsPtr&)
+        {
+            callCount++;
+        };
+
+    obj3.addProperty(prop);
+    obj1.getProperty("str").getOnPropertyValueWrite() +=
+        [&callCount](const PropertyObjectPtr&, const PropertyValueEventArgsPtr&)
+        {
+            callCount += 10;
+        };
+
+    obj1.setPropertyValue("str", "1");
+    obj2.setPropertyValue("str", "2");
+    obj3.setPropertyValue("str", "3");
+
+    ASSERT_EQ(callCount, 13);
 }

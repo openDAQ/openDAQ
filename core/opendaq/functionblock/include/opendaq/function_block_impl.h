@@ -87,7 +87,8 @@ protected:
     InputPortConfigPtr createAndAddInputPort(const std::string& localId,
                                              PacketReadyNotification notificationMethod,
                                              BaseObjectPtr customData = nullptr,
-                                             bool requestGapPackets = false);
+                                             bool requestGapPackets = false,
+                                             const PermissionsPtr& permissions = nullptr);
 
     void addInputPort(const InputPortPtr& inputPort);
     void removeInputPort(const InputPortConfigPtr& inputPort);
@@ -426,12 +427,17 @@ template <typename TInterface, typename... Interfaces>
 InputPortConfigPtr FunctionBlockImpl<TInterface, Interfaces...>::createAndAddInputPort(const std::string& localId,
                                                                                        PacketReadyNotification notificationMethod,
                                                                                        BaseObjectPtr customData,
-                                                                                       bool requestGapPackets)
+                                                                                       bool requestGapPackets,
+                                                                                       const PermissionsPtr& permissions)
 {
-    auto inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+    InputPortConfigPtr inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+
     inputPort.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(notificationMethod);
     inputPort.setCustomData(customData);
+
+    if (permissions.assigned())
+        inputPort.getPermissionManager().setPermissions(permissions);
 
     addInputPort(inputPort);
     return inputPort;

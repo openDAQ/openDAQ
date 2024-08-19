@@ -76,6 +76,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
 {
     assert(user.assigned());
     serializer.setUser(user);
+    notificationSerializer.setUser(user);
 
     buildRpcDispatchStructure();
 

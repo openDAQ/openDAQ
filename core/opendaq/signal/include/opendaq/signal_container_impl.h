@@ -54,7 +54,11 @@ protected:
 
     LoggerComponentPtr signalContainerLoggerComponent;
 
-    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true, bool isPublic = true);
+    SignalConfigPtr createAndAddSignal(const std::string& localId,
+                                       const DataDescriptorPtr& descriptor = nullptr,
+                                       bool visible = true,
+                                       bool isPublic = true,
+                                       const PermissionsPtr& permissions = nullptr);
 
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
@@ -280,9 +284,14 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItem(IString* localId, IComponen
 }
 
 template<class Intf, class ...Intfs>
-SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible, bool isPublic)
+SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddSignal(const std::string& localId,
+                                                                               const DataDescriptorPtr& descriptor,
+                                                                               bool visible,
+                                                                               bool isPublic,
+                                                                               const PermissionsPtr& permissions)
 {
-    auto signal = Signal(this->context, signals, localId);
+    SignalConfigPtr signal = Signal(this->context, signals, localId);
+
     if (descriptor.assigned())
         signal.setDescriptor(descriptor);
 
@@ -294,6 +303,9 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
     }
 
     signal.setPublic(isPublic);
+
+    if (permissions.assigned())
+        signal.getPermissionManager().setPermissions(permissions);
 
     addSignal(signal);
     return signal;

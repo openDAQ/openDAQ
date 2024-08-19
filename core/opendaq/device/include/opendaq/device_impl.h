@@ -128,6 +128,8 @@ protected:
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
+    template <class ChannelImpl, class... Params>
+    ChannelPtr createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder, const StringPtr& localId, const PermissionsPtr& permissions, Params&&... params);
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
     bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
@@ -390,6 +392,21 @@ ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const F
     return ch;
 }
 
+template <typename TInterface, typename... Interfaces>
+template <class ChannelImpl, class... Params>
+ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder,
+                                                                                        const StringPtr& localId,
+                                                                                        const PermissionsPtr& permissions,
+                                                                                        Params&&... params)
+{
+    ChannelPtr ch = createWithImplementation<IChannel, ChannelImpl>(this->context, parentFolder, localId, std::forward<Params>(params)...);
+
+    ch.getPermissionManager().setPermissions(permissions);
+
+    parentFolder.addItem(ch);
+    return ch;
+}
+
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel)
 {
@@ -408,10 +425,10 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
     if (parentFolder == nullptr)
     {
         const auto folder = channel.getParent().asPtr<IFolderConfig>();
-        return folder.hasItem(channel);
+        return folder.hasItem(channel.getLocalId());
     }
     else
-        return parentFolder.hasItem(channel);
+        return parentFolder.hasItem(channel.getLocalId());
 }
 
 template <typename TInterface, typename... Interfaces>

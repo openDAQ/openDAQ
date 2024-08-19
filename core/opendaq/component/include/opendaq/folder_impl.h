@@ -235,8 +235,9 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
-         this->triggerCoreEvent(args);
-         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+
+        this->triggerCoreEvent(args);
+        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     return OPENDAQ_SUCCESS;

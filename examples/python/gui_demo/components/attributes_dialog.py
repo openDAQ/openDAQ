@@ -297,6 +297,14 @@ class AttributesDialog(Dialog):
             descriptor['post_scaling']['parameters'] = desc.post_scaling.parameters
 
         descriptor['struct_fields'] = desc.struct_fields
+        
+        if desc.reference_domain_info:
+            descriptor['reference_domain_info'] = {}
+            descriptor['reference_domain_info']['reference_domain_id'] = desc.reference_domain_info.reference_domain_id
+            descriptor['reference_domain_info']['reference_domain_offset'] = desc.reference_domain_info.reference_domain_offset
+            descriptor['reference_domain_info']['reference_time_source'] = desc.reference_domain_info.reference_time_source
+            descriptor['reference_domain_info']['uses_offset'] = desc.reference_domain_info.uses_offset
+
         self.fill_additional_tree('', descriptor)
 
     def additional_tree_update(self):

@@ -112,14 +112,14 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
     {
         auto connectionStringIpv6 = NativeStreamingClientModule::CreateUrlConnectionString(
             protocolPrefix,
-            "[" + discoveredDevice.ipv6Address + "]",
+            discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
         );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+        cap.addAddress(discoveredDevice.ipv6Address);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv6")
                                                      .setConnectionString(connectionStringIpv6)

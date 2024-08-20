@@ -23,14 +23,14 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceBase final : public DeviceTemplateHooks
+class RefDeviceBase final : public templates::DeviceTemplateHooks
 {
 public:
 
-    RefDeviceBase(const DeviceParams& params);
+    RefDeviceBase(const templates::DeviceParams& params);
 };
 
-class RefDeviceImpl final : public DeviceTemplate
+class RefDeviceImpl final : public templates::DeviceTemplate
 {
 public:
 

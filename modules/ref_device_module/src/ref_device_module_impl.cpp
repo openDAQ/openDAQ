@@ -22,9 +22,9 @@ RefDeviceModule::RefDeviceModule(const ContextPtr& context)
 {
 }
 
-ModuleParams RefDeviceModule::buildModuleParams()
+templates::ModuleParams RefDeviceModule::buildModuleParams()
 {
-    ModuleParams params;
+    templates::ModuleParams params;
     params.version = VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION);
     params.name = "ReferenceDeviceModule";
     params.id = REF_MODULE_ID;
@@ -32,9 +32,9 @@ ModuleParams RefDeviceModule::buildModuleParams()
     return params;
 }
 
-std::vector<DeviceTypeParams> RefDeviceModule::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options)
+std::vector<templates::DeviceTypeParams> RefDeviceModule::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options)
 {
-    DeviceTypeParams params;
+    templates::DeviceTypeParams params;
     params.id = DEVICE_TYPE_ID;
     params.name = "Reference device";
     params.description = "Reference device";
@@ -42,7 +42,7 @@ std::vector<DeviceTypeParams> RefDeviceModule::getAvailableDeviceTypes(const Dic
     return {params};
 }
 
-std::vector<DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options)
+std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options)
 {
     StringPtr customName;
     StringPtr customSerial;
@@ -61,10 +61,10 @@ std::vector<DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const Dict
     if (options.hasKey("Name"))
         customName = options.get("Name");
 
-    std::vector<DeviceInfoParams> params;
+    std::vector<templates::DeviceInfoParams> params;
     for (size_t i = 0; i < maxNumberOfDevices; ++i)
     {
-        DeviceInfoParams info;
+        templates::DeviceInfoParams info;
         info.address = fmt::format("device{}", i);
         info.typeId = DEVICE_TYPE_ID;
         info.name = customName.assigned() ? customName.toStdString() : fmt::format("Reference device {}", i);
@@ -82,7 +82,7 @@ std::vector<DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const Dict
     return params;
 }
 
-DevicePtr RefDeviceModule::createDevice(const DeviceParams& params)
+DevicePtr RefDeviceModule::createDevice(const templates::DeviceParams& params)
 {
     return createWithImplementation<IDevice, RefDeviceBase>(params);
 }

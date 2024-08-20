@@ -8,6 +8,8 @@ set(SRC_Include
     device_template.h
     function_block_template.h
     module_template.h
+    io_folder_template.h
+    component_template.h
     component_template_base.h
     component_helpers.h
     utils.h
@@ -20,6 +22,8 @@ set(SRC_Srcs
     module_template.cpp
     component_template_base.cpp
     component_helpers.cpp
+    io_folder_template.cpp
+    component_template.cpp
     utils.cpp
 )
 
@@ -30,11 +34,15 @@ source_group("templates" FILES ${MODULE_HEADERS_DIR}/channel_template.h
                                ${MODULE_HEADERS_DIR}/function_block_template.h
                                ${MODULE_HEADERS_DIR}/module_template.h
                                ${MODULE_HEADERS_DIR}/device_template.h
+                               ${MODULE_HEADERS_DIR}/io_folder_template.h
+                               ${MODULE_HEADERS_DIR}/component_template.h
                                channel_template.cpp
                                component_template_base.cpp
                                function_block_template.cpp
                                module_template.cpp
                                device_template.cpp
+                               component_template.cpp
+                               io_folder_template.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Include}

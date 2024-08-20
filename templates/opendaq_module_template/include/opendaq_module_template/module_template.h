@@ -3,7 +3,7 @@
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq_module_template/utils.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 class ModuleTemplateHooks;
 
@@ -59,4 +59,4 @@ private:
 };
 
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

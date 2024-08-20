@@ -1,7 +1,7 @@
 #pragma once
 #include <opendaq/opendaq.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 // Attribute definitions
 
@@ -229,4 +229,4 @@ static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl
     }
 }
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

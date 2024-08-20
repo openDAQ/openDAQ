@@ -2,7 +2,7 @@
 #include <opendaq/opendaq.h>
 #include <opendaq_module_template/utils.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 template <typename Type>
 class ComponentTemplateBase;
@@ -175,4 +175,4 @@ BaseObjectPtr ComponentTemplateBase<Type>::onPropertyRead(const PropertyObjectPt
     return nullptr;
 }
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

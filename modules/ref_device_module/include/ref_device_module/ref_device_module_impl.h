@@ -20,13 +20,13 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceModuleBase final : public ModuleTemplateHooks
+class RefDeviceModuleBase final : public templates::ModuleTemplateHooks
 {
 public:
     RefDeviceModuleBase(const ContextPtr& context);
 };
 
-class RefDeviceModule final : public ModuleTemplate
+class RefDeviceModule final : public templates::ModuleTemplate
 {
 public:
 
@@ -34,10 +34,10 @@ public:
 
 protected:
 
-    ModuleParams buildModuleParams() override;
-    std::vector<DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
-    std::vector<DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
-    DevicePtr createDevice(const DeviceParams& params) override;
+    templates::ModuleParams buildModuleParams() override;
+    std::vector<templates::DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
+    std::vector<templates::DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
+    DevicePtr createDevice(const templates::DeviceParams& params) override;
 
 private:
 

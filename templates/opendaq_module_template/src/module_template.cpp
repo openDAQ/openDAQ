@@ -3,7 +3,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_type_factory.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
@@ -208,4 +208,4 @@ ModuleParams ModuleTemplate::buildModuleParams()
 	return {};
 }
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

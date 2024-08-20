@@ -1,6 +1,6 @@
 #include <opendaq_module_template/device_template.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 void DeviceTemplate::initDevices(const FolderConfigPtr& /*devicesFolder*/)
 {
@@ -72,4 +72,4 @@ DeviceInfoPtr DeviceTemplateHooks::onGetInfo()
     return info;
 }
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

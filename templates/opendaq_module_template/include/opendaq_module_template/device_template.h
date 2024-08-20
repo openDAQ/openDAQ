@@ -2,7 +2,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq_module_template/component_template_base.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
 class DeviceTemplateHooks;
 
@@ -94,4 +94,4 @@ private:
     DeviceInfoPtr info;
 };
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_TEMPLATES

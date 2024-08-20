@@ -14,7 +14,7 @@ static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
 static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
-RefDeviceBase::RefDeviceBase(const DeviceParams& params)
+RefDeviceBase::RefDeviceBase(const templates::DeviceParams& params)
     : DeviceTemplateHooks(std::make_shared<RefDeviceImpl>(), params)
 {
 }

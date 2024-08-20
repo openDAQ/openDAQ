@@ -54,6 +54,13 @@
 #define END_NAMESPACE_OPENDAQ_SEARCH \
     }
 
+#define BEGIN_NAMESPACE_OPENDAQ_TEMPLATES \
+    namespace daq::templates \
+    {
+
+#define END_NAMESPACE_OPENDAQ_TEMPLATES \
+    }
+
 BEGIN_NAMESPACE_OPENDAQ
 
 /*! Creates a type name "ErrCode" for uint32_t */

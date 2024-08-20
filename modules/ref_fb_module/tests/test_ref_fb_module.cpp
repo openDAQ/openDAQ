@@ -77,6 +77,9 @@ public:
             if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
                 break;
         }
+
+        context.getScheduler().stop();
+
         return static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
     }
 };
@@ -342,8 +345,6 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
     ASSERT_EQ(domainData[1], 114);
     ASSERT_EQ(domainData[2], 119);
     ASSERT_EQ(domainData[3], 124);
-
-    help.context.getScheduler().stop();
 }
 
 TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
@@ -416,6 +417,4 @@ TEST_F(RefFbModuleTest, ClassifierWithReferenceDomainOffset)
     //                          ^
 
     ASSERT_EQ(domainData[0], 104);
-
-    help.context.getScheduler().stop();
 }

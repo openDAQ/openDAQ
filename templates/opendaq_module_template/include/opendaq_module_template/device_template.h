@@ -6,43 +6,34 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class DeviceTemplateHooks;
 
-class DeviceTemplate : public ComponentTemplateBase<DeviceTemplateHooks>
+class DeviceTemplate : public ComponentTemplateBase<DeviceTemplateHooks>, public AddableComponentTemplateBase
 {
 public:
+
     DevicePtr getDevice() const;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const;
-
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
 
     void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
 
 protected:
-
-    virtual void handleConfig(const PropertyObjectPtr& config);
-    virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
-    virtual void initSignals(const FolderConfigPtr& signalsFolder);
-    virtual void initDevices(const FolderConfigPtr& devicesFolder);
-    virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
+    
     virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
+    virtual void initDevices(const FolderConfigPtr& devicesFolder);
+    //virtual void initSyncComponent(const SyncComponentPtr& syncComponent); // TODO: Add this
     virtual void initCustomComponents();
     virtual DeviceDomainPtr initDeviceDomain();  // TODO: Pass builder as param when implemented
 
-    virtual void start();
-
-    //virtual void configureSyncComponent(); // TODO: Add once sync component is implemented
-
-    virtual DeviceDomainPtr getDeviceDomain();
     virtual uint64_t getTicksSinceOrigin();
 
-    virtual BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-    virtual BaseObjectPtr onPropertyRead(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-
+    // Should this be handled differently?
     virtual bool allowAddDevicesFromModules();
     virtual bool allowAddFunctionBlocksFromModules();
     
 private:
+
     friend class DeviceTemplateHooks;
 };
 
@@ -57,12 +48,11 @@ class DeviceTemplateHooks : public DeviceParamsValidation, public Device
 {
 public:
 
-    DeviceTemplateHooks(std::unique_ptr<DeviceTemplate> device, const DeviceParams& params, const StringPtr& className = "")
+    DeviceTemplateHooks(std::shared_ptr<DeviceTemplate> device, const DeviceParams& params, const StringPtr& className = "")
         : DeviceParamsValidation(params)
         , Device(params.context, params.parent, params.localId, className, params.info.getName())
         , device(std::move(device))
         , info(params.info)
-        , initialized(false)
     {
         if (!this->info.isFrozen())
             this->info.freeze();
@@ -76,22 +66,32 @@ public:
         this->device->handleConfig(params.config);
         this->device->handleOptions(params.options);
         this->device->initProperties();
-        registerCallbacks(objPtr);
+
+        registerCallbacks<DeviceTemplate>(objPtr, this->device);
         setDeviceDomain(this->device->initDeviceDomain());
         this->device->initIOFolder(ioFolder);
+        this->device->initDevices(devices);
+        this->device->initSignals(signals);
+        this->device->initFunctionBlocks(functionBlocks);
+        this->device->initCustomComponents();
+
+        this->device->initTags(tags);
+        this->device->initStatuses(statusContainer);
+
+        this->device->start();
     }   
 
 private:
     
-    void onObjectReady() override;
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
-    void registerCallbacks(const PropertyObjectPtr& obj);
+
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
     
     friend class DeviceTemplate;
-    std::unique_ptr<DeviceTemplate> device;
+    std::shared_ptr<DeviceTemplate> device;
     DeviceInfoPtr info;
-    bool initialized;
 };
 
 END_NAMESPACE_OPENDAQ

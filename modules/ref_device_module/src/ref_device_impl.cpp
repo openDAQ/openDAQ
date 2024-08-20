@@ -15,7 +15,7 @@ static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
 RefDeviceBase::RefDeviceBase(const DeviceParams& params)
-    : DeviceTemplateHooks(std::make_unique<RefDeviceImpl>(), params)
+    : DeviceTemplateHooks(std::make_shared<RefDeviceImpl>(), params)
 {
 }
 
@@ -76,7 +76,7 @@ void RefDeviceImpl::initProperties()
     obj.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
 }
 
-BaseObjectPtr RefDeviceImpl::onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value)
+BaseObjectPtr RefDeviceImpl::onPropertyWrite(const PropertyObjectPtr& /*owner*/, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value)
 {
     if (propertyName == "NumberOfChannels")
         updateNumberOfChannels(value);
@@ -122,6 +122,16 @@ void RefDeviceImpl::start()
 {
     updateAcqLoopTime(getDevice().getPropertyValue("AcquisitionLoopTime"));
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
+}
+
+bool RefDeviceImpl::allowAddDevicesFromModules()
+{
+    return false;
+}
+
+bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
+{
+    return true;
 }
 
 void RefDeviceImpl::acqLoop()

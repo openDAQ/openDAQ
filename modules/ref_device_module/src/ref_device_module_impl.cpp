@@ -12,7 +12,7 @@ static constexpr char DEVICE_TYPE_ID[] = "daqref";
 static constexpr char CONNECTION_STRING_PREFIX[] = "daqref";
 
 RefDeviceModuleBase::RefDeviceModuleBase(const ContextPtr& context)
-    : ModuleTemplateHooks(std::make_unique<RefDeviceModule>(context))
+    : ModuleTemplateHooks(std::make_shared<RefDeviceModule>(context))
 {
 }
 

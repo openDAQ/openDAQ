@@ -5,6 +5,11 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename Type>
+class ComponentTemplateBase;
+class AddableComponentTemplateBase;
+class FunctionBlockTemplateBase;
+
+template <typename Type>
 class ComponentTemplateBase
 {
 public:
@@ -18,23 +23,40 @@ public:
     template <class FBImpl, class... Params>
     FunctionBlockPtr createAndAddFunctionBlock(const std::string& fbId, Params&&... params) const;
 
-protected:
-    friend class DeviceTemplateHooks;
-    friend class FunctionBlockTemplateHooks;
-    friend class DeviceTemplate;
-    friend class FunctionBlockTemplate;
+    virtual void initSignals(const FolderConfigPtr& signalsFolder);
+    virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
+    virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
 
     virtual void initProperties();
     virtual void initTags(const TagsPrivatePtr& tags);
     virtual void initStatuses(const ComponentStatusContainerPrivatePtr& statusContainer);
     virtual void propertyChanged(const StringPtr& propertyName);
     virtual ComponentAttributeConfig getAttributeConfig();
+    
+    virtual void start();
+
+    virtual BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
+    virtual BaseObjectPtr onPropertyRead(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
+
 
     LoggerComponentPtr loggerComponent;
     ContextPtr context;
     std::mutex sync;
     Type* componentImpl;
+};
 
+class AddableComponentTemplateBase
+{
+public:
+    virtual ~AddableComponentTemplateBase() = default;
+    virtual void handleConfig(const PropertyObjectPtr& config);
+};
+
+class FunctionBlockTemplateBase
+{
+public:
+    virtual ~FunctionBlockTemplateBase() = default;
+    virtual void initInputPorts(const FolderConfigPtr& inputPortsFolder);
 };
 
 template <typename Type>
@@ -85,6 +107,25 @@ FunctionBlockPtr ComponentTemplateBase<Type>::createAndAddFunctionBlock(const st
     return fb;
 }
 
+inline void AddableComponentTemplateBase::handleConfig(const PropertyObjectPtr& /*config*/)
+{
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::initSignals(const FolderConfigPtr& /*signalsFolder*/)
+{
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::initFunctionBlocks(const FolderConfigPtr& /*fbFolder*/)
+{
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::handleOptions(const DictPtr<IString, IBaseObject>& /*options*/)
+{
+}
+
 template <typename Type>
 void ComponentTemplateBase<Type>::initProperties()
 {
@@ -108,7 +149,30 @@ void ComponentTemplateBase<Type>::propertyChanged(const StringPtr& /*propertyNam
 template <typename Type>
 ComponentAttributeConfig ComponentTemplateBase<Type>::getAttributeConfig()
 {
-    return ComponentAttributeConfig();
+    return {};
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::start()
+{
+}
+
+template <typename Type>
+BaseObjectPtr ComponentTemplateBase<Type>::onPropertyWrite(const PropertyObjectPtr& /*owner*/,
+                                                           const StringPtr& /*propertyName*/,
+                                                           const PropertyPtr& /*property*/,
+                                                           const BaseObjectPtr& /*value*/)
+{
+    return nullptr;
+}
+
+template <typename Type>
+BaseObjectPtr ComponentTemplateBase<Type>::onPropertyRead(const PropertyObjectPtr& /*owner*/,
+                                                          const StringPtr& /*propertyName*/,
+                                                          const PropertyPtr& /*property*/,
+                                                          const BaseObjectPtr& /*value*/)
+{
+    return nullptr;
 }
 
 END_NAMESPACE_OPENDAQ

@@ -38,7 +38,7 @@ class ModuleTemplateHooks : public ModuleParamsValidation, public Module
 {
 public:
 
-    ModuleTemplateHooks(std::unique_ptr<ModuleTemplate> module_)
+    ModuleTemplateHooks(std::shared_ptr<ModuleTemplate> module_)
         : ModuleParamsValidation(module_->buildModuleParams())
         , Module(params.name, params.version, module_->context, params.id)
         , module_(std::move(module_))
@@ -55,7 +55,7 @@ private:
     static DeviceInfoPtr createDeviceInfo(const DeviceInfoParams& infoParams, const DeviceTypeParams& typeParams);
     
     friend class ModuleTemplate;
-    std::unique_ptr<ModuleTemplate> module_;
+    std::shared_ptr<ModuleTemplate> module_;
 };
 
 

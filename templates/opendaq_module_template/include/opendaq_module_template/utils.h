@@ -139,11 +139,24 @@ public:
             throw InvalidParameterException("Log name is not set");
         if (!params.context.assigned())
             throw InvalidParameterException("Context is not set");
+        if (!params.parent.assigned())
+            throw InvalidParameterException("Parent is not set");
 
         this->params = params; 
     }
 
     FunctionBlockParams params;
+};
+
+class ChannelParamsValidation : public FunctionBlockParamsValidation   
+{
+public:
+    ChannelParamsValidation(const FunctionBlockParams& params)
+        : FunctionBlockParamsValidation(params)
+    {
+        if (!params.parent.asPtrOrNull<IIoFolderConfig>().assigned())
+            throw InvalidParameterException("Channel parent folder is not an IO folder");
+    }
 };
 
 class DeviceParamsValidation
@@ -186,5 +199,34 @@ public:
     ModuleParams params;
 };
 
+// Internal Helpers
+
+template <typename Impl>
+static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl> templateImpl)
+{
+    for (const auto& prop : obj.getAllProperties())
+    {
+        obj.getOnPropertyValueWrite(prop.getName()) +=
+            [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
+            {
+                const auto prop = args.getProperty();
+                const auto val = templateImpl->onPropertyWrite(obj, prop.getName(), prop, args.getValue());
+                if (val.assigned() && args.getValue() != val)
+                    args.setValue(val);
+            };
+
+        obj.getOnPropertyValueRead(prop.getName()) +=
+            [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
+            {
+                const auto prop = args.getProperty();
+                const auto val = templateImpl->onPropertyRead(obj, prop.getName(), prop, args.getValue());
+                if (val.assigned() && args.getValue() != val)
+                    args.setValue(val);
+            };
+
+        if (prop.getValueType() == ctObject)
+            registerCallbacks(obj.getPropertyValue(prop.getName()), templateImpl);
+    }
+}
 
 END_NAMESPACE_OPENDAQ

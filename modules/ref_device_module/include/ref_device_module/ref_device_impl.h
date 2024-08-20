@@ -26,12 +26,14 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceBase final : public DeviceTemplateHooks
 {
 public:
+
     RefDeviceBase(const DeviceParams& params);
 };
 
 class RefDeviceImpl final : public DeviceTemplate
 {
 public:
+
     explicit RefDeviceImpl();
     ~RefDeviceImpl() override;
 
@@ -41,11 +43,14 @@ protected:
     void handleConfig(const PropertyObjectPtr& config) override;
     void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
     void initProperties() override;
+    BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
     void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
     DeviceDomainPtr initDeviceDomain() override;
     void start() override;
     
-    BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
+
 private:
 
     void acqLoop();

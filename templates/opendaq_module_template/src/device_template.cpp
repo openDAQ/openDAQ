@@ -2,23 +2,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-void DeviceTemplate::handleConfig(const PropertyObjectPtr& /*config*/)
-{
-}
-
-void DeviceTemplate::handleOptions(const DictPtr<IString, IBaseObject>& /*options*/)
-{
-}
-
-void DeviceTemplate::initSignals(const FolderConfigPtr& /*signalsFolder*/)
-{
-}
-
 void DeviceTemplate::initDevices(const FolderConfigPtr& /*devicesFolder*/)
-{
-}
-
-void DeviceTemplate::initFunctionBlocks(const FolderConfigPtr& /*fbFolder*/)
 {
 }
 
@@ -35,28 +19,9 @@ DeviceDomainPtr DeviceTemplate::initDeviceDomain()
     return {};
 }
 
-void DeviceTemplate::start()
-{
-}
-
-DeviceDomainPtr DeviceTemplate::getDeviceDomain()
-{
-    return nullptr;
-}
-
 uint64_t DeviceTemplate::getTicksSinceOrigin()
 {
     return 0;
-}
-
-BaseObjectPtr DeviceTemplate::onPropertyWrite(const StringPtr& /*propertyName*/, const PropertyPtr& /*property*/, const BaseObjectPtr& /*value*/)
-{
-    return nullptr;
-}
-
-BaseObjectPtr DeviceTemplate::onPropertyRead(const StringPtr& /*propertyName*/, const PropertyPtr& /*property*/, const BaseObjectPtr& /*value*/)
-{
-    return nullptr;
 }
 
 bool DeviceTemplate::allowAddDevicesFromModules()
@@ -67,38 +32,6 @@ bool DeviceTemplate::allowAddDevicesFromModules()
 bool DeviceTemplate::allowAddFunctionBlocksFromModules()
 {
     return false;
-}
-
-uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()
-{
-    return 0;
-}
-
-void DeviceTemplateHooks::registerCallbacks(const PropertyObjectPtr& obj)
-{
-    for (const auto& prop : obj.getAllProperties())
-    {
-        obj.getOnPropertyValueWrite(prop.getName()) +=
-            [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-            {
-                const auto prop = args.getProperty();
-                const auto val = device->onPropertyWrite(prop.getName(), prop, args.getValue());
-                if (val.assigned())
-                    args.setValue(val);
-            };
-
-        obj.getOnPropertyValueRead(prop.getName()) +=
-            [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-            {
-                const auto prop = args.getProperty();
-                const auto val = device->onPropertyRead(prop.getName(), prop, args.getValue());
-                if (val.assigned())
-                    args.setValue(val);
-            };
-
-        if (prop.getValueType() == ctObject)
-            registerCallbacks(obj.getPropertyValue(prop.getName()));
-    }
 }
 
 DevicePtr DeviceTemplate::getDevice() const
@@ -118,15 +51,21 @@ void DeviceTemplate::setDeviceDomain(const DeviceDomainPtr& deviceDomain) const
     componentImpl->setDeviceDomain(deviceDomain);
 }
 
-void DeviceTemplateHooks::onObjectReady()
+uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()
 {
-    GenericDevice<IDevice>::onObjectReady();
-    if (initialized)
-        return;
-    
-    this->device->start();
-    initialized = true;
+    return 0;
 }
+
+bool DeviceTemplateHooks::allowAddDevicesFromModules()
+{
+    return device->allowAddDevicesFromModules();
+}
+
+bool DeviceTemplateHooks::allowAddFunctionBlocksFromModules()
+{
+    return device->allowAddFunctionBlocksFromModules();
+}
+
 
 DeviceInfoPtr DeviceTemplateHooks::onGetInfo()
 {

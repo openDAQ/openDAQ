@@ -6,25 +6,16 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class FunctionBlockTemplateHooks;
 
-class FunctionBlockTemplate : public ComponentTemplateBase<FunctionBlockTemplateHooks>
+class FunctionBlockTemplate : public ComponentTemplateBase<FunctionBlockTemplateHooks>,
+                              public AddableComponentTemplateBase,
+                              public FunctionBlockTemplateBase
 {
 public:
+
     FunctionBlockPtr getFunctionBlock() const;
 
-protected:
-
-    virtual void handleConfig(const PropertyObjectPtr& config);
-    virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
-    virtual void initSignals(const FolderConfigPtr& signalsFolder);
-    virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
-
-    virtual void start();
-
-    virtual BaseObjectPtr onPropertyWrite(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-    virtual BaseObjectPtr onPropertyRead(const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-
-
 private:
+
     friend class FunctionBlockTemplateHooks;
 };
 
@@ -32,11 +23,10 @@ class FunctionBlockTemplateHooks : public FunctionBlockParamsValidation, public 
 {
 public:
 
-    FunctionBlockTemplateHooks(std::unique_ptr<FunctionBlockTemplate> functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
+    FunctionBlockTemplateHooks(std::shared_ptr<FunctionBlockTemplate> functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
         : FunctionBlockParamsValidation(params)
         , FunctionBlock(params.type, params.context, params.parent, params.localId, className)
         , functionBlock(std::move(functionBlock))
-        , initialized(false)
     {
         this->functionBlock->componentImpl = this; // TODO: Figure out safe ptr operations for this
         this->functionBlock->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
@@ -47,17 +37,21 @@ public:
         this->functionBlock->handleConfig(params.config);
         this->functionBlock->handleOptions(params.options);
         this->functionBlock->initProperties();
-        registerCallbacks(objPtr);
+        registerCallbacks<FunctionBlockTemplate>(objPtr, this->functionBlock);
+        this->functionBlock->initSignals(signals);
+        this->functionBlock->initFunctionBlocks(functionBlocks);
+        this->functionBlock->initInputPorts(inputPorts);
+              
+        this->functionBlock->initTags(tags);
+        this->functionBlock->initStatuses(statusContainer);
+
+        this->functionBlock->start();
     }   
 
 private:
     
-    void onObjectReady() override;
-    void registerCallbacks(const PropertyObjectPtr& obj);
-    
     friend class FunctionBlockTemplate;
-    std::unique_ptr<FunctionBlockTemplate> functionBlock;
-    bool initialized;
+    std::shared_ptr<FunctionBlockTemplate> functionBlock;
 };
 
 END_NAMESPACE_OPENDAQ

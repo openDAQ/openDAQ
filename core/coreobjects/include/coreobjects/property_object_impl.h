@@ -210,8 +210,6 @@ protected:
     bool isParentUpdating();
     virtual void onUpdatableUpdateEnd();
 
-    virtual void onObjectReady();
-
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
         const SerializedObjectPtr& serialized,
@@ -2046,11 +2044,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpda
 {
 }
 
-template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onObjectReady()
-{
-}
-
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
@@ -2161,11 +2154,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
         }
     }
 
-    return daqTry([this]
-    {
-        onObjectReady();
-        return OPENDAQ_SUCCESS;
-    });
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

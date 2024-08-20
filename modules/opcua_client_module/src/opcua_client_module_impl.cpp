@@ -194,13 +194,12 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
 {
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%\d+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
-    std::string target = "/";
     std::string prefix = "";
-    std::string path = "";
+    std::string path = "/";
 
     if (config.assigned() )
     {
@@ -238,7 +237,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     if (prefix != std::string(DaqOpcUaDevicePrefix) + "://")
         throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
 
-    return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + "/" + path;
+    return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + path;
 }
 
 bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)

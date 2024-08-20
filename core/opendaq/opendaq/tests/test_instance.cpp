@@ -620,14 +620,14 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
         fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
 
         config = instance.saveConfiguration();
-        std::cout << config << std::endl;
+        // std::cout << config << std::endl;
     }
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.loadConfiguration(config);
 
     config = instance2.saveConfiguration();
-    std::cout << config << std::endl;
+    // std::cout << config << std::endl;
 
     auto restoredFbs = instance2.getFunctionBlocks();
     ASSERT_EQ(restoredFbs.getCount(), 2u);

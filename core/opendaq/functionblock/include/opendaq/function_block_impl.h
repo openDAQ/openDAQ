@@ -95,14 +95,14 @@ protected:
     void removed() override;
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj);
-    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
+    void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj, const BaseObjectPtr& context);
+    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock, const BaseObjectPtr& context) override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
 
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
@@ -257,7 +257,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("IP"))
     {
@@ -265,16 +265,17 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
         this->updateFolder(ipFolder,
                      "Folder",                    
                      "InputPort",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj); });
+                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                     { updateInputPort(localId, obj, context); });
     }
 
-    return Super::updateObject(obj);
+    return Super::updateObject(obj, context);
 }
 
 template <class Intf, class... Intfs>
 void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& localId,
-                                                             const SerializedObjectPtr& obj)
+                                                        const SerializedObjectPtr& obj,
+                                                        const BaseObjectPtr& context)
 {
     InputPortPtr inputPort;
     if (!inputPorts.hasItem(localId))
@@ -298,12 +299,13 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
 
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
-    updatableIp.update(obj);
+    updatableIp.updateInternal(obj, context);
 }
 
 template <typename TInterface, typename ... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-    const SerializedObjectPtr& serializedFunctionBlock)
+                                                                       const SerializedObjectPtr& serializedFunctionBlock,
+                                                                       const BaseObjectPtr& context)
 {
     if (!this->functionBlocks.hasItem(fbId))
     {
@@ -319,7 +321,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
 
     const auto updatableFb = fb.template asPtr<IUpdatable>(true);
 
-    updatableFb.update(serializedFunctionBlock);
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <typename TInterface, typename... Interfaces>

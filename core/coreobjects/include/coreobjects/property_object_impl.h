@@ -107,6 +107,7 @@ public:
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
 
     // IUpdatable
+    virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     virtual ErrCode INTERFACE_FUNC updateEnded() override;
@@ -2771,8 +2772,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
     return OPENDAQ_SUCCESS;
 }
 
-template <class PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     if (obj == nullptr)
     {
@@ -2805,6 +2806,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISeri
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
+{
+    return updateInternal(obj, nullptr);
 }
 
 template <typename PropObjInterface, typename... Interfaces>

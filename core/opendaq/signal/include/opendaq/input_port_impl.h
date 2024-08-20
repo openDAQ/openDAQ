@@ -87,7 +87,7 @@ public:
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd() override;
     ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
@@ -116,8 +116,6 @@ private:
 
     LoggerComponentPtr loggerComponent;
     SchedulerPtr scheduler;
-
-    SignalPtr dummySignal;
 
     WeakRefPtr<IPropertyObject> owner;
 
@@ -245,8 +243,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
                     throw;
             }
         }
-
-        dummySignal.release();
     }
     catch (const DaqException& e)
     {
@@ -530,7 +526,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
 template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::finishUpdate()
 {
-    dummySignal.release();
     serializedSignalId.release();
 }
 
@@ -675,13 +670,11 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
 }
 
 template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("signalId"))
     {
         serializedSignalId = obj.readString("signalId");
-        dummySignal = Signal(this->context, nullptr, "dummy");
-        checkErrorInfo(connect(dummySignal));
     }
     else
         serializedSignalId.release();
@@ -703,6 +696,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
             try
             {
                 thisPtr.connect(sig);
+                finishUpdate();
             }
             catch (const DaqException&)
             {
@@ -714,8 +708,6 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
             LOG_W("Signal not found: {}", serializedSignalId);
         }
     }
-    
-    finishUpdate();
 }
 
 template <class ... Interfaces>
@@ -746,8 +738,6 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
     if (serializedObject.hasKey("signalId"))
     {
         serializedSignalId = serializedObject.readString("signalId");
-        dummySignal = Signal(this->context, nullptr, "dummy");
-        checkErrorInfo(connect(dummySignal));
     }
 }
 

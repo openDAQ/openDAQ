@@ -754,7 +754,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
+ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
@@ -775,6 +775,11 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
 
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode InstanceImpl::update(ISerializedObject* obj)
+{
+    return updateInternal(obj, nullptr);
 }
 
 ErrCode InstanceImpl::updateEnded()

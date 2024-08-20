@@ -145,17 +145,21 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateFunctionBlock(const std::string& fbId,
-                                  const SerializedObjectPtr& serializedFunctionBlock) override;
-    void updateDevice(const std::string& deviceId, const SerializedObjectPtr& serializedDevice);
+                             const SerializedObjectPtr& serializedFunctionBlock,
+                             const BaseObjectPtr& context) override;
+    void updateDevice(const std::string& deviceId, 
+                      const SerializedObjectPtr& serializedDevice,
+                      const BaseObjectPtr& context);
     void updateIoFolderItem(const FolderPtr& ioFolder,
                             const std::string& localId,
-                            const SerializedObjectPtr& item);
+                            const SerializedObjectPtr& item,
+                            const BaseObjectPtr& context);
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     bool clearFunctionBlocksOnUpdate() override;
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
@@ -1077,7 +1081,8 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                                   const SerializedObjectPtr& serializedFunctionBlock)
+                                                                   const SerializedObjectPtr& serializedFunctionBlock,
+                                                                   const BaseObjectPtr& context)
 {
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
@@ -1095,12 +1100,13 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
     }
 
-    updatableFb.update(serializedFunctionBlock);
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& deviceId,
-                                                            const SerializedObjectPtr& serializedDevice)
+                                                            const SerializedObjectPtr& serializedDevice,
+                                                            const BaseObjectPtr& context)
 {
     if (!devices.hasItem(deviceId))
     {
@@ -1113,7 +1119,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
     try
     {
-        updatableDevice.update(serializedDevice);
+        updatableDevice.updateInternal(serializedDevice, context);
     }
     catch (const std::exception& e)
     {
@@ -1124,7 +1130,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPtr& parentIoFolder,
                                                                   const std::string& localId,
-                                                                  const SerializedObjectPtr& serializedItem)
+                                                                  const SerializedObjectPtr& serializedItem,
+                                                                  const BaseObjectPtr& context)
 {
     if (!parentIoFolder.hasItem(localId))
     {
@@ -1137,18 +1144,18 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
     {
         const auto updatableChannel = item.asPtr<IUpdatable>(true);
 
-        updatableChannel.update(serializedItem);
+        updatableChannel.updateInternal(serializedItem, context);
     }
     else if (item.supportsInterface<IFolder>())
     {
         const auto updatableFolder = item.asPtr<IUpdatable>(true);
-        updatableFolder.update(serializedItem);
+        updatableFolder.updateInternal(serializedItem, context);
 
         this->updateFolder(serializedItem,
                            "IoFolder",
                            "",
-                           [this, &item](const std::string& itemId, const SerializedObjectPtr& obj)
-                           { updateIoFolderItem(item, itemId, obj); });
+                           [this, &item, &context](const std::string& itemId, const SerializedObjectPtr& obj)
+                           { updateIoFolderItem(item, itemId, obj, context); });
     }
 }
 
@@ -1196,9 +1203,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
-    Super::updateObject(obj);
+    Super::updateObject(obj, context);
 
     if (obj.hasKey("Dev"))
     {
@@ -1208,8 +1215,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",
-                           [this](const std::string& localId, const SerializedObjectPtr& obj)
-                           { updateDevice(localId, obj); });
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateDevice(localId, obj, context); });
     }
 
     if (obj.hasKey("IO"))
@@ -1220,7 +1227,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         this->updateFolder(ioFolder,
                            "IoFolder",
                            "",
-                           [this](const std::string& localId, const SerializedObjectPtr& obj) { updateIoFolderItem(this->ioFolder, localId, obj); });
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateIoFolderItem(this->ioFolder, localId, obj, context); });
     }
 
     const auto keys = obj.getKeys();
@@ -1234,7 +1242,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             {
                 const auto componentObject = obj.readSerializedObject(key);
                 const auto updatableComponent = compIterator->template asPtr<IUpdatable>(true);
-                updatableComponent.update(componentObject);
+                updatableComponent.updateInternal(componentObject, context);
             }
         }
     }

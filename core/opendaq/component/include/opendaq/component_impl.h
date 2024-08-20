@@ -102,6 +102,7 @@ public:
 
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
@@ -150,7 +151,7 @@ protected:
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
-    virtual void updateObject(const SerializedObjectPtr& obj);
+    virtual void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     void onUpdatableUpdateEnd() override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
@@ -700,12 +701,13 @@ ErrCode ComponentImpl<Intf, Intfs ...>::isRemoved(Bool* removed)
     return OPENDAQ_SUCCESS;
 }
 
-template <class Intf, class... Intfs>
-ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
+template <class Intf, class ... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
 
-    return daqTry([&objPtr, this]
+    return daqTry([&objPtr, &contextPtr, this]
     {
         const bool muted = this->coreEventMuted;
         const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -713,10 +715,9 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
         if (!muted)
             propInternalPtr.disableCoreEventTrigger();
 
-        const auto err = Super::update(objPtr);
+        const auto err = Super::updateInternal(objPtr, contextPtr);
 
-        updateObject(objPtr);
-        onUpdatableUpdateEnd();
+        updateObject(objPtr, contextPtr);
 
         if (!muted && this->coreEvent.assigned())
         {
@@ -726,6 +727,15 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
         }
         return err;
     });
+}
+
+template <class Intf, class... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
+{
+    auto errCode = updateInternal(obj, nullptr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    return updateEnded();
 }
 
 template <class Intf, class ... Intfs>
@@ -945,7 +955,7 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
     const auto flags = getSerializeFlags();
     if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))

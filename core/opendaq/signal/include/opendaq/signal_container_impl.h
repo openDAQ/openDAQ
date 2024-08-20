@@ -78,14 +78,16 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     virtual void updateFunctionBlock(const std::string& fbId,
-                                     const SerializedObjectPtr& serializedFunctionBlock);
+                                     const SerializedObjectPtr& serializedFunctionBlock,
+                                     const BaseObjectPtr& context);
     virtual void updateSignal(const std::string& sigId,
-                              const SerializedObjectPtr& serializedSignal);
+                              const SerializedObjectPtr& serializedSignal,
+                              const BaseObjectPtr& context);
 
     template <class F>
     void updateFolder(const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd() override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
@@ -555,9 +557,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
-    Super::updateObject(obj);
+    Super::updateObject(obj, context);
 
     if (obj.hasKey("FB"))
     {
@@ -570,9 +572,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         updateFolder(fbFolder,
                      "Folder",
                      "FunctionBlock",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
+                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
                      {
-                         updateFunctionBlock(localId, obj);
+                         updateFunctionBlock(localId, obj, context);
                      });
     }
 
@@ -584,8 +586,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         updateFolder(sigFolder,
                      "Folder",
                      "Signal",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateSignal(localId, obj); });
+                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                     { updateSignal(localId, obj, context); });
     }
 }
 
@@ -657,14 +659,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedOb
 
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& /*fbId*/,
-                                                                     const SerializedObjectPtr& /* serializedFunctionBlock */)
+                                                                     const SerializedObjectPtr& /* serializedFunctionBlock */,
+                                                                     const BaseObjectPtr& /* context */)
 {
 
 }
 
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string& sigId,
-                                                              const SerializedObjectPtr& serializedSignal)
+                                                              const SerializedObjectPtr& serializedSignal,
+                                                              const BaseObjectPtr& context)
 {
     if (!signals.hasItem(sigId))
     {
@@ -680,7 +684,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
 
     const auto updatableSignal = signal.template asPtr<IUpdatable>(true);
 
-    updatableSignal.update(serializedSignal);
+    updatableSignal.updateInternal(serializedSignal, context);
 }
 
 END_NAMESPACE_OPENDAQ

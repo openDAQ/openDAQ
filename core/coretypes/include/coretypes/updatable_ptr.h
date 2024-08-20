@@ -110,6 +110,14 @@ public:
         daq::checkErrorInfo(errCode);
     }
 
+    void updateInternal(const SerializedObjectPtr& update, const BaseObjectPtr& context) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->updateInternal(update, context);
+        daq::checkErrorInfo(errCode);
+    }
 };
 
 /*!

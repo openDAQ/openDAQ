@@ -51,14 +51,14 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                 if(!discoveredDevice.ipv6Address.empty())
                 {
                     auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
-                        "[" + discoveredDevice.ipv6Address + "]",
+                        discoveredDevice.ipv6Address,
                         discoveredDevice.servicePort,
                         discoveredDevice.getPropertyOrDefault("path", "/")
                     );
                     cap.addConnectionString(connectionStringIpv6);
-                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                    cap.addAddress(discoveredDevice.ipv6Address);
 
-                    const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
                                                                  .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                                  .setType("IPv6")
                                                                  .setConnectionString(connectionStringIpv6)
@@ -299,14 +299,13 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string host = "";
-    std::string target = "/";
     std::string prefix = "";
-    std::string path = "";
+    std::string path = "/";
 
     bool parsed = false;
     parsed = std::regex_search(urlString, match, regexIpv6Hostname);
@@ -323,7 +322,7 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
         if (match[4].matched)
             path = match[4];
 
-        return prefix + host + ":" + std::to_string(port) + "/" + path;
+        return prefix + host + ":" + std::to_string(port) + path;
     }
 
     return connectionString;

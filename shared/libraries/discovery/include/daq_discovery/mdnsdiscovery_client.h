@@ -94,6 +94,7 @@ protected:
         SRVRecord SRV;
         std::string A;
         std::string AAAA;
+        std::string linkLocalInterface;
         std::vector<std::pair<std::string, std::string>> TXT;
     } DeviceData;
 
@@ -352,6 +353,7 @@ inline void MDNSDiscoveryClient::pruneDevices()
             if (data.AAAA == data1.AAAA && !data.AAAA.empty())
             {
                 data.A = data.A.empty() ? data1.A : data.A;
+                data.linkLocalInterface = data.linkLocalInterface.empty() ? data1.linkLocalInterface : data.linkLocalInterface;
                 toPrune.insert(addr1);
             }
 
@@ -411,7 +413,7 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.servicePriority = data.SRV.priority;
     device.serviceWeight = data.SRV.weight;
     device.ipv4Address = data.A;
-    device.ipv6Address = data.AAAA;
+    device.ipv6Address = "[" + data.AAAA + data.linkLocalInterface + "]";
 
     for (const auto& prop : data.TXT)
         device.properties.insert({prop.first, prop.second});
@@ -449,6 +451,13 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
 
     auto it = devicesMap.insert({deviceAddr, DeviceData{}});
     DeviceData& deviceData = it.first->second;
+
+    if (from->sa_family == AF_INET6)
+    {
+        auto index = deviceAddr.find("%");
+        if (index != std::string::npos)
+            deviceData.linkLocalInterface = deviceAddr.substr(index, deviceAddr.find("]") - index);
+    }
 
     if (rtype == MDNS_RECORDTYPE_PTR)
     {

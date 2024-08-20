@@ -173,11 +173,29 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     return list;
 }
 
+struct MultiReaderImpl::ReferenceDomainBin
+{
+    StringPtr id;
+    TimeSource timeSource;
+
+    bool operator<(const ReferenceDomainBin& rhs) const
+    {
+        if (id == rhs.id)
+            return timeSource < rhs.timeSource;
+        if (id.assigned() && rhs.id.assigned())
+            return id < rhs.id;
+        if (rhs.id.assigned())
+            return true;
+        return false;
+    }
+};
+
 void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
     TimeSource timeSource = TimeSource::Unknown;
+    std::set<ReferenceDomainBin> bins;
 
     for (const auto& port : list)
     {
@@ -269,6 +287,40 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
                     throw InvalidStateException("One known Reference Time Source is allowed per Multi Reader.");
                 timeSource = referenceDomainInfo.getReferenceTimeSource();
             }
+
+            ReferenceDomainBin bin = {referenceDomainInfo.getReferenceDomainId(), referenceDomainInfo.getReferenceTimeSource()};
+            auto elt = bins.begin();
+            while (elt != bins.end())
+            {
+                // Traverse one group
+
+                bool needsKnownTimeSource = false;
+                bool hasKnownTimeSource = false;
+                auto groupDomainId = elt->id;
+
+                while (elt != bins.end() && elt->id == groupDomainId)
+                {
+                    if (groupDomainId.assigned() && bin.id.assigned() && groupDomainId != bin.id)
+                    {
+                        // Both are assigned, but not matching
+                        // Needs at least one known time source
+                        needsKnownTimeSource = true;
+                    }
+                    if (elt->timeSource != TimeSource::Unknown)
+                    {
+                        // Group (domain signals with identical domain ID) has at least one known time source
+                        hasKnownTimeSource = true;
+                    }
+                    ++elt;
+                }
+
+                if (needsKnownTimeSource && !hasKnownTimeSource)
+                {
+                    throw InvalidStateException("Reference domain incompatible.");
+                }
+            }
+
+            bins.insert(bin);
         }
     }
 }

@@ -2350,7 +2350,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality01)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality02)
@@ -2362,7 +2362,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality02)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality03)
@@ -2374,7 +2374,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality03)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality04)
@@ -2386,7 +2386,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality04)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality05)
@@ -2398,7 +2398,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality05)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
@@ -2410,7 +2410,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
 
-    ASSERT_NO_THROW(MultiReader(signalsToList()));
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality01)
@@ -2540,8 +2540,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality01
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality02)
@@ -2568,8 +2567,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality02
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality03)
@@ -2596,8 +2594,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality03
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality04)
@@ -2625,8 +2622,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality04
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality05)
@@ -2654,8 +2650,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality05
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality06)
@@ -2683,8 +2678,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality06
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality07)
@@ -2770,8 +2764,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality09
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality10)
@@ -2799,8 +2792,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality10
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality11)
@@ -2858,8 +2850,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality12
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality13)
@@ -2915,8 +2906,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality02)
@@ -2971,8 +2961,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality04)
@@ -3028,8 +3017,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality06)
@@ -3058,8 +3046,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "Reference domain incompatible.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality07)
@@ -3087,8 +3074,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality08)
@@ -3553,8 +3539,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15)
@@ -3598,6 +3583,5 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReader(signalsToList()), InvalidStateException, R"(One known Reference Time Source is allowed per Multi Reader.)");
+    ASSERT_THROW_MSG(MultiReader(signalsToList()), InvalidStateException, "One known Reference Time Source is allowed per Multi Reader.");
 }

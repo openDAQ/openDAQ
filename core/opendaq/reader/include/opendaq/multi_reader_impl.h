@@ -148,6 +148,7 @@ private:
     void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     ContextPtr context;
+    struct ReferenceDomainBin;
 };
 
 END_NAMESPACE_OPENDAQ

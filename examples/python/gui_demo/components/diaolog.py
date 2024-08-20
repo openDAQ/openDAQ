@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from gui_demo.app_context import AppContext
+from ..app_context import AppContext
 
 
 class Dialog(tk.Toplevel):

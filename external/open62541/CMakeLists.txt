@@ -21,7 +21,7 @@ opendaq_dependency(
     GIT_REPOSITORY      https://github.com/openDAQ/open62541.git
     GIT_REF             v1.3.6-opendaq-4
     GIT_SUBMODULES      ""
-    EXPECT_TARGET       open62541
+    EXPECT_TARGET       open62541::open62541
 )
 
 if (open62541_FETCHED)

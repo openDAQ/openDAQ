@@ -15,9 +15,8 @@
  */
 
 #pragma once
-#include <coretypes/baseobject.h>
-#include <coretypes/serialized_object.h>
-#include <coretypes/serializer.h>
+#include <coretypes/stringobject.h>
+#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,12 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IUpdatableContext, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
-    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
-    virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) = 0;
-    virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* update, IBaseObject* context) = 0;
+    virtual ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) = 0;
 };
 
 /*!

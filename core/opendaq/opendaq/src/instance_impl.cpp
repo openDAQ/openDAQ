@@ -782,7 +782,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj)
     return updateInternal(obj, nullptr);
 }
 
-ErrCode InstanceImpl::updateEnded()
+ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)
 {
     return OPENDAQ_SUCCESS;
 }

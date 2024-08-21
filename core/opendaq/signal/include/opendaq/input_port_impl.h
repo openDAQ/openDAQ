@@ -28,6 +28,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/work_factory.h>
 #include <opendaq/scheduler_errors.h>
+#include <coretypes/updatable_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class... Interfaces>
@@ -88,7 +89,7 @@ protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
-    void onUpdatableUpdateEnd() override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
     ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -674,16 +675,31 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
 {
     if (obj.hasKey("signalId"))
     {
-        serializedSignalId = obj.readString("signalId");
+        UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
+        if (contextPtr.assigned())
+        {
+            contextPtr.setInputPortConnection("", localId, obj.readString("signalId"));
+        }
+        else
+        {
+            serializedSignalId = obj.readString("signalId");
+        }
     }
     else
+    {
         serializedSignalId.release();
+    }
 }
 
 template <class ... Interfaces>
-void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
+void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    Super::onUpdatableUpdateEnd();
+    Super::onUpdatableUpdateEnd(context);
+
+    if (context.supportsInterface<IString>())
+    {
+        serializedSignalId = context.asPtr<IString>(true);
+    }
 
     if (serializedSignalId.assigned() && serializedSignalId != "")
     {
@@ -696,7 +712,6 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
             try
             {
                 thisPtr.connect(sig);
-                finishUpdate();
             }
             catch (const DaqException&)
             {
@@ -708,6 +723,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
             LOG_W("Signal not found: {}", serializedSignalId);
         }
     }
+    finishUpdate();
 }
 
 template <class ... Interfaces>

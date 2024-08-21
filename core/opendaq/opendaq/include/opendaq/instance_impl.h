@@ -146,7 +146,7 @@ public:
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
-    ErrCode INTERFACE_FUNC updateEnded() override;
+    ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;
 
 private:
     DevicePtr rootDevice;

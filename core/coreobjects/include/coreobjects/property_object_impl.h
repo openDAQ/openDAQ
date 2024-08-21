@@ -110,7 +110,7 @@ public:
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
-    virtual ErrCode INTERFACE_FUNC updateEnded() override;
+    virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;
 
     // ISerializable
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -209,7 +209,7 @@ protected:
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     bool isParentUpdating();
-    virtual void onUpdatableUpdateEnd();
+    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
 
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
@@ -2061,7 +2061,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpdateEnd()
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
 {
 }
 
@@ -2844,9 +2844,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded()
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded(IBaseObject* context)
 {
-    return daqTry([this] { onUpdatableUpdateEnd(); });
+    auto contextPtr = BaseObjectPtr::Borrow(context);
+    return daqTry([this, &contextPtr] { onUpdatableUpdateEnd(contextPtr); });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

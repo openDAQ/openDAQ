@@ -25,6 +25,7 @@
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coretypes/updatable_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -103,6 +104,7 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
@@ -289,7 +291,6 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
                 LOG_W("Using input port {}", inputPort.getLocalId());
                 break;
             }
-
         }
         if (!inputPort.assigned())
             return;
@@ -300,6 +301,52 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
     updatableIp.updateInternal(obj, context);
+    UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
+    if (contextPtr.assigned())
+    {
+        auto connections = contextPtr.getInputPortConnection("");
+        if (connections.hasKey(inputPort.getLocalId()))
+        {
+            StringPtr signalId = connections.get(inputPort.getLocalId());
+            connections.remove(inputPort.getLocalId());
+            contextPtr.setInputPortConnection(this->globalId, localId, signalId);
+        }
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+{
+    UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
+    if (contextPtr.assigned())
+    {
+        for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(this->globalId))
+        {
+            InputPortPtr inputPort;
+            if (!inputPorts.hasItem(portId))
+            {
+                LOG_W("Input port {} not found", portId);
+                for (const auto& ip : inputPorts.getItems(search::Any()))
+                {
+                    inputPort = ip.template asPtr<IInputPort>(true);
+                    if (!inputPort.getSignal().assigned())
+                    {
+                        LOG_W("Using input port {}", inputPort.getLocalId());
+                        break;
+                    }
+                }
+                if (!inputPort.assigned())
+                    continue;
+            }
+            else
+            {
+                inputPort = inputPorts.getItem(portId);
+            }
+
+            inputPort.asPtr<IUpdatable>(true).updateEnded(String(signalId));
+        }
+    }
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <typename TInterface, typename ... Interfaces>

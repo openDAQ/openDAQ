@@ -44,6 +44,7 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/component_errors.h>
+#include <coretypes/updatable_context_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -152,7 +153,7 @@ protected:
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
-    void onUpdatableUpdateEnd() override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
@@ -732,10 +733,11 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerialized
 template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
 {
-    auto errCode = updateInternal(obj, nullptr);
+    BaseObjectPtr context(createWithImplementation<IUpdatableContext, UpdatableContextImpl>());
+    auto errCode = updateInternal(obj, context);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
-    return updateEnded();
+    return updateEnded(context);
 }
 
 template <class Intf, class ... Intfs>
@@ -972,7 +974,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
+void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
 {
 }
 

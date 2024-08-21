@@ -5,8 +5,14 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_InstanceBuilder instance_builder.h)
     rtgen(SRC_ConfigProvider config_provider.h)
     
+	set(ConfigHeaderSource ${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_TARGET}/include/${MAIN_TARGET}/opendaq_config.h.in)
+	set(ConfigHeader ${CMAKE_CURRENT_BINARY_DIR}/${MAIN_TARGET}/include/${MAIN_TARGET}/opendaq_config.h)
+	configure_file(${ConfigHeaderSource} ${ConfigHeader})
+
+	set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
+
     set(SRC_PublicHeaders_Component_Generated
-        ${ConfigHeader}
+	    ${ConfigHeader}
         ${SRC_Instance_PublicHeaders}
         ${SRC_InstanceBuilder_PublicHeaders}
         ${SRC_ConfigProvider_PublicHeaders}
@@ -62,13 +68,9 @@ function(create_component_source_groups_${BASE_NAME})
     )
 endfunction()
 
-set(ConfigHeaderSource ../include/opendaq/opendaq_config.h.in)
-set(ConfigHeader ${CMAKE_CURRENT_BINARY_DIR}/../include/${MAIN_TARGET}/opendaq_config.h)
-configure_file(${ConfigHeaderSource} ${ConfigHeader})
-
 
 set(SRC_PublicHeaders_Component 
-    version.h
+	version.h
     opendaq.h
     errors.h
     exceptions.h
@@ -78,6 +80,7 @@ set(SRC_PublicHeaders_Component
 )
 
 set(SRC_PrivateHeaders_Component
+    opendaq_config.h.in
     instance_impl.h
     client_impl.h
     opendaq_init.h
@@ -113,5 +116,3 @@ set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:rapidjson>
     PARENT_SCOPE
 )
-
-set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)

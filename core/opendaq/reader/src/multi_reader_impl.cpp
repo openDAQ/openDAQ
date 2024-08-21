@@ -264,7 +264,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
         if (!referenceDomainInfo.assigned())
         {
-            LOG_I(R"(Domain signal "{}" Reference Domain Info not assigned.)", domain.getLocalId());
+            LOG_D(R"(Domain signal "{}" Reference Domain Info is not assigned.)", domain.getLocalId());
         }
         else
         {
@@ -273,18 +273,18 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             if (!referenceDomainID.assigned() || referenceDomainID.getLength() == 0)
             {
                 // This will perhaps be bumped up to a higher severity later on (warning)
-                LOG_I(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
+                LOG_D(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
             }
 
             if (referenceDomainInfo.getReferenceTimeSource() == TimeSource::Unknown)
             {
                 // This will perhaps be bumped up to a higher severity later on (warning)
-                LOG_I(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
+                LOG_D(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
             }
             else
             {
                 if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
-                    throw InvalidStateException("One known Reference Time Source is allowed per Multi Reader.");
+                    throw InvalidStateException("Only one known Reference Time Source is allowed per Multi Reader.");
                 timeSource = referenceDomainInfo.getReferenceTimeSource();
             }
 
@@ -316,7 +316,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
                 if (needsKnownTimeSource && !hasKnownTimeSource)
                 {
-                    throw InvalidStateException("Reference domain incompatible.");
+                    throw InvalidStateException("Reference domain is incompatible.");
                 }
             }
 

@@ -89,7 +89,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fb, fbs[0]);
 
     auto sig = fb.getSignals()[0];
-    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid1/Sig/UniqueId_1");
+    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid_1/Sig/UniqueId_1");
 
     instance.removeFunctionBlock(fb);
     fbs = instance.getFunctionBlocks();
@@ -219,20 +219,20 @@ TEST_F(InstanceTest, AddFunctionBlockLocalIds)
     ASSERT_TRUE(availableFbs.hasKey("mock_fb_uid"));
 
     auto fb1 = instance.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(fb1.getLocalId(), "mock_fb_uid1");
+    ASSERT_EQ(fb1.getLocalId(), "mock_fb_uid_1");
     auto fb2 = instance.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(fb2.getLocalId(), "mock_fb_uid2");
+    ASSERT_EQ(fb2.getLocalId(), "mock_fb_uid_2");
     auto fb3 = instance.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(fb3.getLocalId(), "mock_fb_uid3");
+    ASSERT_EQ(fb3.getLocalId(), "mock_fb_uid_3");
     auto fb4 = instance.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(fb4.getLocalId(), "mock_fb_uid4");
+    ASSERT_EQ(fb4.getLocalId(), "mock_fb_uid_4");
 
     instance.removeFunctionBlock(fb1);
     instance.removeFunctionBlock(fb2);
     instance.removeFunctionBlock(fb4);
 
     auto fb5 = instance.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(fb5.getLocalId(), "mock_fb_uid4");
+    ASSERT_EQ(fb5.getLocalId(), "mock_fb_uid_4");
 
     ASSERT_EQ(instance.getFunctionBlocks().getCount(), 2u);
 }

@@ -270,15 +270,15 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
 
     TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
-    ASSERT_EQ("mock_fb_uid1", clientDevice.getFunctionBlocks()[0].getLocalId());
+    ASSERT_EQ("mock_fb_uid_1", clientDevice.getFunctionBlocks()[0].getLocalId());
 
     auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
     ASSERT_TRUE(fb1.assigned());
-    ASSERT_EQ("mock_fb_uid2", fb1.getLocalId());
+    ASSERT_EQ("mock_fb_uid_2", fb1.getLocalId());
 
     auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
     ASSERT_TRUE(fb2.assigned());
-    ASSERT_EQ("mock_fb_uid3", fb2.getLocalId());
+    ASSERT_EQ("mock_fb_uid_3", fb2.getLocalId());
 
     ASSERT_EQ(3u, clientDevice.getFunctionBlocks().getCount());
 }

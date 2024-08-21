@@ -777,11 +777,11 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
                 const std::string fbId = item.getLocalId();
                 if (fbId.rfind(static_cast<std::string>(typeId), 0) == 0)
                 {
-                    const auto lastNotNumber = fbId.find_last_not_of("0123456789");
-                    if (lastNotNumber == std::string::npos)
+                    const auto lastDelim = fbId.find_last_of('_');
+                    if (lastDelim == std::string::npos)
                         continue;
 
-                    const std::string numStr = fbId.substr(lastNotNumber + 1);
+                    const std::string numStr = fbId.substr(lastDelim + 1);
                     try
                     {
                         const auto num = std::stoi(numStr);
@@ -795,7 +795,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
                 }
             }
 
-            localIdStr = fmt::format("{}{}", typeId, maxNum + 1);
+            localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
         }
 
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);

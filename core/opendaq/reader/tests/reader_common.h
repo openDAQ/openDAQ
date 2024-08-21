@@ -52,7 +52,7 @@ protected:
     void SetUp() override
     {
         auto debugSink = LastMessageLoggerSink();
-        debugSink.setLevel(LogLevel::Info);
+        debugSink.setLevel(LogLevel::Debug);
         auto sinks = DefaultSinks(nullptr);
         sinks.pushBack(debugSink);
         privateSink = debugSink;

@@ -37,7 +37,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
         if (config.hasProperty("SerialNumber"))
             serialNumber = config.getPropertyValue("SerialNumber");
     }
-    
+
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
@@ -127,7 +127,7 @@ void RefDeviceImpl::initClock()
                                        RefChannelImpl::getEpoch(),
                                        UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
                                        ReferenceDomainInfoBuilder()
-                                           .setReferenceDomainId(deviceInfo.getManufacturer() + "_" + serialNumber)
+                                           .setReferenceDomainId(localId)
                                            .setReferenceDomainOffset(0)
                                            .build()));
 }
@@ -260,7 +260,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
         auto chLocalId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, deviceInfo.getManufacturer() + "_" + serialNumber);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, localId);
         channels.push_back(std::move(ch));
     }
 }

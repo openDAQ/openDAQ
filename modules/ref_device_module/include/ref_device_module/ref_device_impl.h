@@ -17,62 +17,66 @@
 #pragma once
 #include <ref_device_module/common.h>
 #include <opendaq/channel_ptr.h>
-#include <opendaq/device_impl.h>
-#include <opendaq/logger_ptr.h>
-#include <opendaq/logger_component_ptr.h>
+#include <opendaq_module_template/device_template.h>
 #include <thread>
 #include <condition_variable>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceImpl final : public Device
+class RefDeviceBase final : public templates::DeviceTemplateHooks
 {
 public:
-    explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
+
+    RefDeviceBase(const templates::DeviceParams& params);
+};
+
+class RefDeviceImpl final : public templates::DeviceTemplate
+{
+public:
+
+    explicit RefDeviceImpl();
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
-    static DeviceTypePtr CreateType();
+protected:
+    
+    uint64_t getTicksSinceOrigin() override;
+    void handleConfig(const PropertyObjectPtr& config) override;
+    void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
+    void initProperties() override;
+    BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
+    void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
+    DeviceDomainPtr initDeviceDomain() override;
+    void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
 
-    // IDevice
-    DeviceInfoPtr onGetInfo() override;
-    uint64_t onGetTicksSinceOrigin() override;
-
+    void start() override;
+    
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
 
 private:
-    void initClock();
-    void initIoFolder();
-    void initSyncComponent();
-    void initProperties(const PropertyObjectPtr& config);
+
     void acqLoop();
-    void updateNumberOfChannels();
-    void enableCANChannel();
-    void updateAcqLoopTime();
-    void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
-    size_t id;
-    StringPtr serialNumber;
+    void updateNumberOfChannels(size_t numberOfChannels);
+    void enableCANChannel(bool enableCANChannel);
+    void updateAcqLoopTime(size_t loopTime);
+    void updateDeviceSampleRate(double sampleRate);
 
     std::thread acqThread;
+    size_t acqLoopTime;
     std::condition_variable cv;
+    bool stopAcq;
 
     std::chrono::steady_clock::time_point startTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
-    size_t acqLoopTime;
-    bool stopAcq;
-
+    
+    UnitPtr domainUnit;
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
-    ComponentPtr syncComponent;
-
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

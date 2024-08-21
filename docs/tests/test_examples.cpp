@@ -97,7 +97,7 @@ TEST_F(ExamplesTest, Client)
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
     DeviceInfoPtr info = device.getInfo();
-    ASSERT_EQ(info.getName(), "Device 1");
+    ASSERT_EQ(info.getName(), "Reference device 1");
 
     StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0], ReadTimeoutType::Any);
     

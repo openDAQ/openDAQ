@@ -1,4 +1,5 @@
 #include <coretypes/version_info_factory.h>
+#include <coretypes/string_ptr.h>
 #include <opendaq/custom_log.h>
 #include <ref_device_module/ref_device_impl.h>
 #include <ref_device_module/ref_device_module_impl.h>
@@ -6,131 +7,84 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceModule::RefDeviceModule(ContextPtr context)
-    : Module("ReferenceDeviceModule",
-             daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
-             std::move(context),
-             REF_MODULE_NAME)
-    , maxNumberOfDevices(2)
+static constexpr size_t DEFAULT_MAX_REFERENCE_DEVICE_COUNT = 2;
+static constexpr char DEVICE_TYPE_ID[] = "daqref";
+static constexpr char CONNECTION_STRING_PREFIX[] = "daqref";
+
+RefDeviceModuleBase::RefDeviceModuleBase(const ContextPtr& context)
+    : ModuleTemplateHooks(std::make_shared<RefDeviceModule>(context))
 {
-    auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+}
+
+RefDeviceModule::RefDeviceModule(const ContextPtr& context)
+    : ModuleTemplate(context)
+    , maxNumberOfDevices(DEFAULT_MAX_REFERENCE_DEVICE_COUNT)
+{
+}
+
+templates::ModuleParams RefDeviceModule::buildModuleParams()
+{
+    templates::ModuleParams params;
+    params.version = VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION);
+    params.name = "ReferenceDeviceModule";
+    params.id = REF_MODULE_ID;
+    params.logName = "ReferenceDeviceModule";
+    return params;
+}
+
+std::vector<templates::DeviceTypeParams> RefDeviceModule::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options)
+{
+    templates::DeviceTypeParams params;
+    params.id = DEVICE_TYPE_ID;
+    params.name = "Reference device";
+    params.description = "Reference device";
+    params.connectionStringPrefix = CONNECTION_STRING_PREFIX;
+    return {params};
+}
+
+std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options)
+{
+    StringPtr customName;
+    StringPtr customSerial;
+
     if (options.hasKey("MaxNumberOfDevices"))
         maxNumberOfDevices = options.get("MaxNumberOfDevices");
-    devices.resize(maxNumberOfDevices);
+
+    if (options.hasKey("SerialNumber"))
+    {
+        customSerial = options.get("SerialNumber");
+        if (maxNumberOfDevices > 1)
+            LOG_W("Max number of reference devices cannot be greater than 1 if a custom serial number is provided through module options.")
+        maxNumberOfDevices = 1;
+    }
+
+    if (options.hasKey("Name"))
+        customName = options.get("Name");
+
+    std::vector<templates::DeviceInfoParams> params;
+    for (size_t i = 0; i < maxNumberOfDevices; ++i)
+    {
+        templates::DeviceInfoParams info;
+        info.address = fmt::format("device{}", i);
+        info.typeId = DEVICE_TYPE_ID;
+        info.name = customName.assigned() ? customName.toStdString() : fmt::format("Reference device {}", i);
+        info.manufacturer = "openDAQ";
+        info.manufacturerUri = "https://www.opendaq.com/";
+        info.model = "Reference device";
+        info.productCode = "REF_DEV";
+        info.deviceRevision = "1.0";
+        info.hardwareRevision = "1.0";
+        info.softwareRevision = "1.0";
+        info.serialNumber = customSerial.assigned() ? customSerial.toStdString() : fmt::format("ref_dev_{}", i);
+        params.push_back(info);
+    }
+
+    return params;
 }
 
-ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
+DevicePtr RefDeviceModule::createDevice(const templates::DeviceParams& params)
 {
-    StringPtr serialNumber;
-
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-
-    if (options.assigned())
-    {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
-    }
-
-    auto availableDevices = List<IDeviceInfo>();
-
-    if (serialNumber.assigned())
-    {
-        auto info = RefDeviceImpl::CreateDeviceInfo(0, serialNumber);
-        availableDevices.pushBack(info);
-    }
-    else
-    {
-        for (size_t i = 0; i < 2; i++)
-        {
-            auto info = RefDeviceImpl::CreateDeviceInfo(i);
-            availableDevices.pushBack(info);
-        }
-    }
-
-    return availableDevices;
-}
-
-DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
-{
-    auto result = Dict<IString, IDeviceType>();
-
-    auto deviceType = RefDeviceImpl::CreateType();
-    result.set(deviceType.getId(), deviceType);
-
-    return result;
-}
-
-DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
-                                          const ComponentPtr& parent,
-                                          const PropertyObjectPtr& config)
-{
-    const auto id = getIdFromConnectionString(connectionString);
-
-    std::scoped_lock lock(sync);
-
-    if (id >= devices.size())
-    {
-        LOG_W("Device with id \"{}\" not found", id);
-        throw NotFoundException();
-    }
-
-    if (devices[id].assigned() && devices[id].getRef().assigned())
-    {
-        LOG_W("Device with id \"{}\" already exist", id);
-        throw AlreadyExistsException();
-    }
-    
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    StringPtr localId;
-    StringPtr name = fmt::format("Device {}", id);
-
-    if (config.assigned())
-    {
-        if (config.hasProperty("LocalId"))
-            localId = config.getPropertyValue("LocalId");
-        if (config.hasProperty("Name"))
-            name = config.getPropertyValue("Name");
-    }
-
-    if (options.assigned())
-    {
-        if (options.hasKey("LocalId"))
-            localId = options.get("LocalId");
-        if (options.hasKey("Name"))
-            name = options.get("Name");
-    }
-
-    if (!localId.assigned())
-        localId = fmt::format("RefDev{}", id);
-
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
-    devices[id] = devicePtr;
-    return devicePtr;
-}
-
-size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionString) const
-{
-    std::string prefixWithDeviceStr = "daqref://device";
-    auto found = connectionString.find(prefixWithDeviceStr);
-    if (found != 0)
-    {
-        LOG_W("Invalid connection string \"{}\", no prefix", connectionString);
-        throw InvalidParameterException();
-    }
-
-    auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
-    size_t id;
-    try
-    {
-        id = std::stoi(idStr);
-    }
-    catch (const std::invalid_argument&)
-    {
-        LOG_W("Invalid connection string \"{}\", no id", connectionString);
-        throw InvalidParameterException();
-    }
-
-    return id;
+    return createWithImplementation<IDevice, RefDeviceBase>(params);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

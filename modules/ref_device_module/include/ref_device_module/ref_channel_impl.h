@@ -46,7 +46,7 @@ public:
                             const ComponentPtr& parent,
                             const StringPtr& localId,
                             const RefChannelInit& init,
-                            const StringPtr& deviceLocalId);
+                            const StringPtr& referenceDomainId);
 
     // IRefChannel
     void collectSamples(std::chrono::microseconds curTime) override;
@@ -81,7 +81,7 @@ private:
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
-    StringPtr deviceLocalId;
+    StringPtr referenceDomainId;
 
     void initProperties();
     void packetSizeChangedInternal();

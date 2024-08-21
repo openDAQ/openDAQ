@@ -126,7 +126,10 @@ void RefDeviceImpl::initClock()
     this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(),
                                        RefChannelImpl::getEpoch(),
                                        UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
-                                       ReferenceDomainInfoBuilder().setReferenceDomainId(localId).setReferenceDomainOffset(0).build()));
+                                       ReferenceDomainInfoBuilder()
+                                           .setReferenceDomainId(deviceInfo.getManufacturer() + "_" + serialNumber)
+                                           .setReferenceDomainOffset(0)
+                                           .build()));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -257,7 +260,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
         auto chLocalId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, localId);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, deviceInfo.getManufacturer() + "_" + serialNumber);
         channels.push_back(std::move(ch));
     }
 }

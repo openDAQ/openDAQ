@@ -111,6 +111,11 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
      * @brief Gets the unresolved type of the Property 
      */
     virtual ErrCode INTERFACE_FUNC getValueTypeUnresolved(CoreType* coreType) = 0;
+    
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
+    virtual ErrCode INTERFACE_FUNC getClassOnPropertyValueRead(IEvent** event) = 0;
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
+    virtual ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) = 0;
 };
 /*!@}*/
 

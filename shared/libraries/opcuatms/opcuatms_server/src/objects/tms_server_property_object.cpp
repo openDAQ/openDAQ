@@ -22,7 +22,7 @@ TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object
                                                  const TmsServerContextPtr& tmsContext,
                                                  const std::unordered_set<std::string>& ignoredProps)
     : Super(object, server, context, tmsContext)
-      , ignoredProps(ignoredProps)
+    , ignoredProps(ignoredProps)
 {
 }
 
@@ -149,9 +149,19 @@ void TmsServerPropertyObject::addChildNodes()
         {
             const auto propName = prop.getName();
             PropertyObjectPtr obj = object.getPropertyValue(propName);
-            auto serverInfo = registerTmsObjectOrAddReference<TmsServerPropertyObject>(nodeId, obj, propOrder[propName], propName, prop);
-            auto childNodeId = serverInfo->getNodeId();
-            childObjects.insert({childNodeId, serverInfo});
+            if (hasChildNode(propName))
+            {
+                const auto childNodeId = getChildNodeId(propName);
+                auto childObj = std::make_shared<TmsServerPropertyObject>(obj, server, daqContext, tmsContext, propName, prop);
+                childObj->registerToExistingOpcUaNode(childNodeId);
+                childObjects.insert({childNodeId, childObj});
+            }
+            else
+            {
+                auto serverInfo = registerTmsObjectOrAddReference<TmsServerPropertyObject>(nodeId, obj, propOrder[propName], propName, prop);
+                auto childNodeId = serverInfo->getNodeId();
+                childObjects.insert({childNodeId, serverInfo});
+            }
         }
     }
 
@@ -174,7 +184,7 @@ bool TmsServerPropertyObject::createOptionalNode(const opcua::OpcUaNodeId& nodeI
 {
     const auto name = server->readBrowseNameString(nodeId);
 
-    if (name == "<VariableBlock>" || name == "<BaseDataVariable>")
+    if (name == "<VariableBlock>" || name == "<BaseDataVariable>" || name == "<Port>")
         return false;
 
     if (!objProp.assigned() && (name == "IsReadOnly" || name == "IsVisible")) 

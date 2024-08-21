@@ -70,6 +70,7 @@ public:
 
     ErrCode INTERFACE_FUNC clear() override;
     ErrCode INTERFACE_FUNC getSubscriberCount(SizeT* count) override;
+    ErrCode INTERFACE_FUNC getSubscribers(IList** subscribers) override;
 
     ErrCode INTERFACE_FUNC trigger(IBaseObject* sender, IEventArgs* args) override;
 

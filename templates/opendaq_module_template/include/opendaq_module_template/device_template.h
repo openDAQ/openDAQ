@@ -22,7 +22,7 @@ protected:
     
     virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
     virtual void initDevices(const FolderConfigPtr& devicesFolder);
-    //virtual void initSyncComponent(const SyncComponentPtr& syncComponent); // TODO: Add this
+    virtual void initSyncComponent(const SyncComponentPrivatePtr& syncComponent);
     virtual void initCustomComponents();
     virtual DeviceDomainPtr initDeviceDomain();  // TODO: Pass builder as param when implemented
 
@@ -74,6 +74,7 @@ public:
         this->device->initSignals(signals);
         this->device->initFunctionBlocks(functionBlocks);
         this->device->initCustomComponents();
+        this->device->initSyncComponent(syncComponent);
 
         this->device->initTags(tags);
         this->device->initStatuses(statusContainer);

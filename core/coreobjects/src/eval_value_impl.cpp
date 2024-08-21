@@ -155,7 +155,17 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
         value = propObject.getPropertySelectionValue(str);
         checkForEvalValue(value);
     }
-
+    else if (refType == RefType::PropertyNames)
+    {
+        auto propNames = List<IString>();
+        PropertyObjectPtr child = propObject.getPropertyValue(str);
+        for (const auto& prop : child.getAllProperties())
+        {
+            propNames.pushBack(prop.getName());
+        }
+        value = propNames;
+    }
+    
     return value;
 }
 
@@ -197,6 +207,12 @@ BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refTyp
     if (strcasecmp("selectedvalue", postRef.c_str()) == 0)
 #endif
         return getReferenceFromPrefix(ownerRef, prefix, RefType::SelectedValue);
+#if defined(_WIN32)
+    if (_stricmp("propertynames", postRef.c_str()) == 0)
+#else
+    if (strcasecmp("propertynames", postRef.c_str()) == 0)
+#endif
+        return getReferenceFromPrefix(ownerRef, prefix, RefType::PropertyNames);
     return nullptr;
 
     /*
@@ -679,6 +695,16 @@ ErrCode EvalValueImpl::Property_GetOnPropertyValueWrite(IEvent** /*event*/)
 }
 
 ErrCode EvalValueImpl::Property_GetOnPropertyValueRead(IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_ACCESSDENIED;
+}
+
+ErrCode EvalValueImpl::Property_GetValue(IBaseObject** /*value*/)
+{
+    return OPENDAQ_ERR_ACCESSDENIED;
+}
+
+ErrCode EvalValueImpl::Property_SetValue(IBaseObject* /*value*/)
 {
     return OPENDAQ_ERR_ACCESSDENIED;
 }

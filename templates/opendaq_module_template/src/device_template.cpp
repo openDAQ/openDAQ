@@ -6,6 +6,10 @@ void DeviceTemplate::initDevices(const FolderConfigPtr& /*devicesFolder*/)
 {
 }
 
+void DeviceTemplate::initSyncComponent(const SyncComponentPrivatePtr& /*syncComponent*/)
+{
+}
+
 void DeviceTemplate::initIOFolder(const IoFolderConfigPtr& /*ioFolder*/)
 {
 }

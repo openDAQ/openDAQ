@@ -61,7 +61,6 @@ set(SRC_Cpp
     generated/scheduler/py_task_graph.cpp
     generated/server/py_server.cpp
     generated/server/py_server_type.cpp
-    generated/signal/py_allocator.cpp
     generated/signal/py_data_descriptor.cpp
     generated/signal/py_data_descriptor_builder.cpp
     generated/signal/py_connection.cpp
@@ -92,6 +91,8 @@ set(SRC_Cpp
     generated/streaming/py_subscription_event_args.cpp
     generated/streaming/py_mirrored_device.cpp
     generated/streaming/py_mirrored_device_config.cpp
+    generated/synchronization/py_sync_component.cpp
+    generated/synchronization/py_sync_component_private.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

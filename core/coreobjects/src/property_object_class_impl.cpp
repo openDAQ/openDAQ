@@ -75,7 +75,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         }
 
         StringPtr str = propertyName;
-        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not  found.)", str));
+        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
     }
 
     *property = res.value().addRefAndReturn();
@@ -365,10 +365,16 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
     return daqTry(
         [&serialized, &context, &factoryCallback, &obj]
         {
+            TypeManagerPtr typeManager;
+            if (context)
+            {
+                context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+            }
+
             const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
 
             const auto name = serializedPtr.readString("name");
-            PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(name);
+            PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(typeManager, name);
 
             if (serializedPtr.hasKey("parent"))
             {
@@ -385,7 +391,13 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
                 builder.addProperty(prop);
             }
 
-            *obj = builder.build().detach();
+            PropertyObjectClassPtr serilizedObj = builder.build();
+
+            if (typeManager.assigned())
+            {
+                typeManager.addType(serilizedObj);
+            }
+            *obj = serilizedObj.detach();
         });
 }
 

@@ -1,7 +1,8 @@
 #include <coretypes/simple_type_impl.h>
 #include <coretypes/stringobject_factory.h>
 
-#include "coretypes/baseobject_factory.h"
+#include <coretypes/baseobject_factory.h>
+#include <coretypes/type_manager_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,7 +37,7 @@ ConstCharPtr SimpleTypeImpl::SerializeId()
     return "SimpleType";
 }
 
-ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
+ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     Int coreTypeInt;
     ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);
@@ -47,6 +48,17 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*conte
     {
         ObjectPtr<ISimpleType> simpleType;
         createSimpleType(&simpleType, static_cast<CoreType>(coreTypeInt));
+
+        TypeManagerPtr typeManager;
+        if (context)
+        {
+            context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+        }
+        if (typeManager.assigned())
+        {
+            typeManager.addType(simpleType);
+        }
+
         *obj = simpleType.detach();
     }
     catch (const DaqException& e)

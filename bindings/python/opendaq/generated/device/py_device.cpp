@@ -69,7 +69,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getCustomComponents().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a list of all components/folders in a device that are not titled 'io', 'sig', 'dev' or 'fb'");
+        "Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Synchronization' or 'FB'");
     cls.def_property_readonly("signals",
         [](daq::IDevice *object)
         {
@@ -259,4 +259,12 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.createDefaultAddDeviceConfig().detach();
         },
         "Creates config object that can be used when adding a device. Contains Device and Streaming default configuration for all available Device/Streaming types. Also contains general add-device configuration settings.");
+    cls.def_property_readonly("sync_component",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getSyncComponent().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

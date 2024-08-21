@@ -23,6 +23,7 @@
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
+#include <opendaq/sync_component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -96,7 +97,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
 
     // [templateType(customComponents, IComponent)]
     /*!
-     * @brief Gets a list of all components/folders in a device that are not titled 'io', 'sig', 'dev' or 'fb'
+     * @brief Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Synchronization' or 'FB'
      * @param[out] customComponents The list of custom components.
      */
     virtual ErrCode INTERFACE_FUNC getCustomComponents(IList** customComponents) = 0;
@@ -273,6 +274,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *     when calling `addDevice`.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
 };
 /*!@}*/
 

@@ -350,6 +350,16 @@ TEST_F(RefModulesTest, FindComponentChannel)
     ASSERT_TRUE(comp.supportsInterface<IChannel>());
 }
 
+TEST_F(RefModulesTest, OptionViaConnectionString)
+{
+    auto instance = Instance("", "localInstance");
+    auto device = instance.addDevice("daqref://device0?NumberOfChannels=3&EnableCANChannel=True");
+
+    const auto numOfChannels = device.getChannelsRecursive().getCount();
+
+    ASSERT_EQ(numOfChannels, 4);
+}
+
 TEST_F(RefModulesTest, FindComponentDevice)
 {
     auto instance = Instance("", "localInstance");
@@ -451,8 +461,6 @@ TEST_F(RefModulesTest, SerializeDevicePower)
 
     const auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    auto syncComponent = device0.getItem("sync");
-    syncComponent.setPropertyValue("UseSync", True);
 
     const auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
@@ -490,8 +498,6 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
     auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    const auto syncComponent = device0.getItem("sync");
-    syncComponent.setPropertyValue("UseSync", True);
     auto device1 = instance.addDevice("daqref://device1");
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
@@ -545,7 +551,6 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
     instance.loadConfiguration(configuration);
 
-    ASSERT_EQ(device0.getItem("sync").getPropertyValue("UseSync"), True);
     ASSERT_EQ(device0.getPropertyValue("GlobalSampleRate"), 10000);
     device0Channel = device0.getChannels()[0];
     ASSERT_EQ(device0Channel.getPropertyValue("Frequency"), 10.2);

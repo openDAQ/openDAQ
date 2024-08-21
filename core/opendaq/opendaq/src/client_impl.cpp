@@ -20,6 +20,11 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     this->deviceInfo.freeze();
     this->name = "OpenDAQClient";
     this->isRootDevice = true;
+
+    auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);
+    syncComponentPrivate.unlockAttributes(List<IString>("Visible"));
+    this->syncComponent.setVisible(false);
+    syncComponentPrivate.lockAttributes(List<IString>("Visible"));
 }
 
 DeviceInfoPtr ClientImpl::onGetInfo()

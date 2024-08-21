@@ -62,7 +62,7 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 
     /*!
      * @brief Checks the validity of the reader.
-     * @param[out] status Boolean value indicating the validity of the reader
+     * @param[out] valid Boolean value indicating the validity of the reader
      */
     virtual ErrCode INTERFACE_FUNC getValid(Bool* valid) = 0;
 

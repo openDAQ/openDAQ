@@ -259,4 +259,17 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
         py::return_value_policy::take_ownership,
         "Gets the event object that is triggered when the corresponding Property value is read.");
     */
+    cls.def_property("value",
+        [](daq::IProperty *object)
+        {
+            const auto objectPtr = daq::PropertyPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getValue());
+        },
+        [](daq::IProperty *object, const py::object& value)
+        {
+            const auto objectPtr = daq::PropertyPtr::Borrow(object);
+            objectPtr.setValue(pyObjectToBaseObject(value));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the value of the Property. Available only if the Property is bound to a Property object. / Sets the value of the Property. Available only if the Property is bound to a Property object.");
 }

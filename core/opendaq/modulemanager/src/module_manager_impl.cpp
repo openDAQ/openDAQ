@@ -13,7 +13,7 @@
 #include <opendaq/device_private.h>
 #include <string>
 #include <future>
-#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/server_capability_config_ptr.h>
@@ -28,6 +28,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal.h>
+#include <coreobjects/eval_value_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -250,6 +251,22 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                                                                  ? AddressReachabilityStatus::Reachable
                                                                  : AddressReachabilityStatus::Unreachable;
                     addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+
+                    if (reachability == AddressReachabilityStatus::Unreachable && cap.getConnectionString() == addressInfo.getConnectionString())
+                    {
+                        for (const auto& addressInfoInner : cap.getAddressInfo())
+                        {
+                            if (addressInfoInner == addressInfo)
+                                continue;
+
+                            if (addressInfoInner.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
+                            {
+                                cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfoInner.getConnectionString());
+                                break;
+                            }
+                        }
+                    }
+
                     break;
                 }
             }
@@ -411,7 +428,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     OPENDAQ_PARAM_NOT_NULL(device);
     *device = nullptr;
 
-    auto connectionStringPtr = StringPtr::Borrow(connectionString);
+    const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
+    auto connectionStringPtr = String(pureConnectionString);
+
     if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
@@ -439,7 +458,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
         if (capabilities.getCount() == 0)
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
+            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no available server capabilities", connectionStringPtr));
         }
 
         ServerCapabilityPtr selectedCapability = capabilities[0];
@@ -510,11 +529,13 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             continue;
 
         StringPtr id;
+        DeviceTypePtr deviceType;
         for (auto const& [typeId, type] : types)
         {
             if (type.getConnectionStringPrefix()== prefix)
             {
                 id = typeId;
+                deviceType = type;
                 break;
             }
         }
@@ -533,6 +554,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             {
                 devConfig = nullptr;
             }
+        }
+
+        if (!connectionStringOptions.empty())
+        {
+            if (!devConfig.assigned())
+                devConfig = deviceType.createDefaultConfig();
+
+            populateDeviceConfigFromConnStrOptions(devConfig, connectionStringOptions);
         }
 
         auto errCode = module->createDevice(device, connectionStringPtr, parent, devConfig);
@@ -685,6 +714,16 @@ StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
     if (id == "opendaq_lt_streaming")
         return "OpenDAQLTStreaming";
     return id;
+}
+
+void ModuleManagerImpl::populateDeviceConfigFromConnStrOptions(const PropertyObjectPtr& devConfig,
+    const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options)
+{
+    for (const auto& item: options)
+    {
+        if (devConfig.hasProperty(item.first))
+            devConfig.setPropertyValue(item.first, item.second);
+    }
 }
 
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
@@ -1171,6 +1210,36 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     }
 
     return "";
+}
+
+std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::splitConnectionStringAndOptions(
+    const std::string& connectionString)
+{
+    std::vector<std::string> strs1;
+    boost::split(strs1, connectionString, boost::is_any_of("?"));
+
+    if (strs1.size() == 1)
+        return std::make_pair(strs1[0], tsl::ordered_map<std::string, BaseObjectPtr> {});
+
+    if (strs1.size() != 2)
+        throw InvalidParameterException("Invalid connection string");
+
+    std::vector<std::string> options;
+    boost::split(options, strs1[1], boost::is_any_of("&"));
+
+    tsl::ordered_map<std::string, BaseObjectPtr> optionsMap;
+    for (const auto& option: options)
+    {
+        std::vector<std::string> keyAndValue;
+        boost::split(keyAndValue, option, boost::is_any_of("="));
+        if (keyAndValue.size() != 2)
+            throw InvalidParameterException("Invalid connection string");
+
+        BaseObjectPtr value = EvalValue(keyAndValue[1]);
+        optionsMap.insert({keyAndValue[0], value});
+    }
+
+    return std::make_pair(strs1[0], optionsMap);
 }
 
 ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabilityPtr& cap)

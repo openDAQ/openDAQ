@@ -150,6 +150,18 @@ public:
         return count;
     }
 
+    ListPtr<IEventHandler> getListeners() const
+    {
+        if (this->object == nullptr)
+            throw InvalidParameterException();
+
+        ListPtr<IEventHandler> listeners;
+        auto errCode = this->object->getSubscribers(&listeners);
+        checkErrorInfo(errCode);
+
+        return listeners;
+    }
+
     void mute() const
     {
         if (this->object == nullptr)

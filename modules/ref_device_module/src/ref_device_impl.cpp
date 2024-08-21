@@ -6,6 +6,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
+#include <opendaq/sync_component_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -132,6 +133,13 @@ bool RefDeviceImpl::allowAddDevicesFromModules()
 bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
 {
     return true;
+}
+
+void RefDeviceImpl::initSyncComponent(const SyncComponentPrivatePtr& syncComponent)
+{
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
+    syncComponent.setSyncLocked(true);
 }
 
 void RefDeviceImpl::acqLoop()

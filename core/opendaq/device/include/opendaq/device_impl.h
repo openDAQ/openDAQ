@@ -36,6 +36,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/sync_component_factory.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -85,6 +86,7 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -120,6 +122,7 @@ protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
+    SyncComponentPtr syncComponent;
     LoggerComponentPtr loggerComponent;
     bool isRootDevice;
 
@@ -183,10 +186,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
+    this->defaultComponents.insert("Synchronization");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -861,6 +866,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::createDefaultAddDeviceConfig(I
     return errCode;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponent** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+    *sync = syncComponent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(const SearchFilterPtr& searchFilter)
 {
@@ -1054,6 +1067,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             deviceDomain.serialize(serializer);
         }
     }
+
+    if (syncComponent.assigned())
+    {
+        serializer.key("Synchronization");
+        syncComponent.serialize(serializer);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1150,6 +1169,11 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceDomain"))
     {
         deviceDomain = serializedObject.readObject("deviceDomain");
+    }
+
+    if (serializedObject.hasKey("Synchronization"))
+    {
+        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

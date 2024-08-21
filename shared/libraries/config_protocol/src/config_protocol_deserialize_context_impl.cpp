@@ -11,7 +11,7 @@ ConfigProtocolDeserializeContextImpl::ConfigProtocolDeserializeContextImpl(const
                                                                            const StringPtr& localId,
                                                                            IntfID* inftID,
                                                                            const TypeManagerPtr& typeManager)
-    : GenericComponentDeserializeContextImpl(context, root, parent, localId, inftID)
+    : GenericComponentDeserializeContextImpl(context.assigned() ? context : clientComm->getDaqContext(), root, parent, localId, inftID)
     , clientComm(clientComm)
     , remoteGlobalId(remoteGlobalId)
     , typeManager(typeManager)

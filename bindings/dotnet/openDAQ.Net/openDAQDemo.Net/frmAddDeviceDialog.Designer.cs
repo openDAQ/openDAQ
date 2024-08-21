@@ -29,12 +29,15 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmAddDeviceDialog));
             splitContainer1 = new SplitContainer();
             treeParentDevices = new TreeView();
             textBox1 = new TextBox();
             gridChildDevices = new DataGridView();
             contextMenuStripChildDevices = new ContextMenuStrip(components);
-            refreshToolStripMenuItem = new ToolStripMenuItem();
+            contextMenuItemChildDevicesAddDevice = new ToolStripMenuItem();
+            toolStripSeparator1 = new ToolStripSeparator();
+            contextMenuItemChildDevicesRefresh = new ToolStripMenuItem();
             panel1 = new Panel();
             label1 = new Label();
             btnAdd = new Button();
@@ -89,29 +92,48 @@
             // 
             // gridChildDevices
             // 
+            gridChildDevices.AllowUserToAddRows = false;
+            gridChildDevices.AllowUserToDeleteRows = false;
             gridChildDevices.BackgroundColor = SystemColors.Window;
             gridChildDevices.ContextMenuStrip = contextMenuStripChildDevices;
             gridChildDevices.Dock = DockStyle.Fill;
             gridChildDevices.Location = new Point(0, 0);
             gridChildDevices.Name = "gridChildDevices";
+            gridChildDevices.ReadOnly = true;
             gridChildDevices.RowTemplate.Height = 25;
             gridChildDevices.Size = new Size(653, 432);
             gridChildDevices.TabIndex = 0;
+            gridChildDevices.CellContextMenuStripNeeded += gridChildDevices_CellContextMenuStripNeeded;
             gridChildDevices.CellDoubleClick += gridChildDevices_CellDoubleClick;
             gridChildDevices.SelectionChanged += gridChildDevices_SelectionChanged;
             // 
             // contextMenuStripChildDevices
             // 
-            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { refreshToolStripMenuItem });
+            contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { contextMenuItemChildDevicesAddDevice, toolStripSeparator1, contextMenuItemChildDevicesRefresh });
             contextMenuStripChildDevices.Name = "contextMenuStrip1";
-            contextMenuStripChildDevices.Size = new Size(181, 48);
+            contextMenuStripChildDevices.Size = new Size(223, 76);
+            contextMenuStripChildDevices.Opening += contextMenuStripChildDevices_Opening;
             // 
-            // refreshToolStripMenuItem
+            // contextMenuItemChildDevicesAddDevice
             // 
-            refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
-            refreshToolStripMenuItem.Size = new Size(180, 22);
-            refreshToolStripMenuItem.Text = "Refresh list";
-            refreshToolStripMenuItem.Click += refreshToolStripMenuItem_Click;
+            contextMenuItemChildDevicesAddDevice.Name = "contextMenuItemChildDevicesAddDevice";
+            contextMenuItemChildDevicesAddDevice.ShortcutKeyDisplayString = "<double-click>";
+            contextMenuItemChildDevicesAddDevice.Size = new Size(222, 22);
+            contextMenuItemChildDevicesAddDevice.Text = "Add device";
+            contextMenuItemChildDevicesAddDevice.Click += contextMenuItemChildDevicesAddDevice_Click;
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(219, 6);
+            // 
+            // contextMenuItemChildDevicesRefresh
+            // 
+            contextMenuItemChildDevicesRefresh.Image = Properties.Resources.refresh16;
+            contextMenuItemChildDevicesRefresh.Name = "contextMenuItemChildDevicesRefresh";
+            contextMenuItemChildDevicesRefresh.Size = new Size(222, 22);
+            contextMenuItemChildDevicesRefresh.Text = "Refresh list";
+            contextMenuItemChildDevicesRefresh.Click += contextMenuItemChildDevicesRefresh_Click;
             // 
             // panel1
             // 
@@ -158,6 +180,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(984, 461);
             Controls.Add(splitContainer1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(1000, 500);
             Name = "frmAddDeviceDialog";
             StartPosition = FormStartPosition.CenterParent;
@@ -186,6 +209,8 @@
         private TextBox txtConnectionString;
         private Label label1;
         private ContextMenuStrip contextMenuStripChildDevices;
-        private ToolStripMenuItem refreshToolStripMenuItem;
+        private ToolStripMenuItem contextMenuItemChildDevicesRefresh;
+        private ToolStripMenuItem contextMenuItemChildDevicesAddDevice;
+        private ToolStripSeparator toolStripSeparator1;
     }
 }

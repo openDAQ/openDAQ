@@ -35,6 +35,7 @@
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
+#include <coreobjects/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -75,10 +76,6 @@ protected:
         , visible(true)
         , readOnly(false)
     {
-        if (valueType == ctBinaryData)
-        {
-            throw InvalidTypeException{"Properties cannot be BinaryData types"};
-        }
         propPtr = this->borrowPtr<PropertyPtr>();
     }
 
@@ -747,7 +744,7 @@ public:
             });
     }
 
-    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
     {
         if (event == nullptr)
         {
@@ -758,7 +755,23 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
+    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            return ownerPtr->getOnPropertyValueWrite(this->name, event);
+        }
+
+        *event = onValueWrite.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getClassOnPropertyValueRead(IEvent** event) override
     {
         if (event == nullptr)
         {
@@ -767,6 +780,39 @@ public:
 
         *event = onValueRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+
+        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            return ownerPtr->getOnPropertyValueRead(this->name, event);
+        }
+
+        *event = onValueRead.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef()->getPropertyValue(this->name, value);
+    }
+
+    ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef()->setPropertyValue(this->name, value);
     }
 
     ErrCode INTERFACE_FUNC validate()

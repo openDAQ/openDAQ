@@ -1,10 +1,11 @@
-#include "opcuatms_client/objects/tms_client_component_impl.h"
-#include "opendaq/mirrored_device_impl.h"
-#include "opendaq/folder_impl.h"
-#include "opendaq/io_folder_impl.h"
-#include "opendaq/mirrored_signal_impl.h"
-#include "opendaq/input_port_impl.h"
-#include "opcuatms_client/objects/tms_client_tags_factory.h"
+#include <opcuatms_client/objects/tms_client_component_impl.h>
+#include <opcuatms_client/objects/tms_client_tags_factory.h>
+#include <opendaq/mirrored_device_impl.h>
+#include <opendaq/folder_impl.h>
+#include <opendaq/io_folder_impl.h>
+#include <opendaq/mirrored_signal_impl.h>
+#include <opendaq/input_port_impl.h>
+#include <opendaq/sync_component_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -45,7 +46,6 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 template <class Impl>
 void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
-
     try
     {
         this->tags = TmsClientTags(this->daqContext, this->clientContext, this->getNodeId("Tags"));
@@ -215,5 +215,6 @@ template class TmsClientComponentBaseImpl<FunctionBlockImpl<IFunctionBlock, ITms
 template class TmsClientComponentBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<GenericSyncComponentImpl<ISyncComponent, ITmsClientComponent>>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

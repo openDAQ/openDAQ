@@ -89,11 +89,15 @@ void TmsClientPropertyImpl::configurePropertyFields()
 
         if (browseName == "CoercionExpression")
         {
-            this->coercer = Coercer(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
+            const auto eval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
+            if (eval.assigned() && eval.getLength() > 0)
+                this->coercer = Coercer(eval);
         }
         else if (browseName == "ValidationExpression")
         {
-            this->validator = Validator(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
+            const auto eval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
+            if (eval.assigned() && eval.getLength() > 0)
+                this->validator = Validator(eval);
         }
         else if (clientContext->getReferenceBrowser()->isSubtypeOf(ref->typeDefinition.nodeId, evaluationVariableTypeId))
         {
@@ -102,13 +106,8 @@ void TmsClientPropertyImpl::configurePropertyFields()
             StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
             if (details::stringToPropertyFieldEnum.count(browseName))
             {
-                bool strHasValue = false;
                 const auto propertyField = details::stringToPropertyFieldEnum[browseName];
-                if (evalStr.assigned())
-                {
-                    if (evalStr.getLength() > 0)
-                        strHasValue = true;
-                }
+                bool strHasValue = evalStr.assigned() && evalStr.getLength() > 0;
                 if (strHasValue)
                 {
                     switch (propertyField)

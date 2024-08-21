@@ -46,6 +46,8 @@ protected:
     BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
     void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
     DeviceDomainPtr initDeviceDomain() override;
+    void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
+
     void start() override;
     
     bool allowAddDevicesFromModules() override;

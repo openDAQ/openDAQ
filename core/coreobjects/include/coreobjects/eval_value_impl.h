@@ -125,6 +125,8 @@ public:
     ErrCode Property_GetStructType(IStructType** structType) override;
     ErrCode Property_GetOnPropertyValueWrite(IEvent** event) override;
     ErrCode Property_GetOnPropertyValueRead(IEvent** event) override;
+    ErrCode Property_GetValue(IBaseObject** value) override;
+    ErrCode Property_SetValue(IBaseObject* value) override;
 
     // IUnit
 

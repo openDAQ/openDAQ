@@ -1172,6 +1172,22 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderImpl::setIsActive(Bool isActive)
+{
+    this->isActive = isActive;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getIsActive(Bool* isActive)
+{
+    OPENDAQ_PARAM_NOT_NULL(isActive);
+
+    *isActive = this->isActive;
+
+    return OPENDAQ_SUCCESS;
+}
+
 #pragma region ReaderConfig
 
 ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)

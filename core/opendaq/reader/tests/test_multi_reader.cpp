@@ -3811,3 +3811,63 @@ TEST_F(MultiReaderTest, UndefinedReadWithMockSignals)
     auto signalList = List<SignalPtr>(sig1.signal, sig2.signal);
     ASSERT_NO_THROW(MultiReader(signalList, SampleType::Undefined, SampleType::Int64));
 }
+
+TEST_F(MultiReaderTest, MultiReaderActive)
+{
+    constexpr SizeT NUM_SIGNALS = 3;
+    constexpr SizeT NUM_SAMPLES = 10;
+    double values[NUM_SIGNALS][NUM_SAMPLES] = {};
+    int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
+    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
+    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
+
+    auto portList = portsList();
+    auto multiReader = MultiReaderFromPort(portList);
+    auto status = daq::MultiReaderStatusPtr();
+
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        portList[i].connect(readSignals[i].signal);
+
+    // check active status
+    bool isActive = multiReader.getIsActive();
+    ASSERT_TRUE(isActive);
+
+    // send packets to active reader
+    SizeT packetIndex = 0;
+    sendPackets(packetIndex++);
+
+    // receive event packets
+    auto count = NUM_SAMPLES * 3;
+    status = multiReader.readWithDomain(values, domainValues, &count);
+
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
+
+    // receive data packets
+    status = multiReader.readWithDomain(values, domainValues, &count);
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
+    ASSERT_EQ(values[0][0], 0);
+    ASSERT_EQ(values[1][0], 0);
+    ASSERT_EQ(values[2][0], 0);
+
+    multiReader.setIsActive(false);
+
+    // send packets to inactive reader
+    sendPackets(packetIndex++);
+    count = NUM_SAMPLES * 3;
+    status = multiReader.readWithDomain(values, domainValues, &count);
+
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
+    ASSERT_EQ(count, 0);
+
+    // send packets to inactive reader
+    sendPackets(packetIndex++);
+    count = NUM_SAMPLES * 3;
+    status = multiReader.readWithDomain(values, domainValues, &count);
+
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
+    ASSERT_EQ(count, 0);
+}

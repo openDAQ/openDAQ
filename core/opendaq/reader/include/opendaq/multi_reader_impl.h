@@ -80,6 +80,9 @@ public:
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 
+    ErrCode INTERFACE_FUNC setIsActive(Bool isActive) override;
+    ErrCode INTERFACE_FUNC getIsActive(Bool* isActive) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
@@ -149,6 +152,7 @@ private:
 
     ContextPtr context;
     struct ReferenceDomainBin;
+    bool isActive{true};
 };
 
 END_NAMESPACE_OPENDAQ

@@ -156,6 +156,9 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
      */
     virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
+
+    virtual ErrCode INTERFACE_FUNC setIsActive(Bool isActive) = 0;
+    virtual ErrCode INTERFACE_FUNC getIsActive(Bool* isActive) = 0;
 };
 
 /*!@}*/

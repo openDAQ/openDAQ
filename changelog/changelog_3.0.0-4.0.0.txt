@@ -1,6 +1,21 @@
-20.08.2024
+21.08.2024
 Description:
-    - Reference Domain Info was added
+    - Reference Domain Info was added as an interface that gives additional information about the reference domain
+    - Reference Domain Info has getters for:
+        - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
+        - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
+        - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
+            - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
+            - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
+            - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
+            - Unknown
+        - Uses Offset
+    - There is also a builder available for creating Reference Domain Info
+    - Reference Domain Info is a part of two interfaces:
+        - Device Domain
+        - Data Descriptor
+    - Reference Domain Info is currently only supported over Native, not over OPC UA or LT Streaming protocols (this will cause two data descriptor changed events to be sent when combining supported and unsupported protocols for configuration/streaming - for example OPC UA and Native streaming)
+
 Required integration changes:
     - None, however, users are encouraged to use Reference Domain Info
 

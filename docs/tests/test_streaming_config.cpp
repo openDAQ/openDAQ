@@ -164,7 +164,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
         SizeT count = 0;
         reader.read(nullptr, &count, 1000);
         // TODO: needed becuase there are two descriptor changes,
-        // due to reference domain "stuff" not being supported over OPC UA
+        // due to reference domain "stuff" only being fully supported over Native
         // can be deleted once full support is added
         reader.read(nullptr, &count, 1000);
     }

@@ -35,13 +35,14 @@ public:
     ErrCode INTERFACE_FUNC build(IPermissions** configOut) override;
 
 private:
-    Int permissionsToBitMask(const ListPtr<Permission>& permissions);
+    void assign(IString* groupId, Int permissionFlags);
     void allow(IString* groupId, Int permissionFlags);
     void deny(IString* groupId, Int permissionFlags);
 
     Bool inherited;
     DictPtr<IString, Int> allowed;
     DictPtr<IString, Int> denied;
+    DictPtr<IString, Int> assigned;
 };
 
 END_NAMESPACE_OPENDAQ

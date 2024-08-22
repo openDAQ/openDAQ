@@ -19,18 +19,25 @@
 #include <coreobjects/permissions.h>
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/permissions_ptr.h>
+#include <coreobjects/permissions_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionsImpl : public ImplementationOf<IPermissions>
+class PermissionsImpl : public ImplementationOf<IPermissions, IPermissionsInternal>
 {
 public:
     explicit PermissionsImpl();
-    explicit PermissionsImpl(Bool inherited, const DictPtr<IString, Int>& allowed, const DictPtr<IString, Int>& denied);
+    explicit PermissionsImpl(Bool inherited,
+                             const DictPtr<IString, Int>& allowed,
+                             const DictPtr<IString, Int>& denied,
+                             const DictPtr<IString, Int>& assigned);
 
     ErrCode INTERFACE_FUNC getInherited(Bool* inherited) override;
     ErrCode INTERFACE_FUNC getAllowed(IDict** permissions) override;
     ErrCode INTERFACE_FUNC getDenied(IDict** permissions) override;
+
+    // IPermissionsInternal
+    ErrCode INTERFACE_FUNC getAssigned(IDict** permissions) override;
 
 private:
     DictPtr<IString, Int> cloneDict(const DictPtr<IString, Int>& dict);
@@ -38,6 +45,7 @@ private:
     Bool inherited;
     DictPtr<IString, Int> allowed;
     DictPtr<IString, Int> denied;
+    DictPtr<IString, Int> assigned;
 };
 
 END_NAMESPACE_OPENDAQ

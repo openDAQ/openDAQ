@@ -172,7 +172,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
-    ASSERT_EQ(res, "RefDev1");
+    ASSERT_EQ(res, "openDAQ_DevSer1");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)

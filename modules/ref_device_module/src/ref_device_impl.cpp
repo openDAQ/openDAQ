@@ -20,18 +20,11 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , acqLoopTime(0)
     , stopAcq(false)
     , logger(ctx.getLogger())
+    , serialNumber(fmt::format("DevSer{}", id))
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
-    initIoFolder();
-    initSyncComponent();
-    initClock();
-    initProperties(config);
-    updateNumberOfChannels();
-    enableCANChannel();
-    updateAcqLoopTime();
-
     if (config.assigned())
     {
         if (config.hasProperty("SerialNumber"))
@@ -44,6 +37,14 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
         if (options.hasKey("SerialNumber"))
             serialNumber = options.get("SerialNumber");
     }
+
+    initIoFolder();
+    initSyncComponent();
+    initClock();
+    initProperties(config);
+    updateNumberOfChannels();
+    enableCANChannel();
+    updateAcqLoopTime();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -123,13 +124,11 @@ void RefDeviceImpl::initClock()
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(),
-                                       RefChannelImpl::getEpoch(),
-                                       UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
-                                       ReferenceDomainInfoBuilder()
-                                           .setReferenceDomainId(localId)
-                                           .setReferenceDomainOffset(0)
-                                           .build()));
+    this->setDeviceDomain(
+        DeviceDomain(RefChannelImpl::getResolution(),
+                     RefChannelImpl::getEpoch(),
+                     UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                     ReferenceDomainInfoBuilder().setReferenceDomainId("openDAQ_" + serialNumber).setReferenceDomainOffset(0).build()));
 }
 
 void RefDeviceImpl::initIoFolder()

@@ -279,7 +279,7 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
                                                         const SerializedObjectPtr& obj,
                                                         const BaseObjectPtr& context)
 {
-    InputPortPtr inputPort = InputPort(this->context, this->borrowPtr<ComponentPtr>(), localId);
+    InputPortPtr inputPort = InputPort(this->context, this->template borrowPtr<ComponentPtr>(), localId);
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
     updatableIp.updateInternal(obj, context);

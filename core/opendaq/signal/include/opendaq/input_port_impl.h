@@ -691,6 +691,25 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
     }
 }
 
+inline StringPtr getRemoteId(const std::string& globalId)
+{
+    size_t firstSlashPos = globalId.find('/');
+    if (firstSlashPos == std::string::npos) {
+        // No slash found, return the original path
+        return globalId;
+    }
+
+    // Find the position of the second slash
+    size_t secondSlashPos = globalId.find('/', firstSlashPos + 1);
+    if (secondSlashPos == std::string::npos) {
+        // Only one segment found, return an empty string
+        return "";
+    }
+
+    // Erase the first segment
+    return globalId.substr(secondSlashPos);
+}
+
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
@@ -705,8 +724,9 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     {
         const auto thisPtr = this->template borrowPtr<InputPortPtr>();
         const auto root = this->getRootComponent(thisPtr);
+        auto newSignalId = root.getGlobalId() + getRemoteId(serializedSignalId);
         ComponentPtr sig;
-        root->findComponent(serializedSignalId, &sig);
+        root->findComponent(newSignalId, &sig);
         if (sig.assigned())
         {
             try
@@ -715,12 +735,12 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
             }
             catch (const DaqException&)
             {
-                LOG_W("Failed to connect signal: {}", serializedSignalId);
+                LOG_W("Failed to connect signal: {}", newSignalId);
             }
         }
         else
         {
-            LOG_W("Signal not found: {}", serializedSignalId);
+            LOG_W("Signal not found: {}", newSignalId);
         }
     }
     finishUpdate();

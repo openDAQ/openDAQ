@@ -30,7 +30,7 @@ public:
 inline BaseObjectPtr ConfigServerInputPort::connect(const InputPortPtr& inputPort, const SignalPtr& signal, const UserPtr& user)
 {
     ConfigServerAccessControl::protectObject(inputPort, user, {Permission::Read, Permission::Write});
-    ConfigServerAccessControl::protectObject(signal, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");

@@ -37,7 +37,7 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const De
                                                                         const ParamsDictPtr& params,
                                                                         const UserPtr& user)
 {
-    ConfigServerAccessControl::protectObject(device, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(device, user, Permission::Read);
 
     const auto fbTypes = device.getAvailableFunctionBlockTypes();
     return fbTypes;
@@ -75,14 +75,14 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& de
 
 inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const ParamsDictPtr& params, const UserPtr& user)
 {
-    ConfigServerAccessControl::protectObject(device, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(device, user, Permission::Read);
 
     return device.getInfo();
 }
 
 inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params, const UserPtr& user)
 {
-    ConfigServerAccessControl::protectObject(device, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(device, user, Permission::Read);
 
     return device.getTicksSinceOrigin();
 }

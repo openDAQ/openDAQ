@@ -29,7 +29,7 @@ public:
 
 inline BaseObjectPtr ConfigServerSignal::getLastValue(const SignalPtr& signal, const ParamsDictPtr& /*params*/, const UserPtr& user)
 {
-    ConfigServerAccessControl::protectObject(signal, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 
     const auto value = signal.getLastValue();
     return value;

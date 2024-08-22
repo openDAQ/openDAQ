@@ -44,7 +44,7 @@ inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr&
     const auto value = component.getPropertyValue(propertyName);
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
 
-    ConfigServerAccessControl::protectObject(propertyParent, user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(propertyParent, user, Permission::Read);
 
     return value;
 }

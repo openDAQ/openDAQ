@@ -1174,7 +1174,13 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
 
 ErrCode MultiReaderImpl::setIsActive(Bool isActive)
 {
+    std::lock_guard lock{mutex};
     this->isActive = isActive;
+    for (auto& signal: signals)
+    {
+        if (signal.port.assigned())
+            signal.port.setActive(this->isActive);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -1183,6 +1189,7 @@ ErrCode MultiReaderImpl::getIsActive(Bool* isActive)
 {
     OPENDAQ_PARAM_NOT_NULL(isActive);
 
+    std::lock_guard lock{mutex};
     *isActive = this->isActive;
 
     return OPENDAQ_SUCCESS;

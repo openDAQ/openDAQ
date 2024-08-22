@@ -737,7 +737,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     auto errCode = updateInternal(obj, context);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
-    return updateEnded(context);
+    return this->updateEnded(context);
 }
 
 template <class Intf, class ... Intfs>

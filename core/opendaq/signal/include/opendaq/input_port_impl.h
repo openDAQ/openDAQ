@@ -678,7 +678,10 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
         UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
         if (contextPtr.assigned())
         {
-            contextPtr.setInputPortConnection("", this->localId, obj.readString("signalId"));
+            ComponentPtr parent;
+            this->getParent(&parent);
+            StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+            contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
         }
         else
         {

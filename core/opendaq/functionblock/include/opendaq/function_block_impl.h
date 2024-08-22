@@ -279,39 +279,10 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
                                                         const SerializedObjectPtr& obj,
                                                         const BaseObjectPtr& context)
 {
-    InputPortPtr inputPort;
-    if (!inputPorts.hasItem(localId))
-    {
-        LOG_W("Input port {} not found", localId);
-        for (const auto& ip : inputPorts.getItems(search::Any()))
-        {
-            inputPort = ip.template asPtr<IInputPort>(true);
-            if (!inputPort.getSignal().assigned())
-            {
-                LOG_W("Using input port {}", inputPort.getLocalId());
-                break;
-            }
-        }
-        if (!inputPort.assigned())
-            return;
-    }
-    else
-        inputPort = inputPorts.getItem(localId);
-
+    InputPortPtr inputPort = InputPort(this->context, this->borrowPtr<ComponentPtr>(), localId);
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
     updatableIp.updateInternal(obj, context);
-    UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
-    if (contextPtr.assigned())
-    {
-        auto connections = contextPtr.getInputPortConnection("");
-        if (connections.hasKey(inputPort.getLocalId()))
-        {
-            StringPtr signalId = connections.get(inputPort.getLocalId());
-            connections.remove(inputPort.getLocalId());
-            contextPtr.setInputPortConnection(this->globalId, localId, signalId);
-        }
-    }
 }
 
 template <typename TInterface, typename... Interfaces>

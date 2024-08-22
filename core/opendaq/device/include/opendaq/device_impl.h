@@ -1055,10 +1055,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
+    DeviceInfoPtr deviceInfo;
+    checkErrorInfo(this->getInfo(&deviceInfo));
     if (!forUpdate)
     {
-        DeviceInfoPtr deviceInfo;
-        checkErrorInfo(this->getInfo(&deviceInfo));
         if (deviceInfo.assigned())
         {
             serializer.key("deviceInfo");
@@ -1069,6 +1069,14 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         {
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
+        }
+    }
+    else
+    {
+        if (deviceInfo.assigned())
+        {
+            serializer.key("configurationConnectionInfo");
+            deviceInfo.getConfigurationConnectionInfo().serialize(serializer);
         }
     }
 
@@ -1108,17 +1116,26 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                                                             const SerializedObjectPtr& serializedDevice,
                                                             const BaseObjectPtr& context)
 {
-    if (!devices.hasItem(deviceId))
-    {
-        LOG_W("Device {} not found", deviceId)
-        return;
-    }
-
-    const auto device = devices.getItem(deviceId);
-    const auto updatableDevice = device.template asPtr<IUpdatable>(true);
-
     try
     {
+        DevicePtr device;
+        if (devices.hasItem(deviceId))
+        {
+            device = devices.getItem(deviceId);
+        }
+        else
+        {
+            if (!serializedDevice.hasKey("configurationConnectionInfo"))
+            {
+                LOG_W("Device {} not found", deviceId);
+                return;
+            }
+            ServerCapabilityPtr configurationInfo = serializedDevice.readObject("configurationConnectionInfo");
+            LOG_D("Recreating device from connection string {}", configurationInfo.getConnectionString());
+            addDevice(&device, configurationInfo.getConnectionString(), nullptr);
+        }
+
+        const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }
     catch (const std::exception& e)
@@ -1171,6 +1188,17 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
+    }
+    else if (serializedObject.hasKey("configurationConnectionInfo"))
+    {
+        DeviceInfoPtr deviceInfo;
+        checkErrorInfo(this->getInfo(&deviceInfo));
+
+        if (deviceInfo.assigned())
+        {
+            auto connectionInfo = serializedObject.readObject("configurationConnectionInfo");
+            deviceInfo.asPtr<IDeviceInfoConfig>(true).setPropertyValue("configurationConnectionInfo", connectionInfo);
+        }
     }
 
     if (serializedObject.hasKey("deviceDomain"))

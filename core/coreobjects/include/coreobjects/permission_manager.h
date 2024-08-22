@@ -19,7 +19,7 @@
 #include <coretypes/common.h>
 #include <coreobjects/user.h>
 #include <coreobjects/permissions.h>
-#include <coreobjects/permission_enum.h>
+#include <coreobjects/permission_mask_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

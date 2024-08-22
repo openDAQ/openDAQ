@@ -172,7 +172,6 @@ source_group("permission_manager" FILES ${SDK_HEADERS_DIR}/permission_manager.h
                                         ${SDK_HEADERS_DIR}/permission_manager_internal.h
                                         ${SDK_HEADERS_DIR}/permission_manager_impl.h
                                         permission_manager_impl.cpp
-                                        ${SDK_HEADERS_DIR}/permission_enum.h
 )
 
 source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
@@ -264,7 +263,6 @@ set(SRC_PublicHeaders coreobjects.h
                       permissions_builder_factory.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
-                      permission_enum.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h

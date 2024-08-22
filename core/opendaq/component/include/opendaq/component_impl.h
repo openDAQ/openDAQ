@@ -45,6 +45,7 @@
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/component_errors.h>
 #include <coretypes/updatable_context_impl.h>
+#include <coretypes/updatable_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

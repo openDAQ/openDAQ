@@ -23,6 +23,7 @@
 #include <opendaq/data_rule.h>
 #include <opendaq/scaling.h>
 #include <opendaq/sample_type.h>
+#include <opendaq/reference_domain_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -230,6 +231,15 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      * implicitly generated samples, the actual sample size is less than sample size.
      */
     virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) = 0;
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
+
 };
 /*!@}*/
 
@@ -241,8 +251,8 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
  */
 
 /*!
- * @brief Creates a DataDescriptor using Builder
- * @param builder DataDescriptor Builder
+ * @brief Creates a Data Descriptor using Builder
+ * @param builder Data Descriptor Builder
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataDescriptorFromBuilder, IDataDescriptor,

@@ -751,7 +751,7 @@ public partial class frmMain : Form
             else if (componentName == "IP")
                 componentName = "Input ports";
             else if (componentName == "IO")
-                componentName = "Inputs/Outputs'";
+                componentName = "Inputs/Outputs";
         }
         else
         {

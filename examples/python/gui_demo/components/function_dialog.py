@@ -2,7 +2,7 @@ import opendaq as daq
 import tkinter as tk
 
 from ..utils import *
-from .diaolog import Dialog
+from .dialog import Dialog
 
 
 class FunctionDialog(Dialog):

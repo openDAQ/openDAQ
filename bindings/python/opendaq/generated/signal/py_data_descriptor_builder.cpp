@@ -188,4 +188,17 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");
+    cls.def_property("reference_domain_info",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getReferenceDomainInfo().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IReferenceDomainInfo* referenceDomainInfo)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setReferenceDomainInfo(referenceDomainInfo);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Reference Domain Info. / Sets the Reference Domain Info.");
 }

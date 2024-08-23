@@ -25,7 +25,7 @@ This project contains the .NET-Bindings to the _openDAQ_ SDK.
 ## Prerequisites
 The _openDAQ_ binaries (on Windows `*.dll`) need to exist in `./build/x64/msvc-22/full/bin/Debug`
 or `*/Release`. This is normally accomplished by running `cmake`.  
-The libraries will be copied to the output directory .  
+The libraries will be copied to the output directory.  
 For `NuGet` the libraries will be placed in the structure `runtime/win-x64/native/*`.  
 The generated C# code (`RTGen`) needs to reside in `./build/bindings/CSharp/core` (also from
 `cmake`).  

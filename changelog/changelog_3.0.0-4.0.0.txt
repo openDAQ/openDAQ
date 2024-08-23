@@ -1,21 +1,71 @@
+21.08.2024
+Description:
+    - Reference Domain Info was added as an interface that gives additional information about the reference domain
+    - Reference Domain Info has getters for:
+        - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
+        - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
+        - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
+            - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
+            - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
+            - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
+            - Unknown
+        - Uses Offset
+    - There is also a builder available for creating Reference Domain Info
+    - Reference Domain Info is a part of two interfaces:
+        - Device Domain
+        - Data Descriptor
+    - Reference Domain Info is currently only supported over Native, not over OPC UA or LT Streaming protocols (this will cause two data descriptor changed events to be sent when combining supported and unsupported protocols for configuration/streaming - for example OPC UA and Native streaming)
+
+Required integration changes:
+    - None, however, users are encouraged to use Reference Domain Info
+
++ [interface] IReferenceDomainInfo : public IBaseObject
++ [function] IReferenceDomainInfo::getReferenceDomainId(IString** referenceDomainId)
++ [function] IReferenceDomainInfo::getReferenceDomainOffset(IInteger** referenceDomainOffset)
++ [function] IReferenceDomainInfo::getReferenceTimeSource(TimeSource* referenceTimeSource)
++ [function] IReferenceDomainInfo::getUsesOffset(UsesOffset * usesOffset)
+
++ [interface] IReferenceDomainInfoBuilder : public IBaseObject
++ [function] IReferenceDomainInfoBuilder::build(IReferenceDomainInfo** referenceDomainInfo)
++ [function] IReferenceDomainInfoBuilder::setReferenceDomainId(IString** referenceDomainId)
++ [function] IReferenceDomainInfoBuilder::setReferenceDomainOffset(IInteger** referenceDomainOffset)
++ [function] IReferenceDomainInfoBuilder::setReferenceTimeSource(TimeSource* referenceTimeSource)
++ [function] IReferenceDomainInfoBuilder::setUsesOffset(UsesOffset * usesOffset)
++ [function] IReferenceDomainInfoBuilder::getReferenceDomainId(IString** referenceDomainId)
++ [function] IReferenceDomainInfoBuilder::getReferenceDomainOffset(IInteger** referenceDomainOffset)
++ [function] IReferenceDomainInfoBuilder::getReferenceTimeSource(TimeSource* referenceTimeSource)
++ [function] IReferenceDomainInfoBuilder::getUsesOffset(UsesOffset * usesOffset)
+
++ [factory] ReferenceDomainInfoBuilderPtr ReferenceDomainInfoBuilder()
++ [factory] ReferenceDomainInfoBuilderPtr ReferenceDomainInfoBuilderCopy(const ReferenceDomainInfoPtr& referenceDomainInfo)
++ [factory] ReferenceDomainInfoPtr ReferenceDomainInfoFromBuilder(const ReferenceDomainInfoBuilderPtr& builder)
+
++ [function] IDeviceDomain::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
+-m [factory] DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit)
++m [factory] DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit, const ReferenceDomainInfoPtr& referenceDomainInfo = nullptr)
+
++ [function] IDataDescriptor::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
++ [function] IDataDescriptorBuilder::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
++ [function] IDataDescriptorBuilder::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
+
 12.08.2024
 Description:
-	- Changed logic of IProperty::getOnPropertyValue events.
-	- Now returns the owner's event when called, if the owner is assigned.
-	- A new function is available to get the class's event. That function is used internally to trigger class value change events.
-	
+    - Changed logic of IProperty::getOnPropertyValue events.
+    - Now returns the owner's event when called, if the owner is assigned.
+    - A new function is available to get the class's event. That function is used internally to trigger class value change events.
+    
 + [function] IEvent::getSubscribers(IList** subscribers)
 + [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
 + [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
 
 12.08.2024
 Description
-  - Intergration the Sync Component
-  - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
-Required integeration changes:
-  - Each device now has a sync component, which is visible in default components as `Synchronization`.
-  - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
-  - Sync component is replacing dummy property object in the ref device.
+    - Integration the Sync Component
+    - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
+Required integration changes:
+    - Each device now has a sync component, which is visible in default components as `Synchronization`.
+    - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
+    - Sync component is replacing dummy property object in the ref device.
 
 + [interface] ISyncComponent : public IComponent
 + [function] ISyncComponent::getSyncLocked(Bool* synchronizationLocked)
@@ -32,37 +82,37 @@ Required integeration changes:
 
 08.08.2024
 Description:
-	- Add get/setValue method to IProperty
-	- Helpers allowing easier access to the property's value when iterating through an object's properties
-	
+    - Add get/setValue method to IProperty
+    - Helpers allowing easier access to the property's value when iterating through an object's properties
+    
 + [function] IProperty::getValue(IBaseObject** value)
 + [function] IProperty::setValue(IBaseObject* value)
 
 26.07.2024
 Description:
-  - Add method to IPropertyObject to detect begin/end update status  
-Required integeration changes:
-  - Breaks binary compatibility
+    - Add method to IPropertyObject to detect begin/end update status
+Required integration changes:
+    - Breaks binary compatibility
 
 + [function] IPropertyObject::getUpdating(Bool* updating)
 
 25.07.2024
 Description:
-  - Add user context to json serializer
+    - Add user context to json serializer
 + [function] ISerializer::getUser(IBaseObject** user)
 + [function] ISerializer::setUser(IBaseObject* user)
 
 23.07.2024
 Description
-  - Reader improvement
-  - Implementing rader builder for all Readers
-  - Populate connection methods 
-Required integeration changes:
-  - Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exeption)
-  - In first read, reader returns first event packet
-  - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
-  - reader::getAvailableSamples returns available samples untill event packet if skipEvents == false, or until gap packet if skipEvents == true. 
-  To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
+    - Reader improvement
+    - Implementing reader builder for all Readers
+    - Populate connection methods 
+Required integration changes:
+    - Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
+    - In first read, reader returns first event packet
+    - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
+    - reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true. 
+    To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
 
 + [function] IReader::getEmpty(Bool* empty)
 
@@ -149,51 +199,51 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 22.07.2024
 Description:
-	- Standardize cases to PascalCase
-		- Component IDs
-			- Reference Device
-			- Reference Function Blocks (backwards compatible)
-				- Classifier
-				- FFT
-				- Power
-				- Renderer
-				- Scaling
-				- Statistics
-				- Trigger
-			- AudioDeviceModuleWavWriter
-			- Reference device IO components (AI, CAN, RefCh)
-		- Component names
-			- Default client device
-		- Type IDs
-			- Reference modules
-			- Streaming/config clients (backwards compatible)
-			- Server modules
-			- MiniAudio
-		- Type names
-			- Reference modules
-			- Streaming/config clients
-			- Server modules
-		- Server capability protocol ID (backwards compatible)
-		- Server capability protocol name
-		- Struct Type field names
-		- Other
+    - Standardize cases to PascalCase
+        - Component IDs
+            - Reference Device
+            - Reference Function Blocks (backwards compatible)
+                - Classifier
+                - FFT
+                - Power
+                - Renderer
+                - Scaling
+                - Statistics
+                - Trigger
+            - AudioDeviceModuleWavWriter
+            - Reference device IO components (AI, CAN, RefCh)
+        - Component names
+            - Default client device
+        - Type IDs
+            - Reference modules
+            - Streaming/config clients (backwards compatible)
+            - Server modules
+            - MiniAudio
+        - Type names
+            - Reference modules
+            - Streaming/config clients
+            - Server modules
+        - Server capability protocol ID (backwards compatible)
+        - Server capability protocol name
+        - Struct Type field names
+        - Other
 
 Required integration changes:
-	- Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
-	- If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs. eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
-	- Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
+    - Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
+    - If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs. eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
+    - Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
 
 10.07.2024
 Description
-	- Add address type and address reachability status to server capability
-	- Allows easier identification of what address is used, and checks if device is available
-	- Reachability is currently only available for ipv4
-	- "canPing" and "ipv4Address" properties have been removed from discovered device info
+    - Add address type and address reachability status to server capability
+    - Allows easier identification of what address is used, and checks if device is available
+    - Reachability is currently only available for ipv4
+    - "canPing" and "ipv4Address" properties have been removed from discovered device info
 
 Required integration changes:
-	- If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
-	- "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
-	
+    - If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
+    - "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
+    
 + [function] IServerCapability::getAddressTypes(IList** addressTypes)
 + [function] IServerCapability::getAddressReachabilityStatus(IList** addressReachability)
 + [function] IServerCapabilityConfig::addAddressType(IString* addressType)
@@ -202,14 +252,14 @@ Required integration changes:
 
 04.07.2024
 Description
-	- Make device connection string prefix mandatory
-	- Remove "accepts connection string" methods from module
-	
+    - Make device connection string prefix mandatory
+    - Remove "accepts connection string" methods from module
+    
 Required integration changes:
-	- onGetAvailableDeviceTypes() override in modules now has to add a "prefix" to its device type
-	- onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
-	- Connection strings must now always start with a prefix, followed by "://"
-  
+    - onGetAvailableDeviceTypes() override in modules now has to add a "prefix" to its device type
+    - onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
+    - Connection strings must now always start with a prefix, followed by "://"
+
 -m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 +m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
 - [function] IModule::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
@@ -228,9 +278,9 @@ Required integration changes:
 
 17.06.2024
 Description
-  - Add StreamingType object
-  - Change ComponentType objects to use builder pattern
-  - Provide default add-device config object containing config of all modules
+    - Add StreamingType object
+    - Change ComponentType objects to use builder pattern
+    - Provide default add-device config object containing config of all modules
 
 + [function] IDevice::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
 + [function] IDeviceType::getConnectionStringPrefix(IString** prefix) = 0;
@@ -247,26 +297,26 @@ Description
 
 30.05.2024
 Description
-  - Supporting reading client's connection info in the deviceInfo
+    - Supporting reading client's connection info in the deviceInfo
 
 + [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 
 27.05.2024
 Description
-  - Supporting servers to be discovered by mDNS
+    - Supporting servers to be discovered by mDNS
 
-+  [interface] IServer::getId(IString** serverId)
-+  [interface] IServer::enableDiscovery();
++ [interface] IServer::getId(IString** serverId)
++ [interface] IServer::enableDiscovery();
 
-+  [interface] IDiscoveryServer
-+  [function]  IDiscoveryServer::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo);
-+  [function]  IDiscoveryServer::unregisterService(IString* id)
-+  [factory]   DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
++ [interface] IDiscoveryServer
++ [function] IDiscoveryServer::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo);
++ [function] IDiscoveryServer::unregisterService(IString* id)
++ [factory] DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
 
-+  [function]  IInstanceBuilder::getDiscoveryServices(IList** services)
-+  [function]  IInstanceBuilder::addDiscoveryService(IString* serviceName)
++ [function] IInstanceBuilder::getDiscoveryServices(IList** services)
++ [function] IInstanceBuilder::addDiscoveryService(IString* serviceName)
 
-+  [function] Context::getDiscoveryServers(IDict** services);
++ [function] Context::getDiscoveryServers(IDict** services);
 -m [factory] ContextPtr Context(const SchedulerPtr& scheduler,
                            const LoggerPtr& logger,
                            const TypeManagerPtr& typeManager,
@@ -283,8 +333,8 @@ Description
 
 17.05.2024
 Description:
-  - Add ability to manually connect to streaming for device after device added
-  - Create connection string from ServerCapability via modules
+    - Add ability to manually connect to streaming for device after device added
+    - Create connection string from ServerCapability via modules
 
 + [function] IDevice::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
 + [function] IModuleManagerUtils::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
@@ -299,28 +349,28 @@ Description:
     - Add functions for sending and dequeueing multiple packets
     - Add functions with steal reference behaviour for sending packets
 
-+  [function]  ErrCode ISignalConfig::sendPackets(IList* packets)
-+  [function]  ErrCode ISignalConfig::sendPacketAndStealRef(IPacket* packet)
-+  [function]  ErrCode ISignalConfig::sendPacketsAndStealRef(IList* packets)
-    
-+  [function]  ErrCode IConnection::enqueueAndStealRef(IPacket* packet)
-+  [function]  ErrCode IConnection::enqueueMultiple(IList* packets)
-+  [function]  ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
-+  [function]  ErrCode IConnection::dequeueAll(IList** packets)()
-    
-26.04.2024
-Description:
-    Produce gap packets on request
++ [function] ErrCode ISignalConfig::sendPackets(IList* packets)
++ [function] ErrCode ISignalConfig::sendPacketAndStealRef(IPacket* packet)
++ [function] ErrCode ISignalConfig::sendPacketsAndStealRef(IList* packets)
 
--m [factory]  InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
-+m [factory]  InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
-+  [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
-+  [factory]  EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
-+  [packet]   IMPLICIT_DOMAIN_GAP_DETECTED
++ [function] ErrCode IConnection::enqueueAndStealRef(IPacket* packet)
++ [function] ErrCode IConnection::enqueueMultiple(IList* packets)
++ [function] ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
++ [function] ErrCode IConnection::dequeueAll(IList** packets)()
 
 26.04.2024
 Description:
-  - Clone property object to create default config from type
+    - Produce gap packets on request
+
+-m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
++ [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
++ [factory] EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
++ [packet] IMPLICIT_DOMAIN_GAP_DETECTED
+
+26.04.2024
+Description:
+    - Clone property object to create default config from type
 
 -m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
 +m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
@@ -331,7 +381,7 @@ Description:
 
 25.04.2024
 Description:
-  - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
+    - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
 
 + [interface] IMirroredDevice
 + [function] IMirroredDevice::getStreamingSources(IList** streamingSources)
@@ -342,12 +392,12 @@ Description:
 
 23.04.2024
 Description:
-  - Adding addresses in ServerCapability
+    - Adding addresses in ServerCapability
 + [function] IServerCapabilityConfig::addAddress(IString* address)
 + [function] IServerCapability::getAddresses(IList** addresses)
 
 22.04.2024
 Description:
-  - Fix reserved keyword clashes with Delphi bindings
+    - Fix reserved keyword clashes with Delphi bindings
 - [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)
 + [function] IPermissionsBuilder::assign(StringPtr groupId, PermissionMaskBuilderPtr permissions)

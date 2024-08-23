@@ -21,7 +21,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [include(ISampleType)]
- * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
  */
 
@@ -211,6 +210,23 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * @param[out] metadata Additional metadata of the descriptor as a dictionary.
      */
     virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the Reference Domain Info.
+     * @param referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo) = 0;
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
 };
 /*!@}*/
 

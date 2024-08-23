@@ -42,7 +42,11 @@ struct RefChannelInit
 class RefChannelImpl final : public ChannelImpl<IRefChannel>
 {
 public:
-    explicit RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init);
+    explicit RefChannelImpl(const ContextPtr& context,
+                            const ComponentPtr& parent,
+                            const StringPtr& localId,
+                            const RefChannelInit& init,
+                            const StringPtr& referenceDomainId);
 
     // IRefChannel
     void collectSamples(std::chrono::microseconds curTime) override;
@@ -77,6 +81,7 @@ private:
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
+    StringPtr referenceDomainId;
 
     void initProperties();
     void packetSizeChangedInternal();

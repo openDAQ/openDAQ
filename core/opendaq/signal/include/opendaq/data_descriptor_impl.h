@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2022-2024 openDAQ d.o.o.
  *
@@ -48,6 +47,7 @@ public:
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
     ErrCode INTERFACE_FUNC getSampleSize(SizeT* sampleSize) override;
     ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSizes) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -87,6 +87,8 @@ protected:
     ListPtr<IDataDescriptor> structFields;
 
     DictPtr<IString, IString> metadata;
+
+    ReferenceDomainInfoPtr referenceDomainInfo;
 
 private:
     ErrCode validate();

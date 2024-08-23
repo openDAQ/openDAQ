@@ -108,6 +108,9 @@ in later sections.
 | Metadata
 | A dictionary of key-value pairs. The metadata dictionary is used to add any additional information required to correctly interpret the data. This information is not interpreted by openDAQ core.
 
+| Reference Domain Info
+| An optional field for Domain Signals that gives additional information about the reference domain, such as the Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together), Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source), Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together; possible values are https://en.wikipedia.org/wiki/International_Atomic_Time[Tai], https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping[Gps], https://en.wikipedia.org/wiki/Coordinated_Universal_Time[Utc], and Unknown), and Uses Offset.
+
 |===
 
 === Data Rule
@@ -122,6 +125,8 @@ calculated depending on the Rule type. Currently, two rules are available in ope
 * **Linear Rule**: The Rule parameters include a `delta` and `start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * delta + start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
 
 * **Constant Rule**: All values of the signal are equal to the `constant` defined in the packet.
+
+For Domain Signals that have either _Explicit_ and _Linear_ Data rule, Reference Domain Offset is added to each sample if available in Reference Domain Info of the Domain Signal's Data Descriptor.
 
 === Dimensions
 
@@ -187,7 +192,7 @@ Currently, openDAQ(TM) provides only the Linear Post Scaling rule:
 |===
 
 | Linear Post Scaling
-| The parameters contain a `scale` and `offset`. Calculated as: _inputValue * scale + offset_
+| The parameters contain a `scale` and `offset`. Calculated as: `inputValue * scale + offset`
 
 |===
 

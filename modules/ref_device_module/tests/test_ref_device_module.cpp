@@ -164,6 +164,50 @@ TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
     ASSERT_FALSE(static_cast<std::string>(res).empty());
 }
 
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
+    ASSERT_EQ(res, "openDAQ_DevSer1");
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainOffset();
+    ASSERT_EQ(res, 0);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceTimeSource();
+    ASSERT_EQ(res, TimeSource::Unknown);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getUsesOffset();
+    ASSERT_EQ(res, UsesOffset::Unknown);
+}
+
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();

@@ -23,6 +23,7 @@
 #include <opendaq/data_rule_calc.h>
 #include <opendaq/dimension_ptr.h>
 #include <opendaq/scaling_calc.h>
+#include <opendaq/reference_domain_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -67,6 +68,9 @@ public:
     ErrCode INTERFACE_FUNC setStructFields(IList* structFields) override;
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
 
+    ErrCode INTERFACE_FUNC setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override;
+
 protected:
     ListPtr<IDimension> dimensions;
     StringPtr name;
@@ -79,6 +83,7 @@ protected:
     RatioPtr resolution;
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
+    ReferenceDomainInfoPtr referenceDomainInfo;
 };
 
 END_NAMESPACE_OPENDAQ

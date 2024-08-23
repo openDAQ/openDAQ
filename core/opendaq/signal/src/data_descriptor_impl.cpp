@@ -32,6 +32,7 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBui
     params.set("TickResolution", builderPtr.getTickResolution());
     params.set("StructFields", builderPtr.getStructFields());
     params.set("Metadata", builderPtr.getMetadata());
+    params.set("ReferenceDomainInfo", builderPtr.getReferenceDomainInfo());
 
     return params;
 }
@@ -53,6 +54,7 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
+    this->referenceDomainInfo = dataDescriptorBuilderPtr.getReferenceDomainInfo();
     checkErrorInfo(validate());
     calculateSampleMemSize();
 }
@@ -164,6 +166,15 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainInfo);
+
+    *referenceDomainInfo = this->referenceDomainInfo.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
 void DataDescriptorImpl::calculateSampleMemSize()
 {
     size_t elementCnt = 1;
@@ -246,6 +257,18 @@ ErrCode DataDescriptorImpl::validate()
                 if (sampleType > SampleType::RangeInt64)
                     return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
             }
+
+            if (dataRule.getType() == DataRuleType::Constant)
+            {
+                if (referenceDomainInfo.assigned())
+                    throw InvalidParameterException("Reference Domain Info not supported for constant data rule type.");
+            }
+            if (scaling.assigned())
+            {
+                if (referenceDomainInfo.assigned())
+                    throw InvalidParameterException("Reference Domain Info not supported with post scaling.");
+            }
+                
         }
 
         if (dimensions.assigned())
@@ -311,6 +334,9 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         if (!BaseObjectPtr::Equals(structFields, descriptor.getStructFields()))
             return OPENDAQ_SUCCESS;
         if (!BaseObjectPtr::Equals(metadata, descriptor.getMetadata()))
+            return OPENDAQ_SUCCESS;
+
+        if (!BaseObjectPtr::Equals(referenceDomainInfo, descriptor.getReferenceDomainInfo()))
             return OPENDAQ_SUCCESS;
 
         *equals = true;
@@ -420,6 +446,12 @@ ErrCode DataDescriptorImpl::serialize(ISerializer* serializer)
 
         serializer->key("structFields");
         structFields.serialize(serializer);
+
+        if (referenceDomainInfo.assigned())
+        {
+            serializer->key("referenceDomainInfo");
+            referenceDomainInfo.serialize(serializer);
+        }
     }
     serializer->endObject();
 
@@ -496,6 +528,12 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     ListPtr<IDataDescriptor> structFields = serializedObj.readObject("structFields");
     dataDescriptor.setStructFields(structFields);
+
+    if (serializedObj.hasKey("referenceDomainInfo"))
+    {
+        auto referenceDomainInfo = serializedObj.readObject("referenceDomainInfo");
+        dataDescriptor.setReferenceDomainInfo(referenceDomainInfo);
+    }
 
     *obj = dataDescriptor.build().as<IBaseObject>();
 

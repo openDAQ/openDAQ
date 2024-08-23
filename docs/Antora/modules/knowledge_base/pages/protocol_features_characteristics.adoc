@@ -114,6 +114,12 @@ The following table showcases which of the protocols supports what features. You
 ^| 
 ^| 
 
+| Read reference domain info
+| Reference domain info is a part of both domain signal's data descriptor and device domain, allowing for improved interpretation of the domain.
+^| ✅
+^| 
+^| 
+
 |===
 
 .Structure
@@ -263,6 +269,9 @@ The above table shows what features are enabled by what protocol. However, in re
 | Read last value
 | Struct-type signal data must exactly match an OPC UA struct/enumeration type for them to be readable.
 
+| Read reference domain info
+| Reference domain info is currently only supported over Native, not over the OPC UA protocol. This will cause two data descriptor changed events to be sent when combining OPC UA and Native streaming.
+
 | **Structure**
 |
 
@@ -283,6 +292,9 @@ The above table shows what features are enabled by what protocol. However, in re
 
 | Read last value
 | To read the last value, the signal must be subscribed (must be connected to an input port, or subscribed manually). Unsubscribed signals do not send data to the client.
+
+| Read reference domain info
+| Reference domain info is currently only supported over Native, not over the LT Streaming protocol. This will cause two data descriptor changed events to be sent when combining Native Configuration and LT Steaming.
 
 |===
 

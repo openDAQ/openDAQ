@@ -29,6 +29,8 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_InputPortNotifications input_port_notifications.h)
     rtgen(SRC_Deleter deleter.h)
     rtgen(SRC_Allocator allocator.h)
+    rtgen(SRC_ReferenceDomainInfo reference_domain_info.h)
+    rtgen(SRC_ReferenceDomainInfoBuilder reference_domain_info_builder.h)
     
     set(SRC_PublicHeaders_Component_Generated 
         ${SRC_Connection_PublicHeaders}
@@ -58,6 +60,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_Allocator_PublicHeaders}
         ${SRC_InputPortPrivate_PublicHeaders}
         ${SRC_SignalPrivate_PublicHeaders}
+        ${SRC_ReferenceDomainInfo_PublicHeaders}
+        ${SRC_ReferenceDomainInfoBuilder_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -91,6 +95,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_InputPortNotifications_PrivateHeaders}
         ${SRC_Deleter_PrivateHeaders}
         ${SRC_Allocator_PrivateHeaders}
+        ${SRC_ReferenceDomainInfo_PrivateHeaders}
+        ${SRC_ReferenceDomainInfoBuilder_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -117,6 +123,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ScalingBuilder_Cpp}
         ${SRC_InputPortNotifications_Cpp}
         ${SRC_Allocator_Cpp}
+        ${SRC_ReferenceDomainInfo_Cpp}
+        ${SRC_ReferenceDomainInfoBuilder_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -192,6 +200,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/packet_destruct_callback.h
         ${SDK_HEADERS_DIR}/packet_destruct_callback_factory.h
         ${SDK_HEADERS_DIR}/packet_destruct_callback_impl.h
+        ${SDK_HEADERS_DIR}/reference_domain_offset_adder.h
         ${SDK_SRC_DIR}/data_packet_impl.cpp
         ${SDK_SRC_DIR}/generic_data_packet_impl.cpp
         ${SDK_SRC_DIR}/event_packet_impl.cpp
@@ -265,6 +274,16 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/signal_utils.h
         ${SDK_SRC_DIR}/signal.natvis
     )
+    
+    source_group("signal//reference_domain_info" FILES 
+        ${SDK_HEADERS_DIR}/reference_domain_info.h
+        ${SDK_HEADERS_DIR}/reference_domain_info_impl.h
+        ${SDK_HEADERS_DIR}/reference_domain_info_builder.h
+        ${SDK_HEADERS_DIR}/reference_domain_info_builder_impl.h
+        ${SDK_HEADERS_DIR}/reference_domain_info_factory.h
+        ${SDK_SRC_DIR}/reference_domain_info_impl.cpp
+        ${SDK_SRC_DIR}/reference_domain_info_builder_impl.cpp
+    )
 endfunction()
 
 set(SRC_ExtraPrivateLibraries)
@@ -310,6 +329,7 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
     signal_impl.h
+    reference_domain_info_factory.h
     ${SRC_Mimalloc_PublicHeaders}
     PARENT_SCOPE
 )
@@ -339,6 +359,9 @@ set(SRC_PrivateHeaders_Component
     data_rule_calc_private.h
     scaling_calc_private.h
     external_allocator_impl.h
+    reference_domain_offset_adder.h
+    reference_domain_info_impl.h
+    reference_domain_info_builder_impl.h
     ${SRC_Mimalloc_PrivateHeaders}
     PARENT_SCOPE
 )
@@ -365,6 +388,8 @@ set(SRC_Cpp_Component
     malloc_allocator_impl.cpp
     external_allocator_impl.cpp
     signal.natvis
+    reference_domain_info_impl.cpp
+    reference_domain_info_builder_impl.cpp
     ${SRC_Mimalloc_Cpp}
     PARENT_SCOPE
 )

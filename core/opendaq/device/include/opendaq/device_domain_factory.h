@@ -18,6 +18,7 @@
 #include <coretypes/simple_type_factory.h>
 #include <opendaq/device_domain_ptr.h>
 #include <coreobjects/unit_factory.h>
+#include <opendaq/reference_domain_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,9 +28,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit)
+inline DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution,
+                                    const StringPtr& origin,
+                                    const UnitPtr& unit,
+                                    const ReferenceDomainInfoPtr& referenceDomainInfo = nullptr)
 {
-    DeviceDomainPtr obj(DeviceDomain_Create(tickResolution, origin, unit));
+    DeviceDomainPtr obj(DeviceDomain_Create(tickResolution, origin, unit, referenceDomainInfo));
     return obj;
 }
 
@@ -37,9 +41,9 @@ inline StructTypePtr DeviceDomainStructType()
 {
     return StructType(
         "DeviceDomain",
-        List<IString>("TickResolution", "Origin", "Unit"),
-        List<IBaseObject>(Ratio(1, 1), "", "", Unit("s", -1, "second", "time")),
-        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType()));
+        List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainInfo"),
+        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr),
+        List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), ReferenceDomainInfoStructType()));
 }
 
 /*!@}*/

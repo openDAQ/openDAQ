@@ -16,6 +16,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
+    , serialNumber(fmt::format("DevSer{}", id))
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
@@ -24,6 +25,19 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
+    if (config.assigned())
+    {
+        if (config.hasProperty("SerialNumber"))
+            serialNumber = config.getPropertyValue("SerialNumber");
+    }
+
+    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (options.assigned())
+    {
+        if (options.hasKey("SerialNumber"))
+            serialNumber = options.get("SerialNumber");
+    }
+
     initIoFolder();
     initSyncComponent();
     initClock();
@@ -31,19 +45,6 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     updateNumberOfChannels();
     enableCANChannel();
     updateAcqLoopTime();
-
-    if (config.assigned())
-    {
-        if (config.hasProperty("SerialNumber"))
-            serialNumber = config.getPropertyValue("SerialNumber");
-    }
-    
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned())
-    {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
-    }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -65,7 +66,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("dev_ser_{}", id)));
+    devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
@@ -123,7 +124,11 @@ void RefDeviceImpl::initClock()
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
+    this->setDeviceDomain(
+        DeviceDomain(RefChannelImpl::getResolution(),
+                     RefChannelImpl::getEpoch(),
+                     UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                     ReferenceDomainInfoBuilder().setReferenceDomainId("openDAQ_" + serialNumber).setReferenceDomainOffset(0).build()));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -253,8 +258,8 @@ void RefDeviceImpl::updateNumberOfChannels()
     for (auto i = channels.size(); i < num; i++)
     {
         RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
+        auto chLocalId = fmt::format("RefCh{}", i);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, localId);
         channels.push_back(std::move(ch));
     }
 }

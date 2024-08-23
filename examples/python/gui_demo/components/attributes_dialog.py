@@ -37,8 +37,6 @@ class AttributesDialog(Dialog):
         tree.column('#0', anchor=tk.W, width=80, stretch=True)
         tree.column('#1', anchor=tk.CENTER)
         tree.column('#2', anchor=tk.CENTER, width=60, stretch=False)
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font='Arial 10 bold')
 
         tree.bind("<Double-1>", self.handle_double_click)
         tree.bind("<Button-3>", self.handle_right_click)

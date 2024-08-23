@@ -32,8 +32,7 @@ class PropertiesView(tk.Frame):
         # layout
         tree.column('#0', anchor=tk.CENTER)
         tree.column('#1', anchor=tk.CENTER)
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font='Arial 10 bold')
+
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)
 

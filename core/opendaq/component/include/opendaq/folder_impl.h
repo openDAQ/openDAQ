@@ -527,14 +527,13 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(context);
-
     for (const auto& item : items)
     {
         const auto updatable = item.second.template asPtrOrNull<IUpdatable>(true);
         if (updatable.assigned())
             updatable.updateEnded(context);
     }
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <class Intf, class... Intfs>

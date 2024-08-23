@@ -528,8 +528,16 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
 
     for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
     {
-        auto device1 = instance.getDevices()[i];
-        auto device2 = instance2.getDevices()[i];
+        DevicePtr device1 = instance.getDevices()[i];
+        DevicePtr device2;
+        for (const auto & device : instance2.getDevices())
+        {
+            if (device1.getName() == device.getName())
+            {
+                device2 = device;
+                break;
+            }
+        }
 
         ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
         ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
@@ -552,7 +560,15 @@ TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
     for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
     {
         auto device1 = instance.getDevices()[i];
-        auto device2 = instance2.getDevices()[i];
+        DevicePtr device2;
+        for (const auto & device : instance2.getDevices())
+        {
+            if (device1.getName() == device.getName())
+            {
+                device2 = device;
+                break;
+            }
+        }
 
         ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
         ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
@@ -577,7 +593,16 @@ TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
 
     auto restoredFbs = instance2.getFunctionBlocks();
     ASSERT_EQ(restoredFbs.getCount(), 2u);
-    auto restoredFb2 = restoredFbs[1];
+
+    FunctionBlockPtr restoredFb2;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_2")
+        {
+            restoredFb2 = fb;
+            break;
+        }
+    }
     ASSERT_EQ(restoredFb2.getLocalId(), "mock_fb_uid_2");
     auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
     ASSERT_TRUE(inputSignal.assigned());
@@ -602,8 +627,15 @@ TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)
 
     auto restoredFbs = instance2.getFunctionBlocks();
     ASSERT_EQ(restoredFbs.getCount(), 2u);
-    auto restoredFb2 = restoredFbs[1];
-    ASSERT_EQ(restoredFb2.getLocalId(), "mock_fb_uid_2");
+    FunctionBlockPtr restoredFb2;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_2")
+        {
+            restoredFb2 = fb;
+            break;
+        }
+    }
     auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
     ASSERT_TRUE(inputSignal.assigned());
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId2/FB/mock_fb_uid_1/Sig/UniqueId_1");
@@ -631,7 +663,15 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
 
     auto restoredFbs = instance2.getFunctionBlocks();
     ASSERT_EQ(restoredFbs.getCount(), 2u);
-    auto restoredFb1 = restoredFbs[0];
+    FunctionBlockPtr restoredFb1;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_1")
+        {
+            restoredFb1 = fb;
+            break;
+        }
+    }
     ASSERT_EQ(restoredFb1.getLocalId(), "mock_fb_uid_1");
     auto inputSignal = restoredFb1.getInputPorts()[0].getSignal();
     ASSERT_TRUE(inputSignal.assigned());

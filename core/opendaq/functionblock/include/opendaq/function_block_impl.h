@@ -288,34 +288,31 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
-    if (contextPtr.assigned())
+    UpdatableContextPtr contextPtr = context.asPtr<IUpdatableContext>(true);
+    for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(this->globalId))
     {
-        for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(this->globalId))
+        InputPortPtr inputPort;
+        if (!inputPorts.hasItem(portId))
         {
-            InputPortPtr inputPort;
-            if (!inputPorts.hasItem(portId))
+            LOG_W("Input port {} not found", portId);
+            for (const auto& ip : inputPorts.getItems(search::Any()))
             {
-                LOG_W("Input port {} not found", portId);
-                for (const auto& ip : inputPorts.getItems(search::Any()))
+                inputPort = ip.template asPtr<IInputPort>(true);
+                if (!inputPort.getSignal().assigned())
                 {
-                    inputPort = ip.template asPtr<IInputPort>(true);
-                    if (!inputPort.getSignal().assigned())
-                    {
-                        LOG_W("Using input port {}", inputPort.getLocalId());
-                        break;
-                    }
+                    LOG_W("Using input port {}", inputPort.getLocalId());
+                    break;
                 }
-                if (!inputPort.assigned())
-                    continue;
             }
-            else
-            {
-                inputPort = inputPorts.getItem(portId);
-            }
-
-            inputPort.asPtr<IUpdatable>(true).updateEnded(String(signalId));
+            if (!inputPort.assigned())
+                continue;
         }
+        else
+        {
+            inputPort = inputPorts.getItem(portId);
+        }
+        contextPtr.setInputPortConnection(inputPort.getParent().getGlobalId(), inputPort.getLocalId(), signalId);
+        inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
     }
     Super::onUpdatableUpdateEnd(context);
 }

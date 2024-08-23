@@ -715,19 +715,33 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerialized
         const auto thisPtr = this->template borrowPtr<ComponentPtr>();
         const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
         if (!muted)
+        {
+            UpdatableContextPtr uptableContext = contextPtr;
+            uptableContext.setNotMutedComponent(this->globalId);
             propInternalPtr.disableCoreEventTrigger();
+        }
 
         const auto err = Super::updateInternal(objPtr, contextPtr);
 
         updateObject(objPtr, contextPtr);
+        return err;
+    });
+}
 
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+{
+    const auto contextPtr = context.asPtr<IUpdatableContext>(true);
+    daqTry([this, &contextPtr]
+    {
+        auto muted = contextPtr.getComponentIsMuted(this->globalId);
         if (!muted && this->coreEvent.assigned())
         {
             const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
             triggerCoreEvent(args);
+            const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
             propInternalPtr.enableCoreEventTrigger();
         }
-        return err;
     });
 }
 
@@ -972,11 +986,6 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 
     if (obj.hasKey("name"))
         name = obj.readString("name");
-}
-
-template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
-{
 }
 
 template <class Intf, class... Intfs>

@@ -18,6 +18,7 @@
 #include <coretypes/updatable_context.h>
 #include <coretypes/stringobject_factory.h>
 #include <coretypes/dictobject_factory.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,9 +32,12 @@ public:
 
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
+    ErrCode INTERFACE_FUNC setNotMutedComponent(IString* componentId) override;
+    ErrCode INTERFACE_FUNC getComponentIsMuted(IString* componentId, Bool* muted) override;
 
 private:
     DictPtr<IString, IBaseObject> connections;
+    std::set<std::string> notMutedComponents;
 };
 
 inline ErrCode UpdatableContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
@@ -74,6 +78,24 @@ inline ErrCode UpdatableContextImpl::getInputPortConnection(IString* parentId, I
         ports = this->connections.get(parentId);
     }
     *connections = ports.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode UpdatableContextImpl::setNotMutedComponent(IString* componentId)
+{
+    if (componentId != nullptr)
+    {
+        notMutedComponents.insert(StringPtr(componentId).toString());
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode UpdatableContextImpl::getComponentIsMuted(IString* componentId, Bool* muted)
+{
+    if (componentId == nullptr || muted == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    *muted = notMutedComponents.find(StringPtr(componentId).toString()) == notMutedComponents.end();
     return OPENDAQ_SUCCESS;
 }
 

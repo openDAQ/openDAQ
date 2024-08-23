@@ -594,14 +594,13 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
 template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(context);
-
     for (const auto& comp : components)
     {
         const auto updatable = comp.template asPtrOrNull<IUpdatable>();
         if (updatable.assigned())
             updatable.updateEnded(context);
     }
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <class Intf, class ... Intfs>

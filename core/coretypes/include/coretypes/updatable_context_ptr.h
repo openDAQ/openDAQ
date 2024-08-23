@@ -104,6 +104,27 @@ public:
 
        return connections;
     }
+
+    void setNotMutedComponent(const StringPtr& componentId) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->setNotMutedComponent(componentId);
+        daq::checkErrorInfo(errCode);
+    }
+
+    Bool getComponentIsMuted(const StringPtr& componentId) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        Bool muted = false;
+        auto errCode = this->object->getComponentIsMuted(componentId, &muted);
+        daq::checkErrorInfo(errCode);
+
+        return muted;
+    }
 };
 
 /*!

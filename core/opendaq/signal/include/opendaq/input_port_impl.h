@@ -716,14 +716,19 @@ inline StringPtr getRemoteId(const std::string& globalId)
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    Super::onUpdatableUpdateEnd(context);
-
-    if (context.supportsInterface<IString>())
+    if (auto contextPtr = context.asPtrOrNull<IUpdatableContext>(true); contextPtr.assigned())
     {
-        serializedSignalId = context.asPtr<IString>(true);
+        ComponentPtr parent;
+        this->getParent(&parent);
+        StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+        auto connections = contextPtr.getInputPortConnection(parentId);
+        auto k = connections.getKeyList();
+        auto v = connections.getValueList();
+        if (connections.hasKey(this->localId))
+            serializedSignalId = connections.get(this->localId);
     }
 
-    if (serializedSignalId.assigned() && serializedSignalId != "")
+    if (serializedSignalId.assigned() && serializedSignalId.getLength())
     {
         const auto thisPtr = this->template borrowPtr<InputPortPtr>();
         const auto root = this->getRootComponent(thisPtr);
@@ -747,6 +752,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
         }
     }
     finishUpdate();
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <class ... Interfaces>

@@ -773,6 +773,22 @@ ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* con
         auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
         rootDeviceUpdatable.update(rootDevicePtr);
 
+        if (objPtr.hasKey("servers"))
+        {
+            auto serversListPtr = objPtr.readSerializedList("servers");
+            for (SizeT i = 0; i < serversListPtr.getCount(); i++)
+            {
+                auto serverWrapper = serversListPtr.readSerializedObject().asPtr<ISerializedObject>();
+                StringPtr serverId = serverWrapper.readString("id");
+                PropertyObjectPtr serverConfig = serverWrapper.readObject("config");
+
+                ServerPtr server;
+                auto errCode = addServer(serverId, serverConfig, &server);
+                if (OPENDAQ_FAILED(errCode))
+                    return this->makeErrorInfo(errCode, fmt::format("Failed to add server {}", serverId));
+            }
+        }
+
         return OPENDAQ_SUCCESS;
     });
 }
@@ -801,6 +817,24 @@ ErrCode InstanceImpl::serializeForUpdate(ISerializer* serializer)
             updatableRootDevice.serializeForUpdate(serializer);
         }
         serializer->endObject();
+
+        serializer->key("servers");
+        serializer->startList();
+        {
+            for (const auto& server : servers)
+            {
+                serializer->startObject();
+
+                serializer->key("id");
+                serializer->writeString(server.getId().getCharPtr(), server.getId().getLength());
+
+                serializer->key("config");
+                server.getConfig().serialize(serializer);
+
+                serializer->endObject();
+            }
+        }
+        serializer->endList();
     }
     serializer->endObject();
 

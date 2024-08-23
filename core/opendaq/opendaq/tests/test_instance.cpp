@@ -720,7 +720,7 @@ TEST_F(InstanceTest, SaveLoadServers)
         config = instance.saveConfiguration();
     }
 
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    auto instance2 = Instance();
     instance2.loadConfiguration(config);
 
     auto servers = instance2.getServers();

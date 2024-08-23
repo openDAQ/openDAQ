@@ -59,6 +59,12 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @brief Enables the server to be discovered by the clients.
     */
     virtual ErrCode INTERFACE_FUNC enableDiscovery() = 0;
+
+    /*!
+    * @brief Gets the server configuration.
+    * @param[out] config The server configuration.
+    */
+    virtual ErrCode INTERFACE_FUNC getConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/
 

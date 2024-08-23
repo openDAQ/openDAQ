@@ -18,6 +18,7 @@
 #include <coretypes/intfs.h>
 #include <opendaq/server.h>
 #include <coretypes/stringobject.h>
+#include <coreobjects/property_object.h>
 
 class MockServerImpl : public daq::ImplementationOf<daq::IServer>
 {
@@ -27,6 +28,7 @@ public:
     daq::ErrCode INTERFACE_FUNC enableDiscovery() override;
     daq::ErrCode INTERFACE_FUNC stop() override;
     daq::ErrCode INTERFACE_FUNC getId(daq::IString** serverId) override;
+    daq::ErrCode INTERFACE_FUNC getConfig(daq::IPropertyObject** config) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)

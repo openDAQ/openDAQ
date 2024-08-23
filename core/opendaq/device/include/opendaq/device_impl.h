@@ -87,9 +87,11 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
+    ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -124,6 +126,7 @@ protected:
     IoFolderConfigPtr ioFolder;
     SyncComponentPtr syncComponent;
     LoggerComponentPtr loggerComponent;
+    PropertyObjectPtr deviceConfig;
     bool isRootDevice;
 
     template <class ChannelImpl, class... Params>
@@ -264,6 +267,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
 }
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
+{
+    this->deviceConfig = config;
+    return OPENDAQ_SUCCESS;
+}
+
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInputsOutputsFolder(IFolder** inputsOutputsFolder)
@@ -878,6 +889,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->deviceConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(const SearchFilterPtr& searchFilter)
 {
@@ -1073,6 +1092,11 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
     else
     {
+        if (deviceConfig.assigned())
+        {
+            serializer.key("deviceConfig");
+            deviceConfig.serialize(serializer);
+        }
         if (deviceInfo.assigned())
         {
             serializer.key("configurationConnectionInfo");
@@ -1131,8 +1155,13 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 return;
             }
             ServerCapabilityPtr configurationInfo = serializedDevice.readObject("configurationConnectionInfo");
+            PropertyObjectPtr deviceConfig;
+            if (serializedDevice.hasKey("deviceConfig"))
+            {
+                deviceConfig = serializedDevice.readObject("deviceConfig");
+            }
             LOG_D("Recreating device from connection string {}", configurationInfo.getConnectionString());
-            addDevice(&device, configurationInfo.getConnectionString(), nullptr);
+            addDevice(&device, configurationInfo.getConnectionString(), deviceConfig);
         }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);

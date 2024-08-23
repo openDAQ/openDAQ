@@ -554,6 +554,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             return errCode;
 
         const auto devicePtr = DevicePtr::Borrow(*device);
+
+        if (devicePtr.assigned())
+        {
+            devicePtr.as<IDevicePrivate>(true)->setDeviceConfig(config);
+        }
         if (devicePtr.assigned() && devicePtr.getInfo().assigned())
         {
             const auto connectedDeviceInfo = devicePtr.getInfo();

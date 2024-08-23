@@ -275,7 +275,17 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 
+    /*!
+     * @brief Gets the sync component of the device.
+     * @param[out] sync The sync component.
+     */
     virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
+
+    /*!
+     * @brief Gets the device configuration which was used to in creating of the device.
+     * @param[out] config The device configuration.
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/
 

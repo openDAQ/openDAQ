@@ -117,8 +117,14 @@ The following table showcases which of the protocols supports what features. You
 | Read reference domain info
 | Reference domain info is a part of both domain signal's data descriptor and device domain, allowing for improved interpretation of the domain.
 ^| ✅
-^| 
-^| 
+^|
+^|
+
+| Authentication and access control
+| Clients can authenticate when connecting to the server. The server defines users and groups, restricting read, write, or execute access to different components based on group membership.
+^| ✅
+^|
+^|
 
 |===
 

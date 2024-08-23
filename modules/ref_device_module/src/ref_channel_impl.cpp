@@ -22,8 +22,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 RefChannelImpl::RefChannelImpl(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const RefChannelInit& init,
-                               const StringPtr& referenceDomainId)
+                               const RefChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::Sine)
     , freq(0)
@@ -41,7 +40,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
-    , referenceDomainId(referenceDomainId)
+    , referenceDomainId(init.referenceDomainId)
 {
     initProperties();
     waveformChangedInternal();

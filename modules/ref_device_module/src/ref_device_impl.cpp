@@ -305,9 +305,9 @@ void RefDeviceImpl::updateNumberOfChannels()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size(); i < num; i++)
     {
-        RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
+        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
         auto chLocalId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init, localId);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init);
         channels.push_back(std::move(ch));
     }
 }
@@ -352,15 +352,15 @@ void RefDeviceImpl::enableProtectedChannel()
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
         size_t index = channels.size();
 
-        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
-        auto localId = "ProtectedChannel";
+        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+        const auto channelLocalId = "ProtectedChannel";
 
         auto permissions = PermissionsBuilder()
                                .inherit(false)
                                .assign("admin", PermissionMaskBuilder().read().write().execute())
                                .build();
 
-        protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, localId, permissions, init);
+        protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, channelLocalId, permissions, init);
     }
 }
 

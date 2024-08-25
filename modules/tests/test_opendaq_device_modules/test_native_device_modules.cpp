@@ -1,4 +1,5 @@
 #include <opendaq/component_exceptions.h>
+#include <opendaq/exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
@@ -26,6 +27,7 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.addProperty(IntProperty("CustomProp", 0));
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
@@ -666,13 +668,31 @@ TEST_F(NativeDeviceModulesTest, ChangePropAfterRemove)
     auto client = CreateClientInstance();
     auto device = client.getDevices()[0];
 
+    bool propWriteCompleted = false;
+    server.getDevices()[0].getOnPropertyValueWrite("CustomProp") +=
+        [&propWriteCompleted](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        while(!propWriteCompleted)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    };
+
     auto refDevice = client.getDevices()[0].getDevices()[0];
+    auto thread =
+        std::thread(
+            [&refDevice]()
+            {
+                EXPECT_THROW(refDevice.setPropertyValue("CustomProp", 1), ComponentRemovedException);
+            }
+        );
 
     ASSERT_NO_THROW(client.removeDevice(device));
-
     ASSERT_TRUE(refDevice.isRemoved());
+    ASSERT_THROW(refDevice.setPropertyValue("CustomProp", 2), ComponentRemovedException);
 
-    ASSERT_THROW(refDevice.setPropertyValue("NumberOfChannels", 1), ComponentRemovedException);
+    propWriteCompleted = true;
+    thread.join();
 }
 
 TEST_F(NativeDeviceModulesTest, RemoteGlobalIds)
@@ -721,7 +741,7 @@ TEST_F(NativeDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 8u);
+    ASSERT_EQ(properties.getCount(), 9u);
 }
 
 TEST_F(NativeDeviceModulesTest, DeviceInfo)
@@ -1370,6 +1390,8 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+
+    ASSERT_THROW(client.getDevices()[0].getDevices()[0].setPropertyValue("CustomProp", 1), ConnectionLostException);
 
     // reset future / promise
     reconnectionStatusPromise = std::promise<StringPtr>();

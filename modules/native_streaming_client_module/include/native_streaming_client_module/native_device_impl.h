@@ -58,6 +58,9 @@ private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
+    std::future<config_protocol::PacketBuffer> registerConfigRequest(uint64_t requestId);
+    void unregisterConfigRequest(uint64_t requestId);
+    void cancelPendingConfigRequests(const DaqException& e);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
@@ -79,6 +82,7 @@ private:
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
     std::chrono::milliseconds configProtocolRequestTimeout;
+    std::mutex sync;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)

@@ -17,3 +17,5 @@
 #pragma once
 #include <coretypes/exceptions.h>
 #include <opendaq/errors.h>
+
+DEFINE_EXCEPTION(ConnectionLost, OPENDAQ_ERR_CONNECTION_LOST, "Lost connection to the server.")

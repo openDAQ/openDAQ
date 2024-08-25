@@ -8,6 +8,7 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/component_exceptions.h>
+#include <opendaq/exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -67,6 +68,8 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
 
     configProtocolClient.reset();
     transportClientHandler.reset();
+
+    cancelPendingConfigRequests(ComponentRemovedException());
 }
 
 void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
@@ -237,6 +240,10 @@ void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus s
             return;
         }
     }
+    else
+    {
+        cancelPendingConfigRequests(ConnectionLostException());
+    }
 
     connectionStatus = status;
 
@@ -282,36 +289,70 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 
 PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
 {
-    if (!transportClientHandler)
-    {
-        throw ComponentRemovedException();
-    }
+    auto reqId = reqPacket.getId();
+
+    // future/promise mechanism is used since transport client works asynchronously
+    // register the request first to ensure connection loss or device removal will be reported
+    auto future = registerConfigRequest(reqId);
 
     // using a thread id is a hacky way to disable all config requests
     // except those related to reconnection until reconnection is finished
     if (connectionStatus != ClientConnectionStatus::Connected &&
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
-        throw GeneralErrorException("Connection lost");
+        unregisterConfigRequest(reqId);
+        throw ConnectionLostException();
     }
 
-    // future/promise mechanism is used since transport client works asynchronously
-    auto reqId = reqPacket.getId();
-    replyPackets.insert({reqId, std::promise<PacketBuffer>()});
-    std::future<PacketBuffer> future = replyPackets.at(reqId).get_future();
-    transportClientHandler->sendConfigRequest(reqPacket);
-
-    if (future.wait_for(configProtocolRequestTimeout) == std::future_status::ready)
+    // send packet using a temporary copy of the transport client
+    // to allow safe disposal of the member variable during device removal.
+    if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
     {
-        auto result = future.get();
-        replyPackets.erase(reqId);
-        return result;
+        transportClientHandlerTemp->sendConfigRequest(reqPacket);
     }
     else
     {
-        replyPackets.erase(reqId);
+        unregisterConfigRequest(reqId);
+        throw ComponentRemovedException();
+    }
+
+    if (future.wait_for(configProtocolRequestTimeout) == std::future_status::ready)
+    {
+        return future.get();
+    }
+    else // std::future_status::timeout
+    {
+        unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
-        throw GeneralErrorException("Native configuration protocol request id {} timed out", reqId);
+        if (connectionStatus == ClientConnectionStatus::Connected)
+            throw GeneralErrorException("Native configuration protocol request id {} timed out", reqId);
+        else
+            throw ConnectionLostException("Native configuration protocol request id {} timed out due to disconnection", reqId);
+    }
+}
+
+std::future<PacketBuffer> NativeDeviceHelper::registerConfigRequest(uint64_t requestId)
+{
+    std::scoped_lock lock(sync);
+    replyPackets.insert({requestId, std::promise<PacketBuffer>()});
+    return replyPackets.at(requestId).get_future();
+}
+
+void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
+{
+    std::scoped_lock lock(sync);
+    replyPackets.erase(requestId);
+}
+
+void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
+{
+    std::scoped_lock lock(sync);
+    for (auto it = replyPackets.begin(); it != replyPackets.end(); )
+    {
+        auto& replyPromise = it->second;
+        LOG_W("Cancel config request id {}: {}", it->first, e.what());
+        replyPromise.set_exception(std::make_exception_ptr(e));
+        it = replyPackets.erase(it);
     }
 }
 
@@ -325,17 +366,22 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
             configProtocolClient->triggerNotificationPacket(packet);
         }
     }
-    else if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
-    {
-        it->second.set_value(std::move(packet));
-    }
     else
     {
-        LOG_E("Received reply for unknown request id {}, reply type {:#x} [{}]",
-            packet.getId(),
-            static_cast<uint8_t>(packet.getPacketType()),
-            packet.getPacketType()
-        );
+        std::scoped_lock lock(sync);
+        if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
+        {
+            it->second.set_value(std::move(packet));
+            replyPackets.erase(it);
+        }
+        else
+        {
+            LOG_E("Received reply for unknown request id {}, reply type {:#x} [{}]",
+                packet.getId(),
+                static_cast<uint8_t>(packet.getPacketType()),
+                packet.getPacketType()
+            );
+        }
     }
 }
 

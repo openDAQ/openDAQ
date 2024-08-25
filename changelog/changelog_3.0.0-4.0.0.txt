@@ -1,3 +1,10 @@
+26.08.2024
+Description:
+    - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
+
+Required integration changes:
+    - None, however, disconnection errors can now be identified by a specific error type.
+
 21.08.2024
 Description:
     - Reference Domain Info was added as an interface that gives additional information about the reference domain

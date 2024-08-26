@@ -262,9 +262,20 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     SendRequestCallback sendRequestCallback =
         [this](const PacketBuffer& packet)
     {
-        return this->doConfigRequest(packet);
+        return this->doConfigRequestAndGetReply(packet);
     };
-    configProtocolClient = std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(context, sendRequestCallback, nullptr);
+    SendNoReplyRequestCallback sendNoReplyRequestCallback =
+        [this](const PacketBuffer& packet)
+    {
+        this->doConfigNoReplyRequest(packet);
+    };
+    configProtocolClient =
+        std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
+            context,
+            sendRequestCallback,
+            sendNoReplyRequestCallback,
+            nullptr
+        );
 
     ProcessConfigProtocolPacketCb receiveConfigPacketCb =
         [this](PacketBuffer&& packetBuffer)
@@ -297,7 +308,7 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
                                               connectionStatusChangedCb);
 }
 
-PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
+PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& reqPacket)
 {
     auto reqId = reqPacket.getId();
 
@@ -393,6 +404,29 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
             );
         }
     }
+}
+
+void NativeDeviceHelper::doConfigNoReplyRequest(const config_protocol::PacketBuffer& reqPacket)
+{
+    sendConfigRequest(reqPacket);
+}
+
+void  NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& reqPacket)
+{
+    // using a thread id is a hacky way to disable all config requests
+    // except those related to reconnection until reconnection is finished
+    if (connectionStatus != ClientConnectionStatus::Connected &&
+        std::this_thread::get_id() != reconnectionProcessingThreadId)
+    {
+        throw ConnectionLostException();
+    }
+
+    // send packet using a temporary copy of the transport client
+    // to allow safe disposal of the member variable during device removal.
+    if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
+        transportClientHandlerTemp->sendConfigRequest(reqPacket);
+    else
+        throw ComponentRemovedException();
 }
 
 NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,

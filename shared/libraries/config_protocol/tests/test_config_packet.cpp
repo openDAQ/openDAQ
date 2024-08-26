@@ -170,3 +170,16 @@ TEST_F(ConfigPacketTest, ServerNotification)
 
     ASSERT_EQ(json1, json);
 }
+
+TEST_F(ConfigPacketTest, NoReplyRpcRequest)
+{
+    const std::string json{"str"};
+    const auto packetBufferSource = PacketBuffer::createNoReplyRpcRequest(json.c_str(), json.size());
+
+    const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
+
+    ASSERT_EQ(packetBuffer.getId(), std::numeric_limits<uint64_t>::max());
+    const auto json1 = packetBuffer.parseNoReplyRpcRequest();
+
+    ASSERT_EQ(json1, json);
+}

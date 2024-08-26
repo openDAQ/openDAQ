@@ -15,10 +15,12 @@ namespace daq::config_protocol
 
 ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
                                                    SendRequestCallback sendRequestCallback,
+                                                   SendNoReplyRequestCallback sendNoReplyRequestCallback,
                                                    ComponentDeserializeCallback rootDeviceDeserializeCallback)
         : daqContext(daqContext)
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
+        , sendNoReplyRequestCallback(std::move(sendNoReplyRequestCallback))
         , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
         , deserializer(JsonDeserializer())
         , connected(false)
@@ -197,6 +199,14 @@ PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64
     const auto jsonStr = createRpcRequestJson(name, params);
 
     auto packetBuffer = PacketBuffer(PacketType::Rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
+    return packetBuffer;
+}
+
+PacketBuffer ConfigProtocolClientComm::createNoReplyRpcRequestPacketBuffer(const StringPtr& name, const ParamsDictPtr& params)
+{
+    const auto jsonStr = createRpcRequestJson(name, params);
+
+    auto packetBuffer = PacketBuffer::createNoReplyRpcRequest(jsonStr.getCharPtr(), jsonStr.getLength());
     return packetBuffer;
 }
 
@@ -400,6 +410,12 @@ BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, co
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, nullptr);
+}
+
+void ConfigProtocolClientComm::sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params)
+{
+    auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command, params);
+    sendNoReplyRequestCallback(sendNoReplyCommandRpcRequestPacketBuffer);
 }
 
 void ConfigProtocolClientComm::setRootDevice(const DevicePtr& rootDevice)

@@ -56,8 +56,13 @@ public:
             serverDevice, std::bind(&ConfigProtocolAccessControlTest::serverNotificationReady, this, std::placeholders::_1), user);
 
         auto clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-            clientContext, std::bind(&ConfigProtocolAccessControlTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigProtocolAccessControlTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolAccessControlTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr
+            );
 
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -71,10 +76,18 @@ public:
         return str;
     }
 
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    // client handling
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     void serverNotificationReady(const PacketBuffer& notificationPacket) const

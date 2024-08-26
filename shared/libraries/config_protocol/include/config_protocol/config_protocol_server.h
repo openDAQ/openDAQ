@@ -56,6 +56,10 @@ public:
     PacketBuffer processRequestAndGetReply(const PacketBuffer& packetBuffer);
     PacketBuffer processRequestAndGetReply(void *mem);
 
+    // called from transport layer
+    void processNoReplyRequest(const PacketBuffer& packetBuffer);
+    void processNoReplyRequest(void *mem);
+
     // called internally from component updates or from the external code
     void sendNotification(const char* json, size_t jsonSize) const;
     void sendNotification(const BaseObjectPtr& obj);
@@ -86,8 +90,10 @@ private:
     uint16_t protocolVersion;
     const std::set<uint16_t> supportedServerVersions;
 
-    PacketBuffer processPacket(const PacketBuffer& packetBuffer);
-    StringPtr processRpc(const StringPtr& jsonStr);
+    PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);
+    void processNoReplyPacket(const PacketBuffer& packetBuffer);
+    StringPtr processRpcAndGetReply(const StringPtr& jsonStr);
+    void processNoReplyRpc(const StringPtr& jsonStr);
     StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message);
 
     BaseObjectPtr callRpc(const StringPtr& name, const ParamsDictPtr& params);

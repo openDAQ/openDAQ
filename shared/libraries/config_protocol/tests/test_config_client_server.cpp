@@ -48,6 +48,7 @@ public:
                 NullContext(),
                 std::bind(&ConfigProtocolTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigProtocolTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1)
             );
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();

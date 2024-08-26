@@ -28,6 +28,7 @@
 namespace daq::config_protocol
 {
 
+using SignalNumericIdType = uint32_t;
 using ParamsDictPtr = DictPtr<IString, IBaseObject>;
 
 inline auto ParamsDict() -> decltype(Dict<IString, IBaseObject>())

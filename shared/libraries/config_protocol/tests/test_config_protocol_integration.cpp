@@ -27,7 +27,7 @@ public:
     {
         auto anonymousUser = User("", "");
 
-        serverDevice = test_utils::createServerDevice();
+        serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
@@ -37,6 +37,7 @@ public:
                 clientContext,
                 std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();
@@ -149,6 +150,7 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
         clientContext,
         std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
         std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+        nullptr,
         nullptr
     );
 

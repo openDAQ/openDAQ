@@ -21,9 +21,9 @@ public:
     {
         const auto anonymousUser = User("", "");
 
-        referenceDevice = test_utils::createServerDevice();
+        referenceDevice = test_utils::createTestDevice();
         setUpDevice(referenceDevice);
-        serverDevice = test_utils::createServerDevice();
+        serverDevice = test_utils::createTestDevice();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
@@ -32,6 +32,7 @@ public:
                 clientContext,
                 std::bind(&ConfigRemoteUpdateTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigRemoteUpdateTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();

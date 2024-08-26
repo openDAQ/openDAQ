@@ -13,7 +13,7 @@
 namespace daq::config_protocol::test_utils
 {
 
-DevicePtr createServerDevice(const std::string& localId)
+DevicePtr createTestDevice(const std::string& localId)
 {
     const auto context = NullContext();
 

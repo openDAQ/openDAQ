@@ -247,6 +247,7 @@ void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus s
     else
     {
         cancelPendingConfigRequests(ConnectionLostException());
+        configProtocolClient->disconnectExternalSignals();
     }
 
     connectionStatus = status;
@@ -269,11 +270,17 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     {
         this->doConfigNoReplyRequest(packet);
     };
+    SendDaqPacketCallback sendDaqPacketCallback =
+        [this](const PacketPtr& packet, uint32_t signalNumericId)
+    {
+        transportClientHandler->sendStreamingPacket(signalNumericId, packet);
+    };
     configProtocolClient =
         std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
             context,
             sendRequestCallback,
             sendNoReplyRequestCallback,
+            sendDaqPacketCallback,
             nullptr
         );
 

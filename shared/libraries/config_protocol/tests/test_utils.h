@@ -23,7 +23,7 @@
 
 namespace daq::config_protocol::test_utils
 {
-    DevicePtr createServerDevice(const std::string& localId = "root_dev");
+    DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
 
     class MockFb1Impl final : public FunctionBlock

@@ -42,6 +42,7 @@ public:
                 assert(false);
                 server->processNoReplyRequest(requestPacket);
             },
+            nullptr,
             nullptr);
     }
 
@@ -77,6 +78,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
             assert(false);
             server.processNoReplyRequest(requestPacket);
         },
+        nullptr,
         nullptr);
 
     const auto clientDevice = client.connect();

@@ -104,13 +104,13 @@ The following table showcases which of the protocols supports what features. You
 
 | Stream data client → server
 | Clients can send full-rate data to the device.
-^|
+^| ✅
 ^| 
 ^|
 
 | Stream data server → server
 | Clients can configure two devices (servers) to send data to each other, either directly or using the client as a gateway.
-^| 
+^| ✅
 ^| 
 ^| 
 
@@ -259,6 +259,12 @@ The above table shows what features are enabled by what protocol. However, in re
 
 | **Feature**
 | **Limitation**
+
+| **Signals**
+|
+
+| Stream data server → server
+| Clients can configure two devices (servers) to send data to each other only by using the client as a gateway.
 
 | **Structure**
 |

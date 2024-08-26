@@ -67,7 +67,8 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
 
 ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
                                            NotificationReadyCallback notificationReadyCallback,
-                                           const UserPtr& user)
+                                           const UserPtr& user,
+                                           const FolderConfigPtr& externalSignalsFolder)
     : rootDevice(std::move(rootDevice))
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
@@ -77,7 +78,8 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions({0, 1})
+    , supportedServerVersions({0, 1, 2})
+    , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
     serializer.setUser(user);
@@ -139,6 +141,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     rpcDispatch.insert({"GetComponent", std::bind(&ConfigProtocolServer::getComponent, this,  _1)});
     rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
     rpcDispatch.insert({"GetSerializedRootDevice", std::bind(&ConfigProtocolServer::getSerializedRootDevice, this,  _1)});
+    rpcDispatch.insert({"RemoveExternalSignals", std::bind(&ConfigProtocolServer::removeExternalSignals, this,  _1)});
 
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
@@ -159,6 +162,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
 }
 
@@ -377,13 +381,31 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(uint16_t protocolVersion, cons
 {
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
+    if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
+        throw InvalidParameterException("Mirrored external signal cannot be connected to server input port");
     return ConfigServerInputPort::connect(protocolVersion, inputPort, signal, user);
+}
+
+BaseObjectPtr ConfigProtocolServer::connectExternalSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
+    return ConfigServerInputPort::connect(protocolVersion, inputPort, signal, user);
+}
+
+BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)
+{
+    streamingConsumer.removeExternalSignals(params);
+
+    return nullptr;
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
-    const auto packed = packCoreEvent(component, eventArgs);
-    sendNotification(packed);
+    if (streamingConsumer.isForwardedCoreEvent(component, eventArgs))
+    {
+        const auto packed = packCoreEvent(component, eventArgs);
+        sendNotification(packed);
+    }
 }
 
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
@@ -479,9 +501,9 @@ BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) 
     return typeManager;
 }
 
-void ConfigProtocolServer::processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
+void ConfigProtocolServer::processClientToServerStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
 {
-    // TODO
+    streamingConsumer.processClientToServerStreamingPacket(signalNumericId, packet);
 }
 
 uint16_t ConfigProtocolServer::getProtocolVersion() const

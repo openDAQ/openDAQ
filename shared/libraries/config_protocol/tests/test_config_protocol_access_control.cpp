@@ -24,7 +24,7 @@ public:
 
     DevicePtr createDevice()
     {
-        auto device = test_utils::createServerDevice();
+        auto device = test_utils::createTestDevice();
 
         // everyone can read
         // admin can read write and execute
@@ -61,6 +61,7 @@ public:
                 clientContext,
                 std::bind(&ConfigProtocolAccessControlTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigProtocolAccessControlTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr
             );
 

@@ -259,7 +259,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
 
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
-            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user);
+            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, this->signals);
             processConfigRequestCb =
                 [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
             {
@@ -297,7 +297,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
                             auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
                             while (packet.assigned())
                             {
-                                configServer->processClientToDeviceStreamingPacket(signalNumericId, packet);
+                                configServer->processClientToServerStreamingPacket(signalNumericId, packet);
                                 std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
                             }
                         }

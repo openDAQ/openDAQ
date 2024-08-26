@@ -13,6 +13,7 @@ add_executable(${TEST_APP}
     test_core_events.cpp
     test_nested_property_objects.cpp
     test_remote_update.cpp
+    test_c2d_streaming.cpp
     test_utils.h
     test_utils.cpp
 )

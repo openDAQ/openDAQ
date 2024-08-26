@@ -16,6 +16,7 @@ namespace daq::config_protocol
 ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
                                                    SendRequestCallback sendRequestCallback,
                                                    SendNoReplyRequestCallback sendNoReplyRequestCallback,
+                                                   const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                                    ComponentDeserializeCallback rootDeviceDeserializeCallback)
         : daqContext(daqContext)
         , id(0)
@@ -25,6 +26,7 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , deserializer(JsonDeserializer())
         , connected(false)
         , protocolVersion(0)
+        , streamingProducerRef(streamingProducer)
 {
 }
 
@@ -352,6 +354,71 @@ uint16_t ConfigProtocolClientComm::getProtocolVersion() const
     return protocolVersion;
 }
 
+bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGlobalId)
+{
+    const auto dev = getRootDevice();
+    if (!dev.assigned())
+        return false;
+
+    return IdsParser::isNestedComponentId(dev.getGlobalId().toStdString(), componentGlobalId.toStdString());
+}
+
+std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternalSignalParams(
+    const SignalPtr& signal,
+    const ConfigProtocolStreamingProducerPtr& streamingProducer)
+{
+    auto serializer = JsonSerializer();
+    signal.serialize(serializer);
+
+    return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),
+                           signal.getGlobalId(),
+                           serializer.getOutput());
+}
+
+void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                                           const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        return;
+
+    std::vector<SignalNumericIdType> unusedSignals;
+    streamingProducer->removeConnection(signal, inputPortRemoteGlobalId, unusedSignals);
+
+    if (!unusedSignals.empty())
+    {
+        auto params = ParamsDict({{"SignalNumericIds", ListPtr<IInteger>::FromVector(unusedSignals)}});
+        sendNoReplyCommand("RemoveExternalSignals", params);
+    }
+}
+
+void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                                      const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        throw NotAssignedException("StreamingProducer is not assigned.");
+
+    auto domainSignal = signal.getDomainSignal();
+    const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
+        (domainSignal.assigned())
+            ? getExternalSignalParams(domainSignal, streamingProducer)
+            : std::make_tuple(0, nullptr, nullptr);
+
+    const auto [signalNumericId, signalGlobalId, serializedSignal] = getExternalSignalParams(signal, streamingProducer);
+
+    auto params = ParamsDict({{"DomainSignalNumericId", domainSignalNumericId},
+                              {"DomainSignalStringId", domainSignalGlobalId},
+                              {"DomainSerializedSignal", serializedDomainSignal},
+                              {"SignalNumericId", signalNumericId},
+                              {"SignalStringId", signal.getGlobalId()},
+                              {"SerializedSignal", serializedSignal}});
+
+    sendComponentCommand(inputPortRemoteGlobalId, "ConnectExternalSignal", params, nullptr);
+
+    streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
+}
+
 ComponentDeserializeContextPtr ConfigProtocolClientComm::createDeserializeContext(const std::string& remoteGlobalId,
                                                                                   const ContextPtr& context,
                                                                                   const ComponentPtr& root,
@@ -486,6 +553,22 @@ void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component,
 void ConfigProtocolClientComm::setProtocolVersion(uint16_t protocolVersion)
 {
     this->protocolVersion = protocolVersion;
+}
+
+void ConfigProtocolClientComm::disconnectExternalSignals()
+{
+    const auto rootDevice = getRootDevice();
+    if (!rootDevice.assigned())
+        return;
+
+    forEachComponent<IInputPort>(rootDevice,
+                                 [this](const InputPortPtr& inputPort)
+                                 {
+                                     auto connectedSignal = inputPort.getSignal();
+                                     const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
+                                     if (connectedSignal.assigned() && !isComponentNested(connectedSignal.getGlobalId()))
+                                         configClientInputPort->assignSignal(nullptr);
+                                 });
 }
 
 void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)

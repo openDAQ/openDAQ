@@ -10,7 +10,9 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
 using namespace daq;
 using namespace daq::opcua;
 
-OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
+OpcUaServerImpl::OpcUaServerImpl(const DevicePtr& rootDevice,
+                                 const PropertyObjectPtr& config,
+                                 const ContextPtr& context)
     : Server("OpenDAQOPCUA", config, rootDevice, context)
     , server(rootDevice, context)
     , context(context)
@@ -61,6 +63,19 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context
     return defaultConfig;
 }
 
+PropertyObjectPtr OpcUaServerImpl::populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context)
+{
+    const auto defConfig = createDefaultConfig(context);
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
 {
     auto discoveryConfig = PropertyObject();
@@ -82,9 +97,9 @@ ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 void OpcUaServerImpl::onStopServer()
 {
     server.stop();
-    if (this->rootDevice.assigned())
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo();
+        const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
             infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");

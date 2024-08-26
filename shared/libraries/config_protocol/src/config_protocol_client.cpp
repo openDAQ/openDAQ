@@ -7,6 +7,7 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
 #include <config_protocol/config_client_sync_component_impl.h>
+#include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 
 namespace daq::config_protocol
@@ -323,6 +324,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
+    if (typeId == "Server")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientServerImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

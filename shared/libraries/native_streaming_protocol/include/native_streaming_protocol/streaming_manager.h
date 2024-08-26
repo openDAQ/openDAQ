@@ -130,6 +130,8 @@ private:
                        const std::string& clientId,
                        SignalNumericIdType singalNumericId);
 
+    bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
+
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
     SignalNumericIdType signalNumericIdCounter;

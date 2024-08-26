@@ -1,5 +1,11 @@
 11.09.2024
 Description:
+    - Enable client-to-device streaming feature within the Native protocol
+    - Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
+    - Native config protocol bumped to version 2
+
+11.09.2024
+Description:
     - Enable openDAQ servers to be added to the component tree under the device
 
 Required integration changes:

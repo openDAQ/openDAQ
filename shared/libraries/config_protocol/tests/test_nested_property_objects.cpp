@@ -33,7 +33,7 @@ public:
     {
         const auto anonymousUser = User("", "");
 
-        serverDevice = test_utils::createServerDevice();
+        serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
@@ -43,6 +43,7 @@ public:
                 clientContext,
                 std::bind(&ConfigNestedPropertyObjectTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigNestedPropertyObjectTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();

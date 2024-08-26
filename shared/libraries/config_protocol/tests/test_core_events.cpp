@@ -32,7 +32,7 @@ public:
     {
         const auto anonymousUser = User("", "");
 
-        serverDevice = test_utils::createServerDevice();
+        serverDevice = test_utils::createTestDevice();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
@@ -41,6 +41,7 @@ public:
                 clientContext,
                 std::bind(&ConfigCoreEventTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigCoreEventTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr
             );
 

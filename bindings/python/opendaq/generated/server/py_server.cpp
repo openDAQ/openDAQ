@@ -29,12 +29,12 @@
 #include "py_core_types/py_converter.h"
 
 
-PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m)
+PyDaqIntf<daq::IServer, daq::IPropertyObject> declareIServer(pybind11::module_ m)
 {
-    return wrapInterface<daq::IServer, daq::IBaseObject>(m, "IServer");
+    return wrapInterface<daq::IServer, daq::IPropertyObject>(m, "IServer");
 }
 
-void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls)
+void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IPropertyObject> cls)
 {
     cls.doc() = "Represents a server. The server provides access to the openDAQ device. Depend of the implementation, it can support configuring the device, reading configuration, and data streaming.";
 

@@ -26,6 +26,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/discovery_server_ptr.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,31 +34,27 @@ class ServerImpl;
 
 using Server = ServerImpl;
 
-class ServerImpl : public ImplementationOf<IServer>
+class ServerImpl : public GenericPropertyObjectImpl<IServer>
 {
 public:
-    using Super = ImplementationOf<IServer>;
+    using Super = GenericPropertyObjectImpl<IServer>;
     using Self = ServerImpl;
 
     explicit ServerImpl(StringPtr id,
                         PropertyObjectPtr serverConfig,
                         DevicePtr rootDevice,
-                        ContextPtr context,
-                        ModuleManagerPtr moduleManager)
-        : id(std::move(id))
+                        ContextPtr context)
+        : Super()
         , config(std::move(serverConfig))
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
-        , moduleManager(std::move(moduleManager))
     {
+        Super::addProperty(StringPropertyBuilder("ServerId", id).setReadOnly(true).build());
     }
 
     ErrCode INTERFACE_FUNC getId(IString** serverId) override
     {
-        if (serverId == nullptr)
-            return OPENDAQ_ERR_INVALIDPARAMETER;
-        *serverId = id.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
+        return getTypedValue("ServerId", serverId);
     }
 
     ErrCode INTERFACE_FUNC enableDiscovery() override
@@ -67,6 +64,9 @@ public:
             DeviceInfoPtr rootDeviceInfo;
             if (this->rootDevice != nullptr)
                 rootDeviceInfo = this->rootDevice.getInfo();
+
+            StringPtr id;
+            getId(&id);
             for (const auto& [_, service] : context.getDiscoveryServers())
             {
                 service.asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
@@ -79,6 +79,9 @@ public:
     {
         if (context != nullptr)
         {
+            StringPtr id;
+            getId(&id);
+
             for (const auto& [_, service] : context.getDiscoveryServers())
             {
                 service.asPtr<IDiscoveryServer>().unregisterService(id);
@@ -89,6 +92,27 @@ public:
 
 protected:
 
+    template <typename T>
+    ErrCode getTypedValue(const StringPtr& name, T** value)
+    {
+        if (name == nullptr)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+        if (value == nullptr)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        BaseObjectPtr prop;
+        ErrCode errCode = getPropertyValue(name, &prop);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        if (auto convertedValue = prop.asPtrOrNull<T>(); convertedValue.assigned())
+        {
+            *value = convertedValue.detach();
+            return OPENDAQ_SUCCESS;
+        }
+        return OPENDAQ_ERR_INVALIDTYPE;
+    }
+
     virtual PropertyObjectPtr getDiscoveryConfig()
     {
         return PropertyObject();
@@ -98,11 +122,9 @@ protected:
     {
     }
 
-    StringPtr id;
     PropertyObjectPtr config;
     DevicePtr rootDevice;
     ContextPtr context;
-    ModuleManagerPtr moduleManager;
 };
 
 END_NAMESPACE_OPENDAQ

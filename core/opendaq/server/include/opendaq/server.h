@@ -29,8 +29,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [templated(defaultAliasName: ServerPtr)]
+ * [interfaceSmartPtr(IServer, GenericServerPtr)]
  */
-
 /*!
  * @brief Represents a server. The server provides access to the openDAQ device.
  * Depend of the implementation, it can support configuring the device, reading configuration, and data streaming.
@@ -42,7 +44,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * The configuration object is created with the corresponding ServerType object (IServerType::createDefaultConfig method).
  * For example, with a configuration object, we can define connection timeout.
  */
-DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IServer, IPropertyObject)
 {
     /*!
     * @brief Stops the server. This is called when we remove the server from the Instance or Instance is closing.

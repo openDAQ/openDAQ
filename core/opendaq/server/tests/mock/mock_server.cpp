@@ -4,6 +4,7 @@
 using namespace daq;
 
 MockServerImpl::MockServerImpl()
+    : Super()
 {
 }
 

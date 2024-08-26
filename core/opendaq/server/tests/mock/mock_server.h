@@ -18,10 +18,12 @@
 #include <coretypes/intfs.h>
 #include <opendaq/server.h>
 #include <coretypes/stringobject.h>
+#include <coreobjects/property_object_impl.h>
 
-class MockServerImpl : public daq::ImplementationOf<daq::IServer>
+class MockServerImpl : public daq::GenericPropertyObjectImpl<daq::IServer>
 {
 public:
+    using Super = daq::GenericPropertyObjectImpl<daq::IServer>;
     explicit MockServerImpl();
 
     daq::ErrCode INTERFACE_FUNC enableDiscovery() override;

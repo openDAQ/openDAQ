@@ -219,7 +219,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         {
             if (this->defaultComponents.count(id))
             {
-                DAQLOGF_W(this->loggerComponent, "The server does not provide default device component: {}", id);
+                DAQLOGF_D(this->loggerComponent, "The server does not provide default device component: {}", id);
             }
             else
             {

@@ -23,6 +23,8 @@ public:
     template <class FBImpl, class... Params>
     FunctionBlockPtr createAndAddFunctionBlock(const std::string& fbId, Params&&... params) const;
 
+    SignalPtr createAndAddSignal(const SignalParams& params) const;
+
     virtual void initSignals(const FolderConfigPtr& signalsFolder);
     virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
     virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
@@ -35,14 +37,16 @@ public:
     
     virtual void start();
 
-    virtual BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
-    virtual BaseObjectPtr onPropertyRead(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value);
+    virtual BaseObjectPtr onPropertyWrite(const PropertyEventArgs& args);
+    virtual BaseObjectPtr onPropertyRead(const PropertyEventArgs& args);
+    virtual void onEndUpdate(const UpdateEndArgs& args);
 
 
     LoggerComponentPtr loggerComponent;
     ContextPtr context;
     std::mutex sync;
     Type* componentImpl;
+    PropertyObjectPtr objPtr;
 };
 
 class AddableComponentTemplateBase
@@ -107,7 +111,57 @@ FunctionBlockPtr ComponentTemplateBase<Type>::createAndAddFunctionBlock(const st
     return fb;
 }
 
+template <typename Type>
+SignalPtr ComponentTemplateBase<Type>::createAndAddSignal(const SignalParams& params) const
+{
+    LOG_T("Adding signal {}", params.localId)
+    auto signal = Signal(context, componentImpl->signals, params.localId, params.className);
+    
+    const auto componentPrivate = signal.template asPtr<IComponentPrivate>();
+    componentPrivate.unlockAllAttributes();
+
+    const auto attributes = params.attributes;
+    if (params.descriptor.assigned())
+        signal.setDescriptor(params.descriptor);
+    if (attributes.domainSignal.value.assigned())
+        signal.setDomainSignal(attributes.domainSignal.value);
+    if (attributes.relatedSignals.value.assigned())
+        signal.setDomainSignal(attributes.relatedSignals.value);
+
+
+    signal.setDescription(attributes.description.value);
+    signal.setName(attributes.name.value);
+    signal.setActive(attributes.active.value);
+    signal.setVisible(attributes.visible.value);
+    signal.setPublic(attributes.isPublic.value);
+
+    ListPtr<IString> lockedAttrs = List<IString>();
+    if (attributes.description.locked)
+        lockedAttrs.pushBack("Description");
+    if (attributes.name.locked)
+        lockedAttrs.pushBack("Name");
+    if (attributes.active.locked)
+        lockedAttrs.pushBack("Active");
+    if (attributes.visible.locked)
+        lockedAttrs.pushBack("Visible");
+    if (attributes.isPublic.locked)
+        lockedAttrs.pushBack("Public");
+    if (attributes.domainSignal.locked)
+        lockedAttrs.pushBack("DomainSignal");
+    if (attributes.relatedSignals.locked)
+        lockedAttrs.pushBack("RelatedSignals");
+
+    componentPrivate.lockAttributes(lockedAttrs);
+
+    componentImpl->signals.addItem(signal);
+    return signal;
+}
+
 inline void AddableComponentTemplateBase::handleConfig(const PropertyObjectPtr& /*config*/)
+{
+}
+
+inline void FunctionBlockTemplateBase::initInputPorts(const FolderConfigPtr& /*inputPortsFolder*/)
 {
 }
 
@@ -158,21 +212,20 @@ void ComponentTemplateBase<Type>::start()
 }
 
 template <typename Type>
-BaseObjectPtr ComponentTemplateBase<Type>::onPropertyWrite(const PropertyObjectPtr& /*owner*/,
-                                                           const StringPtr& /*propertyName*/,
-                                                           const PropertyPtr& /*property*/,
-                                                           const BaseObjectPtr& /*value*/)
+BaseObjectPtr ComponentTemplateBase<Type>::onPropertyWrite(const PropertyEventArgs& /*args*/)
 {
     return nullptr;
 }
 
 template <typename Type>
-BaseObjectPtr ComponentTemplateBase<Type>::onPropertyRead(const PropertyObjectPtr& /*owner*/,
-                                                          const StringPtr& /*propertyName*/,
-                                                          const PropertyPtr& /*property*/,
-                                                          const BaseObjectPtr& /*value*/)
+BaseObjectPtr ComponentTemplateBase<Type>::onPropertyRead(const PropertyEventArgs& /*args*/)
 {
     return nullptr;
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::onEndUpdate(const UpdateEndArgs& /*args*/)
+{
 }
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

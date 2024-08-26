@@ -29,6 +29,7 @@ public:
         , functionBlock(std::move(functionBlock))
     {
         this->functionBlock->componentImpl = this; // TODO: Figure out safe ptr operations for this
+        this->functionBlock->objPtr = this->borrowPtr<PropertyObjectPtr>();
         this->functionBlock->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->functionBlock->context = this->context;
 
@@ -51,6 +52,7 @@ public:
 private:
     
     friend class FunctionBlockTemplate;
+    friend class ComponentTemplateBase<FunctionBlockTemplateHooks>;
     std::shared_ptr<FunctionBlockTemplate> functionBlock;
 };
 

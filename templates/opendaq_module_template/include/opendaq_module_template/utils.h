@@ -1,7 +1,51 @@
 #pragma once
 #include <opendaq/opendaq.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
+
+// Helpers
+
+struct PropertyParams
+{
+    CoreType valueType;
+    StringPtr name;
+    StringPtr description;
+    BaseObjectPtr defaultValue;
+
+    ListPtr<IBaseObject> selectionValues;
+    EvalValuePtr referencePropertyEval;
+    CallableInfoPtr callableInfo;
+    
+    ValidatorPtr validator;
+    CoercerPtr coercer;
+    ListPtr<IBaseObject> suggestedValues;
+    BooleanPtr visible;
+    BooleanPtr readOnly;
+    NumberPtr min;
+    NumberPtr max;
+    UnitPtr unit;
+};
+
+static PropertyPtr createProperty(const PropertyParams& params)
+{
+    const auto builder = PropertyBuilder(params.name)
+                         .setName(params.name)
+                         .setDescription(params.description)
+                         .setDefaultValue(params.defaultValue)
+                         .setSelectionValues(params.selectionValues)
+                         .setReferencedProperty(params.referencePropertyEval).setCallableInfo(params.callableInfo)
+                         .setValidator(params.validator)
+                         .setCoercer(params.coercer)
+                         .setSuggestedValues(params.suggestedValues)
+                         .setVisible(params.visible)
+                         .setReadOnly(params.readOnly)
+                         .setMinValue(params.min)
+                         .setMaxValue(params.max)
+                         .setUnit(params.unit);
+
+    return builder.build();
+}
 
 // Attribute definitions
 
@@ -86,6 +130,25 @@ struct DeviceTypeParams
 
 // Constructor parameter definitions
 
+struct SignalParams
+{
+    std::string localId;
+    std::string className;
+
+    DataDescriptorPtr descriptor;
+    SignalAttributeConfig attributes;
+};
+
+struct ChannelParams
+{
+    FunctionBlockTypePtr type;
+    ContextPtr context;
+    IoFolderConfigPtr parent;
+
+    std::string logName;
+    std::string localId;
+};
+
 struct FunctionBlockParams
 {
     FunctionBlockTypePtr type;
@@ -123,7 +186,6 @@ struct ModuleParams
     std::string logName;
 };
 
-
 // Validation classes
 
 class FunctionBlockParamsValidation
@@ -148,15 +210,28 @@ public:
     FunctionBlockParams params;
 };
 
-class ChannelParamsValidation : public FunctionBlockParamsValidation   
+class ChannelParamsValidation   
 {
 public:
-    ChannelParamsValidation(const FunctionBlockParams& params)
-        : FunctionBlockParamsValidation(params)
+    ChannelParamsValidation(const ChannelParams& params)
     {
+        if (params.localId.empty())
+            throw InvalidParameterException("Local id is not set");
+        if (!params.type.assigned())
+            throw InvalidParameterException("Function block type is not set");
+        if (params.logName.empty())
+            throw InvalidParameterException("Log name is not set");
+        if (!params.context.assigned())
+            throw InvalidParameterException("Context is not set");
+        if (!params.parent.assigned())
+            throw InvalidParameterException("Parent is not set");
         if (!params.parent.asPtrOrNull<IIoFolderConfig>().assigned())
             throw InvalidParameterException("Channel parent folder is not an IO folder");
+        
+        this->params = params; 
     }
+
+    ChannelParams params;
 };
 
 class DeviceParamsValidation
@@ -201,6 +276,24 @@ public:
 
 // Internal Helpers
 
+
+struct PropertyEventArgs
+{
+    PropertyObjectPtr owner;
+    PropertyPtr property;
+    StringPtr propertyName;
+    BaseObjectPtr value;
+    Bool isUpdating;
+};
+
+struct UpdateEndArgs
+{
+    PropertyObjectPtr owner;
+    std::set<StringPtr> changedProperties;
+    Bool isParentUpdating;
+};
+
+// TODO: Should we have structs as input to the functions instead of individual parameters?
 template <typename Impl>
 static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl> templateImpl)
 {
@@ -209,8 +302,8 @@ static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl
         obj.getOnPropertyValueWrite(prop.getName()) +=
             [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
             {
-                const auto prop = args.getProperty();
-                const auto val = templateImpl->onPropertyWrite(obj, prop.getName(), prop, args.getValue());
+                PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
+                const auto val = templateImpl->onPropertyWrite(propArgs);
                 if (val.assigned() && args.getValue() != val)
                     args.setValue(val);
             };
@@ -218,8 +311,8 @@ static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl
         obj.getOnPropertyValueRead(prop.getName()) +=
             [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
             {
-                const auto prop = args.getProperty();
-                const auto val = templateImpl->onPropertyRead(obj, prop.getName(), prop, args.getValue());
+                PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
+                const auto val = templateImpl->onPropertyRead(propArgs);
                 if (val.assigned() && args.getValue() != val)
                     args.setValue(val);
             };
@@ -227,6 +320,16 @@ static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl
         if (prop.getValueType() == ctObject)
             registerCallbacks(obj.getPropertyValue(prop.getName()), templateImpl);
     }
+
+    obj.getOnEndUpdate() += [&templateImpl](const PropertyObjectPtr& obj, const EndUpdateEventArgsPtr& args)
+    {
+        std::set<StringPtr> changedProperties;
+        for (const auto& prop : args.getProperties())
+            changedProperties.insert(prop);
+
+        UpdateEndArgs updateArgs{obj, changedProperties, args.getIsParentUpdating()};
+        templateImpl->onEndUpdate(updateArgs);
+    };
 }
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

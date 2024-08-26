@@ -7,7 +7,8 @@ BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 class ChannelTemplateHooks;
 
 class ChannelTemplate : public ComponentTemplateBase<ChannelTemplateHooks>,
-                        public FunctionBlockTemplateBase
+                        public FunctionBlockTemplateBase,
+                        public std::enable_shared_from_this<ChannelTemplate>
 {
 public:
 
@@ -18,22 +19,24 @@ private:
     friend class ChannelTemplateHooks;
 };
 
-class ChannelTemplateHooks : public FunctionBlockParamsValidation, public Channel
+class ChannelTemplateHooks : public ChannelParamsValidation, public Channel
 {
 public:
 
-    ChannelTemplateHooks(std::shared_ptr<ChannelTemplate> channel, const FunctionBlockParams& params, const StringPtr& className = "")
-        : FunctionBlockParamsValidation(params)
+    ChannelTemplateHooks(std::shared_ptr<ChannelTemplate> channel, const ChannelParams& params, const StringPtr& className = "")
+        : ChannelParamsValidation(params)
         , Channel(params.type, params.context, params.parent, params.localId, className)
         , channel(std::move(channel))
     {
         this->channel->componentImpl = this; // TODO: Figure out safe ptr operations for this
+        this->channel->objPtr = this->borrowPtr<PropertyObjectPtr>();
         this->channel->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->channel->context = this->context;
 
         std::scoped_lock lock(sync);
 
-        this->channel->handleOptions(params.options);
+        // TODO: Check if this is needed
+        // this->channel->handleOptions(params.options);
         this->channel->initProperties();
         registerCallbacks<ChannelTemplate>(objPtr, this->channel);
         this->channel->initSignals(signals);
@@ -44,12 +47,22 @@ public:
         this->channel->initStatuses(statusContainer);
 
         this->channel->start();
-    }   
+    }
+
+    template <class TemplateImpl>
+    std::shared_ptr<TemplateImpl> getChannelTemplate();
 
 private:
     
     friend class ChannelTemplate;
+    friend class ComponentTemplateBase<ChannelTemplateHooks>;
     std::shared_ptr<ChannelTemplate> channel;
 };
+
+template <class TemplateImpl>
+std::shared_ptr<TemplateImpl> ChannelTemplateHooks::getChannelTemplate()
+{
+    return std::shared_ptr<TemplateImpl>(channel, reinterpret_cast<TemplateImpl*>(channel.get())); 
+}
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

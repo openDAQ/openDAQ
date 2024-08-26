@@ -12,8 +12,8 @@ public:
 
     DevicePtr getDevice() const;
 
-    template <class ChannelImpl, class... Params>
-    ChannelPtr createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const;
+    template <class ChannelImpl, class ChannelTemplateImpl, class... Params>
+    std::shared_ptr<ChannelTemplateImpl> createAndAddChannel(const ChannelParams& channelParams, Params&&... params) const;
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
 
     void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
@@ -37,11 +37,15 @@ private:
     friend class DeviceTemplateHooks;
 };
 
-template <class ChannelImpl, class ... Params>
-ChannelPtr DeviceTemplate::createAndAddChannel(const IoFolderConfigPtr& parentFolder, const std::string& channelId, Params&&... params) const
+template <class ChannelHooksImpl, class ChannelTemplateImpl, class ... Params>
+std::shared_ptr<ChannelTemplateImpl> DeviceTemplate::createAndAddChannel(const ChannelParams& channelParams, Params&&... params) const
 {
     LOG_T("Adding channel {}", channelId)
-    return componentImpl->createAndAddChannel<ChannelImpl, Params...>(parentFolder, channelId, std::forward<Params>(params)...);
+    ChannelPtr ch = createWithImplementation<IChannel, ChannelHooksImpl>(channelParams, std::forward<Params>(params)...);
+    channelParams.parent.addItem(ch);
+    
+    auto implPtr = static_cast<ChannelHooksImpl*>(ch.getObject());
+    return implPtr->template getChannelTemplate<ChannelTemplateImpl>();
 }
 
 class DeviceTemplateHooks : public DeviceParamsValidation, public Device
@@ -58,6 +62,7 @@ public:
             this->info.freeze();
             
         this->device->componentImpl = this; // TODO: Figure out safe ptr operations for this
+        this->device->objPtr = this->borrowPtr<PropertyObjectPtr>();
         this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->device->context = this->context;
 
@@ -91,6 +96,7 @@ private:
     bool allowAddFunctionBlocksFromModules() override;
     
     friend class DeviceTemplate;
+    friend class ComponentTemplateBase<DeviceTemplateHooks>;
     std::shared_ptr<DeviceTemplate> device;
     DeviceInfoPtr info;
 };

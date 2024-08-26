@@ -20,6 +20,8 @@
 #include <opendaq_module_template/device_template.h>
 #include <thread>
 #include <condition_variable>
+#include <ref_device_module/ref_channel_impl.h>
+#include <ref_device_module/ref_can_channel_impl.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -43,7 +45,7 @@ protected:
     void handleConfig(const PropertyObjectPtr& config) override;
     void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
     void initProperties() override;
-    BaseObjectPtr onPropertyWrite(const PropertyObjectPtr& owner, const StringPtr& propertyName, const PropertyPtr& property, const BaseObjectPtr& value) override;
+    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
     void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
     DeviceDomainPtr initDeviceDomain() override;
     void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
@@ -71,8 +73,8 @@ private:
     std::chrono::steady_clock::time_point startTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
-    std::vector<ChannelPtr> channels;
-    ChannelPtr canChannel;
+    std::vector<std::shared_ptr<RefChannelImpl>> channels;
+    //std::shared_ptr<RefCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;
     FolderConfigPtr aiFolder;

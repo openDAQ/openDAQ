@@ -36,7 +36,12 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigCoreEventTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigCoreEventTest::sendRequest, this, std::placeholders::_1),
+                nullptr
+            );
 
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -387,6 +392,41 @@ TEST_F(ConfigCoreEventTest, ComponentAdded)
     ASSERT_EQ(addCount, 3);
 }
 
+TEST_F(ConfigCoreEventTest, ServerComponentAdded)
+{
+    int addCount = 0;
+    const FolderConfigPtr clientFolder = clientDevice.getItem("Srv");
+    const FolderConfigPtr serverFolder = serverDevice.getItem("Srv");
+
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::ComponentAdded));
+        ASSERT_EQ(args.getEventName(), "ComponentAdded");
+        ASSERT_TRUE(args.getParameters().hasKey("Component"));
+        ASSERT_EQ(args.getParameters().get("Component"), clientFolder.getItems()[addCount + 1]);
+        ASSERT_EQ(comp, clientFolder);
+        addCount++;
+    };
+
+    const auto srv1 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv1");
+    const auto srv2 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv2");
+    const auto srv3 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv3");
+
+    serverFolder.addItem(srv1);
+    serverFolder.addItem(srv2);
+    serverFolder.addItem(srv3);
+
+    ASSERT_TRUE(clientFolder.getItem("newSrv1").assigned());
+    ASSERT_TRUE(clientFolder.getItem("newSrv2").assigned());
+    ASSERT_TRUE(clientFolder.getItem("newSrv3").assigned());
+
+    ASSERT_EQ(addCount, 3);
+}
+
 TEST_F(ConfigCoreEventTest, CustomComponentAdded)
 {
     int addCount = 0;
@@ -424,7 +464,7 @@ TEST_F(ConfigCoreEventTest, ComponentRemoved)
     int removeCount = 0;
     const FolderConfigPtr clientFolder = clientDevice.getItem("FB");
     const FolderConfigPtr serverFolder = serverDevice.getItem("FB");
-    
+
     const auto fb1 =
         createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb1");
     const auto fb2 =
@@ -453,6 +493,43 @@ TEST_F(ConfigCoreEventTest, ComponentRemoved)
     ASSERT_THROW(clientFolder.getItem("newFb1"), NotFoundException);
     ASSERT_THROW(clientFolder.getItem("newFb2"), NotFoundException);
     ASSERT_THROW(clientFolder.getItem("newFb3"), NotFoundException);
+    ASSERT_EQ(removeCount, 3);
+}
+
+TEST_F(ConfigCoreEventTest, ServerComponentRemoved)
+{
+    int removeCount = 0;
+    const FolderConfigPtr clientFolder = clientDevice.getItem("Srv");
+    const FolderConfigPtr serverFolder = serverDevice.getItem("Srv");
+
+    const auto srv1 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv1");
+    const auto srv2 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv2");
+    const auto srv3 =
+        createWithImplementation<IServer, test_utils::MockSrvImpl>(serverDevice.getContext(), serverDevice, "newSrv3");
+
+    serverFolder.addItem(srv1);
+    serverFolder.addItem(srv2);
+    serverFolder.addItem(srv3);
+
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::ComponentRemoved));
+        ASSERT_EQ(args.getEventName(), "ComponentRemoved");
+        ASSERT_TRUE(args.getParameters().hasKey("Id"));
+        ASSERT_EQ(comp, clientFolder);
+        removeCount++;
+    };
+
+    serverFolder.removeItemWithLocalId("newSrv1");
+    serverFolder.removeItemWithLocalId("newSrv2");
+    serverFolder.removeItemWithLocalId("newSrv3");
+
+    ASSERT_THROW(clientFolder.getItem("newSrv1"), NotFoundException);
+    ASSERT_THROW(clientFolder.getItem("newSrv2"), NotFoundException);
+    ASSERT_THROW(clientFolder.getItem("newSrv3"), NotFoundException);
     ASSERT_EQ(removeCount, 3);
 }
 

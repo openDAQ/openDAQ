@@ -1,3 +1,24 @@
+11.09.2024
+Description:
+    - Enable openDAQ servers to be added to the component tree under the device
+
+Required integration changes:
+    - Breaks binary compatibility
+
+-m[interface] IServer : public IBaseObject
++m[interface] IServer : public IFolder
++ [function] IServer::getSignals(IList** signals, ISearchFilter* searchFilter = nullptr)
+
+- [function] IInstance::addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server)
+- [function] IInstance::removeServer(IServer* server)
+- [function] IInstance::getServers(IList** servers)
+
++ [function] IDevice::addServer(IString* typeId, IPropertyObject* config, IServer** server)
++ [function] IDevice::removeServer(IServer* server)
++ [function] IDevice::getServers(IList** servers)
+
++ [function] IModuleManagerUtils::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr)
+
 28.08.2024
 Description:
     - Multi reader returns events on first read

@@ -566,6 +566,12 @@ StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
         return "OpenDAQNativeStreaming";
     if (id == "opendaq_lt_streaming")
         return "OpenDAQLTStreaming";
+    if (id == "openDAQ LT Streaming")
+        return "OpenDAQLTStreaming";
+    if (id == "openDAQ Native Streaming")
+        return "OpenDAQNativeStreaming";
+    if (id == "openDAQ OpcUa")
+        return "OpenDAQOPCUA";
     return id;
 }
 
@@ -770,6 +776,45 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(serverTypeId);
+    OPENDAQ_PARAM_NOT_NULL(server);
+    OPENDAQ_PARAM_NOT_NULL(rootDevice);
+
+    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        DictPtr<IString, IServerType> serverTypes;
+        try
+        {
+            serverTypes = module.getAvailableServerTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            serverTypes = nullptr;
+        }
+
+        if (!serverTypes.assigned())
+            continue;
+
+        for (const auto& [id, serverType] : serverTypes)
+        {
+            if (id == typeId)
+            {
+                auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
+
+                *server = createdServer.detach();
+                return OPENDAQ_SUCCESS;
+            }
+        }
+    }
+
+    return OPENDAQ_ERR_NOTFOUND;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)

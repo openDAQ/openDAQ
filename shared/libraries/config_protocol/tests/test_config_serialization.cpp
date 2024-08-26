@@ -772,7 +772,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
 
     const DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
 
-    ASSERT_EQ(configComponentInstantiated, 15);
+    ASSERT_EQ(configComponentInstantiated, 16);
     const auto serializer2 = JsonSerializer(True);
     newDev.serialize(serializer2);
     const auto str2 = serializer2.getOutput();

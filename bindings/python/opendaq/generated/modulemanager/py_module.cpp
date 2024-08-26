@@ -115,7 +115,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.createServer(getVariantValue<daq::IString*>(serverTypeId), rootDevice, config).detach();
         },
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
-        "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
+        "Creates and returns a server with the specified server type.");
     cls.def("create_streaming",
         [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {

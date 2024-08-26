@@ -48,7 +48,7 @@ class AppContext(object):
             if device:
                 device_info.name = device.local_id
                 device_info.serial_number = device.info.serial_number
-                self.enabled_devices[device_info.connection_string] = {
+                self.enabled_devices[device.info.connection_string] = {
                     'device_info': device_info, 'device': device}
                 return device
         except RuntimeError as e:

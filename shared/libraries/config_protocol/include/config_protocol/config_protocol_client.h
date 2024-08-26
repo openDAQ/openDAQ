@@ -220,19 +220,25 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
     for (const auto& typeName : types)
     {
         const auto type = typeManager.getType(typeName);
-
         try
         {
-            // TODO: implement type comparison/equalTo for property object classes
-            /* const auto localType = localTypeManager.getType(type.getName());
-            if (localType != type)
-                throw InvalidValueException("Remote type different than local");*/
-            localTypeManager.addType(type);
-        }
-        catch (const AlreadyExistsException&)
-        {
-            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Type {} already exists in local type manager", type.getName());
+            ErrCode errCode = localTypeManager->addType(type);
+            if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            {
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_D("Type {} already exists in local type manager", type.getName());
+            }
+            else if (OPENDAQ_FAILED(errCode))
+            {
+                ObjectPtr<IErrorInfo> errorInfo;
+                daqGetErrorInfo(&errorInfo);
+                StringPtr message;
+                if (errorInfo.assigned())
+                    errorInfo->getMessage(&message);
+
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), message.assigned() ? message: "Unknown error");
+            }
         }
         catch (const std::exception& e)
         {

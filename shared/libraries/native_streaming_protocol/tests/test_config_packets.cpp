@@ -11,7 +11,7 @@ using namespace daq::config_protocol;
 class ConfigProtocolPacketGenerator
 {
 public:
-    static constexpr size_t PacketToGenerate = 7;
+    static constexpr size_t PacketToGenerate = 8;
     ConfigProtocolPacketGenerator()
         : packetIndex(0)
         {};
@@ -34,6 +34,8 @@ public:
                 return PacketBuffer::createServerNotification(json.c_str(), json.length());
             case 6:
                 return PacketBuffer::createInvalidRequestReply(packetIndex);
+            case 7:
+                return PacketBuffer::createNoReplyRpcRequest(json.c_str(), json.length());
             default:
                 return PacketBuffer();
         }

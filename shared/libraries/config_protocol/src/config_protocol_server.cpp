@@ -8,6 +8,7 @@
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
 #include <config_protocol/config_server_access_control.h>
+#include <opendaq/custom_log.h>
 
 namespace daq::config_protocol
 {
@@ -64,7 +65,9 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
     return nullptr;
 }
 
-ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback, const UserPtr& user)
+ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
+                                           NotificationReadyCallback notificationReadyCallback,
+                                           const UserPtr& user)
     : rootDevice(std::move(rootDevice))
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
@@ -161,13 +164,24 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
 {
-    return processPacket(packetBuffer);
+    return processPacketAndGetReply(packetBuffer);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(void* mem)
 {
     const PacketBuffer packetBuffer(mem, false);
-    return processPacket(packetBuffer);
+    return processPacketAndGetReply(packetBuffer);
+}
+
+void ConfigProtocolServer::processNoReplyRequest(const PacketBuffer& packetBuffer)
+{
+    processNoReplyPacket(packetBuffer);
+}
+
+void ConfigProtocolServer::processNoReplyRequest(void* mem)
+{
+    const PacketBuffer packetBuffer(mem, false);
+    processNoReplyPacket(packetBuffer);
 }
 
 void ConfigProtocolServer::sendNotification(const char* json, const size_t jsonSize) const
@@ -208,7 +222,7 @@ DevicePtr ConfigProtocolServer::getRootDevice()
     return rootDevice;
 }
 
-PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffer)
+PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& packetBuffer)
 {
     const auto requestId = packetBuffer.getId();
     switch (packetBuffer.getPacketType())
@@ -232,7 +246,7 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
                 std::unique_ptr<char[]> json;
 
                 const auto jsonRequest = packetBuffer.parseRpcRequestOrReply();
-                const auto jsonReply = processRpc(jsonRequest);
+                const auto jsonReply = processRpcAndGetReply(jsonRequest);
 
                 auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
                 return reply;
@@ -240,11 +254,16 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
         default:
             auto reply = PacketBuffer::createInvalidRequestReply(requestId);
             return reply;
-
     }
 }
 
-StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
+void ConfigProtocolServer::processNoReplyPacket(const PacketBuffer& packetBuffer)
+{
+    const auto jsonRequest = packetBuffer.parseNoReplyRpcRequest();
+    processNoReplyRpc(jsonRequest);
+}
+
+StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
 {
     try
     {
@@ -289,6 +308,28 @@ StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const String
     serializer.reset();
     errorObject.serialize(serializer);
     return serializer.getOutput();
+}
+
+void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
+{
+    StringPtr funcName;
+    try
+    {
+        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
+
+        funcName = dictObj.get("Name");
+        ParamsDictPtr funcParams;
+        if (dictObj.hasKey("Params"))
+            funcParams = dictObj.get("Params");
+
+        callRpc(funcName, funcParams);
+    }
+    catch (const std::exception& e)
+    {
+        auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+        LOG_W("RPC call {} failed with: {}", funcName.assigned() ? funcName : "not recognized", e.what());
+    }
 }
 
 BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsDictPtr& params)

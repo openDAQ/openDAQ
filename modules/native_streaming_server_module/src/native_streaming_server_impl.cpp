@@ -269,8 +269,15 @@ void NativeStreamingServerImpl::prepareServerHandler()
                     processingStrand.wrap(
                         [configServer, sendConfigPacketCb, packetBufferPtr]()
                         {
-                            auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
-                            sendConfigPacketCb(replyPacketBuffer);
+                            if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
+                            {
+                                configServer->processNoReplyRequest(*packetBufferPtr);
+                            }
+                            else
+                            {
+                                auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
+                                sendConfigPacketCb(replyPacketBuffer);
+                            }
                         }
                     )
                 );

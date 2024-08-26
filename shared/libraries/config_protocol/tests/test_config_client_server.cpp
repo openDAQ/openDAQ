@@ -43,8 +43,13 @@ public:
 
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
         server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                NullContext(),
+                std::bind(&ConfigProtocolTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolTest::sendNoReplyRequest, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1)
+            );
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
     }
@@ -62,10 +67,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket)
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     bool onServerNotificationReceived(const BaseObjectPtr& obj)

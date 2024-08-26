@@ -57,7 +57,9 @@ public:
 
 private:
     void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
-    config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
+    config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
+    void doConfigNoReplyRequest(const config_protocol::PacketBuffer& reqPacket);
+    void sendConfigRequest(const config_protocol::PacketBuffer& reqPacket);
     std::future<config_protocol::PacketBuffer> registerConfigRequest(uint64_t requestId);
     void unregisterConfigRequest(uint64_t requestId);
     void cancelPendingConfigRequests(const DaqException& e);

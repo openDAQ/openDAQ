@@ -31,10 +31,18 @@ public:
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-            clientContext, [this](const PacketBuffer& requestPacket) -> PacketBuffer
+            clientContext,
+            [this](const PacketBuffer& requestPacket) -> PacketBuffer
+             {
+                 return server->processRequestAndGetReply(requestPacket);
+            },
+            [this](const PacketBuffer& requestPacket)
             {
-                return server->processRequestAndGetReply(requestPacket);
-            }, nullptr);
+                // callback is not expected to be called within this test group
+                assert(false);
+                server->processNoReplyRequest(requestPacket);
+            },
+            nullptr);
     }
 
 
@@ -62,6 +70,12 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
         [&server](const PacketBuffer& requestPacket) -> PacketBuffer
         {
             return server.processRequestAndGetReply(requestPacket);
+        },
+        [&server](const PacketBuffer& requestPacket)
+        {
+            // callback is not expected to be called within this test group
+            assert(false);
+            server.processNoReplyRequest(requestPacket);
         },
         nullptr);
 

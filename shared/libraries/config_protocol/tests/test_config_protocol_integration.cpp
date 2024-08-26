@@ -32,8 +32,13 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr
+            );
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
@@ -46,10 +51,18 @@ public:
         return str;
     }
     
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    // client handling
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
     
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
@@ -132,7 +145,12 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     
-    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(
+        clientContext,
+        std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+        std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+        nullptr
+    );
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 

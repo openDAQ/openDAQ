@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(RefDeviceModule VERSION 3.2.5 LANGUAGES CXX)
+project(RefDeviceModule VERSION 3.2.6 LANGUAGES CXX)
 
 add_subdirectory(src)
 

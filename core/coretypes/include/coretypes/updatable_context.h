@@ -30,8 +30,6 @@ DECLARE_OPENDAQ_INTERFACE(IUpdatableContext, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) = 0;
     virtual ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) = 0;
-    virtual ErrCode INTERFACE_FUNC setNotMutedComponent(IString* componentId) = 0;
-    virtual ErrCode INTERFACE_FUNC getComponentIsMuted(IString* componentId, Bool* muted) = 0;
 };
 
 /*!

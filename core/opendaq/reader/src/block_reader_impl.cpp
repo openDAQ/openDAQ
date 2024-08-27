@@ -506,6 +506,12 @@ struct ObjectCreator<IBlockReader>
         if (builderPtr.getBlockSize() == 0)
             return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Block size cannot be 0", nullptr);
 
+        if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
+        builderPtr.getSkipEvents())
+        {
+            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined", nullptr);
+        }
+
         ErrCode errCode;
 
         if (oldBlockReader.assigned())

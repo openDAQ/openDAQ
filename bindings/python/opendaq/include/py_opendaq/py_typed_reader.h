@@ -22,6 +22,7 @@
 
 #include "coretypes/exceptions.h"
 #include "opendaq/block_reader_ptr.h"
+#include "opendaq/event_packet_ids.h"
 #include "opendaq/multi_reader_ptr.h"
 #include "opendaq/reader_config_ptr.h"
 #include "opendaq/time_reader.h"
@@ -30,6 +31,7 @@
 #include <pybind11/chrono.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include "py_opendaq/py_reader_traits.h"
@@ -49,22 +51,8 @@ using SizeReaderStatusVariant = std::variant<daq::SizeT, std::tuple<daq::SizeT, 
 
 struct PyTypedReader
 {
-    template <typename ReaderType>
-    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, size_t timeoutMs)
-    {
-        using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
-        StatusType status;
-        size_t tmpCount = 0;
-        if constexpr (ReaderHasReadWithTimeout<ReaderType, void>::value)
-        {
-            reader->read(nullptr, &tmpCount, timeoutMs, &status);
-        }
-        else
-        {
-            reader->read(nullptr, &tmpCount, &status);
-        }
-        return status;
-    }
+    static constexpr const char* VALUE_DATA_DESCRIPTOR_ATTRIBUTE = "__value_data_descriptor";
+    static constexpr const char* DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE = "__domain_data_descriptor";
 
     template <typename ReaderType>
     static inline SampleTypeReaderStatusVariant<ReaderType> readValues(const ReaderType& reader,
@@ -74,6 +62,30 @@ struct PyTypedReader
     {
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
+        if (valueType == daq::SampleType::Undefined)
+        {
+            daq::DataDescriptorPtr vd = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
+            if (!vd.assigned())
+            {
+                auto status = readZeroValues(reader, timeoutMs);
+                auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
+
+                if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                {
+                    throw std::runtime_error("Undefined type reader has no descriptors");
+                }
+
+                setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
+                setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
+                return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, status.detach()))
+                                    : SampleTypeReaderStatusVariant<ReaderType>(py::array{});
+            }
+            else
+            {
+                valueType = vd.getSampleType();
+            }
+        }
+
         switch (valueType)
         {
             case daq::SampleType::Float32:
@@ -102,6 +114,7 @@ struct PyTypedReader
             case daq::SampleType::Undefined:
             case daq::SampleType::Binary:
             case daq::SampleType::String:
+            case daq::SampleType::Struct:
             default:
                 throw std::runtime_error("Unsupported values sample type: " + convertSampleTypeToString(valueType));
         }
@@ -115,6 +128,33 @@ struct PyTypedReader
     {
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
+        if (valueType == daq::SampleType::Undefined)
+        {
+            printf("Undefined value type\n");
+            daq::DataDescriptorPtr vd = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
+            if (!vd.assigned())
+            {
+                printf("Getting descriptors from event\n");
+                auto status = readZeroValues(reader, timeoutMs);
+                auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
+
+                // if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                // {
+                //     throw std::runtime_error("Undefined type reader has no descriptors");
+                // }
+
+                setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
+                setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
+                return returnStatus
+                           ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}, status.detach()))
+                           : SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}));
+            }
+            else
+            {
+                printf("Getting descriptors from attribute\n");
+                valueType = vd.getSampleType();
+            }
+        }
         switch (valueType)
         {
             case daq::SampleType::Float32:
@@ -143,6 +183,7 @@ struct PyTypedReader
             case daq::SampleType::Undefined:
             case daq::SampleType::Binary:
             case daq::SampleType::String:
+            case daq::SampleType::Struct:
             default:
                 throw std::runtime_error("Unsupported values sample type: " + convertSampleTypeToString(valueType));
         }
@@ -161,7 +202,7 @@ private:
                                                                                      size_t timeoutMs,
                                                                                      bool returnStatus)
     {
-        if constexpr (std::is_base_of<daq::TimeReaderBase, ReaderType>::value)
+        if constexpr (std::is_base_of_v<daq::TimeReaderBase, ReaderType>)
         {
             return read<ValueType, std::chrono::system_clock::time_point>(reader, count, timeoutMs, returnStatus);
         }
@@ -169,6 +210,34 @@ private:
         {
             daq::SampleType domainType = daq::SampleType::Undefined;
             reader->getDomainReadType(&domainType);
+            if (domainType == daq::SampleType::Undefined)
+            {
+                printf("Undefined domain type\n");
+                daq::DataDescriptorPtr dd = getDescriptor<ReaderType>(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE);
+                if (!dd.assigned())
+                {
+                    printf("Getting descriptors from event\n");
+                    auto status = readZeroValues(reader, timeoutMs);
+                    auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
+
+                    // if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                    // {
+                    //     throw std::runtime_error("Undefined type reader has no descriptors");
+                    // }
+
+                    setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
+                    setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
+                    return returnStatus ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>(
+                                              std::make_tuple(py::array{}, py::array{}, status.detach()))
+                                        : SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}));
+                }
+                else
+                {
+                    printf("Getting descriptors from attribute\n");
+                    domainType = dd.getSampleType();
+                }
+            }
+
             switch (domainType)
             {
                 case daq::SampleType::Float32:
@@ -197,6 +266,7 @@ private:
                 case daq::SampleType::Undefined:
                 case daq::SampleType::Binary:
                 case daq::SampleType::String:
+                case daq::SampleType::Struct:
                 default:
                     throw std::runtime_error("Unsupported domain sample type: " + convertSampleTypeToString(domainType));
             }
@@ -382,24 +452,91 @@ private:
                    : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(std::move(valuesArray), std::move(domainArray))};
     }
 
+    template <typename ReaderType>
+    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, size_t timeoutMs)
+    {
+        using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
+        StatusType status;
+        size_t tmpCount = 0;
+        if constexpr (ReaderHasReadWithTimeout<ReaderType, void>::value)
+        {
+            reader->read(nullptr, &tmpCount, timeoutMs, &status);
+        }
+        else
+        {
+            reader->read(nullptr, &tmpCount, &status);
+        }
+        return status;
+    }
+
     static inline void checkSampleType(daq::SampleType type)
     {
         switch (type)
         {
+            case daq::SampleType::Undefined:
             case daq::SampleType::Float32:
             case daq::SampleType::Float64:
-            case daq::SampleType::UInt32:
-            case daq::SampleType::Int32:
-            case daq::SampleType::UInt64:
-            case daq::SampleType::Int64:
             case daq::SampleType::UInt8:
             case daq::SampleType::Int8:
             case daq::SampleType::UInt16:
             case daq::SampleType::Int16:
-            case daq::SampleType::Invalid:  // for default value
+            case daq::SampleType::UInt32:
+            case daq::SampleType::Int32:
+            case daq::SampleType::UInt64:
+            case daq::SampleType::Int64:
+            case daq::SampleType::Struct:
+                // case daq::SampleType::Invalid:
+                // case daq::SampleType::Binary: //banned
                 break;
+            case daq::SampleType::RangeInt64:
+            case daq::SampleType::ComplexFloat32:  // complex64
+            case daq::SampleType::ComplexFloat64:  // complex128
+            case daq::SampleType::String:
             default:
                 throw daq::InvalidParameterException("Unsupported sample type: " + convertSampleTypeToString(type));
         }
+    }
+
+    template <typename ReaderType>
+    static daq::DataDescriptorPtr getDescriptor(const ReaderType& reader, const char* attribute_name)
+    {
+        py::object pyObject = py::cast(InterfaceWrapper<typename ReaderType::DeclaredInterface>(reader.addRefAndReturn()));
+        try
+        {
+            auto descriptor = pyObject.attr(attribute_name).template cast<daq::IDataDescriptor*>();
+            return daq::DataDescriptorPtr::Borrow(descriptor);
+        }
+        catch (const py::error_already_set& error)
+        {
+        }
+        return nullptr;
+    }
+
+    template <typename ReaderType>
+    static void setDescriptor(const ReaderType& reader, const char* attribute_name, daq::DataDescriptorPtr descriptor)
+    {
+        auto pyObject = py::cast(InterfaceWrapper<typename ReaderType::DeclaredInterface>(reader.addRefAndReturn()));
+        pyObject.attr(attribute_name) = descriptor.detach();
+    }
+
+    static inline std::tuple<daq::DataDescriptorPtr, daq::DataDescriptorPtr> getDescriptorsFromStatus(const daq::ReaderStatusPtr& status)
+    {
+        daq::DataDescriptorPtr valueDescriptor;
+        daq::DataDescriptorPtr domainDescriptor;
+
+        if (status.assigned() && status.getReadStatus() == daq::ReadStatus::Event)
+        {
+            auto packet = status.getEventPacket();
+            if (packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                auto params = packet.getParameters();
+                if (params.assigned())
+                {
+                    valueDescriptor = params.get("DataDescriptor");
+                    domainDescriptor = params.get("DomainDataDescriptor");
+                }
+            }
+        }
+        return {valueDescriptor, domainDescriptor};
     }
 };

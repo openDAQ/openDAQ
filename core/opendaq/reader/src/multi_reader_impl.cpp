@@ -61,6 +61,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     old->invalid = true;
     portBinder = old->portBinder;
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
+    isActive = old->isActive;
 
     bool fromInputPorts;
 
@@ -116,6 +117,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
+    , isActive(builder.getActive())
 {
     auto sourceComponents = builder.getSourceComponents();
     checkEarlyPreconditionsAndCacheContext(sourceComponents);
@@ -370,7 +372,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
 
             if (overrideMethod && port.getConnection().assigned())
-                throw InvalidParameterException("Signal has to be connected to port after reader is created");
+                throw InvalidParameterException("Signal has to be connected to the port before the reader is created");
 
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -913,7 +915,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     {
         for (auto& signal : signals)
         {
-            signal.port.setActive(true);
+            signal.port.setActive(true && isActive);
         }
         portConnected = true;
     }
@@ -1172,20 +1174,20 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::setIsActive(Bool isActive)
+ErrCode MultiReaderImpl::setActive(Bool isActive)
 {
     std::lock_guard lock{mutex};
     this->isActive = isActive;
-    for (auto& signal: signals)
+    for (auto& signalReader: signals)
     {
-        if (signal.port.assigned())
-            signal.port.setActive(this->isActive);
+        if (signalReader.port.assigned())
+            signalReader.port.setActive(this->isActive);
     }
 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::getIsActive(Bool* isActive)
+ErrCode MultiReaderImpl::getActive(Bool* isActive)
 {
     OPENDAQ_PARAM_NOT_NULL(isActive);
 

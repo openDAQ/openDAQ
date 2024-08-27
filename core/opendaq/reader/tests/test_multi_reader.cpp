@@ -678,16 +678,17 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0TimeoutExceeded)
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    std::thread thread([sig0, sig1, sig2]
-    {
-        using namespace std::chrono_literals;
+    std::thread thread(
+        [sig0, sig1, sig2]
+        {
+            using namespace std::chrono_literals;
 
-        std::this_thread::sleep_for(200ms);
+            std::this_thread::sleep_for(200ms);
 
-        sig0.createAndSendPacket(3);
-        sig1.createAndSendPacket(3);
-        sig2.createAndSendPacket(3);
-    });
+            sig0.createAndSendPacket(3);
+            sig1.createAndSendPacket(3);
+            sig2.createAndSendPacket(3);
+        });
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count, 300);
@@ -3817,13 +3818,16 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     constexpr SizeT NUM_SIGNALS = 3;
     constexpr SizeT NUM_SAMPLES = 10;
     double values[NUM_SIGNALS][NUM_SAMPLES] = {};
+    double* valuesPerSignal[NUM_SIGNALS] = {values[0], values[1], values[2]};
     int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+    int32_t newDomainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+    SizeT count;
 
     readSignals.reserve(NUM_SIGNALS);
 
-    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
-    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
-    addSignal(0, NUM_SAMPLES * 3, createDomainSignal());
+    auto signalReader = addSignal(0, NUM_SAMPLES, createDomainSignal());
+    addSignal(0, NUM_SAMPLES, createDomainSignal());
+    addSignal(0, NUM_SAMPLES, createDomainSignal());
 
     auto portList = portsList();
     auto multiReader = MultiReaderFromPort(portList);
@@ -3833,41 +3837,72 @@ TEST_F(MultiReaderTest, MultiReaderActive)
         portList[i].connect(readSignals[i].signal);
 
     // check active status
-    bool isActive = multiReader.getIsActive();
+    bool isActive = multiReader.getActive();
     ASSERT_TRUE(isActive);
 
     // send packets to active reader
     SizeT packetIndex = 0;
-    sendPackets(packetIndex++);
+    sendPackets(packetIndex++); // 0
 
     // receive event packets
-    auto count = NUM_SAMPLES * 3;
-    status = multiReader.readWithDomain(values, domainValues, &count);
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
+    ASSERT_EQ(count, 0);
 
     // receive data packets
-    status = multiReader.readWithDomain(values, domainValues, &count);
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(values[0][0], 0);
-    ASSERT_EQ(values[1][0], 0);
-    ASSERT_EQ(values[2][0], 0);
+    ASSERT_EQ(count, NUM_SAMPLES);
 
-    multiReader.setIsActive(false);
+    multiReader.setActive(false);
 
     // send packets to inactive reader
-    sendPackets(packetIndex++);
-    count = NUM_SAMPLES * 3;
-    status = multiReader.readWithDomain(values, domainValues, &count);
+    sendPackets(packetIndex++); // 1
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
 
     // send packets to inactive reader
-    sendPackets(packetIndex++);
-    count = NUM_SAMPLES * 3;
-    status = multiReader.readWithDomain(values, domainValues, &count);
+    sendPackets(packetIndex++); // 2
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
+
+    // send event packet
+    auto signal = signalReader.signal;
+    auto domainSignal = signal.getDomainSignal().asPtrOrNull<ISignalConfig>();
+
+    ASSERT_TRUE(domainSignal.assigned());
+
+    auto dataDescriptor = signal.getDescriptor();
+    auto domainDescriptor = domainSignal.getDescriptor();
+    auto newDomainDescriptor = DataDescriptorBuilderCopy(domainDescriptor)
+        .setSampleType(daq::SampleType::Int32)
+        .build();
+    domainSignal.setDescriptor(newDomainDescriptor);
+
+    // send packets to inactive reader
+    sendPackets(packetIndex++); // 3
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
+    ASSERT_EQ(count, 0);
+
+    // set multireader active again
+    multiReader.setActive(true);
+
+    sendPackets(packetIndex++); // 4
+    count = NUM_SIGNALS * NUM_SAMPLES;
+    status = multiReader.readWithDomain(valuesPerSignal, newDomainValues, &count);
+
+    ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
+    ASSERT_EQ(count, NUM_SAMPLES);
 }

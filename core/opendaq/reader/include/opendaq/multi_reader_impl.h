@@ -81,8 +81,8 @@ public:
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 
-    ErrCode INTERFACE_FUNC setIsActive(Bool isActive) override;
-    ErrCode INTERFACE_FUNC getIsActive(Bool* isActive) override;
+    ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
+    ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
 
 private:
     using Clock = std::chrono::steady_clock;

@@ -63,9 +63,9 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("InputHighValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto customLowValueProp = FloatProperty("inputLowValue", -10.0, EvalValue("$UseCustomInputRange"));
+    const auto customLowValueProp = FloatProperty("InputLowValue", -10.0, EvalValue("$UseCustomInputRange"));
     objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("inputLowValue") +=
+    objPtr.getOnPropertyValueWrite("InputLowValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     const auto outputNameProp = StringProperty("OutputName", "");
@@ -92,7 +92,7 @@ void ClassifierFbImpl::readProperties()
     classCount = objPtr.getPropertyValue("ClassCount");
     useCustomInputRange = objPtr.getPropertyValue("UseCustomInputRange");
     inputHighValue = objPtr.getPropertyValue("InputHighValue");
-    inputLowValue = objPtr.getPropertyValue("inputLowValue");
+    inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     if (blockSize == 0)

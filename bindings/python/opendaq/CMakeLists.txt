@@ -84,6 +84,8 @@ set(SRC_Cpp
     generated/signal/py_signal_config.cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
+    generated/signal/py_reference_domain_info.cpp
+    generated/signal/py_reference_domain_info_builder.cpp
     generated/streaming/py_streaming.cpp
     generated/streaming/py_streaming_type.cpp
     generated/streaming/py_mirrored_signal_config.cpp

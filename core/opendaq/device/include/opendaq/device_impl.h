@@ -131,6 +131,8 @@ protected:
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
+    template <class ChannelImpl, class... Params>
+    ChannelPtr createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder, const StringPtr& localId, const PermissionsPtr& permissions, Params&&... params);
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
     bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
@@ -193,12 +195,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
-    this->defaultComponents.insert("Sync");
+    this->defaultComponents.insert("Synchronization");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
-    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Sync"));
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -239,6 +241,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
                 this->deviceInfo.freeze();
         }
     }
+
+    if (this->deviceInfo.assigned())
+        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
 
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
@@ -402,6 +407,21 @@ ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const F
     return ch;
 }
 
+template <typename TInterface, typename... Interfaces>
+template <class ChannelImpl, class... Params>
+ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder,
+                                                                                        const StringPtr& localId,
+                                                                                        const PermissionsPtr& permissions,
+                                                                                        Params&&... params)
+{
+    ChannelPtr ch = createWithImplementation<IChannel, ChannelImpl>(this->context, parentFolder, localId, std::forward<Params>(params)...);
+
+    ch.getPermissionManager().setPermissions(permissions);
+
+    parentFolder.addItem(ch);
+    return ch;
+}
+
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel)
 {
@@ -420,10 +440,10 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
     if (parentFolder == nullptr)
     {
         const auto folder = channel.getParent().asPtr<IFolderConfig>();
-        return folder.hasItem(channel);
+        return folder.hasItem(channel.getLocalId());
     }
     else
-        return parentFolder.hasItem(channel);
+        return parentFolder.hasItem(channel.getLocalId());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1106,7 +1126,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (syncComponent.assigned())
     {
-        serializer.key("Sync");
+        serializer.key("Synchronization");
         syncComponent.serialize(serializer);
     }
 }
@@ -1235,9 +1255,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceDomain = serializedObject.readObject("deviceDomain");
     }
 
-    if (serializedObject.hasKey("Sync"))
+    if (serializedObject.hasKey("Synchronization"))
     {
-        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Sync");
+        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

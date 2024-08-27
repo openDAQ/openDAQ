@@ -1,4 +1,5 @@
 #include <opendaq/component_exceptions.h>
+#include <opendaq/exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
@@ -7,28 +8,36 @@
 #include <opendaq/discovery_server_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coreobjects/user_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateDefaultServerInstance()
+static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto authenticationProvider = AuthenticationProvider();
     auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.addProperty(IntProperty("CustomProp", 0));
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
     return instance;
+}
+
+static InstancePtr CreateDefaultServerInstance()
+{
+    auto authenticationProvider = AuthenticationProvider();
+    return CreateCustomServerInstance(authenticationProvider);
 }
 
 static InstancePtr CreateUpdatedServerInstance()
@@ -213,6 +222,59 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     nativeStreamingConfig.setPropertyValue("Username", "tomaz");
     nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, PartialSerialization)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("jure", "jure123", List<IString>("user")));
+
+    auto authProvider = StaticAuthenticationProvider(false, users);
+
+    auto serverInstance = CreateCustomServerInstance(authProvider);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto channels = serverInstance.getChannelsRecursive();
+    ASSERT_EQ(channels.getCount(), 2u);
+
+    auto permissions = PermissionsBuilder().inherit(true).deny("user", PermissionMaskBuilder().read()).build();
+    channels.getItemAt(0).getPermissionManager().setPermissions(permissions);
+
+    auto clientInstance = Instance();
+
+    auto config = clientInstance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    generalConfig.setPropertyValue("Username", "jure");
+    generalConfig.setPropertyValue("Password", "jure123");
+
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto clientChannels = device.getChannelsRecursive();
+    ASSERT_EQ(clientChannels.getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, PartialSerializationPropertyObjectClass)
+{
+    auto authProvider = AuthenticationProvider(true);
+
+    auto serverInstance = CreateCustomServerInstance(authProvider);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto typeManager = serverInstance.getContext().getTypeManager();
+
+    const auto obj = PropertyObject();
+    obj.addProperty(StringProperty("NestedStringProperty", "String"));
+    const auto testClass = PropertyObjectClassBuilder("TestClass")
+                               .addProperty(StringProperty("TestString", "String"))
+                               .addProperty(ObjectProperty("TestChild", obj))
+                               .build();
+
+    typeManager.addType(testClass);
+
+    auto clientInstance = Instance();
+    auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 }
 
@@ -606,13 +668,31 @@ TEST_F(NativeDeviceModulesTest, ChangePropAfterRemove)
     auto client = CreateClientInstance();
     auto device = client.getDevices()[0];
 
+    bool propWriteCompleted = false;
+    server.getDevices()[0].getOnPropertyValueWrite("CustomProp") +=
+        [&propWriteCompleted](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        while(!propWriteCompleted)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    };
+
     auto refDevice = client.getDevices()[0].getDevices()[0];
+    auto thread =
+        std::thread(
+            [&refDevice]()
+            {
+                EXPECT_THROW(refDevice.setPropertyValue("CustomProp", 1), ComponentRemovedException);
+            }
+        );
 
     ASSERT_NO_THROW(client.removeDevice(device));
-
     ASSERT_TRUE(refDevice.isRemoved());
+    ASSERT_THROW(refDevice.setPropertyValue("CustomProp", 2), ComponentRemovedException);
 
-    ASSERT_THROW(refDevice.setPropertyValue("NumberOfChannels", 1), ComponentRemovedException);
+    propWriteCompleted = true;
+    thread.join();
 }
 
 TEST_F(NativeDeviceModulesTest, RemoteGlobalIds)
@@ -661,7 +741,7 @@ TEST_F(NativeDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 6u);
+    ASSERT_EQ(properties.getCount(), 9u);
 }
 
 TEST_F(NativeDeviceModulesTest, DeviceInfo)
@@ -681,7 +761,7 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     ASSERT_EQ(subDeviceInfo.getName(), "Device 0");
     ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
     ASSERT_EQ(subDeviceInfo.getModel(), "Reference device");
-    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "dev_ser_0");
+    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "DevSer0");
 }
 
 TEST_F(NativeDeviceModulesTest, ChannelProps)
@@ -1310,6 +1390,8 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+
+    ASSERT_THROW(client.getDevices()[0].getDevices()[0].setPropertyValue("CustomProp", 1), ConnectionLostException);
 
     // reset future / promise
     reconnectionStatusPromise = std::promise<StringPtr>();

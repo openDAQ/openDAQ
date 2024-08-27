@@ -240,6 +240,12 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
 };
 
 TEST_F(SignalTest, IsComponent)

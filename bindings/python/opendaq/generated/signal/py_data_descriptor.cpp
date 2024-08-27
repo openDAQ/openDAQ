@@ -139,4 +139,12 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
             return objectPtr.getRawSampleSize();
         },
         "Gets the actual sample size in buffer of one sample in bytes.");
+    cls.def_property_readonly("reference_domain_info",
+        [](daq::IDataDescriptor *object)
+        {
+            const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
+            return objectPtr.getReferenceDomainInfo().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Reference Domain Info.");
 }

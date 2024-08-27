@@ -136,31 +136,29 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
 {
     auto signalsToUnsubscribe = List<ISignal>();
 
+    std::scoped_lock lock(sync);
+
+    // find and remove registered client Id
+    if (auto clientIter = streamingClientsIds.find(clientId); clientIter != streamingClientsIds.end())
     {
-        std::scoped_lock lock(sync);
-
-        // find and remove registered client Id
-        if (auto clientIter = streamingClientsIds.find(clientId); clientIter != streamingClientsIds.end())
-        {
-            streamingClientsIds.erase(clientId);
-        }
-        else
-        {
-            LOG_I("Client was not registered");
-            return List<ISignal>();
-        }
-
-        LOG_I("Streaming client with ID \"{}\" disconnected", clientId);
-
-        // FIXME keep and reuse packet server when packet retransmission feature will be enabled
-        if (auto it = packetStreamingServers.find(clientId); it != packetStreamingServers.end())
-            packetStreamingServers.erase(it);
+        streamingClientsIds.erase(clientId);
     }
+    else
+    {
+        LOG_I("Client was not registered");
+        return List<ISignal>();
+    }
+
+    LOG_I("Streaming client with ID \"{}\" disconnected", clientId);
+
+    // FIXME keep and reuse packet server when packet retransmission feature will be enabled
+    if (auto it = packetStreamingServers.find(clientId); it != packetStreamingServers.end())
+        packetStreamingServers.erase(it);
 
     // find and remove client Id from subscribers
     for (auto& [signalStringId, registeredSignal] : registeredSignals)
     {
-        if (removeSignalSubscriber(signalStringId, clientId))
+        if (removeSignalSubscriberNoLock(signalStringId, clientId))
         {
             LOG_D("Signal: {} - is unsubscribed", signalStringId);
             signalsToUnsubscribe.pushBack(registeredSignal.daqSignal);
@@ -219,9 +217,14 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
 
 bool StreamingManager::removeSignalSubscriber(const std::string& signalStringId, const std::string& subscribedClientId)
 {
-    bool doSignalUnsubscribe = false;
-
     std::scoped_lock lock(sync);
+
+    return removeSignalSubscriberNoLock(signalStringId, subscribedClientId);
+}
+
+bool StreamingManager::removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId)
+{
+    bool doSignalUnsubscribe = false;
 
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
     {

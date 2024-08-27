@@ -17,7 +17,7 @@
 #pragma once
 #include <coreobjects/unit.h>
 #include <coretypes/ratio.h>
-#include <coretypes/stringobject.h>
+#include <opendaq/reference_domain_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -65,6 +65,14 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
      * @param[out] unit The domain unit.
      */
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) = 0;
 };
 /*!@}*/
 
@@ -74,5 +82,11 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IUnit*, unit
 )
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomainInfo,
+    IRatio*, tickResolution,
+    IString*, origin,
+    IUnit*, unit,
+    IReferenceDomainInfo*, referenceDomainInfo
+)
 
 END_NAMESPACE_OPENDAQ

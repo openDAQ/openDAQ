@@ -24,11 +24,13 @@ namespace daq::config_protocol
 class ConfigServerSignal
 {
 public:
-    static BaseObjectPtr getLastValue(const SignalPtr& signal, const ParamsDictPtr& params);
+    static BaseObjectPtr getLastValue(const SignalPtr& signal, const ParamsDictPtr& params, const UserPtr& user);
 };
 
-inline BaseObjectPtr ConfigServerSignal::getLastValue(const SignalPtr& signal, const ParamsDictPtr& /*params*/)
+inline BaseObjectPtr ConfigServerSignal::getLastValue(const SignalPtr& signal, const ParamsDictPtr& /*params*/, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
+
     const auto value = signal.getLastValue();
     return value;
 }

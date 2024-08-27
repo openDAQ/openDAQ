@@ -26,7 +26,7 @@ TEST_F(ComponentsTest, DeviceFolders)
     for (auto item : items)
     {
         auto id = item.getLocalId();
-        if (id == "Sig" || id == "IO" || id == "FB" || id == "Dev"  || id == "Sync")
+        if (id == "Sig" || id == "IO" || id == "FB" || id == "Dev"  || id == "Synchronization")
             knownFolderCount++;
     }
 

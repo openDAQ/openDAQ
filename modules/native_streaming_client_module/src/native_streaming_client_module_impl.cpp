@@ -112,14 +112,14 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
     {
         auto connectionStringIpv6 = NativeStreamingClientModule::CreateUrlConnectionString(
             protocolPrefix,
-            "[" + discoveredDevice.ipv6Address + "]",
+            discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
         );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+        cap.addAddress(discoveredDevice.ipv6Address);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv6")
                                                      .setConnectionString(connectionStringIpv6)
@@ -667,8 +667,8 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 {
 	std::string urlString = url.toStdString();
 
-	auto regexIpv6Hostname = std::regex("^.*:\\/\\/(\\[([a-fA-F0-9:]+)\\])");
-    auto regexIpv4Hostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
 	std::smatch match;
 
 	if (std::regex_search(urlString, match, regexIpv6Hostname))
@@ -682,14 +682,14 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
-    auto regexIpv6Hostname = std::regex("^.*:\\/\\/(\\[([a-fA-F0-9:]+)\\])");
-    auto regexIpv4Hostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
     std::smatch match;
 
     if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return String("[" + std::string(match[2]) + "]");
+        return String(match[2]);
     if (std::regex_search(urlString, match, regexIpv4Hostname))
-        return String(match[1]);
+        return String(match[2]);
     throw InvalidParameterException("Host name not found in url: {}", url);
 }
 

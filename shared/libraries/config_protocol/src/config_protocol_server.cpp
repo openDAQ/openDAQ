@@ -7,6 +7,7 @@
 #include <config_protocol/config_server_signal.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
+#include <config_protocol/config_server_access_control.h>
 
 namespace daq::config_protocol
 {
@@ -73,6 +74,10 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
 {
+    assert(user.assigned());
+    serializer.setUser(user);
+    notificationSerializer.setUser(user);
+
     buildRpcDispatchStructure();
 
     if (daqContext.assigned())
@@ -96,7 +101,7 @@ BaseObjectPtr ConfigProtocolServer::bindComponentWrapper(const F& f, const Param
 
     const auto ptr = component.asPtr<typename SmartPtr::DeclaredInterface>();
 
-    return f(ptr, params);
+    return f(ptr, params, this->user);
 }
 
 template <class SmartPtr, class Handler>
@@ -104,21 +109,18 @@ void ConfigProtocolServer::addHandler(const std::string& name, const Handler& ha
 {
     using namespace std::placeholders;
 
-    auto h = std::bind(handler, _1, _2);
+    auto h = std::bind(handler, _1, _2, _3);
 
-    rpcDispatch.insert(
-        {
-            name,
-            [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
-            {
-                return bindComponentWrapper<SmartPtr>(
-                        [&h](const SmartPtr& component, const ParamsDictPtr& params) -> BaseObjectPtr
+    rpcDispatch.insert({name,
+                        [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
                         {
-                            return h(component, params);
-                        },
-                    params);
-            }
-        });
+                            return bindComponentWrapper<SmartPtr>(
+                                [&h](const SmartPtr& component, const ParamsDictPtr& params, const UserPtr& user) -> BaseObjectPtr
+                                {
+                                    return h(component, params, user);
+                                },
+                                params);
+                        }});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -147,13 +149,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
-    addHandler<InputPortPtr>("ConnectSignal",
-                             [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
-                             {
-                                 const StringPtr signalId = params.get("SignalId");
-                                 const SignalPtr signal = findComponent(signalId);
-                                 return ConfigServerInputPort::connect(inputPort, signal);
-                             });
+    addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
 }
 
@@ -272,7 +268,6 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
     }
 
     serializer.reset();
-    serializer.setUser(user);
     retObj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -304,15 +299,25 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     if (!component.assigned())
         throw NotFoundException("Component not found");
 
+    ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
 }
 
 BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
+
     serializer.reset();
     rootDevice.serialize(serializer);
 
     return serializer.getOutput();
+}
+
+BaseObjectPtr ConfigProtocolServer::connectSignal(const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    return ConfigServerInputPort::connect(inputPort, signal, user);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
@@ -408,6 +413,8 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
 {
+    ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
+
     const auto typeManager = rootDevice.getContext().getTypeManager();
     return typeManager;
 }

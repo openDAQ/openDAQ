@@ -6,14 +6,19 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-    static const StructTypePtr unitStructType = UnitStructType();
+    static const StructTypePtr deviceDomainStructType = DeviceDomainStructType();
 }
 
-DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution, StringPtr origin, UnitPtr unit)
+DeviceDomainImpl::DeviceDomainImpl(RatioPtr tickResolution,
+                                   StringPtr origin,
+                                   UnitPtr unit,
+                                   ReferenceDomainInfoPtr referenceDomainInfo)
     : GenericStructImpl<IDeviceDomain, IStruct>(
-        detail::unitStructType,
-        Dict<IString, IBaseObject>(
-            {{"TickResolution", std::move(tickResolution)}, {"Origin", std::move(origin)}, {"Unit", std::move(unit)}}))
+          detail::deviceDomainStructType,
+          Dict<IString, IBaseObject>({{"TickResolution", std::move(tickResolution)},
+                                      {"Origin", std::move(origin)},
+                                      {"Unit", std::move(unit)},
+                                      {"ReferenceDomainInfo", std::move(referenceDomainInfo)}}))
 {
 }
 
@@ -38,6 +43,17 @@ ErrCode DeviceDomainImpl::getUnit(IUnit** unit)
     OPENDAQ_PARAM_NOT_NULL(unit);
 
     *unit = this->fields.get("Unit").asPtr<IUnit>().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceDomainImpl::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainInfo);
+
+    auto ptr = this->fields.get("ReferenceDomainInfo");
+    if (ptr.assigned())
+        *referenceDomainInfo = ptr.asPtr<IReferenceDomainInfo>().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -67,6 +83,13 @@ ErrCode DeviceDomainImpl::serialize(ISerializer* serializer)
             serializer->key("unit");
             unit.serialize(serializer);
         }
+
+        const ReferenceDomainInfoPtr referenceDomainInfo = this->fields.get("ReferenceDomainInfo");
+        if (referenceDomainInfo.assigned())
+        {
+            serializer->key("referenceDomainInfo");
+            referenceDomainInfo.serialize(serializer);
+        }
     }
 
     serializer->endObject();
@@ -95,6 +118,7 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     RatioPtr resolution;
     StringPtr origin;
     UnitPtr unit;
+    ReferenceDomainInfoPtr referenceDomainInfo;
     
     if (serializedObj.hasKey("tickResolution"))
     {
@@ -111,7 +135,12 @@ ErrCode DeviceDomainImpl::Deserialize(ISerializedObject* serialized, IBaseObject
         unit = serializedObj.readObject("unit");
     }
 
-    *obj = DeviceDomain(resolution, origin, unit).as<IBaseObject>();
+    if (serializedObj.hasKey("referenceDomainInfo"))
+    {
+        referenceDomainInfo = serializedObj.readObject("referenceDomainInfo");
+    }
+
+    *obj = DeviceDomain(resolution, origin, unit, referenceDomainInfo).as<IBaseObject>();
     return OPENDAQ_SUCCESS;
 }
 
@@ -119,6 +148,13 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
     IRatio*, tickResolution,
     IString*, origin,
     IUnit*, unit
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DeviceDomain, IDeviceDomain, createDeviceDomainWithReferenceDomainInfo,
+    IRatio*, tickResolution,
+    IString*, origin,
+    IUnit*, unit,
+    IReferenceDomainInfo*, referenceDomainInfo
 )
 
 END_NAMESPACE_OPENDAQ

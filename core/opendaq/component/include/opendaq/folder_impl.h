@@ -235,8 +235,9 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
-         this->triggerCoreEvent(args);
-         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+
+        this->triggerCoreEvent(args);
+        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     return OPENDAQ_SUCCESS;
@@ -465,7 +466,11 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
         serializer.startObject();
         for (const auto& item : items)
         {
+            if (!item.second.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
+                continue;
+
             serializer.key(item.first.c_str());
+
             if (forUpdate)
                 item.second.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
             else

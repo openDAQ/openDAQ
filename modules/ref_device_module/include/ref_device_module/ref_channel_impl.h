@@ -37,12 +37,16 @@ struct RefChannelInit
     double globalSampleRate;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
+    StringPtr referenceDomainId;
 };
 
 class RefChannelImpl final : public ChannelImpl<IRefChannel>
 {
 public:
-    explicit RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init);
+    explicit RefChannelImpl(const ContextPtr& context,
+                            const ComponentPtr& parent,
+                            const StringPtr& localId,
+                            const RefChannelInit& init);
 
     // IRefChannel
     void collectSamples(std::chrono::microseconds curTime) override;
@@ -77,6 +81,7 @@ private:
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
+    StringPtr referenceDomainId;
 
     void initProperties();
     void packetSizeChangedInternal();

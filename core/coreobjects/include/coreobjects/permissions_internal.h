@@ -15,19 +15,27 @@
  */
 
 #pragma once
-#include <coretypes/common.h>
+#include <coretypes/baseobject.h>
+#include <coretypes/dictobject.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @brief Enumeration of available access permissions
+/*#
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
-enum class Permission : EnumType
+
+/*!
+ * @brief Internal Permissions interface. It should be used only in openDAQ core implementation files.
+ */
+DECLARE_OPENDAQ_INTERFACE(IPermissionsInternal, IBaseObject)
 {
-    None = 0x0,    // The user has no permissions on the object.
-    Read = 0x1,    // The user can see and read an object.
-    Write = 0x2,   // The user can change or write to the object.
-    Execute = 0x4  // The user can execute an action attached to the object.
+    // [templateType(permissions, IString, IInteger)]
+    /*!
+     * @brief Returns a dictionary of assigned permissions for each group.
+     * @param permissions[out] A dictionary of assigned permissions for each group.
+     */
+    virtual ErrCode INTERFACE_FUNC getAssigned(IDict** permissions) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

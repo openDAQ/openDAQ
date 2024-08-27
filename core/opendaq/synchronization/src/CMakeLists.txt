@@ -6,16 +6,19 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_SyncComponent_PublicHeaders}
+        ${SRC_SyncComponentPrivate_PublicHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_SyncComponent_PrivateHeaders}
+        ${SRC_SyncComponentPrivate_PrivateHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_Cpp_Component_Generated
         ${SRC_SyncComponent_Cpp}
+        ${SRC_SyncComponentPrivate_Cpp}
         PARENT_SCOPE
     )
 endfunction()

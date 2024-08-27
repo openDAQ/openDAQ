@@ -48,9 +48,6 @@ public:
         createFunctionBlock();
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
-
-        // Fix so PacketReadyNotification::Scheduler works
-        context.getScheduler().stop();
     }
 
 private:
@@ -96,7 +93,7 @@ private:
             {
                 // Explicit creation of one domain packet
                 auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size());
-                auto domainPacketData = static_cast<Int*>(domainPacket.getData());
+                auto domainPacketData = static_cast<Int*>(domainPacket.getRawData());
                 for (size_t ii = 0; ii < mockDomainPackets[i].size(); ii++)
                     *domainPacketData++ = static_cast<Int>(mockDomainPackets[i][ii]);
                 domainPackets.push_back(domainPacket);
@@ -140,7 +137,7 @@ private:
         auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
-        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb" , config);
 
         // Set input (port) and output (signal) of the function block
         fb.getInputPorts()[0].connect(signal);
@@ -154,7 +151,7 @@ private:
         {
             // Create data packet
             auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
-            auto packetData = static_cast<T*>(dataPacket.getData());
+            auto packetData = static_cast<T*>(dataPacket.getRawData());
             for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
                 *packetData++ = static_cast<T>(mockPackets[i][ii]);
 

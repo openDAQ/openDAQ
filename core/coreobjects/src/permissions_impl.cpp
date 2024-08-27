@@ -10,10 +10,14 @@ PermissionsImpl::PermissionsImpl()
 {
 }
 
-PermissionsImpl::PermissionsImpl(Bool inherited, const DictPtr<IString, Int>& allowed, const DictPtr<IString, Int>& denied)
+PermissionsImpl::PermissionsImpl(Bool inherited,
+                                 const DictPtr<IString, Int>& allowed,
+                                 const DictPtr<IString, Int>& denied,
+                                 const DictPtr<IString, Int>& assigned)
     : inherited(inherited)
     , allowed(cloneDict(allowed))
     , denied(cloneDict(denied))
+    , assigned(cloneDict(assigned))
 {
 }
 
@@ -38,6 +42,14 @@ ErrCode INTERFACE_FUNC PermissionsImpl::getDenied(IDict** permissions)
     OPENDAQ_PARAM_NOT_NULL(permissions);
 
     *permissions = denied.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC PermissionsImpl::getAssigned(IDict** permissions)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissions);
+
+    *permissions = assigned.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

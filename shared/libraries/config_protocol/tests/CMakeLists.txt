@@ -6,7 +6,8 @@ add_executable(${TEST_APP}
     test_config_packet.cpp
     test_config_client_server.cpp
     test_config_protocol_integration.cpp
-	test_config_serialization.cpp
+    test_config_protocol_access_control.cpp
+    test_config_serialization.cpp
     test_ref_modules.cpp
     test_app.cpp
     test_core_events.cpp

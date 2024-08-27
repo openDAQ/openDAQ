@@ -25,11 +25,15 @@ BEGIN_NAMESPACE_OPENDAQ
 class DeviceDomainImpl : public GenericStructImpl<IDeviceDomain, IStruct>
 {
 public:
-    explicit DeviceDomainImpl(RatioPtr tickResolution, StringPtr origin, UnitPtr unit);
+    explicit DeviceDomainImpl(RatioPtr tickResolution,
+                              StringPtr origin,
+                              UnitPtr unit,
+                              ReferenceDomainInfoPtr referenceDomainInfo = nullptr);
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

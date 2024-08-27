@@ -32,8 +32,7 @@ class PropertiesView(tk.Frame):
         # layout
         tree.column('#0', anchor=tk.CENTER)
         tree.column('#1', anchor=tk.CENTER)
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font='Arial 10 bold')
+
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)
 
@@ -80,7 +79,7 @@ class PropertiesView(tk.Frame):
             elif property_info.value_type == daq.CoreType.ctFunc:
                 property_value = "Method"
             elif property_info.value_type == daq.CoreType.ctStruct:
-                property_value = "Struct"
+                property_value = "Struct {{{}}}".format(property_info.name)
             else:
                 property_value = printed_value(
                     property_info.item_type, node.get_property_value(property_info.name))

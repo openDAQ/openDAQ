@@ -15,6 +15,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_holder_ptr.h>
 #include <config_protocol/config_client_device_impl.h>
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -36,8 +37,12 @@ public:
 
     void SetUp() override
     {
+        const auto anonymousUser = User("", "");
+        const auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        device->getPermissionManager().setPermissions(permissions);
+
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
 
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
@@ -101,6 +106,7 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
 {
     MockComponent::Strict component;
     component->addProperty(StringPropertyBuilder("PropName", "-").build());
+    component->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(component));
 
@@ -236,6 +242,7 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
+    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     auto fbTypes = Dict<IString, IFunctionBlockType>();
     fbTypes.set("Id", FunctionBlockType("Id", "Name", "Desc", defaultConfig));
@@ -250,6 +257,7 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 TEST_F(ConfigProtocolTest, GetDeviceInfo)
 {
     const auto devInfo = DeviceInfo("connectionString", "Name");
+    devInfo.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     StringPtr fbId;
     EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
@@ -324,6 +332,9 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
 
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+    signal->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
@@ -337,6 +348,8 @@ TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
 {
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
+
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));

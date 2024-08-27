@@ -16,8 +16,10 @@
 
 
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 using Daq.Core.Objects;
+using Daq.Core.Types;
 
 using GlblRes = global::openDAQDemoNet.Properties.Resources;
 
@@ -26,15 +28,11 @@ namespace openDAQDemoNet;
 
 
 /// <summary>
-/// Class describing property items from <see cref="Daq.Core.OpenDAQ.Component"/>s.
+/// Class describing property items from <see cref="Daq.Core.OpenDAQ.Component"/>s (inherits from <see cref="AttributeItem"/>).
 /// </summary>
-public class PropertyItem
+/// <seealso cref="AttributeItem" />
+public class PropertyItem : AttributeItem
 {
-    private readonly Image _editableImage = new Bitmap(16, 16); //empty image
-    private readonly Image _lockedImage   = (Image)GlblRes.locked16.Clone();
-
-    private bool _isLocked;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyItem"/> class.
     /// </summary>
@@ -42,35 +40,36 @@ public class PropertyItem
     /// <param name="name">The property name.</param>
     /// <param name="value">The property value's text representation.</param>
     /// <param name="unit">The property value's unit.</param>
-    public PropertyItem(bool isLocked, string name, string? value, string unit, string description)
+    /// <param name="description">The description of the property.</param>
+    /// <param name="openDaqObject">The property object.</param>
+    public PropertyItem(bool isLocked, string name, string? value, string unit, string description, BaseObject openDaqObject)
+        : base(isLocked, name, name, value, CoreType.ctUndefined, openDaqObject)
     {
-        _isLocked = isLocked;
-
-        this.Name        = name;
-        this.Value       = value ?? string.Empty;
         this.Unit        = unit;
         this.Description = description;
     }
 
     #region fields to show in table
 
+    //Hack: declaring base properties as `new` to display the inherited properties first in grid (DisplayAttribute.Order not working)
+
     /// <summary>
     /// Gets an image indicating whether this <see cref="PropertyItem"/> is locked.
     /// </summary>
     [DisplayName("Locked")]
-    public Image LockedImage => _isLocked ? _lockedImage : _editableImage;
+    public new Image LockedImage => base.LockedImage;
 
     /// <summary>
     /// Gets the property name.
     /// </summary>
     [DisplayName("Property name")]
-    public string Name { get; }
+    public new string DisplayName => base.DisplayName; //for a `Property` the `DisplayName` always equals `Name`
 
     /// <summary>
     /// Gets the property value.
     /// </summary>
     [DisplayName("Value")]
-    public string Value { get; }
+    public new string Value => base.Value;
 
     /// <summary>
     /// Gets the property value's unit.
@@ -85,9 +84,4 @@ public class PropertyItem
     public string Description { get; }
 
     #endregion
-
-    /// <summary>
-    /// Gets the locked state (private property).
-    /// </summary>
-    internal bool IsLocked => _isLocked;
 }

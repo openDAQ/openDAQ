@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/device_ptr.h>
 #include <coreobjects/property_object_protected.h>
+#include <config_protocol/config_server_access_control.h>
 
 namespace daq::config_protocol
 {
@@ -24,29 +25,39 @@ namespace daq::config_protocol
 class ConfigServerComponent
 {
 public:
-    static BaseObjectPtr getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr setPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr setProtectedPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr clearPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr callProperty(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr endUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr update(const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setProtectedPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr clearPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr callProperty(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr endUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
+    static BaseObjectPtr update(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user);
 };
 
-inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr& component,
+                                                             const ParamsDictPtr& params,
+                                                             const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-
     const auto value = component.getPropertyValue(propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, user, Permission::Read);
+
     return value;
 }
 
-inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr& component,
+                                                             const ParamsDictPtr& params,
+                                                             const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = params["PropertyValue"];
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, user, {Permission::Read, Permission::Write});
 
     component.setPropertyValue(propertyName, propertyValue);
 
@@ -54,26 +65,35 @@ inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr&
 }
 
 inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const ComponentPtr& component,
-                                                                      const ParamsDictPtr& params)
+                                                                      const ParamsDictPtr& params,
+                                                                      const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, user, {Permission::Read, Permission::Write});
 
     component.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
 
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const ComponentPtr& component,
+                                                               const ParamsDictPtr& params,
+                                                               const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, user, {Permission::Read, Permission::Write});
 
     component.clearPropertyValue(propertyName);
 
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     BaseObjectPtr callParams;
@@ -81,6 +101,9 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
         callParams = params.get("Params");
 
     const auto propValue = component.getPropertyValue(propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, user, {Permission::Read, Permission::Execute});
 
     const auto propValueCoreType = propValue.getCoreType();
 
@@ -100,8 +123,10 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
     throw InvalidPropertyException("Property not callable");
 }
 
-inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
+
     if (params.hasKey("Path"))
     {
         const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
@@ -112,8 +137,10 @@ inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& comp
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
+
     if (params.hasKey("Path"))
     {
         const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
@@ -124,8 +151,12 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& compon
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr& component,
+                                                              const ParamsDictPtr& params,
+                                                              const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
+
     const auto attributeName = static_cast<std::string>(params["AttributeName"]);
     const BaseObjectPtr attributeValue = params["AttributeValue"];
 
@@ -141,8 +172,10 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component, const ParamsDictPtr& params, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(component, user, {Permission::Read, Permission::Write});
+
     const auto serializedString = static_cast<std::string>(params["Serialized"]);
     const auto path = static_cast<std::string>(params["Path"]);
 

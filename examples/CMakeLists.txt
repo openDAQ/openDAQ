@@ -1,6 +1,6 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 
-set(OPENDAQ_EXAMPLES_VERSION 3.3.0)
+set(OPENDAQ_EXAMPLES_VERSION 3.4.0)
 project(Examples VERSION ${OPENDAQ_EXAMPLES_VERSION} LANGUAGES CXX)
 
 option(APP_ENABLE_WEBPAGE_EXAMPLES "Enable webpage examples" OFF)
@@ -70,6 +70,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
     target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
+
+    add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
+    target_link_libraries(client_authentication PRIVATE daq::opendaq)
 
     set(SRC_HeadersConsoleApp cpp/console_application/console_application.h
                               cpp/console_application/app_channel.h

@@ -19,27 +19,21 @@
 
 PyDaqIntf<daq::IMultiReader, daq::ISampleReader> declareIMultiReader(pybind11::module_ m)
 {
-    return wrapInterface<daq::IMultiReader, daq::ISampleReader>(m, "IMultiReader");
+    return wrapInterface<daq::IMultiReader, daq::ISampleReader>(m, "IMultiReader", py::dynamic_attr());
 }
 
 void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::ISampleReader> cls)
 {
     cls.doc() = "Reads multiple Signals at once.";
 
-    m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadTimeoutType timeoutType) {
-        if(valueReadType == daq::SampleType::Invalid && domainReadType == daq::SampleType::Invalid && timeoutType == daq::ReadTimeoutType::All) {
-            return daq::MultiReader(signals).detach();
-        }
+    m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType) {
         PyTypedReader::checkTypes(valueReadType, domainReadType);
-        // in case of overriden type, set other type to default
-        valueReadType = valueReadType == daq::SampleType::Invalid ? daq::SampleType::Float64 : valueReadType;
-        domainReadType = domainReadType == daq::SampleType::Invalid ? daq::SampleType::Int64 : domainReadType;
-
-        return daq::MultiReaderEx(signals, valueReadType, domainReadType, daq::ReadMode::Scaled, timeoutType).detach();
+        return daq::MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
     },
     py::arg("signals"), 
-    py::arg("value_type") = daq::SampleType::Invalid, 
-    py::arg("domain_type") = daq::SampleType::Invalid,
+    py::arg("value_type") = daq::SampleType::Float64, 
+    py::arg("domain_type") = daq::SampleType::Int64,
+    py::arg("read_mode") = daq::ReadMode::Scaled,
     py::arg("timeout_type") = daq::ReadTimeoutType::All,
     "Creates a MultiReader object that reads multiple signals at once.");
     m.def("MultiReaderFromExisting", &daq::MultiReaderFromExisting_Create);

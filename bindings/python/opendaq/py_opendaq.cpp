@@ -19,7 +19,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
         .value("ComplexFloat32", daq::SampleType::ComplexFloat32)
         .value("ComplexFloat64", daq::SampleType::ComplexFloat64)
         .value("Binary", daq::SampleType::Binary)
-        .value("String", daq::SampleType::String);
+        .value("String", daq::SampleType::String)
+        .value("Struct", daq::SampleType::Struct);
 
     py::enum_<daq::ScaledSampleType>(m, "ScaledSampleType")
         .value("Invalid", daq::ScaledSampleType::Invalid)

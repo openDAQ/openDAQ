@@ -506,7 +506,7 @@ private:
             auto descriptor = pyObject.attr(attribute_name).template cast<daq::IDataDescriptor*>();
             return daq::DataDescriptorPtr::Borrow(descriptor);
         }
-        catch (const py::error_already_set& error)
+        catch (const py::error_already_set& /*error*/)
         {
         }
         return nullptr;

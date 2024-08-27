@@ -3612,3 +3612,50 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15
     ASSERT_THROW_MSG(
         MultiReader(signalsToList()), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
+
+class MockSignal
+{
+public:
+    MockSignal(const ContextPtr& context, const StringPtr& id, const StringPtr& epoch)
+    {
+        signal = daq::Signal(context, nullptr, id + "_valueSignal");
+        domainSignal = daq::Signal(context, nullptr, id + "_domainSignal");
+
+        auto valueDescriptor = daq::DataDescriptorBuilder()
+                                .setSampleType(daq::SampleType::Float64)
+                                .setUnit(Unit("V", -1, "volts", "voltage"))
+                                .setName(id + " values")
+                                .build();
+        auto domainDescriptor = daq::DataDescriptorBuilder()
+                                    .setSampleType(daq::SampleType::Int64)
+                                    .setUnit(daq::Unit("s", -1, "seconds", "time"))
+                                    .setTickResolution(daq::Ratio(1, 1000))
+                                    .setRule(daq::LinearDataRule(1, 0))
+                                    .setOrigin(epoch)
+                                    .setName(id + " time")
+                                    .build();
+
+        signal->setDescriptor(valueDescriptor);
+        domainSignal->setDescriptor(domainDescriptor);
+        signal->setDomainSignal(domainSignal);
+    }
+    SignalConfigPtr signal;
+    SignalConfigPtr domainSignal;
+};
+
+TEST_F(MultiReaderTest, UndefinedReadWithMockSignals)
+{
+    StringPtr epoch = "2022-09-27T00:02:03+00:00";
+    auto sig1 = MockSignal(context, "sig1", epoch);
+    auto sig2 = MockSignal(context, "sig2", epoch);
+
+    auto readerBuilder = MultiReaderBuilder();
+    readerBuilder.addSignal(sig1.signal);
+    readerBuilder.addSignal(sig2.signal);
+    readerBuilder.setValueReadType(SampleType::Undefined);
+    readerBuilder.setDomainReadType(SampleType::Int64);
+    ASSERT_NO_THROW(readerBuilder.build());
+
+    auto signalList = List<SignalPtr>(sig1.signal, sig2.signal);
+    ASSERT_NO_THROW(MultiReader(signalList, SampleType::Undefined, SampleType::Int64));
+}

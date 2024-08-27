@@ -1,3 +1,10 @@
+27.08.2024
+Description:
+    - IServer inherited from IPropertyObject instead of IBaseObject
+
+-m [interface] IServer : public IBaseObject
++m [interface] IServer : public IPropertyObject
+
 26.08.2024
 Description:
     - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.

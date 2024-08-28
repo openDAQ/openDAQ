@@ -76,7 +76,6 @@ public:
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
-    ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;

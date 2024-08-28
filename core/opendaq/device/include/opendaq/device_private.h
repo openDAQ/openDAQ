@@ -34,6 +34,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevicePrivate, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC setAsRoot() = 0;
     virtual ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) = 0;
+    virtual ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) = 0;
 };
 /*!@}*/
 

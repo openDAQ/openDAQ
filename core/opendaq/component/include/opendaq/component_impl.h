@@ -731,7 +731,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IUpdatableContext, UpdatableContextImpl>(this->borrowPtr<ComponentPtr>()));
+    BaseObjectPtr context(createWithImplementation<IUpdatableContext, UpdatableContextImpl>(this->template borrowPtr<ComponentPtr>()));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
     {

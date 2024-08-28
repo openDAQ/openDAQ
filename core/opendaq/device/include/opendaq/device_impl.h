@@ -87,10 +87,10 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
-    ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
+    ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
 
     // Function block devices
@@ -1169,19 +1169,21 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         }
         else
         {
-            if (!serializedDevice.hasKey("configurationConnectionInfo"))
-            {
-                LOG_W("Device {} not found", deviceId);
-                return;
-            }
-            ServerCapabilityPtr configurationInfo = serializedDevice.readObject("configurationConnectionInfo");
-            PropertyObjectPtr deviceConfig;
-            if (serializedDevice.hasKey("deviceConfig"))
-            {
-                deviceConfig = serializedDevice.readObject("deviceConfig");
-            }
-            LOG_D("Recreating device from connection string {}", configurationInfo.getConnectionString());
-            addDevice(&device, configurationInfo.getConnectionString(), deviceConfig);
+            LOG_W("Device {} not found", deviceId);
+            return;
+            // if (!serializedDevice.hasKey("configurationConnectionInfo"))
+            // {
+            //     LOG_D("Device {} not found", deviceId);
+            //     return;
+            // }
+            // ServerCapabilityPtr configurationInfo = serializedDevice.readObject("configurationConnectionInfo");
+            // PropertyObjectPtr deviceConfig;
+            // if (serializedDevice.hasKey("deviceConfig"))
+            // {
+            //     deviceConfig = serializedDevice.readObject("deviceConfig");
+            // }
+            // LOG_D("Recreating device from connection string {}", configurationInfo.getConnectionString());
+            // addDevice(&device, configurationInfo.getConnectionString(), deviceConfig);
         }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);

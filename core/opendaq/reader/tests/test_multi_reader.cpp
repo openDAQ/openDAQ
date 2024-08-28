@@ -255,6 +255,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -305,6 +311,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -374,6 +386,11 @@ TEST_F(MultiReaderTest, IsSynchronized)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     ASSERT_FALSE(multi.getIsSynchronized());
 
@@ -433,6 +450,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0Raw)
 
     auto multi = MultiReaderRaw(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -487,6 +510,12 @@ TEST_F(MultiReaderTest, SignalStartRelativeOffset0)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -538,6 +567,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0Timeout)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -611,6 +646,12 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0TimeoutExceeded)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -637,17 +678,16 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0TimeoutExceeded)
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    std::thread thread(
-        [sig0, sig1, sig2]
-        {
-            using namespace std::chrono_literals;
+    std::thread thread([sig0, sig1, sig2]
+    {
+        using namespace std::chrono_literals;
 
-            std::this_thread::sleep_for(200ms);
+        std::this_thread::sleep_for(200ms);
 
-            sig0.createAndSendPacket(3);
-            sig1.createAndSendPacket(3);
-            sig2.createAndSendPacket(3);
-        });
+        sig0.createAndSendPacket(3);
+        sig1.createAndSendPacket(3);
+        sig2.createAndSendPacket(3);
+    });
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count, 300);
@@ -676,6 +716,12 @@ TEST_F(MultiReaderTest, WithPacketOffsetNot0)
     auto& sig2 = addSignal(111, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -728,6 +774,12 @@ TEST_F(MultiReaderTest, WithPacketOffsetNot0Relative)
     auto& sig2 = addSignal(111, 843, createDomainSignal(" "));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -782,6 +834,12 @@ TEST_F(MultiReaderTest, MaxTimeIsNotOnSignalWithMaxEpoch)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -833,6 +891,12 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -847,9 +911,6 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10)
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
-
-    available = multi.getAvailableCount();
-    ASSERT_EQ(available, 446u);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 446u);
@@ -887,6 +948,12 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10Relative)
     auto& sig2 = addSignal(0, 843, createDomainSignal(" "));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -939,6 +1006,12 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10WithAlignedOffset)
 
     auto multi = MultiReader(signalsToList());
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -989,6 +1062,12 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10WithAlignedOffsetRelative)
     auto& sig2 = addSignal(111, 843, createDomainSignal(" "));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1041,6 +1120,12 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10WithIntersampleOffset)
     auto& sig2 = addSignal(111, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1098,6 +1183,12 @@ TEST_F(MultiReaderTest, EpochChanged)
 
     auto multi = MultiReader(signalsToList());
     TimeReader timeReader(multi);
+    
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1153,6 +1244,12 @@ TEST_F(MultiReaderTest, EpochChangedBeforeFirstData)
     auto& sig2 = addSignal(111, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto multi = MultiReader(signalsToList());
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1217,6 +1314,12 @@ TEST_F(MultiReaderTest, Signal2Invalidated)
     auto multi = MultiReader(signalsToList());
     TimeReader timeReader(multi);
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -1278,6 +1381,12 @@ TEST_F(MultiReaderTest, ResolutionChanged)
 
     auto multi = MultiReader(signalsToList());
     TimeReader timeReader(multi);
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1348,6 +1457,12 @@ TEST_F(MultiReaderTest, SampleRateChanged)
     auto multi = MultiReader(signalsToList());
     TimeReader timeReader(multi);
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -1415,6 +1530,12 @@ TEST_F(MultiReaderTest, ReuseReader)
     auto multi = MultiReader(signalsToList());
     {
         TimeReader timeReader(multi);
+        
+        {
+            SizeT count{0};
+            auto status = multi.read(nullptr, &count);
+            ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        }
 
         auto available = multi.getAvailableCount();
         ASSERT_EQ(available, 0u);
@@ -1670,6 +1791,12 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
 
     auto reader = MultiReader(signalsToList());
 
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     reader.setOnDataAvailable(
         [&, promise = &promise]() mutable
         {
@@ -1790,6 +1917,12 @@ TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
 
     auto multi = MultiReaderEx(signalsToList(), ReadTimeoutType::All, -1, true);
 
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
@@ -1836,6 +1969,13 @@ TEST_F(MultiReaderTest, SampleRateDivider)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0)));  // 200 Hz
 
     auto multi = MultiReader(signalsToList());
+    
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     ASSERT_EQ(multi.getCommonSampleRate(), 1000);
 
     auto available = multi.getAvailableCount();
@@ -1903,6 +2043,12 @@ TEST_F(MultiReaderTest, SampleRateDividerRequiredRate)
 
     auto multi =
         MultiReaderEx(signalsToList(), SampleType::Float64, SampleType::Int64, ReadMode::Scaled, ReadTimeoutType::All, reqiredRate, false);
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+    
     ASSERT_EQ(multi.getCommonSampleRate(), reqiredRate);
 
     auto available = multi.getAvailableCount();
@@ -2034,6 +2180,12 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutChecking)
     auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
     const MultiReaderPtr multiReader = MultiReader(signalsToList(), SampleType::Float64, SampleType::Int64);
+
+    {
+        SizeT count{0};
+        auto status = multiReader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     constexpr size_t numberOfSamplesToRead = 8;
     double dataFirstSignal[numberOfSamplesToRead];

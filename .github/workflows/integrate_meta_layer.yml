@@ -43,8 +43,8 @@ jobs:
       - name: Build opendaq-sdk image
         run: |
           source oe-init-build-env
-          bitbake-layers add-layer meta-openembedded/meta-oe meta-opendaq-sdk
-          echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> build/conf/local.conf
-          echo 'HOSTTOOLS += "mono"' >> build/conf/local.conf
+          bitbake-layers add-layer ../meta-openembedded/meta-oe ../meta-opendaq-sdk
+          echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> conf/local.conf
+          echo 'HOSTTOOLS += "mono"' >> conf/local.conf
           bitbake opendaq-sdk
         working-directory: ${{ env.poky_dir }}

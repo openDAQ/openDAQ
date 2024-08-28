@@ -1,3 +1,19 @@
+28.02.2024
+Description:
+    - Improving save/load mechanizm
+    - Add IFunctionBlocks methods to add/remove nestead fb
+
++ [interface] IUpdatableContext : public IBaseObject
++ [function] IUpdatableContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
++ [function] IUpdatableContext::getInputPortConnection(IString* parentId, IDict** connections)
+
+-m[function] IUpdatable::updateEnded()
++m[function] IUpdatable::updateEnded(IBaseObject* context)
++ [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
+
++ [function] IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config) override;
++ [function] IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock) override;
+
 26.08.2024
 Description:
     - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.

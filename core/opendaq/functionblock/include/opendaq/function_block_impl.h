@@ -54,6 +54,8 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getStatusSignal(ISignal** statusSignal) override;
     ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -395,6 +397,32 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
         fbList.pushBack(fb);
 
     return fbList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (typeId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    return daqTry([&]
+    {
+        *functionBlock = createAndAddNestedFunctionBlock(typeId, nullptr, config).detach();
+    });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    return daqTry([&]
+    {
+        this->removeNestedFunctionBlock(functionBlock);
+    });
 }
 
 template <typename TInterface, typename... Interfaces>

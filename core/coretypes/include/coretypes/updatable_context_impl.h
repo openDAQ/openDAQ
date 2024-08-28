@@ -25,8 +25,9 @@ BEGIN_NAMESPACE_OPENDAQ
 class UpdatableContextImpl : public ImplementationOf<IUpdatableContext>
 {
 public:
-    UpdatableContextImpl()
+    UpdatableContextImpl(const ComponentPtr& curComponent)
         : connections(Dict<IString, IBaseObject>())
+        , rootComponent(getRootComponent(curComponent))
     {
     }
 
@@ -34,7 +35,17 @@ public:
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
 
 private:
+
+    ComponentPtr getRootComponent(const ComponentPtr& curComponent)
+    {
+        const auto parent = curComponent.getParent();
+        if (!parent.assigned())
+            return curComponent;
+        return getRootComponent(parent);
+    }
+
     DictPtr<IString, IBaseObject> connections;
+    ComponentPtr rootComponent;
 };
 
 inline ErrCode UpdatableContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)

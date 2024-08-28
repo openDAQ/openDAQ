@@ -722,8 +722,6 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
         this->getParent(&parent);
         StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
         auto connections = contextPtr.getInputPortConnection(parentId);
-        auto k = connections.getKeyList();
-        auto v = connections.getValueList();
         if (connections.hasKey(this->localId))
             serializedSignalId = connections.get(this->localId);
     }

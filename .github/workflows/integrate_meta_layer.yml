@@ -6,7 +6,7 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
 
 env:
-  poky_dir: poky
+  poky_dir: ./poky
   poky_yoctoproject_ref: dunfell
   meta_openembedded_ref: dunfell
   meta_opendaq_sdk_ref: dunfell
@@ -15,6 +15,7 @@ env:
 jobs:
   build_linux:
     runs-on: ubuntu-latest
+    if: ${{ ! github.event.pull_request.draft }}
 
     steps:
       - name: Checkout

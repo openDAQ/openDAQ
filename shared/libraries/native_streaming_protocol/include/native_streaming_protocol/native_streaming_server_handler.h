@@ -62,7 +62,7 @@ protected:
     void releaseSessionHandler(SessionPtr session);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
-                                  const std::string& signalStringId,
+                                  const SignalPtr& signal,
                                   bool subscribe,
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);

@@ -22,6 +22,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/packet_ptr.h>
 #include <coreobjects/property_object_ptr.h>
+#include <opendaq/signal_ptr.h>
 
 #include <native_streaming_protocol/native_streaming_protocol.h>
 
@@ -42,9 +43,11 @@ using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNum
                                             bool available)>;
 
 using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdType& signalNumericId,
-                                                        const std::string& signalStringId,
+                                                        const SignalPtr& signal,
                                                         bool subscribed,
                                                         const std::string& clientId)>;
+
+using OnFindSignalCallback = std::function<SignalPtr(const std::string& signalId)>;
 
 using OnStreamingRequestCallback = std::function<void()>;
 

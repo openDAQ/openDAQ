@@ -15,7 +15,6 @@ env:
 jobs:
   build_linux:
     runs-on: ubuntu-latest
-    if: ${{ ! github.event.pull_request.draft }}
 
     steps:
       - name: Checkout

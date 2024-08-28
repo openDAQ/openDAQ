@@ -27,15 +27,4 @@ ErrCode MockServerImpl::getId(IString** serverId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockServerImpl::getConfig(IPropertyObject** config)
-{
-    if (config != nullptr)
-    {
-        *config = PropertyObject().detach();
-    }
-    return OPENDAQ_SUCCESS;
-}
-
-
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)

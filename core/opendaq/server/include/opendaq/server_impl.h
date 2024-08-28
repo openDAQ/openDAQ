@@ -87,14 +87,6 @@ public:
         return wrapHandler(this, &Self::onStopServer);
     }
 
-    ErrCode INTERFACE_FUNC getConfig(IPropertyObject** serverConfig) override
-    {
-        if (serverConfig == nullptr)
-            return OPENDAQ_ERR_INVALIDPARAMETER;
-        *serverConfig = config.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
 protected:
 
     virtual PropertyObjectPtr getDiscoveryConfig()

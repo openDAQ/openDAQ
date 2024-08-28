@@ -409,7 +409,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
 
     return daqTry([&]
     {
-        *functionBlock = createAndAddNestedFunctionBlock(typeId, nullptr, config).detach();
+        *functionBlock = this->createAndAddNestedFunctionBlock(typeId, nullptr, config).detach();
     });
 }
 

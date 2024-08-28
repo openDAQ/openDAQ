@@ -21,14 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install mono
+        run: |
+          echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+          sudo apt update
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+          sudo apt update
+          sudo apt install -y mono-devel
+
       - name: Clone poky repo
         run: |
           git clone --branch ${{ env.poky_yoctoproject_ref }} https://git.yoctoproject.org/poky ${{ env.poky_dir }}
-
-      - name: Source environment
-        run: |
-          source oe-init-build-env
-        working-directory: ${{ env.poky_dir }}
 
       - name: Clone meta-layer dependencies
         run: |
@@ -38,28 +41,9 @@ jobs:
 
       - name: Add meta-layer dependencies to bblayers.conf
         run: |
-          bitbake-layers add-layer ../meta-openembedded/meta-oe ../meta-opendaq-sdk
-        working-directory: ${{ env.poky_dir }}/build
-
-      - name: Include opendaq-sdk package
-        run: |
-          echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> conf/local.conf
-        working-directory: ${{ env.poky_dir }}/build
-
-      - name: Install mono
-        run: |
-          echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-          sudo apt update
-          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-          sudo apt update
-          sudo apt install -y mono-devel
-
-      - name: Whitelist mono
-        run: |
-          echo 'HOSTTOOLS += "mono"' >> conf/local.conf
-        working-directory: ${{ env.poky_dir }}/build
-
-      - name: Build image
-        run: |
+          source oe-init-build-env
+          bitbake-layers add-layer meta-openembedded/meta-oe meta-opendaq-sdk
+          echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> build/conf/local.conf
+          echo 'HOSTTOOLS += "mono"' >> build/conf/local.conf
           bitbake opendaq-sdk
-        working-directory: ${{ env.poky_dir }}/build
+        working-directory: ${{ env.poky_dir }}

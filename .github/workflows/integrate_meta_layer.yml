@@ -6,7 +6,7 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
 
 env:
-  poky_dir: ./poky
+  poky_dir: ${{ github.workspace }}/poky
   poky_yoctoproject_ref: dunfell
   meta_openembedded_ref: dunfell
   meta_opendaq_sdk_ref: dunfell

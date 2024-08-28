@@ -46,19 +46,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
             portBinder = PropertyObject();
 
         connectPorts(ports, valueReadType, domainReadType, mode);
-
-        updateCommonSampleRateAndDividers();
-        if (invalid)
-            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
-
-        SizeT min{};
-        SyncStatus syncStatus{};
-
-        std::lock_guard lockNotify(notify.mutex);
-
-        ErrCode errCode = synchronize(min, syncStatus);
-
-        checkErrorInfo(errCode);
     }
     catch (...)
     {
@@ -141,19 +128,6 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     if (fromInputPorts)
         portBinder = PropertyObject();
     connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
-
-    updateCommonSampleRateAndDividers();
-    if (invalid)
-        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
-
-    SizeT min{};
-    SyncStatus syncStatus{};
-
-    std::lock_guard lockNotify(notify.mutex);
-
-    ErrCode errCode = synchronize(min, syncStatus);
-
-    checkErrorInfo(errCode);
 }
 
 MultiReaderImpl::~MultiReaderImpl()
@@ -464,10 +438,9 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
             port.asPtr<IOwnable>().setOwner(portBinder);
         port.setListener(listener);
 
-        auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
-        if (sigInfo.connection.assigned())
-            sigInfo.handleDescriptorChanged(sigInfo.connection.dequeue());
+        signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
     }
+    portConnected = true;
 }
 
 ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)

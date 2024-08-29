@@ -44,8 +44,8 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/component_errors.h>
-#include <coretypes/updatable_context_impl.h>
-#include <coretypes/updatable_context_ptr.h>
+#include <opendaq/component_update_context_impl.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -731,7 +731,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IUpdatableContext, UpdatableContextImpl>(this->template borrowPtr<ComponentPtr>()));
+    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>()));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
     {

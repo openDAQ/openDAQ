@@ -28,7 +28,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/work_factory.h>
 #include <opendaq/scheduler_errors.h>
-#include <coretypes/updatable_context_ptr.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class... Interfaces>
@@ -675,7 +675,7 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
 {
     if (obj.hasKey("signalId"))
     {
-        UpdatableContextPtr contextPtr = context.asPtrOrNull<IUpdatableContext>(true);
+        ComponentUpdateContextPtr contextPtr = context.asPtrOrNull<IComponentUpdateContext>(true);
         if (contextPtr.assigned())
         {
             ComponentPtr parent;
@@ -716,7 +716,7 @@ inline StringPtr getRemoteId(const std::string& globalId)
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    if (auto contextPtr = context.asPtrOrNull<IUpdatableContext>(true); contextPtr.assigned())
+    if (auto contextPtr = context.asPtrOrNull<IComponentUpdateContext>(true); contextPtr.assigned())
     {
         ComponentPtr parent;
         this->getParent(&parent);

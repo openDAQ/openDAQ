@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
+#include <opendaq/component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,14 +27,36 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE(IUpdatableContext, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
 {
+    /*!
+     * @brief Sets signal connection to the input port for the specified parent component which is usualy a function block.
+     * @param parentId The ID of the parent component.
+     * @param portId The ID of the input port.
+     * @param signalId The ID of the signal.
+     */
     virtual ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) = 0;
+
+    // [templateType(connections, IString, IString)]
+    /*!
+     * @brief Gets the dictionary with key-value pairs of input port local IDs and signal IDs for the specified parent component.
+     * @param parentId The ID of the parent component.
+     * @param[out] connections The connections to the input ports.
+     */
     virtual ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) = 0;
+
+    /*!
+     * @brief Gets the root component of the current component.
+     * @param[out] rootComponent The root component.
+     */
+    virtual ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) = 0;
 };
 
 /*!
  * @}
  */
+
+
+
 
 END_NAMESPACE_OPENDAQ

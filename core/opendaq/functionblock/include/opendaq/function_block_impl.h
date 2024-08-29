@@ -25,7 +25,7 @@
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/property_object_factory.h>
-#include <coretypes/updatable_context_ptr.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -291,7 +291,7 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    UpdatableContextPtr contextPtr = context.asPtr<IUpdatableContext>(true);
+    ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
     for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(this->globalId))
     {
         InputPortPtr inputPort;

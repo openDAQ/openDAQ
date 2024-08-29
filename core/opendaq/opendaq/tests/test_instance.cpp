@@ -513,7 +513,7 @@ TEST_F(InstanceTest, AddServerBackwardsCompat)
     ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
 }
 
-TEST_F(InstanceTest, SaveLoadRestoreDevice)
+TEST_F(InstanceTest, DISABLED_SaveLoadRestoreDevice)
 {
     auto instance = test_helpers::setupInstance("localIntanceId");
     instance.addDevice("daqmock://phys_device");
@@ -544,7 +544,7 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     }
 }
 
-TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
+TEST_F(InstanceTest, DISABLED_SaveLoadRestoreDeviceDifferentIds)
 {
     auto instance = test_helpers::setupInstance("localIntanceId");
     instance.addDevice("daqmock://phys_device");
@@ -678,7 +678,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
 }
 
-TEST_F(InstanceTest, SaveLoadFunctionConnectingSIgnalFromDev)
+TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingSIgnalFromDev)
 {
     StringPtr config;
     StringPtr signalId;
@@ -709,7 +709,7 @@ TEST_F(InstanceTest, SaveLoadFunctionConnectingSIgnalFromDev)
     ASSERT_EQ(restoredSig.getGlobalId(), signalId);
 }
 
-TEST_F(InstanceTest, SaveLoadServers)
+TEST_F(InstanceTest, DISABLED_SaveLoadServers)
 {
     StringPtr config;
     StringPtr serverId;

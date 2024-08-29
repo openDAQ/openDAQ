@@ -15,17 +15,15 @@
  */
 
 #pragma once
-#include <coretypes/updatable_context.h>
-#include <coretypes/stringobject_factory.h>
-#include <coretypes/dictobject_factory.h>
-#include <set>
+#include <opendaq/component_update_context.h>
+#include <opendaq/component_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class UpdatableContextImpl : public ImplementationOf<IUpdatableContext>
+class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext>
 {
 public:
-    UpdatableContextImpl(const ComponentPtr& curComponent)
+    ComponentUpdateContextImpl(const ComponentPtr& curComponent)
         : connections(Dict<IString, IBaseObject>())
         , rootComponent(getRootComponent(curComponent))
     {
@@ -33,22 +31,25 @@ public:
 
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
+    ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
 
 private:
 
-    ComponentPtr getRootComponent(const ComponentPtr& curComponent)
-    {
-        const auto parent = curComponent.getParent();
-        if (!parent.assigned())
-            return curComponent;
-        return getRootComponent(parent);
-    }
+    static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
     DictPtr<IString, IBaseObject> connections;
     ComponentPtr rootComponent;
 };
 
-inline ErrCode UpdatableContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
+inline ComponentPtr ComponentUpdateContextImpl::getRootComponent(const ComponentPtr& curComponent)
+{
+    const auto parent = curComponent.getParent();
+    if (!parent.assigned())
+        return curComponent;
+    return getRootComponent(parent);
+}
+
+inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
 {
     if (!parentId || !portId || !signalId)
         return OPENDAQ_ERR_INVALID_ARGUMENT;
@@ -71,7 +72,7 @@ inline ErrCode UpdatableContextImpl::setInputPortConnection(IString* parentId, I
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode UpdatableContextImpl::getInputPortConnection(IString* parentId, IDict** connections)
+inline ErrCode ComponentUpdateContextImpl::getInputPortConnection(IString* parentId, IDict** connections)
 {
     if (!parentId || !connections)
         return OPENDAQ_ERR_INVALID_ARGUMENT;
@@ -86,6 +87,15 @@ inline ErrCode UpdatableContextImpl::getInputPortConnection(IString* parentId, I
         ports = this->connections.get(parentId);
     }
     *connections = ports.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootComponent)
+{
+    if (!rootComponent)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    *rootComponent = this->rootComponent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

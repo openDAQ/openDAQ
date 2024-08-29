@@ -3,9 +3,9 @@ Description:
     - Improving save/load mechanizm
     - Add IFunctionBlocks methods to add/remove nestead fb
 
-+ [interface] IUpdatableContext : public IBaseObject
-+ [function] IUpdatableContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
-+ [function] IUpdatableContext::getInputPortConnection(IString* parentId, IDict** connections)
++ [interface] IComponentUpdateContext : public IBaseObject
++ [function] IComponentUpdateContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
++ [function] IComponentUpdateContext::getInputPortConnection(IString* parentId, IDict** connections)
 
 -m[function] IUpdatable::updateEnded()
 +m[function] IUpdatable::updateEnded(IBaseObject* context)

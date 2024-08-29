@@ -170,8 +170,6 @@ set(SRC_PublicHeaders
     anonymous_variable.h
     updatable.h
     updatable_ptr.h
-    updatable_context.h
-    updatable_context_ptr.h
 
     macro_utils.h
     span.h
@@ -264,7 +262,6 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        simple_type_impl.h
                        enumeration_impl.h
                        enumeration_type_impl.h
-                       updatable_context_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

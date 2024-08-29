@@ -27,7 +27,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-class BaseSessionHandler
+class BaseSessionHandler: public std::enable_shared_from_this<BaseSessionHandler>
 {
 public:
     BaseSessionHandler(const ContextPtr& daqContext,

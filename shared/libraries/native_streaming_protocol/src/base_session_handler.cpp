@@ -140,10 +140,13 @@ BaseSessionHandler::~BaseSessionHandler()
 
 ReadTask BaseSessionHandler::createReadHeaderTask()
 {
+    auto thisWeakPtr = this->weak_from_this();
     return ReadTask(
-        [this](const void* data, size_t size)
+        [thisWeakPtr](const void* data, size_t size)
         {
-            return readHeader(data, size);
+            if (const auto thisPtr = thisWeakPtr.lock())
+                return thisPtr->readHeader(data, size);
+            return ReadTask();
         },
         TransportHeader::PACKED_HEADER_SIZE
     );

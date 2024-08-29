@@ -46,5 +46,6 @@ jobs:
           bitbake-layers add-layer ../meta-openembedded/meta-oe ../meta-opendaq-sdk
           echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> conf/local.conf
           echo 'HOSTTOOLS += "mono"' >> conf/local.conf
+          echo 'INHERIT += "rm_work"' >> conf/local.conf
           bitbake opendaq-sdk
         working-directory: ${{ env.poky_dir }}

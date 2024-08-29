@@ -26,6 +26,7 @@ class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateConte
 public:
     ComponentUpdateContextImpl(const ComponentPtr& curComponent)
         : connections(Dict<IString, IBaseObject>())
+        , signalDependencies(Dict<IString, IString>())
         , rootComponent(getRootComponent(curComponent))
     {
     }
@@ -34,6 +35,7 @@ public:
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
+    ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
 
 private:
 
@@ -41,6 +43,7 @@ private:
     static StringPtr getRemoteId(const std::string& globalId);
 
     DictPtr<IString, IBaseObject> connections;
+    DictPtr<IString, IString> signalDependencies;
     ComponentPtr rootComponent;
 };
 
@@ -147,6 +150,17 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
         return OPENDAQ_NOTFOUND;
 
     *signal = signalPtr.asPtrOrNull<ISignal>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId, IString* parentId)
+{
+    if (signalId == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+    if (parentId == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    signalDependencies.set(signalId, parentId);
     return OPENDAQ_SUCCESS;
 }
 

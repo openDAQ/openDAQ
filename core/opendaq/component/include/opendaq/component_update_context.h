@@ -59,6 +59,13 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param[out] signal The found signal. If signal is not found signal is set to nullptr.
      */
     virtual ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) = 0;
+
+    /*!
+     * @brief Sets the signal dependency to the function block.
+     * @param signalId The ID of the signal.
+     * @param parentId The ID of the parent component.
+     */
+    virtual ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) = 0;
 };
 
 /*!

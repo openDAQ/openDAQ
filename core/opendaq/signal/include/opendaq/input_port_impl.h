@@ -708,6 +708,10 @@ inline StringPtr getRemoteId(const std::string& globalId)
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
+    const auto thisPtr = this->template borrowPtr<InputPortPtr>();
+    if (thisPtr.getSignalNoLock().assigned())
+        return;
+
     auto contextPtr = context.asPtr<IComponentUpdateContext>(true);
     ComponentPtr parent;
     this->getParent(&parent);
@@ -718,7 +722,6 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     {
         try
         {
-            const auto thisPtr = this->template borrowPtr<InputPortPtr>();
             thisPtr.connect(signal);
             finishUpdate();
         }

@@ -90,7 +90,6 @@ protected:
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
-    ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
 
@@ -675,18 +674,11 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
 {
     if (obj.hasKey("signalId"))
     {
-        ComponentUpdateContextPtr contextPtr = context.asPtrOrNull<IComponentUpdateContext>(true);
-        if (contextPtr.assigned())
-        {
-            ComponentPtr parent;
-            this->getParent(&parent);
-            StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
-            contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
-        }
-        else
-        {
-            serializedSignalId = obj.readString("signalId");
-        }
+        ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
+        ComponentPtr parent;
+        this->getParent(&parent);
+        StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+        contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
     }
     else
     {
@@ -716,50 +708,30 @@ inline StringPtr getRemoteId(const std::string& globalId)
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    if (auto contextPtr = context.asPtrOrNull<IComponentUpdateContext>(true); contextPtr.assigned())
-    {
-        ComponentPtr parent;
-        this->getParent(&parent);
-        StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
-        auto connections = contextPtr.getInputPortConnection(parentId);
-        if (connections.hasKey(this->localId))
-            serializedSignalId = connections.get(this->localId);
-    }
+    auto contextPtr = context.asPtr<IComponentUpdateContext>(true);
+    ComponentPtr parent;
+    this->getParent(&parent);
+    StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+    auto signal = contextPtr.getSignal(parentId, this->localId);
 
-    if (serializedSignalId.assigned() && serializedSignalId.getLength())
+    if (signal.assigned())
     {
-        const auto thisPtr = this->template borrowPtr<InputPortPtr>();
-        const auto root = this->getRootComponent(thisPtr);
-        auto newSignalId = root.getGlobalId() + getRemoteId(serializedSignalId);
-        ComponentPtr sig;
-        root->findComponent(newSignalId, &sig);
-        if (sig.assigned())
+        try
         {
-            try
-            {
-                thisPtr.connect(sig);
-            }
-            catch (const DaqException&)
-            {
-                LOG_W("Failed to connect signal: {}", newSignalId);
-            }
+            const auto thisPtr = this->template borrowPtr<InputPortPtr>();
+            thisPtr.connect(signal);
+            finishUpdate();
         }
-        else
+        catch (const DaqException&)
         {
-            LOG_W("Signal not found: {}", newSignalId);
+            LOG_W("Failed to connect signal: {}", signal.getGlobalId());
         }
     }
-    finishUpdate();
+    else
+    {
+        LOG_W("Signal not found for inputPort {}", this->globalId);
+    }
     Super::onUpdatableUpdateEnd(context);
-}
-
-template <class ... Interfaces>
-ComponentPtr GenericInputPortImpl<Interfaces...>::getRootComponent(const ComponentPtr& curComponent)
-{
-    const auto parent = curComponent.getParent();
-    if (!parent.assigned())
-        return curComponent;
-    return getRootComponent(parent);
 }
 
 template <class... Interfaces>

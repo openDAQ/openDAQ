@@ -32,7 +32,6 @@ BEGIN_NAMESPACE_OPENDAQ
 class ServerImpl;
 
 using Server = ServerImpl;
-
 class ServerImpl : public ImplementationOf<IServer>
 {
 public:
@@ -42,13 +41,11 @@ public:
     explicit ServerImpl(StringPtr id,
                         PropertyObjectPtr serverConfig,
                         DevicePtr rootDevice,
-                        ContextPtr context,
-                        ModuleManagerPtr moduleManager)
+                        ContextPtr context)
         : id(std::move(id))
         , config(std::move(serverConfig))
         , rootDevice(std::move(rootDevice))
         , context(std::move(context))
-        , moduleManager(std::move(moduleManager))
     {
     }
 
@@ -102,7 +99,6 @@ protected:
     PropertyObjectPtr config;
     DevicePtr rootDevice;
     ContextPtr context;
-    ModuleManagerPtr moduleManager;
 };
 
 END_NAMESPACE_OPENDAQ

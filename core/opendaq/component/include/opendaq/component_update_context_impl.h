@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/component_update_context.h>
 #include <opendaq/component_ptr.h>
+#include <opendaq/signal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,10 +33,12 @@ public:
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
+    ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
 
 private:
 
     static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
+    static StringPtr getRemoteId(const std::string& globalId);
 
     DictPtr<IString, IBaseObject> connections;
     ComponentPtr rootComponent;
@@ -96,6 +99,54 @@ inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootCom
         return OPENDAQ_ERR_INVALID_ARGUMENT;
 
     *rootComponent = this->rootComponent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+inline StringPtr ComponentUpdateContextImpl::getRemoteId(const std::string& globalId)
+{
+    size_t firstSlashPos = globalId.find('/');
+    if (firstSlashPos == std::string::npos) {
+        // No slash found, return the original path
+        return globalId;
+    }
+
+    // Find the position of the second slash
+    size_t secondSlashPos = globalId.find('/', firstSlashPos + 1);
+    if (secondSlashPos == std::string::npos) {
+        // Only one segment found, return an empty string
+        return "";
+    }
+
+    // Erase the first segment
+    return globalId.substr(secondSlashPos);
+}
+
+inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString* portId, ISignal** signal)
+{
+    if (parentId == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+    if (portId == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+    if (signal == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    *signal = nullptr;
+
+    DictPtr<IString, IBaseObject> connections;
+    getInputPortConnection(parentId, &connections);
+    if (!connections.hasKey(portId))
+        return OPENDAQ_NOTFOUND;
+    
+    auto signalId = connections.get(portId);
+    auto overridenSignalId = rootComponent.getGlobalId() + getRemoteId(signalId);
+
+    ComponentPtr signalPtr;
+    rootComponent->findComponent(overridenSignalId, &signalPtr);
+
+    if (!signalPtr.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    *signal = signalPtr.asPtrOrNull<ISignal>().detach();
     return OPENDAQ_SUCCESS;
 }
 

@@ -18,6 +18,7 @@
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
 #include <opendaq/component.h>
+#include <opendaq/signal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -50,6 +51,14 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param[out] rootComponent The root component.
      */
     virtual ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) = 0;
+
+    /*!
+     * @brief Gets the signal by the specified parent and port ID.
+     * @param parentId The ID of the parent component.
+     * @param portId The ID of the input port.
+     * @param[out] signal The found signal. If signal is not found signal is set to nullptr.
+     */
+    virtual ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) = 0;
 };
 
 /*!

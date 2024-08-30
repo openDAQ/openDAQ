@@ -34,6 +34,7 @@ public:
 
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
+    ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
@@ -96,6 +97,15 @@ inline ErrCode ComponentUpdateContextImpl::getInputPortConnection(IString* paren
         ports = this->connections.get(parentId);
     }
     *connections = ports.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* parentId)
+{
+    if (!parentId)
+        return OPENDAQ_SUCCESS;
+
+    connections->deleteItem(parentId);
     return OPENDAQ_SUCCESS;
 }
 
@@ -221,7 +231,6 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
 
     // unregister dependency
     signalDependencies->deleteItem(signalId);
-    connections->deleteItem(parentId);
 
     // Find the signal in parent component
     auto signalIdPtr = StringPtr::Borrow(signalId);

@@ -47,6 +47,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) = 0;
 
     /*!
+     * @brief Removes the connection to the input port for the specified parent component.
+     * @param parentId The ID of the parent component.
+     */
+    virtual ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) = 0;
+
+    /*!
      * @brief Gets the root component of the current component.
      * @param[out] rootComponent The root component.
      */

@@ -316,6 +316,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const Ba
         }
         inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
     }
+    contextPtr.removeInputPortConnection(inputPorts.getGlobalId());
     Super::onUpdatableUpdateEnd(context);
 }
 

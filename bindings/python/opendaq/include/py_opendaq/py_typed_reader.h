@@ -23,7 +23,9 @@
 #include "coretypes/exceptions.h"
 #include "opendaq/block_reader_ptr.h"
 #include "opendaq/event_packet_ids.h"
+#include "opendaq/event_packet_ptr.h"
 #include "opendaq/multi_reader_ptr.h"
+#include "opendaq/multi_reader_status.h"
 #include "opendaq/reader_config_ptr.h"
 #include "opendaq/time_reader.h"
 #include "py_core_types/py_converter.h"
@@ -130,18 +132,16 @@ struct PyTypedReader
         reader->getValueReadType(&valueType);
         if (valueType == daq::SampleType::Undefined)
         {
-            printf("Undefined value type\n");
             daq::DataDescriptorPtr vd = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
             if (!vd.assigned())
             {
-                printf("Getting descriptors from event\n");
                 auto status = readZeroValues(reader, timeoutMs);
                 auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
 
-                // if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
-                // {
-                //     throw std::runtime_error("Undefined type reader has no descriptors");
-                // }
+                if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                {
+                    throw std::runtime_error("Undefined type reader has no descriptors");
+                }
 
                 setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
                 setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
@@ -151,7 +151,6 @@ struct PyTypedReader
             }
             else
             {
-                printf("Getting descriptors from attribute\n");
                 valueType = vd.getSampleType();
             }
         }
@@ -212,18 +211,16 @@ private:
             reader->getDomainReadType(&domainType);
             if (domainType == daq::SampleType::Undefined)
             {
-                printf("Undefined domain type\n");
                 daq::DataDescriptorPtr dd = getDescriptor<ReaderType>(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE);
                 if (!dd.assigned())
                 {
-                    printf("Getting descriptors from event\n");
                     auto status = readZeroValues(reader, timeoutMs);
                     auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
 
-                    // if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
-                    // {
-                    //     throw std::runtime_error("Undefined type reader has no descriptors");
-                    // }
+                    if (!dataDescriptor.assigned() && !domainDescriptor.assigned())
+                    {
+                        throw std::runtime_error("Undefined type reader has no descriptors");
+                    }
 
                     setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
                     setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
@@ -233,7 +230,6 @@ private:
                 }
                 else
                 {
-                    printf("Getting descriptors from attribute\n");
                     domainType = dd.getSampleType();
                 }
             }
@@ -484,10 +480,9 @@ private:
             case daq::SampleType::Int32:
             case daq::SampleType::UInt64:
             case daq::SampleType::Int64:
-            case daq::SampleType::Struct:
-                // case daq::SampleType::Invalid:
-                // case daq::SampleType::Binary: //banned
                 break;
+            case daq::SampleType::Struct:
+            case daq::SampleType::Binary:
             case daq::SampleType::RangeInt64:
             case daq::SampleType::ComplexFloat32:  // complex64
             case daq::SampleType::ComplexFloat64:  // complex128
@@ -509,7 +504,7 @@ private:
         catch (const py::error_already_set& /*error*/)
         {
         }
-        return nullptr;
+        return {};
     }
 
     template <typename ReaderType>
@@ -519,14 +514,21 @@ private:
         pyObject.attr(attribute_name) = descriptor.detach();
     }
 
-    static inline std::tuple<daq::DataDescriptorPtr, daq::DataDescriptorPtr> getDescriptorsFromStatus(const daq::ReaderStatusPtr& status)
+    template <typename ReaderStatusType>
+    static inline std::tuple<daq::DataDescriptorPtr, daq::DataDescriptorPtr> getDescriptorsFromStatus(const ReaderStatusType& status)
     {
         daq::DataDescriptorPtr valueDescriptor;
         daq::DataDescriptorPtr domainDescriptor;
 
         if (status.assigned() && status.getReadStatus() == daq::ReadStatus::Event)
         {
-            auto packet = status.getEventPacket();
+            daq::EventPacketPtr packet;
+            if constexpr (std::is_same_v<daq::IMultiReaderStatus, typename ReaderStatusType::DeclaredInterface>) {
+                packet = status.getMainDescriptor();
+            } else {
+                packet = status.getEventPacket();
+            }
+
             if (packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 auto params = packet.getParameters();

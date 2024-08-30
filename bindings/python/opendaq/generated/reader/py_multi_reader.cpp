@@ -28,6 +28,8 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
 
     m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType) {
         PyTypedReader::checkTypes(valueReadType, domainReadType);
+        if(domainReadType == daq::SampleType::Undefined)
+            throw daq::InvalidParameterException("Domain type cannot be undefined.");
         return daq::MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
     },
     py::arg("signals"), 

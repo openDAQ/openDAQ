@@ -197,8 +197,6 @@ void RefChannelImpl::packetSizeChangedInternal()
 
 void RefChannelImpl::packetSizeChanged()
 {
-    std::scoped_lock lock(sync);
-
     packetSizeChangedInternal();
 }
 
@@ -222,13 +220,11 @@ void RefChannelImpl::updateSamplesGenerated()
 
 void RefChannelImpl::waveformChanged()
 {
-    std::scoped_lock lock(sync);
     waveformChangedInternal();
 }
 
 void RefChannelImpl::signalTypeChanged()
 {
-    std::scoped_lock lock(sync);
     signalTypeChangedInternal();
     buildSignalDescriptors();
     updateSamplesGenerated();
@@ -471,12 +467,9 @@ void RefChannelImpl::createSignals()
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
-    std::scoped_lock lock(sync);
-
+    const auto lock = getLock();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);
-    signalTypeChangedInternal();
-    buildSignalDescriptors();
-    updateSamplesGenerated();
+    signalTypeChanged();
 }
 
 std::string RefChannelImpl::getEpoch()

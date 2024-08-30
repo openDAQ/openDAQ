@@ -291,8 +291,6 @@ void RefDeviceImpl::updateNumberOfChannels()
     LOG_I("Properties: NumberOfChannels {}", num);
     auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
 
-    std::scoped_lock lock(sync);
-
     if (num < channels.size())
     {
         std::for_each(std::next(channels.begin(), num), channels.end(), [this](const ChannelPtr& ch)
@@ -316,8 +314,6 @@ void RefDeviceImpl::enableCANChannel()
 {
     bool enableCANChannel = objPtr.getPropertyValue("EnableCANChannel");
 
-    std::scoped_lock lock(sync);
-
     if (!enableCANChannel)
     {
         if (canChannel.assigned() && hasChannel(canFolder, canChannel))
@@ -336,8 +332,6 @@ void RefDeviceImpl::enableCANChannel()
 void RefDeviceImpl::enableProtectedChannel()
 {
     bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
-
-    std::scoped_lock lock(sync);
 
     if (!enabled)
     {
@@ -369,8 +363,6 @@ void RefDeviceImpl::updateGlobalSampleRate()
     auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
     LOG_I("Properties: GlobalSampleRate {}", globalSampleRate);
 
-    std::scoped_lock lock(sync);
-
     for (auto& ch : channels)
     {
         auto chPriv = ch.asPtr<IRefChannel>();
@@ -383,7 +375,6 @@ void RefDeviceImpl::updateAcqLoopTime()
     Int loopTime = objPtr.getPropertyValue("AcquisitionLoopTime");
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime);
 
-    std::scoped_lock lock(sync);
     this->acqLoopTime = static_cast<size_t>(loopTime);
 }
 

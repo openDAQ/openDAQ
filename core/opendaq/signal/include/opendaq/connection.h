@@ -128,14 +128,14 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
     // [elementType(packets, IPacket)]
     /*!
      * @brief Places multiple packets at the back of the queue.
-     * @param packet The packets to be enqueued.
+     * @param packets The packets to be enqueued.
      */
     virtual ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) = 0;
 
     // [elementType(packets, IPacket), overloadFor(enqueueMultiple), stealRef(packets)]
     /*!
      * @brief Places multiple packets at the back of the queue. The references of the packets are stolen.
-     * @param packet The packets to be enqueued.
+     * @param packets The packets to be enqueued.
      *
      * After calling the method, the packets should not be touched again. The ownership of the packets
      * is taken by underlying connections and it could be destroyed before the function returns.

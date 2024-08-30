@@ -51,6 +51,7 @@ DECLARE_OPENDAQ_INTERFACE(ICoercer, IBaseObject)
      * @retval OPENDAQ_SUCCESS If the value either already fits the restrictions, or was successfully modified to do so.
      */
     virtual ErrCode INTERFACE_FUNC coerce(IBaseObject* propObj, IBaseObject* value, IBaseObject** result) = 0;
+    virtual ErrCode INTERFACE_FUNC coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBaseObject** result) = 0;
 
     /*!
      * @brief Gets the string expression used when creating the coercer.

@@ -49,6 +49,7 @@ DECLARE_OPENDAQ_INTERFACE(IValidator, IBaseObject)
      * @retval OPENDAQ_SUCCESS if `value` is valid.
      */
     virtual ErrCode INTERFACE_FUNC validate(IBaseObject* propObj, IBaseObject* value) = 0;
+    virtual ErrCode INTERFACE_FUNC validateNoLock(IBaseObject* propObj, IBaseObject* value) = 0;
 
     /*!
      * @brief Gets the string expression used when creating the validator.

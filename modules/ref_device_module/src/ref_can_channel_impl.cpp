@@ -58,7 +58,6 @@ void RefCANChannelImpl::propChangedInternal()
 
 void RefCANChannelImpl::propChanged()
 {
-    std::scoped_lock lock(sync);
     propChangedInternal();
 }
 

@@ -125,7 +125,6 @@ protected:
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
-    std::mutex sync;
     ContextPtr context;
 
     bool isComponentRemoved;

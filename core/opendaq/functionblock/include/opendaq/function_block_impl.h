@@ -282,7 +282,7 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
                                                         const SerializedObjectPtr& obj,
                                                         const BaseObjectPtr& context)
 {
-    InputPortPtr inputPort = InputPort(this->context, this->template borrowPtr<ComponentPtr>(), localId);
+    InputPortPtr inputPort = InputPort(this->context, inputPorts, localId);
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
     updatableIp.updateInternal(obj, context);
@@ -292,7 +292,7 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
-    for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(this->globalId))
+    for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(inputPorts.getGlobalId()))
     {
         InputPortPtr inputPort;
         if (!inputPorts.hasItem(portId))

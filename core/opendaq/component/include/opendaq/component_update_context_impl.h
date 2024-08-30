@@ -147,13 +147,13 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     auto overridenSignalId = rootComponent.getGlobalId() + getRemoteId(signalId);
 
     Bool isCircle = false;
-    for (Int i = 0; i < parentDependencies.getCount(); i++)
+    for (SizeT i = 0; i < parentDependencies.getCount(); i++)
     {
         const auto & parentDep = parentDependencies.getItemAt(i);
         if (parentDep == parentId)
         {
             std::string deps;
-            for (Int j = i; j < parentDependencies.getCount(); j++)
+            for (SizeT j = i; j < parentDependencies.getCount(); j++)
             {
                 deps += parentDependencies.getItemAt(j).toStdString() + " -> ";
             }

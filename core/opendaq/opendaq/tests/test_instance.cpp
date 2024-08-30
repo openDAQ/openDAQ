@@ -612,6 +612,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
 TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
 {
     StringPtr config;
+    auto connections = Dict<IString, IString>();
     {
         auto instance = test_helpers::setupInstance("localIntanceId");
 
@@ -622,13 +623,24 @@ TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
         fb3.getInputPorts()[0].connect(fb2.getSignals()[0]);
         fb1.getInputPorts()[0].connect(fb3.getSignals()[0]);
 
+        connections.set(fb1.getGlobalId(), fb1.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb2.getGlobalId(), fb2.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb3.getGlobalId(), fb3.getInputPorts()[0].getSignal().getGlobalId());
 
         config = instance.saveConfiguration();
-        std::cout << config << std::endl;
     }
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 3u);
+    // yes, we are still attemping to restore all connections
+    for (const auto & fb : restoredFbs)
+    {
+        ASSERT_TRUE(connections.hasKey(fb.getGlobalId()));
+        ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
+    }
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)

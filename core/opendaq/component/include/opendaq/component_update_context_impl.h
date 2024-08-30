@@ -38,9 +38,10 @@ public:
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
-    ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
 private:
+
+    ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
     static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
     static StringPtr getRemoteId(const std::string& globalId);
@@ -121,14 +122,16 @@ inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootCom
 inline StringPtr ComponentUpdateContextImpl::getRemoteId(const std::string& globalId)
 {
     size_t firstSlashPos = globalId.find('/');
-    if (firstSlashPos == std::string::npos) {
+    if (firstSlashPos == std::string::npos) 
+    {
         // No slash found, return the original path
         return globalId;
     }
 
     // Find the position of the second slash
     size_t secondSlashPos = globalId.find('/', firstSlashPos + 1);
-    if (secondSlashPos == std::string::npos) {
+    if (secondSlashPos == std::string::npos) 
+    {
         // Only one segment found, return an empty string
         return "";
     }

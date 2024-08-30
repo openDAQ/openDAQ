@@ -585,7 +585,10 @@ PropertyObjectPtr ModuleManagerImpl::populateDeviceConfig(const PropertyObjectPt
 {
     PropertyObjectPtr configClone;
     if (config.assigned())
-        config.asPtr<IPropertyObjectInternal>()->clone(&configClone);
+        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&configClone));
+
+    if (!configClone.assigned())
+        throw GeneralErrorException("Failure while cloning device config object. Clone is null.");
 
     const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configClone);
     const PropertyObjectPtr generalConfig = isDefaultAddDeviceConfigRes ? configClone.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
@@ -845,10 +848,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
         }
     }
 
-    if (selectedCapability.assigned())
-        return selectedCapability.getConnectionString();
-
-    return nullptr;
+    return selectedCapability.getConnectionString();
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const

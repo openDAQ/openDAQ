@@ -47,7 +47,6 @@ void FFTFbImpl::initProperties()
 
 void FFTFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -192,7 +191,7 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void FFTFbImpl::calculate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     while (!linearReader.getEmpty())
     {

@@ -1,5 +1,47 @@
 # 8.11.2024
+## Description
+- Implement thread synchronization mechanism in property objects
+- Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`
+- A standard lock guard can be acquired via `GenericPropertyObjectImpl::getAcquisitionLock()`
+- The `sync` mutex previously available in `ComponentImpl` was moved up to `GenericPropertyObjectImpl`
 
+## Required integration changes:
+- The `sync` mutex available in the `GenericPropertyObjectImpl` should no longer be locked in `onWrite`/`onRead` events. If needed due to used programming patterns, the `getRecursiveConfigLock` method should be used instead. See the reference device implementations for guidance.
+- Current device/function block implementations that lock the `sync` mutex during events will deadlock.
+
+```
++ [function] ICoercer::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBaseObject** result)
+
++ [function] IValidator::validateNoLock(IBaseObject* propObj, IBaseObject* value)
+
++ [function] IEvalValue::getResultNoLock(IBaseObject** obj)
+
++ [function] IPropertyInternal::getValueTypeNoLock(CoreType* type)    
++ [function] IPropertyInternal::getKeyTypeNoLock(CoreType* type)    
++ [function] IPropertyInternal::getItemTypeNoLock(CoreType* type)    
++ [function] IPropertyInternal::getDescriptionNoLock(IString** description)    
++ [function] IPropertyInternal::getUnitNoLock(IUnit** unit)    
++ [function] IPropertyInternal::getMinValueNoLock(INumber** min)    
++ [function] IPropertyInternal::getMaxValueNoLock(INumber** max)    
++ [function] IPropertyInternal::getDefaultValueNoLock(IBaseObject** value)    
++ [function] IPropertyInternal::getSuggestedValuesNoLock(IList** values)    
++ [function] IPropertyInternal::getVisibleNoLock(Bool* visible)    
++ [function] IPropertyInternal::getReadOnlyNoLock(Bool* readOnly)    
++ [function] IPropertyInternal::getSelectionValuesNoLock(IBaseObject** values)    
++ [function] IPropertyInternal::getReferencedPropertyNoLock(IProperty** propertyEval)    
++ [function] IPropertyInternal::getIsReferencedNoLock(Bool* isReferenced)    
++ [function] IPropertyInternal::getValidatorNoLock(IValidator** validator)    
++ [function] IPropertyInternal::getCoercerNoLock(ICoercer** coercer)    
++ [function] IPropertyInternal::getCallableInfoNoLock(ICallableInfo** callable)    
++ [function] IPropertyInternal::getStructTypeNoLock(IStructType** structType)    
+
++ [function] IPropertyObjectInternal::checkForReferencesNoLock(IProperty* property, Bool* isReferenced)
++ [function] IPropertyObjectInternal::getPropertyValueNoLock(IString* name, IBaseObject** value)
++ [function] IPropertyObjectInternal::getPropertySelectionValueNoLock(IString* name, IBaseObject** value)
++ [function] IPropertyObjectInternal::setPropertyValueNoLock(IString* name, IBaseObject* value)
+```
+
+# 8.11.2024
 ## Description
 - Block Reader, Tail Reader and Stream Reader now skip events by default in Python
 

@@ -46,7 +46,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
-    std::mutex sync;
+    std::recursive_mutex sync;
 
     DictPtr<IString, IEnumeration> statuses;
     ProcedurePtr triggerCoreEvent;

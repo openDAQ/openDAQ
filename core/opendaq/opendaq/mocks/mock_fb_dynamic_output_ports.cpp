@@ -42,7 +42,7 @@ void MockFunctionBlockDynamicOutputPortImpl::onPacketReceived(const daq::InputPo
 
 void MockFunctionBlockDynamicOutputPortImpl::onDisconnected(const daq::InputPortPtr& /* port */)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     this->signals.clear();
 }
 

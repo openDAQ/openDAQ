@@ -80,7 +80,6 @@ void ScalingFbImpl::initProperties()
 
 void ScalingFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -189,8 +188,8 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     auto outQueue = List<IPacket>();
     auto outDomainQueue = List<IPacket>();
-
-    std::scoped_lock lock(sync);
+    
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

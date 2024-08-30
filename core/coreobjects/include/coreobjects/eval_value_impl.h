@@ -41,6 +41,7 @@ public:
     ErrCode INTERFACE_FUNC getEval(IString** evalString) override;
 
     ErrCode INTERFACE_FUNC getResult(IBaseObject** obj) override;
+    ErrCode INTERFACE_FUNC getResultNoLock(IBaseObject** obj) override;
     ErrCode INTERFACE_FUNC cloneWithOwner(IPropertyObject* newOwner, IEvalValue** clonedValue) override;
     ErrCode INTERFACE_FUNC getParseErrorCode() override;
     ErrCode INTERFACE_FUNC getPropertyReferences(IList** propertyReferences) override;
@@ -166,10 +167,10 @@ private:
     bool useFunctionResolver;
     FunctionPtr func;
 
-    BaseObjectPtr getReference(const std::string& str, RefType refType, int argIndex, std::string& postRef) const;
-    int resolveReferences();
+    BaseObjectPtr getReference(const std::string& str, RefType refType, int argIndex, std::string& postRef, bool lock) const;
+    int resolveReferences(bool lock);
 
-    ErrCode checkParseAndResolve();
+    ErrCode checkParseAndResolve(bool lock);
 
     template <typename T>
     inline ErrCode getValueInternal(T& value);
@@ -179,7 +180,7 @@ private:
 
     BaseObjectPtr calc();
     void checkForEvalValue(BaseObjectPtr& prop) const;
-    BaseObjectPtr getReferenceFromPrefix(const PropertyObjectPtr& propObject, const std::string& str, RefType refType) const;
+    BaseObjectPtr getReferenceFromPrefix(const PropertyObjectPtr& propObject, const std::string& str, RefType refType, bool lock) const;
 
 protected:
     void internalDispose(bool disposing) override;

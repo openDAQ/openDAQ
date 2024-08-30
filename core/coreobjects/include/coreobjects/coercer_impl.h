@@ -26,6 +26,7 @@ public:
     explicit CoercerImpl(const StringPtr& evalStr);
 
     ErrCode INTERFACE_FUNC coerce(IBaseObject* propObj, IBaseObject* value, IBaseObject** result) override;
+    ErrCode INTERFACE_FUNC coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBaseObject** result) override;
     ErrCode INTERFACE_FUNC getEval(IString** eval) override;
     
     // ISerializable

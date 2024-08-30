@@ -58,13 +58,12 @@ void RefCANChannelImpl::propChangedInternal()
 
 void RefCANChannelImpl::propChanged()
 {
-    std::scoped_lock lock(sync);
     propChangedInternal();
 }
 
 void RefCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
 
     if (duration > 0 && valueSignal.getActive())

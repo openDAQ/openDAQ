@@ -47,6 +47,35 @@ ErrCode ValidatorImpl::validate(IBaseObject* propObj, IBaseObject* value)
     return OPENDAQ_ERR_VALIDATE_FAILED;
 }
 
+ErrCode ValidatorImpl::validateNoLock(IBaseObject* propObj, IBaseObject* value)
+{
+        try
+    {
+        Bool validated = false;
+        this->value = value;
+
+        if (propObj != nullptr)
+        {
+            auto cloned = evalValue.cloneWithOwner(propObj);
+            validated = cloned.getResultNoLock();
+        }
+        else
+        {
+            validated = evalValue.getResultNoLock();
+        }
+
+        this->value = nullptr;
+        if (validated)
+            return OPENDAQ_SUCCESS;
+        
+    }
+    catch (...)
+    {
+    }
+
+    return OPENDAQ_ERR_VALIDATE_FAILED;
+}
+
 ErrCode ValidatorImpl::getEval(IString** eval)
 {
     if (eval == nullptr)

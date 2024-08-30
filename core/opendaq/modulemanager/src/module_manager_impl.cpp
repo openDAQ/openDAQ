@@ -586,6 +586,8 @@ PropertyObjectPtr ModuleManagerImpl::populateDeviceConfig(const PropertyObjectPt
     PropertyObjectPtr configClone;
     if (config.assigned())
         checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&configClone));
+    else
+        return deviceType.createDefaultConfig();
 
     if (!configClone.assigned())
         throw GeneralErrorException("Failure while cloning device config object. Clone is null.");
@@ -1295,7 +1297,7 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 }
 
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
-                                                                  const ServerCapabilityPtr& deviceCap)
+                                                                         const ServerCapabilityPtr& deviceCap)
 {
     auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
     const auto caps = List<IServerCapability>(deviceCap, discoveryCap);

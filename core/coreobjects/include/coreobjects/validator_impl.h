@@ -26,6 +26,7 @@ public:
     explicit ValidatorImpl(const StringPtr& evalStr);
 
     ErrCode INTERFACE_FUNC validate(IBaseObject* propObj, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC validateNoLock(IBaseObject* propObj, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getEval(IString** eval) override;
 
     // ISerializable

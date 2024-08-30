@@ -10,6 +10,7 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <opendaq/module_impl.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -1690,4 +1691,67 @@ TEST_F(NativeDeviceModulesTest, ReadLastValue)
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     ASSERT_NO_THROW(value = clientSignal.getLastValue());
     ASSERT_TRUE(value.assigned());
+}
+
+class MockNativeModule : public Module
+{
+public:
+    MockNativeModule(const ContextPtr& context)
+        : Module("mock", VersionInfo(1, 0, 0), context, "MockModule")
+    {
+    }
+
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override
+    {
+        std::vector<StringPtr> addresses{"123.123.123.123", "234.234.234.234", "127.0.0.1"};
+        const auto info = DeviceInfo("daq.nd://127.0.0.1:7420/");
+        info.setSerialNumber("DevSer0");
+        info.setManufacturer("openDAQ");
+        info.setName("Mock Reference Device");
+
+        const auto streamingCap = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
+                                  .setPrefix("daq.ns")
+                                  .setConnectionType("TCP/IP")
+                                  .setPort(7420);
+        const auto configCap = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
+                               .setPrefix("daq.nd")
+                               .setConnectionType("TCP/IP")
+                               .setPort(7420);
+
+        const std::vector caps{streamingCap, configCap};
+        for (const auto& cap : caps)
+        {
+            for (const auto& address : addresses)
+            {
+                const auto addressInfo = AddressInfoBuilder().setAddress(address)
+                                                             .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                                             .setType("IPv4")
+                                                             .setConnectionString(cap.getPrefix() + "://" + address + ":7420/")
+                                                             .build();
+                cap.addAddress(address).addConnectionString(cap.getPrefix() + "://" + address + ":7420/").addAddressInfo(addressInfo);
+            }
+
+            info.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        }
+
+        return List<IDeviceInfo>(info);
+    }
+};
+
+TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
+{
+    SKIP_TEST_MAC_CI
+    const auto server = Instance();
+    server.setRootDevice("daqref://device0");
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    const auto client = Instance();
+    const auto _module = createWithImplementation<IModule, MockNativeModule>(client.getContext());
+    client.getModuleManager().addModule(_module);
+
+    client.getAvailableDevices();
+    const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1:7420/");
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }

@@ -681,6 +681,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
                                                               const SerializedObjectPtr& serializedSignal,
                                                               const BaseObjectPtr& context)
 {
+    auto contextPtr = context.asPtr<IComponentUpdateContext>(true);
+    contextPtr.setSignalDependency(signals.getGlobalId() + "/" + sigId, this->globalId);
+
     if (!signals.hasItem(sigId))
     {
         DAQLOGF_W(signalContainerLoggerComponent,

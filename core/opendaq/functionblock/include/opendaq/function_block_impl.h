@@ -314,7 +314,6 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const Ba
         {
             inputPort = inputPorts.getItem(portId);
         }
-        contextPtr.setInputPortConnection(inputPort.getParent().getGlobalId(), inputPort.getLocalId(), signalId);
         inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
     }
     Super::onUpdatableUpdateEnd(context);

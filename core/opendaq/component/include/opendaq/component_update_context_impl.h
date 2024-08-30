@@ -27,6 +27,7 @@ public:
     ComponentUpdateContextImpl(const ComponentPtr& curComponent)
         : connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
+        , parentDependencies(List<IString>())
         , rootComponent(getRootComponent(curComponent))
     {
     }
@@ -36,6 +37,7 @@ public:
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
+    ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
 private:
 
@@ -44,6 +46,7 @@ private:
 
     DictPtr<IString, IBaseObject> connections;
     DictPtr<IString, IString> signalDependencies;
+    ListPtr<IString> parentDependencies;
     ComponentPtr rootComponent;
 };
 
@@ -143,6 +146,33 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     auto signalId = connections.get(portId);
     auto overridenSignalId = rootComponent.getGlobalId() + getRemoteId(signalId);
 
+    Bool isCircle = false;
+    for (Int i = 0; i < parentDependencies.getCount(); i++)
+    {
+        const auto & parentDep = parentDependencies.getItemAt(i);
+        if (parentDep == parentId)
+        {
+            std::string deps;
+            for (Int j = i; j < parentDependencies.getCount(); j++)
+            {
+                deps += parentDependencies.getItemAt(j).toStdString() + " -> ";
+            }
+            auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
+            LOG_W("Circular dependency detected: {}{}", deps, parentDep);
+            isCircle = true;
+            break;
+        }
+    }
+
+    if (isCircle == false)
+    {
+        parentDependencies.pushBack(parentId);
+        ErrCode errCode = resolveSignalDependency(overridenSignalId, signal);
+        parentDependencies.popBack();
+        if (errCode == OPENDAQ_SUCCESS)
+            return OPENDAQ_SUCCESS;
+    }
+
     ComponentPtr signalPtr;
     rootComponent->findComponent(overridenSignalId, &signalPtr);
 
@@ -161,6 +191,47 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
         return OPENDAQ_ERR_INVALID_ARGUMENT;
 
     signalDependencies.set(signalId, parentId);
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
+{
+    if (signalId == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    // Check that signal has parent
+    if (!signalDependencies.hasKey(signalId))
+        return OPENDAQ_NOTFOUND;
+    
+    auto parentId = signalDependencies.get(signalId);
+
+    // Check that the parent is function block which is not finished with the update
+    if (!connections.hasKey(parentId))
+        return OPENDAQ_NOTFOUND;
+
+    // Find the function block
+    ComponentPtr parentComponent;
+    rootComponent->findComponent(parentId, &parentComponent);
+
+    if (!parentComponent.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    // Call the parent component to finish the update
+    parentComponent.as<IUpdatable>(true)->updateEnded(this->borrowInterface<IBaseObject>());
+
+    // unregister dependency
+    signalDependencies->deleteItem(signalId);
+    connections->deleteItem(parentId);
+
+    // Find the signal in parent component
+    auto signalIdPtr = StringPtr::Borrow(signalId);
+    if (parentComponent.getGlobalId().toStdString().find(signalIdPtr.toStdString()) != 0)
+        return OPENDAQ_ERR_INVALIDSTATE;
+    
+    StringPtr signalLocalId = parentComponent.getGlobalId().toStdString().substr(signalIdPtr.getLength());
+    ComponentPtr signalComponent;
+    parentComponent->findComponent(signalLocalId, &signalComponent);
+    *signal = signalComponent.asPtrOrNull<ISignal>().detach();
     return OPENDAQ_SUCCESS;
 }
 

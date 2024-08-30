@@ -609,6 +609,28 @@ TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_1/Sig/UniqueId_1");
 }
 
+TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb3 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+        fb3.getInputPorts()[0].connect(fb2.getSignals()[0]);
+        fb1.getInputPorts()[0].connect(fb3.getSignals()[0]);
+
+
+        config = instance.saveConfiguration();
+        std::cout << config << std::endl;
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+}
+
 TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)
 {
     StringPtr config;
@@ -652,14 +674,12 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
         fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
 
         config = instance.saveConfiguration();
-        // std::cout << config << std::endl;
     }
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.loadConfiguration(config);
 
     config = instance2.saveConfiguration();
-    // std::cout << config << std::endl;
 
     auto restoredFbs = instance2.getFunctionBlocks();
     ASSERT_EQ(restoredFbs.getCount(), 2u);

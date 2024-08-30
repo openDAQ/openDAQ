@@ -686,30 +686,10 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
     }
 }
 
-inline StringPtr getRemoteId(const std::string& globalId)
-{
-    size_t firstSlashPos = globalId.find('/');
-    if (firstSlashPos == std::string::npos) {
-        // No slash found, return the original path
-        return globalId;
-    }
-
-    // Find the position of the second slash
-    size_t secondSlashPos = globalId.find('/', firstSlashPos + 1);
-    if (secondSlashPos == std::string::npos) {
-        // Only one segment found, return an empty string
-        return "";
-    }
-
-    // Erase the first segment
-    return globalId.substr(secondSlashPos);
-}
-
 template <class ... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    const auto thisPtr = this->template borrowPtr<InputPortPtr>();
-    if (thisPtr.getSignalNoLock().assigned())
+    if (this->getSignalNoLock().assigned())
         return;
 
     auto contextPtr = context.asPtr<IComponentUpdateContext>(true);
@@ -722,6 +702,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     {
         try
         {
+            const auto thisPtr = this->template borrowPtr<InputPortPtr>();
             thisPtr.connect(signal);
             finishUpdate();
         }
@@ -729,10 +710,6 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
         {
             LOG_W("Failed to connect signal: {}", signal.getGlobalId());
         }
-    }
-    else
-    {
-        LOG_W("Signal not found for inputPort {}", this->globalId);
     }
     Super::onUpdatableUpdateEnd(context);
 }

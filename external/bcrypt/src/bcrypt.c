@@ -38,7 +38,7 @@ typedef __int64 ssize_t;
 #include <io.h>
 #else
 #include <bcrypt.h>
-#include <ow-crypt.h>
+#include "ow-crypt.h"
 #endif
 
 #define RANDBYTES (16)

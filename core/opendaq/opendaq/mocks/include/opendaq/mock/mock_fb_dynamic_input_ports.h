@@ -17,43 +17,29 @@
 #pragma once
 #include <opendaq/function_block_impl.h>
 
-class MockFunctionBlockImpl : public daq::FunctionBlock
+class MockFunctionBlockDynamicInputPortImpl : public daq::FunctionBlock
 {
 public:
-    explicit MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
+    explicit MockFunctionBlockDynamicInputPortImpl(daq::FunctionBlockTypePtr type,
                                    daq::ContextPtr ctx,
                                    const daq::ComponentPtr& parent,
                                    const daq::StringPtr& localId,
                                    const daq::PropertyObjectPtr& config);
 
+    void onConnected(const daq::InputPortPtr& port) override;
+    void onDisconnected(const daq::InputPortPtr& port) override;
+    static daq::FunctionBlockTypePtr CreateType();
+
 protected:
-    void createFunctionBlocks();
-    void createSignals();
-    void createInputPorts();
-    void createTestConfigProperties(const daq::PropertyObjectPtr& config);
+    void updateInputPorts();
+
+private:
+    size_t inputPortCount = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,
-    MockFunctionBlock, daq::IFunctionBlock,
-    daq::IFunctionBlockType*, info,
-    daq::IContext*, ctx,
-    daq::IComponent*, parent,
-    daq::IString*, localId,
-    daq::IPropertyObject*, config)
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY,
-    MockFunctionBlockInputPorts, daq::IFunctionBlock,
-    daq::IFunctionBlockType*, info,
-    daq::IContext*, ctx,
-    daq::IComponent*, parent,
-    daq::IString*, localId,
-    daq::IPropertyObject*, config)
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY,
-    MockFunctionBlockOutputPorts, daq::IFunctionBlock,
+    MockFunctionBlockDynamicInputPort, daq::IFunctionBlock,
     daq::IFunctionBlockType*, info,
     daq::IContext*, ctx,
     daq::IComponent*, parent,

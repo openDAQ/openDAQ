@@ -17,6 +17,8 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/function_block_type_ptr.h>
 #include <opendaq/mock/mock_fb.h>
+#include <opendaq/mock/mock_fb_dynamic_input_ports.h>
+#include <opendaq/mock/mock_fb_dynamic_output_ports.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +31,30 @@ inline FunctionBlockPtr MockFunctionBlock(
     )
 {
     FunctionBlockPtr obj(MockFunctionBlock_Create(type, ctx, parent, localId, config));
+    return obj;
+}
+
+inline FunctionBlockPtr MockFunctionBlockDynamicInputPort(
+    const FunctionBlockTypePtr& type,
+    const daq::ContextPtr& ctx,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const PropertyObjectPtr& config = nullptr
+    )
+{
+    FunctionBlockPtr obj(MockFunctionBlockDynamicInputPort_Create(type, ctx, parent, localId, config));
+    return obj;
+}
+
+inline FunctionBlockPtr MockFunctionBlockDynamicOutputPort(
+    const FunctionBlockTypePtr& type,
+    const daq::ContextPtr& ctx,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const PropertyObjectPtr& config = nullptr
+    )
+{
+    FunctionBlockPtr obj(MockFunctionBlockDynamicOutputPort_Create(type, ctx, parent, localId, config));
     return obj;
 }
 

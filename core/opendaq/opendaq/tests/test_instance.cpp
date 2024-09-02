@@ -710,7 +710,45 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingSIgnalFromDev)
+TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingDynamicPorts)
+{
+    auto connections = Dict<IString, IString>();
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_dynamic_output_ports_uid");
+        auto fb3 = instance.addFunctionBlock("mock_fb_dynamic_input_ports_uid");
+        auto fb4 = instance.addFunctionBlock("mock_fb_uid");
+        
+        fb4.getInputPorts()[0].connect(fb1.getSignals()[0]);
+        fb3.getInputPorts()[0].connect(fb4.getSignals()[0]);
+        fb2.getInputPorts()[0].connect(fb3.getSignals()[0]);
+        fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
+       
+        connections.set(fb1.getGlobalId(), fb1.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb2.getGlobalId(), fb2.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb3.getGlobalId(), fb3.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb4.getGlobalId(), fb4.getInputPorts()[0].getSignal().getGlobalId());
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 4u);
+
+    for (const auto & fb : restoredFbs)
+    {
+        ASSERT_TRUE(connections.hasKey(fb.getGlobalId()));
+        ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
+    }
+    
+}
+
+TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingSignalFromDev)
 {
     StringPtr config;
     StringPtr signalId;

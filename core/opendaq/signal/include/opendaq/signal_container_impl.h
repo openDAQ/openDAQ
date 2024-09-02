@@ -688,7 +688,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
     {
         DAQLOGF_W(signalContainerLoggerComponent,
                   "Signal "
-                  "{}"
+                  "{} "
                   "not found",
                   sigId);
         return;

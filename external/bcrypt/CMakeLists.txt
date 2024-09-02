@@ -19,7 +19,7 @@ set(SRC_CPPS ${SRC_DIR}/bcrypt.c
              ${SRC_DIR}/crypt_blowfish.c
              ${SRC_DIR}/crypt_gensalt.c
              ${SRC_DIR}/wrapper.c
-             ${SRC_DIR}/x86.S
+             #${SRC_DIR}/x86.S
 )
 
 add_library(${PROJECT_NAME} ${SRC_CPPS} ${SRC_HEADERS})

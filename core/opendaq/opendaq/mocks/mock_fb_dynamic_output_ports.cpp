@@ -1,4 +1,4 @@
-#include <opendaq/mock/mock_fb_dynamic_Output_ports.h>
+#include <opendaq/mock/mock_fb_dynamic_output_ports.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/mock/mock_nested_fb_factory.h>

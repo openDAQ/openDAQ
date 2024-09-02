@@ -22,7 +22,7 @@ set(SRC_CPPS ${SRC_DIR}/bcrypt.c
              #${SRC_DIR}/x86.S
 )
 
-add_library(${PROJECT_NAME} ${SRC_CPPS} ${SRC_HEADERS})
+add_library(${EXTERNAL_LIB} ${SRC_CPPS} ${SRC_HEADERS})
 add_library(${EXTERNAL_LIB}::${EXTERNAL_LIB} ALIAS ${EXTERNAL_LIB})
 
 target_include_directories(${EXTERNAL_LIB} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

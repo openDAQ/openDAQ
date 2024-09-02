@@ -3816,13 +3816,16 @@ TEST_F(MultiReaderTest, UndefinedReadWithMockSignals)
 
 TEST_F(MultiReaderTest, MultiReaderActive)
 {
-    constexpr SizeT NUM_SIGNALS = 3;
-    constexpr SizeT NUM_SAMPLES = 10;
+    constexpr auto NUM_SIGNALS = SizeT{3};
+    constexpr auto NUM_SAMPLES = SizeT{10};
     double values[NUM_SIGNALS][NUM_SAMPLES] = {};
     double* valuesPerSignal[NUM_SIGNALS] = {values[0], values[1], values[2]};
     int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+    int64_t* domainValuesPerSignal[NUM_SIGNALS] = {domainValues[0], domainValues[1], domainValues[2]};
     int32_t newDomainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
-    SizeT count;
+    int32_t* newDomainValuesPerSignal[NUM_SIGNALS] = {newDomainValues[0], newDomainValues[1], newDomainValues[2]};
+    auto count = SizeT{0};
+    auto packetIndex = SizeT{0};
 
     readSignals.reserve(NUM_SIGNALS);
 
@@ -3847,14 +3850,14 @@ TEST_F(MultiReaderTest, MultiReaderActive)
 
     // receive event packets
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
     ASSERT_EQ(count, 0);
 
     // receive data packets
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, NUM_SAMPLES);
 
@@ -3863,7 +3866,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     // send packets to inactive reader
     sendPackets(packetIndex++);  // 1
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
@@ -3871,7 +3874,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     // send packets to inactive reader
     sendPackets(packetIndex++);  // 2
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
@@ -3890,7 +3893,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     // send packets to inactive reader
     sendPackets(packetIndex++);  // 3
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, newDomainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
     ASSERT_EQ(count, 0);
@@ -3900,7 +3903,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
 
     sendPackets(packetIndex++);  // 4
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, newDomainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, newDomainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, NUM_SAMPLES);
@@ -3915,7 +3918,7 @@ TEST_F(MultiReaderTest, MultiReaderCopyInactive)
     double values[NUM_SIGNALS][NUM_SAMPLES] = {};
     double* valuesPerSignal[NUM_SIGNALS] = {values[0], values[1], values[2]};
     int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
-    int32_t newDomainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+    int64_t* domainValuesPerSignal[NUM_SIGNALS] = {domainValues[0], domainValues[1], domainValues[2]};
     auto count = SizeT{0};
 
     readSignals.reserve(NUM_SIGNALS);
@@ -3937,7 +3940,7 @@ TEST_F(MultiReaderTest, MultiReaderCopyInactive)
 
     // receive event packets
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
     ASSERT_EQ(count, 0);
@@ -3946,7 +3949,7 @@ TEST_F(MultiReaderTest, MultiReaderCopyInactive)
     multiReader.setActive(false);
 
     count = NUM_SAMPLES;
-    status = multiReader.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
@@ -3959,7 +3962,7 @@ TEST_F(MultiReaderTest, MultiReaderCopyInactive)
     sendPackets(packetIndex++);  // 1
 
     count = NUM_SAMPLES;
-    status = multiReaderNew.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReaderNew.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 0);
@@ -3970,7 +3973,7 @@ TEST_F(MultiReaderTest, MultiReaderCopyInactive)
     sendPackets(packetIndex++);  // 1
 
     count = NUM_SAMPLES;
-    status = multiReaderNew.readWithDomain(valuesPerSignal, domainValues, &count);
+    status = multiReaderNew.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
     ASSERT_EQ(count, 10);
@@ -3982,11 +3985,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveFromPorts)
 
     constexpr auto NUM_SIGNALS = SizeT{3};
     constexpr auto NUM_SAMPLES = SizeT{10};
-    double values[NUM_SIGNALS][NUM_SAMPLES] = {};
-    double* valuesPerSignal[NUM_SIGNALS] = {values[0], values[1], values[2]};
-    int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
-    int32_t newDomainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
-    auto count = SizeT{0};
 
     readSignals.reserve(NUM_SIGNALS);
 
@@ -4004,6 +4002,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveFromPorts)
         portList[i].connect(readSignals[i].signal);
 
     ASSERT_FALSE(multiReader.getActive());
-    for (auto& port : portList)
+    for (const auto& port : portList)
         ASSERT_FALSE(port.getActive());
 }

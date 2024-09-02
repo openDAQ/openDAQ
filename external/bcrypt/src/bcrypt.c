@@ -35,9 +35,10 @@ typedef __int64 ssize_t;
 
 #include <windows.h>
 #include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
+#include <io.h>
 #else
-#include "bcrypt.h"
-#include "ow-crypt.h"
+#include <bcrypt.h>
+#include <ow-crypt.h>
 #endif
 
 #define RANDBYTES (16)

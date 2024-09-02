@@ -77,7 +77,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fbs.getCount(), 0u);
 
     auto fbTypes = instance.getAvailableFunctionBlockTypes();
-    ASSERT_EQ(fbTypes.getCount(), 1u);
+    ASSERT_EQ(fbTypes.getCount(), 3u);
     ASSERT_TRUE(fbTypes.hasKey("mock_fb_uid"));
     ASSERT_EQ(fbTypes.get("mock_fb_uid").getId(), "mock_fb_uid");
 

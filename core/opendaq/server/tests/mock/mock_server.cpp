@@ -1,6 +1,5 @@
 #include "mock_server.h"
 #include  <coretypes/impl.h>
-#include <coreobjects/property_object_factory.h>
 
 using namespace daq;
 

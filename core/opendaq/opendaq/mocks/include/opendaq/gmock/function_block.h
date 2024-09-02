@@ -33,8 +33,6 @@ struct MockGenericFunctionBlock : MockGenericSignalContainer<Class, TInterface>
     MOCK_METHOD(daq::ErrCode, getSignalsRecursive, (daq::IList** signal, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStatusSignal, (daq::ISignal** signal), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getFunctionBlocks, (daq::IList** functionBlocks, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, addFunctionBlock, (IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, removeFunctionBlock, (IFunctionBlock* functionBlock), (override MOCK_CALL));
 
     MockGenericFunctionBlock()
         : MockGenericSignalContainer<Class, TInterface>()

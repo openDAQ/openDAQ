@@ -89,11 +89,6 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
     {
         return OPENDAQ_ERR_INVALIDPARAMETER;
     }
-
-    ServerCapabilityConfigPtr connectionInfo = devicePtr.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setPrefix("daqmock://")
-                  .setConnectionString(connectionString);
-    
     *device = devicePtr.detach();
 
     return OPENDAQ_SUCCESS;

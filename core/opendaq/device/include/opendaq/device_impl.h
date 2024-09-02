@@ -1110,19 +1110,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             deviceDomain.serialize(serializer);
         }
     }
-    else
-    {
-        if (deviceConfig.assigned())
-        {
-            serializer.key("deviceConfig");
-            deviceConfig.serialize(serializer);
-        }
-        if (deviceInfo.assigned())
-        {
-            serializer.key("configurationConnectionInfo");
-            deviceInfo.getConfigurationConnectionInfo().serialize(serializer);
-        }
-    }
 
     if (syncComponent.assigned())
     {
@@ -1171,19 +1158,6 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         {
             LOG_W("Device {} not found", deviceId);
             return;
-            // if (!serializedDevice.hasKey("configurationConnectionInfo"))
-            // {
-            //     LOG_D("Device {} not found", deviceId);
-            //     return;
-            // }
-            // ServerCapabilityPtr configurationInfo = serializedDevice.readObject("configurationConnectionInfo");
-            // PropertyObjectPtr deviceConfig;
-            // if (serializedDevice.hasKey("deviceConfig"))
-            // {
-            //     deviceConfig = serializedDevice.readObject("deviceConfig");
-            // }
-            // LOG_D("Recreating device from connection string {}", configurationInfo.getConnectionString());
-            // addDevice(&device, configurationInfo.getConnectionString(), deviceConfig);
         }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
@@ -1239,17 +1213,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
         deviceInfo.freeze();
-    }
-    else if (serializedObject.hasKey("configurationConnectionInfo"))
-    {
-        DeviceInfoPtr deviceInfo;
-        checkErrorInfo(this->getInfo(&deviceInfo));
-
-        if (deviceInfo.assigned())
-        {
-            auto connectionInfo = serializedObject.readObject("configurationConnectionInfo");
-            deviceInfo.asPtr<IDeviceInfoConfig>(true).setPropertyValue("configurationConnectionInfo", connectionInfo);
-        }
     }
 
     if (serializedObject.hasKey("deviceDomain"))

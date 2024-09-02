@@ -73,6 +73,8 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
+    , protocolVersion(0)
+    , supportedServerVersions({0, 1})
 {
     assert(user.assigned());
     serializer.setUser(user);
@@ -109,18 +111,22 @@ void ConfigProtocolServer::addHandler(const std::string& name, const Handler& ha
 {
     using namespace std::placeholders;
 
-    auto h = std::bind(handler, _1, _2, _3);
+    auto h = std::bind(handler, _1, _2, _3, _4);
 
-    rpcDispatch.insert({name,
-                        [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
+    rpcDispatch.insert(
+        {
+            name,
+            [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
+            {
+                uint16_t protocolVersion = this->protocolVersion;
+                return bindComponentWrapper<SmartPtr>(
+                        [&h, protocolVersion](const SmartPtr& component, const ParamsDictPtr& params, const UserPtr& user) -> BaseObjectPtr
                         {
-                            return bindComponentWrapper<SmartPtr>(
-                                [&h](const SmartPtr& component, const ParamsDictPtr& params, const UserPtr& user) -> BaseObjectPtr
-                                {
-                                    return h(component, params, user);
-                                },
-                                params);
-                        }});
+                            return h(protocolVersion, component, params, user);
+                        },
+                    params);
+            }
+        });
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -149,7 +155,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
-    addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2));
+    addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
 }
 
@@ -210,14 +216,15 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
         case PacketType::GetProtocolInfo:
             {
                 packetBuffer.parseProtocolInfoRequest();
-                auto reply = PacketBuffer::createGetProtocolInfoReply(requestId, 0, {0});
+                auto reply = PacketBuffer::createGetProtocolInfoReply(requestId, 0, supportedServerVersions);
                 return reply;
             }
         case PacketType::UpgradeProtocol:
             {
                 uint16_t version;
                 packetBuffer.parseProtocolUpgradeRequest(version);
-                auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, version == 0);
+                auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, supportedServerVersions.find(version) != supportedServerVersions.end());
+                protocolVersion = version;
                 return reply;
             }
         case PacketType::Rpc:
@@ -313,11 +320,11 @@ BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr&
     return serializer.getOutput();
 }
 
-BaseObjectPtr ConfigProtocolServer::connectSignal(const InputPortPtr& inputPort, const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::connectSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
 {
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
-    return ConfigServerInputPort::connect(inputPort, signal, user);
+    return ConfigServerInputPort::connect(protocolVersion, inputPort, signal, user);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
@@ -422,6 +429,16 @@ BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) 
 void ConfigProtocolServer::processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
 {
     // TODO
+}
+
+uint16_t ConfigProtocolServer::getProtocolVersion() const
+{
+    return protocolVersion;
+}
+
+void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
+{
+    this->protocolVersion = protocolVersion;
 }
 
 }

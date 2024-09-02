@@ -710,7 +710,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingDynamicPorts)
+TEST_F(InstanceTest, SaveLoadFunctionConnectingDynamicPorts)
 {
     auto connections = Dict<IString, IString>();
     StringPtr config;

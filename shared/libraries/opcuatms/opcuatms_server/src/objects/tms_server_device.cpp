@@ -292,16 +292,20 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
 
     auto methodNodeId = server->addMethodNode(params);
 
-    auto callback = [this](NodeEventManager::MethodArgs args)
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
     {
         try
         {
             this->onAddFunctionBlock(args);
-            return OPENDAQ_SUCCESS;
+            return UA_STATUSCODE_GOOD;
         }
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
     };
 
@@ -323,16 +327,20 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
 
     auto methodNodeId = server->addMethodNode(params);
 
-    auto callback = [this](NodeEventManager::MethodArgs args)
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
     {
         try
         {
             this->onRemoveFunctionBlock(args);
-            return OPENDAQ_SUCCESS;
+            return UA_STATUSCODE_GOOD;
         }
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
     };
 

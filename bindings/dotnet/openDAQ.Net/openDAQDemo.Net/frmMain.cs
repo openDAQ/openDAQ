@@ -16,6 +16,7 @@
 
 
 using System.ComponentModel;
+using System.Text;
 using System.Windows.Forms;
 
 using Daq.Core.Objects;
@@ -147,14 +148,59 @@ public partial class frmMain : Form
 
     private void loadConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        //ToDo: load config
-        MessageBox.Show("ToDo: load config");
+        using (var dlgLoad = new OpenFileDialog())
+        {
+            dlgLoad.Title           = "Load configuration";
+            dlgLoad.Filter          = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            dlgLoad.DefaultExt      = ".json";
+            dlgLoad.FileName        = "config.json";
+            dlgLoad.CheckFileExists = true;
+
+            if ((dlgLoad.ShowDialog(this) != DialogResult.OK) || string.IsNullOrWhiteSpace(dlgLoad.FileName) || !File.Exists(dlgLoad.FileName))
+                return;
+
+            try
+            {
+                string configString = File.ReadAllText(dlgLoad.FileName);
+
+                _instance!.LoadConfiguration(configString);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred:\n{ex.GetType().Name} - {ex.Message}", "Load configuration",
+                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+            finally
+            {
+                UpdateTree();
+            }
+        }
     }
 
     private void saveConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        //ToDo: save config
-        MessageBox.Show("ToDo: save config");
+        using (var dlgSave = new SaveFileDialog())
+        {
+            dlgSave.Title           = "Save configuration";
+            dlgSave.Filter          = "Json files (*.json)|*.json|All files (*.*)|*.*";
+            dlgSave.DefaultExt      = ".json";
+            dlgSave.FileName        = "config.json";
+            dlgSave.OverwritePrompt = true;
+
+            if ((dlgSave.ShowDialog(this) != DialogResult.OK) || string.IsNullOrWhiteSpace(dlgSave.FileName))
+                return;
+
+            try
+            {
+                string configString = _instance!.SaveConfiguration();
+                File.WriteAllText(dlgSave.FileName, configString, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred:\n{ex.GetType().Name} - {ex.Message}", "Save configuration",
+                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+        }
     }
 
     private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -563,6 +609,7 @@ public partial class frmMain : Form
         imageList.Images.Add(nameof(GlblRes.function_block), (Bitmap)GlblRes.function_block.Clone());
         imageList.Images.Add(nameof(GlblRes.channel),        (Bitmap)GlblRes.channel.Clone());
         imageList.Images.Add(nameof(GlblRes.signal),         (Bitmap)GlblRes.signal.Clone());
+        imageList.Images.Add(nameof(GlblRes.link),           (Bitmap)GlblRes.link.Clone());
     }
 
     /// <summary>
@@ -740,18 +787,13 @@ public partial class frmMain : Form
             iconKey = nameof(GlblRes.device);
         else if (component.CanCastTo<Folder>())
         {
-            iconKey = nameof(GlblRes.folder);
-
-            if (componentName == "Sig")
-                componentName = "Signals";
-            else if (componentName == "FB")
-                componentName = "Function blocks";
-            else if (componentName == "Dev")
-                componentName = "Devices";
-            else if (componentName == "IP")
-                componentName = "Input ports";
-            else if (componentName == "IO")
-                componentName = "Inputs/Outputs";
+            iconKey       = nameof(GlblRes.folder);
+            componentName = GetStandardFolderName(componentName);
+        }
+        else if (component.CanCastTo<SyncComponent>())
+        {
+            iconKey       = nameof(GlblRes.link);
+            componentName = GetStandardFolderName(componentName);
         }
         else
         {
@@ -763,8 +805,25 @@ public partial class frmMain : Form
         if (!skip)
         {
             var parentNodesCollection = GetNodesCollection(parentId);
-            var node = AddNode(parentNodesCollection, key: componentNodeId, componentName, iconKey);
-            node.Tag = component;
+            var node                  = AddNode(parentNodesCollection, key: componentNodeId, componentName, iconKey);
+            node.Tag                  = component;
+        }
+
+
+        //----- local functions ----------------------------------------------
+
+        static string GetStandardFolderName(string folderName)
+        {
+            return folderName switch
+            {
+                "Sig"  => "Signals",
+                "FB"   => "Function blocks",
+                "Dev"  => "Devices",
+                "IP"   => "Input ports",
+                "IO"   => "Inputs/Outputs'",
+                "Sync" => "Synchronization'",
+                _      => folderName,
+            };
         }
     }
 
@@ -943,33 +1002,7 @@ public partial class frmMain : Form
         if (component == null)
             return;
 
-        bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
-
-        switch (component)
-        {
-            case Component when useComponentApproach:
-                ListProperties(component);
-                break;
-
-            //the following cases are meant for the object list approach of the system overview
-
-            case Device device:
-                ListProperties(device);
-                break;
-
-            case Channel channel: //this is also a FunctionBlock
-                ListProperties(channel);
-                break;
-
-            case Signal signal:
-                ListProperties(signal);
-                break;
-
-            case FunctionBlock functionBlock:
-                ListProperties(functionBlock);
-                break;
-        }
+        ListProperties(component);
 
         this.gridProperties.ClearSelection();
         this.gridProperties.AutoResizeColumns();
@@ -995,24 +1028,44 @@ public partial class frmMain : Form
             var propertySelectionValues = property.SelectionValues;
 
             if (propertySelectionValues != null)
-            {
-                if (propertySelectionValues.CanCastTo<ListObject<StringObject>>())
-                {
-                    IList<StringObject> listObject = propertySelectionValues.Cast<ListObject<StringObject>>();
-                    propertyValue = listObject[(int)propertyValue];
-                }
-                else if (propertySelectionValues.CanCastTo<DictObject<IntegerObject, StringObject>>())
-                {
-                    IDictionary<IntegerObject, StringObject> listObject = propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>();
-                    propertyValue = listObject[(int)propertyValue];
-                }
-                else
-                {
-                    propertyValue = "( unknown selection-value type )";
-                }
-            }
+                propertyValue = HandleSelectionValues(propertyValue, propertySelectionValues);
 
             _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description, property));
+        }
+
+
+        //----- local functions ------------------------------------------------
+
+        static BaseObject HandleSelectionValues(BaseObject propertyValue, BaseObject propertySelectionValues)
+        {
+            if (propertySelectionValues.CanCastTo<ListObject<StringObject>>())
+            {
+                int propertyValueIndex = (int)propertyValue;
+
+                IList<StringObject> listObject = propertySelectionValues.Cast<ListObject<StringObject>>();
+
+                if ((propertyValueIndex >= 0) && (propertyValueIndex < listObject.Count))
+                    propertyValue = listObject[propertyValueIndex];
+                else
+                    propertyValue = $"n/a ({propertyValueIndex})";
+            }
+            else if (propertySelectionValues.CanCastTo<DictObject<IntegerObject, StringObject>>())
+            {
+                int propertyValueIndex = (int)propertyValue;
+
+                IDictionary<IntegerObject, StringObject> dictObject = propertySelectionValues.Cast<DictObject<IntegerObject, StringObject>>();
+
+                if ((propertyValueIndex >= 0) && (propertyValueIndex < dictObject.Count))
+                    propertyValue = dictObject[propertyValueIndex];
+                else
+                    propertyValue = $"n/a ({propertyValueIndex})";
+            }
+            else
+            {
+                propertyValue = "( unknown selection-value type )";
+            }
+
+            return propertyValue;
         }
     }
 
@@ -1193,6 +1246,8 @@ public partial class frmMain : Form
             ListAttributes(inputPort, attributeItems);
         else if (component.Cast<FunctionBlock>() is FunctionBlock functionBlock)
             ListAttributes(functionBlock, attributeItems);
+
+        //no <SyncComponent> here as its attributes are also properties
     }
 
     /// <summary>
@@ -1202,13 +1257,13 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(Component component, BindingList<AttributeItem> attributeItems)
     {
-       attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
-       attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
-       attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
-       attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
-       attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
+        attributeItems.Add(new(FREE,   "Name",        "Name",        component.Name,               CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Description", "Description", component.Description,        CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Active",      "Active",      component.Active.ToString(),  CoreType.ctBool,   component));
+        attributeItems.Add(new(LOCKED, "GlobalId",    "Global ID",   component.GlobalId,           CoreType.ctString, component));
+        attributeItems.Add(new(LOCKED, "LocalId",     "Local ID",    component.LocalId,            CoreType.ctString, component));
+        attributeItems.Add(new(FREE,   "Tags",        "Tags",        component.Tags,               CoreType.ctObject, component));
+        attributeItems.Add(new(LOCKED, "Visible",     "Visible",     component.Visible.ToString(), CoreType.ctBool,   component));
     }
 
     /// <summary>
@@ -1230,11 +1285,11 @@ public partial class frmMain : Form
     {
         string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? Array.Empty<string>());
 
-       attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
-       attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
-       attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
-       attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
-       attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
+        attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
+        attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
+        attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
     }
 
     /// <summary>
@@ -1244,8 +1299,8 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(InputPort inputPort, BindingList<AttributeItem> attributeItems)
     {
-       attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
-       attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
+        attributeItems.Add(new(LOCKED, "SignalGlobalId", "Signal ID",       inputPort.Signal?.GlobalId,          CoreType.ctString, inputPort));
+        attributeItems.Add(new(LOCKED, "RequiresSignal", "Requires Signal", inputPort.RequiresSignal.ToString(), CoreType.ctBool,   inputPort));
     }
 
     /// <summary>
@@ -1683,17 +1738,7 @@ public partial class frmMain : Form
             if (btnLink.Tag is not InputPort inputPort)
                 return;
 
-
-            if (comboBox.SelectedValue is not Signal signal) //"none"
-            {
-                inputPort.Disconnect();
-            }
-            else
-            {
-                inputPort.Connect(signal);
-            }
-
-            UpdateInputPorts(_selectedComponent);
+            LinkInputPort(inputPort, comboBox.SelectedValue as Signal);
         }
 
         void btnEdit_Click(object? sender, EventArgs e)
@@ -1715,6 +1760,29 @@ public partial class frmMain : Form
         return new Bitmap(isLinked ? GlblRes.link : GlblRes.unlink, 24, 24);
     }
 
+    /// <summary>
+    /// Links or unlinks the specified <c>Signal</c> to the specified <c>InputPort</c>.
+    /// </summary>
+    /// <param name="inputPort">The input port.</param>
+    /// <param name="signal">The signal.</param>
+    private void LinkInputPort(InputPort inputPort, Signal? signal)
+    {
+        if (signal == null) //"none"
+        {
+            inputPort.Disconnect();
+        }
+        else
+        {
+            inputPort.Connect(signal);
+        }
+
+        UpdateInputPorts(_selectedComponent);
+    }
+
+    /// <summary>
+    /// Edits the specified <c>InputPort</c> attributes.
+    /// </summary>
+    /// <param name="inputPort">The input port.</param>
     private void EditInputPort(InputPort? inputPort)
     {
         if (inputPort == null)
@@ -1869,6 +1937,10 @@ public partial class frmMain : Form
         }
     }
 
+    /// <summary>
+    /// Edits the output signal attributes.
+    /// </summary>
+    /// <param name="outputSignal">The output signal.</param>
     private void EditOutputSignal(Signal? outputSignal)
     {
         if (outputSignal == null)

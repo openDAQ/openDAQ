@@ -218,9 +218,13 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         if (!serialized.hasKey(id))
         {
             if (this->defaultComponents.count(id))
-                throw InvalidOperationException{"Serialized remote object does not contain default device component: " + id};
-            
-            toRemove.push_back(id);
+            {
+                DAQLOGF_D(this->loggerComponent, "The server does not provide default device component: {}", id);
+            }
+            else
+            {
+                toRemove.push_back(id);
+            }
         }
         else
         {

@@ -173,7 +173,8 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const PropertyObjectPtr& config,
                                                           const StringPtr& host,
                                                           const StringPtr& port,
-                                                          const StringPtr& path)
+                                                          const StringPtr& path,
+                                                          uint16_t protocolVersion)
 {
     auto transportClient = createAndConnectTransportClient(host, port, path, config);
 
@@ -203,12 +204,12 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                              processingIOContextPtr,
                                                              reconnectionProcessingIOContextPtr,
                                                              reconnectionProcessingThread.get_id());
-    auto device = deviceHelper->connectAndGetDevice(parent);
+    auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
     deviceHelper->subscribeToCoreEvent(context);
 
     device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
+    device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
 
     processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
                                                     std::move(processingThread),
@@ -283,9 +284,9 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
+PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType)
 {
-    auto defConfig = createConnectionDefaultConfig();
+    auto defConfig = createConnectionDefaultConfig(nativeType);
     for (const auto& prop : defConfig.getAllProperties())
     {
         const auto name = prop.getName();
@@ -325,11 +326,19 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
+    NativeType nativeType;
+    if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
+        nativeType = NativeType::streaming;
+    else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
+        nativeType = NativeType::config;
+    else
+        throw InvalidParameterException("Invalid connection string prefix");
+
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
-        deviceConfig = createConnectionDefaultConfig();
+        deviceConfig = createConnectionDefaultConfig(nativeType);
     else
-        deviceConfig = populateDefaultConfig(config);
+        deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
@@ -375,16 +384,12 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
+        const uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
+        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
         protocolId = NativeConfigurationDeviceTypeId;
         protocolName = "OpenDAQNativeConfiguration";
         protocolPrefix = "daq.nd";
         protocolType = ProtocolType::ConfigurationAndStreaming;
-    }
-    
-    if (!device.assigned())
-    {
-        throw InvalidParameterException();
     }
 
     // Set the connection info for the device
@@ -426,7 +431,7 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
     return transportLayerConfig;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
+PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(NativeType nativeConfigType)
 {
     auto defaultConfig = PropertyObject();
 
@@ -436,6 +441,9 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     defaultConfig.addProperty(StringProperty("Password", ""));
 
     defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+    if (nativeConfigType == NativeType::config)
+        defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
+
     populateDeviceConfigFromContext(defaultConfig);
 
     return defaultConfig;
@@ -546,7 +554,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
-    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config) : createConnectionDefaultConfig();
+    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 
     StringPtr host = GetHost(connectionString);
     StringPtr port = GetPort(connectionString, parsedConfig);
@@ -637,7 +645,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setName("PseudoDevice")
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
         .setConnectionStringPrefix("daq.ns")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
 
@@ -648,7 +656,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setName("Device")
         .setDescription("Network device connected over Native configuration protocol")
         .setConnectionStringPrefix("daq.nd")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .build();
 }
 
@@ -659,7 +667,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setName("NativeStreaming")
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix("daq.ns")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
 

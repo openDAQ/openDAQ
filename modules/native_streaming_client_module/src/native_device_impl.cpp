@@ -39,9 +39,9 @@ NativeDeviceHelper::~NativeDeviceHelper()
     closeConnectionOnRemoval();
 }
 
-DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
+DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion)
 {
-    auto device = configProtocolClient->connect(parent);
+    auto device = configProtocolClient->connect(parent, protocolVersion);
     deviceRef = device;
     return device;
 }
@@ -425,7 +425,7 @@ void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> de
     this->deviceHelper = std::move(deviceHelper);
 }
 
-void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
+void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
     if (deviceInfoSet)
         return;
@@ -449,6 +449,11 @@ void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
             if (propValue.assigned())
                 newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
         }
+    }
+
+    if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
+    {
+        newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
     }
 
     newDeviceInfo.freeze();

@@ -1,11 +1,10 @@
 28.02.2024
 Description:
-    - Improving save/load mechanizm
-    - Add IFunctionBlocks methods to add/remove nestead fb
+    - Improving save/load mechanism for restoring input ports connection
 
 + [interface] IComponentUpdateContext : public IBaseObject
 + [function] IComponentUpdateContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
-+ [function] IComponentUpdateContext::getInputPortConnection(IString* parentId, IDict** connections)
++ [function] IComponentUpdateContext::getInputPortConnections(IString* parentId, IDict** connections)
 + [function] IComponentUpdateContext::removeInputPortConnection(IString* parentId) 
 + [function] IComponentUpdateContext::getRootComponent(IComponent** rootComponent)
 + [function] IComponentUpdateContext::getSignal(IString* parentId, IString* portId, ISignal** signal)

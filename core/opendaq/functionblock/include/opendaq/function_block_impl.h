@@ -290,12 +290,12 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
-    for (const auto & [portId, signalId] : contextPtr.getInputPortConnection(inputPorts.getGlobalId()))
+    for (const auto & [portId, signalId] : contextPtr.getInputPortConnections(inputPorts.getGlobalId()))
     {
         InputPortPtr inputPort;
         if (!inputPorts.hasItem(portId))
         {
-            LOG_W("Input port {} not found", portId);
+            LOG_W("Input port {} not found. The connection order might be incorrect", portId);
             for (const auto& ip : inputPorts.getItems(search::Any()))
             {
                 inputPort = ip.template asPtr<IInputPort>(true);

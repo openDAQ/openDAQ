@@ -33,7 +33,7 @@ public:
     }
 
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
-    ErrCode INTERFACE_FUNC getInputPortConnection(IString* parentId, IDict** connections) override;
+    ErrCode INTERFACE_FUNC getInputPortConnections(IString* parentId, IDict** connections) override;
     ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
@@ -83,7 +83,7 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ComponentUpdateContextImpl::getInputPortConnection(IString* parentId, IDict** connections)
+inline ErrCode ComponentUpdateContextImpl::getInputPortConnections(IString* parentId, IDict** connections)
 {
     if (!parentId || !connections)
         return OPENDAQ_ERR_INVALID_ARGUMENT;
@@ -152,7 +152,7 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     *signal = nullptr;
 
     DictPtr<IString, IBaseObject> connections;
-    getInputPortConnection(parentId, &connections);
+    getInputPortConnections(parentId, &connections);
     if (!connections.hasKey(portId))
         return OPENDAQ_NOTFOUND;
     

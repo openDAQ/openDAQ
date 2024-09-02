@@ -117,7 +117,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
-    , isActive(builder.getActive())
 {
     auto sourceComponents = builder.getSourceComponents();
     checkEarlyPreconditionsAndCacheContext(sourceComponents);
@@ -986,6 +985,9 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     for (auto& signal : signals)
     {
+        if (!isActive)
+            signal.skipUntilNextEventPacket();
+
         if (signal.isFirstPacketEvent())
         {
             hasEventPacket = true;
@@ -1182,6 +1184,7 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
     {
         if (signalReader.port.assigned())
             signalReader.port.setActive(this->isActive);
+        signalReader.reset();
     }
 
     return OPENDAQ_SUCCESS;

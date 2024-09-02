@@ -355,6 +355,22 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     return packetToReturn;
 }
 
+void SignalReader::skipUntilNextEventPacket()
+{
+    auto packet = connection.peek();
+    while (packet.assigned())
+    {
+        if (auto type = packet.getType();
+            type == PacketType::Data || type == PacketType::None)
+            connection.dequeue();
+        else
+            // PacketType::Event
+            break;
+
+        packet = connection.peek();
+    }
+}
+
 bool SignalReader::sync(const Comparable& commonStart)
 {
     if (synced == SyncStatus::Synchronized)
@@ -494,6 +510,11 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
     }
 
     throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+}
+
+void SignalReader::reset()
+{
+    info.reset();
 }
 
 ErrCode SignalReader::readPacketData()

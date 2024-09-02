@@ -74,6 +74,7 @@ struct SignalReader
     std::unique_ptr<Comparable> readStartDomain();
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
+    void skipUntilNextEventPacket();
     bool sync(const Comparable& commonStart);
 
     ErrCode readPackets();
@@ -81,6 +82,7 @@ struct SignalReader
     ErrCode handlePacket(const PacketPtr& packet, bool& firstData);
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
+    void reset();
 
     LoggerComponentPtr loggerComponent;
 

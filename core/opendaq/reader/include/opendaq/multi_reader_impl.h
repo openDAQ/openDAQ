@@ -142,8 +142,8 @@ private:
     bool startOnFullUnitOfDomain;
 
     NotifyInfo notify{};
-    bool portConnected {};
-    bool portDisconnected {};
+    bool portConnected{};
+    bool portDisconnected{};
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;

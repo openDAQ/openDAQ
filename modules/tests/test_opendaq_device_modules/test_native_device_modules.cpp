@@ -1778,7 +1778,8 @@ public:
 
 TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
 {
-    SKIP_TEST_MAC_CI
+    SKIP_TEST_MAC_CI;
+
     const auto server = Instance();
     server.setRootDevice("daqref://device0");
     server.addServer("OpenDAQNativeStreaming", nullptr);

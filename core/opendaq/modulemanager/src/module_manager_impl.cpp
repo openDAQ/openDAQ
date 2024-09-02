@@ -587,10 +587,7 @@ PropertyObjectPtr ModuleManagerImpl::populateDeviceConfig(const PropertyObjectPt
     if (config.assigned())
         checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&configClone));
     else
-        return deviceType.createDefaultConfig();
-
-    if (!configClone.assigned())
-        throw GeneralErrorException("Failure while cloning device config object. Clone is null.");
+        configClone = deviceType.createDefaultConfig();
 
     const bool isDefaultAddDeviceConfigRes = isDefaultAddDeviceConfig(configClone);
     const PropertyObjectPtr generalConfig = isDefaultAddDeviceConfigRes ? configClone.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();

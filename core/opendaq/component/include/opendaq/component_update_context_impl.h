@@ -219,7 +219,7 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     auto parentId = signalDependencies.get(signalId);
 
     // Check that the parent is function block which is not finished with the update
-    if (!connections.hasKey(parentId))
+    if (!connections.hasKey(parentId + "/IP"))
         return OPENDAQ_NOTFOUND;
 
     // Find the function block

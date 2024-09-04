@@ -51,7 +51,7 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, const PacketPtr& packet);
+    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
 
 protected:
     void initSessionHandler(SessionPtr session);

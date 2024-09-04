@@ -513,65 +513,73 @@ TEST_F(InstanceTest, AddServerBackwardsCompat)
     ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadRestoreDevice)
+TEST_F(InstanceTest, SaveLoadRestoreDevice)
 {
+    std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
-    instance.addDevice("daqmock://phys_device");
-    instance.addDevice("daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
 
     auto config = instance.saveConfiguration();
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    instance2.addDevice("daqmock://client_device");
     instance2.loadConfiguration(config);
 
-    ASSERT_EQ(instance.getDevices().getCount(), instance2.getDevices().getCount());
-
-    for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+    for (const auto& device : instance2.getDevices())
     {
-        DevicePtr device1 = instance.getDevices()[i];
-        DevicePtr device2;
-        for (const auto & device : instance2.getDevices())
-        {
-            if (device1.getName() == device.getName())
-            {
-                device2 = device;
-                break;
-            }
-        }
-
-        ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
-        ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
     }
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadRestoreDeviceDifferentIds)
+TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
 {
+    std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
-    instance.addDevice("daqmock://phys_device");
-    instance.addDevice("daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
 
     auto config = instance.saveConfiguration();
 
     auto instance2 = test_helpers::setupInstance("localIntanceId2");
     instance2.loadConfiguration(config);
 
-    ASSERT_EQ(instance.getDevices().getCount(), instance2.getDevices().getCount());
-
-    for (SizeT i = 0; i < instance.getDevices().getCount(); i++)
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+    for (const auto& device : instance2.getDevices())
     {
-        auto device1 = instance.getDevices()[i];
-        DevicePtr device2;
-        for (const auto & device : instance2.getDevices())
-        {
-            if (device1.getName() == device.getName())
-            {
-                device2 = device;
-                break;
-            }
-        }
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
 
-        ASSERT_EQ(device1.getInfo().getName(), device2.getInfo().getName());
-        ASSERT_EQ(device1.getInfo().getConnectionString(), device2.getInfo().getConnectionString());
+TEST_F(InstanceTest, SaveLoadReaddDevice)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    instance2.addDevice("daqmock://client_device");
+    auto loadConfig = PropertyObject();
+    loadConfig.addProperty(BoolProperty("ReAddDevices", true));
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
     }
 }
 
@@ -748,7 +756,7 @@ TEST_F(InstanceTest, SaveLoadFunctionConnectingDynamicPorts)
     
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadFunctionConnectingSignalFromDev)
+TEST_F(InstanceTest, SaveLoadFunctionConnectingSignalFromDev)
 {
     StringPtr config;
     StringPtr signalId;

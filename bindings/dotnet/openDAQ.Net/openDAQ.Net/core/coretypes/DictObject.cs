@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:16.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -252,7 +252,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.Get(base.NativePointer, key.NativePointer, out valuePtr);
+            ErrorCode errorCode = (ErrorCode)_rawDictObject.Get(base.NativePointer, key, out valuePtr);
 
             if (Result.Failed(errorCode))
             {
@@ -278,7 +278,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.Set(base.NativePointer, key.NativePointer, value.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDictObject.Set(base.NativePointer, key, value);
 
             if (Result.Failed(errorCode))
             {
@@ -302,7 +302,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.Remove(base.NativePointer, key.NativePointer, out valuePtr);
+            ErrorCode errorCode = (ErrorCode)_rawDictObject.Remove(base.NativePointer, key, out valuePtr);
 
             if (Result.Failed(errorCode))
             {
@@ -327,7 +327,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.DeleteItem(base.NativePointer, key.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDictObject.DeleteItem(base.NativePointer, key);
 
             if (Result.Failed(errorCode))
             {
@@ -362,7 +362,7 @@ public class DictObject<TKey, TValue> : BaseObject, IDictObject<TKey, TValue>
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawDictObject.HasKey(base.NativePointer, key.NativePointer, out hasKey);
+            ErrorCode errorCode = (ErrorCode)_rawDictObject.HasKey(base.NativePointer, key, out hasKey);
 
             if (Result.Failed(errorCode))
             {

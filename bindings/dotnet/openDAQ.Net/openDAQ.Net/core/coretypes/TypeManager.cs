@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:28.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -125,7 +125,7 @@ public class TypeManager : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawTypeManager.AddType(base.NativePointer, type.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawTypeManager.AddType(base.NativePointer, type);
 
             if (Result.Failed(errorCode))
             {
@@ -152,7 +152,7 @@ public class TypeManager : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawTypeManager.RemoveType(base.NativePointer, typeNamePtr.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawTypeManager.RemoveType(base.NativePointer, typeNamePtr);
 
             if (Result.Failed(errorCode))
             {
@@ -179,7 +179,7 @@ public class TypeManager : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawTypeManager.GetDaqType(base.NativePointer, typeNamePtr.NativePointer, out typePtr);
+            ErrorCode errorCode = (ErrorCode)_rawTypeManager.GetDaqType(base.NativePointer, typeNamePtr, out typePtr);
 
             if (Result.Failed(errorCode))
             {
@@ -210,7 +210,7 @@ public class TypeManager : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawTypeManager.HasType(base.NativePointer, typeNamePtr.NativePointer, out hasType);
+            ErrorCode errorCode = (ErrorCode)_rawTypeManager.HasType(base.NativePointer, typeNamePtr, out hasType);
 
             if (Result.Failed(errorCode))
             {

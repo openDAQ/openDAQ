@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:22.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ public class Function : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params?.NativePointer ?? IntPtr.Zero, out resultPtr);
+            ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params, out resultPtr);
 
             if (Result.Failed(errorCode))
             {

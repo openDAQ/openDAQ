@@ -270,6 +270,12 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     #region operators
 
     //cast operators to implicitly cast to/from BaseObject from/to .NET value types (but operators to/from derived types not allowed -> use Cast<T>() instead)
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BaseObject"/> to <see cref="IntPtr"/>.</summary>
+    /// <param name="baseObject">The <see cref="Daq.Core.Types.BaseObject"/> to be converted.</param>
+    /// <returns>The result of the conversion.</returns>
+    public static implicit operator IntPtr(BaseObject baseObject) => baseObject?.NativePointer ?? IntPtr.Zero;
+
     /// <summary>Performs an implicit conversion from <see cref="bool"/> to <see cref="Daq.Core.Types.BaseObject"/>.</summary>
     /// <param name="value">The value to be converted.</param>
     /// <returns>The result of the conversion.</returns>

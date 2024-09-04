@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:20.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -131,7 +131,7 @@ public static partial class CoreTypesFactory
         using var eventNamePtr = (StringObject)eventName;
 
         //call native function
-        ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
+        ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -151,7 +151,7 @@ public static partial class CoreTypesFactory
         using var eventNamePtr = (StringObject)eventName;
 
         //call native function
-        ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr.NativePointer);
+        ErrorCode errorCode = createEventArgs(out objPtr, eventId, eventNamePtr);
 
         if (Result.Failed(errorCode))
         {

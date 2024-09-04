@@ -56,6 +56,7 @@ namespace RTGen.CSharp.Generators
         private readonly List<string>                                   _keyWords                    = new List<string>();
         private readonly Dictionary<string, Dictionary<string, string>> _renamedParameters           = new Dictionary<string, Dictionary<string, string>>();
         private readonly Dictionary<string, string>                     _callingConventions          = new Dictionary<string, string>();
+        private readonly Dictionary<string, string>                     _delegateTypeReplacements    = new Dictionary<string, string>();
         private readonly List<string>                                   _factoryEnumTypesToIgnore    = new List<string>();
         private readonly Dictionary<string, string>                     _factoryArgumentDefaults     = new Dictionary<string, string>();
 
@@ -239,6 +240,9 @@ namespace RTGen.CSharp.Generators
                 _manualFactories.Add("Number", "CreateNumberObject");
 
                 _enumTypes.Add("CoreType", "CoreType");
+
+                _delegateTypeReplacements.Add("FuncCall", "FuncCallDelegate");
+                _delegateTypeReplacements.Add("ProcCall", "ProcCallDelegate");
 
                 //ignore certain factory argument types
                 _factoryEnumTypesToIgnore.Add("SampleType"); //replaced using `OpenDAQFactory.GetSampleType<TElementType>()`
@@ -695,6 +699,19 @@ namespace RTGen.CSharp.Generators
                 string argumentNames = base.GetArgumentNames(method.Overloads[0], ", ", "out ");
                 _useArgumentPointers = false;
 
+                if (_isFactory)
+                {
+                    string methodName = method.Name;
+                    List<string> names = argumentNames.Split(',').ToList();
+
+                    for (int i = 0; i < names.Count; ++i)
+                    {
+                        names[i] = GetRenamedParameterName(methodName, names[i].Trim());
+                    }
+
+                    argumentNames = string.Join(", ", names).TrimStart();
+                }
+
                 if (!isUnmanagedCall || _isFactory)
                     return argumentNames;
 
@@ -705,8 +722,9 @@ namespace RTGen.CSharp.Generators
                 {
                     argumentNames = "value";
 
-                    if (!lastOutParam.Type.Flags.IsValueType)
-                        argumentNames += ".NativePointer";
+                    //[2024-09-04 commented out] - BaseObject has an implicit operator IntPtr(BaseObject baseObject)
+                    //if (!lastOutParam.Type.Flags.IsValueType)
+                    //    argumentNames += ".NativePointer";
                 }
 
                 if (isReaderFunction)
@@ -729,6 +747,7 @@ namespace RTGen.CSharp.Generators
                 if (!string.IsNullOrWhiteSpace(argumentNames))
                     argumentNames = string.Concat(", ", argumentNames);
 
+                //only here we need to use the NativePointer property
                 return string.Concat("base.NativePointer", argumentNames);
             }
 
@@ -1216,15 +1235,17 @@ namespace RTGen.CSharp.Generators
                 {
                     if (!isVoidArgumentType)
                     {
+                        //[2024-09-04 commented out] - BaseObject has an implicit operator IntPtr(BaseObject baseObject)
+
                         //use native pointer getter for reference type variable
-                        if (hasDefaultValue)
-                        {
-                            argumentName += "?.NativePointer ?? IntPtr.Zero";
-                        }
-                        else
-                        {
-                            argumentName += ".NativePointer";
-                        }
+                        //if (hasDefaultValue)
+                        //{
+                        //    argumentName += "?.NativePointer ?? IntPtr.Zero";
+                        //}
+                        //else
+                        //{
+                        //    argumentName += ".NativePointer";
+                        //}
                     }
                 }
                 else if (IsRefArg(argument, useArgumentPointers: true))
@@ -1346,6 +1367,28 @@ namespace RTGen.CSharp.Generators
         private static bool IsSetter(IMethod method)
         {
             return method.Equals(method.GetSetPair?.Setter);
+        }
+
+        private bool HasDelegateTypeArgument(IMethod method)
+        {
+            return method.Arguments.Any(arg => IsDelegateType(arg));
+        }
+
+        private bool IsDelegateType(IArgument argument)
+        {
+            return IsDelegateType(argument.Type.Name);
+        }
+
+        private bool IsDelegateType(string typeName)
+        {
+            return _delegateTypeReplacements.ContainsKey(typeName);
+        }
+
+        private string GetDelegateTypeReplacement(string typeName)
+        {
+            if (_delegateTypeReplacements.TryGetValue(typeName, out string replacement))
+                return replacement;
+            return typeName;
         }
 
         private static IArgument GetPropertyAsArgument(IMethod method)
@@ -2253,6 +2296,11 @@ namespace RTGen.CSharp.Generators
                                              "$ArgType$ $ArgName$",
                                              ", ");
 
+            if (HasDelegateTypeArgument(method))
+            {
+                args = HandleDelegateArguments(SplitArguments(args.Trim(), ',').ToList());
+            }
+
             if (_isFactory && _isBasedOnSampleReader)
             {
                 args = HandleSampleReaderFactoryArguments(SplitArguments(args.Trim(), ',').ToList());
@@ -2285,6 +2333,28 @@ namespace RTGen.CSharp.Generators
                 }
 
                 return string.Join(",", argsList);
+            }
+
+            string HandleDelegateArguments(List<string> argsList)
+            {
+                //change type name of delegate arguments
+                for (int index = 0; index < argsList.Count; ++index)
+                {
+                    string   arg            = argsList[index];
+                    string[] argTypeAndName = SplitArguments(arg.Trim(), ' ');
+
+                    int typeIndex = 0;
+                    if (argTypeAndName.Length > 2)
+                        typeIndex = 1;
+
+                    if (!IsDelegateType(argTypeAndName[typeIndex]))
+                        continue;
+
+                    argTypeAndName[typeIndex] = GetDelegateTypeReplacement(argTypeAndName[typeIndex]);
+                    argsList[index] = string.Join(" ", argTypeAndName);
+                }
+
+                return string.Join(", ", argsList);
             }
 
             string[] SplitArguments(string arguments,
@@ -2621,11 +2691,13 @@ namespace RTGen.CSharp.Generators
                 bool isCastType               = IsCastOperatorType(argument.Type.NonInterfaceName);
                 bool isDotNetInterface        = IsDotNetInterface(argument.Type.Name);
                 bool isFactoryIgnoredArgument = _isFactory && _isBasedOnSampleReader && _factoryEnumTypesToIgnore.Contains(argument.Type.Name);
+                bool isDelegateType           = IsDelegateType(argument);
 
                 if (!isFactoryIgnoredArgument
                     && ((argument.Name.Equals(lastOutParam?.Name) && !isSetter)
                         || argument.Type.Flags.IsValueType
-                        || !(isCastType || isDotNetInterface)))
+                        || !(isCastType || isDotNetInterface))
+                    && !isDelegateType)
                 {
                     continue;
                 }
@@ -2634,13 +2706,39 @@ namespace RTGen.CSharp.Generators
                 {
                     addComment = false;
                     returnTypeDeclaration.AppendLine();
-                    returnTypeDeclaration.AppendLine(indentation + "//cast .NET argument to SDK object");
+
+                    if (!isDelegateType)
+                    {
+                        returnTypeDeclaration.AppendLine(indentation + "//cast .NET argument to SDK object");
+                    }
+                    else
+                    {
+                        returnTypeDeclaration.AppendLine(indentation + "//wrap SDK delegate around .NET delegate");
+                    }
                 }
 
                 string castType     = GetDotNetTypeName(argument.Type, overload.Method, argument, dontCast: true);
                 string argumentName = base.GetArgumentName(overload, argument);
 
-                if (!isFactoryIgnoredArgument)
+                if (isDelegateType)
+                {
+                    //-> var valueFuncCall = CoreTypesFactory.CreateFuncCallWrapper(value);
+                    //-> var valueProcCall = CoreTypesFactory.CreateProcCallWrapper(value);
+                    string nativeDelegateTypeName = argument.Type.Name;
+                    string nativeDelegateName     = "wrapped" + argumentName.Capitalize();
+                    string factoryName            = GetMethodVariable(overload.Method, "LibraryName").Equals("CoreTypes") ? string.Empty : "CoreTypesFactory.";
+
+                    AddRenamedParameter(overload.Method.Name, argumentName, nativeDelegateName);
+
+                    if (isProperty)
+                    {
+                        //override the name for the property setter
+                        argumentName = "value";
+                    }
+
+                    returnTypeDeclaration.AppendLine($"{indentation}var {nativeDelegateName} = {factoryName}Create{nativeDelegateTypeName}Wrapper({HandleCSharpKeyword(argumentName)});");
+                }
+                else if (!isFactoryIgnoredArgument)
                 {
                     //-> var packetsPtr = (ListObject<Packet>)packets;
                     string castName       = argumentName + "Ptr";

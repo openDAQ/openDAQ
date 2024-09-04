@@ -1246,4 +1246,75 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
         });
     }
+
+
+    [Test]
+    public void Test_0501_ProcedureTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyCallback);
+
+        Console.WriteLine("Dispatch(false)");
+        procedure.Dispatch(false);
+
+        Console.WriteLine("Dispatch(true)");
+        procedure.Dispatch(true);
+
+
+        // local functions -----------------------------------------------------
+
+        ErrorCode MyCallback(BaseObject parameters)
+        {
+            Console.WriteLine("in MyCallback()");
+            var boolObj = parameters.Cast<BoolObject>();
+            if (boolObj == null)
+            {
+                Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
+                return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            }
+
+            Console.WriteLine($"-> got {boolObj.Value}");
+            return ErrorCode.OPENDAQ_SUCCESS;
+        }
+    }
+
+    [Test]
+    public void Test_0502_FunctionTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateFunction");
+        var function = CoreTypesFactory.CreateFunction(MyCallback);
+
+        Console.WriteLine("Call(false)");
+        var result = function.Call(false)?.Cast<BoolObject>()?.Value;
+        Assert.That(result, Is.Not.Null, "*** Wrong call result type.");
+        Assert.That(result, Is.False, "*** Wrong call result for parameter 'false'.");
+
+        Console.WriteLine("Call(true)");
+        result = function.Call(true)?.Cast<BoolObject>()?.Value;
+        Assert.That(result, Is.Not.Null, "*** Wrong call result type.");
+        Assert.That(result, Is.True, "*** Wrong call result for parameter 'false'.");
+
+
+        // local functions -----------------------------------------------------
+
+        ErrorCode MyCallback(BaseObject parameters, out BaseObject result)
+        {
+            Console.WriteLine("MyCallback()");
+            var boolObj = parameters.Cast<BoolObject>();
+            if (boolObj == null)
+            {
+                Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
+                result = false;
+                return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            }
+
+            Console.WriteLine($"-> got {boolObj.Value}");
+            result = boolObj.Value;
+            return ErrorCode.OPENDAQ_SUCCESS;
+        }
+    }
 }

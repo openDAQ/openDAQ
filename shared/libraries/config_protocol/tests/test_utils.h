@@ -88,6 +88,13 @@ namespace daq::config_protocol::test_utils
         {
             setDeviceDomain(deviceDomain);
         }
+        
+        void setDeviceInfoHelper(const DeviceInfoPtr& deviceInfo)
+        {
+            this->deviceInfo = deviceInfo;
+            if (!this->deviceInfo.isFrozen())
+                this->deviceInfo.freeze();
+        }
 
     protected:
         bool clearFunctionBlocksOnUpdate() override

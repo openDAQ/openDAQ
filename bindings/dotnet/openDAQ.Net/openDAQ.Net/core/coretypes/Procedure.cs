@@ -101,8 +101,14 @@ public static partial class CoreTypesFactory
     [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern ErrorCode createProcedure(out IntPtr obj, ProcCall value);
 
-    public static ErrorCode CreateProcedure(out Procedure obj, ProcCall value)
+    public static ErrorCode CreateProcedure(out Procedure obj, ProcCallDelegate value)
     {
+        ProcCall procCall = (IntPtr @params) =>
+        {
+            var paramsObject = new BaseObject(@params, true);
+            return value(paramsObject);
+        };
+
         //initialize output argument
         obj = default;
 
@@ -110,7 +116,7 @@ public static partial class CoreTypesFactory
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, value);
+        ErrorCode errorCode = createProcedure(out objPtr, procCall);
 
         if (Result.Succeeded(errorCode))
         {
@@ -121,13 +127,23 @@ public static partial class CoreTypesFactory
         return errorCode;
     }
 
-    public static Procedure CreateProcedure(ProcCall value)
+    public static Procedure CreateProcedure(ProcCallDelegate value)
     {
+//ToDo: move to CoreTypesFactory and handle 'null' callback to remove
+        //create the native (unmanaged) wrapper for the managed callback
+        //since we cannot send a managed object to C++
+        ProcCall procCall = (IntPtr @params) =>
+        {
+            //call the managed callback with the managed parameters object
+            var paramsObject = new BaseObject(@params, true);
+            return value(paramsObject);
+        };
+
         //native output argument
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, value);
+        ErrorCode errorCode = createProcedure(out objPtr, procCall);
 
         if (Result.Failed(errorCode))
         {

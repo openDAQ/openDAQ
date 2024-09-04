@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:19.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ public class ErrorInfo : BaseObject
             unsafe //use native method pointer
             {
                 //call native method
-                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetMessage(base.NativePointer, messagePtr.NativePointer);
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetMessage(base.NativePointer, messagePtr);
 
                 if (Result.Failed(errorCode))
                 {
@@ -166,7 +166,7 @@ public class ErrorInfo : BaseObject
             unsafe //use native method pointer
             {
                 //call native method
-                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetSource(base.NativePointer, sourcePtr.NativePointer);
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetSource(base.NativePointer, sourcePtr);
 
                 if (Result.Failed(errorCode))
                 {

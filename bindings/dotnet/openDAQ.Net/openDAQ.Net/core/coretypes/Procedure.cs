@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:25.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ public class Procedure : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params);
 
             if (Result.Failed(errorCode))
             {

@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:17.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.SetItemAt(base.NativePointer, index, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.SetItemAt(base.NativePointer, index, obj);
 
             if (Result.Failed(errorCode))
             {
@@ -166,7 +166,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.PushBack(base.NativePointer, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.PushBack(base.NativePointer, obj);
 
             if (Result.Failed(errorCode))
             {
@@ -183,7 +183,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.PushFront(base.NativePointer, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.PushFront(base.NativePointer, obj);
 
             if (Result.Failed(errorCode))
             {
@@ -203,7 +203,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveBack(base.NativePointer, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveBack(base.NativePointer, obj);
 
             if (Result.Failed(errorCode))
             {
@@ -223,7 +223,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveFront(base.NativePointer, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveFront(base.NativePointer, obj);
 
             if (Result.Failed(errorCode))
             {
@@ -303,7 +303,7 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.InsertAt(base.NativePointer, index, obj.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawListObject.InsertAt(base.NativePointer, index, obj);
 
             if (Result.Failed(errorCode))
             {

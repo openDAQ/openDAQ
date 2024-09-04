@@ -103,20 +103,17 @@ public static partial class CoreTypesFactory
 
     public static ErrorCode CreateProcedure(out Procedure obj, ProcCallDelegate value)
     {
-        ProcCall procCall = (IntPtr @params) =>
-        {
-            var paramsObject = new BaseObject(@params, true);
-            return value(paramsObject);
-        };
-
         //initialize output argument
         obj = default;
 
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateProcCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, procCall);
+        ErrorCode errorCode = createProcedure(out objPtr, wrappedValue);
 
         if (Result.Succeeded(errorCode))
         {
@@ -129,21 +126,14 @@ public static partial class CoreTypesFactory
 
     public static Procedure CreateProcedure(ProcCallDelegate value)
     {
-//ToDo: move to CoreTypesFactory and handle 'null' callback to remove
-        //create the native (unmanaged) wrapper for the managed callback
-        //since we cannot send a managed object to C++
-        ProcCall procCall = (IntPtr @params) =>
-        {
-            //call the managed callback with the managed parameters object
-            var paramsObject = new BaseObject(@params, true);
-            return value(paramsObject);
-        };
-
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateProcCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, procCall);
+        ErrorCode errorCode = createProcedure(out objPtr, wrappedValue);
 
         if (Result.Failed(errorCode))
         {

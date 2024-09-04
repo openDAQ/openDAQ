@@ -114,23 +114,17 @@ public static partial class CoreTypesFactory
 
     public static ErrorCode CreateFunction(out Function obj, FuncCallDelegate value)
     {
-        FuncCall funcCall = (IntPtr @params, out IntPtr result) =>
-        {
-            var paramsObject = new BaseObject(@params, true);
-            var errorCode = value(paramsObject, out BaseObject resultObject);
-            result = resultObject?.NativePointer ?? IntPtr.Zero;
-            resultObject?.SetNativePointerToZero();
-            return errorCode;
-        };
-
         //initialize output argument
         obj = default;
 
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateFuncCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createFunction(out objPtr, funcCall);
+        ErrorCode errorCode = createFunction(out objPtr, wrappedValue);
 
         if (Result.Succeeded(errorCode))
         {
@@ -143,30 +137,14 @@ public static partial class CoreTypesFactory
 
     public static Function CreateFunction(FuncCallDelegate value)
     {
-//ToDo: move to CoreTypesFactory and handle 'null' callback to remove
-        //create the native (unmanaged) wrapper for the managed callback
-        //since we cannot send a managed object to C++
-        FuncCall funcCall = (IntPtr @params, out IntPtr result) =>
-        {
-            //call the managed callback with the managed parameters object
-            using var paramsObject = new BaseObject(@params, true);
-            var errorCode = value(paramsObject, out BaseObject resultObject);
-
-            //get the result pointer (if there was a result)
-            result = resultObject?.NativePointer ?? IntPtr.Zero;
-
-            //prevent from releasing the reference in managed resultObject destruction
-            //as we hand it over to C++ in the result above
-            resultObject?.SetNativePointerToZero();
-
-            return errorCode;
-        };
-
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateFuncCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createFunction(out objPtr, funcCall);
+        ErrorCode errorCode = createFunction(out objPtr, wrappedValue);
 
         if (Result.Failed(errorCode))
         {

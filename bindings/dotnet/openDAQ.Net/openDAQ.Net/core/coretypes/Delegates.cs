@@ -17,8 +17,41 @@
 
 ﻿namespace Daq.Core.Types;
 
-//typedef ErrCode(*FuncCall)(IBaseObject*, IBaseObject**);
-public delegate ErrorCode FuncCall(BaseObject inObject, out BaseObject outObject);
 
-//typedef ErrCode(*ProcCall)(IBaseObject*);
-public delegate ErrorCode ProcCall(BaseObject inObject);
+/// <summary>
+/// The function callback delegate.
+/// </summary>
+/// <remarks>
+/// If the callback expects no parameters, the `params` parameter would be `null`.<br/>
+/// If it expects a single parameter, any openDAQ object would be passed as the `params` parameter.<br/>
+/// If it expects multiple parameters, an <c>IList&lt;IBaseObject&gt;</c> would be passed as the `params` parameter.
+/// </remarks>
+/// <param name="params">Parameters passed to the callback.</param>
+/// <param name="result">Return value of the callback.</param>
+/// <returns><see cref="ErrorCode.OPENDAQ_SUCCESS"/> when no error occurred; otherwise any other <see cref="ErrorCode"/>.</returns>
+public delegate ErrorCode FuncCallDelegate(BaseObject @params, out BaseObject result);
+
+/// <summary>
+/// The procedure callback delegate.
+/// </summary>
+/// <remarks>
+/// If the callback expects no parameters, the `params` parameter would be `null`.<br/>
+/// If it expects a single parameter, any openDAQ object would be passed as the `params` parameter.<br/>
+/// If it expects multiple parameters, an <c>IList&lt;IBaseObject&gt;</c> would be passed as the `params` parameter.
+/// </remarks>
+/// <param name="params">Parameters passed to the callback.</param>
+/// <returns><see cref="ErrorCode.OPENDAQ_SUCCESS"/> when no error occurred; otherwise any other <see cref="ErrorCode"/>.</returns>
+public delegate ErrorCode ProcCallDelegate(BaseObject @params);
+
+
+//private (unmanaged) delegates for internal use (e.g. cannot send a managed object to C++)
+public static partial class CoreTypesFactory
+{
+    //typedef ErrCode(*FuncCall)(IBaseObject*, IBaseObject**);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate ErrorCode FuncCall(IntPtr @params, out IntPtr result);
+
+    //typedef ErrCode(*ProcCall)(IBaseObject*);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate ErrorCode ProcCall(IntPtr @params);
+}

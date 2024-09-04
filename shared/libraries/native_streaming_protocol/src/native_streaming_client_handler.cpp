@@ -260,9 +260,9 @@ void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signa
     if (packetStreamingServerPtr && sessionHandler)
     {
         packetStreamingServerPtr->addDaqPacket(signalNumericId, packet);
-        while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
         {
-            sessionHandler->sendPacketBuffer(packetBuffer);
+            sessionHandler->sendPacketBuffer(std::move(packetBuffer));
         }
     }
 }

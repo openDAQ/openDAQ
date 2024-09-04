@@ -1474,3 +1474,22 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
 
     ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
 }
+
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.addProperty(StringProperty("String", "foo"));
+
+    const auto info = DeviceInfo(serverDevice.getInfo().getConnectionString(), "");
+    info.setManufacturer("test");
+    info.setSerialNumber("test");
+    auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+    mock->setDeviceInfoHelper(info);
+
+    const auto infoTest = serverDevice.getInfo();
+
+    client->reconnect();
+
+    ASSERT_EQ(clientDevice.getInfo().getSerialNumber(), "test");
+    ASSERT_EQ(clientDevice.getInfo().getManufacturer(), "test");
+}

@@ -22,6 +22,9 @@
 #endif
 #include <errno.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+
 #if defined(_WIN32) || defined(_WIN64)
 // On windows we need to generate random bytes differently.
 #if defined(_WIN32) && !defined(_WIN64)
@@ -32,12 +35,12 @@ typedef __int64 ssize_t;
 #define BCRYPT_HASHSIZE 60
 
 #include "../include/bcrypt/bcrypt.h"
+#include "../include/bcrypt/ow-crypt.h"
 
 #include <windows.h>
 #include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
-#include <io.h>
 #else
-#include <bcrypt.h>
+#include "bcrypt.h"
 #include "ow-crypt.h"
 #endif
 
@@ -233,3 +236,5 @@ int main(void)
 	return 0;
 }
 #endif
+
+#pragma clang diagnostic pop

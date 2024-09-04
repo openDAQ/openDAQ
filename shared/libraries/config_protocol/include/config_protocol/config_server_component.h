@@ -212,7 +212,7 @@ inline BaseObjectPtr ConfigServerComponent::update(uint16_t protocolVersion, con
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    deserializer.update(updatable, serializedString);
+    deserializer.update(updatable, serializedString, nullptr);
 
     return nullptr;
 }

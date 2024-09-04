@@ -24,8 +24,10 @@ BEGIN_NAMESPACE_OPENDAQ
 class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext>
 {
 public:
-    ComponentUpdateContextImpl(const ComponentPtr& curComponent)
-        : connections(Dict<IString, IBaseObject>())
+
+    ComponentUpdateContextImpl(const ComponentPtr& curComponent, const PropertyObjectPtr& config)
+        : config(populateConfig(config))
+        , connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
         , parentDependencies(List<IString>())
         , rootComponent(getRootComponent(curComponent))
@@ -39,6 +41,11 @@ public:
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
 
+    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+
+    static PropertyObjectPtr getDefaultConfig();
+    static PropertyObjectPtr populateConfig(const PropertyObjectPtr& config);
+
 private:
 
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
@@ -46,11 +53,34 @@ private:
     static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
     static StringPtr getRemoteId(const std::string& globalId);
 
+    PropertyObjectPtr config;
+
     DictPtr<IString, IBaseObject> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
     ComponentPtr rootComponent;
 };
+
+inline PropertyObjectPtr ComponentUpdateContextImpl::getDefaultConfig()
+{
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("ReAddDevices", false));
+    return config;
+}
+
+inline PropertyObjectPtr ComponentUpdateContextImpl::populateConfig(const PropertyObjectPtr& config)
+{
+    auto defaultConfig = getDefaultConfig();
+    if (config.assigned())
+    {
+        for (const auto & prop : config.getAllProperties())
+        {
+            if (defaultConfig.hasProperty(prop.getName()))
+                defaultConfig.setPropertyValue(prop.getName(), prop.getValue());
+        }
+    }
+    return defaultConfig;
+}
 
 inline ComponentPtr ComponentUpdateContextImpl::getRootComponent(const ComponentPtr& curComponent)
 {
@@ -244,6 +274,15 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
     *signal = signalComponent.asPtrOrNull<ISignal>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
+{
+    if (!enabled)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+
+    *enabled = config.getPropertyValue("ReAddDevices").asPtr<IBoolean>(true);
     return OPENDAQ_SUCCESS;
 }
 

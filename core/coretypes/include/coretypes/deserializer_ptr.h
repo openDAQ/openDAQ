@@ -47,14 +47,14 @@ public:
         return baseObj;
     }
 
-    void update(const UpdatablePtr& updatable, const StringPtr& serialized) const
+    void update(const UpdatablePtr& updatable, const StringPtr& serialized, const BaseObjectPtr& config = nullptr) const
     {
         if (!object)
         {
             throw InvalidParameterException();
         }
 
-        checkErrorInfo(object->update(updatable, serialized));
+        checkErrorInfo(object->update(updatable, serialized, config));
     }
 
 

@@ -103,7 +103,7 @@ public:
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
     // IDeserializeComponent
@@ -723,7 +723,7 @@ void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /*
 }
 
 template <class Intf, class... Intfs>
-ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -731,7 +731,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>()));
+    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
     {

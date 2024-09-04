@@ -37,6 +37,7 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/component_update_context_ptr.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -108,7 +109,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
-    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
+    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IPropertyObject* config) override;
 
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
@@ -961,24 +962,23 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration)
+ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    return daqTry(
-        [this, &configuration]()
-        {
-            const auto deserializer = JsonDeserializer();
+    return daqTry([this, &configuration, &config]
+    {
+        const auto deserializer = JsonDeserializer();
 
-            auto updatable = this->template borrowInterface<IUpdatable>();
+        auto updatable = this->template borrowInterface<IUpdatable>();
 
-            deserializer.update(updatable, configuration);
+        deserializer.update(updatable, configuration, PropertyObjectPtr::Borrow(config));
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class TInterface, class... Interfaces>
@@ -1096,18 +1096,26 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     DeviceInfoPtr deviceInfo;
     checkErrorInfo(this->getInfo(&deviceInfo));
+    if (deviceInfo.assigned())
+    {
+        serializer.key("deviceInfo");
+        deviceInfo.serialize(serializer);
+    }
+
     if (!forUpdate)
     {
-        if (deviceInfo.assigned())
-        {
-            serializer.key("deviceInfo");
-            deviceInfo.serialize(serializer);
-        }
-
         if (deviceDomain.assigned())
         {
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
+        }
+    }
+    else
+    {
+        if (deviceConfig.assigned())
+        {
+            serializer.key("deviceConfig");
+            deviceConfig.serialize(serializer);
         }
     }
 
@@ -1149,16 +1157,54 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 {
     try
     {
-        DevicePtr device;
-        if (devices.hasItem(deviceId))
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
+
+        if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
         {
-            device = devices.getItem(deviceId);
-        }
-        else
-        {
-            LOG_W("Device {} not found", deviceId);
+            LOG_D("Device {} already exists and re-add is not enabled", deviceId);
+            auto device = devices.getItem(deviceId);
+            const auto updatableDevice = device.template asPtr<IUpdatable>(true);
+            updatableDevice.updateInternal(serializedDevice, context);
             return;
         }
+
+        DeviceInfoPtr deviceInfo;
+        PropertyObjectPtr deviceConfig;
+        DeviceInfoPtr discoveredDeviceInfo;
+
+        if (serializedDevice.hasKey("deviceInfo"))
+            deviceInfo = serializedDevice.readObject("deviceInfo");
+        else
+            LOG_W("Device {} not found as the device info is not provided", deviceId);
+
+        if (serializedDevice.hasKey("deviceConfig"))
+            deviceConfig = serializedDevice.readObject("deviceConfig");
+
+        for (const auto& availableDevice : onGetAvailableDevices())
+        {
+            if (availableDevice.getManufacturer() == deviceInfo.getManufacturer() &&
+                availableDevice.getSerialNumber() == deviceInfo.getSerialNumber())
+            {
+                discoveredDeviceInfo = availableDevice;
+                break;
+            }
+        }
+
+        if (devices.hasItem(deviceId))
+        {
+            DevicePtr device = devices.getItem(deviceId);
+            this->removeDevice(device);
+            device = nullptr;
+        }
+
+        StringPtr connectionString = deviceInfo.getConnectionString();
+        if (discoveredDeviceInfo.assigned())
+        {
+            connectionString = discoveredDeviceInfo.getConnectionString();
+        }
+
+        DevicePtr device;
+        this->addDevice(&device, connectionString, deviceConfig);
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);

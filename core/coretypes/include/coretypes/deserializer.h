@@ -36,7 +36,7 @@ typedef ErrCode (*daqDeserializerFactory)(ISerializedObject* serialized, IBaseOb
 DECLARE_OPENDAQ_INTERFACE(IDeserializer, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object) = 0;
-    virtual ErrCode INTERFACE_FUNC update(IUpdatable * updatable, IString * serialized) = 0;
+    virtual ErrCode INTERFACE_FUNC update(IUpdatable* updatable, IString* serialized, IBaseObject* config) = 0;
 
     // customDeserialize should accept ISerializedObject* as parameter
     virtual ErrCode INTERFACE_FUNC callCustomProc(IProcedure* customDeserialize, IString* serialized) = 0;

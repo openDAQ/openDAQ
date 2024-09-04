@@ -532,7 +532,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         DeviceTypePtr deviceType;
         for (auto const& [typeId, type] : types)
         {
-            if (type.getConnectionStringPrefix()== prefix)
+            if (type.getConnectionStringPrefix() == prefix)
             {
                 id = typeId;
                 deviceType = type;
@@ -570,6 +570,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             return errCode;
 
         const auto devicePtr = DevicePtr::Borrow(*device);
+        if (devicePtr.assigned())
+        {
+            devicePtr.as<IDevicePrivate>(true)->setDeviceConfig(devConfig);
+        }
+
         if (devicePtr.assigned() && devicePtr.getInfo().assigned())
         {
             const auto connectedDeviceInfo = devicePtr.getInfo();
@@ -1087,7 +1092,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         StringPtr id;
         for (auto const& [typeId, type] : types)
         {
-            if (type.getConnectionStringPrefix()== prefix)
+            if (type.getConnectionStringPrefix() == prefix)
             {
                 id = typeId;
                 break;

@@ -80,7 +80,7 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
     auto deviceInfo = DeviceInfo("");
     deviceInfo.setName("MockPhysicalDevice");
-    deviceInfo.setConnectionString("connection_string");
+    deviceInfo.setConnectionString("daqmock://phys_device");
     deviceInfo.setManufacturer("manufacturer");
     deviceInfo.setManufacturerUri("manufacturer_uri");
     deviceInfo.setModel("model");

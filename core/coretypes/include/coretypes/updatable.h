@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
+    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update, IBaseObject* config) = 0;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
     virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) = 0;
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* update, IBaseObject* context) = 0;

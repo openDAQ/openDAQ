@@ -608,21 +608,20 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
         });
 }
 
-ErrCode InstanceImpl::loadConfiguration(IString* configuration)
+ErrCode InstanceImpl::loadConfiguration(IString* configuration, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
-    return daqTry(
-        [this, &configuration]()
-        {
-            const auto deserializer = JsonDeserializer();
+    return daqTry([this, &configuration, config]
+    {
+        const auto deserializer = JsonDeserializer();
 
-            auto updatable = this->template borrowInterface<IUpdatable>();
+        auto updatable = this->template borrowInterface<IUpdatable>();
 
-            deserializer.update(updatable, configuration);
+        deserializer.update(updatable, configuration, config);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 // IPropertyObject
@@ -754,11 +753,16 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
+ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
+}
+
+ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
-    return daqTry([&objPtr, this]
+    return daqTry([&objPtr, &config, this]
     {
         objPtr.checkObjectType("Instance");
 
@@ -771,15 +775,10 @@ ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* con
         rootDevicePtr.checkObjectType("Device");
 
         auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
-        rootDeviceUpdatable.update(rootDevicePtr);
+        rootDeviceUpdatable.update(rootDevicePtr, config);
 
         return OPENDAQ_SUCCESS;
     });
-}
-
-ErrCode InstanceImpl::update(ISerializedObject* obj)
-{
-    return updateInternal(obj, nullptr);
 }
 
 ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)

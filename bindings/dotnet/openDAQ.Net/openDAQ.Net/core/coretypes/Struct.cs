@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:26.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -230,7 +230,7 @@ public class Struct : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStruct.Get(base.NativePointer, namePtr.NativePointer, out fieldPtr);
+            ErrorCode errorCode = (ErrorCode)_rawStruct.Get(base.NativePointer, namePtr, out fieldPtr);
 
             if (Result.Failed(errorCode))
             {
@@ -261,7 +261,7 @@ public class Struct : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStruct.HasField(base.NativePointer, namePtr.NativePointer, out contains);
+            ErrorCode errorCode = (ErrorCode)_rawStruct.HasField(base.NativePointer, namePtr, out contains);
 
             if (Result.Failed(errorCode))
             {
@@ -296,7 +296,7 @@ public static partial class CoreTypesFactory
         var fieldsPtr = (DictObject<BaseObject, BaseObject>)fields;
 
         //call native function
-        ErrorCode errorCode = createStruct(out objPtr, namePtr.NativePointer, fieldsPtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createStruct(out objPtr, namePtr, fieldsPtr, typeManager);
 
         if (Result.Succeeded(errorCode))
         {
@@ -317,7 +317,7 @@ public static partial class CoreTypesFactory
         var fieldsPtr = (DictObject<BaseObject, BaseObject>)fields;
 
         //call native function
-        ErrorCode errorCode = createStruct(out objPtr, namePtr.NativePointer, fieldsPtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createStruct(out objPtr, namePtr, fieldsPtr, typeManager);
 
         if (Result.Failed(errorCode))
         {
@@ -342,7 +342,7 @@ public static partial class CoreTypesFactory
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createStructFromBuilder(out objPtr, builder.NativePointer);
+        ErrorCode errorCode = createStructFromBuilder(out objPtr, builder);
 
         if (Result.Succeeded(errorCode))
         {
@@ -359,7 +359,7 @@ public static partial class CoreTypesFactory
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createStructFromBuilder(out objPtr, builder.NativePointer);
+        ErrorCode errorCode = createStructFromBuilder(out objPtr, builder);
 
         if (Result.Failed(errorCode))
         {

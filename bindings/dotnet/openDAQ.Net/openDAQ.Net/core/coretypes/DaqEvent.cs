@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:20.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,6 +43,8 @@ internal unsafe class RawDaqEvent : RawBaseObject
     public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode> Clear;
     //ErrorCode getSubscriberCount(daq.SizeT* count); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, out nuint, ErrorCode> GetSubscriberCount;
+    //ErrorCode getSubscribers(daq.IList** subscribers); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetSubscribers;
     //ErrorCode mute(); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode> Mute;
     //ErrorCode unmute(); stdcall;
@@ -93,6 +95,34 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         }
     }
 
+    public IListObject<BaseObject> Subscribers
+    {
+        get
+        {
+            //native output argument
+            IntPtr subscribersPtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawDaqEvent.GetSubscribers(base.NativePointer, out subscribersPtr);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            // validate pointer
+            if (subscribersPtr == IntPtr.Zero)
+            {
+                return default;
+            }
+
+            return new ListObject<BaseObject>(subscribersPtr, incrementReference: false);
+        }
+    }
+
     #endregion properties
 
     public void AddHandler(DaqEventHandler eventHandler)
@@ -100,7 +130,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.AddHandler(base.NativePointer, eventHandler.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.AddHandler(base.NativePointer, eventHandler);
 
             if (Result.Failed(errorCode))
             {
@@ -114,7 +144,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.RemoveHandler(base.NativePointer, eventHandler.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.RemoveHandler(base.NativePointer, eventHandler);
 
             if (Result.Failed(errorCode))
             {
@@ -128,7 +158,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Trigger(base.NativePointer, sender.NativePointer, args.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.Trigger(base.NativePointer, sender, args);
 
             if (Result.Failed(errorCode))
             {
@@ -184,7 +214,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.MuteListener(base.NativePointer, eventHandler.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.MuteListener(base.NativePointer, eventHandler);
 
             if (Result.Failed(errorCode))
             {
@@ -198,7 +228,7 @@ public class DaqEvent/*<TSender, TEventArgs>*/ : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.UnmuteListener(base.NativePointer, eventHandler.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEvent.UnmuteListener(base.NativePointer, eventHandler);
 
             if (Result.Failed(errorCode))
             {

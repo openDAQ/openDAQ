@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:18.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -212,7 +212,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (StringObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createEnumeration(out objPtr, namePtr, valuePtr, typeManager);
 
         if (Result.Succeeded(errorCode))
         {
@@ -233,7 +233,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (StringObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumeration(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createEnumeration(out objPtr, namePtr, valuePtr, typeManager);
 
         if (Result.Failed(errorCode))
         {
@@ -262,7 +262,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (IntegerObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr, valuePtr, typeManager);
 
         if (Result.Succeeded(errorCode))
         {
@@ -283,7 +283,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (IntegerObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr.NativePointer, valuePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createEnumerationWithIntValue(out objPtr, namePtr, valuePtr, typeManager);
 
         if (Result.Failed(errorCode))
         {
@@ -311,7 +311,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (StringObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+        ErrorCode errorCode = createEnumerationWithType(out objPtr, type, valuePtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -331,7 +331,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (StringObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+        ErrorCode errorCode = createEnumerationWithType(out objPtr, type, valuePtr);
 
         if (Result.Failed(errorCode))
         {
@@ -359,7 +359,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (IntegerObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type, valuePtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -379,7 +379,7 @@ public static partial class CoreTypesFactory
         using var valuePtr = (IntegerObject)value;
 
         //call native function
-        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type.NativePointer, valuePtr.NativePointer);
+        ErrorCode errorCode = createEnumerationWithIntValueAndType(out objPtr, type, valuePtr);
 
         if (Result.Failed(errorCode))
         {

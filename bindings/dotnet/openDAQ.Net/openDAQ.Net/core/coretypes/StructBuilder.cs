@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:27.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ public class StructBuilder : BaseObject
             unsafe //use native method pointer
             {
                 //call native method
-                ErrorCode errorCode = (ErrorCode)_rawStructBuilder.SetFieldValues(base.NativePointer, valuesPtr.NativePointer);
+                ErrorCode errorCode = (ErrorCode)_rawStructBuilder.SetFieldValues(base.NativePointer, valuesPtr);
 
                 if (Result.Failed(errorCode))
                 {
@@ -253,7 +253,7 @@ public class StructBuilder : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Set(base.NativePointer, namePtr.NativePointer, field.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Set(base.NativePointer, namePtr, field);
 
             if (Result.Failed(errorCode))
             {
@@ -276,7 +276,7 @@ public class StructBuilder : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Get(base.NativePointer, namePtr.NativePointer, out fieldPtr);
+            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.Get(base.NativePointer, namePtr, out fieldPtr);
 
             if (Result.Failed(errorCode))
             {
@@ -307,7 +307,7 @@ public class StructBuilder : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.HasField(base.NativePointer, namePtr.NativePointer, out contains);
+            ErrorCode errorCode = (ErrorCode)_rawStructBuilder.HasField(base.NativePointer, namePtr, out contains);
 
             if (Result.Failed(errorCode))
             {
@@ -341,7 +341,7 @@ public static partial class CoreTypesFactory
         using var namePtr = (StringObject)name;
 
         //call native function
-        ErrorCode errorCode = createStructBuilder(out objPtr, namePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createStructBuilder(out objPtr, namePtr, typeManager);
 
         if (Result.Succeeded(errorCode))
         {
@@ -361,7 +361,7 @@ public static partial class CoreTypesFactory
         using var namePtr = (StringObject)name;
 
         //call native function
-        ErrorCode errorCode = createStructBuilder(out objPtr, namePtr.NativePointer, typeManager.NativePointer);
+        ErrorCode errorCode = createStructBuilder(out objPtr, namePtr, typeManager);
 
         if (Result.Failed(errorCode))
         {
@@ -386,7 +386,7 @@ public static partial class CoreTypesFactory
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_.NativePointer);
+        ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_);
 
         if (Result.Succeeded(errorCode))
         {
@@ -403,7 +403,7 @@ public static partial class CoreTypesFactory
         IntPtr objPtr;
 
         //call native function
-        ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_.NativePointer);
+        ErrorCode errorCode = createStructBuilderFromStruct(out objPtr, struct_);
 
         if (Result.Failed(errorCode))
         {

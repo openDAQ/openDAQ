@@ -272,6 +272,18 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                 this->addExistingComponent(deserializedObj);
         }
     }
+
+    if (serialized.hasKey("deviceDomain"))
+    {
+        this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
+    }
+
+    if (serialized.hasKey("deviceInfo"))
+    {
+        this->deviceInfo = serialized.readObject("deviceInfo");
+        this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
+        this->deviceInfo.freeze();
+    }
 }
 
 template <class TDeviceBase>

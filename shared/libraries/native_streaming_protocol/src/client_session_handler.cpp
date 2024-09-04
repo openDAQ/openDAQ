@@ -26,6 +26,7 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
 void ClientSessionHandler::sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
 
     // create write task for signal numeric ID
     tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
@@ -38,12 +39,13 @@ void ClientSessionHandler::sendSignalSubscribe(const SignalNumericIdType& signal
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_COMMAND, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ClientSessionHandler::sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
 
     // create write task for signal numeric ID
     tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
@@ -56,12 +58,13 @@ void ClientSessionHandler::sendSignalUnsubscribe(const SignalNumericIdType& sign
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_COMMAND, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ClientSessionHandler::sendTransportLayerProperties(const PropertyObjectPtr& properties)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(2);
 
     auto jsonSerializer = JsonSerializer(False);
     properties.serialize(jsonSerializer);
@@ -74,7 +77,7 @@ void ClientSessionHandler::sendTransportLayerProperties(const PropertyObjectPtr&
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ClientSessionHandler::sendStreamingRequest()
@@ -83,7 +86,7 @@ void ClientSessionHandler::sendStreamingRequest()
 
     tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST, 0));
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size)

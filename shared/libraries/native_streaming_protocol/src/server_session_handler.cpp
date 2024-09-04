@@ -57,7 +57,7 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_AVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& signalNumericId,
@@ -79,7 +79,7 @@ void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& sign
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNAVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendStreamingInitDone()
@@ -88,7 +88,7 @@ void ServerSessionHandler::sendStreamingInitDone()
 
     tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_DONE, 0));
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalNumericId)
@@ -103,7 +103,7 @@ void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalN
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signalNumericId)
@@ -118,7 +118,7 @@ void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signa
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size)

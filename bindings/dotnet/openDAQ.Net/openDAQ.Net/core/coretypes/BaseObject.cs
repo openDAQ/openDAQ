@@ -30,6 +30,7 @@
 
 //#define USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
 //#define DEBUG_PRINT_CREATE_AND_DISPOSE
+//#define DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
 
 
 using System.Reflection;
@@ -221,6 +222,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <remarks>You should call this method whenever you make a copy of an interface pointer.</remarks>
     int IUnknown.AddReference()
     {
+#if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
+        System.Diagnostics.Debug.WriteLine($"----- AddReference() for '{_name}'");
+#endif
+
 #if USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
         unsafe //use native method pointer
         {
@@ -237,6 +242,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <remarks>Call this method when you no longer need to use an interface pointer.</remarks>
     int IUnknown.ReleaseReference()
     {
+#if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
+        System.Diagnostics.Debug.WriteLine($"----- ReleaseReference() for '{_name}'");
+#endif
+
         try
         {
 #if USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
@@ -629,6 +638,11 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <param name="disposing">If set to <c>true</c> dispose also managed resources; otherwise only native resources will be freed.</param>
     protected virtual void Dispose(bool disposing)
     {
+#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
+        System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
+#endif
+        PrintReferenceCount(debugPrintOnly: true);
+
         if (_disposedValue)
         {
             return;
@@ -645,11 +659,6 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         {
             return;
         }
-
-#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
-        System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
-#endif
-        PrintReferenceCount(debugPrintOnly: true);
 
         //according to https://learn.microsoft.com/en-us/dotnet/api/system.accessviolationexception?view=net-7.0#accessviolationexception-and-trycatch-blocks
         //Win32 AccessViolationException can be caught by decorating this function with these attributes
@@ -702,18 +711,15 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     public void PrintReferenceCount(bool debugPrintOnly = false)
     {
 #if DEBUG
-        if (this.IsDisposed)
+        string message;
+
+        if (_handleRef.Handle == IntPtr.Zero)
         {
-            string message = $"'{_name}' already disposed";
-
-            if (!debugPrintOnly)
-                Console.WriteLine(message);
-
-#if DEBUG_PRINT_CREATE_AND_DISPOSE
-            System.Diagnostics.Debug.Print(message);
-#endif
-
-            return;
+            message = "'{_name}' is IntPtr.Zero";
+        }
+        else if (this.IsDisposed)
+        {
+            message = $"'{_name}' already disposed";
         }
         else
         {
@@ -721,15 +727,15 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             ((IUnknown)this).AddReference();
             int referenceCount = ((IUnknown)this).ReleaseReference();
 
-            string message = $"{referenceCount} references exist to '{_name}'";
-
-            if (!debugPrintOnly)
-                Console.WriteLine(message);
-
-#if DEBUG_PRINT_CREATE_AND_DISPOSE
-            System.Diagnostics.Debug.Print(message);
-#endif
+            message = $"{referenceCount} references exist to '{_name}'";
         }
+
+        if (!debugPrintOnly)
+            Console.WriteLine(message);
+
+# if DEBUG_PRINT_CREATE_AND_DISPOSE
+        System.Diagnostics.Debug.Print(message);
+# endif
 #endif
     }
 }

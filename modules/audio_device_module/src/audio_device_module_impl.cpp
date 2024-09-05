@@ -77,7 +77,6 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
     std::string localId = fmt::format("MiniAudioDev{}", deviceIndex++);
 
     auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(maContext, id, context, parent, StringPtr(localId));
-    devicePtr.getInfo().asPtr<IDeviceInfoConfig>(true).setConnectionString(connectionString);
     return devicePtr;
 }
 

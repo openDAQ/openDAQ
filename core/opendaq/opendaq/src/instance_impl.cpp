@@ -611,7 +611,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 ErrCode InstanceImpl::loadConfiguration(IString* configuration, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
-    auto configPtr = BaseObjectPtr::Borrow(config);
+    auto configPtr = BaseObjectPtr(config);
 
     return daqTry([this, &configuration, &configPtr]
     {

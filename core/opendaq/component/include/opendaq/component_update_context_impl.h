@@ -63,7 +63,7 @@ inline ComponentPtr ComponentUpdateContextImpl::getRootComponent(const Component
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
 {
     if (!parentId || !portId || !signalId)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     DictPtr<IString, IString> ports;
     
@@ -86,7 +86,7 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
 inline ErrCode ComponentUpdateContextImpl::getInputPortConnections(IString* parentId, IDict** connections)
 {
     if (!parentId || !connections)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     DictPtr<IString, IBaseObject> ports;
     if (!this->connections.hasKey(parentId))
@@ -104,7 +104,7 @@ inline ErrCode ComponentUpdateContextImpl::getInputPortConnections(IString* pare
 inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* parentId)
 {
     if (!parentId)
-        return OPENDAQ_SUCCESS;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     connections->deleteItem(parentId);
     return OPENDAQ_SUCCESS;
@@ -113,7 +113,7 @@ inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* pa
 inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootComponent)
 {
     if (!rootComponent)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *rootComponent = this->rootComponent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -143,11 +143,11 @@ inline StringPtr ComponentUpdateContextImpl::getRemoteId(const std::string& glob
 inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString* portId, ISignal** signal)
 {
     if (parentId == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
     if (portId == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
     if (signal == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *signal = nullptr;
 
@@ -199,9 +199,9 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
 inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId, IString* parentId)
 {
     if (signalId == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
     if (parentId == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     signalDependencies.set(signalId, parentId);
     return OPENDAQ_SUCCESS;
@@ -210,7 +210,7 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
     if (signalId == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     // Check that signal has parent
     if (!signalDependencies.hasKey(signalId))

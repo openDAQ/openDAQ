@@ -24,7 +24,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
       , params(this->fields.get("Parameters"))
 {
     checkErrorInfo(verifyParametersInternal());
-    if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
+    if (params.assigned() && params.supportsInterface<IFreezable>())
         params.freeze();
 }
 
@@ -136,8 +136,8 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
                              R"(Linear rule has invalid parameters. Required parameters are "delta", "size" and "start")");
     }
 
-    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("size").asPtrOrNull<INumber>().assigned())
+    if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>() ||
+        !params.get("size").supportsInterface<INumber>())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
@@ -151,7 +151,7 @@ ErrCode DimensionRuleImpl::checkListRuleValidity() const
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "List" parameter is required.)");
     }
 
-    if (!params.get("List").asPtrOrNull<IList>().assigned())
+    if (!params.get("List").supportsInterface<IList>())
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "List" parameter must be a list object.)");
 
     if (!listLabelsValid(params.get("List")))
@@ -176,8 +176,8 @@ ErrCode DimensionRuleImpl::checkLogRuleValidity() const
                              R"(Linear rule has invalid parameters. Required parameters are "delta", "size", "base" and "start")");
     }
 
-    if (!params.get("delta").asPtrOrNull<INumber>().assigned() || !params.get("start").asPtrOrNull<INumber>().assigned() ||
-        !params.get("size").asPtrOrNull<INumber>().assigned() || !params.get("base").asPtrOrNull<INumber>().assigned())
+    if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>() ||
+        !params.get("size").supportsInterface<INumber>() || !params.get("base").supportsInterface<INumber>())
     {
         return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
@@ -186,11 +186,11 @@ ErrCode DimensionRuleImpl::checkLogRuleValidity() const
 
 DimensionRuleImpl::LabelType DimensionRuleImpl::getLabelType(const BaseObjectPtr& label)
 {
-    if (label.asPtrOrNull<IString>(true).assigned())
+    if (label.supportsInterface<IString>())
         return LabelType::String;
-    if (label.asPtrOrNull<INumber>(true).assigned())
+    if (label.supportsInterface<INumber>())
         return LabelType::Number;
-    if (label.asPtrOrNull<IRange>(true).assigned())
+    if (label.supportsInterface<IRange>())
         return LabelType::Range;
     return LabelType::None;
 }

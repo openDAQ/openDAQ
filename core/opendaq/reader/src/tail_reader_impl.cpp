@@ -257,7 +257,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         {
             case PacketType::Data:
             {
-                auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
+                auto newPacket = packet.asPtr<IDataPacket>(true);
                 SizeT newPacketSampleCount = newPacket.getSampleCount();
                 if (cachedSamples < historySize)
                 {
@@ -275,7 +275,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
                             continue;
                         }
                 
-                        auto tmpPacket = it->asPtrOrNull<IDataPacket>(true);
+                        auto tmpPacket = it->asPtr<IDataPacket>(true);
                         SizeT sampleCount = tmpPacket.getSampleCount();
                         if (availableSamples - sampleCount >= historySize)
                         {

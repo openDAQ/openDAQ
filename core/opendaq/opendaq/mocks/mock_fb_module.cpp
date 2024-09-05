@@ -56,6 +56,12 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableFunctionBlockTypes(IDict** func
     auto type = CreateDeviceFunctionType();
     typesDict.set(type.getId(), type);
 
+    auto mockFbDynamicInputPortsType = MockFunctionBlockDynamicInputPortImpl::CreateType();
+    typesDict.set(mockFbDynamicInputPortsType.getId(), mockFbDynamicInputPortsType);
+
+    auto mockFbDynamicOutputPortsType = MockFunctionBlockDynamicOutputPortImpl::CreateType();
+    typesDict.set(mockFbDynamicOutputPortsType.getId(), mockFbDynamicOutputPortsType);
+
     *functionBlockTypes = typesDict.detach();
     return OPENDAQ_SUCCESS;
 }
@@ -77,6 +83,14 @@ ErrCode MockFunctionBlockModuleImpl::createFunctionBlock(IFunctionBlock** functi
     if (idPtr == type.getId())
     {
         *functionBlock = MockFunctionBlock(CreateDeviceFunctionType(), ctx, parent, localId, config).detach();
+    }
+    else if (idPtr == MockFunctionBlockDynamicInputPortImpl::CreateType().getId())
+    {
+        *functionBlock = MockFunctionBlockDynamicInputPort(MockFunctionBlockDynamicInputPortImpl::CreateType(), ctx, parent, localId, config).detach();
+    }
+    else if (idPtr == MockFunctionBlockDynamicOutputPortImpl::CreateType().getId())
+    {
+        *functionBlock = MockFunctionBlockDynamicOutputPort(MockFunctionBlockDynamicOutputPortImpl::CreateType(), ctx, parent, localId, config).detach();
     }
     else
     {

@@ -28,6 +28,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/work_factory.h>
 #include <opendaq/scheduler_errors.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class... Interfaces>
@@ -87,9 +88,8 @@ public:
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
-    void onUpdatableUpdateEnd() override;
-    ComponentPtr getRootComponent(const ComponentPtr& curComponent);
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
 
@@ -116,8 +116,6 @@ private:
 
     LoggerComponentPtr loggerComponent;
     SchedulerPtr scheduler;
-
-    SignalPtr dummySignal;
 
     WeakRefPtr<IPropertyObject> owner;
 
@@ -245,8 +243,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
                     throw;
             }
         }
-
-        dummySignal.release();
     }
     catch (const DaqException& e)
     {
@@ -530,7 +526,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
 template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::finishUpdate()
 {
-    dummySignal.release();
     serializedSignalId.release();
 }
 
@@ -675,56 +670,48 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
 }
 
 template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("signalId"))
     {
-        serializedSignalId = obj.readString("signalId");
-        dummySignal = Signal(this->context, nullptr, "dummy");
-        checkErrorInfo(connect(dummySignal));
+        ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
+        ComponentPtr parent;
+        this->getParent(&parent);
+        StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+        contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
     }
     else
+    {
         serializedSignalId.release();
+    }
 }
 
 template <class ... Interfaces>
-void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
+void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    Super::onUpdatableUpdateEnd();
+    if (this->getSignalNoLock().assigned())
+        return;
 
-    if (serializedSignalId.assigned() && serializedSignalId != "")
+    auto contextPtr = context.asPtr<IComponentUpdateContext>(true);
+    ComponentPtr parent;
+    this->getParent(&parent);
+    StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
+    auto signal = contextPtr.getSignal(parentId, this->localId);
+
+    if (signal.assigned())
     {
-        const auto thisPtr = this->template borrowPtr<InputPortPtr>();
-        const auto root = this->getRootComponent(thisPtr);
-        ComponentPtr sig;
-        root->findComponent(serializedSignalId, &sig);
-        if (sig.assigned())
+        try
         {
-            try
-            {
-                thisPtr.connect(sig);
-            }
-            catch (const DaqException&)
-            {
-                LOG_W("Failed to connect signal: {}", serializedSignalId);
-            }
+            const auto thisPtr = this->template borrowPtr<InputPortPtr>();
+            thisPtr.connect(signal);
+            finishUpdate();
         }
-        else
+        catch (const DaqException&)
         {
-            LOG_W("Signal not found: {}", serializedSignalId);
+            LOG_W("Failed to connect signal: {}", signal.getGlobalId());
         }
     }
-    
-    finishUpdate();
-}
-
-template <class ... Interfaces>
-ComponentPtr GenericInputPortImpl<Interfaces...>::getRootComponent(const ComponentPtr& curComponent)
-{
-    const auto parent = curComponent.getParent();
-    if (!parent.assigned())
-        return curComponent;
-    return getRootComponent(parent);
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <class... Interfaces>
@@ -746,8 +733,6 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
     if (serializedObject.hasKey("signalId"))
     {
         serializedSignalId = serializedObject.readString("signalId");
-        dummySignal = Signal(this->context, nullptr, "dummy");
-        checkErrorInfo(connect(dummySignal));
     }
 }
 

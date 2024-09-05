@@ -59,6 +59,7 @@ public:
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
     ErrCode INTERFACE_FUNC complete() override;
@@ -342,7 +343,7 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }*/
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
@@ -352,6 +353,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
         checkErrorInfo(obj->toJson(&serialized));
         clientComm->update(remoteGlobalId, serialized, this->path);
     });
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
+{
+   return updateInternal(obj, nullptr);
 }
 
 template <class Impl>

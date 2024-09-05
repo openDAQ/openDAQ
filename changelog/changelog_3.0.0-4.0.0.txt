@@ -1,3 +1,19 @@
+28.02.2024
+Description:
+    - Improving save/load mechanism for restoring input ports connection
+
++ [interface] IComponentUpdateContext : public IBaseObject
++ [function] IComponentUpdateContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
++ [function] IComponentUpdateContext::getInputPortConnections(IString* parentId, IDict** connections)
++ [function] IComponentUpdateContext::removeInputPortConnection(IString* parentId) 
++ [function] IComponentUpdateContext::getRootComponent(IComponent** rootComponent)
++ [function] IComponentUpdateContext::getSignal(IString* parentId, IString* portId, ISignal** signal)
++ [function] IComponentUpdateContext::setSignalDependency(IString* signalId, IString* parentId)
+
+-m[function] IUpdatable::updateEnded()
++m[function] IUpdatable::updateEnded(IBaseObject* context)
++ [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
+
 26.08.2024
 Description:
     - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.

@@ -395,7 +395,7 @@ ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
             {
                 case PacketType::Data:
                 {
-                    auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
+                    auto dataPacket = packet.template asPtr<IDataPacket>(true);
                     if (dataPacket.assigned())
                     {
                         *samples += dataPacket.getSampleCount();
@@ -404,7 +404,7 @@ ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
                 }
                 case PacketType::Event:
                 {
-                    auto eventPacket = packet.template asPtrOrNull<IEventPacket>(true);
+                    auto eventPacket = packet.template asPtr<IEventPacket>(true);
                     if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
                     {
                         LOG_T("Samples until next gap packet = {}.", *samples)

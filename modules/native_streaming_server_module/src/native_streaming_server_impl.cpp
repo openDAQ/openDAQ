@@ -22,7 +22,7 @@ using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("OpenDAQNativeStreamingServerModule", config, rootDevice, context, nullptr)
+    : Server("OpenDAQNativeStreaming", config, rootDevice, context)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())

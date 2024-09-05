@@ -199,7 +199,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                             else
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
 
-                            if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
+                            if (this->defaultValue.assigned() && this->defaultValue.supportsInterface<IFreezable>())
                                 this->defaultValue.freeze();
 
                             break;
@@ -223,7 +223,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                         {
                             this->suggestedValues =
                                 VariantConverter<IBaseObject>::ToDaqList(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
-                            if (this->suggestedValues.assigned() && this->suggestedValues.asPtrOrNull<IFreezable>().assigned())
+                            if (this->suggestedValues.assigned() && this->suggestedValues.supportsInterface<IFreezable>())
                                 this->suggestedValues.freeze();
                             break;
                         }
@@ -231,7 +231,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                         {
                             this->selectionValues =
                                 SelectionVariantConverter::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
-                            if (this->selectionValues.assigned() && this->selectionValues.asPtrOrNull<IFreezable>().assigned())
+                            if (this->selectionValues.assigned() && this->selectionValues.supportsInterface<IFreezable>())
                                 this->selectionValues.freeze();
                             break;
                         }

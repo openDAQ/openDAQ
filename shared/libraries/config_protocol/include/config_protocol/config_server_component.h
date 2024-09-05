@@ -127,7 +127,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(uint16_t protocolVersio
     if (propValueCoreType == CoreType::ctFunc)
     {
         BaseObjectPtr result;
-        checkErrorInfo(propValue.asPtrOrNull<IFunction>()->call(callParams, &result));
+        checkErrorInfo(propValue.asPtr<IFunction>()->call(callParams, &result));
         return result;
     }
 

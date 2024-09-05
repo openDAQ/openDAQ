@@ -44,6 +44,8 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/component_errors.h>
+#include <opendaq/component_update_context_impl.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -102,6 +104,7 @@ public:
 
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
@@ -150,8 +153,8 @@ protected:
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
-    virtual void updateObject(const SerializedObjectPtr& obj);
-    void onUpdatableUpdateEnd() override;
+    virtual void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
@@ -700,33 +703,48 @@ ErrCode ComponentImpl<Intf, Intfs ...>::isRemoved(Bool* removed)
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class ... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
+
+    return daqTry([&objPtr, &contextPtr, this]
+    {
+        const auto err = Super::updateInternal(objPtr, contextPtr);
+        updateObject(objPtr, contextPtr);
+        return err;
+    });
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
+{
+}
+
 template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
 {
-    const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const bool muted = this->coreEventMuted;
+    const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+    if (!muted)
+        propInternalPtr.disableCoreEventTrigger();
 
-    return daqTry(
-        [&objPtr, this]()
-        {
-            const bool muted = this->coreEventMuted;
-            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
-            const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
-            if (!muted)
-                propInternalPtr.disableCoreEventTrigger();
+    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>()));
+    ErrCode errCode = updateInternal(obj, context);
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        errCode = this->updateEnded(context);
+    }
 
-            const auto err = Super::update(objPtr);
-
-            updateObject(objPtr);
-            onUpdatableUpdateEnd();
-
-            if (!muted && this->coreEvent.assigned())
-            {
-                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
-                triggerCoreEvent(args);
-                propInternalPtr.enableCoreEventTrigger();
-            }
-            return err;
-        });
+    if (!muted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+        triggerCoreEvent(args);
+        propInternalPtr.enableCoreEventTrigger();
+    }
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -868,7 +886,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
         if (searchFilter.acceptsComponent(item))
             allItems.insert(item);
 
-    if (searchFilter.asPtrOrNull<IRecursiveSearch>().assigned())
+    if (searchFilter.supportsInterface<IRecursiveSearch>())
     {
         for (const auto& item : items)
         {
@@ -946,7 +964,7 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
     const auto flags = getSerializeFlags();
     if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))
@@ -960,11 +978,6 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 
     if (obj.hasKey("name"))
         name = obj.readString("name");
-}
-
-template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
-{
 }
 
 template <class Intf, class... Intfs>

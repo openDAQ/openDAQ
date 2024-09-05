@@ -30,8 +30,7 @@ LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
         {
             throw ArgumentNullException("Sink must not be null.");
         }
-        auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>();
-        if( sinkPtr == nullptr )
+        if(!sink.supportsInterface<ILoggerSinkBasePrivate>())
         {
             throw InvalidTypeException("Sink must have valid type.");
         }

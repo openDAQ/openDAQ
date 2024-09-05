@@ -488,7 +488,7 @@ void TmsServerDevice::addChildNodes()
         if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Synchronization")
             continue;
 
-        if (component.asPtrOrNull<IFolder>().assigned())
+        if (component.supportsInterface<IFolder>())
         {
             auto folderNode = registerTmsObjectOrAddReference<TmsServerFolder>(nodeId, component, numberInList++);
             folders.push_back(std::move(folderNode));

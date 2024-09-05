@@ -353,7 +353,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
         else if (packet.getType() == PacketType::Event)
         {
             // Handle events
-            auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 handleDescriptorChanged(eventPacket);

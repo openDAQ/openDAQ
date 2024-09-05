@@ -28,7 +28,7 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     rootDevice = Client(this->context, instanceId);
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
@@ -58,7 +58,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     else
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
 InstanceImpl::~InstanceImpl()
@@ -374,7 +374,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 
-    this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    this->rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
 }
 
@@ -754,30 +754,35 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
+ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
-    return daqTry([&objPtr, this]()
-        {
-            objPtr.checkObjectType("Instance");
+    return daqTry([&objPtr, this]
+    {
+        objPtr.checkObjectType("Instance");
 
-            const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
-            const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
-            if (rootDeviceWrapperKeysPtr.getCount() != 1)
-                throw InvalidValueException("Invalid root device object");
+        const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
+        const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
+        if (rootDeviceWrapperKeysPtr.getCount() != 1)
+            throw InvalidValueException("Invalid root device object");
 
-            const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
-            rootDevicePtr.checkObjectType("Device");
+        const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
+        rootDevicePtr.checkObjectType("Device");
 
-            auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
-            rootDeviceUpdatable.update(rootDevicePtr);
+        auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
+        rootDeviceUpdatable.update(rootDevicePtr);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
-ErrCode InstanceImpl::updateEnded()
+ErrCode InstanceImpl::update(ISerializedObject* obj)
+{
+    return updateInternal(obj, nullptr);
+}
+
+ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)
 {
     return OPENDAQ_SUCCESS;
 }

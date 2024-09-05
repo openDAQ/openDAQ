@@ -11,7 +11,7 @@ using namespace daq;
 using namespace daq::opcua;
 
 OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("OpenDAQOPCUAServerModule", config, rootDevice, context, nullptr)
+    : Server("OpenDAQOPCUA", config, rootDevice, context)
     , server(rootDevice, context)
     , context(context)
 {

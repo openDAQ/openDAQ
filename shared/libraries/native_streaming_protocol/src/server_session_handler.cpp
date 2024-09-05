@@ -13,9 +13,11 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            const std::string& clientId,
+                                           OnFindSignalCallback findSignalHandler,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolServerSessionHandler")
+    , findSignalHandler(findSignalHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , transportLayerPropsHandler(nullptr)
     , clientId(clientId)
@@ -26,6 +28,9 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
 void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signalNumericId,
                                                const SignalPtr& signal)
 {
+    if (!hasUserAccessToSignal(signal))
+        return;
+
     std::vector<WriteTask> tasks;
     SizeT signalStringIdMaxSize = std::numeric_limits<uint16_t>::max();
 
@@ -58,6 +63,9 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
 void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& signalNumericId,
                                                  const SignalPtr& signal)
 {
+    if (!hasUserAccessToSignal(signal))
+        return;
+
     std::vector<WriteTask> tasks;
 
     // create write task for signal numeric ID
@@ -138,8 +146,19 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size
         return createReadStopTask();
     }
 
-    if (signalSubscriptionHandler(signalNumericId, signalIdString, true, clientId))
-        sendSubscribingDone(signalNumericId);
+    try
+    {
+        const auto signal = findSignalHandler(signalIdString);
+        const auto hasAccess = hasUserAccessToSignal(signal);
+
+        if (hasAccess && signalSubscriptionHandler(signalNumericId, signal, true, clientId))
+            sendSubscribingDone(signalNumericId);
+    }
+    catch (const NativeStreamingProtocolException& e)
+    {
+        LOG_W("Protocol warning: {}", e.what());
+    }
+
     return createReadHeaderTask();
 }
 
@@ -168,8 +187,19 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void* data, size_t si
         return createReadStopTask();
     }
 
-    if (signalSubscriptionHandler(signalNumericId, signalIdString, false, clientId))
-        sendUnsubscribingDone(signalNumericId);
+    try
+    {
+        const auto signal = findSignalHandler(signalIdString);
+        const auto hasAccess = hasUserAccessToSignal(signal);
+
+        if (hasAccess && signalSubscriptionHandler(signalNumericId, signal, false, clientId))
+            sendUnsubscribingDone(signalNumericId);
+    }
+    catch (const NativeStreamingProtocolException& e)
+    {
+        LOG_W("Protocol warning: {}", e.what());
+    }
+
     return createReadHeaderTask();
 }
 
@@ -203,6 +233,12 @@ ReadTask ServerSessionHandler::readTransportLayerProperties(const void* data, si
     if (transportLayerPropsHandler && propertyObject.assigned())
         transportLayerPropsHandler(propertyObject);
     return createReadHeaderTask();
+}
+
+bool ServerSessionHandler::hasUserAccessToSignal(const SignalPtr& signal)
+{
+    const auto user = getUser();
+    return signal.getPermissionManager().isAuthorized(user, Permission::Read);
 }
 
 void ServerSessionHandler::setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler)

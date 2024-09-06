@@ -28,6 +28,8 @@ using System.Windows.Forms;
 
 using Daq.Core.OpenDAQ;
 
+using openDAQDemoNet.Helpers;
+
 using Component = Daq.Core.OpenDAQ.Component;
 
 
@@ -37,7 +39,7 @@ namespace openDAQDemoNet;
 public partial class frmEditComponent : Form
 {
     private readonly Component                  _component;
-    private readonly BindingList<AttributeItem> _attributeItems = new();
+    private readonly BindingList<AttributeItem> _attributeItems = [];
 
     public frmEditComponent(Component component)
     {
@@ -45,12 +47,12 @@ public partial class frmEditComponent : Form
 
         _component = component;
 
-        frmMain.InitializeDataGridView(this.gridAttributes);
+        GuiHelper.InitializeDataGridView(this.gridAttributes);
     }
 
     private void frmEditComponent_Shown(object sender, EventArgs e)
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
         this.Update();
 
         frmMain.UpdateAttributes(_component, _attributeItems);
@@ -59,10 +61,10 @@ public partial class frmEditComponent : Form
         this.gridAttributes.DataSource = _attributeItems;
         this.gridAttributes.Columns[nameof(PropertyItem.LockedImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         this.gridAttributes.Refresh();
-        this.gridAttributes.ClearSelection();
-        this.gridAttributes.AutoResizeColumns();
 
-        ResetWaitCursor();
+        GuiHelper.Update(this.gridAttributes);
+
+        GuiHelper.ResetWaitCursor(this);
     }
 
     private void frmEditComponent_FormClosing(object sender, FormClosingEventArgs e)
@@ -110,7 +112,7 @@ public partial class frmEditComponent : Form
         this.conetxtMenuItemGridAttributesEdit.Enabled = false;
 
         //get the DataGridView on which the context menu has been triggered
-        var grid = (DataGridView)((ContextMenuStrip)sender).SourceControl;
+        var grid = (DataGridView)((ContextMenuStrip)sender).SourceControl!;
 
         if (grid.SelectedRows.Count == 0)
         {
@@ -135,7 +137,7 @@ public partial class frmEditComponent : Form
     private void conetxtMenuItemGridAttributesEdit_Click(object sender, EventArgs e)
     {
         var toolStripMenuItem = (ToolStripMenuItem)sender;
-        var gridControl = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl as DataGridView;
+        var gridControl = ((ContextMenuStrip)toolStripMenuItem.Owner!).SourceControl as DataGridView;
 
         if (gridControl != this.gridAttributes)
             return;
@@ -157,30 +159,4 @@ public partial class frmEditComponent : Form
     }
 
     #endregion gridAttributes
-
-
-    #region Common GUI methods
-
-    /// <summary>
-    /// Sets the wait cursor.
-    /// </summary>
-    private void SetWaitCursor()
-    {
-        Cursor.Current     = Cursors.WaitCursor;
-        this.Cursor        = Cursors.WaitCursor;
-        this.UseWaitCursor = true;
-    }
-
-    /// <summary>
-    /// Resets to the default cursor.
-    /// </summary>
-    private void ResetWaitCursor()
-    {
-        this.UseWaitCursor = false;
-        this.Cursor        = Cursors.Default;
-        Cursor.Current     = Cursors.Default;
-        base.ResetCursor();
-    }
-
-    #endregion Common GUI methods
 }

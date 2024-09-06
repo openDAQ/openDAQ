@@ -16,12 +16,9 @@
 
 
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 
 using Daq.Core.Objects;
 using Daq.Core.Types;
-
-using GlblRes = global::openDAQDemoNet.Properties.Resources;
 
 
 namespace openDAQDemoNet;
@@ -37,16 +34,25 @@ public class PropertyItem : AttributeItem
     /// Initializes a new instance of the <see cref="PropertyItem"/> class.
     /// </summary>
     /// <param name="isLocked">If set to <c>true</c>, the property is locked; otherwise <c>false</c>.</param>
+    /// <param name="path">The property path.</param>
     /// <param name="name">The property name.</param>
     /// <param name="value">The property value's text representation.</param>
     /// <param name="unit">The property value's unit.</param>
     /// <param name="description">The description of the property.</param>
     /// <param name="openDaqObject">The property object.</param>
-    public PropertyItem(bool isLocked, string name, string? value, string unit, string description, BaseObject openDaqObject)
-        : base(isLocked, name, name, value, CoreType.ctUndefined, openDaqObject)
+    /// <param name="subItems">The sub items list (default <c>null</c>).</param>
+    public PropertyItem(bool isLocked,
+                        string name,
+                        string? value,
+                        string unit,
+                        string description,
+                        BaseObject openDaqObject,
+                        List<PropertyItem>? subItems = null)
+        : base(isLocked, name, name.Split('.').Last(), value, CoreType.ctUndefined, openDaqObject, null)
     {
         this.Unit        = unit;
         this.Description = description;
+        this.SubItems    = subItems;
     }
 
     #region fields to show in table
@@ -82,6 +88,11 @@ public class PropertyItem : AttributeItem
     /// </summary>
     [DisplayName("Description")]
     public string Description { get; }
+
+    /// <summary>
+    /// Gets the sub items.
+    /// </summary>
+    public new List<PropertyItem>? SubItems { get; private set; } //'new' to hide the base property due to different type
 
     #endregion
 }

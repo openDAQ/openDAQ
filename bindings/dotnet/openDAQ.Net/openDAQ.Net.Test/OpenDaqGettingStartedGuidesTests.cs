@@ -18,6 +18,7 @@ namespace openDaq.Net.Test;
 public class OpenDaqGettingStartedGuidesTests : OpenDAQTestsBase
 {
     // Corresponding document: Antora/modules/getting_started/pages/quick_start_application.adoc
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 
     [Test]
     public void FullExampleCodeTest()
@@ -129,4 +130,6 @@ public class OpenDaqGettingStartedGuidesTests : OpenDAQTestsBase
         sw.Stop();
 #endif
     }
+
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 }

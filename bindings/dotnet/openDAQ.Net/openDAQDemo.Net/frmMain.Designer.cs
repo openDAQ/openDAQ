@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            TreeNode treeNode2 = new TreeNode("treeComponents");
+            TreeNode treeNode1 = new TreeNode("treeComponents");
             treeComponents = new TreeView();
             contextMenuStripTreeComponents = new ContextMenuStrip(components);
             contextMenuItemTreeComponentsRemove = new ToolStripMenuItem();
@@ -104,9 +104,9 @@
             treeComponents.Dock = DockStyle.Fill;
             treeComponents.Location = new Point(3, 3);
             treeComponents.Name = "treeComponents";
-            treeNode2.Name = "Node0";
-            treeNode2.Text = "treeComponents";
-            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode2 });
+            treeNode1.Name = "Node0";
+            treeNode1.Text = "treeComponents";
+            treeComponents.Nodes.AddRange(new TreeNode[] { treeNode1 });
             treeComponents.Size = new Size(397, 683);
             treeComponents.TabIndex = 2;
             treeComponents.AfterSelect += treeComponents_AfterSelect;
@@ -382,15 +382,15 @@
             groupInputPorts.Controls.Add(lblNoInputPorts);
             groupInputPorts.Dock = DockStyle.Fill;
             groupInputPorts.Location = new Point(0, 0);
+            groupInputPorts.MinimumSize = new Size(0, 62);
             groupInputPorts.Name = "groupInputPorts";
-            groupInputPorts.Size = new Size(273, 316);
+            groupInputPorts.Size = new Size(273, 338);
             groupInputPorts.TabIndex = 6;
             groupInputPorts.TabStop = false;
             groupInputPorts.Text = "Input ports";
             // 
             // tableInputPorts
             // 
-            tableInputPorts.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             tableInputPorts.AutoSize = true;
             tableInputPorts.ColumnCount = 4;
             tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
@@ -401,11 +401,12 @@
             tableInputPorts.Controls.Add(comboBox1, 1, 0);
             tableInputPorts.Controls.Add(button1, 2, 0);
             tableInputPorts.Controls.Add(button2, 3, 0);
-            tableInputPorts.Location = new Point(3, 22);
+            tableInputPorts.Dock = DockStyle.Top;
+            tableInputPorts.Location = new Point(3, 19);
             tableInputPorts.Name = "tableInputPorts";
             tableInputPorts.RowCount = 1;
             tableInputPorts.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableInputPorts.Size = new Size(262, 40);
+            tableInputPorts.Size = new Size(267, 40);
             tableInputPorts.TabIndex = 0;
             // 
             // label1
@@ -425,13 +426,13 @@
             comboBox1.FormattingEnabled = true;
             comboBox1.Location = new Point(78, 8);
             comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(101, 23);
+            comboBox1.Size = new Size(106, 23);
             comboBox1.TabIndex = 1;
             // 
             // button1
             // 
             button1.Anchor = AnchorStyles.Left;
-            button1.Location = new Point(185, 3);
+            button1.Location = new Point(190, 3);
             button1.Name = "button1";
             button1.Size = new Size(34, 34);
             button1.TabIndex = 2;
@@ -440,7 +441,7 @@
             // button2
             // 
             button2.Anchor = AnchorStyles.Left;
-            button2.Location = new Point(225, 3);
+            button2.Location = new Point(230, 3);
             button2.Name = "button2";
             button2.Size = new Size(34, 34);
             button2.TabIndex = 2;
@@ -463,16 +464,16 @@
             groupOutputSignals.Controls.Add(tableOutputSignals);
             groupOutputSignals.Controls.Add(lblNoOutputSignals);
             groupOutputSignals.Dock = DockStyle.Bottom;
-            groupOutputSignals.Location = new Point(0, 316);
+            groupOutputSignals.Location = new Point(0, 338);
+            groupOutputSignals.MinimumSize = new Size(0, 62);
             groupOutputSignals.Name = "groupOutputSignals";
-            groupOutputSignals.Size = new Size(273, 84);
+            groupOutputSignals.Size = new Size(273, 62);
             groupOutputSignals.TabIndex = 6;
             groupOutputSignals.TabStop = false;
             groupOutputSignals.Text = "Output signals";
             // 
             // tableOutputSignals
             // 
-            tableOutputSignals.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             tableOutputSignals.AutoSize = true;
             tableOutputSignals.ColumnCount = 3;
             tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
@@ -481,11 +482,12 @@
             tableOutputSignals.Controls.Add(label2, 0, 0);
             tableOutputSignals.Controls.Add(button3, 2, 0);
             tableOutputSignals.Controls.Add(label3, 1, 0);
-            tableOutputSignals.Location = new Point(3, 22);
+            tableOutputSignals.Dock = DockStyle.Top;
+            tableOutputSignals.Location = new Point(3, 19);
             tableOutputSignals.Name = "tableOutputSignals";
             tableOutputSignals.RowCount = 1;
             tableOutputSignals.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableOutputSignals.Size = new Size(262, 40);
+            tableOutputSignals.Size = new Size(267, 40);
             tableOutputSignals.TabIndex = 0;
             // 
             // label2
@@ -502,7 +504,7 @@
             // button3
             // 
             button3.Anchor = AnchorStyles.Left;
-            button3.Location = new Point(225, 3);
+            button3.Location = new Point(230, 3);
             button3.Name = "button3";
             button3.Size = new Size(34, 34);
             button3.TabIndex = 2;
@@ -514,7 +516,7 @@
             label3.AutoSize = true;
             label3.Location = new Point(78, 12);
             label3.Name = "label3";
-            label3.Size = new Size(141, 15);
+            label3.Size = new Size(146, 15);
             label3.TabIndex = 0;
             label3.Text = "vlaue";
             label3.TextAlign = ContentAlignment.MiddleCenter;

@@ -105,7 +105,7 @@ public static partial class CoreTypesFactory
             case CoreType.ctDict:            return propertyValue.Cast<DictObject<BaseObject, BaseObject>>();
             case CoreType.ctRatio:           return propertyValue.Cast<Ratio>();
             case CoreType.ctProc:            return propertyValue.Cast<Procedure>();
-            case CoreType.ctObject:          return propertyValue.Cast<BaseObject>();
+            case CoreType.ctObject:          return propertyValue/*.Cast<BaseObject>()*/;
             //case CoreType.ctBinaryData:      return propertyValue.Cast<>();
             case CoreType.ctFunc:            return propertyValue.Cast<Function>();
             //case CoreType.ctComplexNumber:   return propertyValue.Cast<>();

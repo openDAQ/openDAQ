@@ -56,6 +56,24 @@ TEST_F(BcryptTest, VerifyUnicode)
     ASSERT_FALSE(BCrypt::validatePassword("choco 🍌🍌", "$2a$08$W7QE8LIAyPWzuxdAllSQuOo7EI7Q4zT/gCwnWCn5cnVkKUta4RZli"));
 }
 
+
+TEST_F(BcryptTest, Verify2b)
+{
+    ASSERT_TRUE(BCrypt::validatePassword("hello world", "$2b$10$zIkqRe5A/lwIGwYzjmeWr.khpFZMo3N22qZhjoOokAdYn8413G.6q"));
+    ASSERT_FALSE(BCrypt::validatePassword("hello world!", "$2b$10$zIkqRe5A/lwIGwYzjmeWr.khpFZMo3N22qZhjoOokAdYn8413G.6q"));
+
+    ASSERT_TRUE(BCrypt::validatePassword("opendaq", "$2b$08$QtgqcJSJCBRPuFcsTrVXYeqtWBEwv9SKHWHghm4Avive6UUobtaTq"));
+    ASSERT_FALSE(BCrypt::validatePassword("wrong", "$2b$08$QtgqcJSJCBRPuFcsTrVXYeqtWBEwv9SKHWHghm4Avive6UUobtaTq"));
+}
+
+TEST_F(BcryptTest, Generate2b)
+{
+    const std::string hash = BCrypt::generateHash("hello");
+    ASSERT_EQ(hash.substr(0, 3), "$2b");
+    ASSERT_TRUE(BCrypt::validatePassword("hello", hash));
+    ASSERT_FALSE(BCrypt::validatePassword("hello!", hash));
+}
+
 TEST_F(BcryptTest, GenerateCheckEmpty)
 {
     std::string password = "";

@@ -218,6 +218,7 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
         {
             signalUnsubscribedHandler(signal);
         }
+        sessionHandlers.erase(clientIter);
     }
     else
     {

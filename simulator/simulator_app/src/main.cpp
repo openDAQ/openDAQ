@@ -13,8 +13,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     const ConfigProviderPtr configProvider = JsonConfigProvider();
 
     auto users = List<IUser>();
-    users.pushBack(User("opendaq", "opendaq"));
-    users.pushBack(User("root", "root", {"admin"}));
+    users.pushBack(User("opendaq", "$2b$10$bqZWNEd.g1R1Q1inChdAiuDr5lbal33bBNOehlCwuWcxRH5weF3hu")); // password: opendaq
+    users.pushBack(User("root", "$2b$10$k/Tj3yqFV7uQz42UCJK2n.4ECd.ySQ2Sfd81Kx.xfuMOeluvA/Vpy", {"admin"})); // password: root
     const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
 
     const InstanceBuilderPtr instanceBuilder =

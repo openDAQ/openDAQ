@@ -13,7 +13,6 @@ MockFunctionBlockDynamicOutputPortImpl::MockFunctionBlockDynamicOutputPortImpl(d
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& /* config */)
     : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
-    , outputSignals(daq::List<SignalPtr>())
 {
     this->tags.add("mock_fb_dynamic_output_ports");
     createAndAddInputPort("InputPort", PacketReadyNotification::SameThread);
@@ -24,22 +23,27 @@ daq::FunctionBlockTypePtr MockFunctionBlockDynamicOutputPortImpl::CreateType()
     return FunctionBlockType("mock_fb_dynamic_output_ports_uid", "mock_fb_dynamic_output_ports", "", daq::PropertyObject());
 }
 
-void MockFunctionBlockDynamicOutputPortImpl::onConnected(const daq::InputPortPtr& /* port */)
+void MockFunctionBlockDynamicOutputPortImpl::onPacketReceived(const daq::InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto connection = port.getConnection();
 
-    outputSignals.pushBack(createAndAddSignal("OutputSignal1"));
-    outputSignals.pushBack(createAndAddSignal("OutputSignal2"));
+    PacketPtr packet = connection.dequeue();
+    while (packet.assigned())
+    {
+        if (packet.getType() == PacketType::Event)
+        {
+            this->signals.clear();
+            createAndAddSignal("OutputSignal1");
+            createAndAddSignal("OutputSignal2");
+        }
+        packet = connection.dequeue();
+    }
 }
 
 void MockFunctionBlockDynamicOutputPortImpl::onDisconnected(const daq::InputPortPtr& /* port */)
 {
     std::scoped_lock lock(sync);
-    for (const auto& signal : outputSignals)
-    {
-        removeSignal(signal);
-    }
-    outputSignals.clear();
+    this->signals.clear();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

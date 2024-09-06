@@ -131,9 +131,9 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
             bool doSignalSubscribe = streamingManager.registerSignalSubscriber(
                 signalStringId,
                 clientId,
-                [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
+                [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
                 {
-                    sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
+                    sessionHandlers.at(subscribedClientId)->sendPacketBuffer(std::move(packetBuffer));
                 });
 
             if (doSignalSubscribe)
@@ -208,16 +208,16 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
     return false;
 }
 
-void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
+void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr&& packet)
 {
-    auto signalStringId = signal.getGlobalId().toStdString();
+    const auto signalStringId = signal.getGlobalId().toStdString();
 
     streamingManager.sendPacketToSubscribers(
         signalStringId,
-        packet,
-        [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
+        std::move(packet),
+        [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
         {
-            sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
+            sessionHandlers.at(subscribedClientId)->sendPacketBuffer(std::move(packetBuffer));
         }
     );
 }

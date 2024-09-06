@@ -26,12 +26,10 @@ public:
                                    const daq::StringPtr& localId,
                                    const daq::PropertyObjectPtr& config);
 
-    void onConnected(const daq::InputPortPtr& port) override;
+    void onPacketReceived(const daq::InputPortPtr& port) override;
     void onDisconnected(const daq::InputPortPtr& port) override;
-    static daq::FunctionBlockTypePtr CreateType();
 
-private:
-    daq::ListPtr<daq::ISignal> outputSignals;
+    static daq::FunctionBlockTypePtr CreateType();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

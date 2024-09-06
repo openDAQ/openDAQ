@@ -409,7 +409,7 @@ void NativeStreamingServerImpl::startReadThread()
                 PacketPtr packet = reader.read();
                 while (packet.assigned())
                 {
-                    serverHandler->sendPacket(signal, packet);
+                    serverHandler->sendPacket(signal, std::move(packet));
                     packet = reader.read();
                 }
             }

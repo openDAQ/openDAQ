@@ -530,11 +530,6 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
     throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
 }
 
-void SignalReader::reset()
-{
-    info.reset();
-}
-
 ErrCode SignalReader::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;

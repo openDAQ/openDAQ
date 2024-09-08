@@ -914,7 +914,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     {
         for (auto& signal : signals)
         {
-            signal.port.setActive(true && isActive);
+            signal.port.setActive(isActive);
         }
         portConnected = true;
     }

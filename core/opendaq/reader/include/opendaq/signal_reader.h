@@ -82,7 +82,6 @@ struct SignalReader
     ErrCode handlePacket(const PacketPtr& packet, bool& firstData);
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
-    void reset();
 
     LoggerComponentPtr loggerComponent;
 

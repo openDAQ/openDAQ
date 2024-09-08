@@ -355,20 +355,38 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     return packetToReturn;
 }
 
-void SignalReader::skipUntilNextEventPacket()
+void SignalReader::skipUntilLastEventPacket()
 {
-    auto packet = connection.peek();
-    while (packet.assigned())
-    {
-        if (auto type = packet.getType();
-            type == PacketType::Data || type == PacketType::None)
-            connection.dequeue();
-        else
-            // PacketType::Event
-            break;
+    info.reset();
 
-        packet = connection.peek();
+    if (!connection.assigned())
+        return;
+
+    bool hasEventPacket = false;
+    while (connection.hasEventPacket())
+    {
+        auto packet = connection.peek();
+        if (packet.getType() == PacketType::Event)
+        {
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            {
+                connection.dequeue();
+            }
+            else
+            {
+                hasEventPacket = true;
+                break;
+            }
+        }
+        else
+        {
+            connection.dequeue();
+        }
     }
+
+    if (!hasEventPacket)
+        connection.dequeueAll();
 }
 
 bool SignalReader::sync(const Comparable& commonStart)

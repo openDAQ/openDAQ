@@ -985,9 +985,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     for (auto& signal : signals)
     {
-        if (!isActive)
-            signal.skipUntilNextEventPacket();
-
         if (signal.isFirstPacketEvent())
         {
             hasEventPacket = true;
@@ -1178,13 +1175,20 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
 
 ErrCode MultiReaderImpl::setActive(Bool isActive)
 {
-    std::lock_guard lock{mutex};
+    std::scoped_lock lock{mutex, notify.mutex};
+
+    bool modified = this->isActive != isActive;
     this->isActive = isActive;
-    for (auto& signalReader: signals)
+
+    for (auto& signalReader : signals)
     {
+        if (modified)
+            signalReader.synced = SyncStatus::Unsynchronized;
+
         if (signalReader.port.assigned())
             signalReader.port.setActive(this->isActive);
-        signalReader.reset();
+
+        signalReader.skipUntilLastEventPacket();
     }
 
     return OPENDAQ_SUCCESS;

@@ -246,9 +246,10 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
 
 StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
 {
-    auto retObj = Dict<IString, IBaseObject>();
     try
     {
+        auto retObj = Dict<IString, IBaseObject>();
+
         const auto obj = deserializer.deserialize(jsonStr, nullptr);
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
@@ -262,20 +263,31 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
         retObj.set("ErrorCode", OPENDAQ_SUCCESS);
         if (retValue.assigned())
             retObj.set("ReturnValue", retValue);
+
+        serializer.reset();
+        retObj.serialize(serializer);
+        return serializer.getOutput();
     }
     catch (const daq::DaqException& e)
     {
-        retObj.set("ErrorCode", e.getErrCode());
-        retObj.set("ErrorMessage", e.what());
+        return prepareErrorResponse(e.getErrCode(), e.what());
     }
     catch (const std::exception& e)
     {
-        retObj.set("ErrorCode", OPENDAQ_ERR_GENERALERROR);
-        retObj.set("ErrorMessage", e.what());
+        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what());
     }
 
+    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization");
+}
+
+StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message)
+{
+    auto errorObject = Dict<IString, IBaseObject>();
+    errorObject.set("ErrorCode", errorCode);
+    errorObject.set("ErrorMessage", message);
+
     serializer.reset();
-    retObj.serialize(serializer);
+    errorObject.serialize(serializer);
     return serializer.getOutput();
 }
 

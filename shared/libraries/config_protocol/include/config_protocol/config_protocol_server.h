@@ -88,6 +88,7 @@ private:
 
     PacketBuffer processPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpc(const StringPtr& jsonStr);
+    StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message);
 
     BaseObjectPtr callRpc(const StringPtr& name, const ParamsDictPtr& params);
     ComponentPtr findComponent(const std::string& componentGlobalId) const;

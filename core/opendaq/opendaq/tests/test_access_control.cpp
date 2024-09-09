@@ -63,6 +63,18 @@ TEST_F(AccessControlTest, DefaultPermissions)
     ASSERT_TRUE(fbManager.isAuthorized(user, Permission::Execute));
 }
 
+TEST_F(AccessControlTest, DefaultPermissionsPropObj)
+{
+    auto anonymousUser = User("", "");
+
+    auto obj = PropertyObject();
+
+    auto permissionManager = obj.getPermissionManager();
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Read));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Write));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Execute));
+}
+
 TEST_F(AccessControlTest, ComponentInherit)
 {
     const auto user = User("user", "psswordHash", List<IString>("user", "guest"));

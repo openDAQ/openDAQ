@@ -225,9 +225,8 @@ class AttributesDialog(Dialog):
 
         self.attributes['Status'] = {
             'Value': {}, 'Locked': True, 'Attribute': 'status'}
-        for name, value in node.status_container.statuses:
-            print(f'{name}: {value.name}')
-            self.attributes['Status']['Value'][name] = value.name
+        self.attributes['Status']['Value'] = dict(
+            node.status_container.statuses.items()) or None
 
         for locked_attribute in locked_attributes:
             if locked_attribute not in self.attributes:
@@ -241,7 +240,7 @@ class AttributesDialog(Dialog):
                 value = yes_no[value]
             elif type(value) is dict:
                 self.tree.insert(
-                    parent, tk.END, iid=iid, text=key, values=(str(value), locked))
+                    parent, tk.END, iid=iid, text=key, values=('', locked))
                 for k, v in value.items():
                     tree_fill(iid, k, v, 1)
             else:

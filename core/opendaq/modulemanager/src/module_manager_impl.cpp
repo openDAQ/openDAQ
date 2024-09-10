@@ -1006,15 +1006,27 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
     // set the streaming source with the highest priority as active for device signals
     if (!prioritizedStreamingSourcesMap.empty())
     {
-        const auto streaming = prioritizedStreamingSourcesMap.begin()->second;
-        const auto connectionString = streaming.getConnectionString();
         for (const auto& signal : signals)
         {
             if (!signal.getPublic())
                 continue;
+
             MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
             if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
-                mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+            {
+                auto signalStreamingSources = mirroredSignalConfigPtr.getStreamingSources();
+                for (const auto& [_, streaming] : prioritizedStreamingSourcesMap)
+                {
+                    auto connectionString = streaming.getConnectionString();
+
+                    auto it = std::find(signalStreamingSources.begin(), signalStreamingSources.end(), connectionString);
+                    if (it != signalStreamingSources.end())
+                    {
+                        mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

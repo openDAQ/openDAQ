@@ -223,19 +223,38 @@ class AttributesDialog(Dialog):
 
         locked_attributes = node.locked_attributes
 
+        self.attributes['Status'] = {
+            'Value': {}, 'Locked': True, 'Attribute': 'status'}
+        for name, value in node.status_container.statuses:
+            print(f'{name}: {value.name}')
+            self.attributes['Status']['Value'][name] = value.name
+
         for locked_attribute in locked_attributes:
             if locked_attribute not in self.attributes:
                 continue
             self.attributes[locked_attribute]['Locked'] = True
 
-        for attr in self.attributes:
-            value = self.attributes[attr]['Value']
-            locked = yes_no[self.attributes[attr]['Locked']]
-
+        def tree_fill(parent: str, key: str, value: dict, locked_flag: int):
+            locked = yes_no[locked_flag]
+            iid = f'{parent}.{key}'
             if type(value) is bool:
                 value = yes_no[value]
-            self.tree.insert(
-                '', tk.END, iid=attr, text=attr, values=(value, locked))
+            elif type(value) is dict:
+                self.tree.insert(
+                    parent, tk.END, iid=iid, text=key, values=(str(value), locked))
+                for k, v in value.items():
+                    tree_fill(iid, k, v, 1)
+            else:
+                self.tree.insert(
+                    parent, tk.END, iid=iid, text=key, values=(value, locked))
+
+        for attr in self.attributes:
+            locked = self.attributes[attr]['Locked']
+            value = self.attributes[attr]['Value']
+            if type(value) is bool:
+                value = yes_no[value]
+
+            tree_fill('', attr, value, locked)
 
         if self.additional_tree is not None:
             self.additional_tree_update()

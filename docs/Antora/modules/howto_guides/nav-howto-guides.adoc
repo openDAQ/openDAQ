@@ -21,3 +21,4 @@
 *** xref:howto_read_with_timeouts.adoc[Time-outs]
 *** xref:howto_read_aligned_signals.adoc[Align multiple Signals]
 ** xref:howto_save_load_configuration.adoc[]
+** xref:howto_access_control.adoc[]

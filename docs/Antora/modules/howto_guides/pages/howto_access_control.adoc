@@ -1,0 +1,444 @@
+= Access control
+
+In many cases, we have an acquisition system that can be accessed by multiple users. Typically, we want each user to have specific permissions based on their role.
+For instance, an admin user should be able to configure the device and modify all its settings. A guest user might only need read-only access, while a calibrator user
+should have the ability to adjust calibration factors on the device. The openDAQ Access Control system makes this possible.
+
+On server device it is possible to define a list of users which can access it. Each user is a member of one or more user-defined groups. When connecting to a device,
+it is possible to authenticate as one of defined users. Access to various device components can then be restricted based on the user's group membership.
+
+== Defining a list of users
+
+An openDAQ server instance can accept `AuthenticationProvider` object which is responsible for providing a list of all the users who are able to connect to the device.
+For each user we need to provide a username, password and the list of groups that the user belongs to. By default, every user is a member of group `everyone`.
+Additional groups can be assigned to users as needed by the developer. The `AuthenticationProvider` also accepts a flag that indicates whether anonymous authentication is enabled.
+If anonymous authentication is enabled, it is possible to connect to a device without username or password. Anonymous user is automatically a member of group `everyone`.
+
+In the example below, we create a server device and define two users who can access it. User `opendaq` can login with password `opendaq123` and is a member of group `everyone`.
+User `root` can login using password `root123` and is a member of 2 groups, `everyone` and `admin`. We also enable anonymous authentication, allowing users to connect to our device
+without providing a username or password.
+ 
+
+.Creating a server device with authentication provider
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
+#include <iostream>
+
+using namespace daq;
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    auto users = List<IUser>();
+    users.pushBack(User("opendaq", "opendaq123"));
+    users.pushBack(User("root", "root123", {"admin"}));
+    const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
+
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().setAuthenticationProvider(authenticationProvider);
+
+    const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
+    instance.addStandardServers();
+
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+users = []
+users.append(opendaq.User("opendaq", "opendaq123", []))
+users.append(opendaq.User("root", "root123", ["admin"]))
+auth_provider = opendaq.StaticAuthenticationProvider(True, users)
+
+builder = opendaq.InstanceBuilder()
+builder.authentication_provider = auth_provider
+instance = opendaq.InstanceFromBuilder(builder)
+
+input("Press enter to quit ...")
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+== Hashing the passwords
+
+In the first example, we defined user passwords in plain text. This is not secure because anyone with access to the list of users also gains access to their passwords.
+To address this, openDAQ also provides an option to hash the passwords using https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] algorithm. Bcrypt is a password hashing algorithm designed
+to securely store passwords. It incorporates a salt to protect against rainbow table attacks and includes adjustable work factor that makes brute-force attacks more difficult over time as
+computing power increases.
+
+We can replace the plain text passwords from the first example with their hashed versions. Password hash can be generated using one of many https://bcrypt-generator.com/[Bcrypt generators] available online.
+Whenever possible, it is recommended to store passwords in a hashed format for improved security.
+
+.Hashing the passwords
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto users = List<IUser>();
+users.pushBack(User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+users.pushBack(User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", {"admin"}));
+const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
+----
+Python::
++
+[source,python]
+----
+users = []
+users.append(opendaq.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO", []))
+users.append(opendaq.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", ["admin"]))
+auth_provider = opendaq.StaticAuthenticationProvider(True, users)
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+== Connecting with username and password
+
+To connect to a device, you can provide the username and password using the `config` parameter of the `addDevice` method.
+If you don't provide these credentials, the device will attempt to connect as an anonymous user.
+
+
+.Connecting with username and password
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+	auto instance = Instance();
+
+	auto config = instance.createDefaultAddDeviceConfig();	
+	PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+	
+	generalConfig.setPropertyValue("Username", "opendaq");
+	generalConfig.setPropertyValue("Password", "opendaq123");
+
+	auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+	std::cout << "Connected to: " << device.getName() << std::endl;
+	
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+instance = opendaq.Instance()
+
+config = instance.create_default_add_device_config()
+general_config = config.get_property_value("General")
+
+general_config.set_property_value("Username", "opendaq")
+general_config.set_property_value("Password", "opendaq")
+
+device = instance.add_device("daq.nd://127.0.0.1")
+print("Connected to:", device.name)
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+== Adding a protected object
+
+OpenDAQ devices, channels, signals and other components consist of property objects. Each property object includes a permission manager
+that can be used to grant or restrict access to that object based on a user group membership. In this section, we will demonstrate how to add
+a protected object to the reference device. On the server instance, let as first publish a reference device.
+
+.Connecting with username and password
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+instance.addDevice("daqref://device0");
+----
+Python::
++
+[source,python]
+----
+instance.add_device("daqref://device0")
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+We can now examine the `RefDeviceImpl::createProtectedObject()` method in the reference device implementation. This method is responsible for
+creating a property object with one string property and one function property which calculates a sum of two numbers. We will make this object
+read-only for everyone but the `admin` group. Only users in `admin` group will be able to change the properties on that object and call methods on it.
+
+It is important to note that by default, each property object inherits its permission from its parent. By default we also grant read, write and
+execute permission for a group `everyone` on the root device. This means that each object under root device, will allow read, write and execute
+permission for group `everyone` unless we specify otherwise.
+
+We can describe permissions for our object using a permission builder class. First we call the method `inherit(false)`. This method will tell the
+permission manager to not inherit any permissions from the parent object. After call of this method, nobody will be able to access our object. We
+then call `assign("everyone", PermissionMaskBuilder().read())` to allow read-only access for group `everyone`. Finally, we add read, write and execute
+permissions for group `admin` by calling `assign("admin", PermissionMaskBuilder().read().write().execute())`.
+
+.Assigning permissions to a property object
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+{
+    const auto func = Function([](Int a, Int b) { return a + b; });
+
+    const auto funcProp =
+        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(false)
+            .build();
+
+    auto protectedObject = PropertyObject();
+    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
+    protectedObject.addProperty(funcProp);
+    protectedObject.setPropertyValue("Sum", func);
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+
+    protectedObject.getPermissionManager().setPermissions(permissions);
+
+    return protectedObject;
+}
+----
+====
+
+== Difference between assign, allow and deny
+
+The `PermissionsBuilder` class provides three methods for defining permissions on a property object. In this section, we will describe
+these methods and explain their differences. The differences between these methods become apparent when permissions are inherited from
+a parent object. Therefore, we will assume that the `inherit` flag is enabled unless stated otherwise.
+
+The *allow()* method grants permissions for a specified group on the target object. Any permissions already granted to that group on the parent
+object will also be allowed on the target object. In the example below, user from a group `everyone` has a read, write and execute permissions on the target object.
+Read and write permissions are inherited and we have explicitly allowed the execute permission.
+
+.Method allow()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write()).build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).allow("everyone", PermissionMaskBuilder().execute()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permissions:
+// everyone: rwx
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rw = opendaq.PermissionMaskBuilder()
+mask_rw.read()
+mask_rw.write()
+
+mask_x = opendaq.PermissionMaskBuilder()
+mask_x.execute()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.assign("everyone", mask_rw)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.allow("everyone", mask_x)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: rwx
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+The method *deny()* does the exact opposite of method allow(). It removes a permission for a specified group on a target object.
+Any permission that was denied on a parent object, also stays denied on the target object. The deny method overrules the allow method.
+This means that if a permission is allowed on the parent object, but was explicitly denied on the target object, it will stay
+denied on the target object. In the example below, the target object has read and write permission for group `everyone`, because they are inherited
+from parent but not the execute permission, because it is explicitly denied for group `everyone` on the target object.
+
+.Method deny()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder().allow("everyone", PermissionMaskBuilder().read().write().execute()).build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().execute()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permisisons:
+// everyone: rw
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rwx = opendaq.PermissionMaskBuilder()
+mask_rwx.read()
+mask_rwx.write()
+mask_rwx.execute()
+
+mask_x = opendaq.PermissionMaskBuilder()
+mask_x.execute()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.assign("everyone", mask_rwx)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.deny("everyone", mask_x)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: rw
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====
+
+Method *assign()* acts the same as method allow() except that it does not inherit any permissions for specified group. Essentially it
+allows you to override permissions for a specified group. In the example below, target object has a read permission for group `everyone`.
+Write and execute permissions for group `everyone` are not inherited because they were overridden by `.assign("everyone", PermissionMaskBuilder().read())`.
+Read permission for group `guest` is inherited from the parent.
+
+.Method assign()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder()
+							 .assign("everyone", PermissionMaskBuilder().read().write().execute())
+							 .assign("guest", PermissionMaskBuilder().read())
+							 .build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permisisons:
+// everyone: r
+// guest: r
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rwx = opendaq.PermissionMaskBuilder()
+mask_rwx.read()
+mask_rwx.write()
+mask_rwx.execute()
+
+mask_r = opendaq.PermissionMaskBuilder()
+mask_r.read()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.assign("everyone", mask_rwx)
+parent_permissions.assign("guest", mask_r)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.assign("everyone", mask_r)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: r
+# guest: r
+----
+C#::
++
+[source,csharp]
+----
+// C#
+----
+====

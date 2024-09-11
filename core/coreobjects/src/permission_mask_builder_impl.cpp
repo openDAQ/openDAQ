@@ -9,6 +9,11 @@ PermissionMaskBuilderImpl::PermissionMaskBuilderImpl(Int permissionMask)
 {
 }
 
+PermissionMaskBuilderImpl::PermissionMaskBuilderImpl()
+    : PermissionMaskBuilderImpl(0)
+{
+}
+
 ErrCode INTERFACE_FUNC PermissionMaskBuilderImpl::read()
 {
     permissionMask |= (Int) Permission::Read;
@@ -41,8 +46,18 @@ ErrCode INTERFACE_FUNC PermissionMaskBuilderImpl::build(Int* permissionMask)
     return OPENDAQ_SUCCESS;
 }
 
-// Factory
+// Factories
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionMaskBuilder, Int, permissionMask)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               PermissionMaskBuilderImpl,
+                                                               IPermissionMaskBuilder,
+                                                               createPermissionMaskBuilder)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               PermissionMaskBuilderImpl,
+                                                               IPermissionMaskBuilder,
+                                                               createPermissionMaskBuilderFromMask,
+                                                               Int,
+                                                               permissionMask)
 
 END_NAMESPACE_OPENDAQ

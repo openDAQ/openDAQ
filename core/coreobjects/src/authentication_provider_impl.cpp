@@ -196,6 +196,13 @@ std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& fi
 // Factories
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               AuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createAuthenticationProvider,
+                                                               Bool,
+                                                               allowAnonymous)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
                                                                StaticAuthenticationProviderImpl,
                                                                IAuthenticationProvider,
                                                                createStaticAuthenticationProvider,

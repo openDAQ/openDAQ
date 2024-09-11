@@ -30,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline AuthenticationProviderPtr AuthenticationProvider()
 {
-    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(true, nullptr));
+    AuthenticationProviderPtr obj(AuthenticationProvider_Create(true));
     return obj;
 }
 
@@ -40,7 +40,7 @@ inline AuthenticationProviderPtr AuthenticationProvider()
  */
 inline AuthenticationProviderPtr AuthenticationProvider(Bool allowAnonymous)
 {
-    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(allowAnonymous, nullptr));
+    AuthenticationProviderPtr obj(AuthenticationProvider_Create(allowAnonymous));
     return obj;
 }
 

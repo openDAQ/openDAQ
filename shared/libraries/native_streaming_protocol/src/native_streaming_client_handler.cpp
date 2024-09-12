@@ -11,29 +11,28 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
-NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
-                                                           const PropertyObjectPtr& transportLayerProperties,
-                                                           const PropertyObjectPtr& authenticationObject)
+NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
+                                                     const PropertyObjectPtr& transportLayerProperties,
+                                                     const PropertyObjectPtr& authenticationObject,
+                                                     const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
     , authenticationObject(normalizeAuthenticationObject(authenticationObject))
-    , ioContextPtr(std::make_shared<boost::asio::io_context>())
-    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
+    , ioContextPtr(ioContextPtr)
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientImpl"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
 {
     manageTransportLayerProps();
     resetStreamingHandlers();
     resetConfigHandlers();
-    startTransportOperations();
 }
 
-NativeStreamingClientHandler::~NativeStreamingClientHandler()
+NativeStreamingClientImpl::~NativeStreamingClientImpl()
 {
     reconnectionTimer->cancel();
-    stopTransportOperations();
 }
 
-PropertyObjectPtr NativeStreamingClientHandler::normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+PropertyObjectPtr NativeStreamingClientImpl::normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject)
 {
     auto normalizedObject = PropertyObject();
 
@@ -52,7 +51,7 @@ PropertyObjectPtr NativeStreamingClientHandler::normalizeAuthenticationObject(co
     return normalizedObject;
 }
 
-void NativeStreamingClientHandler::manageTransportLayerProps()
+void NativeStreamingClientImpl::manageTransportLayerProps()
 {
     if (!transportLayerProperties.assigned())
         throw ArgumentNullException("Transport layer properties cannot be null");
@@ -94,7 +93,7 @@ void NativeStreamingClientHandler::manageTransportLayerProps()
         transportLayerProperties.addProperty(BoolProperty("Reconnected", False));
 }
 
-void NativeStreamingClientHandler::resetStreamingHandlers()
+void NativeStreamingClientImpl::resetStreamingHandlers()
 {
     this->signalAvailableHandler = [](const StringPtr&, const StringPtr&) {};
     this->signalUnavailableHandler = [](const StringPtr&) {};
@@ -104,12 +103,12 @@ void NativeStreamingClientHandler::resetStreamingHandlers()
     this->streamingInitDoneCb = []() {};
 }
 
-void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
-                                                        const OnSignalUnavailableCallback& signalUnavailableHandler,
-                                                        const OnPacketCallback& packetHandler,
-                                                        const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
-                                                        const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
-                                                        const OnStreamingInitDoneCallback& streamingInitDoneCb)
+void NativeStreamingClientImpl::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                                     const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                                     const OnPacketCallback& packetHandler,
+                                                     const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
+                                                     const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
+                                                     const OnStreamingInitDoneCallback& streamingInitDoneCb)
 {
     this->streamingInitDoneCb = streamingInitDoneCb;
     this->connectionStatusChangedStreamingCb = connectionStatusChangedCb;
@@ -119,20 +118,20 @@ void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableC
     this->signalAvailableHandler = signalAvailableHandler;
 }
 
-void NativeStreamingClientHandler::resetConfigHandlers()
+void NativeStreamingClientImpl::resetConfigHandlers()
 {
     this->connectionStatusChangedConfigCb = [](ClientConnectionStatus) {};
     this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
 }
 
-void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
-                                                     const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
+void NativeStreamingClientImpl::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
+                                                  const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
 {
     this->configPacketHandler = configPacketHandler;
     this->connectionStatusChangedConfigCb = connectionStatusChangedCb;
 }
 
-void NativeStreamingClientHandler::checkReconnectionResult(const boost::system::error_code& ec)
+void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::error_code& ec)
 {
     if (ec)
         return;
@@ -158,11 +157,11 @@ void NativeStreamingClientHandler::checkReconnectionResult(const boost::system::
     {
         // connection is still pending
         reconnectionTimer->expires_from_now(reconnectionPeriod);
-        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionResult, this, std::placeholders::_1));
+        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
     }
 }
 
-void NativeStreamingClientHandler::tryReconnect()
+void NativeStreamingClientImpl::tryReconnect()
 {
     LOG_I("Try reconnect ...");
 
@@ -172,18 +171,18 @@ void NativeStreamingClientHandler::tryReconnect()
     connectedFuture = connectedPromise.get_future();
 
     reconnectionTimer->expires_from_now(reconnectionPeriod);
-    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionResult, this, std::placeholders::_1));
+    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
     client->connect();
 }
 
-void NativeStreamingClientHandler::connectionStatusChanged(ClientConnectionStatus status)
+void NativeStreamingClientImpl::connectionStatusChanged(ClientConnectionStatus status)
 {
     connectionStatusChangedStreamingCb(status);
     connectionStatusChangedConfigCb(status);
 }
 
-bool NativeStreamingClientHandler::connect(std::string host,
+bool NativeStreamingClientImpl::connect(std::string host,
                                            std::string port,
                                            std::string path)
 {
@@ -199,7 +198,7 @@ bool NativeStreamingClientHandler::connect(std::string host,
     return false;
 }
 
-void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)
+void NativeStreamingClientImpl::subscribeSignal(const StringPtr& signalStringId)
 {
     std::scoped_lock lock(registeredSignalsSync);
 
@@ -217,7 +216,7 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
     }
 }
 
-void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStringId)
+void NativeStreamingClientImpl::unsubscribeSignal(const StringPtr& signalStringId)
 {
     std::scoped_lock lock(registeredSignalsSync);
 
@@ -235,13 +234,13 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
     }
 }
 
-void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
+void NativeStreamingClientImpl::sendConfigRequest(const config_protocol::PacketBuffer& packet)
 {
     if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
         sessionHandlerTemp->sendConfigurationPacket(packet);
 }
 
-void NativeStreamingClientHandler::sendStreamingRequest()
+void NativeStreamingClientImpl::sendStreamingRequest()
 {
     // FIXME keep and reuse packet client when packet retransmission feature will be enabled
     packetStreamingClientPtr = std::make_shared<packet_streaming::PacketStreamingClient>();
@@ -255,7 +254,7 @@ void NativeStreamingClientHandler::sendStreamingRequest()
         sessionHandlerTemp->sendStreamingRequest();
 }
 
-void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+void NativeStreamingClientImpl::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
 {
     if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
     {
@@ -270,24 +269,41 @@ void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signa
     }
 }
 
-std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
+void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, SessionPtr session)
 {
-    return ioContextPtr;
+    LOG_W("Closing connection caused by: {}", errorMessage);
+    sessionHandler.reset();
+    packetStreamingServerPtr.reset();
+
+    connectionStatusChanged(ClientConnectionStatus::Reconnecting);
+    transportLayerProperties.setPropertyValue("Reconnected", True);
+    tryReconnect();
 }
 
-void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
+void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer)
+{
+    if (packetStreamingClientPtr)
+    {
+        packetStreamingClientPtr->addPacketBuffer(packetBuffer);
+
+        auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
+        while (packet.assigned())
+        {
+            packetHandler(signalIds.at(signalNumericId), packet);
+            std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
+        }
+    }
+}
+
+void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
 {
     LOG_D("Client connected");
 
-    OnSessionErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
+    OnSessionErrorCallback errorHandler =
+        [thisWeakPtr = this->weak_from_this()](const std::string& errorMessage, SessionPtr session)
     {
-        LOG_W("Closing connection caused by: {}", errorMessage);
-        sessionHandler.reset();
-        packetStreamingServerPtr.reset();
-
-        connectionStatusChanged(ClientConnectionStatus::Reconnecting);
-        transportLayerProperties.setPropertyValue("Reconnected", True);
-        tryReconnect();
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onSessionError(errorMessage, session);
     };
     // read/write failure indicates that connection is closed, and it should be handled properly
     // client constantly and continuously perform read operation
@@ -295,24 +311,27 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
     OnSignalCallback signalReceivedHandler =
-        [this](const SignalNumericIdType& signalNumericId,
-               const StringPtr& signalStringId,
-               const StringPtr& serializedSignal,
-               bool available)
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               const StringPtr& signalStringId,
+                                               const StringPtr& serializedSignal,
+                                               bool available)
     {
-        handleSignal(signalNumericId, signalStringId, serializedSignal, available);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->handleSignal(signalNumericId, signalStringId, serializedSignal, available);
     };
 
     OnStreamingInitDoneCallback protocolInitDoneHandler =
-        [this]()
+        [thisWeakPtr = this->weak_from_this()]()
     {
-        streamingInitDoneCb();
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->streamingInitDoneCb();
     };
 
     OnSubscriptionAckCallback subscriptionAckCallback =
-        [this](const SignalNumericIdType& signalNumericId, bool subscribed)
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId, bool subscribed)
     {
-        signalSubscriptionAckCallback(signalIds.at(signalNumericId), subscribed);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->signalSubscriptionAckCallback(thisPtr->signalIds.at(signalNumericId), subscribed);
     };
 
     sessionHandler = std::make_shared<ClientSessionHandler>(context,
@@ -324,26 +343,18 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
                                                             errorHandler);
 
     ProcessConfigProtocolPacketCb configPacketReceivedHandler =
-        [this](config_protocol::PacketBuffer&& packet)
+        [thisWeakPtr = this->weak_from_this()](config_protocol::PacketBuffer&& packet)
     {
-        configPacketHandler(std::move(packet));
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->configPacketHandler(std::move(packet));
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 
     OnPacketBufferReceivedCallback packetBufferReceivedHandler =
-        [this](const packet_streaming::PacketBufferPtr& packetBuffer)
+        [thisWeakPtr = this->weak_from_this()](const packet_streaming::PacketBufferPtr& packetBuffer)
     {
-        if (packetStreamingClientPtr)
-        {
-            packetStreamingClientPtr->addPacketBuffer(packetBuffer);
-
-            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
-            while (packet.assigned())
-            {
-                packetHandler(signalIds.at(signalNumericId), packet);
-                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
-            }
-        }
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onPacketBufferReceived(packetBuffer);
     };
     sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
@@ -359,7 +370,7 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     connectedPromise.set_value(ConnectionResult::Connected);
 }
 
-Authentication NativeStreamingClientHandler::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+Authentication NativeStreamingClientImpl::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
 {
     const StringPtr username = authenticationObject.getPropertyValue("Username");
     const StringPtr password = authenticationObject.getPropertyValue("Password");
@@ -370,41 +381,52 @@ Authentication NativeStreamingClientHandler::initClientAuthenticationObject(cons
     return Authentication(username, password);
 }
 
-void NativeStreamingClientHandler::initClient(std::string host,
+void NativeStreamingClientImpl::onConnectionFailed(const std::string& errorMessage, const ConnectionResult result)
+{
+    LOG_E("{}", errorMessage);
+    connectedPromise.set_value(result);
+}
+
+void NativeStreamingClientImpl::initClient(std::string host,
                                               std::string port,
                                               std::string path)
 {
     const auto clientAuth = initClientAuthenticationObject(authenticationObject);
 
     OnNewSessionCallback onNewSessionCallback =
-        [this](SessionPtr session)
+        [thisWeakPtr = this->weak_from_this()](SessionPtr session)
     {
-        initClientSessionHandler(session);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->initClientSessionHandler(session);
     };
     OnCompleteCallback onResolveFailCallback =
-        [this](const boost::system::error_code& ec)
+        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
     {
-        LOG_E("Address resolving failed: {}", ec.message());
-        connectedPromise.set_value(ConnectionResult::ServerUnreachable);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onConnectionFailed(fmt::format("Address resolving failed: {}", ec.message()),
+                                        ConnectionResult::ServerUnreachable);
     };
     OnCompleteCallback onConnectFailCallback =
-        [this](const boost::system::error_code& ec)
+        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
     {
-        LOG_E("Connection failed: {}", ec.message());
-        connectedPromise.set_value(ConnectionResult::ServerUnreachable);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onConnectionFailed(fmt::format("Connection failed: {}", ec.message()),
+                                        ConnectionResult::ServerUnreachable);
     };
     OnCompleteCallback onHandshakeFailCallback =
-        [this](const boost::system::error_code& ec)
+        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
     {
-        LOG_E("Handshake failed: {}", ec.message());
-        connectedPromise.set_value(ConnectionResult::ServerUnsupported);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
+                                        ConnectionResult::ServerUnsupported);
     };
     LogCallback logCallback =
-        [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)
+        [thisWeakPtr = this->weak_from_this()](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)
     {
-        loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname},
-                                   msg,
-                                   static_cast<LogLevel>(level));
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname},
+                                                msg,
+                                                static_cast<LogLevel>(level));
     };
 
     client = std::make_shared<Client>(host,
@@ -419,7 +441,7 @@ void NativeStreamingClientHandler::initClient(std::string host,
                                       logCallback);
 }
 
-void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signalNumericId,
+void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNumericId,
                                                 const StringPtr& signalStringId,
                                                 const StringPtr& serializedSignal,
                                                 bool available)
@@ -451,6 +473,88 @@ void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signa
         signalAvailableHandler(signalStringId, serializedSignal);
     else
         signalUnavailableHandler(signalStringId);
+}
+
+NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
+                                                           const PropertyObjectPtr& transportLayerProperties,
+                                                           const PropertyObjectPtr& authenticationObject)
+    : ioContextPtr(std::make_shared<boost::asio::io_context>())
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
+    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, ioContextPtr))
+{
+    startTransportOperations();
+}
+
+NativeStreamingClientHandler::~NativeStreamingClientHandler()
+{
+    clientHandlerPtr.reset();
+    stopTransportOperations();
+}
+
+bool NativeStreamingClientHandler::connect(std::string host, std::string port, std::string path)
+{
+    return clientHandlerPtr->connect(host, port, path);
+}
+
+void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)
+{
+    clientHandlerPtr->subscribeSignal(signalStringId);
+}
+
+void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStringId)
+{
+    clientHandlerPtr->unsubscribeSignal(signalStringId);
+}
+
+void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
+{
+    clientHandlerPtr->sendConfigRequest(packet);
+}
+
+void NativeStreamingClientHandler::sendStreamingRequest()
+{
+    clientHandlerPtr->sendStreamingRequest();
+}
+
+void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+{
+    clientHandlerPtr->sendStreamingPacket(signalNumericId, packet);
+}
+
+std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
+{
+    return ioContextPtr;
+}
+
+void NativeStreamingClientHandler::resetStreamingHandlers()
+{
+    clientHandlerPtr->resetConfigHandlers();
+}
+
+void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                                        const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                                        const OnPacketCallback& packetHandler,
+                                                        const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
+                                                        const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
+                                                        const OnStreamingInitDoneCallback& streamingInitDoneCb)
+{
+    clientHandlerPtr->setStreamingHandlers(signalAvailableHandler,
+                                    signalUnavailableHandler,
+                                    packetHandler,
+                                    signalSubscriptionAckCallback,
+                                    connectionStatusChangedCb,
+                                    streamingInitDoneCb);
+}
+
+void NativeStreamingClientHandler::resetConfigHandlers()
+{
+    clientHandlerPtr->resetConfigHandlers();
+}
+
+void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
+                                                     const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
+{
+    clientHandlerPtr->setConfigHandlers(configPacketHandler, connectionStatusChangedCb);
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

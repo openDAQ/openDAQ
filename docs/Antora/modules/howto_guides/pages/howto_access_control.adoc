@@ -70,7 +70,19 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var users = CoreTypesFactory.CreateList<BaseObject>();
+users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
+users.Add(OpenDAQFactory.User("root", "root123", new List<string>{ "admin" }));
+
+var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+var builder = OpenDAQFactory.CreateInstanceBuilder();
+builder.AuthenticationProvider = authenticationProvider;
+
+var instance = builder.Build();
+instance.AddStandardServers();
+
+Console.ReadLine();
 ----
 ====
 
@@ -109,7 +121,10 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var users = CoreTypesFactory.CreateList<BaseObject>();
+users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
 ----
 ====
 
@@ -166,7 +181,16 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var instance = OpenDAQFactory.Instance();
+
+var config = instance.CreateDefaultAddDeviceConfig();
+var generalConfig = config.GetPropertyValue("General").Cast<PropertyObject>();
+
+generalConfig.SetPropertyValue("Username", "opendaq");
+generalConfig.SetPropertyValue("Password", "opendaq123");
+
+var device = instance.AddDevice("daq.nd://127.0.0.1", config);
+Console.WriteLine("Connected to: " + device.Name);
 ----
 ====
 
@@ -195,7 +219,7 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+instance.AddDevice("daqref://device0");
 ----
 ====
 
@@ -310,7 +334,28 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRw = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRw.Read();
+maskRw.Write();
+
+var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskX.Execute();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Assign("everyone", maskRw);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Allow("everyone", maskX);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: rwx
 ----
 ====
 
@@ -372,7 +417,29 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRwx.Read();
+maskRwx.Write();
+maskRwx.Execute();
+
+var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskX.Execute();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Assign("everyone", maskRwx);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Deny("everyone", maskX);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: rw
 ----
 ====
 
@@ -439,6 +506,30 @@ C#::
 +
 [source,csharp]
 ----
-// C#
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRwx.Read();
+maskRwx.Write();
+maskRwx.Execute();
+
+var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskR.Read();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Assign("everyone", maskRwx);
+parentPermissions.Assign("guest", maskR);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Assign("everyone", maskR);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: r
+// guest: r
 ----
 ====

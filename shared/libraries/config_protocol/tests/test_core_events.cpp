@@ -407,6 +407,9 @@ TEST_F(ConfigCoreEventTest, ServerComponentAdded)
     const FolderConfigPtr clientFolder = clientDevice.getItem("Srv");
     const FolderConfigPtr serverFolder = serverDevice.getItem("Srv");
 
+    // test if parent assigned for existing server
+    ASSERT_EQ(clientFolder.getItems()[0].asPtr<IComponent>().getParent(), clientFolder);
+
     clientContext.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
@@ -415,6 +418,7 @@ TEST_F(ConfigCoreEventTest, ServerComponentAdded)
         ASSERT_TRUE(args.getParameters().hasKey("Component"));
         ASSERT_EQ(args.getParameters().get("Component"), clientFolder.getItems()[addCount + 1]);
         ASSERT_EQ(comp, clientFolder);
+        ASSERT_EQ(args.getParameters().get("Component").asPtr<IComponent>().getParent(), clientFolder);
         addCount++;
     };
 

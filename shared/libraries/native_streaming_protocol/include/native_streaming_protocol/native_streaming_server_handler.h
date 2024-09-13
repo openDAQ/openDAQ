@@ -34,7 +34,7 @@ using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)
 using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
 using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user)>;
 
-class NativeStreamingServerHandler
+class NativeStreamingServerHandler : public std::enable_shared_from_this<NativeStreamingServerHandler>
 {
 public:
     explicit NativeStreamingServerHandler(const ContextPtr& context,
@@ -66,6 +66,7 @@ protected:
                                   bool subscribe,
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
+    void onSessionError(const std::string &errorMessage, SessionPtr session);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;

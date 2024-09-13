@@ -150,7 +150,7 @@ TEST_F(HowToAccessControl, Assign)
     ASSERT_FALSE(targetObject.getPermissionManager().isAuthorized(user, Permission::Write));
     ASSERT_FALSE(targetObject.getPermissionManager().isAuthorized(user, Permission::Execute));
 
-    auto guest = User("", "");
+    auto guest = User("guest", "guest", {"guest"});
     ASSERT_TRUE(targetObject.getPermissionManager().isAuthorized(guest, Permission::Read));
     ASSERT_FALSE(targetObject.getPermissionManager().isAuthorized(guest, Permission::Write));
     ASSERT_FALSE(targetObject.getPermissionManager().isAuthorized(guest, Permission::Execute));

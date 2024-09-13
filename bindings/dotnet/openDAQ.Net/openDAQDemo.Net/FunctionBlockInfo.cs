@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 using System.ComponentModel;
 
 using Daq.Core.OpenDAQ;

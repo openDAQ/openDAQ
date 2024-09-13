@@ -48,22 +48,28 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
 
 void NativeStreamingServerHandler::startServer(uint16_t port)
 {
-    OnNewSessionCallback onNewSessionCallback = [this](std::shared_ptr<Session> session)
+    OnNewSessionCallback onNewSessionCallback =
+        [thisWeakPtr = this->weak_from_this()](std::shared_ptr<Session> session)
     {
-        initSessionHandler(session);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->initSessionHandler(session);
     };
 
-    OnAuthenticateCallback onAuthenticateCallback = [this](const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut)
+    OnAuthenticateCallback onAuthenticateCallback =
+        [thisWeakPtr = this->weak_from_this()](const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut)
     {
-        return onAuthenticate(authentication, userContextOut);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return thisPtr->onAuthenticate(authentication, userContextOut);
+        return false;
     };
 
     daq::native_streaming::LogCallback logCallback =
-        [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)
+        [thisWeakPtr = this->weak_from_this()](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)
     {
-        loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname},
-                                   msg,
-                                   static_cast<LogLevel>(level));
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname},
+                                                               msg,
+                                                               static_cast<LogLevel>(level));
     };
 
     server = std::make_shared<daq::native_streaming::Server>(onNewSessionCallback, onAuthenticateCallback, ioContextPtr, logCallback);
@@ -128,6 +134,7 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
         LOG_D("Server received subscribe command for signal: {}, numeric Id {}", signalStringId, signalNumericId);
         try
         {
+            // The lambda passed as a parameter will be invoked immediately, making it safe to directly capture this
             bool doSignalSubscribe = streamingManager.registerSignalSubscriber(
                 signalStringId,
                 clientId,
@@ -212,6 +219,7 @@ void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr
 {
     const auto signalStringId = signal.getGlobalId().toStdString();
 
+    // The lambda passed as a parameter will be invoked immediately, making it safe to directly capture this
     streamingManager.sendPacketToSubscribers(
         signalStringId,
         std::move(packet),
@@ -320,10 +328,11 @@ void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_
 {
     auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
     OnTrasportLayerPropertiesCallback trasportLayerPropertiesCb =
-        [this, sessionHandlerWeakPtr](const PropertyObjectPtr& propertyObject)
+        [thisWeakPtr = this->weak_from_this(), sessionHandlerWeakPtr](const PropertyObjectPtr& propertyObject)
     {
-        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
-            handleTransportLayerProps(propertyObject, sessionHandlerPtr);
+        if (const auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+            if (const auto thisPtr = thisWeakPtr.lock())
+                thisPtr->handleTransportLayerProps(propertyObject, sessionHandlerPtr);
     };
     sessionHandler->setTransportLayerPropsHandler(trasportLayerPropertiesCb);
 }
@@ -350,10 +359,11 @@ void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<Se
 {
     auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
     OnStreamingRequestCallback streamingInitCb =
-        [this, sessionHandlerWeakPtr]()
+        [thisWeakPtr = this->weak_from_this(), sessionHandlerWeakPtr]()
     {
         if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
-            this->handleStreamingInit(sessionHandlerPtr);
+            if (const auto thisPtr = thisWeakPtr.lock())
+                thisPtr->handleStreamingInit(sessionHandlerPtr);
     };
     sessionHandler->setStreamingInitHandler(streamingInitCb);
 }
@@ -370,20 +380,34 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
     sessionHandler->sendStreamingInitDone();
 }
 
+void NativeStreamingServerHandler::onSessionError(const std::string& errorMessage, SessionPtr session)
+{
+    LOG_I("Closing connection caused by: {}", errorMessage);
+    // call dispatch to run it in the ::io_context to omit concurrent access!
+    ioContextPtr->dispatch(
+        [thisWeakPtr = this->weak_from_this(), session]()
+        {
+            if (const auto thisPtr = thisWeakPtr.lock())
+                return thisPtr->releaseSessionHandler(session);
+        });
+}
+
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
     LOG_I("New connection accepted by server");
 
-    auto findSignalHandler = [this](const std::string& signalId)
+    auto findSignalHandler = [thisWeakPtr = this->weak_from_this()](const std::string& signalId)
     {
-        return streamingManager.findRegisteredSignal(signalId);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return thisPtr->streamingManager.findRegisteredSignal(signalId);
+        throw NativeStreamingProtocolException("Server handler object destroyed");
     };
 
-    OnSessionErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
+    OnSessionErrorCallback errorHandler =
+        [thisWeakPtr = this->weak_from_this()](const std::string& errorMessage, SessionPtr session)
     {
-        LOG_I("Closing connection caused by: {}", errorMessage);
-        // call dispatch to run it in the ::io_context to omit concurrent access!
-        ioContextPtr->dispatch([this, session]() { releaseSessionHandler(session); });
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onSessionError(errorMessage, session);
     };
 
     // read/write failure indicates that connection is closed, and it should be handled properly
@@ -392,12 +416,14 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
     OnSignalSubscriptionCallback signalSubscriptionHandler =
-        [this](const SignalNumericIdType& signalNumericId,
-               const SignalPtr& signal,
-               bool subscribe,
-               const std::string& clientId)
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               const SignalPtr& signal,
+                                               bool subscribe,
+                                               const std::string& clientId)
     {
-        return this->handleSignalSubscription(signalNumericId, signal, subscribe, clientId);
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return thisPtr->handleSignalSubscription(signalNumericId, signal, subscribe, clientId);
+        return false;
     };
 
     std::string clientIdAssignedByServer;

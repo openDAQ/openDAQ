@@ -538,23 +538,16 @@ public static partial class OpenDAQFactory
     /// <returns>The &apos;User&apos; object.</returns>
     /// <param name="username">The username.</param>
     /// <param name="passwordHash">The hashed password as a string in Modular Crypt Format.</param>
-    public static User User(string username, string passwordHash)
-    {
-        var groups = CoreTypesFactory.CreateList<BaseObject>();
-        return CoreObjectsFactory.CreateUser(username, passwordHash, groups);
-    }
-
-    /// <summary>Creates an immutable user object</summary>
-    /// <returns>The &apos;User&apos; object.</returns>
-    /// <param name="username">The username.</param>
-    /// <param name="passwordHash">The hashed password as a string in Modular Crypt Format.</param>
     /// <param name="groups">The list of group IDs which the user belongs to.</param>
-    public static User User(string username, string passwordHash, List<string> groups)
+    public static User User(string username, string passwordHash, List<string> groups = null)
     {
         var groupList = CoreTypesFactory.CreateList<BaseObject>();
 
-        foreach (var group in groups)
-            groupList.Add(group);
+        if (groups != null)
+        {
+            foreach (var group in groups)
+                groupList.Add(group);
+        }
 
         return CoreObjectsFactory.CreateUser(username, passwordHash, groupList);
     }

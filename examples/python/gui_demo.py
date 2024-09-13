@@ -245,8 +245,8 @@ class App(tk.Tk):
                 self.tree_add_component(
                     parent_id, component, display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
             elif display_type == DisplayType.SYSTEM_OVERVIEW:
-                if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component)):
-                    if not (daq.IFolder.can_cast_from(component) and component.name in ('IP', 'Sig')):
+                if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component) or daq.IServer.can_cast_from(component)):
+                    if not (daq.IFolder.can_cast_from(component) and component.name in ('IP', 'Sig', 'Srv')):
                         self.tree_add_component(parent_id, component)
             elif display_type == DisplayType.SIGNALS and daq.ISignal.can_cast_from(component):
                 self.tree_add_component(
@@ -323,6 +323,8 @@ class App(tk.Tk):
             component = 'Input ports'
         elif component == 'IO':
             component = 'Inputs/Outputs'
+        elif component == 'Srv':
+            component = 'Servers'
         return component
 
     def tree_restore_selection(self, old_node=None):

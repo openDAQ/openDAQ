@@ -170,6 +170,77 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     }
 
     [Test]
+    public void Test_0002_ListObjectWithParamsNoExceptionTest()
+    {
+        Console.WriteLine("> creating string-list with exception");
+
+        Assert.DoesNotThrow(() =>
+        {
+            //<TValue> cannot be inferred from the items
+            var list = CoreTypesFactory.CreateList<StringObject>("item 1", "item 2", "item 3", "item 4");
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
+    }
+
+    [Test]
+    public void Test_0003_ListObjectWithParamsNoErrorCodeTest()
+    {
+        Console.WriteLine("> creating string-list with error-code");
+
+        //<TValue> can be inferred from the out-parameter
+        ErrorCode errorcode = CoreTypesFactory.CreateList(out IListObject<StringObject> list,
+                                                          "item 1", "item 2", "item 3", "item 4");
+
+        Assert.That(errorcode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
+        Assert.That(list, Is.Not.Null);
+        Assert.That(list.Count, Is.EqualTo(4));
+        Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That((string)list[0], Is.EqualTo("item 1"));
+            Assert.That((string)list[1], Is.EqualTo("item 2"));
+            Assert.That((string)list[2], Is.EqualTo("item 3"));
+            Assert.That((string)list[3], Is.EqualTo("item 4"));
+        });
+    }
+
+    [Test]
+    public void Test_0004_ListObjectWithParamsArrayTest()
+    {
+        Console.WriteLine("> creating string-list with array");
+
+        //create StringObject array (no automatic cast)
+        StringObject[] items = new[] { (StringObject)"item 1", (StringObject)"item 2", (StringObject)"item 3", (StringObject)"item 4" };
+
+        Assert.DoesNotThrow(() =>
+        {
+            //<TValue> can be inferred from the array
+            var list = CoreTypesFactory.CreateList(items);
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
+    }
+
+    [Test]
     public void Test_0101_InstanceManualDispose()
     {
         //instruct TearDown function not to collect and finalize managed objects explicitly

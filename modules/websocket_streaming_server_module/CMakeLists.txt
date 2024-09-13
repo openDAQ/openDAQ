@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(WebsocketStreamingServerModule VERSION 3.2.8 LANGUAGES CXX)
+project(WebsocketStreamingServerModule VERSION 3.2.9 LANGUAGES CXX)
 
 add_subdirectory(src)
 

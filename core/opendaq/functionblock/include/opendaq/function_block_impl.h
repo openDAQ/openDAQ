@@ -54,6 +54,9 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getStatusSignal(ISignal** statusSignal) override;
     ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
+    ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -395,6 +398,43 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
         fbList.pushBack(fb);
 
     return fbList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
+{
+    if (functionBlockTypes == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *functionBlockTypes = Dict<IString, IFunctionBlockType>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (typeId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    return this->makeErrorInfo(
+        OPENDAQ_ERR_NOTFOUND,
+        ("Function block with given uid and config is not available [" + StringPtr::Borrow(typeId).toStdString() + "]")
+    );
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    if (!this->functionBlocks.hasItem(functionBlock))
+        return OPENDAQ_ERR_NOTFOUND;
+    
+    this->functionBlocks.removeItem(functionBlock);
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

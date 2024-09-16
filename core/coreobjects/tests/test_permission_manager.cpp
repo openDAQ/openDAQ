@@ -231,3 +231,51 @@ TEST_F(PermissionManagerTest, SetNullParent)
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 }
+
+
+TEST_F(PermissionManagerTest, AssignRemovePermission)
+{
+    auto admin = User("admin", "password", List<IString>("admin"));
+    auto guest = User("guest", "password", List<IString>("guest"));
+
+    auto managerRoot = PermissionManager();
+    managerRoot.setPermissions(PermissionsBuilder()
+                                   .assign("guest", PermissionMaskBuilder().read().write())
+                                   .assign("admin", PermissionMaskBuilder().read().write())
+                                   .build());
+
+    auto manager = PermissionManager(managerRoot);
+    manager.setPermissions(PermissionsBuilder().inherit(true).assign("admin", PermissionMaskBuilder().read()).build());
+
+    ASSERT_TRUE(manager.isAuthorized(guest, Permission::Read));
+    ASSERT_TRUE(manager.isAuthorized(guest, Permission::Write));
+    ASSERT_FALSE(manager.isAuthorized(guest, Permission::Execute));
+
+    ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
+    ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
+    ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
+}
+
+TEST_F(PermissionManagerTest, AssignAddPermission)
+{
+    auto admin = User("admin", "password", List<IString>("admin"));
+    auto guest = User("guest", "password", List<IString>("guest"));
+
+    auto managerRoot = PermissionManager();
+    managerRoot.setPermissions(PermissionsBuilder()
+                                   .assign("guest", PermissionMaskBuilder().read().write())
+                                   .assign("admin", PermissionMaskBuilder().read().write())
+                                   .build());
+
+    auto manager = PermissionManager(managerRoot);
+    manager.setPermissions(PermissionsBuilder().inherit(true).assign("admin", PermissionMaskBuilder().read().write().execute()).build());
+
+    ASSERT_TRUE(manager.isAuthorized(guest, Permission::Read));
+    ASSERT_TRUE(manager.isAuthorized(guest, Permission::Write));
+    ASSERT_FALSE(manager.isAuthorized(guest, Permission::Execute));
+
+    ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
+    ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
+    ASSERT_TRUE(manager.isAuthorized(admin, Permission::Execute));
+}
+

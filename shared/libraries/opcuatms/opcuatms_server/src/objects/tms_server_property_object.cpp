@@ -335,7 +335,7 @@ void TmsServerPropertyObject::bindMethodCallbacks()
             }
             catch(...)
             {
-                return UA_STATUSCODE_BAD;
+                return UA_STATUSCODE_BADINTERNALERROR;
             }
         });
     }

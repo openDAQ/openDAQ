@@ -41,3 +41,21 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     daq::IComponent*, parent,
     daq::IString*, localId,
     daq::IPropertyObject*, config)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    INTERNAL_FACTORY,
+    MockFunctionBlockInputPorts, daq::IFunctionBlock,
+    daq::IFunctionBlockType*, info,
+    daq::IContext*, ctx,
+    daq::IComponent*, parent,
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    INTERNAL_FACTORY,
+    MockFunctionBlockOutputPorts, daq::IFunctionBlock,
+    daq::IFunctionBlockType*, info,
+    daq::IContext*, ctx,
+    daq::IComponent*, parent,
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)

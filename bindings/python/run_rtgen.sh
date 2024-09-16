@@ -147,6 +147,8 @@ run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal      
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal_config
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal_events
+run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           reference_domain_info
+run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           reference_domain_info_builder
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        streaming
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_signal_config
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_signal_private

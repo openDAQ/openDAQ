@@ -23,9 +23,12 @@
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
 
+#include <set>
+
 namespace daq::config_protocol
 {
 
+using SignalNumericIdType = uint32_t;
 using ParamsDictPtr = DictPtr<IString, IBaseObject>;
 
 inline auto ParamsDict() -> decltype(Dict<IString, IBaseObject>())
@@ -45,7 +48,8 @@ enum PacketType: uint8_t
     UpgradeProtocol = 0x81,
     Rpc = 0x82,
     ServerNotification = 0x83,
-    InvalidRequest = 0x84
+    InvalidRequest = 0x84,
+    NoReplyRpc = 0x85
 };
 
 #pragma pack(push, 1)
@@ -105,8 +109,8 @@ public:
     static PacketBuffer createGetProtocolInfoRequest(uint64_t id);
     void parseProtocolInfoRequest() const;
 
-    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions);
-    void parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const;
+    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::set<uint16_t>& supportedVersions);
+    void parseProtocolInfoReply(uint16_t& currentVersion, std::set<uint16_t>& supportedVersions) const;
 
     static PacketBuffer createUpgradeProtocolRequest(uint64_t id, uint16_t version);
     void parseProtocolUpgradeRequest(uint16_t& version) const;
@@ -122,6 +126,9 @@ public:
 
     static PacketBuffer createInvalidRequestReply(uint64_t id);
     void parseInvalidRequestReply() const;
+
+    static PacketBuffer createNoReplyRpcRequest(const char* json, size_t jsonSize);
+    StringPtr parseNoReplyRpcRequest() const;
 
 private:
     PacketHeader* buffer;
@@ -149,6 +156,8 @@ inline auto format_as(PacketType type)
             return "ServerNotification";
         case InvalidRequest:
             return "InvalidRequest";
+        case NoReplyRpc:
+            return "NoReplyRpc";
     }
     return "Unknown type";
 }

@@ -128,6 +128,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignalConfig, ISignal)
 };
 /*!@}*/
 
+// [allowNull(parent), allowNull(className)]
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, Signal, ISignalConfig,
     IContext*, context,
@@ -136,6 +137,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, className
 )
 
+// [allowNull(parent), allowNull(className)]
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SignalWithDescriptor, ISignalConfig,
     IContext*, context,

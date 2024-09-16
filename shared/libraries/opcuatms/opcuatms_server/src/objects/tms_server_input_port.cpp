@@ -59,6 +59,10 @@ void TmsServerInputPort::createConnectMethodNode()
         {
             return e.getStatusCode();
         }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
+        }
 
         return UA_STATUSCODE_GOOD;
     };
@@ -85,6 +89,10 @@ void TmsServerInputPort::createDisconnectMethodNode()
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
 
         return UA_STATUSCODE_GOOD;

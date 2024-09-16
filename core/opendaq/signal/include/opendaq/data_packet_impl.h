@@ -18,13 +18,14 @@
 #include <coretypes/intfs.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_calc_private.h>
+#include <opendaq/deleter_ptr.h>
 #include <opendaq/generic_data_packet_impl.h>
 #include <opendaq/range_factory.h>
+#include <opendaq/reference_domain_offset_adder.h>
+#include <opendaq/reusable_data_packet.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/signal_exceptions.h>
-#include <opendaq/reusable_data_packet.h>
-#include <opendaq/deleter_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,9 +40,7 @@ public:
                             SizeT sampleCount,
                             const NumberPtr& offset);
 
-    explicit DataPacketImpl(const DataDescriptorPtr& descriptor,
-                            SizeT sampleCount,
-                            const NumberPtr& offset);
+    explicit DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset);
 
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
                             const DataDescriptorPtr& descriptor,
@@ -73,7 +72,8 @@ public:
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
     ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
-    ErrCode INTERFACE_FUNC reuse(IDataDescriptor* newDescriptor, SizeT newSampleCount,
+    ErrCode INTERFACE_FUNC reuse(IDataDescriptor* newDescriptor,
+                                 SizeT newSampleCount,
                                  INumber* newOffset,
                                  IDataPacket* newDomainPacket,
                                  Bool canReallocMemory,
@@ -102,6 +102,7 @@ private:
     bool hasDataRuleCalc;
     bool hasRawDataOnly;
     bool externalMemory;
+    bool hasReferenceDomainOffset;
 
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
     BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
@@ -122,7 +123,10 @@ void DataPacketImpl<TInterface>::initPacket()
 
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
 
-    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc;
+    hasReferenceDomainOffset =
+        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
+
+    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
 
 template <typename TInterface>
@@ -138,6 +142,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(false)
+    , hasReferenceDomainOffset(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -156,7 +161,6 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 
         if (data == nullptr)
             throw NoMemoryException();
-
     }
     memorySize = rawDataSize;
 
@@ -180,6 +184,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
     , externalMemory(true)
+    , hasReferenceDomainOffset(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -206,9 +211,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor,
-                                           SizeT sampleCount,
-                                           const NumberPtr& offset)
+DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset)
     : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset)
 {
 }
@@ -250,6 +253,9 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     if (hasScalingCalc)
         throw InvalidParameterException("Constant data rule with post scaling not supported.");
     hasRawDataOnly = false;
+
+    hasReferenceDomainOffset =
+        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
 }
 
 template <typename TInterface>
@@ -326,6 +332,25 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     else if (hasDataRuleCalc)
                     {
                         scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
+                    }
+
+                    if (hasReferenceDomainOffset)
+                    {
+                        auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(), descriptor.getReferenceDomainInfo().getReferenceDomainOffset(), sampleCount));
+
+                        if (data)
+                        {
+                            // Explicit data rule, apply Reference Domain Offset
+                            // Uses malloc to create a new array
+                            scaledData = referenceDomainOffsetAdder->addReferenceDomainOffset(data);
+                        }
+                        else
+                        {
+                            // Linear data rule, apply Reference Domain Offset
+                            // Modifies existing array
+                            referenceDomainOffsetAdder->addReferenceDomainOffset(&scaledData);
+                        }
                     }
 
                     *address = scaledData;
@@ -730,6 +755,5 @@ void DataPacketImpl<TInterface>::freeMemory()
     }
     freeScaledData();
 }
-
 
 END_NAMESPACE_OPENDAQ

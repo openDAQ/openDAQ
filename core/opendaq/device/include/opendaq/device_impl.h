@@ -88,8 +88,14 @@ public:
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
 
+    ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
+    ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
+    ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
+    ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -123,11 +129,15 @@ protected:
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
     SyncComponentPtr syncComponent;
+    FolderConfigPtr servers;
     LoggerComponentPtr loggerComponent;
+    PropertyObjectPtr deviceConfig;
     bool isRootDevice;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
+    template <class ChannelImpl, class... Params>
+    ChannelPtr createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder, const StringPtr& localId, const PermissionsPtr& permissions, Params&&... params);
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
     bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
@@ -145,22 +155,28 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateFunctionBlock(const std::string& fbId,
-                                  const SerializedObjectPtr& serializedFunctionBlock) override;
-    void updateDevice(const std::string& deviceId, const SerializedObjectPtr& serializedDevice);
+                             const SerializedObjectPtr& serializedFunctionBlock,
+                             const BaseObjectPtr& context) override;
+    void updateDevice(const std::string& deviceId, 
+                      const SerializedObjectPtr& serializedDevice,
+                      const BaseObjectPtr& context);
     void updateIoFolderItem(const FolderPtr& ioFolder,
                             const std::string& localId,
-                            const SerializedObjectPtr& item);
+                            const SerializedObjectPtr& item,
+                            const BaseObjectPtr& context);
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     bool clearFunctionBlocksOnUpdate() override;
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
 
     virtual StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveServer(const ServerPtr& server);
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -186,18 +202,22 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
-    this->defaultComponents.insert("Sync");
+    this->defaultComponents.insert("Synchronization");
+    this->defaultComponents.insert("Srv");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
-    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Sync"));
+    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
+    servers = this->template addFolder<IComponent>("Srv", nullptr);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
+    servers.asPtr<IComponentPrivate>().lockAllAttributes();
 
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+    servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 
     this->addProperty(StringProperty("userName", ""));
     this->addProperty(StringProperty("location", ""));
@@ -233,6 +253,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         }
     }
 
+    if (this->deviceInfo.assigned())
+        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
+
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }
@@ -260,6 +283,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
 }
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
+{
+    this->deviceConfig = config;
+    return OPENDAQ_SUCCESS;
+}
+
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInputsOutputsFolder(IFolder** inputsOutputsFolder)
@@ -304,7 +335,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals, IS
         return this->signals->getItems(signals);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -387,6 +418,21 @@ ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const F
     return ch;
 }
 
+template <typename TInterface, typename... Interfaces>
+template <class ChannelImpl, class... Params>
+ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder,
+                                                                                        const StringPtr& localId,
+                                                                                        const PermissionsPtr& permissions,
+                                                                                        Params&&... params)
+{
+    ChannelPtr ch = createWithImplementation<IChannel, ChannelImpl>(this->context, parentFolder, localId, std::forward<Params>(params)...);
+
+    ch.getPermissionManager().setPermissions(permissions);
+
+    parentFolder.addItem(ch);
+    return ch;
+}
+
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel)
 {
@@ -405,10 +451,10 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
     if (parentFolder == nullptr)
     {
         const auto folder = channel.getParent().asPtr<IFolderConfig>();
-        return folder.hasItem(channel);
+        return folder.hasItem(channel.getLocalId());
     }
     else
-        return parentFolder.hasItem(channel);
+        return parentFolder.hasItem(channel.getLocalId());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -567,7 +613,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** func
         return this->functionBlocks->getItems(functionBlocks);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -617,7 +663,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels, 
     }
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -651,6 +697,47 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannelsRecursive(IList** c
         *channels = getChannelsRecursiveInternal(filter).detach();
         return OPENDAQ_SUCCESS;
     });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::addServer(IString* typeId, IPropertyObject* config, IServer** server)
+{
+    OPENDAQ_PARAM_NOT_NULL(server);
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    ServerPtr serverPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddServer, serverPtr, typeId, config);
+
+    *server = serverPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::removeServer(IServer* server)
+{
+    OPENDAQ_PARAM_NOT_NULL(server);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    const auto serverPtr = ServerPtr::Borrow(server);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveServer, serverPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
+{
+    OPENDAQ_PARAM_NOT_NULL(servers);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    return this->servers->getItems(servers);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -801,6 +888,31 @@ StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const Stri
 }
 
 template <typename TInterface, typename... Interfaces>
+ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    ServerPtr server = managerUtils.createServer(typeId, this->template thisPtr<DevicePtr>(), config);
+
+    std::scoped_lock lock(this->sync);
+    if (!this->isRootDevice)
+        throw NotFoundException("Device does not allow adding/removing servers.");
+    this->servers.addItem(server);
+
+    return server;
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& server)
+{
+    std::scoped_lock lock(this->sync);
+
+    if (!this->isRootDevice)
+        throw NotFoundException("Device does not allow adding/removing servers.");
+
+    this->servers.removeItem(server);
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 {
     OPENDAQ_PARAM_NOT_NULL(device);
@@ -842,7 +954,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices,
         return devices->getItems(subDevices);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -871,6 +983,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 {
     OPENDAQ_PARAM_NOT_NULL(sync);
     *sync = syncComponent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->deviceConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1038,6 +1158,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     this->serializeFolder(serializer, ioFolder, "IO", forUpdate);
     this->serializeFolder(serializer, devices, "Dev", forUpdate);
+    this->serializeFolder(serializer, servers, "Srv", forUpdate);
 
     for (const auto& component : this->components)
     {
@@ -1051,10 +1172,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
+    DeviceInfoPtr deviceInfo;
+    checkErrorInfo(this->getInfo(&deviceInfo));
     if (!forUpdate)
     {
-        DeviceInfoPtr deviceInfo;
-        checkErrorInfo(this->getInfo(&deviceInfo));
         if (deviceInfo.assigned())
         {
             serializer.key("deviceInfo");
@@ -1070,14 +1191,15 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (syncComponent.assigned())
     {
-        serializer.key("Sync");
+        serializer.key("Synchronization");
         syncComponent.serialize(serializer);
     }
 }
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                                   const SerializedObjectPtr& serializedFunctionBlock)
+                                                                   const SerializedObjectPtr& serializedFunctionBlock,
+                                                                   const BaseObjectPtr& context)
 {
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
@@ -1095,25 +1217,29 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
     }
 
-    updatableFb.update(serializedFunctionBlock);
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& deviceId,
-                                                            const SerializedObjectPtr& serializedDevice)
+                                                            const SerializedObjectPtr& serializedDevice,
+                                                            const BaseObjectPtr& context)
 {
-    if (!devices.hasItem(deviceId))
-    {
-        LOG_W("Device {} not found", deviceId)
-        return;
-    }
-
-    const auto device = devices.getItem(deviceId);
-    const auto updatableDevice = device.template asPtr<IUpdatable>(true);
-
     try
     {
-        updatableDevice.update(serializedDevice);
+        DevicePtr device;
+        if (devices.hasItem(deviceId))
+        {
+            device = devices.getItem(deviceId);
+        }
+        else
+        {
+            LOG_W("Device {} not found", deviceId);
+            return;
+        }
+
+        const auto updatableDevice = device.template asPtr<IUpdatable>(true);
+        updatableDevice.updateInternal(serializedDevice, context);
     }
     catch (const std::exception& e)
     {
@@ -1124,7 +1250,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPtr& parentIoFolder,
                                                                   const std::string& localId,
-                                                                  const SerializedObjectPtr& serializedItem)
+                                                                  const SerializedObjectPtr& serializedItem,
+                                                                  const BaseObjectPtr& context)
 {
     if (!parentIoFolder.hasItem(localId))
     {
@@ -1137,18 +1264,18 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
     {
         const auto updatableChannel = item.asPtr<IUpdatable>(true);
 
-        updatableChannel.update(serializedItem);
+        updatableChannel.updateInternal(serializedItem, context);
     }
     else if (item.supportsInterface<IFolder>())
     {
         const auto updatableFolder = item.asPtr<IUpdatable>(true);
-        updatableFolder.update(serializedItem);
+        updatableFolder.updateInternal(serializedItem, context);
 
         this->updateFolder(serializedItem,
                            "IoFolder",
                            "",
-                           [this, &item](const std::string& itemId, const SerializedObjectPtr& obj)
-                           { updateIoFolderItem(item, itemId, obj); });
+                           [this, &item, &context](const std::string& itemId, const SerializedObjectPtr& obj)
+                           { updateIoFolderItem(item, itemId, obj, context); });
     }
 }
 
@@ -1171,13 +1298,14 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceDomain = serializedObject.readObject("deviceDomain");
     }
 
-    if (serializedObject.hasKey("Sync"))
+    if (serializedObject.hasKey("Synchronization"))
     {
-        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Sync");
+        this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
+    this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, servers, "Srv");
 
     const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "properties", "propValues"};
 
@@ -1196,9 +1324,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
-    Super::updateObject(obj);
+    Super::updateObject(obj, context);
 
     if (obj.hasKey("Dev"))
     {
@@ -1208,8 +1336,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",
-                           [this](const std::string& localId, const SerializedObjectPtr& obj)
-                           { updateDevice(localId, obj); });
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateDevice(localId, obj, context); });
     }
 
     if (obj.hasKey("IO"))
@@ -1220,7 +1348,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         this->updateFolder(ioFolder,
                            "IoFolder",
                            "",
-                           [this](const std::string& localId, const SerializedObjectPtr& obj) { updateIoFolderItem(this->ioFolder, localId, obj); });
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateIoFolderItem(this->ioFolder, localId, obj, context); });
     }
 
     const auto keys = obj.getKeys();
@@ -1234,7 +1363,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             {
                 const auto componentObject = obj.readSerializedObject(key);
                 const auto updatableComponent = compIterator->template asPtr<IUpdatable>(true);
-                updatableComponent.update(componentObject);
+                updatableComponent.updateInternal(componentObject, context);
             }
         }
     }

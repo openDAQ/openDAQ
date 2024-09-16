@@ -10,12 +10,15 @@
 #include <opendaq/device_domain_factory.h>
 #include <utility>
 #include <opendaq/sync_component_private_ptr.h>
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
+    , serialNumber(fmt::format("DevSer{}", id))
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
@@ -24,26 +27,27 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
-    initIoFolder();
-    initSyncComponent();
-    initClock();
-    initProperties(config);
-    updateNumberOfChannels();
-    enableCANChannel();
-    updateAcqLoopTime();
-
     if (config.assigned())
     {
-        if (config.hasProperty("LocalId"))
+        if (config.hasProperty("SerialNumber"))
             serialNumber = config.getPropertyValue("SerialNumber");
     }
-    
+
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
         if (options.hasKey("SerialNumber"))
             serialNumber = options.get("SerialNumber");
     }
+
+    initIoFolder();
+    initSyncComponent();
+    initClock();
+    initProperties(config);
+    updateNumberOfChannels();
+    enableCANChannel();
+    enableProtectedChannel();
+    updateAcqLoopTime();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -65,7 +69,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
-    devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
+    devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
@@ -73,10 +77,16 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
 
 DeviceTypePtr RefDeviceImpl::CreateType()
 {
+    const auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
+    defaultConfig.addProperty(BoolProperty("EnableCANChannel", False));
+    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+
     return DeviceType("daqref",
                       "Reference device",
                       "Reference device",
-                      "daqref");
+                      "daqref",
+                      defaultConfig);
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
@@ -110,6 +120,34 @@ std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
     return microSecondsSinceDeviceStart;
 }
 
+PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+{
+    const auto func = Function([](Int a, Int b) { return a + b; });
+
+    const auto funcProp =
+        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(false)
+            .build();
+
+    auto protectedObject = PropertyObject();
+    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
+    protectedObject.addProperty(funcProp);
+    protectedObject.setPropertyValue("Sum", func);
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+
+    protectedObject.getPermissionManager().setPermissions(permissions);
+
+    return protectedObject;
+}
+
 void RefDeviceImpl::initClock()
 {
     startTime = std::chrono::steady_clock::now();
@@ -117,7 +155,11 @@ void RefDeviceImpl::initClock()
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
+    this->setDeviceDomain(
+        DeviceDomain(RefChannelImpl::getResolution(),
+                     RefChannelImpl::getEpoch(),
+                     UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                     ReferenceDomainInfoBuilder().setReferenceDomainId("openDAQ_" + serialNumber).setReferenceDomainOffset(0).build()));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -171,6 +213,12 @@ void RefDeviceImpl::acqLoop()
                 auto chPrivate = canChannel.asPtr<IRefChannel>();
                 chPrivate->collectSamples(curTime);
             }
+
+            if (protectedChannel.assigned())
+            {
+                auto chPrivate = protectedChannel.asPtr<IRefChannel>();
+                chPrivate->collectSamples(curTime);
+            }
         }
     }
 }
@@ -179,6 +227,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
     size_t numberOfChannels = 2;
     bool enableCANChannel = false;
+    bool enableProtectedChannel = false;
 
     if (config.assigned())
     {
@@ -187,6 +236,9 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableCANChannel"))
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
+
+        if (config.hasProperty("EnableProtectedChannel"))
+            enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
     } 
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -224,6 +276,13 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
+
+    objPtr.addProperty(BoolProperty("EnableProtectedChannel", enableProtectedChannel));
+    objPtr.getOnPropertyValueWrite("EnableProtectedChannel") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableProtectedChannel(); };
+
+    auto protectedObject = createProtectedObject();
+    objPtr.addProperty(ObjectProperty("Protected", protectedObject));
 }
 
 void RefDeviceImpl::updateNumberOfChannels()
@@ -246,9 +305,9 @@ void RefDeviceImpl::updateNumberOfChannels()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size(); i < num; i++)
     {
-        RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
+        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+        auto chLocalId = fmt::format("RefCh{}", i);
+        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init);
         channels.push_back(std::move(ch));
     }
 }
@@ -261,8 +320,9 @@ void RefDeviceImpl::enableCANChannel()
 
     if (!enableCANChannel)
     {
-        if (canChannel.assigned() && hasChannel(nullptr, canChannel))
-            removeChannel(nullptr, canChannel);
+        if (canChannel.assigned() && hasChannel(canFolder, canChannel))
+            removeChannel(canFolder, canChannel);
+
         canChannel.release();
     }
     else
@@ -270,6 +330,37 @@ void RefDeviceImpl::enableCANChannel()
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
         RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
         canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
+    }
+}
+
+void RefDeviceImpl::enableProtectedChannel()
+{
+    bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
+
+    std::scoped_lock lock(sync);
+
+    if (!enabled)
+    {
+        if (protectedChannel.assigned() && hasChannel(aiFolder, protectedChannel))
+            removeChannel(aiFolder, protectedChannel);
+
+        protectedChannel.release();
+    }
+    else
+    {
+        auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
+        auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+        size_t index = channels.size();
+
+        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+        const auto channelLocalId = "ProtectedChannel";
+
+        auto permissions = PermissionsBuilder()
+                               .inherit(false)
+                               .assign("admin", PermissionMaskBuilder().read().write().execute())
+                               .build();
+
+        protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, channelLocalId, permissions, init);
     }
 }
 

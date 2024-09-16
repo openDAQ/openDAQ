@@ -28,7 +28,7 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     rootDevice = Client(this->context, instanceId);
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
@@ -58,12 +58,12 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     else
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
-    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
 InstanceImpl::~InstanceImpl()
 {
-    stopServers();
+    stopAndRemoveServers();
     rootDevice.release();
 }
 
@@ -139,10 +139,14 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
 }
 
-void InstanceImpl::stopServers()
+void InstanceImpl::stopAndRemoveServers()
 {
-    for (const auto& server : servers)
-        server->stop();
+    for (const auto& server : rootDevice.getServers())
+    {
+        server.stop();
+        // Manually remove servers from the root device to clean-up circular references to root device held by servers
+        rootDevice.removeServer(server);
+    }
 }
 
 ErrCode InstanceImpl::getContext(IContext** context)
@@ -191,55 +195,9 @@ ErrCode InstanceImpl::getAvailableServerTypes(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
-StringPtr InstanceImpl::convertIfOldIdProtocol(const StringPtr& id)
+ErrCode InstanceImpl::addServer(IString* typeId, IPropertyObject* config, IServer** server)
 {
-    if (id == "openDAQ LT Streaming")
-        return "OpenDAQLTStreaming";
-    if (id == "openDAQ Native Streaming")
-        return "OpenDAQNativeStreaming";
-    if (id == "openDAQ OpcUa")
-        return "OpenDAQOPCUA";
-    return id;
-}
-
-ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server)
-{
-    OPENDAQ_PARAM_NOT_NULL(serverTypeId);
-    OPENDAQ_PARAM_NOT_NULL(server);
-
-    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
-
-    for (const auto module : moduleManager.getModules())
-    {
-        DictPtr<IString, IServerType> serverTypes;
-        try
-        {
-            serverTypes = module.getAvailableServerTypes();
-        }
-        catch (NotImplementedException&)
-        {
-            serverTypes = nullptr;
-        }
-
-        if (!serverTypes.assigned())
-            continue;
-
-        for (const auto& [id, serverType] : serverTypes)
-        {
-            if (id == typeId)
-            {
-                // Use the root device instead of Instance(this) to prevent cycling reference.
-                auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
-
-                std::scoped_lock lock(configSync);
-                servers.push_back(createdServer);
-                *server = createdServer.detach();
-                return OPENDAQ_SUCCESS;
-            }
-        }
-    }
-
-    return OPENDAQ_ERR_NOTFOUND;
+    return rootDevice->addServer(typeId, config, server);
 }
 
 std::string getErrorMessage()
@@ -312,29 +270,12 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 
 ErrCode InstanceImpl::removeServer(IServer* server)
 {
-    OPENDAQ_PARAM_NOT_NULL(server);
-
-    std::scoped_lock lock(configSync);
-
-    auto it = std::find(servers.begin(), servers.end(), server);
-    if (it == servers.end())
-        return OPENDAQ_ERR_NOTFOUND;
-
-    auto errCode = it->getObject()->stop();
-
-    servers.erase(it);
-
-    return errCode;
+    return rootDevice->removeServer(server);
 }
 
 ErrCode InstanceImpl::getServers(IList** instanceServers)
 {
-    OPENDAQ_PARAM_NOT_NULL(instanceServers);
-
-    ListPtr<IServer> serversPtr{ this->servers };
-    *instanceServers = serversPtr.detach();
-
-    return OPENDAQ_SUCCESS;
+    return rootDevice->getServers(instanceServers);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -360,7 +301,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (rootDevice.getDevices().getCount() > 0)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
 
-    if (!servers.empty())
+    if (rootDevice.getServers().getCount() > 0)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
@@ -374,7 +315,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 
-    this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    this->rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
 }
 
@@ -754,30 +695,35 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
+ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
-    return daqTry([&objPtr, this]()
-        {
-            objPtr.checkObjectType("Instance");
+    return daqTry([&objPtr, this]
+    {
+        objPtr.checkObjectType("Instance");
 
-            const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
-            const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
-            if (rootDeviceWrapperKeysPtr.getCount() != 1)
-                throw InvalidValueException("Invalid root device object");
+        const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
+        const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
+        if (rootDeviceWrapperKeysPtr.getCount() != 1)
+            throw InvalidValueException("Invalid root device object");
 
-            const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
-            rootDevicePtr.checkObjectType("Device");
+        const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
+        rootDevicePtr.checkObjectType("Device");
 
-            auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
-            rootDeviceUpdatable.update(rootDevicePtr);
+        auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
+        rootDeviceUpdatable.update(rootDevicePtr);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
-ErrCode InstanceImpl::updateEnded()
+ErrCode InstanceImpl::update(ISerializedObject* obj)
+{
+    return updateInternal(obj, nullptr);
+}
+
+ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)
 {
     return OPENDAQ_SUCCESS;
 }

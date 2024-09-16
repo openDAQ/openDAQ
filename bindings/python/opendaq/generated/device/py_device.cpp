@@ -69,7 +69,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getCustomComponents().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Sync' or 'FB'");
+        "Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Synchronization' or 'FB'");
     cls.def_property_readonly("signals",
         [](daq::IDevice *object)
         {
@@ -267,4 +267,28 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "");
+    cls.def("add_server",
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.addServer(getVariantValue<daq::IString*>(typeId), config).detach();
+        },
+        py::arg("type_id"), py::arg("config"),
+        "Creates and adds to the device a server with the provided unique type ID and returns it.");
+    cls.def("remove_server",
+        [](daq::IDevice *object, daq::IServer* server)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.removeServer(server);
+        },
+        py::arg("server"),
+        "Removes the server provided as argument.");
+    cls.def_property_readonly("servers",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getServers().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Get list of added servers.");
 }

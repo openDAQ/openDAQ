@@ -212,8 +212,8 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
 
     if (it != std::end(signalIds))
     {
-        if (sessionHandler)
-            sessionHandler->sendSignalSubscribe(it->first, signalStringId.toStdString());
+        if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+            sessionHandlerTemp->sendSignalSubscribe(it->first, signalStringId.toStdString());
     }
 }
 
@@ -230,15 +230,15 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
 
     if (it != std::end(signalIds))
     {
-        if (sessionHandler)
-            sessionHandler->sendSignalUnsubscribe(it->first, signalStringId.toStdString());
+        if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+            sessionHandlerTemp->sendSignalUnsubscribe(it->first, signalStringId.toStdString());
     }
 }
 
 void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
 {
-    if (sessionHandler)
-        sessionHandler->sendConfigurationPacket(packet);
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+        sessionHandlerTemp->sendConfigurationPacket(packet);
 }
 
 void NativeStreamingClientHandler::sendStreamingRequest()
@@ -251,18 +251,21 @@ void NativeStreamingClientHandler::sendStreamingRequest()
         signalIds.clear();
     }
 
-    if (sessionHandler)
-        sessionHandler->sendStreamingRequest();
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+        sessionHandlerTemp->sendStreamingRequest();
 }
 
 void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
 {
-    if (packetStreamingServerPtr && sessionHandler)
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
     {
-        packetStreamingServerPtr->addDaqPacket(signalNumericId, packet);
-        while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
         {
-            sessionHandler->sendPacketBuffer(packetBuffer);
+            packetStreamingServerTemp->addDaqPacket(signalNumericId, packet);
+            while (auto packetBuffer = packetStreamingServerTemp->getNextPacketBuffer())
+            {
+                sessionHandlerTemp->sendPacketBuffer(std::move(packetBuffer));
+            }
         }
     }
 }
@@ -280,6 +283,7 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     {
         LOG_W("Closing connection caused by: {}", errorMessage);
         sessionHandler.reset();
+        packetStreamingServerPtr.reset();
 
         connectionStatusChanged(ClientConnectionStatus::Reconnecting);
         transportLayerProperties.setPropertyValue("Reconnected", True);

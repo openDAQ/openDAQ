@@ -132,7 +132,7 @@ void TmsServerComponent<Ptr>::bindCallbacks()
       });
 
     this->addReadCallback("Active", [this]() { return VariantConverter<IBoolean>::ToVariant( this->object.getActive()); });
-    if (!this->object.template asPtrOrNull<IFreezable>().assigned() || !this->object.isFrozen())
+    if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
         this->addWriteCallback("Active", [this](const OpcUaVariant& variant){
             this->object.setActive(VariantConverter<IBoolean>::ToDaqObject(variant));
@@ -142,7 +142,7 @@ void TmsServerComponent<Ptr>::bindCallbacks()
 
 	this->addReadCallback("Visible", [this]() { return VariantConverter<IBoolean>::ToVariant( this->object.getVisible()); });
 
-    if (!this->object.template asPtrOrNull<IFreezable>().assigned() || !this->object.isFrozen())
+    if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
         this->addWriteCallback("Visible", [this](const OpcUaVariant& variant){
             this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));

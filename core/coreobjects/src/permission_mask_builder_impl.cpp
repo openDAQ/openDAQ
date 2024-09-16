@@ -1,7 +1,6 @@
 #include <coreobjects/permission_mask_builder_impl.h>
 #include <coretypes/impl.h>
 #include <coretypes/validation.h>
-#include <coreobjects/permission_enum.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

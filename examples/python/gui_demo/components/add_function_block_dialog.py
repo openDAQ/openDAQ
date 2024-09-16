@@ -5,7 +5,7 @@ from tkinter import ttk
 from ..utils import *
 from ..app_context import *
 from ..event_port import *
-from .diaolog import Dialog
+from .dialog import Dialog
 
 
 class AddFunctionBlockDialog(Dialog):

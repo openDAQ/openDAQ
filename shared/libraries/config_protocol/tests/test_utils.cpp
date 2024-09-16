@@ -13,7 +13,7 @@
 namespace daq::config_protocol::test_utils
 {
 
-DevicePtr createServerDevice()
+DevicePtr createTestDevice(const std::string& localId)
 {
     const auto context = NullContext();
 
@@ -28,15 +28,15 @@ DevicePtr createServerDevice()
 
     typeManager.addType(mockClass);
 
-    const auto serverDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, "root_dev");
-    const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
+    const auto rootDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, localId);
+    const FolderConfigPtr devicesFolder = rootDevice.getItem("Dev");
 
     const StringPtr id = "mock_phys_dev";
     DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id, nullptr));
     devicesFolder.addItem(physicalDevice);
 
-    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    return serverDevice;
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    return rootDevice;
 }
 
 ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
@@ -311,6 +311,14 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
 
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
+
+    const auto srv = createWithImplementation<IServer, MockSrvImpl>(ctx, this->template borrowPtr<DevicePtr>(), "srv");
+    servers.addItem(srv);
+}
+
+MockSrvImpl::MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id)
+    : Server(id, nullptr, rootDev, ctx)
+{
 }
 
 }

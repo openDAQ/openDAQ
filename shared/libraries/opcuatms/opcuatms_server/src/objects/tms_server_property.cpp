@@ -82,7 +82,7 @@ void TmsServerProperty::bindCallbacks()
                 return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
             });
 
-            if (!parentObj.asPtrOrNull<IFreezable>().assigned() || !parentObj.isFrozen())
+            if (!parentObj.supportsInterface<IFreezable>() || !parentObj.isFrozen())
             {
                 addWriteCallback(name, [this, name](const OpcUaVariant& variant) {
                     const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);

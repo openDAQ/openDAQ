@@ -15,8 +15,8 @@
  */
 
 #pragma once
+#include <opendaq/folder.h>
 #include <opendaq/server_type.h>
-#include <opendaq/device.h>
 #include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -28,6 +28,9 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*#
+ * [interfaceSmartPtr(IFolder, GenericFolderPtr, "<opendaq/folder_ptr.h>")]
+ * [templated(defaultAliasName: ServerPtr)]
+ * [interfaceSmartPtr(IServer, GenericServerPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
@@ -36,13 +39,13 @@ BEGIN_NAMESPACE_OPENDAQ
  * Depend of the implementation, it can support configuring the device, reading configuration, and data streaming.
  *
  * We do not make the server directly. But through the instance and module manager. For that reason, the server must be uniquely
- * defined with "ServerType". The server is than created with the current root device, context and configuration object.
+ * defined with "ServerType". The server is then created with the current root device, context and configuration object.
  *
  * Configuration of the server can be done with custom property object.
  * The configuration object is created with the corresponding ServerType object (IServerType::createDefaultConfig method).
  * For example, with a configuration object, we can define connection timeout.
  */
-DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
 {
     /*!
     * @brief Stops the server. This is called when we remove the server from the Instance or Instance is closing.
@@ -59,6 +62,15 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IBaseObject)
     * @brief Enables the server to be discovered by the clients.
     */
     virtual ErrCode INTERFACE_FUNC enableDiscovery() = 0;
+
+    // [elementType(signals, ISignal)]
+    /*!
+     * @brief Gets a list of the server's signals.
+     * @param[out] signals The flat list of signals.
+     *
+     * Server signals are most often the mirrored representations of signals that belong to the client connected to the instance via this server.
+     */
+    virtual ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) = 0;
 };
 /*!@}*/
 

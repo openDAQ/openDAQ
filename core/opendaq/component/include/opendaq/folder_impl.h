@@ -85,7 +85,7 @@ protected:
 
     void callBeginUpdateOnChildren() override;
     void callEndUpdateOnChildren() override;
-    void onUpdatableUpdateEnd() override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
@@ -235,8 +235,9 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
-         this->triggerCoreEvent(args);
-         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+
+        this->triggerCoreEvent(args);
+        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     return OPENDAQ_SUCCESS;
@@ -465,7 +466,11 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
         serializer.startObject();
         for (const auto& item : items)
         {
+            if (!item.second.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
+                continue;
+
             serializer.key(item.first.c_str());
+
             if (forUpdate)
                 item.second.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
             else
@@ -525,16 +530,15 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 }
 
 template <class Intf, class ... Intfs>
-void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
+void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd();
-
     for (const auto& item : items)
     {
         const auto updatable = item.second.template asPtrOrNull<IUpdatable>(true);
         if (updatable.assigned())
-            updatable.updateEnded();
+            updatable.updateEnded(context);
     }
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <class Intf, class... Intfs>

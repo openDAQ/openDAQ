@@ -12,6 +12,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/instance_factory.h>
 #include <config_protocol/config_client_device_impl.h>
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -26,14 +27,23 @@ public:
         // ReSharper disable once CppExpressionWithoutSideEffects
         instance.addDevice("daqref://device0");
 
-        server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr, nullptr);
+        server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr, anonymousUser);
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-            clientContext, [this](const PacketBuffer& requestPacket) -> PacketBuffer
+            clientContext,
+            [this](const PacketBuffer& requestPacket) -> PacketBuffer
+             {
+                 return server->processRequestAndGetReply(requestPacket);
+            },
+            [this](const PacketBuffer& requestPacket)
             {
-                return server->processRequestAndGetReply(requestPacket);
-            }, nullptr);
+                // callback is not expected to be called within this test group
+                assert(false);
+                server->processNoReplyRequest(requestPacket);
+            },
+            nullptr,
+            nullptr);
     }
 
 
@@ -42,6 +52,7 @@ protected:
     std::unique_ptr<ConfigProtocolServer> server;
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
+    const UserPtr anonymousUser = User("", "");
 
 };
 
@@ -52,7 +63,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
     const auto instance = Instance();
     // ReSharper disable once CppExpressionWithoutSideEffects
     instance.setRootDevice("daqref://device0");
-    ConfigProtocolServer server(instance, nullptr, nullptr);
+    ConfigProtocolServer server(instance, nullptr, anonymousUser);
 
     clientContext = NullContext();
     ConfigProtocolClient<ConfigClientDeviceImpl> client(
@@ -61,6 +72,13 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
         {
             return server.processRequestAndGetReply(requestPacket);
         },
+        [&server](const PacketBuffer& requestPacket)
+        {
+            // callback is not expected to be called within this test group
+            assert(false);
+            server.processNoReplyRequest(requestPacket);
+        },
+        nullptr,
         nullptr);
 
     const auto clientDevice = client.connect();

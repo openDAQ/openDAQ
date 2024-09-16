@@ -7,6 +7,7 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
 #include <config_protocol/config_client_sync_component_impl.h>
+#include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 
 namespace daq::config_protocol
@@ -14,13 +15,18 @@ namespace daq::config_protocol
 
 ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
                                                    SendRequestCallback sendRequestCallback,
+                                                   SendNoReplyRequestCallback sendNoReplyRequestCallback,
+                                                   const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                                    ComponentDeserializeCallback rootDeviceDeserializeCallback)
         : daqContext(daqContext)
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
+        , sendNoReplyRequestCallback(std::move(sendNoReplyRequestCallback))
         , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
         , deserializer(JsonDeserializer())
         , connected(false)
+        , protocolVersion(0)
+        , streamingProducerRef(streamingProducer)
 {
 }
 
@@ -144,12 +150,14 @@ void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const st
     parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
 }
 
-void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path)
+void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     if (!path.empty())
         dict.set("Path", String(path));
+    if (props.assigned())
+        dict.set("Props", props);
     auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "EndUpdate", dict);
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
@@ -193,6 +201,14 @@ PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64
     const auto jsonStr = createRpcRequestJson(name, params);
 
     auto packetBuffer = PacketBuffer(PacketType::Rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
+    return packetBuffer;
+}
+
+PacketBuffer ConfigProtocolClientComm::createNoReplyRpcRequestPacketBuffer(const StringPtr& name, const ParamsDictPtr& params)
+{
+    const auto jsonStr = createRpcRequestJson(name, params);
+
+    auto packetBuffer = PacketBuffer::createNoReplyRpcRequest(jsonStr.getCharPtr(), jsonStr.getLength());
     return packetBuffer;
 }
 
@@ -259,7 +275,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
 
     if (typeId == "ComponentHolder")
     {
-        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>(true);
+        const auto remoteContext = context.asPtr<IConfigProtocolDeserializeContext>(true);
         if(serObj.hasKey("parentGlobalId") && context.assigned())
             remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }
@@ -323,7 +339,84 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "Server")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientServerImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
     return nullptr;
+}
+
+uint16_t ConfigProtocolClientComm::getProtocolVersion() const
+{
+    return protocolVersion;
+}
+
+bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGlobalId)
+{
+    const auto dev = getRootDevice();
+    if (!dev.assigned())
+        return false;
+
+    return IdsParser::isNestedComponentId(dev.getGlobalId().toStdString(), componentGlobalId.toStdString());
+}
+
+std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternalSignalParams(
+    const SignalPtr& signal,
+    const ConfigProtocolStreamingProducerPtr& streamingProducer)
+{
+    auto serializer = JsonSerializer();
+    signal.serialize(serializer);
+
+    return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),
+                           signal.getGlobalId(),
+                           serializer.getOutput());
+}
+
+void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                                           const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        return;
+
+    std::vector<SignalNumericIdType> unusedSignals;
+    streamingProducer->removeConnection(signal, inputPortRemoteGlobalId, unusedSignals);
+
+    if (!unusedSignals.empty())
+    {
+        auto params = ParamsDict({{"SignalNumericIds", ListPtr<IInteger>::FromVector(unusedSignals)}});
+        sendNoReplyCommand("RemoveExternalSignals", params);
+    }
+}
+
+void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                                      const StringPtr& inputPortRemoteGlobalId)
+{
+    const auto streamingProducer = streamingProducerRef.lock();
+    if (!streamingProducer)
+        throw NotAssignedException("StreamingProducer is not assigned.");
+
+    auto domainSignal = signal.getDomainSignal();
+    const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
+        (domainSignal.assigned())
+            ? getExternalSignalParams(domainSignal, streamingProducer)
+            : std::make_tuple(0, nullptr, nullptr);
+
+    const auto [signalNumericId, signalGlobalId, serializedSignal] = getExternalSignalParams(signal, streamingProducer);
+
+    auto params = ParamsDict({{"DomainSignalNumericId", domainSignalNumericId},
+                              {"DomainSignalStringId", domainSignalGlobalId},
+                              {"DomainSerializedSignal", serializedDomainSignal},
+                              {"SignalNumericId", signalNumericId},
+                              {"SignalStringId", signal.getGlobalId()},
+                              {"SerializedSignal", serializedSignal}});
+
+    sendComponentCommand(inputPortRemoteGlobalId, "ConnectExternalSignal", params, nullptr);
+
+    streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
 }
 
 ComponentDeserializeContextPtr ConfigProtocolClientComm::createDeserializeContext(const std::string& remoteGlobalId,
@@ -384,6 +477,12 @@ BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, co
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, nullptr);
+}
+
+void ConfigProtocolClientComm::sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params)
+{
+    auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command, params);
+    sendNoReplyRequestCallback(sendNoReplyCommandRpcRequestPacketBuffer);
 }
 
 void ConfigProtocolClientComm::setRootDevice(const DevicePtr& rootDevice)
@@ -449,6 +548,27 @@ void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component,
             comp.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&compRemoteId);
             comp.asPtr<IConfigClientObject>(true)->setRemoteGlobalId(parentRemoteId + compRemoteId);
         });
+}
+
+void ConfigProtocolClientComm::setProtocolVersion(uint16_t protocolVersion)
+{
+    this->protocolVersion = protocolVersion;
+}
+
+void ConfigProtocolClientComm::disconnectExternalSignals()
+{
+    const auto rootDevice = getRootDevice();
+    if (!rootDevice.assigned())
+        return;
+
+    forEachComponent<IInputPort>(rootDevice,
+                                 [this](const InputPortPtr& inputPort)
+                                 {
+                                     auto connectedSignal = inputPort.getSignal();
+                                     const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
+                                     if (connectedSignal.assigned() && !isComponentNested(connectedSignal.getGlobalId()))
+                                         configClientInputPort->assignSignal(nullptr);
+                                 });
 }
 
 void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)

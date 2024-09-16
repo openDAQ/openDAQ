@@ -2,7 +2,9 @@ set(LIB_NAME py_opendaq)
 
 set(SRC_Headers
     include/py_opendaq/py_opendaq.h
+    include/py_opendaq/py_packet_buffer.h
 )
+
 set(SRC_Cpp
     py_opendaq.cpp
     generated/opendaq/py_instance.cpp
@@ -84,6 +86,8 @@ set(SRC_Cpp
     generated/signal/py_signal_config.cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
+    generated/signal/py_reference_domain_info.cpp
+    generated/signal/py_reference_domain_info_builder.cpp
     generated/streaming/py_streaming.cpp
     generated/streaming/py_streaming_type.cpp
     generated/streaming/py_mirrored_signal_config.cpp

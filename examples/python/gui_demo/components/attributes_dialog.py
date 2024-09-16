@@ -5,7 +5,7 @@ from tkinter import ttk, simpledialog
 
 from ..utils import *
 from ..event_port import EventPort
-from .diaolog import Dialog
+from .dialog import Dialog
 
 
 class AttributesDialog(Dialog):
@@ -37,8 +37,6 @@ class AttributesDialog(Dialog):
         tree.column('#0', anchor=tk.W, width=80, stretch=True)
         tree.column('#1', anchor=tk.CENTER)
         tree.column('#2', anchor=tk.CENTER, width=60, stretch=False)
-        style = ttk.Style()
-        style.configure("Treeview.Heading", font='Arial 10 bold')
 
         tree.bind("<Double-1>", self.handle_double_click)
         tree.bind("<Button-3>", self.handle_right_click)
@@ -225,19 +223,37 @@ class AttributesDialog(Dialog):
 
         locked_attributes = node.locked_attributes
 
+        self.attributes['Status'] = {
+            'Value': {}, 'Locked': True, 'Attribute': 'status'}
+        self.attributes['Status']['Value'] = dict(
+            node.status_container.statuses.items()) or None
+
         for locked_attribute in locked_attributes:
             if locked_attribute not in self.attributes:
                 continue
             self.attributes[locked_attribute]['Locked'] = True
 
-        for attr in self.attributes:
-            value = self.attributes[attr]['Value']
-            locked = yes_no[self.attributes[attr]['Locked']]
-
+        def tree_fill(parent: str, key: str, value: dict, locked_flag: int):
+            locked = yes_no[locked_flag]
+            iid = f'{parent}.{key}'
             if type(value) is bool:
                 value = yes_no[value]
-            self.tree.insert(
-                '', tk.END, iid=attr, text=attr, values=(value, locked))
+            elif type(value) is dict:
+                self.tree.insert(
+                    parent, tk.END, iid=iid, text=key, values=('', locked))
+                for k, v in value.items():
+                    tree_fill(iid, k, v, 1)
+            else:
+                self.tree.insert(
+                    parent, tk.END, iid=iid, text=key, values=(value, locked))
+
+        for attr in self.attributes:
+            locked = self.attributes[attr]['Locked']
+            value = self.attributes[attr]['Value']
+            if type(value) is bool:
+                value = yes_no[value]
+
+            tree_fill('', attr, value, locked)
 
         if self.additional_tree is not None:
             self.additional_tree_update()
@@ -297,6 +313,14 @@ class AttributesDialog(Dialog):
             descriptor['post_scaling']['parameters'] = desc.post_scaling.parameters
 
         descriptor['struct_fields'] = desc.struct_fields
+        
+        if desc.reference_domain_info:
+            descriptor['reference_domain_info'] = {}
+            descriptor['reference_domain_info']['reference_domain_id'] = desc.reference_domain_info.reference_domain_id
+            descriptor['reference_domain_info']['reference_domain_offset'] = desc.reference_domain_info.reference_domain_offset
+            descriptor['reference_domain_info']['reference_time_source'] = desc.reference_domain_info.reference_time_source
+            descriptor['reference_domain_info']['uses_offset'] = desc.reference_domain_info.uses_offset
+
         self.fill_additional_tree('', descriptor)
 
     def additional_tree_update(self):

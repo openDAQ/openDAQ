@@ -257,7 +257,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         {
             case PacketType::Data:
             {
-                auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
+                auto newPacket = packet.asPtr<IDataPacket>(true);
                 SizeT newPacketSampleCount = newPacket.getSampleCount();
                 if (cachedSamples < historySize)
                 {
@@ -275,7 +275,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
                             continue;
                         }
                 
-                        auto tmpPacket = it->asPtrOrNull<IDataPacket>(true);
+                        auto tmpPacket = it->asPtr<IDataPacket>(true);
                         SizeT sampleCount = tmpPacket.getSampleCount();
                         if (availableSamples - sampleCount >= historySize)
                         {
@@ -379,6 +379,12 @@ daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITa
     OPENDAQ_PARAM_NOT_NULL(builder);
 
     auto builderPtr = TailReaderBuilderPtr::Borrow(builder);
+
+    if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
+        builderPtr.getSkipEvents())
+    {
+        return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined", nullptr);
+    }
 
     if (auto port = builderPtr.getInputPort(); port.assigned())
     {

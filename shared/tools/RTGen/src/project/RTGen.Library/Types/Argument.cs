@@ -13,7 +13,7 @@ namespace RTGen.Types
         }
 
         /// <summary>Initializes a new instance of the <see cref="Argument" /> class.</summary>
-        public Argument(ITypeName type, string name, bool isConst = false, IArray arrayInfo = null, bool isPolymorphic = false, bool isStealRef = false)
+        public Argument(ITypeName type, string name, bool isConst = false, IArray arrayInfo = null, bool isPolymorphic = false, bool isStealRef = false, bool allowNull = false, string rawBuffer = null)
         {
             Type = type;
             Name = name;
@@ -21,6 +21,8 @@ namespace RTGen.Types
             ArrayInfo = arrayInfo;
             IsPolymorphic = isPolymorphic;
             IsStealRef = isStealRef;
+            AllowNull = allowNull;
+            RawBuffer = rawBuffer;
         }
 
         /// <summary>Makes a copy of the argument with a new type.</summary>
@@ -83,6 +85,12 @@ namespace RTGen.Types
 
         /// <summary>True if method steals the reference to the argument.</summary>
         public bool IsStealRef { get; set; }
+
+        /// <summary>True if the argument can be null.</summary>
+        public bool AllowNull { get; set; }
+
+        /// <summary>The argument is raw buffer.</summary>
+        public string RawBuffer { get; set; }
 
         /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
         /// <returns>true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.</returns>

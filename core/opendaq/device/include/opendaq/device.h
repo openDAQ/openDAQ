@@ -24,6 +24,7 @@
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
+#include <opendaq/server.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -97,7 +98,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
 
     // [templateType(customComponents, IComponent)]
     /*!
-     * @brief Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Sync' or 'FB'
+     * @brief Gets a list of all components/folders in a device that are not titled 'IO', 'Sig', 'Dev', 'Synchronization' or 'FB'
      * @param[out] customComponents The list of custom components.
      */
     virtual ErrCode INTERFACE_FUNC getCustomComponents(IList** customComponents) = 0;
@@ -275,7 +276,32 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 
+    /*!
+     * @brief Gets the sync component of the device.
+     * @param[out] sync The sync component.
+     */
     virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
+
+    /*!
+     * @brief Creates and adds to the device a server with the provided unique type ID and returns it.
+     * @param[out] server The added server.
+     * @param typeId The unique type ID of the server. Can be obtained from its corresponding Server type object.
+     * @param config A config object to configure a server with custom settings specific to that server type.
+     */
+    virtual ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) = 0;
+
+    /*!
+     * @brief Removes the server provided as argument.
+     * @param server The server to be removed.
+     */
+    virtual ErrCode INTERFACE_FUNC removeServer(IServer* server) = 0;
+
+    // [elementType(servers, IServer)]
+    /*!
+     * @brief Get list of added servers.
+     * @param[out] servers List of added servers.
+     */
+    virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
 };
 /*!@}*/
 

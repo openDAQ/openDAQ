@@ -17,6 +17,7 @@
 #pragma once
 
 #include <config_protocol/config_protocol.h>
+#include <config_protocol/config_protocol_streaming_consumer.h>
 #include <opendaq/device_ptr.h>
 
 #include <opendaq/component_holder_ptr.h>
@@ -47,7 +48,10 @@ private:
 class ConfigProtocolServer
 {
 public:
-    ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback, const UserPtr& user);
+    ConfigProtocolServer(DevicePtr rootDevice,
+                         NotificationReadyCallback notificationReadyCallback,
+                         const UserPtr& user,
+                         const FolderConfigPtr& externalSignalsFolder = nullptr);
     ~ConfigProtocolServer();
 
     void buildRpcDispatchStructure();
@@ -55,6 +59,10 @@ public:
     // called from transport layer
     PacketBuffer processRequestAndGetReply(const PacketBuffer& packetBuffer);
     PacketBuffer processRequestAndGetReply(void *mem);
+
+    // called from transport layer
+    void processNoReplyRequest(const PacketBuffer& packetBuffer);
+    void processNoReplyRequest(void *mem);
 
     // called internally from component updates or from the external code
     void sendNotification(const char* json, size_t jsonSize) const;
@@ -65,7 +73,10 @@ public:
     void setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder);
     std::unique_ptr<IComponentFinder>& getComponentFinder();
 
-    void processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet);
+    void processClientToServerStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
+
+    uint16_t getProtocolVersion() const;
+    void setProtocolVersion(uint16_t protocolVersion);
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
@@ -80,9 +91,15 @@ private:
     std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
+    uint16_t protocolVersion;
+    const std::set<uint16_t> supportedServerVersions;
+    ConfigProtocolStreamingConsumer streamingConsumer;
 
-    PacketBuffer processPacket(const PacketBuffer& packetBuffer);
-    StringPtr processRpc(const StringPtr& jsonStr);
+    PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);
+    void processNoReplyPacket(const PacketBuffer& packetBuffer);
+    StringPtr processRpcAndGetReply(const StringPtr& jsonStr);
+    void processNoReplyRpc(const StringPtr& jsonStr);
+    StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message);
 
     BaseObjectPtr callRpc(const StringPtr& name, const ParamsDictPtr& params);
     ComponentPtr findComponent(const std::string& componentGlobalId) const;
@@ -90,6 +107,9 @@ private:
     BaseObjectPtr getComponent(const ParamsDictPtr& params) const;
     BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
     BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
+    BaseObjectPtr connectSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr connectExternalSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
 
     template <class SmartPtr, class F>
     BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);

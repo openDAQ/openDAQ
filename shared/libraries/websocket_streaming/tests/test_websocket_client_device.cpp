@@ -88,7 +88,7 @@ public:
             if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
             {
                 ComponentPtr component = params.get("Component");
-                if (component.asPtrOrNull<ISignal>().assigned())
+                if (component.supportsInterface<ISignal>())
                 {
                     addedSigCount++;
                     if (addedSigCount == signals.getCount())

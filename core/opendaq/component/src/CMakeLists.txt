@@ -16,6 +16,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ComponentStatusContainerPrivate component_status_container_private.h)
     rtgen(SRC_ComponentHolder component_holder.h)
     rtgen(SRC_ComponentTypeBuilder component_type_builder.h)
+    rtgen(SRC_ComponentUpdateContext component_update_context.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
@@ -34,6 +35,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentStatusContainerPrivate_PublicHeaders}
         ${SRC_ComponentHolder_PublicHeaders}
         ${SRC_ComponentTypeBuilder_PublicHeaders}
+        ${SRC_ComponentUpdateContext_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -54,6 +56,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentStatusContainer_Cpp}
         ${SRC_ComponentStatusContainerPrivate_Cpp}
         ${SRC_ComponentHolder_Cpp}
+        ${SRC_ComponentUpdateContext_Cpp}
         PARENT_SCOPE
     )
 
@@ -83,6 +86,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_impl.cpp
         ${SDK_SRC_DIR}/folder_impl.cpp
         ${SDK_SRC_DIR}/component_deserialize_context_impl.cpp
+        ${SDK_HEADERS_DIR}/component_update_context.h
+        ${SDK_HEADERS_DIR}/component_update_context_impl.h
     )
     
     source_group("component//search_filter" FILES 
@@ -140,6 +145,8 @@ set(SRC_PublicHeaders_Component
     component_errors.h
     component_exceptions.h
     component_type_builder_factory.h
+    component_update_context.h
+    component_update_context_impl.h
     PARENT_SCOPE
 )
 

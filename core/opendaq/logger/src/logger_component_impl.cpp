@@ -51,7 +51,7 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
         {
             throw ArgumentNullException("Sink must not be null");
         }
-        auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>();
+        auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>(true);
         if (sinkPtr == nullptr)
         {
             throw InvalidTypeException("Sink must have valid type");

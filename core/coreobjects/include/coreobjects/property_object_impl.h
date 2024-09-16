@@ -44,6 +44,8 @@
 #include <coretypes/cloneable.h>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
+#include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -105,11 +107,13 @@ public:
     virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
+    virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut) override;
 
     // IUpdatable
+    virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
-    virtual ErrCode INTERFACE_FUNC updateEnded() override;
+    virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;
 
     // ISerializable
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -208,7 +212,7 @@ protected:
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     bool isParentUpdating();
-    virtual void onUpdatableUpdateEnd();
+    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
 
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
@@ -304,6 +308,8 @@ private:
     ErrCode updateObjectProperties(const PropertyObjectPtr& propObj,
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
+
+    bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
 };
 
 using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
@@ -320,6 +326,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
+
+    this->permissionManager.setPermissions(
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -673,7 +682,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
     
     if (coreType == ctDict)
     {
-        const auto dict = value.asPtrOrNull<IDict>();
+        const auto dict = value.asPtr<IDict>();
         const auto keyType = prop.getKeyType();
         const auto itemType = prop.getItemType();
         IterablePtr<IBaseObject> it;
@@ -1371,7 +1380,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             throw InvalidPropertyException(R"(Selection property "{}" has no selection values assigned)", propName);
 
         auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
-        if (!valuesList.assigned())
+        if (valuesList.assigned())
+        {
+            valuePtr = valuesList.getItemAt(valuePtr);
+        }
+        else
         {
             auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
             if (!valuesDict.assigned())
@@ -1380,10 +1393,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             }
 
             valuePtr = valuesDict.get(valuePtr);
-        }
-        else
-        {
-            valuePtr = valuesList.getItemAt(valuePtr);
         }
 
         if (prop.getItemType() != valuePtr.getCoreType())
@@ -2060,7 +2069,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpdateEnd()
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
 {
 }
 
@@ -2196,7 +2205,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreE
     {
         if (item.second.assigned())
         {
-            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
+            const auto propInternal = item.second.template asPtr<IPropertyInternal>();
             if (propInternal.getValueTypeUnresolved() == ctObject)
             {
                 const auto defaultVal = item.second.getDefaultValue();
@@ -2276,6 +2285,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isUpdating(B
     return OPENDAQ_SUCCESS;
 }
 
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasAccessOut);
+    const auto self = this->template borrowPtr<PropertyObjectPtr>();
+    *hasAccessOut = hasUserReadAccess(userContext, self);
+    return OPENDAQ_SUCCESS;
+}
+
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCustomValues(ISerializer* /*serializer*/, bool /*forUpdate*/)
 {
@@ -2335,10 +2353,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
 {
+    auto serializerPtr = SerializerPtr::Borrow(serializer);
+
     const int numOfSerializablePropertyValues = std::count_if(
         propValues.begin(),
         propValues.end(),
-        [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) { return keyValue.second.asPtrOrNull<ISerializable>(true).assigned(); });
+        [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) { return keyValue.second.supportsInterface<ISerializable>(); });
 
     if (numOfSerializablePropertyValues == 0)
         return OPENDAQ_SUCCESS;
@@ -2354,6 +2374,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
             auto propValue = sorted.find(propName);
             if (propValue != sorted.cend())
             {
+                if (!hasUserReadAccess(serializerPtr.getUser(), propValue->second))
+                    continue;
+
                 ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer);
                 if (OPENDAQ_FAILED(err))
                 {
@@ -2366,6 +2389,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
         // Serialize the rest of without set order
         for (auto&& propValue : sorted)
         {
+            if (!hasUserReadAccess(serializerPtr.getUser(), propValue.second))
+                continue;
+
             ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer);
             if (OPENDAQ_FAILED(err))
             {
@@ -2387,10 +2413,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         if (localProperties.size() == 0)
             return OPENDAQ_NOTFOUND;
 
+        auto serializerPtr = SerializerPtr::Borrow(serializer);
+
         checkErrorInfo(serializer->key("properties"));
         checkErrorInfo(serializer->startList());
         for (const auto& prop : localProperties)
         {
+            if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
+                continue;
+
             prop.second.serialize(serializer);
         }
         checkErrorInfo(serializer->endList());
@@ -2402,6 +2433,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(ISerializer* serializer)
 {
+    auto serializerPtr = SerializerPtr::Borrow(serializer);
+    Bool hasAccess = false;
+    ErrCode serializeErrCode = hasUserReadAccess(serializerPtr.getUser(), &hasAccess);
+
+    if (OPENDAQ_FAILED(serializeErrCode))
+        return serializeErrCode;
+    if (!hasAccess)
+        return OPENDAQ_ERR_ACCESSDENIED;
+
     serializer->startTaggedObject(this);
 
     SERIALIZE_PROP_PTR(className)
@@ -2412,22 +2452,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
         serializer->writeBool(frozen);
     }
 
-    ErrCode errCode = serializeCustomValues(serializer, false);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializeCustomValues(serializer, false);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
-    errCode = serializePropertyValues(serializer);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
-    errCode = serializeLocalProperties(serializer);
-    if (OPENDAQ_FAILED(errCode))
+    serializeErrCode = serializeLocalProperties(serializer);
+    if (OPENDAQ_FAILED(serializeErrCode))
     {
-        return errCode;
+        return serializeErrCode;
     }
 
     serializer->endObject();
@@ -2771,8 +2811,30 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
     return OPENDAQ_SUCCESS;
 }
 
-template <class PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
+template <typename PropObjInterface, typename... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(const BaseObjectPtr& userContext,
+                                                                                   const BaseObjectPtr& obj)
+{
+    if (!obj.assigned())
+        return true;
+
+    auto objPtr = obj.asPtrOrNull<IPropertyObject>();
+    if (!objPtr.assigned())
+        return true;
+
+    auto userContextPtr = BaseObjectPtr::Borrow(userContext);
+    if (!userContextPtr.assigned())
+        return true;
+
+    auto userPtr = userContextPtr.asPtrOrNull<IUser>();
+    if (!userPtr.assigned())
+        return true;
+
+    return objPtr.getPermissionManager().isAuthorized(userPtr, Permission::Read);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     if (obj == nullptr)
     {
@@ -2782,7 +2844,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISeri
     // Don't fail the upgrade if frozen just skip it
     // TODO: Check if upgrade should be allowed
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     const auto serialized = SerializedObjectPtr::Borrow(obj);
 
@@ -2805,6 +2867,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISeri
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
+{
+    return updateInternal(obj, nullptr);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2837,9 +2905,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded()
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded(IBaseObject* context)
 {
-    return daqTry([this] { onUpdatableUpdateEnd(); });
+    auto contextPtr = BaseObjectPtr::Borrow(context);
+    return daqTry([this, &contextPtr] { onUpdatableUpdateEnd(contextPtr); });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

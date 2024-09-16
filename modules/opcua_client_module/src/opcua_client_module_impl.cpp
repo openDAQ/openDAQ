@@ -52,15 +52,15 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 }
                 if(!discoveredDevice.ipv6Address.empty())
                 {
-                    auto connectionStringIpv6 = fmt::format("{}://[{}]:{}{}",
+                    auto connectionStringIpv6 = fmt::format("{}://{}:{}{}",
                                     DaqOpcUaDevicePrefix,
                                     discoveredDevice.ipv6Address,
                                     discoveredDevice.servicePort,
                                     discoveredDevice.getPropertyOrDefault("path", "/"));
                     cap.addConnectionString(connectionStringIpv6);
-                    cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+                    cap.addAddress(discoveredDevice.ipv6Address);
 
-                    const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
                                                                  .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                                  .setType("IPv6")
                                                                  .setConnectionString(connectionStringIpv6)
@@ -102,18 +102,18 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& aConfig)
+                                            const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    PropertyObjectPtr config = aConfig;
-    if (!config.assigned())
-        config = createDefaultConfig();
+    PropertyObjectPtr configPtr = config;
+    if (!configPtr.assigned())
+        configPtr = createDefaultConfig();
     else
-        config = populateDefaultConfig(config);
+        configPtr = populateDefaultConfig(configPtr);
 
-    if (!acceptsConnectionParameters(connectionString, config))
+    if (!acceptsConnectionParameters(connectionString, configPtr))
         throw InvalidParameterException();
 
     if (!context.assigned())
@@ -122,19 +122,14 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     std::string host;
     std::string hostType;
     int port;
-    auto formedConnectionString = formConnectionString(connectionString, config, host, port, hostType);
+    auto formedConnectionString = formConnectionString(connectionString, configPtr, host, port, hostType);
 
     std::scoped_lock lock(sync);
 
     auto endpoint = OpcUaEndpoint(formedConnectionString);
 
-    if (config.assigned())
-    {
-        if (config.hasProperty("Username"))
-            endpoint.setUsername(config.getPropertyValue("Username"));
-        if (config.hasProperty("Password"))
-            endpoint.setPassword(config.getPropertyValue("Password"));
-    }
+    endpoint.setUsername(configPtr.getPropertyValue("Username"));
+    endpoint.setPassword(configPtr.getPropertyValue("Password"));
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
@@ -142,7 +137,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    
     
     const auto addressInfo = AddressInfoBuilder().setAddress(host)
                                                  .setReachabilityStatus(AddressReachabilityStatus::Reachable)
@@ -194,13 +188,12 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
 {
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)(\[[a-fA-F0-9:]+\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
-    std::string target = "/";
     std::string prefix = "";
-    std::string path = "";
+    std::string path = "/";
 
     if (config.assigned() )
     {
@@ -238,7 +231,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     if (prefix != std::string(DaqOpcUaDevicePrefix) + "://")
         throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
 
-    return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + "/" + path;
+    return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + path;
 }
 
 bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
@@ -280,7 +273,7 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     {
         port = 4840;
         target.setPort(port);
-        LOG_W("OPC UA server capability is missing port. Defaulting to 7420.")
+        LOG_W("OPC UA server capability is missing port. Defaulting to 4840.")
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";

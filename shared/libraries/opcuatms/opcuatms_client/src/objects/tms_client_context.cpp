@@ -141,7 +141,7 @@ void TmsClientContext::addEnumerationTypesToTypeManager()
 
     const auto DataTypeEnumerationNodeId = OpcUaNodeId(UA_NS0ID_ENUMERATION);
     const auto& references = referenceBrowser->browse(DataTypeEnumerationNodeId);
-    StructPtr EnumValuesStruct;
+    StructPtr enumValuesStruct;
     std::vector<OpcUaNodeId> vecEnumerationsNodeIds;
 
     for (auto [browseName, ref] : references.byBrowseName)
@@ -173,8 +173,8 @@ void TmsClientContext::addEnumerationTypesToTypeManager()
             {
                 for (const auto& value : childNodeObject.asPtr<IList>())
                 {
-                    if (EnumValuesStruct = value.asPtrOrNull<IStruct>(); EnumValuesStruct.assigned())
-                        listEnumValues.pushBack(EnumValuesStruct.get("DisplayName"));
+                    if (enumValuesStruct = value.asPtrOrNull<IStruct>(true); enumValuesStruct.assigned())
+                        listEnumValues.pushBack(enumValuesStruct.get("DisplayName"));
                 }
             }
         }

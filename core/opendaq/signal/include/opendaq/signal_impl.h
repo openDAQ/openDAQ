@@ -105,7 +105,7 @@ protected:
     void visibleChanged() override;
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
@@ -1028,17 +1028,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    if (domainSignal.assigned())
+    const SignalPtr domainSignalObj = onGetDomainSignal();
+    if (domainSignalObj.assigned())
     {
         serializer.key("domainSignalId");
-        const auto domainSignalGlobalId = domainSignal.getGlobalId();
+        const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
         serializer.writeString(domainSignalGlobalId);
     }
 
-    if (dataDescriptor.assigned())
+    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+    if (dataDescriptorObj.assigned())
     {
         serializer.key("dataDescriptor");
-        dataDescriptor.serialize(serializer);
+        dataDescriptorObj.serialize(serializer);
     }
 
     serializer.key("public");
@@ -1048,14 +1050,13 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("public"))
         isPublic = obj.readBool("public");
 
-    Super::updateObject(obj);
+    Super::updateObject(obj, context);
 }
-
 
 template <typename TInterface, typename... Interfaces>
 int SignalBase<TInterface, Interfaces...>::getSerializeFlags()

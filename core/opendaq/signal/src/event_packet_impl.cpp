@@ -13,7 +13,7 @@ EventPacketImpl::EventPacketImpl(StringPtr eventId, DictPtr<IString, IBaseObject
     , parameters(std::move(parameters))
 {
     this->type = PacketType::Event;
-    if (this->parameters.asPtrOrNull<IFreezable>().assigned() && !this->parameters.isFrozen())
+    if (this->parameters.supportsInterface<IFreezable>() && !this->parameters.isFrozen())
         this->parameters.freeze();
 }
 

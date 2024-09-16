@@ -4,6 +4,9 @@
 #include <fstream>
 #include <thread>
 
+#include "coreobjects/argument_info_factory.h"
+#include "opendaq/device_domain_factory.h"
+
 using namespace daq;
 using namespace std::chrono_literals;
 
@@ -51,7 +54,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add custom Struct Property
     instance.addProperty(StructProperty("TestStruct", Struct("TestName", dict, TypeManager())));
     // Add custom Argument Info Property
-    auto argInfo = ArgumentInfo_Create(String("TestArgInfo"), CoreType::ctInt);
+    auto argInfo = ArgumentInfo(String("TestArgInfo"), CoreType::ctInt);
     auto argInfoProp = PropertyBuilder("TestArgInfoProp").setDefaultValue(argInfo).setValueType(CoreType::ctStruct).build();
     instance.addProperty(argInfoProp);
     // Add custom Callable Info Property
@@ -75,7 +78,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     instance.addProperty(fbTypeProp);
     // Add custom Data Descriptor Property
     auto dims = List<IDimension>();
-    dims.pushBack(Dimension_Create(LinearDimensionRule(1, 2, 3), unit, String("TestDimensionName")));
+    dims.pushBack(Dimension(LinearDimensionRule(1, 2, 3), unit, String("TestDimensionName")));
     auto dataDesc = DataDescriptorBuilder()
                         .setDimensions(dims)
                         //.setMetadata()
@@ -96,7 +99,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto altDataDescProp = PropertyBuilder("TestAltDataDescProp").setDefaultValue(altDataDesc).setValueType(CoreType::ctStruct).build();
     instance.addProperty(altDataDescProp);
     // Add Device Domain Property
-    auto deviceDomain = DeviceDomain_Create(Ratio(3, 4), String("1997"), unit);
+    auto deviceDomain = DeviceDomain(Ratio(3, 4), String("1997"), unit);
     auto deviceDomainProp = PropertyBuilder("TestDeviceDomainProp").setDefaultValue(deviceDomain).setValueType(CoreType::ctStruct).build();
     instance.addProperty(deviceDomainProp);
 

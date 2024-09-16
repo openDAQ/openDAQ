@@ -29,7 +29,9 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 class NativeStreamingServerImpl : public daq::Server
 {
 public:
-    explicit NativeStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
+    explicit NativeStreamingServerImpl(const DevicePtr& rootDevice,
+                                       const PropertyObjectPtr& config,
+                                       const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
@@ -45,7 +47,6 @@ protected:
     void startReading();
     void stopReading();
     void startReadThread();
-    void createReaders();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
 
@@ -76,6 +77,8 @@ protected:
     boost::asio::io_context processingIOContext;
     std::thread processingThread;
     boost::asio::io_context::strand processingStrand;
+
+    std::string rootDeviceGlobalId;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

@@ -84,7 +84,7 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
+    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
@@ -143,6 +143,12 @@ private:
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
+
+    void isDomainValid(const ListPtr<IInputPortConfig>& list);
+    void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
+
+    ContextPtr context;
+    struct ReferenceDomainBin;
 };
 
 END_NAMESPACE_OPENDAQ

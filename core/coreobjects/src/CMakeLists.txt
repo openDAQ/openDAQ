@@ -46,6 +46,7 @@ rtgen(SRC_PermissionManagerInternal permission_manager_internal.h)
 rtgen(SRC_PermisisonsBuilder permissions_builder.h)
 rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
 rtgen(SRC_Permisisons permissions.h)
+rtgen(SRC_PermisisonsInternal permissions_internal.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -171,7 +172,6 @@ source_group("permission_manager" FILES ${SDK_HEADERS_DIR}/permission_manager.h
                                         ${SDK_HEADERS_DIR}/permission_manager_internal.h
                                         ${SDK_HEADERS_DIR}/permission_manager_impl.h
                                         permission_manager_impl.cpp
-                                        ${SDK_HEADERS_DIR}/permission_enum.h
 )
 
 source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
@@ -183,6 +183,7 @@ source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
                                         ${SDK_HEADERS_DIR}/permission_mask_builder_impl.h
                                         permission_mask_builder_impl.cpp
                                         ${SDK_HEADERS_DIR}/permissions.h
+                                        ${SDK_HEADERS_DIR}/permissions_internal.h
                                         ${SDK_HEADERS_DIR}/permissions_impl.h
                                         permissions_impl.cpp
 )
@@ -262,7 +263,6 @@ set(SRC_PublicHeaders coreobjects.h
                       permissions_builder_factory.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
-                      permission_enum.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -287,6 +287,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
+                       permissions_internal.h
                        permissions_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
@@ -350,6 +351,7 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::core_containers
         rapidjson
+        bcrypt
         $<BUILD_INTERFACE:Boost::algorithm>
         $<BUILD_INTERFACE:std::filesystem>
 )

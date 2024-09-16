@@ -38,17 +38,17 @@ class AppContext(object):
             self.enabled_devices[conn] = {
                 'device_info': device_info, 'device': None}
 
-    def add_device(self, device_info, parent_device: daq.IDevice):
+    def add_device(self, device_info, parent_device: daq.IDevice, config = None):
         if device_info is None:
             return None
         if parent_device is None:
             return None
         try:
-            device = parent_device.add_device(device_info.connection_string)
+            device = parent_device.add_device(device_info.connection_string, config)
             if device:
                 device_info.name = device.local_id
                 device_info.serial_number = device.info.serial_number
-                self.enabled_devices[device_info.connection_string] = {
+                self.enabled_devices[device.info.connection_string] = {
                     'device_info': device_info, 'device': device}
                 return device
         except RuntimeError as e:

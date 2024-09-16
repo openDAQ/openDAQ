@@ -112,14 +112,14 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
     {
         auto connectionStringIpv6 = NativeStreamingClientModule::CreateUrlConnectionString(
             protocolPrefix,
-            "[" + discoveredDevice.ipv6Address + "]",
+            discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
         );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
+        cap.addAddress(discoveredDevice.ipv6Address);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress("[" + discoveredDevice.ipv6Address + "]")
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv6")
                                                      .setConnectionString(connectionStringIpv6)
@@ -173,7 +173,8 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const PropertyObjectPtr& config,
                                                           const StringPtr& host,
                                                           const StringPtr& port,
-                                                          const StringPtr& path)
+                                                          const StringPtr& path,
+                                                          uint16_t protocolVersion)
 {
     auto transportClient = createAndConnectTransportClient(host, port, path, config);
 
@@ -182,33 +183,35 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
         [this, processingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Native device config processing thread finished");
         }
     );
+
     auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto reconnectionProcessingThread = std::thread(
         [this, reconnectionProcessingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(reconnectionProcessingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
             LOG_I("Native device reconnection processing thread finished");
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
+    auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
                                                              transportClient,
                                                              config.getPropertyValue("ConfigProtocolRequestTimeout"),
                                                              processingIOContextPtr,
                                                              reconnectionProcessingIOContextPtr,
                                                              reconnectionProcessingThread.get_id());
-    auto device = deviceHelper->connectAndGetDevice(parent);
+    deviceHelper->setupProtocolClients(context);
+    auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
     deviceHelper->subscribeToCoreEvent(context);
 
     device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
+    device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
 
     processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
                                                     std::move(processingThread),
@@ -283,9 +286,9 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
+PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType)
 {
-    auto defConfig = createConnectionDefaultConfig();
+    auto defConfig = createConnectionDefaultConfig(nativeType);
     for (const auto& prop : defConfig.getAllProperties())
     {
         const auto name = prop.getName();
@@ -325,11 +328,19 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
+    NativeType nativeType;
+    if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
+        nativeType = NativeType::streaming;
+    else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
+        nativeType = NativeType::config;
+    else
+        throw InvalidParameterException("Invalid connection string prefix");
+
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
-        deviceConfig = createConnectionDefaultConfig();
+        deviceConfig = createConnectionDefaultConfig(nativeType);
     else
-        deviceConfig = populateDefaultConfig(config);
+        deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
@@ -375,16 +386,12 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
+        const uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
+        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
         protocolId = NativeConfigurationDeviceTypeId;
         protocolName = "OpenDAQNativeConfiguration";
         protocolPrefix = "daq.nd";
         protocolType = ProtocolType::ConfigurationAndStreaming;
-    }
-    
-    if (!device.assigned())
-    {
-        throw InvalidParameterException();
     }
 
     // Set the connection info for the device
@@ -426,7 +433,7 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
     return transportLayerConfig;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
+PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(NativeType nativeConfigType)
 {
     auto defaultConfig = PropertyObject();
 
@@ -436,6 +443,9 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig()
     defaultConfig.addProperty(StringProperty("Password", ""));
 
     defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+    if (nativeConfigType == NativeType::config)
+        defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
+
     populateDeviceConfigFromContext(defaultConfig);
 
     return defaultConfig;
@@ -481,7 +491,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
         [this, processingIOContextPtr, connectionString]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Streaming {}: processing thread finished", connectionString);
         }
@@ -528,7 +538,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
                                                                 Int streamingInitTimeout)
 {
-    return createWithImplementation<IStreaming, NativeStreamingImpl>(
+    StreamingPtr nativeStreaming = createWithImplementation<IStreaming, NativeStreamingImpl>(
         connectionString,
         context,
         transportClientHandler,
@@ -538,6 +548,8 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
         nullptr,
         nullptr
     );
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+    return nativeStreaming;
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
@@ -546,7 +558,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
-    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config) : createConnectionDefaultConfig();
+    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 
     StringPtr host = GetHost(connectionString);
     StringPtr port = GetPort(connectionString, parsedConfig);
@@ -637,7 +649,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setName("PseudoDevice")
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
         .setConnectionStringPrefix("daq.ns")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
 
@@ -648,7 +660,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setName("Device")
         .setDescription("Network device connected over Native configuration protocol")
         .setConnectionStringPrefix("daq.nd")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .build();
 }
 
@@ -659,7 +671,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setName("NativeStreaming")
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix("daq.ns")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig())
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
 
@@ -667,8 +679,8 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 {
 	std::string urlString = url.toStdString();
 
-	auto regexIpv6Hostname = std::regex("^.*:\\/\\/(\\[([a-fA-F0-9:]+)\\])");
-    auto regexIpv4Hostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
 	std::smatch match;
 
 	if (std::regex_search(urlString, match, regexIpv6Hostname))
@@ -682,14 +694,14 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
-    auto regexIpv6Hostname = std::regex("^.*:\\/\\/(\\[([a-fA-F0-9:]+)\\])");
-    auto regexIpv4Hostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
     std::smatch match;
 
     if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return String("[" + std::string(match[2]) + "]");
+        return String(match[2]);
     if (std::regex_search(urlString, match, regexIpv4Hostname))
-        return String(match[1]);
+        return String(match[2]);
     throw InvalidParameterException("Host name not found in url: {}", url);
 }
 

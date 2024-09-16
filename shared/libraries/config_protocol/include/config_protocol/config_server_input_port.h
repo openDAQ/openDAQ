@@ -23,20 +23,26 @@ namespace daq::config_protocol
 class ConfigServerInputPort
 {
 public:
-    static BaseObjectPtr connect(const InputPortPtr& inputPort, const SignalPtr& signal);
-    static BaseObjectPtr disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    static BaseObjectPtr connect(uint16_t protocolVersion, const InputPortPtr& inputPort, const SignalPtr& signal, const UserPtr& user);
+    static BaseObjectPtr disconnect(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params, const UserPtr& user);
 };
 
-inline BaseObjectPtr ConfigServerInputPort::connect(const InputPortPtr& inputPort, const SignalPtr& signal)
+inline BaseObjectPtr ConfigServerInputPort::connect(uint16_t protocolVersion, const InputPortPtr& inputPort, const SignalPtr& signal, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(inputPort, user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
+
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");
+
     inputPort.connect(signal);
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerInputPort::disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerInputPort::disconnect(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params, const UserPtr& user)
 {
+    ConfigServerAccessControl::protectObject(inputPort, user, {Permission::Read, Permission::Write});
+
     inputPort.disconnect();
     return nullptr;
 }

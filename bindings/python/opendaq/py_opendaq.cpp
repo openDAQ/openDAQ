@@ -19,7 +19,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
         .value("ComplexFloat32", daq::SampleType::ComplexFloat32)
         .value("ComplexFloat64", daq::SampleType::ComplexFloat64)
         .value("Binary", daq::SampleType::Binary)
-        .value("String", daq::SampleType::String);
+        .value("String", daq::SampleType::String)
+        .value("Struct", daq::SampleType::Struct);
 
     py::enum_<daq::ScaledSampleType>(m, "ScaledSampleType")
         .value("Invalid", daq::ScaledSampleType::Invalid)
@@ -116,13 +117,14 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
     auto classISyncComponent = declareISyncComponent(m);
     auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
+    auto classIReferenceDomainInfo = declareIReferenceDomainInfo(m);
+    auto classIReferenceDomainInfoBuilder = declareIReferenceDomainInfoBuilder(m);
 
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
     defineIFolder(m, classIFolder);
     defineIFolderConfig(m, classIFolderConfig);
     defineIDevice(m, classIDevice);
-
     defineIInstanceBuilder(m, classIInstanceBuilder);
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);
@@ -206,9 +208,11 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
     defineIAddressInfo(m, classIAddressInfo);
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
-
     defineISyncComponent(m, classISyncComponent);
     defineISyncComponentPrivate(m, classISyncComponentPrivate);
+    defineIReferenceDomainInfo(m, classIReferenceDomainInfo);
+    defineIReferenceDomainInfoBuilder(m, classIReferenceDomainInfoBuilder);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
+    m.def("NullContext", []() { return daq::NullContext().detach(); });
 }

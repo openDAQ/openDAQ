@@ -292,16 +292,20 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
 
     auto methodNodeId = server->addMethodNode(params);
 
-    auto callback = [this](NodeEventManager::MethodArgs args)
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
     {
         try
         {
             this->onAddFunctionBlock(args);
-            return OPENDAQ_SUCCESS;
+            return UA_STATUSCODE_GOOD;
         }
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
     };
 
@@ -323,16 +327,20 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
 
     auto methodNodeId = server->addMethodNode(params);
 
-    auto callback = [this](NodeEventManager::MethodArgs args)
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
     {
         try
         {
             this->onRemoveFunctionBlock(args);
-            return OPENDAQ_SUCCESS;
+            return UA_STATUSCODE_GOOD;
         }
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
     };
 
@@ -472,15 +480,16 @@ void TmsServerDevice::addChildNodes()
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
 
-    
+    // TODO add "Srv" as a default node
+
     numberInList = 0;
     for (auto component : object.getItems(search::Any()))
     {
         auto id = component.getLocalId();
-        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Sync")
+        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Synchronization" || id == "Srv")
             continue;
 
-        if (component.asPtrOrNull<IFolder>().assigned())
+        if (component.supportsInterface<IFolder>())
         {
             auto folderNode = registerTmsObjectOrAddReference<TmsServerFolder>(nodeId, component, numberInList++);
             folders.push_back(std::move(folderNode));

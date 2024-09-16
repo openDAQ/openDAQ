@@ -8,6 +8,7 @@
 
 #include <coreobjects/property_object_factory.h>
 #include <memory>
+#include <coreobjects/user_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -115,11 +116,12 @@ void NativeStreamingServerHandler::removeComponentSignals(const StringPtr& compo
 }
 
 bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericIdType& signalNumericId,
-                                                            const std::string& signalStringId,
+                                                            const SignalPtr& signal,
                                                             bool subscribe,
                                                             const std::string& clientId)
 {
     std::scoped_lock lock(sync);
+    const auto signalStringId = signal.getGlobalId();
 
     if (subscribe)
     {
@@ -129,13 +131,14 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
             bool doSignalSubscribe = streamingManager.registerSignalSubscriber(
                 signalStringId,
                 clientId,
-                [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
+                [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
                 {
-                    sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
+                    sessionHandlers.at(subscribedClientId)->sendPacketBuffer(std::move(packetBuffer));
                 });
+
             if (doSignalSubscribe)
             {
-                signalSubscribedHandler(streamingManager.findRegisteredSignal(signalStringId));
+                signalSubscribedHandler(signal);
             }
         }
         catch (const std::exception& e)
@@ -153,7 +156,7 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
         {
             if (streamingManager.removeSignalSubscriber(signalStringId, clientId))
             {
-                signalUnsubscribedHandler(streamingManager.findRegisteredSignal(signalStringId));
+                signalUnsubscribedHandler(signal);
             }
         }
         catch (const std::exception& e)
@@ -176,7 +179,11 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
         case AuthenticationType::Anonymous:
         {
             if (authProvider.isAnonymousAllowed())
+            {
+                auto anonymousUser = User("", "");
+                userContextOut = std::shared_ptr<daq::IUser>(anonymousUser.detach(), UserContextDeleter());
                 return true;
+            }
 
             LOG_W("Anonymous authentication rejected");
             break;
@@ -193,6 +200,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
             {
                 LOG_W("Username authentication rejected: {}", e.what());
             }
+
             break;
         }
     }
@@ -200,16 +208,16 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
     return false;
 }
 
-void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
+void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr&& packet)
 {
-    auto signalStringId = signal.getGlobalId().toStdString();
+    const auto signalStringId = signal.getGlobalId().toStdString();
 
     streamingManager.sendPacketToSubscribers(
         signalStringId,
-        packet,
-        [this](const std::string& subscribedClientId, const packet_streaming::PacketBufferPtr& packetBuffer)
+        std::move(packet),
+        [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
         {
-            sessionHandlers.at(subscribedClientId)->sendPacketBuffer(packetBuffer);
+            sessionHandlers.at(subscribedClientId)->sendPacketBuffer(std::move(packetBuffer));
         }
     );
 }
@@ -231,6 +239,7 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
         {
             signalUnsubscribedHandler(signal);
         }
+        sessionHandlers.erase(clientIter);
     }
     else
     {
@@ -365,12 +374,18 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
     LOG_I("New connection accepted by server");
 
+    auto findSignalHandler = [this](const std::string& signalId)
+    {
+        return streamingManager.findRegisteredSignal(signalId);
+    };
+
     OnSessionErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
     {
         LOG_I("Closing connection caused by: {}", errorMessage);
         // call dispatch to run it in the ::io_context to omit concurrent access!
         ioContextPtr->dispatch([this, session]() { releaseSessionHandler(session); });
     };
+
     // read/write failure indicates that connection is closed, and it should be handled properly
     // server constantly and continuously perform read operation
     // so connection closing is handled only on read failure and not handled on write failure
@@ -378,11 +393,11 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 
     OnSignalSubscriptionCallback signalSubscriptionHandler =
         [this](const SignalNumericIdType& signalNumericId,
-               const std::string& signalStringId,
+               const SignalPtr& signal,
                bool subscribe,
                const std::string& clientId)
     {
-        return this->handleSignalSubscription(signalNumericId, signalStringId, subscribe, clientId);
+        return this->handleSignalSubscription(signalNumericId, signal, subscribe, clientId);
     };
 
     std::string clientIdAssignedByServer;
@@ -395,8 +410,10 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  ioContextPtr,
                                                                  session,
                                                                  clientIdAssignedByServer,
+                                                                 findSignalHandler,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
+
     setUpTransportLayerPropsCallback(sessionHandler);
     setUpConfigProtocolCallbacks(sessionHandler);
     setUpStreamingInitCallback(sessionHandler);

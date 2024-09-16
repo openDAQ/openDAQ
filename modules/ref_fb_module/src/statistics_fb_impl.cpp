@@ -98,10 +98,8 @@ void StatisticsFbImpl::triggerModeChanged()
         {
             // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
             auto triggerConfig = PropertyObject();
-            if (packetReadyNotification == PacketReadyNotification::SameThread)
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
-            else
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+            bool useMultiThreadedScheduler = packetReadyNotification != PacketReadyNotification::SameThread;
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", useMultiThreadedScheduler));
 
             // Use trigger, output signals depending on trigger
             nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("RefFBModuleTrigger", "nfbt", triggerConfig);

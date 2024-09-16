@@ -32,10 +32,9 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
             lastProccessDescription = "Creating call request with no args";
             callRequest = OpcUaCallMethodRequest(methodId, parentId, 0);
         }
-        else if (argsPtr.asPtrOrNull<IList>().assigned())
+        else if (auto argsList = argsPtr.asPtrOrNull<IList>(); argsList.assigned())
         {
             lastProccessDescription = "Creating call request with list of arguments";
-            auto argsList = argsPtr.asPtrOrNull<IList>();
             OpcUaVariant varArgs = ListConversionUtils::ToVariantTypeArrayVariant(argsList, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, argsList.getCount(), (UA_Variant*) varArgs->data);
         }

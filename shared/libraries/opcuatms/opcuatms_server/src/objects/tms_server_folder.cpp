@@ -49,7 +49,7 @@ void TmsServerFolder::addChildNodes()
 
 OpcUaNodeId TmsServerFolder::getTmsTypeId()
 {
-    if (object.asPtrOrNull<IIoFolderConfig>().assigned())
+    if (object.supportsInterface<IIoFolderConfig>())
         return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE);
     return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
 }

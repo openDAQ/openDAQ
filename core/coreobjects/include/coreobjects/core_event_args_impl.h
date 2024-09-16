@@ -205,7 +205,7 @@ inline bool CoreEventArgsImpl::validateParameters() const
         case CoreEventId::PropertyValueChanged:
             return parameters.hasKey("Name") && parameters.hasKey("Value") && parameters.hasKey("Path");
         case CoreEventId::PropertyObjectUpdateEnd:
-            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").asPtrOrNull<IDict>().assigned() && parameters.hasKey("Path");
+            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").supportsInterface<IDict>() && parameters.hasKey("Path");
         case CoreEventId::PropertyAdded:
             return parameters.hasKey("Property") && parameters.hasKey("Path");
         case CoreEventId::PropertyRemoved:

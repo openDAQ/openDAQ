@@ -25,14 +25,14 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
-
 #include <map>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
+#include <opendaq/module_ptr.h>
+#include <tsl/ordered_map.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 struct ModuleLibrary;
 
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
@@ -53,33 +53,50 @@ public:
     ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
+    ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) override;
 
 private:
+    
+    static void populateDeviceConfigFromConnStrOptions(const PropertyObjectPtr& devConfig,
+                                                       const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
+    static PropertyObjectPtr populateDeviceConfig(const PropertyObjectPtr& config,
+                                                  const DeviceTypePtr& deviceType,
+                                                  const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
+
+    std::string getPrefixFromConnectionString(std::string connectionString) const;
+    static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
+
+    DeviceInfoPtr getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const;
+    static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString, const DeviceInfoPtr& discoveredDeviceInfo);
+    DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
+
+    static void replaceSubDeviceOldProtocolIds(const DevicePtr& device);
+    static ServerCapabilityPtr replaceOldProtocolIds(const ServerCapabilityPtr& cap);
+    static StringPtr convertIfOldIdFB(const StringPtr& id);
+    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
+    
+    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
+    static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
+
+    static ServerCapabilityPtr mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
+    void mergeDiscoveryAndDeviceCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo) const;
+    void completeServerCapabilities(const DevicePtr& device) const;
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
     static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
     static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
-    void configureStreamings(MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
-
+    static StringPtr getPreferredStreamingAddress(const DevicePtr& device);
+    void configureStreamings(const MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
                                   const PropertyObjectPtr& generalConfig,
-                                  const PropertyObjectPtr& config);
+                                  const PropertyObjectPtr& config,
+                                  const StringPtr& preferredAddress);
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    void completeServerCapabilities(const ServerCapabilityPtr& source, const ListPtr<IServerCapability>& targetCaps);
-    static ServerCapabilityPtr mergeDiscoveryAndDeviceCap(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
-    static ServerCapabilityPtr replaceOldProtocolIds(const ServerCapabilityPtr& cap);
-    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
-    static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
     static PropertyObjectPtr createGeneralConfig();
-
-    std::string getPrefixFromConnectionString(std::string connectionString) const;
-
-    static StringPtr convertIfOldIdFB(const StringPtr& id);
-    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

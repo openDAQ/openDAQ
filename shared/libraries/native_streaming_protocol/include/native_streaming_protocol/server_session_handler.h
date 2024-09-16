@@ -30,6 +30,7 @@ public:
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          const std::string& clientId,
+                         OnFindSignalCallback findSignalHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
@@ -51,12 +52,14 @@ public:
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
-
     daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readTransportLayerProperties(const void* data, size_t size);
 
+    bool hasUserAccessToSignal(const SignalPtr& signal);
+
     OnStreamingRequestCallback streamingInitHandler;
+    OnFindSignalCallback findSignalHandler;
     OnSignalSubscriptionCallback signalSubscriptionHandler;
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 

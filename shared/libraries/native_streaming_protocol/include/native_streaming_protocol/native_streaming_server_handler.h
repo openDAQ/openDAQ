@@ -51,7 +51,7 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, const PacketPtr& packet);
+    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
 
 protected:
     void initSessionHandler(SessionPtr session);
@@ -62,7 +62,7 @@ protected:
     void releaseSessionHandler(SessionPtr session);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
-                                  const std::string& signalStringId,
+                                  const SignalPtr& signal,
                                   bool subscribe,
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);

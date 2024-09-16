@@ -4,8 +4,14 @@
 #include <coretypes/filesystem.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/user_factory.h>
+#include <bcrypt/BCrypt.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+
+// ^\$(2[ayb]?)\$[0-9]+\$[a-zA-Z0-9\.\/]{53}$
+static const std::regex BcryptRegex("^\\$(2[ayb]?)\\$[0-9]+\\$[a-zA-Z0-9\\.\\/]{53}$");
+
 
 // AuthenticationProviderImpl
 
@@ -54,9 +60,11 @@ UserPtr AuthenticationProviderImpl::findUser(const StringPtr& username)
     return nullptr;
 }
 
-bool AuthenticationProviderImpl::isPasswordValid(const StringPtr& hash, const StringPtr& password)
+bool AuthenticationProviderImpl::isPasswordValid(const std::string& hash, const StringPtr& password)
 {
-    // return libsodium.passwordVerify(hash, password);
+    if (std::regex_match(hash, BcryptRegex))
+        return BCrypt::validatePassword(password, hash);
+
     return hash == password;
 }
 

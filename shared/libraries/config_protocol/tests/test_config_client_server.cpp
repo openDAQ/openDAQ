@@ -15,6 +15,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_holder_ptr.h>
 #include <config_protocol/config_client_device_impl.h>
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -36,10 +37,20 @@ public:
 
     void SetUp() override
     {
-        EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
+        const auto anonymousUser = User("", "");
+        const auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        device->getPermissionManager().setPermissions(permissions);
 
+        EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
+        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                NullContext(),
+                std::bind(&ConfigProtocolTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1)
+            );
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
     }
@@ -57,10 +68,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket)
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     bool onServerNotificationReceived(const BaseObjectPtr& obj)
@@ -101,6 +119,7 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
 {
     MockComponent::Strict component;
     component->addProperty(StringPropertyBuilder("PropName", "-").build());
+    component->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(component));
 
@@ -236,6 +255,7 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
+    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     auto fbTypes = Dict<IString, IFunctionBlockType>();
     fbTypes.set("Id", FunctionBlockType("Id", "Name", "Desc", defaultConfig));
@@ -250,6 +270,7 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 TEST_F(ConfigProtocolTest, GetDeviceInfo)
 {
     const auto devInfo = DeviceInfo("connectionString", "Name");
+    devInfo.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     StringPtr fbId;
     EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
@@ -324,6 +345,9 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
 
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+    signal->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
@@ -337,6 +361,8 @@ TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
 {
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
+
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
@@ -359,6 +385,24 @@ TEST_F(ConfigProtocolTest, BeginEndUpdate)
     client->getClientComm()->setPropertyValue("//root", "PropName", "val");
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
     client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "val");
+}
+
+TEST_F(ConfigProtocolTest, BeginEndUpdateWithProps)
+{
+    device->addProperty(StringPropertyBuilder("PropName", "-").build());
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+
+    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+
+    auto prop = Dict<IString, IBaseObject>({{"Name", "PropName"}, {"ProtectedAccess", False}, {"SetValue", True}, {"Value", "val"}});
+    auto props = List<IDict>(prop);
+    auto params = Dict<IString, IBaseObject>({{"Props", props}});
+
+    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params), NotSupportedException);
+    server->setProtocolVersion(1);
+    client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params);
+
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
 

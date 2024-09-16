@@ -133,7 +133,10 @@ class App(tk.Tk):
         self.right_side_panel_create(frame_navigator_for_properties)
 
         # High DPI workaround for now
-        ttk.Style().configure('Treeview', rowheight=30 * self.context.ui_scaling_factor)
+        style = ttk.Style()
+        style.configure('Treeview', rowheight=30 * self.context.ui_scaling_factor)
+
+        style.configure("Treeview.Heading", font='Arial 10 bold')
 
         default_font = tkfont.nametofont("TkDefaultFont")
         default_font.configure(size=9 * self.context.ui_scaling_factor)
@@ -320,8 +323,6 @@ class App(tk.Tk):
             component = 'Input ports'
         elif component == 'IO':
             component = 'Inputs/Outputs'
-        elif component == 'Sync':
-            component = 'Synchronization'
         return component
 
     def tree_restore_selection(self, old_node=None):

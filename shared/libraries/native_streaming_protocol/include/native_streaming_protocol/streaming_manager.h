@@ -29,7 +29,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
-                                                    const packet_streaming::PacketBufferPtr& packetBuffer)>;
+                                                    packet_streaming::PacketBufferPtr&& packetBuffer)>;
 
 class StreamingManager
 {
@@ -44,7 +44,7 @@ public:
     /// @param sendPacketBufferCb The callback used to send the created packet buffer to the client.
     /// @throw NativeStreamingProtocolException if the signal is not registered.
     void sendPacketToSubscribers(const std::string& signalStringId,
-                                 const PacketPtr& packet,
+                                 PacketPtr&& packet,
                                  const SendPacketBufferCallback& sendPacketBufferCb);
 
     /// Registers a signal using its global ID as a unique key
@@ -126,9 +126,11 @@ private:
 
     void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
                        const PacketStreamingServerPtr& registeredSignal,
-                       const PacketPtr& packet,
+                       PacketPtr&& packet,
                        const std::string& clientId,
                        SignalNumericIdType singalNumericId);
+
+    bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 
     ContextPtr context;
     LoggerComponentPtr loggerComponent;

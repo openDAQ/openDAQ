@@ -13,6 +13,7 @@
 #include <config_protocol/config_client_device_impl.h>
 
 #include "opendaq/packet_factory.h"
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -24,13 +25,21 @@ class ConfigProtocolIntegrationTest : public Test
 public:
     void SetUp() override
     {
-        serverDevice = test_utils::createServerDevice();
-        serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        auto anonymousUser = User("", "");
+
+        serverDevice = test_utils::createTestDevice();
+        serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                nullptr
+            );
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
@@ -43,10 +52,18 @@ public:
         return str;
     }
     
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    // client handling
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
     
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
@@ -129,7 +146,13 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     
-    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(
+        clientContext,
+        std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+        std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+        nullptr,
+        nullptr
+    );
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 

@@ -4,6 +4,7 @@ add_subdirectory(utils)
 add_subdirectory(signal_generator)
 add_subdirectory(discovery)
 add_subdirectory(discovery_server)
+add_subdirectory(idds)
 
 if (OPENDAQ_ENABLE_TEST_UTILS)
     add_subdirectory(testutils)

@@ -101,7 +101,7 @@ ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
 
     if (valid && (eventPackets.getCount() == 0))
         *status = ReadStatus::Ok;
-    else if (eventPackets.assigned())
+    else if (eventPackets.getCount())
         *status = ReadStatus::Event;
     else
         *status = ReadStatus::Fail;

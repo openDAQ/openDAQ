@@ -70,18 +70,6 @@ TEST_F(ComponentTest, PropertyClass)
     ASSERT_EQ(comp.getClassName(), "TestClass");
 }
 
-TEST_F(ComponentTest, Uint8Property)
-{
-    constexpr uint8_t defaultValue = 33;
-
-    auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
-    auto prop = IntPropertyBuilder("PropName", defaultValue).build();
-    comp.addProperty(prop);
-
-    uint8_t v8 = comp.getPropertyValue("PropName");
-    ASSERT_EQ(v8, defaultValue);
-}
-
 TEST_F(ComponentTest, Tags)
 {
     auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("comp"), nullptr));

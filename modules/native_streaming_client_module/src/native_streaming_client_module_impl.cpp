@@ -210,8 +210,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 
     deviceHelper->subscribeToCoreEvent(context);
 
-    device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
+    device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
 
     processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
                                                     std::move(processingThread),

@@ -56,6 +56,11 @@ if (OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS)
     endif()
 endif()
 
+#Idds server and client modules
+add_subdirectory(idds_server_module)
+add_subdirectory(idds_client_module)
+
+
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 
@@ -86,7 +91,6 @@ if (DAQMODULES_OPENDAQ_SERVER_MODULE)
     if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
         message(STATUS "    - Websocket server module")
         add_subdirectory(websocket_streaming_server_module)
-        add_subdirectory(idds_server_module)
     endif()
 
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)

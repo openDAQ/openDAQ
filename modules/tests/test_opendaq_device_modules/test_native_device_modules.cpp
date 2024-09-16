@@ -32,6 +32,12 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
+
     return instance;
 }
 
@@ -699,6 +705,22 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
     auto servers = devices[0].getServers();
     ASSERT_EQ(servers.getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, GetStatuses)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto statuses = client.getDevices()[0].getStatusContainer().getStatuses();
+
+    ASSERT_EQ(statuses.getCount(), 2u);
+
+    ASSERT_TRUE(statuses.hasKey("TestStatus"));
+    ASSERT_EQ(statuses.get("TestStatus").getValue(), "On");
+
+    ASSERT_TRUE(statuses.hasKey("ConnectionStatus"));
+    ASSERT_EQ(statuses.get("ConnectionStatus").getValue(), "Connected");
 }
 
 TEST_F(NativeDeviceModulesTest, RemoveDevice)

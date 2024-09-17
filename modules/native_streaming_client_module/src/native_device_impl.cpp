@@ -390,7 +390,6 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
     , deviceInfoSet(false)
 {
-    initStatuses(ctx);
 }
 
 NativeDeviceImpl::~NativeDeviceImpl()
@@ -401,14 +400,14 @@ NativeDeviceImpl::~NativeDeviceImpl()
     }
 }
 
-void NativeDeviceImpl::initStatuses(const ContextPtr& ctx)
+void NativeDeviceImpl::initializeStatus()
 {
     if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
     {
         const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
                                                                                       "Reconnecting",
                                                                                       "Unrecoverable"));
-        ctx.getTypeManager().addType(statusType);
+        this->context.getTypeManager().addType(statusType);
     }
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);

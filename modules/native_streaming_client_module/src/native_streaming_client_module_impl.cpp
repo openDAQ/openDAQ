@@ -207,6 +207,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 
     deviceHelper->subscribeToCoreEvent(context);
 
+    device.asPtr<INativeDevicePrivate>(true)->initializeStatus();
     device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
 

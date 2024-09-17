@@ -84,10 +84,9 @@ public:
 
 private:
     ContextPtr daqContext;
-    uint64_t id;
+    std::atomic<uint64_t> id;
     SendRequestCallback sendRequestCallback;
     ComponentDeserializeCallback rootDeviceDeserializeCallback;
-    DeserializerPtr deserializer;
     bool connected;
     WeakRefPtr<IDevice> rootDeviceRef;
 

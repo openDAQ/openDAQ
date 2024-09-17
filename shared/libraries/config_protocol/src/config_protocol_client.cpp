@@ -19,14 +19,13 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
         , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
-        , deserializer(JsonDeserializer())
         , connected(false)
 {
 }
 
 uint64_t ConfigProtocolClientComm::generateId()
 {
-    return id++;
+    return std::atomic_fetch_add_explicit(&id, uint64_t(1), std::memory_order_relaxed);
 }
 
 void ConfigProtocolClientComm::setPropertyValue(
@@ -206,6 +205,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcReplyPacketBuffer(const PacketBu
     try
     {
         ComponentDeserializeCallback customDeviceDeserilazeCallback = isGetRootDeviceReply ? rootDeviceDeserializeCallback : nullptr;
+        const auto deserializer = JsonDeserializer();
         reply = deserializer.deserialize(
             jsonStr,
             context,

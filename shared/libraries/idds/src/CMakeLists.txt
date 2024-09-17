@@ -1,11 +1,30 @@
 set(BASE_NAME idds)
 set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
+find_package(OpenDDS REQUIRED)
+include(opendds_testing)
+
+# IDL TypeSupport Library
+add_library(opendaq_idl)
+opendds_target_sources(opendaq_idl PUBLIC "Messenger.idl")
+target_link_libraries(opendaq_idl PUBLIC OpenDDS::Dcps)
+
+set(opendds_libs
+  OpenDDS::Dcps # Core OpenDDS Library
+  OpenDDS::InfoRepoDiscovery OpenDDS::Tcp # For run_test.pl
+  OpenDDS::Rtps OpenDDS::Rtps_Udp # For run_test.pl --rtps
+  opendaq_idl
+)
+
 set(SRC_Cpp idds_server.cpp
+            DataReaderListenerImpl.cpp
+            CommandListenerImpl.cpp
 )
 
 set(SRC_PublicHeaders
     idds_server.h
+    DataReaderListenerImpl.h
+    CommandListenerImpl.h
 )
 
 set(INCLUDE_DIR ../include/idds)
@@ -35,7 +54,7 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
                                               $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
+target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq ${opendds_libs}
 )
 
 if (MSVC)

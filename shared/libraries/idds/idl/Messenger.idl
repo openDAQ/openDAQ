@@ -1,0 +1,54 @@
+/*
+ * Distributed under the OpenDDS License.
+ * See: http://www.opendds.org/license.html
+ */
+
+module Messenger {
+
+  @topic
+  struct Message {
+    string value;
+    @key long message_id;
+    long count;
+  };
+
+  const long IDDS_NODE_ID_MAX_LENGTH = 64;
+  const long IDDS_MANUFACTURER_MAX_LENGTH = 64;
+  const long IDDS_MODEL_MAX_LENGTH = 64;
+  const long IDDS_SERIAL_NUMBER_MAX_LENGTH = 64;
+  const long IDDS_LOGICAL_ID_NUMBER_MAX_LENGTH = 64;
+  const long IDDS_TAGS_MAX_LENGTH = 256;
+
+  /* nanoseconds since 1970 epoch (UTC) */
+  typedef unsigned long long iDDSTime;
+  typedef string <IDDS_NODE_ID_MAX_LENGTH> iDDSNodeUniqueID;
+  typedef string <IDDS_MANUFACTURER_MAX_LENGTH> iDDSNodeManufacturer;
+  typedef string <IDDS_MODEL_MAX_LENGTH> iDDSNodeModel;
+  typedef string <IDDS_SERIAL_NUMBER_MAX_LENGTH> iDDSNodeSerialNumber;
+  typedef string <IDDS_LOGICAL_ID_NUMBER_MAX_LENGTH> iDDSNodeLogicalID;
+  typedef string <IDDS_TAGS_MAX_LENGTH> iDDSNodeTags;
+
+  @topic
+  struct iDDSHelloMsg {
+    iDDSTime timestamp;
+    iDDSNodeUniqueID unique_id;
+    iDDSNodeManufacturer manufacturer;
+    iDDSNodeModel model;
+    iDDSNodeSerialNumber serial_number;
+    iDDSNodeLogicalID logical_id;
+    iDDSNodeTags tags;
+  };
+
+  // Kept under the maximum size of a UDP datagram.
+  const long IDDS_COMMAND_MAX_LENGTH = 64000;
+  typedef unsigned long iDDSTransactionID;
+  typedef sequence <octet, IDDS_COMMAND_MAX_LENGTH> iDDSCommand;
+  @topic
+  struct iDDSControlMsg {
+   iDDSTime timestamp;
+   iDDSTransactionID tid;
+   iDDSNodeUniqueID from;
+   iDDSNodeUniqueID to;
+   iDDSCommand command;
+  };
+};

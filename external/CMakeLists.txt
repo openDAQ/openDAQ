@@ -82,6 +82,7 @@ add_subdirectory(xxHash)
 add_subdirectory(taskflow EXCLUDE_FROM_ALL)
 add_subdirectory(tsl-ordered-map)
 add_subdirectory(bcrypt)
+add_subdirectory(openDDS)
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     add_subdirectory(sfml EXCLUDE_FROM_ALL)

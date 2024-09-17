@@ -11,9 +11,9 @@ using namespace daq;
 
 iDDSServerImpl::iDDSServerImpl(DevicePtr rootDevice, const ContextPtr& context)
     : Server("OpenDAQiDDS", config, rootDevice, context)
-    //, iDDSServer(rootDevice, context)
+    , iDDSServer()
 {
-    //iDDSServer.startwrapper();
+    iDDSServer.start();
 }
 
 ServerTypePtr iDDSServerImpl::createType()
@@ -26,7 +26,7 @@ ServerTypePtr iDDSServerImpl::createType()
 
 void iDDSServerImpl::onStopServer()
 {
-    //iDDSServer.stop();
+    iDDSServer.stop();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

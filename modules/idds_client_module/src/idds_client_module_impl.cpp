@@ -16,7 +16,8 @@ iDDSClientModule::iDDSClientModule(ContextPtr context)
     : Module("OpenDAQiDDSClientModule",
             daq::VersionInfo(IDDS_CL_MODULE_MAJOR_VERSION, IDDS_CL_MODULE_MINOR_VERSION, IDDS_CL_MODULE_PATCH_VERSION),
             std::move(context),
-            "OpenDAQiDDSClientModule")
+            "OpenDAQiDDSClientModule"),
+      iDDSWrapper()
 {
 }
 
@@ -34,6 +35,17 @@ DevicePtr iDDSClientModule::onCreateDevice(const StringPtr& connectionString,
                                                          const PropertyObjectPtr& /*config*/)
 {
     DevicePtr obj(createWithImplementation<IDevice, Device>(context, parent, "iDDSDevice"));
+
+    //iDDSWrapper.addTopic("openDaq");
+    //iDDSWrapper.start()
+
+    ProcedurePtr sendMessage = []() {
+        //iDDSWrapper.sendMessage("openDaq", "Hello from openDaq");
+    };
+    PropertyPtr sendMessageProperty = FunctionProperty("SendMessage", ProcedureInfo(List<IArgumentInfo>(
+            ArgumentInfo("message", ctString)
+    )));
+    obj->addProperty(sendMessageProperty);
 
     return obj;
 }

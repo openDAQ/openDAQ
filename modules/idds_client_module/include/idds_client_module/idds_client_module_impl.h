@@ -32,7 +32,7 @@ public:
                              const PropertyObjectPtr& config) override;
 
 private:
-    daq::idds::iDDSServer iDDSServer;
+    daq::idds::iDDSServer iDDSWrapper;
 };
 
 END_NAMESPACE_OPENDAQ_IDDS_CLIENT_MODULE

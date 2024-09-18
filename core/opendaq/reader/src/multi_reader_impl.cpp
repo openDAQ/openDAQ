@@ -1177,7 +1177,7 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
 {
     std::scoped_lock lock{mutex, notify.mutex};
 
-    bool modified = this->isActive != isActive;
+    bool modified = this->isActive != static_cast<bool>(isActive);
     this->isActive = isActive;
 
     for (auto& signalReader : signals)

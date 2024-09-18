@@ -78,7 +78,6 @@ void MockSignal::addData(const py::array_t<double>& data)
 void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
 {
     daq::DataDescriptorPtr descriptor;
-    // std::vector<uint8_t> buffer;
     size_t size = 1;
     if (py::isinstance<py::dict>(objects) || py::isinstance<py::list>(objects))
     {
@@ -88,7 +87,6 @@ void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
             if (dict.empty())
                 throw daq::InvalidParameterException("Cannot add empty dictionary");
             descriptor = createDataDescriptor(dict, "obj");
-            // buffer.resize(descriptor.getSampleSize());
         }
         else if (py::isinstance<py::list>(objects))
         {
@@ -97,7 +95,6 @@ void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
                 throw daq::InvalidParameterException("Cannot add empty list");
             descriptor = createDataDescriptor(list[0], "obj");
             size = list.size();
-            // buffer.resize(descriptor.getSampleSize() * list.size());
         }
     }
     else
@@ -165,7 +162,7 @@ void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
 daq::DataDescriptorPtr MockSignal::createDataDescriptor(const py::object& object, const std::string& name)
 {
     if (py::isinstance<py::list>(object))
-    {  // if list
+    {
         const auto& list = py::cast<py::list>(object);
         if (list.empty())
         {
@@ -182,7 +179,7 @@ daq::DataDescriptorPtr MockSignal::createDataDescriptor(const py::object& object
         return listDescriptorBuilder.build();
     }
     else if (py::isinstance<py::dict>(object))
-    {  // if dict
+    {
         auto fields = daq::List<daq::DataDescriptorPtr>();
         for (const auto& field : py::cast<py::dict>(object))
         {
@@ -200,12 +197,12 @@ daq::DataDescriptorPtr MockSignal::createDataDescriptor(const py::object& object
             .build();
     }
     else if (py::isinstance<py::int_>(object))
-    {  // if int
+    {
         auto intDescriptor = daq::DataDescriptorBuilder();
         return intDescriptor.setName(name).setSampleType(daq::SampleType::Int64).setRule(ExplicitDataRule()).build();
     }
     else if (py::isinstance<py::float_>(object))
-    {  // if float
+    {
         auto floatDescriptor = daq::DataDescriptorBuilder();
         return floatDescriptor.setName(name).setSampleType(daq::SampleType::Float64).setRule(ExplicitDataRule()).build();
     }

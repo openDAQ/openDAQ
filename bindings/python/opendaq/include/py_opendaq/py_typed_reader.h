@@ -333,7 +333,8 @@ private:
                                 : SampleTypeReaderStatusVariant<ReaderType>{};
         }
 
-        size_t blockSize = 1, initialCount = count, sampleSize = 1;
+        size_t blockSize = 1, sampleSize = 1;
+        const size_t initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         constexpr const bool isSampleTypeStruct = std::is_same_v<ValueType, StructPlaceholder>;
 
@@ -399,7 +400,10 @@ private:
 
         py::array::StridesContainer strides;
         if (blockSize > 1 && isMultiReader)
-            strides = {sizeof(SampleType) * initialCount * sampleSize, sizeof(SampleType) * sampleSize};
+        {
+            const size_t valueSize = isSampleTypeStruct ? sampleSize : sizeof(SampleType);
+            strides = {valueSize * initialCount, valueSize};
+        }
 
         py::dtype dtype{};
         if constexpr (isSampleTypeStruct)
@@ -432,7 +436,8 @@ private:
                        : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{})};
         }
 
-        size_t blockSize = 1, initialCount = count, sampleSize = 1;
+        size_t blockSize = 1, sampleSize = 1;
+        const size_t initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         constexpr const bool isValueSampleTypeStruct = std::is_same_v<ValueType, StructPlaceholder>;
 
@@ -498,10 +503,14 @@ private:
         else
             shape = {count};
 
-        py::array::StridesContainer strides;
+        py::array::StridesContainer valuesStrides;
+        py::array::StridesContainer domainStrides;
         if (blockSize > 1 && isMultiReader)
         {
-            strides = {sizeof(ValueType) * initialCount, sizeof(ValueType)};
+            const size_t valueSize = isValueSampleTypeStruct ? sampleSize : sizeof(ValueSampleType);
+            const size_t domainSize = sizeof(DomainSampleType);
+            valuesStrides = {valueSize * initialCount, valueSize};
+            domainStrides = {domainSize * initialCount, domainSize};
         }
 
         py::dtype dtype{};
@@ -524,8 +533,8 @@ private:
                            });
         }
 
-        auto valuesArray = toPyArray(std::move(values), shape, strides, dtype);
-        auto domainArray = toPyArray(std::move(domain), shape, strides, domainDtype);
+        auto valuesArray = toPyArray(std::move(values), shape, valuesStrides, dtype);
+        auto domainArray = toPyArray(std::move(domain), shape, domainStrides, domainDtype);
 
         return returnStatus
                    ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(
@@ -664,9 +673,12 @@ private:
         if (status.assigned() && status.getReadStatus() == daq::ReadStatus::Event)
         {
             daq::EventPacketPtr packet;
-            if constexpr (std::is_same_v<daq::IMultiReaderStatus, typename ReaderStatusType::DeclaredInterface>) {
+            if constexpr (std::is_same_v<daq::IMultiReaderStatus, typename ReaderStatusType::DeclaredInterface>)
+            {
                 packet = status.getMainDescriptor();
-            } else {
+            }
+            else
+            {
                 packet = status.getEventPacket();
             }
 

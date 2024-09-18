@@ -108,6 +108,36 @@ class TestReaderDateTime(opendaq_test.TestCase):
         for t in domain:
             self.assertIsInstance(t, numpy.datetime64)
 
+    def test_read_value_type_struct(self):
+        mock = opendaq.MockSignal(initialize_value_descriptor=False)
+        mock.add_objects({"first": 0, "second": {"first": -10},
+                        "third": [{"first": 3.5}], "forth": [0, 1]})
+
+        reader = opendaq.StreamReader(
+            mock.signal,
+            value_type = opendaq.SampleType.Undefined)
+
+        data, status = reader.read(0, return_status=True)
+
+        mock.add_objects([{"first": 0,
+                        "second": {"first": -10},
+                        "third": [{"first": 3.5}],
+                        "forth": [0,
+                                    1]},
+                        {"first": 1,
+                        "second": {"first": -11},
+                        "third": [{"first": 4.5}],
+                        "forth": [1,
+                                    2]}],
+                        False)
+
+        data, status = reader.read(2, return_status=True)
+        self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
+        self.assertEqual(data['first'][0], 0)
+        self.assertEqual(data['second']['first'][1], -11)
+        self.assertEqual(data['third'][1]['first'], 4.5)
+        self.assertEqual(data['forth'][0][1], 1)
+
     def test_tail_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.TailReader(mock.signal, 10)
@@ -202,6 +232,34 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         for t in domain:
             self.assertIsInstance(t, numpy.datetime64)
+
+    def test_tail_read_value_type_struct(self):
+        mock = opendaq.MockSignal(initialize_value_descriptor=False)
+        mock.add_objects({"first": 0, "second": {"first": -10},
+                        "third": [{"first": 3.5}], "forth": [0, 1]})
+
+        reader = opendaq.TailReader(mock.signal, 10, value_type = opendaq.SampleType.Undefined)
+
+        data, status = reader.read(0, return_status=True)
+
+        mock.add_objects([{"first": 0,
+                        "second": {"first": -10},
+                        "third": [{"first": 3.5}],
+                        "forth": [0,
+                                    1]},
+                        {"first": 1,
+                        "second": {"first": -11},
+                        "third": [{"first": 4.5}],
+                        "forth": [1,
+                                    2]}],
+                        False)
+
+        data, status = reader.read(2, return_status=True)
+        self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
+        self.assertEqual(data['first'][0], 0)
+        self.assertEqual(data['second']['first'][1], -11)
+        self.assertEqual(data['third'][1]['first'], 4.5)
+        self.assertEqual(data['forth'][0][1], 1)
 
     def test_block_read(self):
         mock = opendaq.MockSignal()
@@ -309,6 +367,36 @@ class TestReaderDateTime(opendaq_test.TestCase):
             self.assertIsInstance(t, numpy.ndarray)
             for tt in t:
                 self.assertIsInstance(tt, numpy.datetime64)
+
+    def test_block_read_value_type_struct(self):
+        mock = opendaq.MockSignal(initialize_value_descriptor=False)
+        mock.add_objects({"first": 0, "second": {"first": -10},
+                        "third": [{"first": 3.5}], "forth": [0, 1]})
+
+        reader = opendaq.BlockReader(
+            mock.signal, 2,
+            value_type = opendaq.SampleType.Undefined)
+
+        data, status = reader.read(0, return_status=True)
+
+        mock.add_objects([{"first": 0,
+                        "second": {"first": -10},
+                        "third": [{"first": 3.5}],
+                        "forth": [0,
+                                    1]},
+                        {"first": 1,
+                        "second": {"first": -11},
+                        "third": [{"first": 4.5}],
+                        "forth": [1,
+                                    2]}],
+                        False)
+
+        data, status = reader.read(2, return_status=True)
+        self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
+        self.assertEqual(data[0]['first'][0], 0)
+        self.assertEqual(data[0]['second']['first'][1], -11)
+        self.assertEqual(data[0]['third'][1]['first'], 4.5)
+        self.assertEqual(data[0]['forth'][0][1], 1)
 
     def test_multireader_read(self):
         epoch = opendaq.MockSignal.current_epoch()

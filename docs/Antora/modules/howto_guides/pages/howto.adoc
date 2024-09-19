@@ -8,8 +8,6 @@
 * xref:howto_configure_instance_providers.adoc[]
 * xref:howto_configure_streaming.adoc[]
 * xref:howto_measure_single_value.adoc[]
-* xref:howto_access_control.adoc[]
-
 == Read data with Readers
 
 * xref:howto_read_with_domain.adoc[]
@@ -17,6 +15,13 @@
 * xref:howto_read_with_timestamps.adoc[]
 * xref:howto_read_with_timeouts.adoc[]
 * xref:howto_read_aligned_signals.adoc[]
+
+== Access control
+
+* xref:howto_access_control_introduction.adoc[Introduction]
+* xref:howto_access_control_connect.adoc[]
+* xref:howto_access_control_user_list.adoc[]
+* xref:howto_access_control_protected_object.adoc[]
 
 == Configuration
 

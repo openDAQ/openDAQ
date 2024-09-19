@@ -1,21 +1,26 @@
 = Access control
 
-In many cases, we have an acquisition system that can be accessed by multiple users. Typically, we want each user to have specific permissions based on their role.
+In many cases, we have a data acquisition system that can be accessed by multiple users. Typically, we want each user to have specific permissions based on their role.
 For instance, an admin user should be able to configure the device and modify all its settings. A guest user might only need read-only access, while a calibrator user
-should have the ability to adjust calibration factors on the device. The openDAQ Access Control system makes this possible.
+should be able to adjust calibration factors on the device. The openDAQ Access Control system makes this possible.
 
-On server device it is possible to define a list of users which can access it. Each user is a member of one or more user-defined groups. When connecting to a device,
-it is possible to authenticate as one of defined users. Access to various device components can then be restricted based on the user's group membership.
+In an openDAQ device implementation, it is possible to define a list of users that can access it. Each user is a member of one or more user groups. 
+When connecting to a device, it is possible to authenticate as one of the defined users. Access to various device components is restricted based on the user's group membership.
+
+NOTE: The authentication and access level enforcement happens at the transport layer level. The openDAQ server authenticates the client, declining requests that the client
+does not have access to it.
+
+NOTE: The access control system is available only over the openDAQ "Native protocol".
 
 == Defining a list of users
 
-An openDAQ server instance can accept `AuthenticationProvider` object which is responsible for providing a list of all the users who are able to connect to the device.
-For each user we need to provide a username, password and the list of groups that the user belongs to. By default, every user is a member of group `everyone`.
-Additional groups can be assigned to users as needed by the developer. The `AuthenticationProvider` also accepts a flag that indicates whether anonymous authentication is enabled.
-If anonymous authentication is enabled, it is possible to connect to a device without username or password. Anonymous user is automatically a member of group `everyone`.
+An openDAQ server instance can accept an `AuthenticationProvider` object, which is responsible for providing a list of all users who can connect to the device.
+For each user, we need to provide a username, password, and the list of groups that the user belongs to. By default, every user is a member of the group `everyone`.
+Additional groups can be assigned to users as needed. The `AuthenticationProvider` also accepts a flag that indicates whether anonymous authentication is enabled.
+If anonymous authentication is enabled, it is possible to connect to a device without a username or password. Anonymous users are automatically members of the group `everyone`.
 
-In the example below, we create a server device and define two users who can access it. User `opendaq` can login with password `opendaq123` and is a member of group `everyone`.
-User `root` can login using password `root123` and is a member of 2 groups, `everyone` and `admin`. We also enable anonymous authentication, allowing users to connect to our device
+In the example below, we create a server device and define two users who can access it. User `opendaq` can log in with password `opendaq123` and is a member of the group `everyone`.
+User `root` can log in using password `root123` and is a member of 2 groups: `everyone` and `admin`. We also enable anonymous authentication, allowing users to connect to our device
 without providing a username or password.
  
 
@@ -88,13 +93,13 @@ Console.ReadLine();
 
 == Hashing the passwords
 
-In the first example, we defined user passwords in plain text. This is not secure because anyone with access to the list of users also gains access to their passwords.
-To address this, openDAQ also provides an option to hash the passwords using https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] algorithm. Bcrypt is a password hashing algorithm designed
-to securely store passwords. It incorporates a salt to protect against rainbow table attacks and includes adjustable work factor that makes brute-force attacks more difficult over time as
-computing power increases.
+In the first example, we defined user passwords in plain text. To prevent malicious actors with access to the user database from gaining access to credentials,
+openDAQ provides an option to hash the passwords using the https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] algorithm. Bcrypt is a password hashing algorithm designed
+to securely store passwords. It incorporates a salt to protect against rainbow table attacks and includes an adjustable work factor that can be tuned to make brute-force 
+attacks less effective.
 
-We can replace the plain text passwords from the first example with their hashed versions. Password hash can be generated using one of many https://bcrypt-generator.com/[Bcrypt generators] available online.
-Whenever possible, it is recommended to store passwords in a hashed format for improved security.
+We can replace the plain text passwords from the first example with their hashed versions. Password hash can be generated using one of many https://bcrypt-generator.com/[Bcrypt generators] 
+available online. Whenever possible, it is recommended to store passwords in a hashed format for improved security.
 
 .Hashing the passwords
 [tabs]
@@ -132,7 +137,6 @@ var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvid
 
 To connect to a device, you can provide the username and password using the `config` parameter of the `addDevice` method.
 If you don't provide these credentials, the device will attempt to connect as an anonymous user.
-
 
 .Connecting with username and password
 [tabs]
@@ -196,45 +200,23 @@ Console.WriteLine("Connected to: " + device.Name);
 
 == Adding a protected object
 
-OpenDAQ devices, channels, signals and other components consist of property objects. Each property object includes a permission manager
-that can be used to grant or restrict access to that object based on a user group membership. In this section, we will demonstrate how to add
-a protected object to the reference device. On the server instance, let as first publish a reference device.
-
-.Connecting with username and password
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-instance.addDevice("daqref://device0");
-----
-Python::
-+
-[source,python]
-----
-instance.add_device("daqref://device0")
-----
-C#::
-+
-[source,csharp]
-----
-instance.AddDevice("daqref://device0");
-----
-====
+OpenDAQ devices, channels, signals, and other components are property objects. Each property object includes a permission manager
+that can be used to grant or restrict access to that object based on user group membership. In this section, we will demonstrate how to add
+a protected object to the reference device module implementation. The implementation is available in the openDAQ repository, in the 
+"modules/ref_device_module" folder.
 
 We can now examine the `RefDeviceImpl::createProtectedObject()` method in the reference device implementation. This method is responsible for
 creating a property object with one string property and one function property which calculates a sum of two numbers. We will make this object
-read-only for everyone but the `admin` group. Only users in `admin` group will be able to change the properties on that object and call methods on it.
+read-only for everyone but the `admin` group. Only users in the `admin` group can change the properties of that object and execute its methods.
 
-It is important to note that by default, each property object inherits its permission from its parent. By default we also grant read, write and
-execute permission for a group `everyone` on the root device. This means that each object under root device, will allow read, write and execute
-permission for group `everyone` unless we specify otherwise.
+It is important to note that by default, each property object inherits its permission from its parent. By default, we also grant read, write, and
+execute permission for a group `everyone` on the root device. Each object below the root device is thus granted read, write, and execute permissions
+for the group `everyone` unless otherwise specified.
 
-We can describe permissions for our object using a permission builder class. First we call the method `inherit(false)`. This method will tell the
-permission manager to not inherit any permissions from the parent object. After call of this method, nobody will be able to access our object. We
-then call `assign("everyone", PermissionMaskBuilder().read())` to allow read-only access for group `everyone`. Finally, we add read, write and execute
-permissions for group `admin` by calling `assign("admin", PermissionMaskBuilder().read().write().execute())`.
+We can describe the permissions of our object using a permission builder. First, we call the method `inherit(false)`. This method will tell the
+permission manager not to inherit any permissions of the parent object. After calling this method, no user groups will be able to access our object. We
+then call `assign("everyone", PermissionMaskBuilder().read())` to allow read-only access for the group `everyone`. Finally, we add read, write, and execute
+permissions for the group `admin` by calling `assign("admin", PermissionMaskBuilder().read().write().execute())`.
 
 .Assigning permissions to a property object
 [tabs]
@@ -277,11 +259,11 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
 
 The `PermissionsBuilder` class provides three methods for defining permissions on a property object. In this section, we will describe
 these methods and explain their differences. The differences between these methods become apparent when permissions are inherited from
-a parent object. Therefore, we will assume that the `inherit` flag is enabled unless stated otherwise.
+a parent object. Therefore, the `inherit` flag is enabled unless stated otherwise.
 
-The *allow()* method grants permissions for a specified group on the target object. Any permissions already granted to that group on the parent
-object will also be allowed on the target object. In the example below, user from a group `everyone` has a read, write and execute permissions on the target object.
-Read and write permissions are inherited and we have explicitly allowed the execute permission.
+The `allow()` method grants permissions for a specified group on the target object. Any permissions already granted to that group on the parent
+object will also be present on the target object. In the example below, any user in the group `everyone` has read, write, and 
+execute permissions. The read and write permissions are inherited, while we explicitly grant the execute permission.
 
 .Method allow()
 [tabs]
@@ -359,11 +341,11 @@ targetObject.PermissionManager.SetPermissions(permissions.Build());
 ----
 ====
 
-The method *deny()* does the exact opposite of method allow(). It removes a permission for a specified group on a target object.
-Any permission that was denied on a parent object, also stays denied on the target object. The deny method overrules the allow method.
-This means that if a permission is allowed on the parent object, but was explicitly denied on the target object, it will stay
-denied on the target object. In the example below, the target object has read and write permission for group `everyone`, because they are inherited
-from parent but not the execute permission, because it is explicitly denied for group `everyone` on the target object.
+The method `deny()` does the opposite of `allow()`. It denies permissions on a target object for a specific group.
+Any permission denied on a parent object is also denied on the target. The deny method overrules the allow method.
+Thus, if a permission is granted to the parent, but is explicitly denied on the target, it will stay
+denied on the target object. In the example below, the target object has read and write permissions for the group `everyone`, as they are inherited
+from its parent. However, it does not have the execute permission, because it is explicitly denied for the group `everyone`.
 
 .Method deny()
 [tabs]
@@ -402,7 +384,7 @@ mask_x = opendaq.PermissionMaskBuilder()
 mask_x.execute()
 
 parent_permissions = opendaq.PermissionsBuilder()
-parent_permissions.assign("everyone", mask_rwx)
+parent_permissions.allow("everyone", mask_rwx)
 parent_object.permission_manager.permissions = parent_permissions.build()
 
 permissions = opendaq.PermissionsBuilder()
@@ -430,7 +412,7 @@ var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
 maskX.Execute();
 
 var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
-parentPermissions.Assign("everyone", maskRwx);
+parentPermissions.Allow("everyone", maskRwx);
 parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
 
 var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
@@ -443,10 +425,10 @@ targetObject.PermissionManager.SetPermissions(permissions.Build());
 ----
 ====
 
-Method *assign()* acts the same as method allow() except that it does not inherit any permissions for specified group. Essentially it
-allows you to override permissions for a specified group. In the example below, target object has a read permission for group `everyone`.
-Write and execute permissions for group `everyone` are not inherited because they were overridden by `.assign("everyone", PermissionMaskBuilder().read())`.
-Read permission for group `guest` is inherited from the parent.
+The method `assign()` behaves similarly to `allow()`. The group is granted the specified permissions, but it no longer inherits the permissions of its parent.
+It allows you to override the permissions of the specified group. In the example below, the target object grants the read permission to the group `everyone`.
+Write and execute permissions for `everyone` are not inherited because they were overridden by `.assign("everyone", PermissionMaskBuilder().read())`.
+The read permission for `guest` is inherited from the object's parent.
 
 .Method assign()
 [tabs]

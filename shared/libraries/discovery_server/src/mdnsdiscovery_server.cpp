@@ -110,7 +110,6 @@ mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredDevice& d
 
 mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& device) const
 {
-
     mdns_record_t recordSrv;
     recordSrv.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
     recordSrv.type = MDNS_RECORDTYPE_SRV,
@@ -177,20 +176,20 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
 
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
 {
-        std::vector<mdns_record_t> records;
-        records.reserve(device.properties.size() + 3);
-        records.push_back(createSrvRecord(device));
-        if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(createARecord(device));
-        if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(createAaaaRecord(device));
-        device.populateRecords(records);
+    std::vector<mdns_record_t> records;
+    records.reserve(device.properties.size() + 3);
+    records.push_back(createSrvRecord(device));
+    if (serviceAddressIpv4.sin_family == AF_INET)
+        records.push_back(createARecord(device));
+    if (serviceAddressIpv6.sin6_family == AF_INET6)
+        records.push_back(createAaaaRecord(device));
+    device.populateRecords(records);
 
-        std::vector<char> buffer(2048);
-        for (const auto & socket : sockets)
-        {
-            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
-        }
+    std::vector<char> buffer(2048);
+    for (const auto & socket : sockets)
+    {
+        mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
+    }
 }
 
 bool MDNSDiscoveryServer::removeDevice(const std::string& id)

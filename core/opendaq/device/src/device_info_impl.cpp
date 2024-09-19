@@ -54,7 +54,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
         const PropertyObjectPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (ownerPtr.assigned())
         {
-            value.setValue(ownerPtr.getPropertyValue("location"));
+            value.setValue(ownerPtr.getPropertyValue("Location"));
         }
     };
 

@@ -593,7 +593,7 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     clientDevice.setName("new_name");
-    clientDevice.setPropertyValue("location", "new_location");
+    clientDevice.setPropertyValue("Location", "new_location");
     
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());

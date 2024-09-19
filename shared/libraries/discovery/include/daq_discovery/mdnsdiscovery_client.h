@@ -396,7 +396,6 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
         return "[" + std::string(host) + "]:" + service;
 	return std::string(host);
 }
-
 inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
 {
     if (addr->sa_family == AF_INET6)

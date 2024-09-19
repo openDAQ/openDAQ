@@ -162,8 +162,8 @@ TEST_F(TmsDeviceTest, DISABLED_Property)
     ASSERT_EQ(clientDevice.getPropertyValue("SampleRate"), 14.0);
     ASSERT_EQ(serverDevice.getPropertyValue("SampleRate"), 14.0);
 
-    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "");
-    ASSERT_EQ(clientDevice.getPropertyValue("location"), "");
+    ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "");
+    ASSERT_EQ(clientDevice.getPropertyValue("Location"), "");
 }
 
 TEST_F(TmsDeviceTest, DeviceInfo)
@@ -523,7 +523,7 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     clientSubDevice.setName("new_name");
-    clientSubDevice.setPropertyValue("location", "new_location");
+    clientSubDevice.setPropertyValue("Location", "new_location");
     
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());

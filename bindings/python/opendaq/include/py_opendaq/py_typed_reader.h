@@ -52,71 +52,30 @@ using SampleTypeDomainTypeReaderStatusVariant =
 template <typename ReaderType>
 using SizeReaderStatusVariant = std::variant<daq::SizeT, std::tuple<daq::SizeT, ReaderStatusType<ReaderType>>>;
 
-inline unsigned sampleTypeToNpyType(daq::SampleType sampleType)
+struct StructPlaceholder
 {
-    switch (sampleType)
-    {
-        return py::detail::npy_api::NPY_VOID_;
-        case daq::SampleType::Float32:
-            return py::detail::npy_api::NPY_FLOAT_;
-        case daq::SampleType::Float64:
-            return py::detail::npy_api::NPY_DOUBLE_;
-        case daq::SampleType::UInt8:
-            return py::detail::npy_api::NPY_UINT8_;
-        case daq::SampleType::Int8:
-            return py::detail::npy_api::NPY_INT8_;
-        case daq::SampleType::UInt16:
-            return py::detail::npy_api::NPY_UINT16_;
-        case daq::SampleType::Int16:
-            return py::detail::npy_api::NPY_INT16_;
-        case daq::SampleType::UInt32:
-            return py::detail::npy_api::NPY_UINT32_;
-        case daq::SampleType::Int32:
-            return py::detail::npy_api::NPY_INT32_;
-        case daq::SampleType::UInt64:
-            return py::detail::npy_api::NPY_UINT64_;
-        case daq::SampleType::Int64:
-            return py::detail::npy_api::NPY_INT64_;
-        case daq::SampleType::ComplexFloat32:
-            return py::detail::npy_api::NPY_CFLOAT_;
-        case daq::SampleType::ComplexFloat64:
-            return py::detail::npy_api::NPY_CDOUBLE_;
-        case daq::SampleType::String:
-            return py::detail::npy_api::NPY_STRING_;
-        case daq::SampleType::Struct:
-            return py::detail::npy_api::NPY_VOID_;
-        case daq::SampleType::Undefined:
-        case daq::SampleType::RangeInt64:
-        case daq::SampleType::Binary:
-        default:
-            throw daq::InvalidParameterException("Invalid sample type");
-    }
-}
+};
+
+template <typename ValueType>
+struct SampleTypeToBufferType
+{
+    using Type = ValueType;
+};
+
+template <>
+struct SampleTypeToBufferType<StructPlaceholder>
+{
+    using Type = uint8_t;
+};
+
+template <>
+struct SampleTypeToBufferType<std::chrono::system_clock::time_point>
+{
+    using Type = uint64_t;
+};
 
 struct PyTypedReader
 {
-    struct StructPlaceholder
-    {
-    };
-
-    template <typename ValueType>
-    struct SampleTypeToBufferType
-    {
-        using Type = ValueType;
-    };
-
-    template <>
-    struct SampleTypeToBufferType<StructPlaceholder>
-    {
-        using Type = uint8_t;
-    };
-
-    template <>
-    struct SampleTypeToBufferType<std::chrono::system_clock::time_point>
-    {
-        using Type = uint64_t;
-    };
-
     static constexpr const char* VALUE_DATA_DESCRIPTOR_ATTRIBUTE = "__value_data_descriptor";
     static constexpr const char* DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE = "__domain_data_descriptor";
 
@@ -693,5 +652,45 @@ private:
             }
         }
         return {valueDescriptor, domainDescriptor};
+    }
+
+    static inline unsigned sampleTypeToNpyType(daq::SampleType sampleType)
+    {
+        switch (sampleType)
+        {
+            case daq::SampleType::Float32:
+                return py::detail::npy_api::NPY_FLOAT_;
+            case daq::SampleType::Float64:
+                return py::detail::npy_api::NPY_DOUBLE_;
+            case daq::SampleType::UInt8:
+                return py::detail::npy_api::NPY_UINT8_;
+            case daq::SampleType::Int8:
+                return py::detail::npy_api::NPY_INT8_;
+            case daq::SampleType::UInt16:
+                return py::detail::npy_api::NPY_UINT16_;
+            case daq::SampleType::Int16:
+                return py::detail::npy_api::NPY_INT16_;
+            case daq::SampleType::UInt32:
+                return py::detail::npy_api::NPY_UINT32_;
+            case daq::SampleType::Int32:
+                return py::detail::npy_api::NPY_INT32_;
+            case daq::SampleType::UInt64:
+                return py::detail::npy_api::NPY_UINT64_;
+            case daq::SampleType::Int64:
+                return py::detail::npy_api::NPY_INT64_;
+            case daq::SampleType::ComplexFloat32:
+                return py::detail::npy_api::NPY_CFLOAT_;
+            case daq::SampleType::ComplexFloat64:
+                return py::detail::npy_api::NPY_CDOUBLE_;
+            case daq::SampleType::String:
+                return py::detail::npy_api::NPY_STRING_;
+            case daq::SampleType::Struct:
+                return py::detail::npy_api::NPY_VOID_;
+            case daq::SampleType::Undefined:
+            case daq::SampleType::RangeInt64:
+            case daq::SampleType::Binary:
+            default:
+                throw daq::InvalidParameterException("Invalid sample type");
+        }
     }
 };

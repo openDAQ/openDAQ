@@ -411,7 +411,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockT
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* /*config*/)
 {
     if (functionBlock == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;

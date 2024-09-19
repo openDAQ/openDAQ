@@ -12,6 +12,7 @@
 #include <opcuatms_client/objects/tms_client_io_folder_factory.h>
 #include <opcuatms_client/objects/tms_client_server_capability_factory.h>
 #include <opcuatms_client/objects/tms_client_sync_component_factory.h>
+#include <opcuatms_client/objects/tms_client_property_factory.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <open62541/daqbt_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
@@ -85,6 +86,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
+    findAndCreateProporties();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -256,6 +258,21 @@ void TmsClientDeviceImpl::findAndCreateSyncComponent()
                                        "Synchronization",
                                        clientContext,
                                        syncComponentNodeId));
+}
+
+void TmsClientDeviceImpl::findAndCreateProporties()
+{
+    this->removeProperty(String("userName"));
+    auto username = getNodeId("UserName");
+    addProperty(String("userName"), TmsClientProperty(context, 
+                                                      clientContext, 
+                                                      username));
+
+    this->removeProperty(String("location"));
+    auto location = getNodeId("Location");
+    addProperty(String("location"), TmsClientProperty(context, 
+                                                      clientContext, 
+                                                      location));
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

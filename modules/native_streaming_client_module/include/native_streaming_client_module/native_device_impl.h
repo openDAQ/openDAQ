@@ -87,9 +87,8 @@ private:
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper) = 0;
-    virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
+    virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
 };
 
 class NativeDeviceImpl final : public config_protocol::GenericConfigClientDeviceImpl<config_protocol::ConfigClientDeviceBase<INativeDevicePrivate>>
@@ -106,10 +105,8 @@ public:
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper) override;
-    void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
     void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
-
+    void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -118,7 +115,9 @@ protected:
     void removed() override;
 
 private:
-    void initStatuses(const ContextPtr& ctx);
+    void initStatuses();
+    void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
+    void updateDeviceInfo(const StringPtr& connectionString);
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
     bool deviceInfoSet;

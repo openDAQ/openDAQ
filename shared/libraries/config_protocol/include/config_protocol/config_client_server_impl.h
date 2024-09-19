@@ -30,7 +30,8 @@ public:
                            const std::string& remoteGlobalId,
                            const StringPtr& id,
                            const DevicePtr& parentDevice,
-                           const ContextPtr& ctx);
+                           const ContextPtr& ctx,
+                           const ComponentPtr& parentFolder);
 
     // IServer
     ErrCode INTERFACE_FUNC enableDiscovery() override;
@@ -47,8 +48,9 @@ inline ConfigClientServerImpl::ConfigClientServerImpl(
     const std::string& remoteGlobalId,
     const StringPtr& id,
     const DevicePtr& parentDevice,
-    const ContextPtr& ctx)
-    : Super(configProtocolClientComm, remoteGlobalId, id, nullptr, parentDevice, ctx)
+    const ContextPtr& ctx,
+    const ComponentPtr& parentFolder)
+    : Super(configProtocolClientComm, remoteGlobalId, id, nullptr, parentDevice, ctx, parentFolder)
 {
 }
 
@@ -85,7 +87,8 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                            const auto id = serialized.readString("id");
                            DevicePtr parentDevice;
 
-                           if (const auto parentFolder = deserializeContext.getParent(); parentFolder.assigned())
+                           const auto parentFolder = deserializeContext.getParent();
+                           if (parentFolder.assigned())
                            {
                                if (parentFolder.getLocalId() == "Srv" &&
                                    parentFolder.getParent().assigned() &&
@@ -100,7 +103,8 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                                configDeserializeContext->getRemoteGlobalId(),
                                id,
                                parentDevice,
-                               deserializeContext.getContext());
+                               deserializeContext.getContext(),
+                               parentFolder);
                        })
                        .detach();
         });

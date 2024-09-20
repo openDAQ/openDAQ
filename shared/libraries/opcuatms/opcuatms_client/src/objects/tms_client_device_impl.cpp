@@ -264,15 +264,15 @@ void TmsClientDeviceImpl::findAndCreateProporties()
 {
     this->removeProperty(String("userName"));
     auto username = getNodeId("UserName");
-    addProperty(String("userName"), TmsClientProperty(context, 
-                                                      clientContext, 
-                                                      username));
+    addProperty(TmsClientProperty(context, 
+                                  clientContext, 
+                                  username));
 
     this->removeProperty(String("location"));
     auto location = getNodeId("Location");
-    addProperty(String("location"), TmsClientProperty(context, 
-                                                      clientContext, 
-                                                      location));
+    addProperty(TmsClientProperty(context, 
+                                  clientContext, 
+                                  location));
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

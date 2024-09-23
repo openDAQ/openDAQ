@@ -1,3 +1,13 @@
+23.09.2024
+Description:
+    - Enable multireader to be manually set inactive to drop data packets
+    - Add validation of unit parameters for power-reader function block input voltage signal
+Required integration changes:
+    - Unit symbol should be set to "V" within the unit object assigned for voltage input signal descriptor of "RefFBModulePowerReader" function block
+
++ [function] IMultiReader::setActive(Bool isActive)
++ [function] IMultiReader::getActive(Bool* isActive)
+
 11.09.2024
 Description:
     - Enable client-to-device streaming feature within the Native protocol

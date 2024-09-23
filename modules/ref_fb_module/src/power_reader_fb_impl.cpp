@@ -211,13 +211,12 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
             powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
 
         powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
-        powerSignal.setDescriptor(powerDataDescriptor);
-
         powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
 
-        powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
-
         reader.setActive(True);
+
+        powerSignal.setDescriptor(powerDataDescriptor);
+        powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
     }
     catch (const std::exception& e)
     {

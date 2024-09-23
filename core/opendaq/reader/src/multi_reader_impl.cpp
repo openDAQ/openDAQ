@@ -1188,7 +1188,8 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
         if (signalReader.port.assigned())
             signalReader.port.setActive(this->isActive);
 
-        signalReader.skipUntilLastEventPacket();
+        if (modified && !this->isActive)
+            signalReader.skipUntilLastEventPacket();
     }
 
     return OPENDAQ_SUCCESS;

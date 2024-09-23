@@ -3973,7 +3973,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReaderNew.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, NUM_SAMPLES);
 }
 
 TEST_F(MultiReaderTest, MultiReaderActiveFromPorts)

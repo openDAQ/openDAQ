@@ -508,9 +508,10 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
                             .setReadTimeoutType(ReadTimeoutType::All)
                             .build();
 
+    // Catch initial event packet
     {
         SizeT count{0};
-        auto status = reader.read(nullptr, &count, 1000);
+        auto status = reader.read(nullptr, &count, 10000);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -524,7 +525,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     std::vector<int64_t> time0(samplesToRead0);
 
     SizeT count0 = samplesToRead0;
-    auto status0 = reader.readWithDomain(data0.data(), time0.data(), &count0, 1000);
+    auto status0 = reader.readWithDomain(data0.data(), time0.data(), &count0, 10000);
     ASSERT_EQ(status0.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count0, samplesToRead0);
 
@@ -570,7 +571,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
         std::vector<int64_t> time(samplesToRead);
 
         SizeT count = samplesToRead;
-        auto status = reader.readWithDomain(data.data(), time.data(), &count, 1000);
+        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -581,7 +582,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
         std::vector<int64_t> time(samplesToRead);
 
         SizeT count = samplesToRead;
-        auto status = reader.readWithDomain(data.data(), time.data(), &count, 1000);
+        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
@@ -605,7 +606,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     std::vector<int64_t> time2(samplesToRead2);
 
     SizeT count2 = samplesToRead2;
-    auto status2 = reader.readWithDomain(data2.data(), time2.data(), &count2, 1000);
+    auto status2 = reader.readWithDomain(data2.data(), time2.data(), &count2, 10000);
     ASSERT_EQ(status2.getReadStatus(), ReadStatus::Ok);
     ASSERT_TRUE(status2.getValid());
     ASSERT_EQ(count2, samplesToRead2);

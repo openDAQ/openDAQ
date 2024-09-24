@@ -8,10 +8,6 @@ import numpy as np
 class TestPacket(opendaq_test.TestCase):
 
     def test_packet(self):
-        #it looks like the test is causing memory leak in current version of readers
-        #when keeping the descriptors as object attributes
-        self.expect_memory_leak = True
-        
         test_raw_data = np.arange(0, 10, 1, dtype=np.int32)
         test_scaled_data = np.arange(0.0, 1.0, 0.1, dtype=np.float64)
     
@@ -52,6 +48,6 @@ class TestPacket(opendaq_test.TestCase):
         
         self.assertTrue(np.array_equal(values, test_scaled_data))
         self.assertTrue(np.array_equal(time, np.arange(10, dtype=np.int64)))
-                
+
 if __name__ == '__main__':
     unittest.main()

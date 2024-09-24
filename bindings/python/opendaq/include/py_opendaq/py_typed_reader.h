@@ -607,10 +607,11 @@ private:
     }
 
     template <typename ReaderType>
-    static void setDescriptor(const ReaderType& reader, const char* attribute_name, daq::DataDescriptorPtr descriptor)
+    static void setDescriptor(const ReaderType& reader, const char* attribute_name, daq::DataDescriptorPtr&& descriptor)
     {
         auto pyObject = py::cast(InterfaceWrapper<typename ReaderType::DeclaredInterface>(reader.addRefAndReturn()));
-        pyObject.attr(attribute_name) = descriptor.detach();
+        auto pyDesc = py::cast(InterfaceWrapper(descriptor.detach()));
+        pyObject.attr(attribute_name) = pyDesc;
     }
 
     template <typename ReaderType>
@@ -618,9 +619,9 @@ private:
     {
         auto [dataDescriptor, domainDescriptor] = getDescriptorsFromStatus(status);
         if (dataDescriptor.assigned())
-            setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, dataDescriptor);
+            setDescriptor(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE, std::move(dataDescriptor));
         if (domainDescriptor.assigned())
-            setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, domainDescriptor);
+            setDescriptor(reader, DOMAIN_DATA_DESCRIPTOR_ATTRIBUTE, std::move(domainDescriptor));
     }
 
     template <typename ReaderStatusType>

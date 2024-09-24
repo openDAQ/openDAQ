@@ -166,7 +166,7 @@ daq::DataDescriptorPtr MockSignal::createDataDescriptor(const py::object& object
         const auto& list = py::cast<py::list>(object);
         if (list.empty())
         {
-            throw py::value_error("Cannot create DataDescroptor from empty list");
+            throw py::value_error("Cannot create DataDescriptor from empty list");
         }
 
         const auto& first = list[0];

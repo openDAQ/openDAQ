@@ -3,6 +3,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
+#include <opendaq/data_descriptor_factory.h>
 
 namespace daq::packet_streaming
 {
@@ -78,15 +79,17 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
         if (BaseObjectPtr::Equals(packet, getDataDescriptorChangedEventPacket(signalId)))
             forwardPacket = false;
 
+        const DataDescriptorPtr valueDescriptorParam = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        const DataDescriptorPtr domainDescriptorParam = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         std::scoped_lock lock(descriptorsSync);
-        if (packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
+        if (valueDescriptorParam.assigned())
             dataDescriptors.insert_or_assign(
                 signalId,
-                packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR));
-        if (packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).assigned())
+                valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr);
+        if (domainDescriptorParam.assigned())
             domainDescriptors.insert_or_assign(
                 signalId,
-                packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+                domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr);
     }
 
     if (forwardPacket)

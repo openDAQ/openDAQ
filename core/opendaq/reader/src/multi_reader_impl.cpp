@@ -8,6 +8,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <fmt/ostream.h>
 #include <set>
@@ -694,15 +695,15 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
         if (i == 0 && packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
             auto params = packet.getParameters();
-            DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-            DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-            if (newValueDescriptor.assigned())
+            DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+            DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            if (valueDescriptorParam.assigned())
             {
-                mainValueDescriptor = newValueDescriptor;
+                mainValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
             }
-            if (newDomainDescriptor.assigned())
+            if (domainDescriptorParam.assigned())
             {
-                mainDomainDescriptor = newDomainDescriptor;
+                mainDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
             }
         }
     }

@@ -131,6 +131,7 @@ static bool isSampleTypeConvertibleTo(SampleType sampleType)
             return std::is_convertible_v<SampleTypeToType<SampleType::String>::Type, TReadType>;
         case SampleType::Struct:
         case SampleType::Invalid:
+        case SampleType::Null:
         case SampleType::_count:
             break;
     }
@@ -197,6 +198,8 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
             return readValues<SampleTypeToType<SampleType::Struct>::Type>(inputBuffer, offset, outputBuffer, count);
         case SampleType::Invalid:
             return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+        case SampleType::Null:
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered", nullptr);
         case SampleType::_count:
             break;
     }
@@ -246,6 +249,8 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
             );
         case SampleType::Invalid:
             return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+        case SampleType::Null:
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered", nullptr);
         case SampleType::_count:
             break;
     }
@@ -519,6 +524,7 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
             return std::make_unique<UndefinedReader>(transformFunction);
         case SampleType::Binary:
         case SampleType::String:
+        case SampleType::Null:
         case SampleType::_count:
             break;
     }
@@ -563,6 +569,8 @@ std::string_view format_as(SampleType sampleType)
             return "Binary";
         case SampleType::String:
             return "String";
+        case SampleType::Null:
+            return "Null";
         case SampleType::_count:
             return "Count";
     }

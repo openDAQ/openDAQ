@@ -262,11 +262,11 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
     if (domainSignalObj.assigned())
         domainDataDescriptor = domainSignalObj.getDescriptor();
     if (!domainDataDescriptor.assigned())
-        domainDataDescriptor = DataDescriptorBuilder().build();
+        domainDataDescriptor = NullDataDescriptor();
 
     DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
     if (!dataDescriptorObj.assigned())
-        dataDescriptorObj = DataDescriptorBuilder().build();
+        dataDescriptorObj = NullDataDescriptor();
 
     EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
     return packet;

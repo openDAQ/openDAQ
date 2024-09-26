@@ -138,6 +138,7 @@ void PowerFbImpl::processPackets()
 
                     if (voltageEventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                     {
+                        // TODO handle Null-descriptor params ('Null' sample type descriptors)
                         DataDescriptorPtr valueDataDescriptor = voltageEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                         DataDescriptorPtr domainDataDescriptor =
                             voltageEventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
@@ -166,6 +167,7 @@ void PowerFbImpl::processPackets()
 
                     if (currentEventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                     {
+                        // TODO handle Null-descriptor params ('Null' sample type descriptors)
                         DataDescriptorPtr valueSignalDescriptor =
                             currentEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                         DataDescriptorPtr domainSignalDescriptor =

@@ -33,13 +33,13 @@ FunctionBlockTypePtr StructDecoderFbImpl::CreateType()
     return FunctionBlockType("RefFBModuleStructDecoder", "Struct decoder", "Decodes signals with struct data type and outputs signal for each struct component.");
 }
 
-void StructDecoderFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                         const DataDescriptorPtr& inputDomainDataDescriptor)
+void StructDecoderFbImpl::processSignalDescriptorChangedParams(const DataDescriptorPtr& dataDescriptorParam,
+                                                               const DataDescriptorPtr& domainDataDescriptorParam)
 {
-    if (inputDataDescriptor.assigned())
-        this->inputDataDescriptor = inputDataDescriptor;
-    if (inputDomainDataDescriptor.assigned())
-        this->inputDomainDataDescriptor = inputDomainDataDescriptor;
+    if (dataDescriptorParam.assigned())
+        this->inputDataDescriptor = dataDescriptorParam != NullDataDescriptor() ? dataDescriptorParam : nullptr;
+    if (domainDataDescriptorParam.assigned())
+        this->inputDomainDataDescriptor = domainDataDescriptorParam != NullDataDescriptor() ? domainDataDescriptorParam : nullptr;
 
     configure();
 }
@@ -140,9 +140,9 @@ void StructDecoderFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
+        const DataDescriptorPtr dataDescriptorParam = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        const DataDescriptorPtr domainDataDescriptorParam = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        processSignalDescriptorChangedParams(dataDescriptorParam, domainDataDescriptorParam);
     }
 }
 

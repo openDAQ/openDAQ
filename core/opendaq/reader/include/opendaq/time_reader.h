@@ -287,6 +287,8 @@ inline void TimeReaderBase::readData(void* inputBuffer, std::chrono::system_cloc
             throw NotSupportedException("Struct, string or binary values as time domain are not supported.");
         case SampleType::Invalid:
             throw InvalidStateException("Unknown raw data-type, conversion not possible.");
+        case SampleType::Null:
+            throw InvalidSampleTypeException("Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }

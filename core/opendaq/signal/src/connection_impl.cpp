@@ -6,6 +6,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/custom_log.h>
 
+#include "opendaq/data_descriptor_factory.h"
 #include "opendaq/packet_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -621,9 +622,11 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         const auto params = packet.getParameters();
-        const DataDescriptorPtr valueDescriptor = params.get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr domainDescriptor = params.get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        if (!domainDescriptor.assigned())
+        const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        bool domainDescriptorChanged = domainDescriptorParam.assigned();
+        const DataDescriptorPtr domainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+
+        if (!domainDescriptorChanged)
         {
             if (gapCheckState == GapCheckState::uninitialized)
             {
@@ -632,6 +635,13 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
             }
 
             // domain not changed, keep state as it is
+            return;
+        }
+
+        if (!domainDescriptor.assigned())
+        {
+            LOGP_T("Gap check not available, domain descriptor is not assigned.")
+            gapCheckState = GapCheckState::not_available;
             return;
         }
 

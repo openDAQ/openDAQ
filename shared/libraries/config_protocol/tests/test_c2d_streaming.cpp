@@ -94,8 +94,18 @@ TEST_F(StreamingProducerTest, ConnectDisconnectRegisteredSignal)
     auto valueSignal = signals[0];
     auto domainSignal = valueSignal.getDomainSignal();
 
-    auto eventPacketValueSignal = DataDescriptorChangedEventPacket(valueSignal.getDescriptor(), domainSignal.getDescriptor());
-    auto eventPacketDomainSignal = DataDescriptorChangedEventPacket(domainSignal.getDescriptor(), nullptr);
+    auto eventPacketValueSignal =
+        DataDescriptorChangedEventPacket(valueSignal.getDescriptor().assigned()
+                                             ? valueSignal.getDescriptor()
+                                             : NullDataDescriptor(),
+                                         domainSignal.getDescriptor().assigned()
+                                             ? domainSignal.getDescriptor()
+                                             : NullDataDescriptor());
+    auto eventPacketDomainSignal =
+        DataDescriptorChangedEventPacket(domainSignal.getDescriptor().assigned()
+                                             ? domainSignal.getDescriptor()
+                                             : NullDataDescriptor(),
+                                         NullDataDescriptor());
 
     std::unordered_map<SignalNumericIdType, std::tuple<PacketPtr, std::promise<void>, std::future<void>>> streamingData;
     auto sendDaqPacketLambda =

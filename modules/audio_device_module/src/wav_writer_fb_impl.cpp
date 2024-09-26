@@ -179,12 +179,16 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
         stopStoreInternal();
         const auto params = packet.getParameters();
 
-        const DataDescriptorPtr valueSignalDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr domainSignalDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+        DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        bool valueDescriptorChanged = valueDescriptorParam.assigned();
+        bool domainDescriptorChanged = domainDescriptorParam.assigned();
+        const DataDescriptorPtr valueSignalDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
+        const DataDescriptorPtr domainSignalDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
 
-        if (valueSignalDescriptor.assigned())
+        if (valueDescriptorChanged)
             inputValueDataDescriptor = valueSignalDescriptor;
-        if (domainSignalDescriptor.assigned())
+        if (domainDescriptorChanged)
             inputTimeDataDescriptor = domainSignalDescriptor;
     }
 }

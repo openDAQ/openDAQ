@@ -3,6 +3,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -33,10 +34,11 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
             auto eventPacket = packet.asPtr<IEventPacket>();
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                auto dataDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                if (dataDescriptor.assigned())
+                const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                if (dataDescriptorParam.assigned())
                 {
-                    registeredSignal.lastDataDescriptor = dataDescriptor;
+                    registeredSignal.lastDataDescriptor =
+                        dataDescriptorParam != NullDataDescriptor() ? dataDescriptorParam : nullptr;
                 }
             }
         }

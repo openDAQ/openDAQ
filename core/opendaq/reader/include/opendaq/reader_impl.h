@@ -24,6 +24,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
 #include <coretypes/number_ptr.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <mutex>
 #include <utility>
@@ -389,11 +390,15 @@ protected:
             return;
 
         auto params = eventPacket.getParameters();
-        DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-        DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+        DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        bool valueDescriptorChanged = valueDescriptorParam.assigned();
+        bool domainDescriptorChanged = domainDescriptorParam.assigned();
+        DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
+        DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
 
-        // Check if value is stil convertible
-        if (newValueDescriptor.assigned() && newValueDescriptor.getSampleType() != SampleType::Invalid)
+        // Check if value is still convertible
+        if (valueDescriptorChanged && newValueDescriptor.assigned())
         {
             dataDescriptor = newValueDescriptor;
             if (valueReader->isUndefined())
@@ -408,8 +413,8 @@ protected:
             }
         }
 
-        // Check if domain is stil convertible
-        if (newDomainDescriptor.assigned() && newDomainDescriptor.getSampleType() != SampleType::Invalid)
+        // Check if domain is still convertible
+        if (domainDescriptorChanged && newDomainDescriptor.assigned())
         {
             domainDescriptor = newDomainDescriptor;
             if (domainReader->isUndefined())

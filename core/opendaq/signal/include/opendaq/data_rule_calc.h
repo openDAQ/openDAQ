@@ -264,6 +264,7 @@ static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, Samp
         case SampleType::Invalid:
         case SampleType::String:
         case SampleType::Struct:
+        case SampleType::Null:
         case SampleType::_count:
             break;
     }

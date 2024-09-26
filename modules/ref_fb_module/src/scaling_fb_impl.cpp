@@ -123,8 +123,11 @@ void ScalingFbImpl::configure()
 
     try
     {
-        if (inputDomainDataDescriptor.getSampleType() == SampleType::Invalid)
-            throw std::runtime_error("No domain");
+        if (inputDomainDataDescriptor == NullDataDescriptor())
+            throw std::runtime_error("No domain input");
+
+        if (inputDataDescriptor == NullDataDescriptor())
+            throw std::runtime_error("No value input");
 
         if (inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Arrays not supported");

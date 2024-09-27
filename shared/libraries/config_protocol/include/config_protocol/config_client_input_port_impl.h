@@ -40,6 +40,8 @@ public:
 
     ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
 
+    ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -135,6 +137,44 @@ inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
         return Super::disconnect();
     return Super::connect(signal);
 }
+
+inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+
+    return daqTry(
+        [this, &signal, &accepts]
+        {
+            if (clientComm->getConnected() && this->deserializationComplete)
+            {
+                // return Super::acceptsSignal(signal, accepts);
+                const auto signalPtr = SignalPtr::Borrow(signal);
+                if (!isSignalFromTheSameComponentTree(signalPtr))
+                    return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+
+                const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+                if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+                {
+                    StringPtr signalRemoteGlobalId;
+                    checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+
+                    auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
+
+                    *accepts = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                    return OPENDAQ_SUCCESS;
+                }
+                *accepts = False;
+                /*if (clientComm->getProtocolVersion() >= 2)
+                    clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+                else
+                    return makeErrorInfo(
+                        OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
+                        "Client-to-device streaming operations are not supported by the protocol version currently in use");*/
+            }
+        });
+}
+
 
 inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {

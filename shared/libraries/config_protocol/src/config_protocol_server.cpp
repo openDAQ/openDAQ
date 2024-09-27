@@ -151,7 +151,9 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
+
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
+    addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -399,6 +401,13 @@ BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& p
 
     streamingConsumer.removeExternalSignals(params);
     return nullptr;
+}
+
+BaseObjectPtr ConfigProtocolServer::acceptsSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    return ConfigServerInputPort::accepts(protocolVersion, inputPort, signal, user);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

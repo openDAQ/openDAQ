@@ -38,6 +38,7 @@
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
 #include <set>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -91,11 +92,16 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC lock(IUser* user) override;
+    ErrCode INTERFACE_FUNC unlock(IUser* user) override;
+    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
     ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC lockInternal(IUser* user) override;
+    ErrCode INTERFACE_FUNC unlockInternal(IUser* user) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -133,6 +139,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     PropertyObjectPtr deviceConfig;
     bool isRootDevice;
+    std::optional<UserPtr> userLock;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -184,6 +191,8 @@ private:
     ListPtr<IChannel> getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursive(const SearchFilterPtr& searchFilter);
     ListPtr<IDevice> getDevicesRecursive(const SearchFilterPtr& searchFilter);
+    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user);
+    ErrCode revertUnlockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user);
 
     DeviceDomainPtr deviceDomain;
 };
@@ -291,6 +300,25 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObjec
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
+{
+    if (this->userLock.has_value() && this->userLock != user)
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
+    this->userLock = user;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::unlockInternal(IUser* user)
+{
+    if (this->userLock.has_value() && this->userLock != nullptr && this->userLock != user)
+        return OPENDAQ_ERR_ACCESSDENIED;
+
+    this->userLock.reset();
+    return OPENDAQ_SUCCESS;
+}
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInputsOutputsFolder(IFolder** inputsOutputsFolder)
@@ -740,6 +768,82 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
     return this->servers->getItems(servers);
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
+{
+    ErrCode status = OPENDAQ_SUCCESS;
+
+    ListPtr<IDevice> devices;
+    this->getDevices(&devices, search::Recursive(search::Any()));
+    std::vector<bool> lockStatuses(devices.getCount());
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+        lockStatuses[i] = devices[i].isLocked();
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+    {
+        status = devices[i].asPtr<IDevicePrivate>()->lockInternal(user);
+
+        if (OPENDAQ_FAILED(status))
+        {
+            const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user);
+
+            if (OPENDAQ_FAILED(revertStatus))
+                return revertStatus;
+
+            break;
+        }
+    }
+
+    if (OPENDAQ_SUCCEEDED(status))
+        return lockInternal(user);
+
+    return status;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
+{
+    ErrCode status = unlockInternal(user);
+
+    if (OPENDAQ_FAILED(status))
+        return status;
+
+    ListPtr<IDevice> devices;
+    this->getDevices(&devices, search::Recursive(search::Any()));
+    std::vector<bool> lockStatuses(devices.getCount());
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+        lockStatuses[i] = devices[i].isLocked();
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+    {
+        status = devices[i].asPtr<IDevicePrivate>()->unlockInternal(user);
+
+        if (OPENDAQ_FAILED(status))
+        {
+            const auto revertStatus = revertUnlockedDevices(devices, lockStatuses, i, user);
+
+            if (OPENDAQ_FAILED(revertStatus))
+                return revertStatus;
+
+            return status;
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
+{
+    OPENDAQ_PARAM_NOT_NULL(locked);
+
+    *locked = this->userLock.has_value();
+    return OPENDAQ_SUCCESS;
+}
+
+
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter)
 {
@@ -1013,6 +1117,44 @@ ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(c
         devList.pushBack(dev);
 
     return devList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(ListPtr<IDevice> devices,
+                                                                      const std::vector<bool> targetLockStatuses,
+                                                                      size_t deviceCount,
+                                                                      IUser* user)
+{
+    for (size_t i = 0; i < deviceCount; i++)
+    {
+        if (targetLockStatuses[i])
+            continue;
+
+        const auto status = devices[i].asPtr<IDevicePrivate>()->unlockInternal(user);
+
+        if (status != OPENDAQ_SUCCESS)
+            return status;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::revertUnlockedDevices(ListPtr<IDevice> devices,
+                                                                        const std::vector<bool> targetLockStatuses,
+                                                                        size_t deviceCount,
+                                                                        IUser* user)
+{
+    for (size_t i = 0; i < deviceCount; i++)
+    {
+        if (!targetLockStatuses[i])
+            continue;
+
+        const auto status = devices[i].asPtr<IDevicePrivate>()->lockInternal(user);
+
+        if (status != OPENDAQ_SUCCESS)
+            return status;
+    }
 }
 
 template <typename TInterface, typename ... Interfaces>

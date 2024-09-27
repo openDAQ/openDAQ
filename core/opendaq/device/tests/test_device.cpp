@@ -14,6 +14,7 @@
 #include <opendaq/channel_impl.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/server_impl.h>
+#include <coreobjects/user_factory.h>
 
 using DeviceTest = testing::Test;
 
@@ -270,4 +271,58 @@ TEST_F(DeviceTest, BeginUpdateEndUpdate)
 
     ASSERT_EQ(dev.getPropertyValue("DevProp"), "s");
     ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}
+
+TEST_F(DeviceTest, LockUnlock)
+{
+    const auto jure = daq::User("jure", "jure");
+    const auto tomaz = daq::User("tomaz", "tomaz");
+
+    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+
+    ASSERT_FALSE(device.isLocked());
+
+    device.lock(jure);
+    ASSERT_TRUE(device.isLocked());
+
+    ASSERT_THROW(device.lock(tomaz), daq::DeviceLockedException);
+    ASSERT_THROW(device.unlock(tomaz), daq::AccessDeniedException);
+
+    device.unlock(jure);
+    ASSERT_FALSE(device.isLocked());
+
+    ASSERT_NO_THROW(device.unlock(jure));
+    ASSERT_NO_THROW(device.unlock(tomaz));
+}
+
+TEST_F(DeviceTest, LockUnlockAnonymous)
+{
+    const auto jure = daq::User("jure", "jure");
+    const auto tomaz = daq::User("tomaz", "tomaz");
+
+    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+
+    ASSERT_FALSE(device.isLocked());
+
+    device.lock();
+    ASSERT_TRUE(device.isLocked());
+
+    ASSERT_THROW(device.lock(jure), daq::DeviceLockedException);
+    ASSERT_THROW(device.lock(tomaz), daq::DeviceLockedException);
+
+    // unlock anonymous
+    device.unlock();
+    ASSERT_FALSE(device.isLocked());
+
+    // unlock jure
+    device.lock();
+    ASSERT_TRUE(device.isLocked());
+    device.unlock(jure);
+    ASSERT_FALSE(device.isLocked());
+
+    // unlock tomaz
+    device.lock();
+    ASSERT_TRUE(device.isLocked());
+    device.unlock(tomaz);
+    ASSERT_FALSE(device.isLocked());
 }

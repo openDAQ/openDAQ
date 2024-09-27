@@ -77,6 +77,9 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC lock(IUser* user) override;
+    ErrCode INTERFACE_FUNC unlock(IUser* user) override;
+    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;

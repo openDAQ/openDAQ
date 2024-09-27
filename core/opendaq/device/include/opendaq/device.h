@@ -25,6 +25,7 @@
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/server.h>
+#include <coreobjects/user.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: DevicePtr)]
  * [interfaceSmartPtr(IDevice, GenericDevicePtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
+ * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
  */
 
 /*!
@@ -302,6 +304,26 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] servers List of added servers.
      */
     virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
+
+    /*!
+     * @brief Lock a device with a specific user. Once locked, no properties of the device can be changed via the protocol layer.
+     * Only the same user who locked the device can unlock it. If the user is not provided, anyone will be able to unlock the device.
+     * @param user User who is locking the device.
+     */
+    virtual ErrCode INTERFACE_FUNC lock(IUser* user = nullptr) = 0;
+
+    /*!
+     * @brief Unlock a device. Only the same user who locked the device can unlock it. If the device was locked without a user,
+     * anyone will be able to unlock the device.
+     * @param user User who is unlocking the device.
+     */
+    virtual ErrCode INTERFACE_FUNC unlock(IUser * user = nullptr) = 0;
+
+    /*!
+     * @brief Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.
+     * @param[out] locked True if device is locked.
+     */
+    virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;
 };
 /*!@}*/
 

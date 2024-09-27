@@ -175,6 +175,30 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
+void ConfigProtocolClientComm::lock(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    sendCommand("Lock", params);
+}
+
+void ConfigProtocolClientComm::unlock(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    sendCommand("Unlock", params);
+}
+
+bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    return sendCommand("IsLocked", params);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();

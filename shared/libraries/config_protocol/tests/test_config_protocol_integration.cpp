@@ -607,3 +607,10 @@ TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
     ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);
     ASSERT_THROW(clientDevice.getOnPropertyValueRead("location"), NativeClientCallNotAvailableException);
 }
+
+TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
+{
+    auto signal = clientDevice.getSignals()[0];
+    auto accepts = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(signal);
+    ASSERT_TRUE(accepts);
+}

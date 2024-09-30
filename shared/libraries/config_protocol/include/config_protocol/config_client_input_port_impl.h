@@ -161,7 +161,8 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 
                     auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
 
-                    *accepts = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                    BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                    *accepts = acceptsPtr.getValue(False);
                     return OPENDAQ_SUCCESS;
                 }
                 *accepts = False;

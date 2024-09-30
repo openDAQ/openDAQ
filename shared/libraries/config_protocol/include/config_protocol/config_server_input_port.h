@@ -66,7 +66,7 @@ inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
     ConfigServerAccessControl::protectObject(inputPort, user, Permission::Read);
     ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 
-    return inputPort.acceptsSignal(signal);
+    return Boolean(inputPort.acceptsSignal(signal));
 }
 
 }

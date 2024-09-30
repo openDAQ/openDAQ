@@ -450,9 +450,10 @@ inline MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals,
                                     ReadMode mode = ReadMode::Scaled,
                                     ReadTimeoutType timeoutType = ReadTimeoutType::All,
                                     Int requiredCommonSampleRate = -1,
-                                    bool startOnFullUnitOfDomain = false)
+                                    bool startOnFullUnitOfDomain = false,
+                                    SizeT minReadCount = 1)
 {
-    return MultiReaderEx_Create(signals, valueReadType, domainReadType, mode, timeoutType, requiredCommonSampleRate, startOnFullUnitOfDomain);
+    return MultiReaderEx_Create(signals, valueReadType, domainReadType, mode, timeoutType, requiredCommonSampleRate, startOnFullUnitOfDomain, minReadCount);
 }
 
 inline MultiReaderPtr MultiReaderFromExisting(const MultiReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)

@@ -371,7 +371,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
 
             if (overrideMethod && port.getConnection().assigned())
-                throw InvalidParameterException("Signal has to be connected to the port before the reader is created");
+                throw InvalidParameterException("Signal has been connected to the port before the reader is created");
 
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);

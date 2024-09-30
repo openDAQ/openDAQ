@@ -146,9 +146,12 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
-            if (clientComm->getConnected() && this->deserializationComplete)
+            if (!this->deserializationComplete)
+                return Super::acceptsSignal(signal, accepts);
+
+            if (clientComm->getProtocolVersion() >= 4)
             {
-                // return Super::acceptsSignal(signal, accepts);
+                // if (clientComm->getConnected()) // TODO???
                 const auto signalPtr = SignalPtr::Borrow(signal);
                 if (!isSignalFromTheSameComponentTree(signalPtr))
                     return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
@@ -166,12 +169,11 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
                     return OPENDAQ_SUCCESS;
                 }
                 *accepts = False;
-                /*if (clientComm->getProtocolVersion() >= 2)
-                    clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
-                else
-                    return makeErrorInfo(
-                        OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
-                        "Client-to-device streaming operations are not supported by the protocol version currently in use");*/
+            }
+            else
+            {
+                return makeErrorInfo(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
+                                     "Client-to-device streaming operations are not supported by the protocol version currently in use");
             }
         });
 }

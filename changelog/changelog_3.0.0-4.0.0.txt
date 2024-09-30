@@ -1,3 +1,15 @@
+4.10.2024
+Description:
+    - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
+      than "min read count" samples in the queue and there's an event after those samples, it will discard the samples and return event.
+
+Required integration changes: None
+
++ [function] IMultiReaderBuilder::setMinReadCount(SizeT minReadCount)
++ [function] IMultiReaderBuilder::getMinReadCount(SizeT* minReadCount)
+-m [factory] MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false)
++m [factory] MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false,  SizeT minReadCount = 1)
+
 03.10.2024
 Description:
     - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property

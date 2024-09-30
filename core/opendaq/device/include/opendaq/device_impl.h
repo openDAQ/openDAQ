@@ -1155,6 +1155,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertUnlockedDevices(ListPtr<
         if (status != OPENDAQ_SUCCESS)
             return status;
     }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>

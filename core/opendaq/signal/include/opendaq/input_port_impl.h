@@ -188,7 +188,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 
         auto signalPtr = SignalPtr::Borrow(signal);
         Bool accepted;
-        err = this->acceptsSignal(signalPtr, &accepted);
+        err = this->GenericInputPortImpl::acceptsSignal(signalPtr, &accepted); // TODO ???
         if (OPENDAQ_FAILED(err))
             return err;
 

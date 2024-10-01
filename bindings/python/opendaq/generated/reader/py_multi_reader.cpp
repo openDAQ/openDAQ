@@ -96,4 +96,16 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
             return objectPtr.getCommonSampleRate();
         },
         "Gets the common sample rate in case input signal have different rates. The value of common sample rate is such that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple of individual signal's sample rates. The number of samples to be read is specified in common sample rate.");
+    cls.def_property("active",
+        [](daq::IMultiReader *object)
+        {
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            return objectPtr.getActive();
+        },
+        [](daq::IMultiReader *object, const bool isActive)
+        {
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            objectPtr.setActive(isActive);
+        },
+        "Gets / Sets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.");
 }

@@ -17,8 +17,8 @@ Description:
 Required integration changes:
     - Breaks binary compatibility
 
-+ [function] IDevice::lock(IUser* user = nullptr)
-+ [function] IDevice::unlock(IUser* user = nullptr)
++ [function] IDevice::lock()
++ [function] IDevice::unlock()
 + [function] IDevice::isLocked(Bool* locked)
 
 23.09.2024

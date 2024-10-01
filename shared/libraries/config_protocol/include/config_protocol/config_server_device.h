@@ -19,6 +19,7 @@
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/component_holder_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/device_private_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -98,13 +99,13 @@ inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const RpcContext& c
 
 inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
-    device.lock(context.user);
+    device.asPtr<IDevicePrivate>().lock(context.user);
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
-    device.unlock(context.user);
+    device.asPtr<IDevicePrivate>().unlock(context.user);
     return nullptr;
 }
 

@@ -8,6 +8,7 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
+#include <opendaq/device_private_ptr.h>
 
 
 using namespace daq;
@@ -103,7 +104,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, LockRecursive)
     ASSERT_FALSE(subDevices[0].isLocked());
     ASSERT_FALSE(subDevices[1].isLocked());
 
-    device.lock(UserTomaz);
+    device.asPtr<IDevicePrivate>().lock(UserTomaz);
     ASSERT_TRUE(device.isLocked());
     ASSERT_TRUE(subDevices[0].isLocked());
     ASSERT_TRUE(subDevices[1].isLocked());
@@ -113,7 +114,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, UnlockRecursive)
 {
     auto device = createDevice();
 
-    device.lock(UserTomaz);
+    device.asPtr<IDevicePrivate>().lock(UserTomaz);
     ASSERT_TRUE(device.isLocked());
 
     auto subDevices = device.getDevices(search::Recursive(search::Any()));
@@ -121,7 +122,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, UnlockRecursive)
     ASSERT_TRUE(subDevices[0].isLocked());
     ASSERT_TRUE(subDevices[1].isLocked());
 
-    device.unlock(UserTomaz);
+    device.asPtr<IDevicePrivate>().unlock(UserTomaz);
     ASSERT_FALSE(device.isLocked());
     ASSERT_FALSE(subDevices[0].isLocked());
     ASSERT_FALSE(subDevices[1].isLocked());
@@ -161,14 +162,14 @@ TEST_F(ConfigProtocolDeviceLockingTest, SetPropertyValueLockedOnServer)
 TEST_F(ConfigProtocolDeviceLockingTest, SetPropertyValueLockedWithDifferentUser)
 {
     auto device = createDevice();
-    device.lock(UserJure);
+    device.asPtr<IDevicePrivate>().lock(UserJure);
     setupServerAndClient(device, UserTomaz);
 
     ASSERT_THROW(clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue"), DeviceLockedException);
     ASSERT_THROW(clientDevice.unlock(), AccessDeniedException);
-    ASSERT_THROW(clientDevice.unlock(UserJure), AccessDeniedException);
+    ASSERT_THROW(clientDevice.asPtr<IDevicePrivate>().unlock(UserJure), AccessDeniedException);
 
-    device.unlock(UserJure);
+    device.asPtr<IDevicePrivate>().unlock(UserJure);
 
     clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
     auto value = clientDevice.getChannels()[0].getPropertyValue("StrProp");

@@ -20,6 +20,48 @@ struct ReadSignal;
 static void zeroOutPacketData(const DataPacketPtr& packet);
 static DataPacketPtr createPacket(daq::SizeT numSamples, daq::Int offset, const ReadSignal& read);
 
+class TestEvent
+{
+public:
+    TestEvent()
+    {
+        std::cout << "TestEvent::TestEvent" << std::endl;
+    }
+    ~TestEvent()
+    {
+        std::cout << "TestEvent::~TestEvent" << std::endl;
+    }
+    template <typename Rep, typename Period>
+    auto wait_for(std::chrono::duration<Rep, Period> duration)
+    {
+        std::unique_lock ulock(m);
+        auto result = cv.wait_for(ulock, duration, [this] { return flag; });
+        return result;
+    }
+    void notify_one()
+    {
+        std::unique_lock ulock{m};
+        flag = true;
+        cv.notify_one();
+    }
+    void notify_all()
+    {
+        std::unique_lock ulock{m};
+        flag = true;
+        cv.notify_all();
+    }
+    void reset()
+    {
+        std::unique_lock ulock{m};
+        flag = false;
+    }
+
+private:
+    std::mutex m{};
+    std::condition_variable cv{};
+    bool flag{false};
+};
+
 struct ReadSignal
 {
     explicit ReadSignal(const SignalConfigPtr& signal, Int packetOffset, Int packetSize)
@@ -78,8 +120,8 @@ struct ReadSignal
         auto offset = packetOffset + ((packetSize * delta) * packetIndex);
         if (log)
         {
-            std::cout << "<" << packetIndex << "> "
-                      << "(off: " << offset << " pSize: " << packetSize << " pOffset: " << packetOffset << ")" << std::endl;
+            std::cout << "<" << packetIndex << "> " << "(off: " << offset << " pSize: " << packetSize << " pOffset: " << packetOffset << ")"
+                      << std::endl;
         }
 
         auto packet = createPacket(packetSize, offset, *this);
@@ -1185,7 +1227,7 @@ TEST_F(MultiReaderTest, EpochChanged)
 
     auto multi = MultiReader(signalsToList());
     TimeReader timeReader(multi);
-    
+
     {
         SizeT count{0};
         auto status = multi.read(nullptr, &count);
@@ -1532,7 +1574,7 @@ TEST_F(MultiReaderTest, ReuseReader)
     auto multi = MultiReader(signalsToList());
     {
         TimeReader timeReader(multi);
-        
+
         {
             SizeT count{0};
             auto status = multi.read(nullptr, &count);
@@ -1971,7 +2013,7 @@ TEST_F(MultiReaderTest, SampleRateDivider)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0)));  // 200 Hz
 
     auto multi = MultiReader(signalsToList());
-    
+
     {
         SizeT count{0};
         auto status = multi.read(nullptr, &count);
@@ -2050,7 +2092,7 @@ TEST_F(MultiReaderTest, SampleRateDividerRequiredRate)
         auto status = multi.read(nullptr, &count);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
-    
+
     ASSERT_EQ(multi.getCommonSampleRate(), reqiredRate);
 
     auto available = multi.getAvailableCount();
@@ -3776,10 +3818,10 @@ public:
         domainSignal = daq::Signal(context, nullptr, id + "_domainSignal");
 
         auto valueDescriptor = daq::DataDescriptorBuilder()
-                                .setSampleType(daq::SampleType::Float64)
-                                .setUnit(Unit("V", -1, "volts", "voltage"))
-                                .setName(id + " values")
-                                .build();
+                                   .setSampleType(daq::SampleType::Float64)
+                                   .setUnit(Unit("V", -1, "volts", "voltage"))
+                                   .setName(id + " values")
+                                   .build();
         auto domainDescriptor = daq::DataDescriptorBuilder()
                                     .setSampleType(daq::SampleType::Int64)
                                     .setUnit(daq::Unit("s", -1, "seconds", "time"))
@@ -4093,4 +4135,252 @@ TEST_F(MultiReaderTest, MultiReaderActiveGapPacket)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, NUM_SAMPLES);
+}
+
+TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
+{
+    using namespace std::chrono_literals;
+
+    constexpr auto NUM_SIGNALS = SizeT{3};
+    constexpr auto NUM_SAMPLES = SizeT{10};
+    double values[NUM_SIGNALS][NUM_SAMPLES] = {};
+    double* valuesPerSignal[NUM_SIGNALS] = {values[0], values[1], values[2]};
+    int64_t domainValues[NUM_SIGNALS][NUM_SAMPLES] = {};
+    int64_t* domainValuesPerSignal[NUM_SIGNALS] = {domainValues[0], domainValues[1], domainValues[2]};
+
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto signalReader0 = addSignal(0, NUM_SAMPLES, createDomainSignal());
+    auto signalReader1 = addSignal(0, NUM_SAMPLES, createDomainSignal());
+    auto signalReader2 = addSignal(0, NUM_SAMPLES, createDomainSignal());
+
+    auto portList = portsList(true);
+    auto multiReader = MultiReaderFromPort(portList);
+    auto status = daq::MultiReaderStatusPtr();
+
+    auto changeDomainSampleType = [](const ReadSignal& signalReader, SampleType newSampleType)
+    {
+        auto signal = signalReader.signal;
+        auto domainSignal = signal.getDomainSignal().asPtrOrNull<ISignalConfig>();
+        auto dataDescriptor = signal.getDescriptor();
+        auto domainDescriptor = domainSignal.getDescriptor();
+        auto newDomainDescriptor = DataDescriptorBuilderCopy(domainDescriptor).setSampleType(newSampleType).build();
+        domainSignal.setDescriptor(newDomainDescriptor);
+    };
+
+    auto state = 0;
+    auto testEvent = TestEvent{};
+
+    multiReader.setOnDataAvailable(
+        [this,
+         &multiReader,
+         &testEvent,
+         &state,
+         &valuesPerSignal,
+         &domainValuesPerSignal,
+         NUM_SAMPLES]
+        {
+            switch (state)
+            {
+                case 0:
+                {
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+                    ASSERT_EQ(count, 0);
+                    auto events = status.getEventPackets();
+                    for (auto i = 0; i < events.getCount(); ++i)
+                    {
+                        auto sigId = fmt::format("/readsig{}", i);
+                        ASSERT_TRUE(events.hasKey(sigId));
+                        auto eventPacket = events.get(sigId);
+                        ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+                        ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DATA_DESCRIPTOR));
+                        ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+                        auto domainDescriptor =
+                            eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
+                        ASSERT_TRUE(domainDescriptor.assigned());
+                        ASSERT_EQ(domainDescriptor.getSampleType(), SampleTypeFromType<ClockTick>::SampleType);
+                    }
+
+                    testEvent.notify_all();
+                    state = 1;
+                    break;
+                }
+                case 1:
+                {
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+                    ASSERT_EQ(count, NUM_SAMPLES);
+                    testEvent.notify_all();
+
+                    state = 2;
+                    break;
+                }
+                case 2:
+                {
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 10);
+
+                    auto events = status.getEventPackets();
+                    ASSERT_GE(events.getCount(), 1);
+
+                    auto sigId = fmt::format("/readsig{}", 0);
+                    ASSERT_TRUE(events.hasKey(sigId));
+
+                    auto eventPacket = events.get(sigId);
+                    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DATA_DESCRIPTOR));
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+
+                    auto domainDescriptor =
+                        eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
+                    ASSERT_TRUE(domainDescriptor.assigned());
+                    ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::UInt64);
+
+                    multiReader.setActive(false);
+                    testEvent.notify_all();
+
+                    state = 3;
+                    break;
+                }
+                case 3:
+                {
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+
+                    auto events = status.getEventPackets();
+                    ASSERT_GE(events.getCount(), 1);
+
+                    auto sigId = fmt::format("/readsig{}", 0);
+                    ASSERT_TRUE(events.hasKey(sigId));
+
+                    auto eventPacket = events.get(sigId);
+                    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DATA_DESCRIPTOR));
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+
+                    auto domainDescriptor =
+                        eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
+                    ASSERT_TRUE(domainDescriptor.assigned());
+                    ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::Float64);
+
+                    testEvent.notify_all();
+
+                    state = 4;
+                    break;
+                }
+                case 4:
+                {
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+
+                    auto events = status.getEventPackets();
+                    ASSERT_GE(events.getCount(), 1);
+
+                    auto sigId = fmt::format("/readsig{}", 0);
+                    ASSERT_TRUE(events.hasKey(sigId));
+
+                    auto eventPacket = events.get(sigId);
+                    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DATA_DESCRIPTOR));
+                    ASSERT_TRUE(eventPacket.getParameters().hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+
+                    auto domainDescriptor =
+                        eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
+                    ASSERT_TRUE(domainDescriptor.assigned());
+                    ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::Int64);
+
+                    multiReader.setActive(true);
+
+                    testEvent.notify_all();
+
+                    state = 5;
+                    break;
+                }
+                case 5:
+                {
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    auto count = NUM_SAMPLES;
+                    auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+                    ASSERT_EQ(count, 0);
+
+                    count = NUM_SAMPLES;
+                    status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
+                    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+                    ASSERT_EQ(count, NUM_SAMPLES);
+                    testEvent.notify_all();
+
+                    state = 6;
+                    break;
+                }
+                default:
+                {
+                    GTEST_FAIL();
+                }
+            }
+        });
+
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        portList[i].connect(readSignals[i].signal);
+
+    while (state != 6)
+    {
+        bool result = testEvent.wait_for(2s);
+        ASSERT_TRUE(result);
+        testEvent.reset();
+
+        switch (state)
+        {
+            case 1:
+                signalReader0.createAndSendPacket(0);
+                signalReader1.createAndSendPacket(0);
+                signalReader2.createAndSendPacket(0);
+                break;
+            case 2:
+                changeDomainSampleType(signalReader0, SampleType::UInt64);
+                signalReader0.createAndSendPacket(1);
+                signalReader1.createAndSendPacket(1);
+                signalReader2.createAndSendPacket(1);
+                break;
+            case 3:
+                changeDomainSampleType(signalReader0, SampleType::Float64);
+                signalReader0.createAndSendPacket(2);
+                signalReader1.createAndSendPacket(2);
+                signalReader2.createAndSendPacket(2);
+                break;
+            case 4:
+                changeDomainSampleType(signalReader0, SampleType::Int64);
+                break;
+            case 5:
+                signalReader0.createAndSendPacket(3);
+                signalReader1.createAndSendPacket(3);
+                signalReader2.createAndSendPacket(3);
+                break;
+            case 6:
+                // finish
+                break;
+            default:
+                GTEST_FAIL();
+                break;
+        }
+    }
+
+    context.getScheduler().waitAll();
+
+    ASSERT_EQ(state, 6);
 }

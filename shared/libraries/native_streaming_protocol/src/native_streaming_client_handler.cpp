@@ -297,7 +297,7 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
 
 void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
 {
-    LOG_D("Client connected");
+    LOG_I("Client connected to server endpoint: {}", session->getEndpointAddress());
 
     OnSessionErrorCallback errorHandler =
         [thisWeakPtr = this->weak_from_this()](const std::string& errorMessage, SessionPtr session)

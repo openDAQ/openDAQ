@@ -183,3 +183,16 @@ TEST_F(ConfigPacketTest, NoReplyRpcRequest)
 
     ASSERT_EQ(json1, json);
 }
+
+TEST_F(ConfigPacketTest, ConnectionRejectedReply)
+{
+    const std::string json{"str"};
+    const auto packetBufferSource = PacketBuffer::createConnectionRejectedReply(1, json.c_str(), json.length());
+
+    const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
+
+    ASSERT_EQ(packetBuffer.getId(), 1u);
+    const auto json1 = packetBuffer.parseConnectionRejectedReply();
+
+    ASSERT_EQ(json1, json);
+}

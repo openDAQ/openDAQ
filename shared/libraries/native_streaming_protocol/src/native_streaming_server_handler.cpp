@@ -9,6 +9,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <memory>
 #include <coreobjects/user_factory.h>
+#include <opendaq/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -29,7 +30,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
                                                            const ListPtr<ISignal>& signalsList,
                                                            OnSignalSubscribedCallback signalSubscribedHandler,
                                                            OnSignalUnsubscribedCallback signalUnsubscribedHandler,
-                                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb)
+                                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
+                                                           SizeT maxAllowedConfigConnections)
     : context(context)
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingServerHandler"))
@@ -38,6 +40,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     , signalUnsubscribedHandler(signalUnsubscribedHandler)
     , setUpConfigProtocolServerCb(setUpConfigProtocolServerCb)
     , connectedClientIndex(0)
+    , maxAllowedConfigConnections(maxAllowedConfigConnections)
+    , configConnectionsCount(0)
 {
     for (const auto& signal : signalsList)
     {
@@ -232,26 +236,34 @@ void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 {
-    auto clientIter = std::find_if(sessionHandlers.begin(),
-                                   sessionHandlers.end(),
-                                   [&session](const std::pair<std::string, std::shared_ptr<ServerSessionHandler>>& item)
-                                   {
-                                       auto sessionHandler = item.second;
-                                       return sessionHandler->getSession() == session;
-                                   });
-    if (clientIter != sessionHandlers.end())
+    std::shared_ptr<ServerSessionHandler> removedSessionHandler; // keep object outside the scoped lock
     {
-        auto clientId = clientIter->first;
-        auto signalsToUnsubscribe = streamingManager.unregisterClient(clientId);
-        for (const auto& signal : signalsToUnsubscribe)
+        std::scoped_lock lock(sync);
+
+        auto clientIter = std::find_if(sessionHandlers.begin(),
+                                       sessionHandlers.end(),
+                                       [&session](const std::pair<std::string, std::shared_ptr<ServerSessionHandler>>& item)
+                                       {
+                                           auto sessionHandler = item.second;
+                                           return sessionHandler->getSession() == session;
+                                       });
+        if (clientIter != sessionHandlers.end())
         {
-            signalUnsubscribedHandler(signal);
+            removedSessionHandler = clientIter->second;
+            auto clientId = clientIter->first;
+            auto signalsToUnsubscribe = streamingManager.unregisterClient(clientId);
+            for (const auto& signal : signalsToUnsubscribe)
+                signalUnsubscribedHandler(signal);
+
+            if (removedSessionHandler->isConfigProtocolUsed())
+                configConnectionsCount--;
+
+            sessionHandlers.erase(clientIter);
         }
-        sessionHandlers.erase(clientIter);
-    }
-    else
-    {
-        LOG_E("Session handler already unregistered");
+        else
+        {
+            LOG_E("Session handler already unregistered");
+        }
     }
 
     if (session->isOpen())
@@ -337,13 +349,14 @@ void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_
     sessionHandler->setTransportLayerPropsHandler(trasportLayerPropertiesCb);
 }
 
-void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
+void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                                                                config_protocol::PacketBuffer&& firstPacketBuffer)
 {
     auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
     SendConfigProtocolPacketCb sendConfigPacketCb =
         [sessionHandlerWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
     {
-        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+        if (const auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
 
@@ -353,6 +366,46 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
     OnPacketBufferReceivedCallback clientToDeviceStreamingCb = configServerCallbacks.second;
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
     sessionHandler->setPacketBufferReceivedHandler(clientToDeviceStreamingCb);
+
+    // handle first received config packet with instantiated callback
+    if (receiveConfigPacketCb)
+        receiveConfigPacketCb(std::move(firstPacketBuffer));
+}
+
+void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                                                         config_protocol::PacketBuffer&& firstPacketBuffer)
+{
+    {
+        std::scoped_lock lock(sync);
+
+        // Rejects new conenctions in case if count of concurrent config connections exceed the limit
+        // defined with "MaxAllowedConfigConnections" property (where 0 value stands for unlimited count)
+        if (maxAllowedConfigConnections != UNLIMITED_CONFIGURATION_CONNECTIONS && configConnectionsCount == maxAllowedConfigConnections)
+        {
+            std::string errorMessage =
+                "Native configuration connection rejected - connections limit reached on server; addresses of connected clients:";
+            for (const auto& [_, handler] : sessionHandlers)
+            {
+                if (handler->isConfigProtocolUsed())
+                    errorMessage += " " + handler->getSession()->getEndpointAddress() + ";";
+            }
+            auto reply = config_protocol::ConfigProtocolServer::generateConnectionRejectedReply(
+                firstPacketBuffer.getId(),
+                OPENDAQ_ERR_CONNECTION_LIMIT_REACHED,
+                errorMessage,
+                JsonSerializer()
+            );
+            sessionHandler->sendConfigurationPacket(reply);
+            LOG_W("{}", errorMessage)
+            return;
+        }
+        else
+        {
+            sessionHandler->triggerUseConfigProtocol();
+            configConnectionsCount++;
+        }
+    }
+    this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
 }
 
 void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)
@@ -394,7 +447,7 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
 
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
-    LOG_I("New connection accepted by server");
+    LOG_I("New connection accepted by server, client endpoint: {}", session->getEndpointAddress());
 
     auto findSignalHandler = [thisWeakPtr = this->weak_from_this()](const std::string& signalId)
     {
@@ -441,7 +494,19 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  errorHandler);
 
     setUpTransportLayerPropsCallback(sessionHandler);
-    setUpConfigProtocolCallbacks(sessionHandler);
+
+    ProcessConfigProtocolPacketCb onFirstConfigPacketReceived =
+        [thisWeakPtr = this->weak_from_this(), sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler)]
+        (config_protocol::PacketBuffer&& firstPacketBuffer)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+        {
+            if (const auto sessionHandler = sessionHandlerWeakPtr.lock())
+                thisPtr->connectConfigProtocol(sessionHandler, std::move(firstPacketBuffer));
+        }
+    };
+    sessionHandler->setConfigPacketReceivedHandler(onFirstConfigPacketReceived);
+
     setUpStreamingInitCallback(sessionHandler);
 
     sessionHandlers.insert({clientIdAssignedByServer, sessionHandler});

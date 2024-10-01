@@ -4189,7 +4189,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
                     ASSERT_EQ(count, 0);
                     auto events = status.getEventPackets();
-                    for (auto i = 0; i < events.getCount(); ++i)
+                    for (auto i = SizeT{0}; i < events.getCount(); ++i)
                     {
                         auto sigId = fmt::format("/readsig{}", i);
                         ASSERT_TRUE(events.hasKey(sigId));

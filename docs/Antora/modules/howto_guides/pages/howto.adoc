@@ -8,6 +8,7 @@
 * xref:howto_configure_instance_providers.adoc[]
 * xref:howto_configure_streaming.adoc[]
 * xref:howto_measure_single_value.adoc[]
+
 == Read data with Readers
 
 * xref:howto_read_with_domain.adoc[]

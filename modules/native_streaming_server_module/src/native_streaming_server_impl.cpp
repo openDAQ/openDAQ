@@ -312,12 +312,16 @@ void NativeStreamingServerImpl::prepareServerHandler()
     auto rootDeviceSignals = List<ISignal>();
     if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
+
+    const SizeT maxAllowedConfigConnections = this->config.getPropertyValue("MaxAllowedConfigConnections");
+
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    transportIOContextPtr,
                                                                    rootDeviceSignals,
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
-                                                                   createConfigServerCb);
+                                                                   createConfigServerCb,
+                                                                   maxAllowedConfigConnections);
 }
 
 void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
@@ -350,6 +354,12 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
         .build();
     defaultConfig.addProperty(portProp);
     defaultConfig.addProperty(StringProperty("Path", "/"));
+
+    // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
+    const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)
+                                                .setMinValue(0)
+                                                .build();
+    defaultConfig.addProperty(configConnectionsLimitProp);
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;

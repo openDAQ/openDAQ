@@ -28,6 +28,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
+
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
@@ -42,7 +44,8 @@ public:
                                           const ListPtr<ISignal>& signalsList,
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
-                                          SetUpConfigProtocolServerCb setUpConfigProtocolServerCb);
+                                          SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
+                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS);
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
@@ -57,7 +60,10 @@ protected:
     void initSessionHandler(SessionPtr session);
     void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
-    void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                                      config_protocol::PacketBuffer&& firstPacketBuffer);
+    void connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                               config_protocol::PacketBuffer&& firstPacketBuffer);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
@@ -85,6 +91,9 @@ protected:
 
     std::mutex sync;
     size_t connectedClientIndex;
+
+    SizeT maxAllowedConfigConnections;
+    SizeT configConnectionsCount;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -1,5 +1,11 @@
 03.10.2024
 Description:
+    - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
+    - Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
+    - Native config protocol bumped to version 3
+
+03.10.2024
+Description:
 	- Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
 	- Said property object events were disabled to reduce probability of misuse.
 	- CoreEvents should be used instead of onWrite/Read events where needed.

@@ -22,6 +22,7 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
     , transportLayerPropsHandler(nullptr)
     , clientId(clientId)
     , reconnected(false)
+    , useConfigProtocol(false)
 {
 }
 
@@ -259,6 +260,16 @@ void ServerSessionHandler::setReconnected(bool reconnected)
 bool ServerSessionHandler::getReconnected()
 {
     return this->reconnected;
+}
+
+void ServerSessionHandler::triggerUseConfigProtocol()
+{
+    this->useConfigProtocol = true;
+}
+
+bool ServerSessionHandler::isConfigProtocolUsed()
+{
+    return this->useConfigProtocol;
 }
 
 UserPtr ServerSessionHandler::getUser()

@@ -59,6 +59,10 @@ public:
     // called from transport layer
     PacketBuffer processRequestAndGetReply(const PacketBuffer& packetBuffer);
     PacketBuffer processRequestAndGetReply(void *mem);
+    static PacketBuffer generateConnectionRejectedReply(uint64_t requestId,
+                                                        ErrCode errCode,
+                                                        const StringPtr& message,
+                                                        const SerializerPtr& serializer);
 
     // called from transport layer
     void processNoReplyRequest(const PacketBuffer& packetBuffer);
@@ -99,7 +103,7 @@ private:
     void processNoReplyPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpcAndGetReply(const StringPtr& jsonStr);
     void processNoReplyRpc(const StringPtr& jsonStr);
-    StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message);
+    static StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer);
 
     BaseObjectPtr callRpc(const StringPtr& name, const ParamsDictPtr& params);
     ComponentPtr findComponent(const std::string& componentGlobalId) const;

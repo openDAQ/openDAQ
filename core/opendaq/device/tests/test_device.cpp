@@ -15,6 +15,7 @@
 #include <opendaq/component_exceptions.h>
 #include <opendaq/server_impl.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/device_private_ptr.h>
 
 using DeviceTest = testing::Test;
 
@@ -282,17 +283,17 @@ TEST_F(DeviceTest, LockUnlock)
 
     ASSERT_FALSE(device.isLocked());
 
-    device.lock(jure);
+    device.asPtr<daq::IDevicePrivate>().lock(jure);
     ASSERT_TRUE(device.isLocked());
 
-    ASSERT_THROW(device.lock(tomaz), daq::DeviceLockedException);
-    ASSERT_THROW(device.unlock(tomaz), daq::AccessDeniedException);
+    ASSERT_THROW(device.asPtr<daq::IDevicePrivate>().lock(tomaz), daq::DeviceLockedException);
+    ASSERT_THROW(device.asPtr<daq::IDevicePrivate>().unlock(tomaz), daq::AccessDeniedException);
 
-    device.unlock(jure);
+    device.asPtr<daq::IDevicePrivate>().unlock(jure);
     ASSERT_FALSE(device.isLocked());
 
-    ASSERT_NO_THROW(device.unlock(jure));
-    ASSERT_NO_THROW(device.unlock(tomaz));
+    ASSERT_NO_THROW(device.asPtr<daq::IDevicePrivate>().unlock(jure));
+    ASSERT_NO_THROW(device.asPtr<daq::IDevicePrivate>().unlock(tomaz));
 }
 
 TEST_F(DeviceTest, LockUnlockAnonymous)
@@ -307,8 +308,8 @@ TEST_F(DeviceTest, LockUnlockAnonymous)
     device.lock();
     ASSERT_TRUE(device.isLocked());
 
-    ASSERT_THROW(device.lock(jure), daq::DeviceLockedException);
-    ASSERT_THROW(device.lock(tomaz), daq::DeviceLockedException);
+    ASSERT_THROW(device.asPtr<daq::IDevicePrivate>().lock(jure), daq::DeviceLockedException);
+    ASSERT_THROW(device.asPtr<daq::IDevicePrivate>().lock(tomaz), daq::DeviceLockedException);
 
     // unlock anonymous
     device.unlock();
@@ -317,12 +318,12 @@ TEST_F(DeviceTest, LockUnlockAnonymous)
     // unlock jure
     device.lock();
     ASSERT_TRUE(device.isLocked());
-    device.unlock(jure);
+    device.asPtr<daq::IDevicePrivate>().unlock(jure);
     ASSERT_FALSE(device.isLocked());
 
     // unlock tomaz
     device.lock();
     ASSERT_TRUE(device.isLocked());
-    device.unlock(tomaz);
+    device.asPtr<daq::IDevicePrivate>().unlock(tomaz);
     ASSERT_FALSE(device.isLocked());
 }

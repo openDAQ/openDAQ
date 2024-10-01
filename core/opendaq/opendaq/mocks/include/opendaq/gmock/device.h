@@ -50,8 +50,8 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, addServer, (IString*, IPropertyObject*, IServer**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, removeServer, (IServer*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getServers, (IList**), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, lock, (IUser*), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, unlock, (IUser*), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, lock, (), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, unlock, (), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, isLocked, (Bool*), (override MOCK_CALL));
 };
 

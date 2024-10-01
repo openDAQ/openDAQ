@@ -278,14 +278,14 @@ ErrCode InstanceImpl::getServers(IList** instanceServers)
     return rootDevice->getServers(instanceServers);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::lock(IUser* user)
+ErrCode INTERFACE_FUNC InstanceImpl::lock()
 {
-    return rootDevice->lock(user);
+    return rootDevice->lock();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::unlock(IUser* user)
+ErrCode INTERFACE_FUNC InstanceImpl::unlock()
 {
-    return rootDevice->unlock(user);
+    return rootDevice->unlock();
 }
 
 ErrCode INTERFACE_FUNC InstanceImpl::isLocked(Bool* locked)

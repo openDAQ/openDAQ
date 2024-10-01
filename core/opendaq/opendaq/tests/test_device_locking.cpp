@@ -4,6 +4,7 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <opendaq/device_private_ptr.h>
 
 using namespace daq;
 
@@ -202,15 +203,15 @@ TEST_F(TestDeviceLocking, LockUnlockRootWithUser)
     ASSERT_FALSE(devices[1].isLocked());
     ASSERT_FALSE(devices[2].isLocked());
 
-    clientInstance.lock(UserJure);
+    clientInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
 
     ASSERT_TRUE(clientInstance.isLocked());
     ASSERT_TRUE(devices[0].isLocked());
     ASSERT_TRUE(devices[1].isLocked());
     ASSERT_TRUE(devices[2].isLocked());
 
-    ASSERT_THROW(clientInstance.unlock(UserTomaz), AccessDeniedException);
-    clientInstance.unlock(UserJure);
+    ASSERT_THROW(clientInstance.getRootDevice().asPtr<IDevicePrivate>().unlock(UserTomaz), AccessDeniedException);
+    clientInstance.getRootDevice().asPtr<IDevicePrivate>().unlock(UserJure);
 
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_FALSE(devices[0].isLocked());
@@ -221,7 +222,7 @@ TEST_F(TestDeviceLocking, LockUnlockRootWithUser)
 TEST_F(TestDeviceLocking, AlreadyLockedSameUser)
 {
     auto serverInstance = createServerInstance();
-    serverInstance.lock(UserTomaz);
+    serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserTomaz);
 
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
 
@@ -244,7 +245,7 @@ TEST_F(TestDeviceLocking, AlreadyLockedSameUser)
 TEST_F(TestDeviceLocking, AlreadyLockedDifferentUser)
 {
     auto serverInstance = createServerInstance();
-    serverInstance.lock(UserJure);
+    serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
 
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
 
@@ -321,7 +322,7 @@ TEST_F(TestDeviceLocking, LockRevert)
     ASSERT_EQ(devices.getCount(), 3u);
 
     devices[0].lock();
-    devices[2].lock(UserJure);
+    devices[2].asPtr<IDevicePrivate>().lock(UserJure);
 
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_TRUE(devices[0].isLocked());
@@ -345,7 +346,7 @@ TEST_F(TestDeviceLocking, UnlockRevert)
     ASSERT_EQ(devices.getCount(), 3u);
 
     devices[0].lock();
-    devices[2].lock(UserJure);
+    devices[2].asPtr<IDevicePrivate>().lock(UserJure);
 
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_TRUE(devices[0].isLocked());

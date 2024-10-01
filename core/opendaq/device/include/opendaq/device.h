@@ -306,18 +306,17 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
 
     /*!
-     * @brief Lock a device with a specific user. Once locked, no properties of the device can be changed via the protocol layer.
-     * Only the same user who locked the device can unlock it. If the user is not provided, anyone will be able to unlock the device.
-     * @param user User who is locking the device.
+     * @brief Lock a device with a session user. Once locked, no properties of the device can be changed via the protocol layer.
+     * Only the same user who locked the device can unlock it. If no user was specified when the device was locked, any user
+     * will be able to unlock it.
      */
-    virtual ErrCode INTERFACE_FUNC lock(IUser* user = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC lock() = 0;
 
     /*!
-     * @brief Unlock a device. Only the same user who locked the device can unlock it. If the device was locked without a user,
-     * anyone will be able to unlock the device.
-     * @param user User who is unlocking the device.
+     * @brief Unlock a device with a session user. A device can only be unlocked by the same user who locked it.
+     * If no user was specified when the device was locked, any user will be able to unlock it.
      */
-    virtual ErrCode INTERFACE_FUNC unlock(IUser * user = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC unlock() = 0;
 
     /*!
      * @brief Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.

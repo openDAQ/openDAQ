@@ -149,9 +149,10 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             if (!this->deserializationComplete)
                 return Super::acceptsSignal(signal, accepts);
 
+            assert(clientComm->getConnected());  // TODO???
+
             if (clientComm->getProtocolVersion() >= 4)
             {
-                // if (clientComm->getConnected()) // TODO???
                 const auto signalPtr = SignalPtr::Borrow(signal);
                 if (!isSignalFromTheSameComponentTree(signalPtr))
                     return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;

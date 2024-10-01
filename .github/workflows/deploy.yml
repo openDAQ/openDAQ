@@ -501,7 +501,7 @@ jobs:
           retention-days: 7
 
   simulator-build:
-    runs-on: ubuntu-latest-4-cores
+    runs-on: Ubuntu-24.04-8-core
     name: Simulator build
     needs: [deploy_linux]
 

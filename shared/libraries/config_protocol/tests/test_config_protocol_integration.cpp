@@ -610,7 +610,15 @@ TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
 
 TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
 {
-    auto signal = clientDevice.getSignals()[0];
-    auto accepts = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(signal);
-    ASSERT_TRUE(accepts);
+    auto clientSignal = clientDevice.getSignals()[0];
+    daq::Bool clientAcceptsClientSingal = False;
+    ASSERT_NO_THROW(clientAcceptsClientSingal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(clientSignal));
+    ASSERT_TRUE(clientAcceptsClientSingal);
+
+    auto serverSignal = serverDevice.getSignals()[0];
+    daq::Bool clientAcceptsServerSingal = True;
+    ASSERT_NO_THROW(clientAcceptsServerSingal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
+    ASSERT_FALSE(clientAcceptsServerSingal);
 }

@@ -328,7 +328,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
     ErrCode status = OPENDAQ_SUCCESS;
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Recursive(search::Any()));
+    this->getDevices(&devices, search::Any());
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -336,7 +336,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
-        status = devices[i].asPtr<IDevicePrivate>()->lockInternal(user);
+        status = devices[i].asPtr<IDevicePrivate>()->lock(user);
 
         if (OPENDAQ_FAILED(status))
         {
@@ -350,7 +350,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
     }
 
     if (OPENDAQ_SUCCEEDED(status))
-        return lockInternal(user);
+        status = lockInternal(user);
 
     return status;
 }
@@ -364,7 +364,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         return status;
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Recursive(search::Any()));
+    this->getDevices(&devices, search::Any());
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -372,7 +372,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
-        status = devices[i].asPtr<IDevicePrivate>()->unlockInternal(user);
+        status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
 
         if (OPENDAQ_FAILED(status))
         {
@@ -1144,9 +1144,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(ListPtr<ID
         if (targetLockStatuses[i])
             continue;
 
-        const auto status = devices[i].asPtr<IDevicePrivate>()->unlockInternal(user);
+        const auto status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
 
-        if (status != OPENDAQ_SUCCESS)
+        if (OPENDAQ_FAILED(status))
             return status;
     }
 
@@ -1164,9 +1164,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertUnlockedDevices(ListPtr<
         if (!targetLockStatuses[i])
             continue;
 
-        const auto status = devices[i].asPtr<IDevicePrivate>()->lockInternal(user);
+        const auto status = devices[i].asPtr<IDevicePrivate>()->lock(user);
 
-        if (status != OPENDAQ_SUCCESS)
+        if (OPENDAQ_FAILED(status))
             return status;
     }
 

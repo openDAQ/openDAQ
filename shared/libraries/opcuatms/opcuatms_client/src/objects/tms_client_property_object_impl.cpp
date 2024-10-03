@@ -15,6 +15,7 @@
 #include <opendaq/mirrored_device_impl.h>
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/sync_component_impl.h>
+#include <opcuatms/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -43,12 +44,11 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
             {
                 PropertyPtr prop;
                 checkErrorInfo(getProperty(propertyName, &prop));
-                if (protectedWrite)
+                if (!protectedWrite)
                 {
                     lastProcessDescription = "Checking existing property is read-only";
-                    const bool readOnly = prop.getReadOnly();
-                    if (readOnly)
-                        return OPENDAQ_SUCCESS;
+                    if (prop.getReadOnly())
+                        return OPENDAQ_ERR_ACCESSDENIED;
                 }
 
                 BaseObjectPtr valuePtr = value;
@@ -75,13 +75,15 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
                 lastProcessDescription = "Object type properties cannot be set over OpcUA";
                 return OPENDAQ_ERR_NOTIMPLEMENTED;
             }
+
             lastProcessDescription = "Property not found";
             return OPENDAQ_ERR_NOTFOUND;
         });
+
     if (OPENDAQ_FAILED(errCode))
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
-
-    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    
+    if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
         return errCode;
 
     return OPENDAQ_SUCCESS;
@@ -162,6 +164,12 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::clearPropertyValue
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
+template <class Impl>
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
+{
+    return OPENDAQ_ERR_INVALID_OPERATION;
+}
+
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getProperty(IString* propertyName, IProperty** value)
 {
@@ -183,13 +191,13 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyN
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueWrite(propertyName, event);
+    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <typename Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueRead(propertyName, event);
+    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <typename Impl>

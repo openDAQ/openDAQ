@@ -32,6 +32,7 @@ public:
     ErrCode INTERFACE_FUNC getUsername(IString** username) override;
     ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) override;
     ErrCode INTERFACE_FUNC getGroups(IList** groups) override;
+    ErrCode INTERFACE_FUNC isAnonymous(Bool* anonymous) override;
 
     // IBaseObject
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;

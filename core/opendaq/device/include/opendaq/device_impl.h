@@ -39,6 +39,7 @@
 #include <opendaq/sync_component_factory.h>
 #include <set>
 #include <optional>
+#include <coreobjects/user_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -305,10 +306,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObjec
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
 {
-    if (this->userLock.has_value() && this->userLock != user)
+    UserPtr userPtr = UserPtr::Borrow(user);
+
+    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>().isAnonymous())
+        userPtr = nullptr;
+
+    if (this->userLock.has_value() && this->userLock != userPtr)
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
-    this->userLock = user;
+    this->userLock = userPtr;
     return OPENDAQ_SUCCESS;
 }
 

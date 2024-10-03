@@ -31,6 +31,14 @@ DECLARE_OPENDAQ_INTERFACE(IUserInternal, IBaseObject)
      * @param passwordHash[out] Returns the user's password, which can either be in plain text or hashed using the Bcrypt algorithm.
      */
     virtual ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) = 0;
+
+
+    /*!
+     * @brief Returns true if user is anonymous. Anonymous user is any user without defined username and passowrd.
+     *
+     * @param passwordHash[out] Returns true if user is anonymous.
+     */
+    virtual ErrCode INTERFACE_FUNC isAnonymous(Bool* anonymous) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

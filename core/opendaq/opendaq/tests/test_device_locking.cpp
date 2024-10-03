@@ -360,3 +360,28 @@ TEST_F(TestDeviceLocking, UnlockRevert)
     ASSERT_FALSE(devices[1].isLocked());
     ASSERT_TRUE(devices[2].isLocked());
 }
+
+TEST_F(TestDeviceLocking, LockedWithAnonymousUser)
+{
+    const auto anonymousUser = User("", "");
+
+    auto serverInstance = createServerInstance();
+    serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(anonymousUser);
+
+    auto clientInstance = connectClientInstance("tomaz", "tomaz");
+
+    auto devices = clientInstance.getDevices();
+    ASSERT_EQ(devices.getCount(), 3u);
+
+    ASSERT_FALSE(clientInstance.isLocked());
+    ASSERT_TRUE(devices[0].isLocked());
+    ASSERT_FALSE(devices[1].isLocked());
+    ASSERT_FALSE(devices[2].isLocked());
+
+    clientInstance.unlock();
+
+    ASSERT_FALSE(clientInstance.isLocked());
+    ASSERT_FALSE(devices[0].isLocked());
+    ASSERT_FALSE(devices[1].isLocked());
+    ASSERT_FALSE(devices[2].isLocked());
+}

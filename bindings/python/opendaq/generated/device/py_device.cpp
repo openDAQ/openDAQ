@@ -266,7 +266,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getSyncComponent().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the sync component of the device.");
     cls.def("add_server",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
         {
@@ -291,4 +291,25 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Get list of added servers.");
+    cls.def("lock",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.lock();
+        },
+        "Lock a device with a session user. Once locked, no properties of the device can be changed via the protocol layer. Only the same user who locked the device can unlock it. If no user was specified when the device was locked, any user will be able to unlock it.");
+    cls.def("unlock",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.unlock();
+        },
+        "Unlock a device with a session user. A device can only be unlocked by the same user who locked it. If no user was specified when the device was locked, any user will be able to unlock it.");
+    cls.def_property_readonly("locked",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.isLocked();
+        },
+        "Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.");
 }

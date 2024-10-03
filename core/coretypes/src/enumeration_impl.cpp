@@ -40,7 +40,7 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
             if (this->enumerationType.getEnumeratorIntValue(fieldName) == intValue)
             {
                 this->value = fieldName;
-                break;
+                return;
             }
     }
 

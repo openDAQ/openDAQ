@@ -327,3 +327,30 @@ TEST_F(DeviceTest, LockUnlockAnonymous)
     device.asPtr<daq::IDevicePrivate>().unlock(tomaz);
     ASSERT_FALSE(device.isLocked());
 }
+
+TEST_F(DeviceTest, LockUnlockAnonymousInstance)
+{
+    const auto anonymous = daq::User("", "");
+    const auto tomaz = daq::User("tomaz", "tomaz");
+
+    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    ASSERT_FALSE(device.isLocked());
+
+    // unlock tomaz
+    device.asPtr<daq::IDevicePrivate>().lock(anonymous);
+    ASSERT_TRUE(device.isLocked());
+    device.asPtr<daq::IDevicePrivate>().unlock(tomaz);
+    ASSERT_FALSE(device.isLocked());
+
+    // unlock anonymous instance
+    device.asPtr<daq::IDevicePrivate>().lock(anonymous);
+    ASSERT_TRUE(device.isLocked());
+    device.asPtr<daq::IDevicePrivate>().unlock(anonymous);
+    ASSERT_FALSE(device.isLocked());
+
+    // unlock nullptr
+    device.asPtr<daq::IDevicePrivate>().lock(anonymous);
+    ASSERT_TRUE(device.isLocked());
+    device.unlock();
+    ASSERT_FALSE(device.isLocked());
+}

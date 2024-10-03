@@ -39,6 +39,14 @@ ErrCode INTERFACE_FUNC UserImpl::getGroups(IList** groups)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC UserImpl::isAnonymous(Bool* anonymous)
+{
+    OPENDAQ_PARAM_NOT_NULL(anonymous);
+
+    *anonymous = username == "" && passwordHash == "";
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode INTERFACE_FUNC UserImpl::equals(IBaseObject* other, Bool* equal) const
 {
     OPENDAQ_PARAM_NOT_NULL(equal);

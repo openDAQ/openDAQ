@@ -151,31 +151,26 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 
             assert(clientComm->getConnected());  // TODO???
 
-            if (clientComm->getProtocolVersion() >= 4)
+            if (!(clientComm->getProtocolVersion() >= 4))
+                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+
+            const auto signalPtr = SignalPtr::Borrow(signal);
+            if (!isSignalFromTheSameComponentTree(signalPtr))
+                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+
+            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
             {
-                const auto signalPtr = SignalPtr::Borrow(signal);
-                if (!isSignalFromTheSameComponentTree(signalPtr))
-                    return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+                StringPtr signalRemoteGlobalId;
+                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
 
-                const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-                if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
-                {
-                    StringPtr signalRemoteGlobalId;
-                    checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
 
-                    auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-                    BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
-                    *accepts = acceptsPtr.getValue(False);
-                    return OPENDAQ_SUCCESS;
-                }
-                *accepts = False;
+                BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                *accepts = acceptsPtr.getValue(False);
+                return OPENDAQ_SUCCESS;
             }
-            else
-            {
-                return makeErrorInfo(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
-                                     "Client-to-device streaming operations are not supported by the protocol version currently in use");
-            }
+            *accepts = False;
         });
 }
 

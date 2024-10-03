@@ -737,22 +737,15 @@ void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& s
 {
     std::scoped_lock lock(sync);
 
-    if (isReconnecting)
+    if (const auto& it = availableSignalIds.find(signalStreamingId); it != availableSignalIds.end())
     {
-        throw InvalidStateException("Signal unavailable command received during reconnection");
+        this->availableSignalIds.erase(it);
+        remapUnavailableSignal(signalStreamingId);
     }
     else
     {
-        if (const auto& it = availableSignalIds.find(signalStreamingId); it != availableSignalIds.end())
-        {
-            this->availableSignalIds.erase(it);
-            remapUnavailableSignal(signalStreamingId);
-        }
-        else
-        {
-            LOG_E("Signal with id {} was not registered as available", signalStreamingId);
-            throw NotFoundException("Signal with id {} was not registered as available in streaming {}", signalStreamingId, this->connectionString);
-        }
+        LOG_E("Signal with id {} was not registered as available", signalStreamingId);
+        throw NotFoundException("Signal with id {} was not registered as available in streaming {}", signalStreamingId, this->connectionString);
     }
 }
 

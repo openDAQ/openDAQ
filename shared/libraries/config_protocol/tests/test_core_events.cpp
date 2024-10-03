@@ -1559,10 +1559,35 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
         updateCount++;
     };
 
-    client->reconnect();
+    client->reconnect(False);
     ASSERT_EQ(updateCount, 1);
 
     ASSERT_EQ(clientDevice.getPropertyValue("String"), serverDevice.getPropertyValue("String"));
+}
+
+TEST_F(ConfigCoreEventTest, ReconnectRestoreClientConfig)
+{
+    serverDevice.addProperty(StringProperty("String", "foo"));
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.setPropertyValue("String", "test");
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(serverDevice.getPropertyValue("String"), "test");
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), "foo");
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+        updateCount++;
+    };
+
+    client->reconnect(True);
+    ASSERT_EQ(updateCount, 1);
+
+    ASSERT_EQ(clientDevice.getPropertyValue("String"), "foo");
+    ASSERT_EQ(serverDevice.getPropertyValue("String"), "foo");
 }
 
 TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
@@ -1578,7 +1603,7 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
 
     const auto infoTest = serverDevice.getInfo();
 
-    client->reconnect();
+    client->reconnect(False);
 
     ASSERT_EQ(clientDevice.getInfo().getSerialNumber(), "test");
     ASSERT_EQ(clientDevice.getInfo().getManufacturer(), "test");

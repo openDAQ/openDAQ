@@ -151,12 +151,13 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 
             assert(clientComm->getConnected());  // TODO???
 
-            if (!(clientComm->getProtocolVersion() >= 4))
-                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+            if (!(clientComm->getProtocolVersion() >= 3))
+                return makeErrorInfo(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
+                                     "Operation not supported by the protocol version currently in use");
 
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
-                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+                return makeErrorInfo(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED, "Signal is not from the same component tree");
 
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
             if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
@@ -171,6 +172,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
                 return OPENDAQ_SUCCESS;
             }
             *accepts = False;
+            return OPENDAQ_SUCCESS;
         });
 }
 

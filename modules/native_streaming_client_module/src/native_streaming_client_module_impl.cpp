@@ -205,6 +205,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
         auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
                                                                  transportClient,
                                                                  config.getPropertyValue("ConfigProtocolRequestTimeout"),
+                                                                 config.getPropertyValue("RestoreClientConfigOnReconnect"),
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id());
@@ -247,6 +248,13 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
         auto value = options.get("ConfigProtocolRequestTimeout");
         if (value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", value);
+    }
+
+    if (options.hasKey("RestoreClientConfigOnReconnect"))
+    {
+        auto value = options.get("RestoreClientConfigOnReconnect");
+        if (value.getCoreType() == CoreType::ctBool)
+            deviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", value);
     }
 }
 
@@ -456,6 +464,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     defaultConfig.addProperty(StringProperty("Password", ""));
 
     defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+    defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
+
     if (nativeConfigType == NativeType::config)
         defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
 
@@ -782,6 +792,8 @@ bool NativeStreamingClientModule::validateDeviceConfig(const PropertyObjectPtr& 
 {
     return config.hasProperty("ConfigProtocolRequestTimeout") &&
            config.getProperty("ConfigProtocolRequestTimeout").getValueType() == ctInt &&
+           config.hasProperty("RestoreClientConfigOnReconnect") &&
+           config.getProperty("RestoreClientConfigOnReconnect").getValueType() == ctBool &&
            validateConnectionConfig(config);
 }
 

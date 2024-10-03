@@ -423,6 +423,8 @@ void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<Se
 
 void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
+    std::scoped_lock lock(sync);
+
     streamingManager.registerClient(sessionHandler->getClientId(), sessionHandler->getReconnected());
 
     auto registeredSignals = streamingManager.getRegisteredSignals();

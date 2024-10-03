@@ -75,7 +75,8 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
     return instance;
 }
 
-static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max())
+static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max(),
+                                        Bool restoreClientConfigOnReconnect = False)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -90,12 +91,14 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
     auto instance = InstanceCustom(context, "clientLocal");
 
     auto config = instance.createDefaultAddDeviceConfig();
+
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     if (nativeConfigProtocolVersion != std::numeric_limits<uint16_t>::max())
-    {
-        PropertyObjectPtr device = config.getPropertyValue("Device");
-        PropertyObjectPtr nativeStreaming = device.getPropertyValue("OpenDAQNativeConfiguration");
-        nativeStreaming.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
-    }
+        nativeDeviceConfig.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
+
+    nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", restoreClientConfigOnReconnect);
+
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
 
@@ -1407,7 +1410,8 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
             "ConnectionTimeout": 300,
             "StreamingInitTimeout": 400,
             "ReconnectionPeriod": 500,
-            "ConfigProtocolRequestTimeout": 6000
+            "ConfigProtocolRequestTimeout": 6000,
+            "RestoreClientConfigOnReconnect": true
             }
         }
     }
@@ -1421,6 +1425,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
 
     auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
     ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 6000);
+    ASSERT_EQ(deviceConfig.getPropertyValue("RestoreClientConfigOnReconnect"), True);
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -1447,7 +1452,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False);
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
@@ -1490,6 +1495,72 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "RefFBModuleScaling");
 
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
+
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), True);
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
+            reconnectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+        }
+    };
+
+    // destroy server to emulate disconnection
+    server.release();
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+
+    ASSERT_THROW(client.getDevices()[0].getDevices()[0].setPropertyValue("CustomProp", 1), ConnectionLostException);
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // re-create updated server
+    server = CreateServerInstance(CreateUpdatedServerInstance());
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    const auto testedDevices = List<IDevice>(client.getDevices()[0], server);
+    for(const auto& testDevice : testedDevices)
+    {
+        auto signals = testDevice.getSignals(search::Recursive(search::Any()));
+        ASSERT_EQ(signals.getCount(), 7u);
+        auto signalsVisible = testDevice.getSignals(search::Recursive(search::Visible()));
+        ASSERT_EQ(signalsVisible.getCount(), 4u);
+        auto devices = testDevice.getDevices();
+        ASSERT_EQ(devices.getCount(), 1u);
+        auto fbs = testDevice.getFunctionBlocks();
+        ASSERT_EQ(fbs.getCount(), 1u);
+        ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+        auto channels = testDevice.getChannels(search::Recursive(search::Any()));
+        ASSERT_EQ(channels.getCount(), 2u);
+        auto servers = testDevice.getServers();
+        ASSERT_EQ(servers.getCount(), 1u);
+    }
 
     auto signals = client.getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)

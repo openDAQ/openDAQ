@@ -151,7 +151,6 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
-
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 }

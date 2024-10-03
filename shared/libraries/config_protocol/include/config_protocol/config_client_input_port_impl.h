@@ -146,8 +146,8 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
-            if (!this->deserializationComplete)
-                return Super::acceptsSignal(signal, accepts);
+            // if (!this->deserializationComplete) // TODO remove ?
+            //    return Super::acceptsSignal(signal, accepts);
 
             assert(clientComm->getConnected());  // TODO???
 

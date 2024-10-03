@@ -40,11 +40,13 @@ set(SRC_PublicHeaders config_protocol.h
                       config_server_access_control.h
                       config_protocol_streaming_producer.h
                       config_protocol_streaming_consumer.h
+                      errors.h
 )
 
 set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h
                        config_server_input_port.h
                        config_mirrored_ext_sig_impl.h
+                       exceptions.h
 )                       
 
 

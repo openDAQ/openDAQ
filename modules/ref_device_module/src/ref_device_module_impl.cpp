@@ -74,6 +74,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
         throw NotFoundException();
     }
 
+    clearRemovedDevices();
     if (devices[id].assigned() && devices[id].getRef().assigned())
     {
         LOG_W("Device with id \"{}\" already exist", id);
@@ -131,6 +132,16 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     }
 
     return id;
+}
+
+void RefDeviceModule::clearRemovedDevices()
+{
+    for (auto& device : devices)
+    {
+        const bool isNull = !device.assigned() || !device.getRef().assigned();
+        if (isNull || device.getRef().isRemoved())
+            device = nullptr;
+    }
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

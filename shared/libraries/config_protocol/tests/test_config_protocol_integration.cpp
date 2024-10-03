@@ -611,14 +611,14 @@ TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
 TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
 {
     auto clientSignal = clientDevice.getSignals()[0];
-    daq::Bool clientAcceptsClientSingal = False;
-    ASSERT_NO_THROW(clientAcceptsClientSingal =
+    daq::Bool clientAcceptsClientSignal = False;
+    ASSERT_NO_THROW(clientAcceptsClientSignal =
                         clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(clientSignal));
-    ASSERT_TRUE(clientAcceptsClientSingal);
+    ASSERT_TRUE(clientAcceptsClientSignal);
 
     auto serverSignal = serverDevice.getSignals()[0];
-    daq::Bool clientAcceptsServerSingal = True;
-    ASSERT_NO_THROW(clientAcceptsServerSingal =
+    daq::Bool clientAcceptsServerSignal = True;
+    ASSERT_NO_THROW(clientAcceptsServerSignal =
                         clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
-    ASSERT_FALSE(clientAcceptsServerSingal);
+    ASSERT_FALSE(clientAcceptsServerSignal);
 }

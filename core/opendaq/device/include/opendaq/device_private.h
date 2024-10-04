@@ -21,8 +21,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
- * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
+ * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user_ptr.h>")]
  */
 
 /*!

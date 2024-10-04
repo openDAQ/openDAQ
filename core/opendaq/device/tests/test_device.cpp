@@ -1,23 +1,23 @@
-#include <opendaq/device_impl.h>
-#include <opendaq/device_ptr.h>
-#include <opendaq/device_info_factory.h>
-#include <opendaq/context_factory.h>
-#include <opendaq/folder_factory.h>
-#include <opendaq/io_folder_factory.h>
-#include <opendaq/io_folder_impl.h>
-#include <opendaq/gmock/function_block.h>
 #include <gtest/gtest.h>
-#include <opendaq/device_private.h>
-#include <opendaq/device_type_factory.h>
+#include <opendaq/component_exceptions.h>
+#include <opendaq/device_ptr.h>
+#include <opendaq/device_private_ptr.h>
+#include <coreobjects/user_factory.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/io_folder_factory.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/channel_impl.h>
-#include <opendaq/component_exceptions.h>
 #include <opendaq/server_impl.h>
-#include <coreobjects/user_factory.h>
-#include <opendaq/device_private_ptr.h>
+#include <opendaq/io_folder_impl.h>
+#include <opendaq/gmock/function_block.h>
+#include <opendaq/device_type_factory.h>
+
 
 using DeviceTest = testing::Test;
+
 
 class TestDevice : public daq::Device
 {
@@ -39,6 +39,58 @@ public:
         return deviceInfo;
     }
 };
+
+class MockSrvImpl final : public daq::Server
+{
+public:
+
+    MockSrvImpl(const daq::ContextPtr& ctx, const daq::DevicePtr& rootDev)
+        : daq::Server("MockServerId", nullptr, rootDev, ctx)
+    {
+        createAndAddSignal("sig_srv");
+    }
+};
+
+class MockFbImpl final : public daq::FunctionBlock
+{
+public:
+    MockFbImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    {
+        createAndAddSignal("sig_fb");
+        createAndAddInputPort("ip_fb", daq::PacketReadyNotification::None);
+    }
+};
+
+class MockChannel final : public daq::Channel
+{
+public:
+    MockChannel(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::Channel(daq::FunctionBlockType("Ch", "", ""), ctx, parent, localId)
+    {
+        createAndAddSignal("sig_ch");
+    }
+};
+
+class MockDevice final : public daq::Device
+{
+public:
+    MockDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::Device(ctx, parent, localId)
+    {
+        createAndAddSignal("sig_device");
+
+        auto aiIoFolder = this->addIoFolder("AI", ioFolder);
+        createAndAddChannel<MockChannel>(aiIoFolder, "Ch");
+
+        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
+        addNestedFunctionBlock(fb);
+
+        const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
+        servers.addItem(srv);
+    }
+};
+
 
 TEST_F(DeviceTest, DeviceInfoNameLocationSync)
 {
@@ -178,57 +230,6 @@ TEST_F(DeviceTest, Remove)
     ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
 }
 
-class MockSrvImpl final : public daq::Server
-{
-public:
-
-    MockSrvImpl(const daq::ContextPtr& ctx, const daq::DevicePtr& rootDev)
-        : daq::Server("MockServerId", nullptr, rootDev, ctx)
-    {
-        createAndAddSignal("sig_srv");
-    }
-};
-
-class MockFbImpl final : public daq::FunctionBlock
-{
-public:
-    MockFbImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
-        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
-    {
-        createAndAddSignal("sig_fb");
-        createAndAddInputPort("ip_fb", daq::PacketReadyNotification::None);
-    }
-};
-
-class MockChannel final : public daq::Channel
-{
-public:
-    MockChannel(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
-        : daq::Channel(daq::FunctionBlockType("Ch", "", ""), ctx, parent, localId)
-    {
-        createAndAddSignal("sig_ch");
-    }
-};
-
-class MockDevice final : public daq::Device
-{
-public:
-    MockDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
-        : daq::Device(ctx, parent, localId)
-    {
-        createAndAddSignal("sig_device");
-
-        auto aiIoFolder = this->addIoFolder("AI", ioFolder);
-        createAndAddChannel<MockChannel>(aiIoFolder, "Ch");
-
-        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
-        addNestedFunctionBlock(fb);
-
-        const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
-        servers.addItem(srv);
-    }
-};
-
 TEST_F(DeviceTest, SerializeAndDeserialize)
 {
     const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
@@ -279,7 +280,7 @@ TEST_F(DeviceTest, LockUnlock)
     const auto jure = daq::User("jure", "jure");
     const auto tomaz = daq::User("tomaz", "tomaz");
 
-    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
 
     ASSERT_FALSE(device.isLocked());
 
@@ -301,7 +302,7 @@ TEST_F(DeviceTest, LockUnlockAnonymous)
     const auto jure = daq::User("jure", "jure");
     const auto tomaz = daq::User("tomaz", "tomaz");
 
-    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
 
     ASSERT_FALSE(device.isLocked());
 
@@ -333,7 +334,7 @@ TEST_F(DeviceTest, LockUnlockAnonymousInstance)
     const auto anonymous = daq::User("", "");
     const auto tomaz = daq::User("tomaz", "tomaz");
 
-    auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     ASSERT_FALSE(device.isLocked());
 
     // unlock tomaz

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -44,6 +46,7 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     cls.def("build",
         [](daq::IDataRuleBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -51,11 +54,13 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     cls.def_property("type",
         [](daq::IDataRuleBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             return objectPtr.getType();
         },
         [](daq::IDataRuleBuilder *object, daq::DataRuleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.setType(type);
         },
@@ -63,11 +68,13 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     cls.def_property("parameters",
         [](daq::IDataRuleBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },
         [](daq::IDataRuleBuilder *object, std::variant<daq::IDict*, py::dict>& parameters)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.setParameters(getVariantValue<daq::IDict*>(parameters));
         },
@@ -76,6 +83,7 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     cls.def("add_parameter",
         [](daq::IDataRuleBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const py::object& parameter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.addParameter(getVariantValue<daq::IString*>(name), pyObjectToBaseObject(parameter));
         },
@@ -84,6 +92,7 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     cls.def("remove_parameter",
         [](daq::IDataRuleBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.removeParameter(getVariantValue<daq::IString*>(name));
         },

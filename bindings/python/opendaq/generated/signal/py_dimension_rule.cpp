@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -65,6 +67,7 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
     cls.def_property_readonly("type",
         [](daq::IDimensionRule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionRulePtr::Borrow(object);
             return objectPtr.getType();
         },
@@ -72,6 +75,7 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
     cls.def_property_readonly("parameters",
         [](daq::IDimensionRule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionRulePtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },

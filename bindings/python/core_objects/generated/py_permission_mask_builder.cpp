@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
@@ -50,6 +52,7 @@ void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissio
     cls.def("read",
         [](daq::IPermissionMaskBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionMaskBuilderPtr::Borrow(object);
             objectPtr.read();
         },
@@ -57,6 +60,7 @@ void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissio
     cls.def("write",
         [](daq::IPermissionMaskBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionMaskBuilderPtr::Borrow(object);
             objectPtr.write();
         },
@@ -64,6 +68,7 @@ void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissio
     cls.def("execute",
         [](daq::IPermissionMaskBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionMaskBuilderPtr::Borrow(object);
             objectPtr.execute();
         },
@@ -71,6 +76,7 @@ void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissio
     cls.def("clear",
         [](daq::IPermissionMaskBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionMaskBuilderPtr::Borrow(object);
             objectPtr.clear();
         },
@@ -78,6 +84,7 @@ void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissio
     cls.def("build",
         [](daq::IPermissionMaskBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionMaskBuilderPtr::Borrow(object);
             return objectPtr.build();
         },

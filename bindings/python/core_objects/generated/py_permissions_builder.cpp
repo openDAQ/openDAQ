@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("inherit",
         [](daq::IPermissionsBuilder *object, const bool inherit)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             objectPtr.inherit(inherit);
         },
@@ -51,6 +54,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("assign",
         [](daq::IPermissionsBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& groupId, daq::IPermissionMaskBuilder* permissions)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             objectPtr.assign(getVariantValue<daq::IString*>(groupId), permissions);
         },
@@ -59,6 +63,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("allow",
         [](daq::IPermissionsBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& groupId, daq::IPermissionMaskBuilder* permissions)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             objectPtr.allow(getVariantValue<daq::IString*>(groupId), permissions);
         },
@@ -67,6 +72,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("deny",
         [](daq::IPermissionsBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& groupId, daq::IPermissionMaskBuilder* permissions)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             objectPtr.deny(getVariantValue<daq::IString*>(groupId), permissions);
         },
@@ -75,6 +81,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("extend",
         [](daq::IPermissionsBuilder *object, daq::IPermissions* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             objectPtr.extend(config);
         },
@@ -83,6 +90,7 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
     cls.def("build",
         [](daq::IPermissionsBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionsBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },

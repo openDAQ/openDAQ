@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("trigger_event",
         [](daq::IMirroredSignalPrivate *object, daq::IEventPacket* eventPacket)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             return objectPtr.triggerEvent(eventPacket);
         },
@@ -49,6 +52,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("add_streaming_source",
         [](daq::IMirroredSignalPrivate *object, daq::IStreaming* streaming)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.addStreamingSource(streaming);
         },
@@ -57,6 +61,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("remove_streaming_source",
         [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.removeStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },
@@ -65,6 +70,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("subscribe_completed",
         [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.subscribeCompleted(getVariantValue<daq::IString*>(streamingConnectionString));
         },
@@ -73,6 +79,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("unsubscribe_completed",
         [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.unsubscribeCompleted(getVariantValue<daq::IString*>(streamingConnectionString));
         },
@@ -81,6 +88,7 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def("unsubscribe_completed_no_lock",
         [](daq::IMirroredSignalPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.unsubscribeCompletedNoLock(getVariantValue<daq::IString*>(streamingConnectionString));
         },
@@ -89,11 +97,13 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def_property("mirrored_data_descriptor",
         [](daq::IMirroredSignalPrivate *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             return objectPtr.getMirroredDataDescriptor().detach();
         },
         [](daq::IMirroredSignalPrivate *object, daq::IDataDescriptor* descriptor)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.setMirroredDataDescriptor(descriptor);
         },
@@ -102,11 +112,13 @@ void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredS
     cls.def_property("mirrored_domain_signal",
         [](daq::IMirroredSignalPrivate *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             return objectPtr.getMirroredDomainSignal().detach();
         },
         [](daq::IMirroredSignalPrivate *object, daq::IMirroredSignalConfig* domainSignal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalPrivatePtr::Borrow(object);
             objectPtr.setMirroredDomainSignal(domainSignal);
         },

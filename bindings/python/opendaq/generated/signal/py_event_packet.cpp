@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineIEventPacket(pybind11::module_ m, PyDaqIntf<daq::IEventPacket, daq::I
     cls.def_property_readonly("event_id",
         [](daq::IEventPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::EventPacketPtr::Borrow(object);
             return objectPtr.getEventId().toStdString();
         },
@@ -58,6 +61,7 @@ void defineIEventPacket(pybind11::module_ m, PyDaqIntf<daq::IEventPacket, daq::I
     cls.def_property_readonly("parameters",
         [](daq::IEventPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::EventPacketPtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },

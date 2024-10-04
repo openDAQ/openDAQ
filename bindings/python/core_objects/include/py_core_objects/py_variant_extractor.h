@@ -16,10 +16,12 @@
 
 #pragma once
 
+#include <optional>
 #include <type_traits>
 #include <variant>
 
 #include <py_core_objects/py_core_objects.h>
+#include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -109,8 +111,7 @@ struct is_variant_member<T, std::variant<Args...>> : std::disjunction<std::is_sa
 template <typename T, typename Variant>
 inline constexpr bool is_variant_member_v = is_variant_member<T, Variant>::value;
 
-template <typename VariantType>
-daq::BaseObjectPtr getVariantValueInternal(VariantType& variant)
+inline daq::BaseObjectPtr getVariantValueInternal(variant_full_t& variant)
 {
     if (auto ptr = std::get_if<std::pair<int64_t, int64_t>>(&variant))
     {
@@ -159,7 +160,7 @@ daq::BaseObjectPtr getVariantValueInternal(VariantType& variant)
     }
     else if (auto obj = std::get_if<py::object>(&variant))
     {
-        return pyObjectToBaseObject(*obj);
+        return pyObjectToBaseObject(*obj, false);
     }
     return nullptr;
 }
@@ -195,6 +196,9 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
     }
     else if (auto native = std::get_if<NativeType>(&v))
     {
+        std::optional<py::gil_scoped_acquire> acquire; 
+        if (std::is_base_of_v<py::handle, NativeType>) acquire.emplace();
+        
         auto variant = variant_full_t(*native);
         return getVariantValueInternal(variant);
     }

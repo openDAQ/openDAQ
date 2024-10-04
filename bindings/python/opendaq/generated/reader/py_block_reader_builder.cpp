@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def("build",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,11 +53,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("old_block_reader",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getOldBlockReader().detach();
         },
         [](daq::IBlockReaderBuilder *object, daq::IBlockReader* blockReader)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setOldBlockReader(blockReader);
         },
@@ -63,11 +68,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("signal",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getSignal().detach();
         },
         [](daq::IBlockReaderBuilder *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setSignal(signal);
         },
@@ -76,11 +83,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("input_port",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getInputPort().detach();
         },
         [](daq::IBlockReaderBuilder *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPort(port);
         },
@@ -89,11 +98,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("value_read_type",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getValueReadType();
         },
         [](daq::IBlockReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setValueReadType(type);
         },
@@ -101,11 +112,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("domain_read_type",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getDomainReadType();
         },
         [](daq::IBlockReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setDomainReadType(type);
         },
@@ -113,11 +126,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("read_mode",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getReadMode();
         },
         [](daq::IBlockReaderBuilder *object, daq::ReadMode mode)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setReadMode(mode);
         },
@@ -125,11 +140,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("block_size",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getBlockSize();
         },
         [](daq::IBlockReaderBuilder *object, const size_t size)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setBlockSize(size);
         },
@@ -137,11 +154,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("overlap",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getOverlap();
         },
         [](daq::IBlockReaderBuilder *object, const size_t overlap)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setOverlap(overlap);
         },
@@ -149,11 +168,13 @@ void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderB
     cls.def_property("skip_events",
         [](daq::IBlockReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             return objectPtr.getSkipEvents();
         },
         [](daq::IBlockReaderBuilder *object, const bool skipEvents)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderBuilderPtr::Borrow(object);
             objectPtr.setSkipEvents(skipEvents);
         },

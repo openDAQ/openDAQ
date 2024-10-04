@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def("accepts_signal",
         [](daq::IInputPort *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             return objectPtr.acceptsSignal(signal);
         },
@@ -49,6 +52,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def("connect",
         [](daq::IInputPort *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             objectPtr.connect(signal);
         },
@@ -57,6 +61,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def("disconnect",
         [](daq::IInputPort *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             objectPtr.disconnect();
         },
@@ -64,6 +69,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def_property_readonly("signal",
         [](daq::IInputPort *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             return objectPtr.getSignal().detach();
         },
@@ -72,6 +78,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def_property_readonly("requires_signal",
         [](daq::IInputPort *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             return objectPtr.getRequiresSignal();
         },
@@ -79,6 +86,7 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
     cls.def_property_readonly("connection",
         [](daq::IInputPort *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortPtr::Borrow(object);
             return objectPtr.getConnection().detach();
         },

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIPacketDestructCallback(pybind11::module_ m, PyDaqIntf<daq::IPacketDe
     cls.def("on_packet_destroyed",
         [](daq::IPacketDestructCallback *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PacketDestructCallbackPtr::Borrow(object);
             objectPtr.onPacketDestroyed();
         },

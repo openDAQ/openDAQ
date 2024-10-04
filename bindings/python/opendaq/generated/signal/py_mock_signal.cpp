@@ -18,9 +18,13 @@
 #include <cstddef>
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <sstream>
+#include <thread>
 
 #include "py_opendaq/py_mock_signal.h"
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
 #include "py_opendaq/py_opendaq.h"
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -252,6 +256,17 @@ void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls)
         py::arg("objects"),
         py::arg("update_descriptor") = true,
         "Adds the given data objects to the signal. Should be either a list or a dictionary. Only int and float are supported.");
+
+    cls.def_static(
+        "wait_for_ms",
+        [](int msec, bool gilRelease)
+        {
+            std::optional<py::gil_scoped_release> gil_release;
+            if (gilRelease)
+                gil_release.emplace();
+            std::this_thread::sleep_for(std::chrono::milliseconds(msec));
+        },
+        "Waits for the given amount of milliseconds with or without releasing the GIL.");
 
     cls.def_property_readonly("signal", [](daq::MockSignal* object) { return object->getSignal().detach(); }, "The value signal.");
 

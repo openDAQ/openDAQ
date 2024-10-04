@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,11 +48,13 @@ void defineITask(pybind11::module_ m, PyDaqIntf<daq::ITask, daq::IBaseObject> cl
     cls.def_property("name",
         [](daq::ITask *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TaskPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
         [](daq::ITask *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TaskPtr::Borrow(object);
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
@@ -58,6 +62,7 @@ void defineITask(pybind11::module_ m, PyDaqIntf<daq::ITask, daq::IBaseObject> cl
     cls.def("then",
         [](daq::ITask *object, daq::ITask* continuation)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TaskPtr::Borrow(object);
             objectPtr.then(continuation);
         },

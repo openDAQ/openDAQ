@@ -36,6 +36,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
+#include <pybind11/gil.h>
 
 #include "py_opendaq/py_reader_traits.h"
 
@@ -96,6 +97,7 @@ struct PyTypedReader
             {
                 auto status = readZeroValues(reader, timeoutMs);
                 assignDescriptorsFromStatus(reader, status);
+                py::gil_scoped_acquire acquire;
                 return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, status.detach()))
                                     : SampleTypeReaderStatusVariant<ReaderType>(py::array{});
             }
@@ -153,6 +155,7 @@ struct PyTypedReader
             {
                 auto status = readZeroValues(reader, timeoutMs);
                 assignDescriptorsFromStatus(reader, status);
+                py::gil_scoped_acquire acquire;
                 return returnStatus
                            ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}, status.detach()))
                            : SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}));
@@ -225,6 +228,7 @@ private:
                 {
                     auto status = readZeroValues(reader, timeoutMs);
                     assignDescriptorsFromStatus(reader, status);
+                    py::gil_scoped_acquire acquire;
                     return returnStatus ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>(
                                               std::make_tuple(py::array{}, py::array{}, status.detach()))
                                         : SampleTypeDomainTypeReaderStatusVariant<ReaderType>(std::make_tuple(py::array{}, py::array{}));
@@ -288,6 +292,7 @@ private:
             auto status = readZeroValues(reader, timeoutMs);
             // update descriptors if changed
             assignDescriptorsFromStatus(reader, status);
+            py::gil_scoped_acquire acquire;
             return returnStatus ? SampleTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, status.detach())}
                                 : SampleTypeReaderStatusVariant<ReaderType>{};
         }
@@ -342,6 +347,7 @@ private:
         // update descriptors if changed
         assignDescriptorsFromStatus(reader, status);
 
+        py::gil_scoped_acquire acquire;
         py::array::ShapeContainer shape;
         if (blockSize > 1)
         {
@@ -390,6 +396,7 @@ private:
             auto status = readZeroValues(reader, timeoutMs);
             // update descriptors if changed
             assignDescriptorsFromStatus(reader, status);
+            py::gil_scoped_acquire acquire;
             return returnStatus
                        ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{}, status.detach())}
                        : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{})};
@@ -447,6 +454,7 @@ private:
         // update descriptors if changed
         assignDescriptorsFromStatus(reader, status);
 
+        py::gil_scoped_acquire acquire;
         py::array::ShapeContainer shape;
         if (blockSize > 1)
         {
@@ -594,6 +602,7 @@ private:
     template <typename ReaderType>
     static daq::DataDescriptorPtr getDescriptor(const ReaderType& reader, const char* attribute_name)
     {
+        py::gil_scoped_acquire acquire;
         py::object pyObject = py::cast(InterfaceWrapper<typename ReaderType::DeclaredInterface>(reader.addRefAndReturn()));
         try
         {
@@ -609,6 +618,7 @@ private:
     template <typename ReaderType>
     static void setDescriptor(const ReaderType& reader, const char* attribute_name, daq::DataDescriptorPtr&& descriptor)
     {
+        py::gil_scoped_acquire acquire;
         auto pyObject = py::cast(InterfaceWrapper<typename ReaderType::DeclaredInterface>(reader.addRefAndReturn()));
         auto pyDesc = py::cast(InterfaceWrapper(descriptor.detach()));
         pyObject.attr(attribute_name) = pyDesc;

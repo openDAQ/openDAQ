@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,11 +48,13 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def_property("level",
         [](daq::ILogger *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             return objectPtr.getLevel();
         },
         [](daq::ILogger *object, daq::LogLevel level)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             objectPtr.setLevel(level);
         },
@@ -58,6 +62,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("get_or_add_component",
         [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             return objectPtr.getOrAddComponent(getVariantValue<daq::IString*>(name)).detach();
         },
@@ -66,6 +71,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("add_component",
         [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             return objectPtr.addComponent(getVariantValue<daq::IString*>(name)).detach();
         },
@@ -74,6 +80,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("remove_component",
         [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             objectPtr.removeComponent(getVariantValue<daq::IString*>(name));
         },
@@ -82,6 +89,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def_property_readonly("components",
         [](daq::ILogger *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             return objectPtr.getComponents().detach();
         },
@@ -90,6 +98,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("get_component",
         [](daq::ILogger *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             return objectPtr.getComponent(getVariantValue<daq::IString*>(name)).detach();
         },
@@ -98,6 +107,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("flush",
         [](daq::ILogger *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             objectPtr.flush();
         },
@@ -105,6 +115,7 @@ void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject
     cls.def("flush_on_level",
         [](daq::ILogger *object, daq::LogLevel level)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerPtr::Borrow(object);
             objectPtr.flushOnLevel(level);
         },

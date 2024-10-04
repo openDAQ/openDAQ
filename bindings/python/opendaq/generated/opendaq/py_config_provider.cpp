@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineIConfigProvider(pybind11::module_ m, PyDaqIntf<daq::IConfigProvider, 
     cls.def("populate_options",
         [](daq::IConfigProvider *object, std::variant<daq::IDict*, py::dict>& options)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConfigProviderPtr::Borrow(object);
             objectPtr.populateOptions(getVariantValue<daq::IDict*>(options));
         },

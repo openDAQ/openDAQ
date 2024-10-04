@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
@@ -44,6 +46,7 @@ void defineIPermissionManager(pybind11::module_ m, PyDaqIntf<daq::IPermissionMan
         nullptr,
         [](daq::IPermissionManager *object, daq::IPermissions* permissions)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionManagerPtr::Borrow(object);
             objectPtr.setPermissions(permissions);
         },
@@ -51,6 +54,7 @@ void defineIPermissionManager(pybind11::module_ m, PyDaqIntf<daq::IPermissionMan
     cls.def("is_authorized",
         [](daq::IPermissionManager *object, daq::IUser* user, daq::Permission permission)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PermissionManagerPtr::Borrow(object);
             return objectPtr.isAuthorized(user, permission);
         },

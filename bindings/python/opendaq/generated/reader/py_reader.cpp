@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -45,6 +47,7 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
     cls.def_property_readonly("available_count",
         [](daq::IReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
             return objectPtr.getAvailableCount();
         },
@@ -53,6 +56,7 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
         nullptr,
         [](daq::IReader *object, daq::IProcedure* callback)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
             objectPtr.setOnDataAvailable(callback);
         },
@@ -60,6 +64,7 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
     cls.def_property_readonly("empty",
         [](daq::IReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
             return objectPtr.getEmpty();
         },

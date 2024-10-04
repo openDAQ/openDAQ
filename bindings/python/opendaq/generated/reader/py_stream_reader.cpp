@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 
 #include "py_opendaq/py_typed_reader.h"
@@ -47,7 +49,10 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
     cls.def(
         "read",
         [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -56,7 +61,10 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
     cls.def(
         "read_with_domain",
         [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -66,6 +74,7 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         "skip_samples",
         [](daq::IStreamReader* object, size_t count, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
             auto status = objectPtr.skipSamples(&count);
             return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status.detach())} :

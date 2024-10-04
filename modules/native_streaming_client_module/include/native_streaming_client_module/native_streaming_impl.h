@@ -34,10 +34,12 @@ class NativeStreamingImpl : public StreamingImpl<INativeStreamingPrivate>
 {
 public:
     using Super = StreamingImpl<INativeStreamingPrivate>;
-    explicit NativeStreamingImpl(const StringPtr& connectionString,
+    explicit NativeStreamingImpl(
+        const StringPtr& connectionString,
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
@@ -81,8 +83,7 @@ protected:
     std::future<void> protocolInitFuture;
 
     std::chrono::milliseconds streamingInitTimeout;
-    std::shared_ptr<boost::asio::io_context> timerContextPtr;
-    std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
+    std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

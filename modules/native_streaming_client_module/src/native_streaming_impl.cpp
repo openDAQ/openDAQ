@@ -17,6 +17,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ContextPtr& context,
     NativeStreamingClientHandlerPtr transportClientHandler,
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+    std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
     Int streamingInitTimeout,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
@@ -30,10 +31,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     , processingIOContextPtr(processingIOContextPtr)
     , protocolInitFuture(protocolInitPromise.get_future())
     , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
-    , timerContextPtr(transportClientHandler->getIoContext())
-    , protocolInitTimer(
-          std::make_shared<boost::asio::steady_timer>(*timerContextPtr)
-    )
+    , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
 {
     initClientHandlerCallbacks();
     this->transportClientHandler->sendStreamingRequest();
@@ -48,8 +46,6 @@ NativeStreamingImpl::NativeStreamingImpl(
 
 NativeStreamingImpl::~NativeStreamingImpl()
 {
-    protocolInitTimer->cancel();
-
     transportClientHandler->resetStreamingHandlers();
     stopProcessingOperations();
 }
@@ -64,6 +60,10 @@ void NativeStreamingImpl::stopProcessingOperations()
     if (!processingIOContextPtr->stopped())
     {
         processingIOContextPtr->stop();
+    }
+    if (!reconnectionProcessingIOContextPtr->stopped())
+    {
+        reconnectionProcessingIOContextPtr->stop();
     }
 }
 
@@ -110,22 +110,18 @@ void NativeStreamingImpl::processConnectionStatus(opendaq_native_streaming_proto
 {
     if (status == ClientConnectionStatus::Connected)
     {
-        this->transportClientHandler->sendStreamingRequest();
         protocolInitPromise = std::promise<void>();
         protocolInitFuture = protocolInitPromise.get_future();
-        protocolInitTimer->expires_from_now(streamingInitTimeout);
-        protocolInitTimer->async_wait(
-            [this](const boost::system::error_code& ec)
-            {
-                if (ec)
-                    return;
 
-                if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                    updateConnectionStatus(ClientConnectionStatus::Connected);
-                else
-                    updateConnectionStatus(ClientConnectionStatus::Unrecoverable);
-            }
-        );
+        transportClientHandler->sendStreamingRequest();
+        if (protocolInitFuture.wait_for(streamingInitTimeout) == std::future_status::ready)
+        {
+            updateConnectionStatus(ClientConnectionStatus::Connected);
+        }
+        else
+        {
+            updateConnectionStatus(ClientConnectionStatus::Unrecoverable);
+        }
     }
     else
     {
@@ -191,7 +187,7 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         [this, thisRef](ClientConnectionStatus status)
     {
         dispatch(
-            *processingIOContextPtr,
+            *reconnectionProcessingIOContextPtr,
             [this, thisRef, status]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -273,7 +269,7 @@ void NativeStreamingImpl::initClientHandlerCallbacks()
         [this](ClientConnectionStatus status)
     {
         dispatch(
-            *processingIOContextPtr,
+            *reconnectionProcessingIOContextPtr,
             [this, status]()
             {
                 processConnectionStatus(status);

@@ -390,6 +390,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             connectionString,
             transportClient,
             addStreamingProcessingContext(connectionString),
+            addStreamingReconnectionContext(connectionString),
             initTimeout
         );
         protocolId = NativeStreamingDeviceTypeId;
@@ -516,6 +517,26 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
     return processingIOContextPtr;
 }
 
+std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreamingReconnectionContext(const StringPtr& connectionString)
+{
+    auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
+    auto reconnectionProcessingThread = std::thread(
+        [this, reconnectionProcessingIOContextPtr, connectionString]()
+        {
+            using namespace boost::asio;
+            auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
+            reconnectionProcessingIOContextPtr->run();
+            LOG_I("Streaming {}: reconnection thread finished", connectionString);
+        }
+    );
+
+    processingContextPool.emplace_back("Streaming " + connectionString + " reconnection processing",
+                                       std::move(reconnectionProcessingThread),
+                                       reconnectionProcessingIOContextPtr);
+
+    return reconnectionProcessingIOContextPtr;
+}
+
 NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTransportClient(
     const StringPtr& host,
     const StringPtr& port,
@@ -556,6 +577,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
         context,
         transportClientHandler,
         addStreamingProcessingContext(connectionString),
+        addStreamingReconnectionContext(connectionString),
         streamingInitTimeout,
         nullptr,
         nullptr,

@@ -23,6 +23,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const StringPtr& connectionString,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                                     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                                      Int initTimeout)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
@@ -35,6 +36,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     initStatuses(ctx);
     createNativeStreaming(transportProtocolClient,
                           processingIOContextPtr,
+                          reconnectionProcessingIOContextPtr,
                           initTimeout);
     activateStreaming();
 }
@@ -78,6 +80,7 @@ void NativeStreamingDeviceImpl::publishConnectionStatus()
 
 void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandlerPtr transportProtocolClient,
                                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                                      std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                                       Int initTimeout)
 {
     ProcedurePtr onSignalAvailableCallback =
@@ -104,6 +107,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,
+                                                                  reconnectionProcessingIOContextPtr,
                                                                   initTimeout,
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,

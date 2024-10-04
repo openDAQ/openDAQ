@@ -1,4 +1,5 @@
 #include "setup_regression.h"
+#include <testutils/testutils.h>
 
 class RegressionTestInputPort : public testing::Test
 {
@@ -34,9 +35,7 @@ TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDiscon
     PROTOCOLS("nd")
 
     auto signal1 = device.getSignalsRecursive()[0];
-    Bool accepts;
-    ASSERT_NO_THROW(accepts = port.acceptsSignal(signal1));
-    ASSERT_EQ(accepts, True);
+    ASSERT_THROW_MSG(port.acceptsSignal(signal1), DaqException, "Operation not supported by the protocol version currently in use");
     ASSERT_NO_THROW(port.connect(signal1));
     SignalPtr signal2;
     ASSERT_NO_THROW(signal2 = port.getSignal());

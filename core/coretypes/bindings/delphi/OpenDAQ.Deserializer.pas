@@ -31,6 +31,7 @@ type
 
   TDeserializerPtr = class(TObjectPtr<IDeserializer>, IDeserializerPtr, IDeserializer)
   public
+    constructor Create; overload; override;
     constructor Create(Obj: IBaseObject); overload; override;
     constructor Create(Obj: IDeserializer); overload;
 
@@ -64,12 +65,23 @@ uses
   OpenDAQ.SmartPtrRegistry;
 
 
-constructor TDeserializerPtr.Create(Obj: IDeserializer);
+constructor TDeserializerPtr.Create();
+var
+  Deserializer : IDeserializer;
+  Err : ErrCode;
+begin
+  Err := CreateJsonDeserializer(Deserializer);
+  CheckRtErrorInfo(Err);
+
+  Create(Deserializer);
+end;
+
+constructor TDeserializerPtr.Create(Obj: IBaseObject);
 begin
   inherited Create(Obj);
 end;
 
-constructor TDeserializerPtr.Create(Obj: IBaseObject);
+constructor TDeserializerPtr.Create(Obj: IDeserializer);
 begin
   inherited Create(Obj);
 end;

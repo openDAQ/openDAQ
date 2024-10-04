@@ -475,6 +475,7 @@ namespace RTGen.Python.Generators
 
             impl.AppendLine(leadingSpaces + String.Format("[](daq::{0} *object{1})", interfaceName, argumentsIn));
             impl.AppendLine(leadingSpaces + "{");
+            impl.AppendLine(leadingSpaces + "    py::gil_scoped_release release;");
             impl.AppendLine(leadingSpaces + String.Format("    const auto objectPtr = daq::{0}::Borrow(object);", wrapperName));
 
             string doReturn = method.ReturnsByRef() ? "return " : "";

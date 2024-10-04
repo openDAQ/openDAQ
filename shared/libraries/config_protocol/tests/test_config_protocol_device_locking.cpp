@@ -1,19 +1,19 @@
 #include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include "test_utils.h"
-#include <opendaq/instance_factory.h>
+#include <coreobjects/user_factory.h>
+#include <opendaq/device_private_ptr.h>
+#include <opendaq/device_ptr.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include <config_protocol/config_client_device_impl.h>
-#include <coreobjects/user_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
-#include <opendaq/device_private_ptr.h>
+#include "test_utils.h"
 
 
 using namespace daq;
-using namespace config_protocol;
 using namespace testing;
+using namespace config_protocol;
+
 
 class ConfigProtocolDeviceLockingTest : public Test
 {
@@ -23,7 +23,7 @@ public:
 
     DevicePtr createDevice()
     {
-        return test_utils::createTestDevice();
+        return daq::config_protocol::test_utils::createTestDevice();
     }
 
     void setupServerAndClient(const DevicePtr& device, const UserPtr& user)

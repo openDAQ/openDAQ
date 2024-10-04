@@ -377,8 +377,9 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
     auto clientSignalsBeforeDisconnection = client.getSignals(search::Recursive(search::Any()));
 
-    // destroy server to emulate disconnection
-    server.release();
+    // remove streaming server to emulate disconnection
+    server.removeServer(server.getServers()[0]);
+
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
@@ -387,9 +388,11 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     connectionStatusPromise = std::promise<StringPtr>();
     connectionStatusFuture = connectionStatusPromise.get_future();
 
-    // re-create server to enable reconnection
-    server = CreateServerInstance();
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+    serverSignals[0].setDescription("Some new description");
+
+    // add streaming server back to enable reconnection
+    server.addServer("OpenDAQNativeStreaming", nullptr);
 
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");

@@ -194,7 +194,9 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
     if (auto iter1 = deviceSignals.find(signalStringId); iter1 != deviceSignals.end())
     {
         signalToAdd = iter1->second.first;
-        // TODO update existing signal
+
+        const auto deserializer = JsonDeserializer();
+        deserializer.update(signalToAdd.asPtr<IUpdatable>(), serializedSignal);
     }
     else
     {

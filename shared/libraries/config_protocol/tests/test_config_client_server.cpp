@@ -533,9 +533,6 @@ TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
 
-    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());  // TODO needed?
-    signal->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());     // TODO needed?
-
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));

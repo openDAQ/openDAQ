@@ -126,7 +126,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 4);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 4); /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
 
     client->releaseRef();
     server->releaseRef();

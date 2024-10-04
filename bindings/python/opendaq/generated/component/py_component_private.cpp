@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.def("lock_attributes",
         [](daq::IComponentPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& attributes)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.lockAttributes(getVariantValue<daq::IList*>(attributes));
         },
@@ -49,6 +52,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.def("lock_all_attributes",
         [](daq::IComponentPrivate *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.lockAllAttributes();
         },
@@ -56,6 +60,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.def("unlock_attributes",
         [](daq::IComponentPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& attributes)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.unlockAttributes(getVariantValue<daq::IList*>(attributes));
         },
@@ -64,6 +69,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.def("unlock_all_attributes",
         [](daq::IComponentPrivate *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.unlockAllAttributes();
         },
@@ -71,6 +77,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
     cls.def("trigger_component_core_event",
         [](daq::IComponentPrivate *object, daq::ICoreEventArgs* args)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.triggerComponentCoreEvent(args);
         },

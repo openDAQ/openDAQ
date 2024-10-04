@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::ICo
     cls.def_property_readonly("connection_string_prefix",
         [](daq::IDeviceType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceTypePtr::Borrow(object);
             return objectPtr.getConnectionStringPrefix().toStdString();
         },

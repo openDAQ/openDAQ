@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         nullptr,
         [](daq::ISignalConfig *object, daq::IDataDescriptor* descriptor)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.setDescriptor(descriptor);
         },
@@ -59,6 +62,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         nullptr,
         [](daq::ISignalConfig *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.setDomainSignal(signal);
         },
@@ -67,6 +71,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         nullptr,
         [](daq::ISignalConfig *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.setRelatedSignals(getVariantValue<daq::IList*>(signals));
         },
@@ -74,6 +79,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
     cls.def("add_related_signal",
         [](daq::ISignalConfig *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.addRelatedSignal(signal);
         },
@@ -82,6 +88,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
     cls.def("remove_related_signal",
         [](daq::ISignalConfig *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.removeRelatedSignal(signal);
         },
@@ -90,6 +97,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
     cls.def("clear_related_signals",
         [](daq::ISignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.clearRelatedSignals();
         },
@@ -97,6 +105,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
     cls.def("send_packet",
         [](daq::ISignalConfig *object, daq::IPacket* packet)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.sendPacket(packet);
         },
@@ -105,6 +114,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
     cls.def("send_packets",
         [](daq::ISignalConfig *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& packets)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
             objectPtr.sendPackets(getVariantValue<daq::IList*>(packets));
         },

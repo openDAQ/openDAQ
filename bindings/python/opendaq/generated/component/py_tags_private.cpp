@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
     cls.def("add",
         [](daq::ITagsPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
             objectPtr.add(getVariantValue<daq::IString*>(name));
         },
@@ -49,6 +52,7 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
     cls.def("remove",
         [](daq::ITagsPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
             objectPtr.remove(getVariantValue<daq::IString*>(name));
         },
@@ -57,6 +61,7 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
     cls.def("replace",
         [](daq::ITagsPrivate *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& tags)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
             objectPtr.replace(getVariantValue<daq::IList*>(tags));
         },

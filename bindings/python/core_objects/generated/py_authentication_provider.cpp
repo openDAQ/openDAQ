@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -55,6 +57,7 @@ void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenti
     cls.def("authenticate",
         [](daq::IAuthenticationProvider *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& username, std::variant<daq::IString*, py::str, daq::IEvalValue*>& password)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AuthenticationProviderPtr::Borrow(object);
             return objectPtr.authenticate(getVariantValue<daq::IString*>(username), getVariantValue<daq::IString*>(password)).detach();
         },
@@ -63,6 +66,7 @@ void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenti
     cls.def_property_readonly("anonymous_allowed",
         [](daq::IAuthenticationProvider *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AuthenticationProviderPtr::Borrow(object);
             return objectPtr.isAnonymousAllowed();
         },

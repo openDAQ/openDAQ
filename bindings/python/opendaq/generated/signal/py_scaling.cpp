@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -55,6 +57,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
     cls.def_property_readonly("input_sample_type",
         [](daq::IScaling *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingPtr::Borrow(object);
             return objectPtr.getInputSampleType();
         },
@@ -62,6 +65,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
     cls.def_property_readonly("output_sample_type",
         [](daq::IScaling *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingPtr::Borrow(object);
             return objectPtr.getOutputSampleType();
         },
@@ -69,6 +73,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
     cls.def_property_readonly("type",
         [](daq::IScaling *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingPtr::Borrow(object);
             return objectPtr.getType();
         },
@@ -76,6 +81,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
     cls.def_property_readonly("parameters",
         [](daq::IScaling *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingPtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },

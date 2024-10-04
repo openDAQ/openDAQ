@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -65,11 +67,13 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
     cls.def_property("level",
         [](daq::ILoggerSink *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
             return objectPtr.getLevel();
         },
         [](daq::ILoggerSink *object, daq::LogLevel level)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
             objectPtr.setLevel(level);
         },
@@ -77,6 +81,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
     cls.def("should_log",
         [](daq::ILoggerSink *object, daq::LogLevel level)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
             return objectPtr.shouldLog(level);
         },
@@ -86,6 +91,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
         nullptr,
         [](daq::ILoggerSink *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& pattern)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
             objectPtr.setPattern(getVariantValue<daq::IString*>(pattern));
         },
@@ -93,6 +99,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
     cls.def("flush",
         [](daq::ILoggerSink *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::LoggerSinkPtr::Borrow(object);
             objectPtr.flush();
         },

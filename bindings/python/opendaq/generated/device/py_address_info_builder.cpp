@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
     cls.def("build",
         [](daq::IAddressInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,11 +53,13 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
     cls.def_property("address",
         [](daq::IAddressInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getAddress().toStdString();
         },
         [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& address)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             objectPtr.setAddress(getVariantValue<daq::IString*>(address));
         },
@@ -62,11 +67,13 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
     cls.def_property("connection_string",
         [](daq::IAddressInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },
         [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             objectPtr.setConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
@@ -74,11 +81,13 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
     cls.def_property("type",
         [](daq::IAddressInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getType().toStdString();
         },
         [](daq::IAddressInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             objectPtr.setType(getVariantValue<daq::IString*>(type));
         },
@@ -86,11 +95,13 @@ void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoB
     cls.def_property("reachability_status",
         [](daq::IAddressInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             return objectPtr.getReachabilityStatus();
         },
         [](daq::IAddressInfoBuilder *object, daq::AddressReachabilityStatus addressReachability)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoBuilderPtr::Borrow(object);
             objectPtr.setReachabilityStatus(addressReachability);
         },

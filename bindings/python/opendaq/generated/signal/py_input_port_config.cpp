@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -53,6 +55,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
         nullptr,
         [](daq::IInputPortConfig *object, daq::PacketReadyNotification method)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.setNotificationMethod(method);
         },
@@ -60,6 +63,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
     cls.def("notify_packet_enqueued",
         [](daq::IInputPortConfig *object, const bool queueWasEmpty)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.notifyPacketEnqueued(queueWasEmpty);
         },
@@ -68,6 +72,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
     cls.def("notify_packet_enqueued_on_this_thread",
         [](daq::IInputPortConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.notifyPacketEnqueuedOnThisThread();
         },
@@ -76,6 +81,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
         nullptr,
         [](daq::IInputPortConfig *object, daq::IInputPortNotifications* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.setListener(port);
         },
@@ -83,11 +89,13 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
     cls.def_property("custom_data",
         [](daq::IInputPortConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getCustomData());
         },
         [](daq::IInputPortConfig *object, const py::object& customData)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.setCustomData(pyObjectToBaseObject(customData));
         },
@@ -97,6 +105,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
         nullptr,
         [](daq::IInputPortConfig *object, const bool requiresSignal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.setRequiresSignal(requiresSignal);
         },
@@ -104,6 +113,7 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
     cls.def_property_readonly("gap_checking_enabled",
         [](daq::IInputPortConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             return objectPtr.getGapCheckingEnabled();
         },

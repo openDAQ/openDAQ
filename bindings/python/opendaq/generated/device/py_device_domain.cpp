@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -50,6 +52,7 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
     cls.def_property_readonly("tick_resolution",
         [](daq::IDeviceDomain *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
             return objectPtr.getTickResolution().detach();
         },
@@ -58,6 +61,7 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
     cls.def_property_readonly("origin",
         [](daq::IDeviceDomain *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
             return objectPtr.getOrigin().toStdString();
         },
@@ -65,6 +69,7 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
     cls.def_property_readonly("unit",
         [](daq::IDeviceDomain *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
             return objectPtr.getUnit().detach();
         },
@@ -73,6 +78,7 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
     cls.def_property_readonly("reference_domain_info",
         [](daq::IDeviceDomain *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
             return objectPtr.getReferenceDomainInfo().detach();
         },

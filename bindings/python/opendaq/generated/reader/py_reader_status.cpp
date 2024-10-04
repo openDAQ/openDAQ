@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -52,6 +54,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
     cls.def_property_readonly("read_status",
         [](daq::IReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
             return objectPtr.getReadStatus();
         },
@@ -59,6 +62,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
     cls.def_property_readonly("event_packet",
         [](daq::IReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
             return objectPtr.getEventPacket().detach();
         },
@@ -67,6 +71,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
     cls.def_property_readonly("valid",
         [](daq::IReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
             return objectPtr.getValid();
         },
@@ -74,6 +79,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
     cls.def_property_readonly("offset",
         [](daq::IReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
             return objectPtr.getOffset().detach();
         },

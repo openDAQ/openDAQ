@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -47,6 +49,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.def_property_readonly("name",
         [](daq::IDimension *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
@@ -54,6 +57,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.def_property_readonly("size",
         [](daq::IDimension *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionPtr::Borrow(object);
             return objectPtr.getSize();
         },
@@ -61,6 +65,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.def_property_readonly("unit",
         [](daq::IDimension *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionPtr::Borrow(object);
             return objectPtr.getUnit().detach();
         },
@@ -69,6 +74,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.def_property_readonly("labels",
         [](daq::IDimension *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionPtr::Borrow(object);
             return objectPtr.getLabels().detach();
         },
@@ -77,6 +83,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.def_property_readonly("rule",
         [](daq::IDimension *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionPtr::Borrow(object);
             return objectPtr.getRule().detach();
         },

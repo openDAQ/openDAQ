@@ -57,11 +57,13 @@ template <class F>
 daq::ErrCode PyFunctionImpl<F>::call(daq::IBaseObject* params, daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
+
+    py::gil_scoped_acquire acquire;
     
     if (params == nullptr)
     {
         auto r = pyObject();
-        auto obj = pyObjectToBaseObject(r);
+        auto obj = pyObjectToBaseObject(r, false);
         *result = obj.detach();
     }
     else
@@ -78,14 +80,14 @@ daq::ErrCode PyFunctionImpl<F>::call(daq::IBaseObject* params, daq::IBaseObject*
             }
 
             auto r = pyObject(*args);
-            auto obj = pyObjectToBaseObject(r);
+            auto obj = pyObjectToBaseObject(r, false);
             *result = obj.detach();
         }
         else
         {
             auto po = F::ToPyObject(params);
             auto r = pyObject(po);
-            auto obj = pyObjectToBaseObject(r);
+            auto obj = pyObjectToBaseObject(r, false);
             *result = obj.detach();
 
         }

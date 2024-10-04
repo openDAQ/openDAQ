@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIInputPortNotifications(pybind11::module_ m, PyDaqIntf<daq::IInputPor
     cls.def("accepts_signal",
         [](daq::IInputPortNotifications *object, daq::IInputPort* port, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortNotificationsPtr::Borrow(object);
             return objectPtr.acceptsSignal(port, signal);
         },
@@ -49,6 +52,7 @@ void defineIInputPortNotifications(pybind11::module_ m, PyDaqIntf<daq::IInputPor
     cls.def("connected",
         [](daq::IInputPortNotifications *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortNotificationsPtr::Borrow(object);
             objectPtr.connected(port);
         },
@@ -57,6 +61,7 @@ void defineIInputPortNotifications(pybind11::module_ m, PyDaqIntf<daq::IInputPor
     cls.def("disconnected",
         [](daq::IInputPortNotifications *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortNotificationsPtr::Borrow(object);
             objectPtr.disconnected(port);
         },
@@ -65,6 +70,7 @@ void defineIInputPortNotifications(pybind11::module_ m, PyDaqIntf<daq::IInputPor
     cls.def("packet_received",
         [](daq::IInputPortNotifications *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortNotificationsPtr::Borrow(object);
             objectPtr.packetReceived(port);
         },

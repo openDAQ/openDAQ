@@ -151,7 +151,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 
             assert(clientComm->getConnected());  // TODO???
 
-            if (!(clientComm->getProtocolVersion() >= 3))
+            if (!(clientComm->getProtocolVersion() >= 4))
                 return makeErrorInfo(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
                                      "Operation not supported by the protocol version currently in use");
 

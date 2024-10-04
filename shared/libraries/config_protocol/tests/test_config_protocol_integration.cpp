@@ -14,7 +14,6 @@
 #include <opendaq/packet_factory.h>
 #include <coreobjects/user_factory.h>
 #include <config_protocol/exceptions.h>
-#include <opendaq/signal_exceptions.h>
 #include <testutils/testutils.h>
 
 using namespace daq;
@@ -626,6 +625,6 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
 
     auto falseSignal = Signal(clientSignal.getContext(), nullptr, "test");
     ASSERT_THROW_MSG(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(falseSignal),
-                     SignalNotAcceptedException,
+                     NativeClientCallNotAvailableException,
                      "Signal is not from the same component tree");
 }

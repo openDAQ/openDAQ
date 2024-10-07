@@ -16,6 +16,7 @@ set(SRC_Include common.h
                 trigger_fb_impl.h
                 fft_fb_impl.h
                 power_reader_fb_impl.h
+                struct_decoder_fb_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -27,6 +28,7 @@ set(SRC_Srcs module_dll.cpp
              trigger_fb_impl.cpp
              fft_fb_impl.cpp
              power_reader_fb_impl.cpp
+             struct_decoder_fb_impl.cpp
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
@@ -60,6 +62,7 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/classifier_fb_impl.h
                             ${MODULE_HEADERS_DIR}/fft_fb_impl.h
                             ${MODULE_HEADERS_DIR}/power_reader_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/struct_decoder_fb_impl.h
                             module_dll.cpp
                             power_fb_impl.cpp
                             statistics_fb_impl.cpp
@@ -67,7 +70,8 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             classifier_fb_impl.cpp
                             trigger_fb_impl.cpp
                             fft_fb_impl.cpp
-                            power_reader_fb_impl.cpp)
+                            power_reader_fb_impl.cpp
+                            struct_decoder_fb_impl.cpp)
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h

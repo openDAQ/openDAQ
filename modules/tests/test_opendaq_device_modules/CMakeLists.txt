@@ -5,8 +5,6 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_default_config.cpp
                  test_app.cpp
                  test_helpers/test_helpers.h
-                 test_helpers/mock_helper_module.h
-                 test_helpers/mock_helper_module.cpp
 )
 
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)

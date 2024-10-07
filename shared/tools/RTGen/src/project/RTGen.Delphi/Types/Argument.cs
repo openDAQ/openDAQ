@@ -12,6 +12,8 @@ namespace RTGen.Delphi.Types
             DefaultValue = null;
             IsPolymorphic = false;
             IsStealRef = false;
+            AllowNull = false;
+            RawBuffer = null;
         }
 
         public ITypeName Type { get; set; }
@@ -31,6 +33,10 @@ namespace RTGen.Delphi.Types
         public bool IsPolymorphic { get; set; }
 
         public bool IsStealRef { get; set; }
+
+        public bool AllowNull { get; set; }
+
+        public string RawBuffer { get; set; }
 
         public IArgument Clone()
         {

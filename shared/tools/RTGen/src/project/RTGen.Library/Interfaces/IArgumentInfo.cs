@@ -13,5 +13,11 @@ namespace RTGen.Interfaces
 
         /// <summary>True if method steals the reference to the argument.</summary>
         bool IsStealRef { get; set; }
+
+        /// <summary>True if the argument can be null.</summary>
+        bool AllowNull { get; set; }
+
+        /// <summary>The argument is raw buffer.</summary>
+        string RawBuffer { get; set; }
     }
 }

@@ -19,27 +19,23 @@
 
 PyDaqIntf<daq::IMultiReader, daq::ISampleReader> declareIMultiReader(pybind11::module_ m)
 {
-    return wrapInterface<daq::IMultiReader, daq::ISampleReader>(m, "IMultiReader");
+    return wrapInterface<daq::IMultiReader, daq::ISampleReader>(m, "IMultiReader", py::dynamic_attr());
 }
 
 void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::ISampleReader> cls)
 {
     cls.doc() = "Reads multiple Signals at once.";
 
-    m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadTimeoutType timeoutType) {
-        if(valueReadType == daq::SampleType::Invalid && domainReadType == daq::SampleType::Invalid && timeoutType == daq::ReadTimeoutType::All) {
-            return daq::MultiReader(signals).detach();
-        }
+    m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType) {
         PyTypedReader::checkTypes(valueReadType, domainReadType);
-        // in case of overriden type, set other type to default
-        valueReadType = valueReadType == daq::SampleType::Invalid ? daq::SampleType::Float64 : valueReadType;
-        domainReadType = domainReadType == daq::SampleType::Invalid ? daq::SampleType::Int64 : domainReadType;
-
-        return daq::MultiReaderEx(signals, valueReadType, domainReadType, daq::ReadMode::Scaled, timeoutType).detach();
+        if(domainReadType == daq::SampleType::Undefined)
+            throw daq::InvalidParameterException("Domain type cannot be undefined.");
+        return daq::MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
     },
     py::arg("signals"), 
-    py::arg("value_type") = daq::SampleType::Invalid, 
-    py::arg("domain_type") = daq::SampleType::Invalid,
+    py::arg("value_type") = daq::SampleType::Float64, 
+    py::arg("domain_type") = daq::SampleType::Int64,
+    py::arg("read_mode") = daq::ReadMode::Scaled,
     py::arg("timeout_type") = daq::ReadTimeoutType::All,
     "Creates a MultiReader object that reads multiple signals at once.");
     m.def("MultiReaderFromExisting", &daq::MultiReaderFromExisting_Create);
@@ -100,4 +96,16 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
             return objectPtr.getCommonSampleRate();
         },
         "Gets the common sample rate in case input signal have different rates. The value of common sample rate is such that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple of individual signal's sample rates. The number of samples to be read is specified in common sample rate.");
+    cls.def_property("active",
+        [](daq::IMultiReader *object)
+        {
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            return objectPtr.getActive();
+        },
+        [](daq::IMultiReader *object, const bool isActive)
+        {
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            objectPtr.setActive(isActive);
+        },
+        "Gets / Sets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.");
 }

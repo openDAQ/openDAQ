@@ -44,6 +44,8 @@
 #include <coretypes/cloneable.h>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
+#include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -324,6 +326,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
+
+    this->permissionManager.setPermissions(
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
 }
 
 template <typename PropObjInterface, typename... Interfaces>

@@ -24,10 +24,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
-class WebsocketStreamingServerImpl : public daq::Server
+class WebsocketStreamingServerImpl : public Server
 {
 public:
-    explicit WebsocketStreamingServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
+    explicit WebsocketStreamingServerImpl(const DevicePtr& rootDevice,
+                                          const PropertyObjectPtr& config,
+                                          const ContextPtr& context);
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);

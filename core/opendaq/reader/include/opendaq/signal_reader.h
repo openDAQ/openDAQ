@@ -74,6 +74,7 @@ struct SignalReader
     std::unique_ptr<Comparable> readStartDomain();
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
+    void skipUntilLastEventPacket();
     bool sync(const Comparable& commonStart);
 
     ErrCode readPackets();

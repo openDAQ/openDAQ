@@ -196,6 +196,11 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         if (currentDescriptor.assigned())
             this->currentDescriptor = currentDescriptor;
 
+        if (this->voltageDescriptor.assigned() &&
+            this->voltageDescriptor.getUnit().assigned() &&
+            this->voltageDescriptor.getUnit().getSymbol() != "V")
+            throw std::runtime_error("Invalid voltage signal unit");
+
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
 
@@ -206,16 +211,17 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
             powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
 
         powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
-        powerSignal.setDescriptor(powerDataDescriptor);
-
         powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
 
+        reader.setActive(True);
+
+        powerSignal.setDescriptor(powerDataDescriptor);
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
     }
     catch (const std::exception& e)
     {
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
-        powerSignal.setDescriptor(nullptr);
+        reader.setActive(False);
     }
 }
 

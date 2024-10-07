@@ -154,6 +154,8 @@ namespace RTGen.Types
                 {"polymorphic", PolymorphicAttribute},
                 {"stealRef", ArgumentStealRef},
                 {"overloadFor", OverloadForAttribute},
+                {"allowNull", AllowNullAttribute},
+                {"rawBuffer", RawBufferAttribute},
             };
 
             DefaultBasePtr = "ObjectPtr";
@@ -463,7 +465,6 @@ namespace RTGen.Types
             Next.Method.OverloadFor = attribute.Arguments[0].Value;
         }
 
-
         private void ArgumentStealRef(IRTAttribute attribute)
         {
             int argumentLength = attribute.Arguments.Length;
@@ -482,6 +483,26 @@ namespace RTGen.Types
             }
 
             argInfo.IsStealRef = true;
+        }
+
+        private void AllowNullAttribute(IRTAttribute attribute)
+        {
+            int argumentLength = attribute.Arguments.Length;
+
+            if (argumentLength != 1)
+            {
+                throw new RTAttributeException(
+                    $"RtAttribute \"{attribute.Name}\" must have one argument (arg name).");
+            }
+
+            IArgumentInfo argInfo;
+            if (!Next.Method.Arguments.TryGet(attribute.Arguments[0].Value, out argInfo))
+            {
+                argInfo = new ArgumentInfo();
+                Next.Method.Arguments.Add(attribute.Arguments[0].Value, argInfo);
+            }
+
+            argInfo.AllowNull = true;
         }
 
         private void PolymorphicAttribute(IRTAttribute attribute)
@@ -572,6 +593,25 @@ namespace RTGen.Types
             }
 
             Next.Method.Arguments.Add(attribute.Arguments[0].Value, new ArgumentInfo(types));
+        }
+
+        private void RawBufferAttribute(IRTAttribute attribute)
+        {
+            int argumentLength = attribute.Arguments.Length;
+
+            if (argumentLength != 2)
+            {
+                throw new RTAttributeException("RtAttribute \"RawBuffer\" must have exactly two arguments.");
+            }
+
+            IArgumentInfo argInfo;
+            if (!Next.Method.Arguments.TryGet(attribute.Arguments[0].Value, out argInfo))
+            {
+                argInfo = new ArgumentInfo();
+                Next.Method.Arguments.Add(attribute.Arguments[0].Value, argInfo);
+            }
+
+            argInfo.RawBuffer = attribute.Arguments[1].Value;
         }
 
         private void FactorySettings(IRTAttribute attribute)

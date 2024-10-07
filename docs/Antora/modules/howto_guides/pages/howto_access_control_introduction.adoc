@@ -1,0 +1,14 @@
+
+= Access control
+
+In many cases, we have a data acquisition system that can be accessed by multiple users. Typically, we want each user to have specific permissions based on their role.
+For instance, an admin user should be able to configure the device and modify all its settings. A guest user might only need read-only access, while a calibrator user
+should be able to adjust calibration factors on the device. The openDAQ Access Control system makes this possible.
+
+In an openDAQ device implementation, it is possible to define a list of users that can access it. Each user is a member of one or more user groups. 
+When connecting to a device, it is possible to authenticate as one of the defined users. Access to various device components is restricted based on the user's group membership.
+
+NOTE: The authentication and access level enforcement happens at the transport layer level. The openDAQ server authenticates the client, declining requests that the client
+does not have access to it.
+
+NOTE: The access control system is available only over the openDAQ "Native protocol".

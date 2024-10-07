@@ -117,6 +117,9 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("NativeStreamingPort"));
     ASSERT_EQ(config.getPropertyValue("NativeStreamingPort"), 7420);
+
+    ASSERT_TRUE(config.hasProperty("MaxAllowedConfigConnections"));
+    ASSERT_EQ(config.getPropertyValue("MaxAllowedConfigConnections"), 0);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

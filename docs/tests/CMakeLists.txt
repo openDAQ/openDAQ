@@ -17,6 +17,7 @@ set(TEST_SOURCES docs_test_helpers.h
                  test_config_provider.cpp
                  test_get_last_value.cpp
                  test_howto_configure_instance.cpp
+                 test_howto_access_control.cpp
 )
 
 if (OPENDAQ_ENABLE_NATIVE_STREAMING AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)

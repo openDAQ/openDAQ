@@ -777,7 +777,6 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
 
     {
@@ -799,6 +798,12 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
     dataPtr[1] = 22.2;
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
@@ -822,7 +827,6 @@ TEST_F(TailReaderTest, ReadUndefinedWithNoDomainFromPacket)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
 
     {
@@ -863,7 +867,6 @@ TEST_F(TailReaderTest, ReadUndefinedWithWithDomainFromPacket)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
 
     {
@@ -906,8 +909,8 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
+
     port.connect(this->signal);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
@@ -917,6 +920,12 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     dataPtr[1] = 222.2;
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
@@ -942,7 +951,6 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
@@ -954,6 +962,12 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
     port.connect(this->signal);
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
@@ -1010,7 +1024,6 @@ TEST_F(TailReaderTest, TailReaderOnReadCallback)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
         .setHistorySize(HISTORY_SIZE)
-        .setSkipEvents(true)
         .build();
 
     {

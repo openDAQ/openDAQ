@@ -76,7 +76,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @brief Creates and returns a function block with the specified id.
      * The function block is not automatically added to the FB list of the caller.
      * @param id The id of the function block to create. Ids can be retrieved by calling `getAvailableFunctionBlockTypes()`.
-     * @param parent The parent component/device to which the device attaches.
+     * @param parent The parent component/device to which the function block attaches.
      * @param config Function block configuration. In case of a null value, implementation should use default configuration.
      * @param localId Custom local ID for the function block. Overrides the "LocalId" property of the "config" object, if present.
      * @param[out] functionBlock The created function block.
@@ -102,6 +102,20 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
 
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
+
+    /*!
+     * @brief Creates and returns a server with the provided serverType and configuration.
+     * @param serverTypeId Type id of the server. Can be obtained from its corresponding Server type object.
+     * @param rootDevice The root device
+     * @param serverConfig Config of the server. Can be created from its corresponding Server type object.
+     * In case of a null value, it will use the default configuration.
+     * @param[out] server The created server.
+     *
+     * Iterates through all loaded modules and creates a server with the first module that accepts the provided serverTypeId.
+     * The servers folder of the root device is automatically assigned as parent for created server component.
+     * The local ID of created server component is equal to the name of the server type.
+     */
+    virtual ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) = 0;
 };
 /*!@}*/
 

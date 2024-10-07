@@ -9,7 +9,9 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
 using namespace daq;
 
-WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
+WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(const DevicePtr& rootDevice,
+                                                           const PropertyObjectPtr& config,
+                                                           const ContextPtr& context)
     : Server("OpenDAQLTStreaming", config, rootDevice, context)
     , websocketStreamingServer(rootDevice, context)
 {
@@ -98,15 +100,10 @@ PropertyObjectPtr WebsocketStreamingServerImpl::populateDefaultConfig(const Prop
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY,
-    WebsocketStreamingServer,
-    daq::IServer,
-    daq::DevicePtr,
-    rootDevice,
-    PropertyObjectPtr,
-    config,
-    const ContextPtr&,
-    context
-    )
+    INTERNAL_FACTORY, WebsocketStreamingServer, daq::IServer,
+    daq::DevicePtr, rootDevice,
+    PropertyObjectPtr, config,
+    const ContextPtr&, context
+)
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE

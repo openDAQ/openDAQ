@@ -91,7 +91,7 @@ PyDaqIntf<daq::ISignalConfig, daq::ISignal> declareISignalConfig(pybind11::modul
 PyDaqIntf<daq::ISignalEvents, daq::IBaseObject> declareISignalEvents(pybind11::module_ m);
 PyDaqIntf<daq::ITags, daq::IBaseObject> declareITags(pybind11::module_ m);
 PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::module_ m);
-PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m);
+PyDaqIntf<daq::IServer, daq::IFolder> declareIServer(pybind11::module_ m);
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m);
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m);
 PyDaqIntf<daq::IStreamingType, daq::IComponentType> declareIStreamingType(pybind11::module_ m);
@@ -192,7 +192,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
 void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq::IBaseObject> cls);
 void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cls);
 void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> cls);
-void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls);
+void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cls);
 void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::IComponentType> cls);
 void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBaseObject> cls);
 void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, daq::IComponentType> cls);

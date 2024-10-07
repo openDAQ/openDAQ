@@ -46,19 +46,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
             portBinder = PropertyObject();
 
         connectPorts(ports, valueReadType, domainReadType, mode);
-
-        updateCommonSampleRateAndDividers();
-        if (invalid)
-            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
-
-        SizeT min{};
-        SyncStatus syncStatus{};
-
-        std::lock_guard lockNotify(notify.mutex);
-
-        ErrCode errCode = synchronize(min, syncStatus);
-
-        checkErrorInfo(errCode);
     }
     catch (...)
     {
@@ -74,6 +61,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     old->invalid = true;
     portBinder = old->portBinder;
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
+    isActive = old->isActive;
 
     bool fromInputPorts;
 
@@ -141,19 +129,6 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     if (fromInputPorts)
         portBinder = PropertyObject();
     connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
-
-    updateCommonSampleRateAndDividers();
-    if (invalid)
-        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
-
-    SizeT min{};
-    SyncStatus syncStatus{};
-
-    std::lock_guard lockNotify(notify.mutex);
-
-    ErrCode errCode = synchronize(min, syncStatus);
-
-    checkErrorInfo(errCode);
 }
 
 MultiReaderImpl::~MultiReaderImpl()
@@ -396,7 +371,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
 
             if (overrideMethod && port.getConnection().assigned())
-                throw InvalidParameterException("Signal has to be connected to port after reader is created");
+                throw InvalidParameterException("Signal has been connected to the port before the reader is created");
 
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -464,10 +439,9 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
             port.asPtr<IOwnable>().setOwner(portBinder);
         port.setListener(listener);
 
-        auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
-        if (sigInfo.connection.assigned())
-            sigInfo.handleDescriptorChanged(sigInfo.connection.dequeue());
+        signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
     }
+    portConnected = true;
 }
 
 ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
@@ -940,7 +914,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     {
         for (auto& signal : signals)
         {
-            signal.port.setActive(true);
+            signal.port.setActive(isActive);
         }
         portConnected = true;
     }
@@ -1195,6 +1169,38 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
     OPENDAQ_PARAM_NOT_NULL(isSynchronized);
 
     *isSynchronized = static_cast<bool>(commonStart);
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::setActive(Bool isActive)
+{
+    std::scoped_lock lock{mutex, notify.mutex};
+
+    bool modified = this->isActive != static_cast<bool>(isActive);
+    this->isActive = isActive;
+
+    for (auto& signalReader : signals)
+    {
+        if (modified)
+            signalReader.synced = SyncStatus::Unsynchronized;
+
+        if (signalReader.port.assigned())
+            signalReader.port.setActive(this->isActive);
+
+        if (modified && !this->isActive)
+            signalReader.skipUntilLastEventPacket();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getActive(Bool* isActive)
+{
+    OPENDAQ_PARAM_NOT_NULL(isActive);
+
+    std::lock_guard lock{mutex};
+    *isActive = this->isActive;
 
     return OPENDAQ_SUCCESS;
 }

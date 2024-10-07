@@ -21,6 +21,12 @@ set(SRC_Cpp
     generated/py_unit.cpp
     generated/py_unit_builder.cpp
     generated/py_component_type.cpp
+    generated/py_user.cpp
+    generated/py_authentication_provider.cpp
+    generated/py_permissions_builder.cpp
+    generated/py_permission_mask_builder.cpp
+    generated/py_permission_manager.cpp
+    generated/py_permissions.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class PermissionMaskBuilderImpl final : public ImplementationOf<IPermissionMaskBuilder>
 {
 public:
+    explicit PermissionMaskBuilderImpl();
     explicit PermissionMaskBuilderImpl(Int permissionMask);
 
     ErrCode INTERFACE_FUNC read() override;

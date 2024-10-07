@@ -36,10 +36,7 @@ public:
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** manager) override;
 
     ErrCode INTERFACE_FUNC getAvailableServerTypes(IDict** serverTypes) override;
-    ErrCode INTERFACE_FUNC addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server) override;
     ErrCode INTERFACE_FUNC addStandardServers(IList** standardServers) override;
-    ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
-    ErrCode INTERFACE_FUNC getServers(IList** instanceServers) override;
 
     ErrCode INTERFACE_FUNC getRootDevice(IDevice** currentRootDevice) override;
     ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString, IPropertyObject* config = nullptr) override;
@@ -76,6 +73,10 @@ public:
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+
+    ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
+    ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
+    ErrCode INTERFACE_FUNC getServers(IList** servers) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
@@ -154,18 +155,13 @@ private:
     ModuleManagerPtr moduleManager;
     LoggerComponentPtr loggerComponent;
 
-    std::mutex configSync;
-    std::vector<ServerPtr> servers;
-
     bool rootDeviceSet;
 
-    void stopServers();
+    void stopAndRemoveServers();
     DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr);
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);
-
-    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
 };
 
 END_NAMESPACE_OPENDAQ

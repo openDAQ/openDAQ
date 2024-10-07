@@ -22,9 +22,14 @@
 class MockServerImpl : public daq::Server
 {
 public:
-    explicit MockServerImpl();
+    explicit MockServerImpl(const daq::StringPtr& id, const daq::DevicePtr& rootDevice, const daq::ContextPtr& context);
 
 protected:
 };
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    INTERNAL_FACTORY, MockServer, daq::IServer,
+    const daq::StringPtr&, id,
+    const daq::DevicePtr&, rootDevice,
+    const daq::ContextPtr&, context
+)

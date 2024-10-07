@@ -36,7 +36,7 @@ public:
 protected:
     void loadUserList(const ListPtr<IUser>& userList);
     virtual UserPtr findUser(const StringPtr& username);
-    bool isPasswordValid(const StringPtr& hash, const StringPtr& password);
+    bool isPasswordValid(const std::string& hash, const StringPtr& password);
 
     bool allowAnonymous;
     DictPtr<IString, IUser> users;

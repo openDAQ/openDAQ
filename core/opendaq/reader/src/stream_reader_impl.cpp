@@ -110,7 +110,13 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 {
     if (!builder.assigned())
         throw ArgumentNullException("Builder must not be null");
-    
+
+    if ((builder.getValueReadType() == SampleType::Undefined || builder.getDomainReadType() == SampleType::Undefined) &&
+        builder.getSkipEvents())
+    {
+        throw InvalidParameterException("Reader cannot skip events when sample type is undefined");
+    }
+
     readMode = builder.getReadMode();
     timeoutType = builder.getReadTimeoutType();
     skipEvents = builder.getSkipEvents();

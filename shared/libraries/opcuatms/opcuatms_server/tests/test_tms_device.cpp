@@ -20,13 +20,17 @@ using TmsDeviceTest = TmsServerObjectTest;
 
 TEST_F(TmsDeviceTest, Create)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
+
     auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsDeviceTest, Register)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
+
     auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
@@ -35,7 +39,9 @@ TEST_F(TmsDeviceTest, Register)
 
 TEST_F(TmsDeviceTest, SubDevices)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
+
     auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
@@ -44,7 +50,9 @@ TEST_F(TmsDeviceTest, SubDevices)
 
 TEST_F(TmsDeviceTest, FunctionBlock)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
+
     auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
@@ -54,7 +62,8 @@ TEST_F(TmsDeviceTest, FunctionBlock)
 
 TEST_F(TmsDeviceTest, Property)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
 
     const auto sampleRateProp =
         FloatPropertyBuilder("SampleRate", 100.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
@@ -86,7 +95,9 @@ TEST_F(TmsDeviceTest, Property)
 
 TEST_F(TmsDeviceTest, Components)
 {
-    DevicePtr device = test_helpers::SetupInstance();
+    auto instance = test_helpers::SetupInstance();
+    auto device = instance.getRootDevice();
+
     auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 

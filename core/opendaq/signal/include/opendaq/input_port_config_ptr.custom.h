@@ -24,17 +24,17 @@ void remove() const
 {	
     if (this->object == nullptr)
         throw daq::InvalidParameterException();
-	
-	IRemovable* removable;
-	auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
-	if (OPENDAQ_FAILED(errCode))
-	{
-		if (errCode == OPENDAQ_ERR_NOINTERFACE)
-			return;
-		daq::checkErrorInfo(errCode);
-	}
+    
+    IRemovable* removable;
+    auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return;
+        daq::checkErrorInfo(errCode);
+    }
 
-	errCode = removable->remove();
+    errCode = removable->remove();
     daq::checkErrorInfo(errCode);
 }
 
@@ -46,14 +46,14 @@ bool isRemoved() const
 {
     if (this->object == nullptr)
         throw daq::InvalidParameterException();
-	
-	IRemovable* removable;
-	auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
-	daq::checkErrorInfo(errCode);
+    
+    IRemovable* removable;
+    auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
+    daq::checkErrorInfo(errCode);
 
-	Bool removed;
-	errCode = removable->isRemoved(&removed);
-	daq::checkErrorInfo(errCode);
-	
-	return removed;
+    Bool removed;
+    errCode = removable->isRemoved(&removed);
+    daq::checkErrorInfo(errCode);
+    
+    return removed;
 }

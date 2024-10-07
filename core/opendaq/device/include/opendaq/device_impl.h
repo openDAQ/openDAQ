@@ -88,6 +88,10 @@ public:
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
 
+    ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
+    ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
+    ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
     ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
@@ -125,6 +129,7 @@ protected:
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
     SyncComponentPtr syncComponent;
+    FolderConfigPtr servers;
     LoggerComponentPtr loggerComponent;
     PropertyObjectPtr deviceConfig;
     bool isRootDevice;
@@ -170,6 +175,8 @@ protected:
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
 
     virtual StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveServer(const ServerPtr& server);
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -196,17 +203,21 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
     this->defaultComponents.insert("Synchronization");
+    this->defaultComponents.insert("Srv");
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr);
     ioFolder = this->addIoFolder("IO", nullptr);
     syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
+    servers = this->template addFolder<IComponent>("Srv", nullptr);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
+    servers.asPtr<IComponentPrivate>().lockAllAttributes();
 
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+    servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 
     this->addProperty(StringProperty("userName", ""));
     this->addProperty(StringProperty("location", ""));
@@ -688,6 +699,47 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannelsRecursive(IList** c
     });
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::addServer(IString* typeId, IPropertyObject* config, IServer** server)
+{
+    OPENDAQ_PARAM_NOT_NULL(server);
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    ServerPtr serverPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddServer, serverPtr, typeId, config);
+
+    *server = serverPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::removeServer(IServer* server)
+{
+    OPENDAQ_PARAM_NOT_NULL(server);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    const auto serverPtr = ServerPtr::Borrow(server);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveServer, serverPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
+{
+    OPENDAQ_PARAM_NOT_NULL(servers);
+
+    if (this->isComponentRemoved)
+        return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+    return this->servers->getItems(servers);
+}
+
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter)
 {
@@ -833,6 +885,31 @@ template <typename TInterface, typename... Interfaces>
 StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
 {
     throw NotImplementedException();
+}
+
+template <typename TInterface, typename... Interfaces>
+ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    ServerPtr server = managerUtils.createServer(typeId, this->template thisPtr<DevicePtr>(), config);
+
+    std::scoped_lock lock(this->sync);
+    if (!this->isRootDevice)
+        throw NotFoundException("Device does not allow adding/removing servers.");
+    this->servers.addItem(server);
+
+    return server;
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& server)
+{
+    std::scoped_lock lock(this->sync);
+
+    if (!this->isRootDevice)
+        throw NotFoundException("Device does not allow adding/removing servers.");
+
+    this->servers.removeItem(server);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1081,6 +1158,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     this->serializeFolder(serializer, ioFolder, "IO", forUpdate);
     this->serializeFolder(serializer, devices, "Dev", forUpdate);
+    this->serializeFolder(serializer, servers, "Srv", forUpdate);
 
     for (const auto& component : this->components)
     {
@@ -1227,6 +1305,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
+    this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, servers, "Srv");
 
     const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "properties", "propValues"};
 

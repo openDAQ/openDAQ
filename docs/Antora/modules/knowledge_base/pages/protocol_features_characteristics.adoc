@@ -104,13 +104,13 @@ The following table showcases which of the protocols supports what features. You
 
 | Stream data client → server
 | Clients can send full-rate data to the device.
-^|
+^| ✅
 ^| 
 ^|
 
 | Stream data server → server
 | Clients can configure two devices (servers) to send data to each other, either directly or using the client as a gateway.
-^| 
+^| ✅
 ^| 
 ^| 
 
@@ -253,6 +253,27 @@ The following table showcases which of the protocols supports what features. You
 
 The above table shows what features are enabled by what protocol. However, in reality, some features might have limitations within a given protocol. The tables below highlight different limitations of a given protocol.
 
+.Native protocol limitations
+[cols="1,4"]
+|===
+
+| **Feature**
+| **Limitation**
+
+| **Signals**
+|
+
+| Stream data server → server
+| Clients can configure two devices (servers) to send data to each other only by using the client as a gateway.
+
+| **Structure**
+|
+
+| Modify server configuration
+| Advertising the server-type components is supported but modifying their configurations has not yet been implemented.
+
+|===
+
 .OPC UA protocol limitations
 [cols="1,4"]
 |===
@@ -283,6 +304,9 @@ The above table shows what features are enabled by what protocol. However, in re
 
 | Save/load configuration
 | Any changes that affect the structure of the device will not be applied/reflected in the resulting state and can thus mostly only be used to update property values (said modifications must also not result in the device's structure changing).
+
+| Modify server configuration
+| Advertising the server-type components in the component tree has not yet been supported.
 
 |===
 

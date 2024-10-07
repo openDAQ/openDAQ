@@ -183,42 +183,57 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
         [this, processingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Native device config processing thread finished");
         }
     );
+
     auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto reconnectionProcessingThread = std::thread(
         [this, reconnectionProcessingIOContextPtr]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(reconnectionProcessingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
             LOG_I("Native device reconnection processing thread finished");
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
-                                                             transportClient,
-                                                             config.getPropertyValue("ConfigProtocolRequestTimeout"),
-                                                             processingIOContextPtr,
-                                                             reconnectionProcessingIOContextPtr,
-                                                             reconnectionProcessingThread.get_id());
-    auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
-    deviceHelper->subscribeToCoreEvent(context);
+    try
+    {
+        auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
+                                                                 transportClient,
+                                                                 config.getPropertyValue("ConfigProtocolRequestTimeout"),
+                                                                 processingIOContextPtr,
+                                                                 reconnectionProcessingIOContextPtr,
+                                                                 reconnectionProcessingThread.get_id());
+        deviceHelper->setupProtocolClients(context);
+        auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
-    device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
+        deviceHelper->subscribeToCoreEvent(context);
 
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
-                                                    std::move(processingThread),
-                                                    processingIOContextPtr);
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
-                                                    std::move(reconnectionProcessingThread),
-                                                    reconnectionProcessingIOContextPtr);
+        device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
 
-    return device;
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
+                                                        std::move(processingThread),
+                                                        processingIOContextPtr);
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
+                                                        std::move(reconnectionProcessingThread),
+                                                        reconnectionProcessingIOContextPtr);
+
+        return device;
+    }
+    catch (...)
+    {
+        processingIOContextPtr->stop();
+        processingThread.join();
+
+        reconnectionProcessingIOContextPtr->stop();
+        reconnectionProcessingThread.join();
+
+        throw;
+    }
 }
 
 void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig)
@@ -489,7 +504,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
         [this, processingIOContextPtr, connectionString]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
             LOG_I("Streaming {}: processing thread finished", connectionString);
         }
@@ -536,7 +551,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
                                                                 Int streamingInitTimeout)
 {
-    return createWithImplementation<IStreaming, NativeStreamingImpl>(
+    StreamingPtr nativeStreaming = createWithImplementation<IStreaming, NativeStreamingImpl>(
         connectionString,
         context,
         transportClientHandler,
@@ -546,6 +561,8 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
         nullptr,
         nullptr
     );
+    nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+    return nativeStreaming;
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,

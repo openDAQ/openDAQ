@@ -311,6 +311,46 @@ StringPtr PacketBuffer::parseServerNotification() const
     return jsonStr;
 }
 
+PacketBuffer PacketBuffer::createNoReplyRpcRequest(const char* json, size_t jsonSize)
+{
+    auto packetBuffer = PacketBuffer(PacketType::NoReplyRpc, std::numeric_limits<uint64_t>::max(), json, jsonSize);
+    return packetBuffer;
+}
+
+StringPtr PacketBuffer::parseNoReplyRpcRequest() const
+{
+    if (getPacketType() != PacketType::NoReplyRpc)
+        throw ConfigProtocolException("Invalid packet type");
+
+    const auto payloadSize = getPayloadSize();
+
+    if (payloadSize == 0)
+        throw ConfigProtocolException("Invalid payload");
+
+    auto jsonStr = String(static_cast<char*>(getPayload()), payloadSize);
+    return jsonStr;
+}
+
+PacketBuffer PacketBuffer::createConnectionRejectedReply(uint64_t id, const char* json, size_t jsonSize)
+{
+    auto packetBuffer = PacketBuffer(PacketType::ConnectionRejected, id, json, jsonSize);
+    return packetBuffer;
+}
+
+StringPtr PacketBuffer::parseConnectionRejectedReply() const
+{
+    if (getPacketType() != PacketType::ConnectionRejected)
+        throw ConfigProtocolException("Invalid packet type");
+
+    const auto payloadSize = getPayloadSize();
+
+    if (payloadSize == 0)
+        throw ConfigProtocolException("Invalid payload");
+
+    auto jsonStr = String(static_cast<char*>(getPayload()), payloadSize);
+    return jsonStr;
+}
+
 ConfigProtocolException::ConfigProtocolException(const std::string& msg)
     : runtime_error(msg)
 {

@@ -38,12 +38,12 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
 {
     cls.doc() = "The configuration component of a Signal. Allows for configuration of its properties, managing its streaming sources, and sending packets through its connections.";
 
-    m.def("Signal", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
-        return daq::Signal_Create(context, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className));
+    m.def("Signal", [](daq::IContext* context, std::optional<daq::IComponent*>& parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::optional<std::variant<daq::IString*, py::str, daq::IEvalValue*>>& className){
+        return daq::Signal_Create(context, parent.has_value() ? parent.value() : nullptr, getVariantValue<daq::IString*>(localId), className.has_value() ? getVariantValue<daq::IString*>(className.value()) : nullptr);
     }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"));
 
-    m.def("SignalWithDescriptor", [](daq::IContext* context, daq::IDataDescriptor* descriptor, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className){
-        return daq::SignalWithDescriptor_Create(context, descriptor, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className));
+    m.def("SignalWithDescriptor", [](daq::IContext* context, daq::IDataDescriptor* descriptor, std::optional<daq::IComponent*>& parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::optional<std::variant<daq::IString*, py::str, daq::IEvalValue*>>& className){
+        return daq::SignalWithDescriptor_Create(context, descriptor, parent.has_value() ? parent.value() : nullptr, getVariantValue<daq::IString*>(localId), className.has_value() ? getVariantValue<daq::IString*>(className.value()) : nullptr);
     }, py::arg("context"), py::arg("descriptor"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"));
 
 

@@ -380,6 +380,12 @@ daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITa
 
     auto builderPtr = TailReaderBuilderPtr::Borrow(builder);
 
+    if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
+        builderPtr.getSkipEvents())
+    {
+        return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined", nullptr);
+    }
+
     if (auto port = builderPtr.getInputPort(); port.assigned())
     {
         return createObject<ITailReader, TailReaderImpl>(objTmp,

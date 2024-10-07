@@ -77,9 +77,8 @@ ErrCode MockServerModuleImpl::getAvailableServerTypes(IDict** serverTypes)
 
 ErrCode MockServerModuleImpl::createServer(IServer** server,
                                            IString* serverType,
-                                           IDevice* /*rootDevice*/,
-                                           IPropertyObject* /*config*/
-                                           )
+                                           IDevice* rootDevice,
+                                           IPropertyObject* /*config*/)
 {
     const StringPtr serverTypePtr = StringPtr::Borrow(serverType);
     if (serverTypePtr == "MockServer" ||
@@ -87,7 +86,8 @@ ErrCode MockServerModuleImpl::createServer(IServer** server,
         serverTypePtr == "OpenDAQNativeStreaming" ||
         serverTypePtr == "OpenDAQOPCUA")
     {
-        *server = MockServer().detach();
+        const DevicePtr rootDevicePtr = DevicePtr::Borrow(rootDevice);
+        *server = MockServer(serverTypePtr, rootDevicePtr, rootDevicePtr.getContext()).detach();
     }
     else
     {

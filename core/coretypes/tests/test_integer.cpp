@@ -85,6 +85,14 @@ TEST_F(IntegerTest, CastBool)
     ASSERT_EQ(valBool, True);
 }
 
+TEST_F(IntegerTest, CastUint8_t)
+{
+    auto intObj = Integer(2);
+
+    uint8_t valUint8 = intObj;
+    ASSERT_EQ(valUint8, 2);
+}
+
 TEST_F(IntegerTest, CoreType)
 {
     auto intObj = Integer(True);

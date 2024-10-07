@@ -165,6 +165,8 @@ const SessionPtr BaseSessionHandler::getSession() const
 void BaseSessionHandler::sendConfigurationPacket(const config_protocol::PacketBuffer& packetBuffer)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
+
     auto packetBufferPtr =
         std::make_shared<config_protocol::PacketBuffer>(packetBuffer.getBuffer(), true);
 
@@ -194,7 +196,7 @@ void BaseSessionHandler::sendConfigurationPacket(const config_protocol::PacketBu
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 ReadTask BaseSessionHandler::discardPayload(const void* /*data*/, size_t /*size*/)
@@ -331,9 +333,10 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
     return createReadHeaderTask();
 }
 
-void BaseSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
+void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
 
     // create write task for packet buffer header
     boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
@@ -355,7 +358,7 @@ void BaseSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -6,6 +6,7 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_server/objects/tms_server_property.h"
 #include <opcuatms/core_types_utils.h>
+#include "coreobjects/property_object_protected_ptr.h"
 #include "open62541/nodeids.h"
 #include "open62541/statuscodes.h"
 #include "open62541/daqbsp_nodeids.h"
@@ -49,8 +50,8 @@ TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object
 
 TmsServerPropertyObject::~TmsServerPropertyObject()
 {
-    for (auto prop : this->object.getAllProperties())
-        this->object.getOnPropertyValueWrite(prop.getName()) -= event(this, &TmsServerPropertyObject::triggerEvent);
+    //for (auto prop : this->object.getAllProperties())
+    //    this->object.getOnPropertyValueWrite(prop.getName()) -= event(this, &TmsServerPropertyObject::triggerEvent);
 }
 
 std::string TmsServerPropertyObject::getBrowseName()
@@ -173,7 +174,7 @@ void TmsServerPropertyObject::bindCallbacks()
 {
     for (const auto& [id, prop] : childProperties)
     {
-        this->object.getOnPropertyValueWrite(prop->getBrowseName()) += event(this, &TmsServerPropertyObject::triggerEvent);
+        //this->object.getOnPropertyValueWrite(prop->getBrowseName()) += event(this, &TmsServerPropertyObject::triggerEvent);
         bindPropertyCallbacks(prop->getBrowseName());
     }
 
@@ -207,7 +208,7 @@ void TmsServerPropertyObject::bindPropertyCallbacks(const std::string& name)
         {
             addWriteCallback(name, [this, name](const OpcUaVariant& variant) {
                 const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-                this->object.setPropertyValue(name, value);
+                this->object.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, value);
                 return UA_STATUSCODE_GOOD;
             });
         }

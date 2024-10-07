@@ -13,6 +13,7 @@
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/component_exceptions.h>
+#include <opendaq/server_impl.h>
 
 using DeviceTest = testing::Test;
 
@@ -175,6 +176,17 @@ TEST_F(DeviceTest, Remove)
     ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
 }
 
+class MockSrvImpl final : public daq::Server
+{
+public:
+
+    MockSrvImpl(const daq::ContextPtr& ctx, const daq::DevicePtr& rootDev)
+        : daq::Server("MockServerId", nullptr, rootDev, ctx)
+    {
+        createAndAddSignal("sig_srv");
+    }
+};
+
 class MockFbImpl final : public daq::FunctionBlock
 {
 public:
@@ -209,6 +221,9 @@ public:
 
         const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
         addNestedFunctionBlock(fb);
+
+        const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
+        servers.addItem(srv);
     }
 };
 

@@ -941,12 +941,12 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
         .setSignal(this->signal)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
-        .setSkipEvents(true)
         .build();
 
     {
-        SizeT tmpCount = 0u;
-        reader.read(nullptr, &tmpCount);
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64); // read from signal descriptor
@@ -962,6 +962,12 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
     dataPtr[0] = 123.4;
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{1};
     double samples[1]{};
@@ -1015,8 +1021,13 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
         .setSignal(this->signal)
         .setValueReadType(SampleType::Invalid)
         .setDomainReadType(SampleType::Invalid)
-        .setSkipEvents(true)
         .build();
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);

@@ -27,9 +27,9 @@ DictPtr<IString, IServerType> NativeStreamingServerModule::onGetAvailableServerT
     return result;
 }
 
-ServerPtr NativeStreamingServerModule::onCreateServer(StringPtr serverType,
-                                                PropertyObjectPtr serverConfig,
-                                                DevicePtr rootDevice)
+ServerPtr NativeStreamingServerModule::onCreateServer(const StringPtr& serverType,
+                                                      const PropertyObjectPtr& serverConfig,
+                                                      const DevicePtr& rootDevice)
 {
     if (!context.assigned())
         throw InvalidParameterException{"Context parameter cannot be null."};

@@ -34,5 +34,11 @@ namespace RTGen.Types
 
         /// <summary>True if method steals the reference to the argument.</summary>
         public bool IsStealRef { get; set; }
+
+        /// <summary>True if the argument can be null.</summary>
+        public bool AllowNull { get; set; }
+
+        /// <summary>The argument is raw buffer.</summary>
+        public string RawBuffer { get; set; }
     }
 }

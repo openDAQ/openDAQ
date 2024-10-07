@@ -22,6 +22,7 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
     , transportLayerPropsHandler(nullptr)
     , clientId(clientId)
     , reconnected(false)
+    , useConfigProtocol(false)
 {
 }
 
@@ -57,7 +58,7 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_AVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& signalNumericId,
@@ -79,7 +80,7 @@ void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& sign
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNAVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendStreamingInitDone()
@@ -88,7 +89,7 @@ void ServerSessionHandler::sendStreamingInitDone()
 
     tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_DONE, 0));
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalNumericId)
@@ -103,7 +104,7 @@ void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalN
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signalNumericId)
@@ -118,7 +119,7 @@ void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signa
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size)
@@ -261,6 +262,16 @@ bool ServerSessionHandler::getReconnected()
     return this->reconnected;
 }
 
+void ServerSessionHandler::triggerUseConfigProtocol()
+{
+    this->useConfigProtocol = true;
+}
+
+bool ServerSessionHandler::isConfigProtocolUsed()
+{
+    return this->useConfigProtocol;
+}
+
 UserPtr ServerSessionHandler::getUser()
 {
     auto user = (IUser*) session->getUserContext().get();
@@ -286,12 +297,16 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
 
     LOG_T("Received header: type {}, size {}", convertPayloadTypeToString(payloadType), payloadSize);
 
+    const auto thisWeakPtr = this->weak_from_this();
+
     if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_COMMAND)
     {
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return readSignalSubscribe(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->readSignalSubscribe(data, size);
+                return ReadTask();
             },
             payloadSize
         );
@@ -299,9 +314,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
     else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_COMMAND)
     {
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return readSignalUnsubscribe(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->readSignalUnsubscribe(data, size);
+                return ReadTask();
             },
             payloadSize
         );
@@ -309,9 +326,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
     else if (payloadType == PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET)
     {
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return readConfigurationPacket(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->readConfigurationPacket(data, size);
+                return ReadTask();
             },
             payloadSize
         );
@@ -319,9 +338,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
     else if (payloadType == PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES)
     {
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return readTransportLayerProperties(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->readTransportLayerProperties(data, size);
+                return ReadTask();
             },
             payloadSize
         );
@@ -329,9 +350,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
     else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PACKET)
     {
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return readPacketBuffer(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->readPacketBuffer(data, size);
+                return ReadTask();
             },
             payloadSize
         );
@@ -346,9 +369,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
     {
         LOG_W("Received type: {} cannot be handled by server side", convertPayloadTypeToString(payloadType));
         return ReadTask(
-            [this](const void* data, size_t size)
+            [thisWeakPtr](const void* data, size_t size)
             {
-                return discardPayload(data, size);
+                if (const auto thisPtr = std::static_pointer_cast<ServerSessionHandler>(thisWeakPtr.lock()))
+                    return thisPtr->discardPayload(data, size);
+                return ReadTask();
             },
             payloadSize
         );

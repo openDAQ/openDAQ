@@ -39,12 +39,12 @@ endfunction()
 
 set(SRC_PublicHeaders_Component
     server_type_factory.h
+    server_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component 
     server_type_impl.h
-    server_impl.h
     PARENT_SCOPE
 )
 

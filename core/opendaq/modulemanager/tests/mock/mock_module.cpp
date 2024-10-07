@@ -57,7 +57,10 @@ ErrCode MockModuleImpl::getAvailableServerTypes(IDict** serverTypes)
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-ErrCode MockModuleImpl::createServer(daq::IServer** server, daq::IString* serverType, daq::IDevice* rootDevice, daq::IPropertyObject* config)
+ErrCode MockModuleImpl::createServer(daq::IServer** server,
+                                     daq::IString* serverType,
+                                     daq::IDevice* rootDevice,
+                                     daq::IPropertyObject* config)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

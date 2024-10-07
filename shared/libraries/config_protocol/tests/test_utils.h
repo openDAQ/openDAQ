@@ -19,10 +19,11 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/channel_impl.h>
+#include <opendaq/server_impl.h>
 
 namespace daq::config_protocol::test_utils
 {
-    DevicePtr createServerDevice();
+    DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
 
     class MockFb1Impl final : public FunctionBlock
@@ -88,6 +89,13 @@ namespace daq::config_protocol::test_utils
         {
             setDeviceDomain(deviceDomain);
         }
+        
+        void setDeviceInfoHelper(const DeviceInfoPtr& deviceInfo)
+        {
+            this->deviceInfo = deviceInfo;
+            if (!this->deviceInfo.isFrozen())
+                this->deviceInfo.freeze();
+        }
 
     protected:
         bool clearFunctionBlocksOnUpdate() override
@@ -108,4 +116,9 @@ namespace daq::config_protocol::test_utils
         }
     };
 
+    class MockSrvImpl final : public Server
+    {
+    public:
+        MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id);
+    };
 }

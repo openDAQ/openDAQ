@@ -81,6 +81,21 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionMaskBuilder, IBaseObject)
 /*!
  * @brief Creates a permision mask builder object.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionMaskBuilder, Int, permissionMask)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+                                                            PermissionMaskBuilder,
+                                                            IPermissionMaskBuilder,
+                                                            createPermissionMaskBuilder)
+
+/*!
+ * @brief Creates a permission mask builder object from integer permission mask.
+ * @param permissionMask Permission mask defined as 64-bit integer where each bit corresponds
+ * to a specific permission defined in Permission enum.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+                                                            PermissionMaskBuilderFromMask,
+                                                            IPermissionMaskBuilder,
+                                                            createPermissionMaskBuilderFromMask,
+                                                            Int,
+                                                            permissionMask)
 
 END_NAMESPACE_OPENDAQ

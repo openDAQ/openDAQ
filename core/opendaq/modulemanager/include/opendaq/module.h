@@ -114,7 +114,6 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 
     /*!
      * @brief Creates and returns a server with the specified server type.
-     * To prevent cyclic reference, we should not use the Instance instead of rootDevice.
      * @param serverTypeId The id of the server type to create. ServerType can be retrieved by calling `getAvailableServerTypes()`.
      * @param config Server configuration. In case of a null value, implementation should use default configuration.
      * @param rootDevice Root device.

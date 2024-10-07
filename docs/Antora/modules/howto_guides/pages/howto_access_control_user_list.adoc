@@ -1,0 +1,121 @@
+
+= Defining a list of users
+
+An openDAQ server instance can accept an `AuthenticationProvider` object, which is responsible for providing a list of all users who can connect to the device.
+For each user, we need to provide a username, password, and the list of groups that the user belongs to. By default, every user is a member of the group `everyone`.
+Additional groups can be assigned to users as needed. The `AuthenticationProvider` also accepts a flag that indicates whether anonymous authentication is enabled.
+If anonymous authentication is enabled, it is possible to connect to a device without a username or password. Anonymous users are automatically members of the group `everyone`.
+
+In the example below, we create a server device and define two users who can access it. User `opendaq` can log in with password `opendaq123` and is a member of the group `everyone`.
+User `root` can log in using password `root123` and is a member of 2 groups: `everyone` and `admin`. We also enable anonymous authentication, allowing users to connect to our device
+without providing a username or password.
+ 
+
+.Creating a server device with authentication provider
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
+#include <iostream>
+
+using namespace daq;
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    auto users = List<IUser>();
+    users.pushBack(User("opendaq", "opendaq123"));
+    users.pushBack(User("root", "root123", {"admin"}));
+    const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
+
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().setAuthenticationProvider(authenticationProvider);
+
+    const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
+    instance.addStandardServers();
+
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+users = []
+users.append(opendaq.User("opendaq", "opendaq123", []))
+users.append(opendaq.User("root", "root123", ["admin"]))
+auth_provider = opendaq.StaticAuthenticationProvider(True, users)
+
+builder = opendaq.InstanceBuilder()
+builder.authentication_provider = auth_provider
+instance = opendaq.InstanceFromBuilder(builder)
+
+input("Press enter to quit ...")
+----
+C#::
++
+[source,csharp]
+----
+var users = CoreTypesFactory.CreateList<BaseObject>();
+users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
+users.Add(OpenDAQFactory.User("root", "root123", new List<string>{ "admin" }));
+
+var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+var builder = OpenDAQFactory.CreateInstanceBuilder();
+builder.AuthenticationProvider = authenticationProvider;
+
+var instance = builder.Build();
+instance.AddStandardServers();
+
+Console.ReadLine();
+----
+====
+
+== Hashing the passwords
+
+In the first example, we defined user passwords in plain text. To prevent malicious actors with access to the user database from gaining access to credentials,
+openDAQ provides an option to hash the passwords using the https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] algorithm. Bcrypt is a password hashing algorithm designed
+to securely store passwords. It incorporates a salt to protect against rainbow table attacks and includes an adjustable work factor that can be tuned to make brute-force 
+attacks less effective.
+
+We can replace the plain text passwords from the first example with their hashed versions. Password hash can be generated using one of many https://bcrypt-generator.com/[Bcrypt generators] 
+available online. Whenever possible, it is recommended to store passwords in a hashed format for improved security.
+
+.Hashing the passwords
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto users = List<IUser>();
+users.pushBack(User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+users.pushBack(User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", {"admin"}));
+const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
+----
+Python::
++
+[source,python]
+----
+users = []
+users.append(opendaq.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO", []))
+users.append(opendaq.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", ["admin"]))
+auth_provider = opendaq.StaticAuthenticationProvider(True, users)
+----
+C#::
++
+[source,csharp]
+----
+var users = CoreTypesFactory.CreateList<BaseObject>();
+users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+----
+====

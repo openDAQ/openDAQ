@@ -68,10 +68,6 @@ public:
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
 
-    // IRemovable
-    ErrCode INTERFACE_FUNC remove() override;
-    ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
-
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
 
@@ -100,6 +96,7 @@ protected:
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
 
     ConnectionPtr getConnectionNoLock();
+    void removed() override;
     
     StringPtr serializedSignalId;
 
@@ -111,7 +108,6 @@ private:
 
     WeakRefPtr<IInputPortNotifications> listenerRef;
     WeakRefPtr<IConnection> connectionRef{};
-    bool isInputPortRemoved;
     WorkPtr notifySchedulerCallback;
 
     LoggerComponentPtr loggerComponent;
@@ -120,7 +116,7 @@ private:
     WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal) const;
-    void disconnectSignalInternal(bool notifyListener, bool notifySignal);
+    void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
     void finishUpdate();
@@ -139,7 +135,6 @@ GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& con
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)
     , connectionRef(nullptr)
-    , isInputPortRemoved(false)
 {
     loggerComponent = context.getLogger().getOrAddComponent("InputPort");
     if (context.assigned())
@@ -205,7 +200,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         InputPortNotificationsPtr inputPortListener;
         {
             std::scoped_lock lock(this->sync);
-            if (isInputPortRemoved)
+            if (this->isComponentRemoved)
                 return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
             connectionRef = connection;
@@ -269,19 +264,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 }
 
 template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(bool notifyListener, bool notifySignal)
+void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal)
 {
-    ConnectionPtr connection;
-    {
-        std::scoped_lock lock(this->sync);
-
-        if (!connectionRef.assigned())
-            return;
-
-        connection = connectionRef.getRef();
-        connectionRef.release();
-    }
-
     if (!connection.assigned())
         return;
 
@@ -323,7 +307,14 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
     return daqTry(
         [this]() -> auto
         {
-            disconnectSignalInternal(true, true);
+            ConnectionPtr connection;
+            {
+                std::scoped_lock lock(this->sync);
+                connection = getConnectionNoLock();
+                connectionRef.release();
+            }
+
+            disconnectSignalInternal(std::move(connection), true, true);
             return OPENDAQ_SUCCESS;
         });
 }
@@ -517,8 +508,15 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
     return daqTry(
         [this]() -> auto
         {
+            ConnectionPtr connection;
+            {
+                std::scoped_lock lock(this->sync);
+                connection = getConnectionNoLock();
+                connectionRef.release();
+            }
+
             // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
-            disconnectSignalInternal(true, false);
+            disconnectSignalInternal(std::move(connection), true, false);
             return OPENDAQ_SUCCESS;
         });
 }
@@ -530,42 +528,20 @@ void GenericInputPortImpl<Interfaces...>::finishUpdate()
 }
 
 template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::remove()
+void GenericInputPortImpl<Interfaces...>::removed()
 {
+    if (customData.assigned())
     {
-        std::scoped_lock lock(this->sync);
-
-        if (isInputPortRemoved)
-            return OPENDAQ_IGNORED;
-
-        if (customData.assigned())
-        {
-            auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
-            if (customDataRemovable.assigned())
-                customDataRemovable.remove();
-        }
-
-        isInputPortRemoved = true;
+        auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
+        if (customDataRemovable.assigned())
+            customDataRemovable.remove();
     }
 
-    return daqTry(
-        [this]() -> auto
-        {
-            // remove is meant to be called from listener, so don't notify it
-            disconnectSignalInternal(false, true);
-            return OPENDAQ_SUCCESS;
-        });
-}
+    ConnectionPtr connection = getConnectionNoLock();
+    connectionRef.release();
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::isRemoved(Bool* removed)
-{
-    OPENDAQ_PARAM_NOT_NULL(removed);
-
-    std::scoped_lock lock(this->sync);
-
-    *removed = this->isInputPortRemoved;
-    return OPENDAQ_SUCCESS;
+    // remove is meant to be called from listener, so don't notify it
+    disconnectSignalInternal(std::move(connection), false, true);
 }
 
 template <class... Interfaces>

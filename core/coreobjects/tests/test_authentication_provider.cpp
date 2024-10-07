@@ -99,3 +99,39 @@ TEST_F(AuthenticationProviderTest, EmptyJson)
     ASSERT_THROW(JsonStringAuthenticationProvider("   "), ParseFailedException);
 }
 
+TEST_F(AuthenticationProviderTest, AuthenticatePlain)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("user", "user123"));
+    users.pushBack(User("admin", "admin123"));
+    users.pushBack(User("guest", "$2a$Password"));
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_THROW(provider.authenticate("user", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("user", "user123").getUsername(), "user");
+
+    ASSERT_THROW(provider.authenticate("admin", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("admin", "admin123").getUsername(), "admin");
+
+    ASSERT_THROW(provider.authenticate("guest", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("guest", "$2a$Password").getUsername(), "guest");
+}
+
+TEST_F(AuthenticationProviderTest, AuthenticateBcrypt)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("user", "$2a$12$9gJbsmTbR3Vh2C.6l83roe/fWVunnXa3/1AbtEYXuh20OZBkXD2Hy")); // user123
+    users.pushBack(User("admin", "$2a$12$vEipziDschmoMw2iVaoUbeDX3p1u3W8NQn.wgu0KkJn/C.tvIPEpG")); // admin123
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_THROW(provider.authenticate("user", "wrongPass"), AuthenticationFailedException);
+    ASSERT_THROW(provider.authenticate("user", "$2a$12$9gJbsmTbR3Vh2C.6l83roe/fWVunnXa3/1AbtEYXuh20OZBkXD2Hy"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("user", "user123").getUsername(), "user");
+
+    ASSERT_THROW(provider.authenticate("admin", "wrongPass"), AuthenticationFailedException);
+    ASSERT_THROW(provider.authenticate("admin", "$2a$12$vEipziDschmoMw2iVaoUbeDX3p1u3W8NQn.wgu0KkJn/C.tvIPEpG"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("admin", "admin123").getUsername(), "admin");
+}
+

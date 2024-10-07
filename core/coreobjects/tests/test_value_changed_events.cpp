@@ -334,3 +334,24 @@ TEST_F(PropertyValueChangedEventsTest, PropertyEventClassCall)
 
     ASSERT_EQ(callCount, 13);
 }
+
+TEST_F(PropertyValueChangedEventsTest, NestedEventCalls)
+{
+    PropertyPtr prop = IntProperty("int", -1);
+    
+    const auto obj = PropertyObject();
+    obj.addProperty(prop);
+
+    int callCount = 0;
+    prop.getOnPropertyValueWrite() +=
+        [&callCount, &obj](const PropertyObjectPtr&, const PropertyValueEventArgsPtr&)
+        {
+            callCount++;
+            if (callCount < 10)
+            {
+                obj.setPropertyValue("int", callCount);
+            }
+        };
+
+    ASSERT_NO_THROW(obj.setPropertyValue("int", callCount));
+}

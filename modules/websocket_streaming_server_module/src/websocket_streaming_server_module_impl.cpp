@@ -25,9 +25,9 @@ DictPtr<IString, IServerType> WebsocketStreamingServerModule::onGetAvailableServ
     return result;
 }
 
-ServerPtr WebsocketStreamingServerModule::onCreateServer(StringPtr serverType,
-                                                         PropertyObjectPtr serverConfig,
-                                                         DevicePtr rootDevice)
+ServerPtr WebsocketStreamingServerModule::onCreateServer(const StringPtr& serverType,
+                                                         const PropertyObjectPtr& serverConfig,
+                                                         const DevicePtr& rootDevice)
 {
     if (!context.assigned())
         throw InvalidParameterException{"Context parameter cannot be null."};

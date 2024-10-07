@@ -19,3 +19,4 @@
 #include <opendaq/errors.h>
 
 DEFINE_EXCEPTION(ConnectionLost, OPENDAQ_ERR_CONNECTION_LOST, "Lost connection to the server.")
+DEFINE_EXCEPTION(ConnectionLimitReached, OPENDAQ_ERR_CONNECTION_LIMIT_REACHED, "Connection rejected - connections limit reached")

@@ -2088,3 +2088,25 @@ TEST_F(BeginEndUpdatePropertyObjectTest, Recursive)
     ASSERT_EQ(propObj.getPropertyValue("StringProp"), "s");
     ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "cs");
 }
+
+TEST_F(PropertyObjectTest, EnumerationPropertySetGet)
+{
+    // Add Enumeration type to Type Manager
+    const auto enumType = EnumerationType(
+        "EnumType", List<IString>("Option1", "Option2", "Option3"));
+    objManager.addType(enumType);
+
+    auto enumerationProperty = EnumerationPropertyBuilder("enumProp", Enumeration("EnumType", "Option1", objManager))
+                               .setDefaultValue(Enumeration("EnumType", "Option2", objManager))
+                               .build();
+    
+    // Create a PropertyObject with an Enumeration property
+    auto propObj = PropertyObject();
+    propObj.addProperty(enumerationProperty);
+
+    propObj.setPropertyValue("enumProp", Enumeration("EnumType", "Option1", objManager));
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option1");
+
+    propObj.setPropertyValue("enumProp", EnumerationWithIntValue("EnumType", 2, objManager));
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option3");
+}

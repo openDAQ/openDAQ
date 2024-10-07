@@ -57,6 +57,7 @@ protected:
         sinks.pushBack(debugSink);
         privateSink = debugSink;
         logger = LoggerWithSinks(sinks);
+        loggerComponent = logger.getOrAddComponent("ReaderTest");
         context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
         scheduler = context.getScheduler();
         signal = daq::Signal(context, nullptr, "sig");
@@ -129,6 +130,7 @@ public:
 
 protected:
     daq::LoggerPtr logger;
+    daq::LoggerComponentPtr loggerComponent;
     daq::ContextPtr context;
     daq::SchedulerPtr scheduler;
     daq::SignalConfigPtr signal;

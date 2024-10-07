@@ -192,7 +192,7 @@ public:
                              SampleType domainReadType, 
                              ReadMode readMode, 
                              SizeT overlap = 0,
-                             Bool skipEvents = true);
+                             Bool skipEvents = false);
 
     explicit BlockReaderImpl(IInputPortConfig* port, 
                              SizeT blockSize, 

@@ -23,9 +23,9 @@
 #include <opendaq/deserialize_component_ptr.h>
 #include <config_protocol/config_protocol_deserialize_context.h>
 #include <opendaq/custom_log.h>
-
-#include "config_protocol_deserialize_context_impl.h"
+#include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/context_factory.h>
+#include <config_protocol/errors.h>
 
 namespace daq::config_protocol
 {
@@ -283,13 +283,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* proper
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueWrite(propertyName, event);
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueRead(propertyName, event);
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>

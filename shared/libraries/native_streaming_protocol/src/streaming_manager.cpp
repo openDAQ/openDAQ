@@ -19,7 +19,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 }
 
 void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId,
-                                               const PacketPtr& packet,
+                                               PacketPtr&& packet,
                                                const SendPacketBufferCallback& sendPacketBufferCb)
 {
     std::scoped_lock lock(sync);
@@ -41,13 +41,15 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
             }
         }
 
-        for (const auto& subscribedClientId : registeredSignal.subscribedClientsIds)
+        if (auto it = registeredSignal.subscribedClientsIds.begin(); it != registeredSignal.subscribedClientsIds.end())
         {
-            sendDaqPacket(sendPacketBufferCb,
-                          packetStreamingServers.at(subscribedClientId),
-                          packet,
-                          subscribedClientId,
-                          registeredSignal.numericId);
+            while (std::next(it) != registeredSignal.subscribedClientsIds.end())
+            {
+                sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
+                ++it;
+            }
+
+            sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
         }
     }
     else
@@ -58,14 +60,14 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
 
 void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
                                      const PacketStreamingServerPtr& packetStreamingServerPtr,
-                                     const PacketPtr& packet,
+                                     PacketPtr&& packet,
                                      const std::string& clientId,
                                      SignalNumericIdType singalNumericId)
 {
-    packetStreamingServerPtr->addDaqPacket(singalNumericId, packet);
-    while (const auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+    packetStreamingServerPtr->addDaqPacket(singalNumericId, std::move(packet));
+    while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
     {
-        sendPacketBufferCb(clientId, packetBuffer);
+        sendPacketBufferCb(clientId, std::move(packetBuffer));
     }
 }
 

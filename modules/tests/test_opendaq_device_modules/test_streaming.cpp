@@ -1,7 +1,5 @@
 #include "test_helpers/test_helpers.h"
-#include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
-#include <opendaq/custom_log.h>
 #include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
@@ -24,9 +22,6 @@ public:
 
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
-
-        logger = Logger();
-        loggerComponent = logger.getOrAddComponent("StreamingTest");
     }
 
     void TearDown() override
@@ -72,100 +67,6 @@ public:
         return reader;
     }
 
-    static ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
-                                    size_t packetCount,
-                                    std::chrono::seconds timeout = std::chrono::seconds(60))
-    {
-        auto allPackets = List<IPacket>();
-        auto startPoint = std::chrono::system_clock::now();
-
-        while (allPackets.getCount() < packetCount)
-        {
-            if (reader.getAvailableCount() == 0)
-            {
-                auto now = std::chrono::system_clock::now();
-                auto timeElapsed = now - startPoint;
-                if (timeElapsed > timeout)
-                {
-                    break;
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                continue;
-            }
-
-            auto packets = reader.readAll();
-
-            for (const auto& packet : packets)
-                allPackets.pushBack(packet);
-        }
-
-        return allPackets;
-    }
-
-    bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
-    {
-        bool result = true;
-        if (listA.getCount() != listB.getCount())
-        {
-            LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
-            result = false;
-        }
-
-        auto count = std::min(listA.getCount(), listB.getCount());
-
-        for (SizeT i = 0; i < count; i++)
-        {
-            if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
-            {
-                if (listA.getItemAt(i).getType() == PacketType::Event &&
-                    listB.getItemAt(i).getType() == PacketType::Event)
-                {
-                    if (skipEventPackets)
-                        continue;
-                    auto eventPacketA = listA.getItemAt(i).asPtr<IEventPacket>(true);
-                    auto eventPacketB = listB.getItemAt(i).asPtr<IEventPacket>(true);
-
-                    if (eventPacketA.getEventId() != eventPacketB.getEventId())
-                    {
-                        LOG_E("Event id of packets at index {} differs: A - \"{}\", B - \"{}\"",
-                              i, eventPacketA.getEventId(), eventPacketB.getEventId());
-                    }
-                    else if(eventPacketA.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
-                             eventPacketB.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                    {
-                        const DataDescriptorPtr valueDataDescA = eventPacketA.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescA = eventPacketA.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-
-                        const DataDescriptorPtr valueDataDescB = eventPacketB.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescB = eventPacketB.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-
-                        LOG_E("Event parameters of packets at index {} differs:", i);
-                        LOG_E("packet A - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescA.assigned() ? valueDataDescA.toString() : "null",
-                              domainDataDescA.assigned() ? domainDataDescA.toString() : "null");
-                        LOG_E("packet B - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescB.assigned() ? valueDataDescB.toString() : "null",
-                              domainDataDescB.assigned() ? domainDataDescB.toString() : "null");
-                    }
-                    else
-                    {
-                        LOG_E("Event packets at index {} differs: A - \"{}\", B - \"{}\"",
-                              i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
-                    }
-                }
-                else
-                {
-                    LOG_E("Data packets at index {} differs: A - \"{}\", B - \"{}\"",
-                          i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
-                }
-                result = false;
-            }
-        }
-
-        return result;
-    }
-
 protected:
     virtual InstancePtr CreateServerInstance()
     {
@@ -201,8 +102,6 @@ protected:
 
     InstancePtr serverInstance;
     InstancePtr clientInstance;
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 };
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
@@ -231,17 +130,17 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     // websocket streaming does not recreate half assigned data descriptor changed event packet on client side
     // both: value and domain descriptors are always assigned in event packet
     // while on server side one descriptor can be assigned only
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets,
-                             clientReceivedPackets,
-                             std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
+                                           clientReceivedPackets,
+                                           std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
-    clientReceivedPackets = tryReadPackets(clientReader, 1);
+    clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
 
@@ -281,12 +180,12 @@ TEST_P(StreamingTest, DataPackets)
 
     generatePackets(packetsToGenerate);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
@@ -342,7 +241,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         if (usingNativePseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 2u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2u);
 
             for (int j = 0; j < 2; ++j)
@@ -369,7 +268,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else if (usingWSPseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 3u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3u);
 
             for (int j = 0; j < 3; ++j)
@@ -401,7 +300,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
             const auto packet = clientReceivedPackets[0];
             const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
@@ -522,12 +421,12 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
 
     generatePackets(packetsToRead);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead + 1);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead + 1);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -596,10 +495,10 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
 
     // read initial event packets
-    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
     EXPECT_EQ(clientReceivedPackets.getCount(), 1u);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, 1);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 1);
     EXPECT_EQ(serverReceivedPackets.getCount(), 1u);
 
     // remove streaming server to emulate disconnection
@@ -618,12 +517,12 @@ TEST_P(StreamingReconnectionTest, Reconnection)
 
     generatePackets(packetsToGenerate);
 
-    serverReceivedPackets = tryReadPackets(serverReader, packetsToGenerate);
-    clientReceivedPackets = tryReadPackets(clientReader, packetsToGenerate);
+    serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToGenerate);
+    clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToGenerate);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToGenerate);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToGenerate);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -704,7 +603,7 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         const int packetsToRead = i + 3;
         serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
 
-        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1u);
+        auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1u);
         ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
         const auto packet = clientReceivedPackets[0];
         const auto eventPacket = packet.asPtrOrNull<IEventPacket>();

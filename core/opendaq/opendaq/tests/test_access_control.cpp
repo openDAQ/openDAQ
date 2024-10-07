@@ -63,6 +63,36 @@ TEST_F(AccessControlTest, DefaultPermissions)
     ASSERT_TRUE(fbManager.isAuthorized(user, Permission::Execute));
 }
 
+TEST_F(AccessControlTest, DefaultPermissionsPropObj)
+{
+    auto anonymousUser = User("", "");
+
+    auto obj = PropertyObject();
+
+    auto permissionManager = obj.getPermissionManager();
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Read));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Write));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Execute));
+}
+
+TEST_F(AccessControlTest, DefaultPermissionsPropObjInherit)
+{
+    auto anonymousUser = User("", "");
+
+    auto targetObject = PropertyObject(); // inherit=false, everyone: rwx
+    auto parentObject = PropertyObject();
+    parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+    auto parentPermissions = PermissionsBuilder().deny("everyone", PermissionMaskBuilder().read().write().execute()).build();
+    parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+    // targetObject should still have rwx permissions, because on creation, the inherti flag was set to false
+    auto permissionManager = targetObject.getPermissionManager();
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Read));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Write));
+    ASSERT_TRUE(permissionManager.isAuthorized(anonymousUser, Permission::Execute));
+}
+
 TEST_F(AccessControlTest, ComponentInherit)
 {
     const auto user = User("user", "psswordHash", List<IString>("user", "guest"));

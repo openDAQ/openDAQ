@@ -27,7 +27,7 @@ template <typename Sequence>
 inline py::array toPyArray(Sequence&& seq,
                                                             const py::array::ShapeContainer& shape = {},
                                                             const py::array::StridesContainer& strides = {},
-                                                            const std::string& dtype = {})
+                                                            const py::dtype& dtype = {})
 {
     const auto size = seq.size();
     const auto data = seq.data();
@@ -36,11 +36,12 @@ inline py::array toPyArray(Sequence&& seq,
     seq_ptr.release();
 
     py::dtype dt = py::dtype::of<typename Sequence::value_type>();
-    if (!dtype.empty())
+
+    if (dtype)
     {
         // it looks like datetime64 is ignored by pybind11 now, so we need to use WA
         // this is for future use
-        dt = py::dtype(dtype);
+        dt = dtype;
     }
 
     py::array::ShapeContainer arrayShape = {size};

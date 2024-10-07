@@ -190,7 +190,7 @@ public:
         OPENDAQ_PARAM_NOT_NULL(serverTypeId);
         OPENDAQ_PARAM_NOT_NULL(rootDevice);
         OPENDAQ_PARAM_NOT_NULL(server);
-        
+
         ServerPtr serverInstance;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, config, rootDevice);
 
@@ -310,7 +310,7 @@ public:
         return Dict<IString, IStreamingType>();
     }
 
-    virtual ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice)
+    virtual ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice)
     {
         return nullptr;
     }

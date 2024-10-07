@@ -40,7 +40,7 @@ public:
     void startReading();
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
-    void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
+    void sendPacketBuffer(packet_streaming::PacketBufferPtr&& packetBuffer);
 
     void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
     void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);

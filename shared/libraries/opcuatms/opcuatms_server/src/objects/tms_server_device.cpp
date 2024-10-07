@@ -480,12 +480,13 @@ void TmsServerDevice::addChildNodes()
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
 
-    
+    // TODO add "Srv" as a default node
+
     numberInList = 0;
     for (auto component : object.getItems(search::Any()))
     {
         auto id = component.getLocalId();
-        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Synchronization")
+        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig" || id == "Synchronization" || id == "Srv")
             continue;
 
         if (component.supportsInterface<IFolder>())

@@ -15,18 +15,8 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/server.h>
-#include <coretypes/stringobject.h>
+#include <coretypes/errors.h>
 
-class MockServerImpl : public daq::ImplementationOf<daq::IServer>
-{
-public:
-    explicit MockServerImpl();
+#define OPENDAQ_ERRTYPE_NATIVE 0x10u
 
-    daq::ErrCode INTERFACE_FUNC enableDiscovery() override;
-    daq::ErrCode INTERFACE_FUNC stop() override;
-    daq::ErrCode INTERFACE_FUNC getId(daq::IString** serverId) override;
-};
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockServer, daq::IServer)
+#define OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_NATIVE, 0x001)

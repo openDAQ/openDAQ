@@ -29,15 +29,18 @@ public:
     static std::string currentEpoch();
     static std::string makeEpoch(const std::chrono::system_clock::time_point& timePoint = std::chrono::system_clock::now());
 
-    MockSignal(const std::string& id = "mock", const std::string& epoch = {});
+    MockSignal(const std::string& id = "mock", const std::string& epoch = {}, bool initValueDescriptor = true);
 
     daq::SignalConfigPtr getSignal() const;
 
     daq::SignalConfigPtr getDomainSignal() const;
 
     void addData(const py::array_t<double>& data);
+    void addObjects(const py::object& objects, bool updateDescriptor);
 
 private:
+    static daq::DataDescriptorPtr createDataDescriptor(const py::object& object, const std::string& name = {});
+
     daq::LoggerPtr logger;
     daq::ContextPtr context;
     daq::SchedulerPtr scheduler;

@@ -61,6 +61,7 @@ public:
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
 
+    // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
     ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
     ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
@@ -79,6 +80,9 @@ public:
     ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
+
+    ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
+    ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -138,8 +142,8 @@ private:
     bool startOnFullUnitOfDomain;
 
     NotifyInfo notify{};
-    bool portConnected {};
-    bool portDisconnected {};
+    bool portConnected{};
+    bool portDisconnected{};
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
@@ -149,6 +153,7 @@ private:
 
     ContextPtr context;
     struct ReferenceDomainBin;
+    bool isActive{true};
 };
 
 END_NAMESPACE_OPENDAQ

@@ -18,14 +18,18 @@ using namespace daq;
         return *objects;
     }
 
-    static std::mutex ObjectContainerMutex;
+    std::mutex& getObjectsMutex()
+    {
+        static std::mutex mtx;
+        return mtx;
+    }
 #endif
 
 extern "C"
 PUBLIC_EXPORT void daqTrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(ObjectContainerMutex);
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
     getObjects().insert(obj);
 #endif
 }
@@ -34,7 +38,7 @@ extern "C"
 PUBLIC_EXPORT void daqUntrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(ObjectContainerMutex);
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
     const auto it = getObjects().find(obj);
     if (it != getObjects().end())
         getObjects().erase(it);
@@ -45,7 +49,7 @@ extern "C"
 PUBLIC_EXPORT size_t daqGetTrackedObjectCount()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(ObjectContainerMutex);
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
     return getObjects().size();
 #else
     return 0;
@@ -56,7 +60,7 @@ extern "C"
 PUBLIC_EXPORT void daqPrintTrackedObjects()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(ObjectContainerMutex);
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
     for (auto obj : getObjects())
     {
         assert(obj != nullptr);
@@ -69,7 +73,7 @@ extern "C"
 PUBLIC_EXPORT void daqClearTrackedObjects()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(ObjectContainerMutex);
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
     getObjects().clear();
 #endif
 }

@@ -24,13 +24,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
 
-class OpcUaServerImpl : public daq::Server
+class OpcUaServerImpl : public Server
 {
 public:
-    explicit OpcUaServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
+    explicit OpcUaServerImpl(const DevicePtr& rootDevice,
+                             const PropertyObjectPtr& config,
+                             const ContextPtr& context);
     ~OpcUaServerImpl();
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
+    static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
     PropertyObjectPtr getDiscoveryConfig() override;

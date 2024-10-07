@@ -678,7 +678,9 @@ namespace RTGen.Cpp.Parser {
                     isConst,
                     argInfo?.ArrayInfo,
                     false,
-                    argInfo?.IsStealRef ?? false
+                    argInfo?.IsStealRef ?? false,
+                    argInfo?.AllowNull ?? false,
+                    argInfo?.RawBuffer
                 );
 
                 if (argInfo?.ElementTypes != null)
@@ -791,7 +793,12 @@ namespace RTGen.Cpp.Parser {
 
                 IArgument arg = new Argument(
                     argType,
-                    argName
+                    argName,
+                    false,
+                    null,
+                    false,
+                    false,
+                    argInfo?.AllowNull ?? false
                 );
 
                 if (argInfo?.ElementTypes != null)

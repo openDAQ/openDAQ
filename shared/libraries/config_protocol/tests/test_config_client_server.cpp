@@ -542,6 +542,18 @@ TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "AcceptsSignal", params);
 }
 
+TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
+{
+    MockDevice::Strict device;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
+        .WillOnce(Return(device.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    client->getClientComm()->sendComponentCommand("/dev", "GetAvailableDevices");
+}
+
+
 class RejectConnectionTest : public ConfigProtocolTest
 {
 public:

@@ -114,6 +114,21 @@ namespace daq::config_protocol::test_utils
             info.freeze();
             return info.detach();
         }
+
+        ListPtr<IDeviceInfo> onGetAvailableDevices() override
+        {
+            auto availableDevices = List<IDeviceInfo>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                const auto num = std::to_string(i);
+                const auto deviceInfo = DeviceInfo("mock://available_dev" + num, "AvailableMockDevice" + num);
+                deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
+                deviceInfo.freeze();
+                availableDevices.pushBack(deviceInfo);
+            }
+            return availableDevices;
+        }
     };
 
     class MockSrvImpl final : public Server

@@ -628,3 +628,19 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
                      NativeClientCallNotAvailableException,
                      "Signal is not from the same component tree");
 }
+
+TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
+{
+    auto availableDevicesServer = serverDevice.getAvailableDevices();
+    auto availableDevicesClient = clientDevice.getAvailableDevices();
+
+    ASSERT_EQ(availableDevicesClient.getCount(), 3);
+
+    ASSERT_EQ(availableDevicesClient[2].getName(), "AvailableMockDevice2");
+    ASSERT_EQ(availableDevicesClient[2].getConnectionString(), "mock://available_dev2");
+    ASSERT_EQ(availableDevicesClient[2].getManufacturer(), "Testing");
+
+    ASSERT_EQ(availableDevicesClient[2].getName(), availableDevicesServer[2].getName());
+    ASSERT_EQ(availableDevicesClient[2].getConnectionString(), availableDevicesServer[2].getConnectionString());
+    ASSERT_EQ(availableDevicesClient[2].getManufacturer(), availableDevicesServer[2].getManufacturer());
+}

@@ -35,6 +35,7 @@ public:
     static BaseObjectPtr lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr isLocked(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -113,6 +114,14 @@ inline BaseObjectPtr ConfigServerDevice::isLocked(const RpcContext& context, con
 {
     const auto locked = device.isLocked();
     return locked;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableDevices(const RpcContext& context,
+                                                   const DevicePtr& device,
+                                                   const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return device.getAvailableDevices();
 }
 
 }

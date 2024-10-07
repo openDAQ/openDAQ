@@ -506,6 +506,205 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         device.Dispose();
     }
 
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control.adoc
+
+    #region Access control
+
+    [Test]
+    public void CreateServer()
+    {
+        var users = CoreTypesFactory.CreateList<BaseObject>();
+        users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
+        users.Add(OpenDAQFactory.User("root", "root123", new List<string>{ "admin" }));
+
+        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+        var builder = OpenDAQFactory.CreateInstanceBuilder();
+        builder.AuthenticationProvider = authenticationProvider;
+
+        var instance = builder.Build();
+        instance.AddStandardServers();
+
+        //Console.ReadLine();
+    }
+
+    [Test]
+    public void Hashing()
+    {
+        var users = CoreTypesFactory.CreateList<BaseObject>();
+        users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+        users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+        var builder = OpenDAQFactory.CreateInstanceBuilder();
+        builder.AuthenticationProvider = authenticationProvider;
+
+        var instance = builder.Build();
+        instance.AddStandardServers();
+
+        //Console.ReadLine();
+    }
+
+    [Test]
+    public void ConnectWithUsername()
+    {
+        var prepareAndStartServer = () =>
+        {
+            var users = CoreTypesFactory.CreateList<BaseObject>();
+            users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+            users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+            var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+            var builder = OpenDAQFactory.CreateInstanceBuilder();
+            builder.AuthenticationProvider = authenticationProvider;
+
+            var instance = builder.Build();
+            instance.AddStandardServers();
+            return instance;
+        };
+
+        var serverInstance = prepareAndStartServer();
+
+        // Start of the example
+
+        var instance = OpenDAQFactory.Instance();
+
+        var config = instance.CreateDefaultAddDeviceConfig();
+        var generalConfig = config.GetPropertyValue("General").Cast<PropertyObject>();
+
+        generalConfig.SetPropertyValue("Username", "opendaq");
+        generalConfig.SetPropertyValue("Password", "opendaq123");
+
+        var device = instance.AddDevice("daq.nd://127.0.0.1", config);
+        Console.WriteLine("Connected to: " + device.Name);
+    }
+
+    [Test]
+    public void ProtectedObject()
+    {
+        var users = CoreTypesFactory.CreateList<BaseObject>();
+        users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+        users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+
+        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+
+        var builder = OpenDAQFactory.CreateInstanceBuilder();
+        builder.AuthenticationProvider = authenticationProvider;
+
+        var instance = builder.Build();
+        instance.AddStandardServers();
+        instance.AddDevice("daqref://device0");
+
+        //Console.ReadLine();
+    }
+
+    [Test]
+    public void Allow()
+    {
+        var targetObject = CoreObjectsFactory.CreatePropertyObject();
+        var parentObject = CoreObjectsFactory.CreatePropertyObject();
+        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+        var maskRw = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskRw.Read();
+        maskRw.Write();
+
+        var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskX.Execute();
+
+        var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        parentPermissions.Assign("everyone", maskRw);
+        parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+        var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        permissions.Inherit(true);
+        permissions.Allow("everyone", maskX);
+        targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+        // target object permissions:
+        // everyone: rwx
+
+        var user = OpenDAQFactory.User("", "");
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Read), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Write), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Execute), Is.True);
+    }
+
+    [Test]
+    public void Deny()
+    {
+        var targetObject = CoreObjectsFactory.CreatePropertyObject();
+        var parentObject = CoreObjectsFactory.CreatePropertyObject();
+        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+        var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskRwx.Read();
+        maskRwx.Write();
+        maskRwx.Execute();
+
+        var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskX.Execute();
+
+        var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        parentPermissions.Assign("everyone", maskRwx);
+        parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+        var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        permissions.Inherit(true);
+        permissions.Deny("everyone", maskX);
+        targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+        // target object permissions:
+        // everyone: rw
+
+        var user = OpenDAQFactory.User("", "");
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Read), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Write), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Execute), Is.False);
+    }
+
+    [Test]
+    public void Assign()
+    {
+        var targetObject = CoreObjectsFactory.CreatePropertyObject();
+        var parentObject = CoreObjectsFactory.CreatePropertyObject();
+        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+        var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskRwx.Read();
+        maskRwx.Write();
+        maskRwx.Execute();
+
+        var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+        maskR.Read();
+
+        var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        parentPermissions.Assign("everyone", maskRwx);
+        parentPermissions.Assign("guest", maskR);
+        parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+        var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+        permissions.Inherit(true);
+        permissions.Assign("everyone", maskR);
+        targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+        // target object permissions:
+        // everyone: r
+        // guest: r
+
+        var user = OpenDAQFactory.User("", "");
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Read), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Write), Is.False);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(user, Permission.Execute), Is.False);
+
+        var guest = OpenDAQFactory.User("guest", "guest", new List<string> { "guest" });
+        Assert.That(targetObject.PermissionManager.IsAuthorized(guest, Permission.Read), Is.True);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(guest, Permission.Write), Is.False);
+        Assert.That(targetObject.PermissionManager.IsAuthorized(guest, Permission.Execute), Is.False);
+    }
+
+    #endregion Access control
+
     //template snippet - clone these lines and rename the method for a new test
     [Test]
     public void _EmptyTest()

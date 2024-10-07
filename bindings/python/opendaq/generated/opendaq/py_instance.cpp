@@ -80,14 +80,6 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
         },
         py::return_value_policy::take_ownership,
         "Get a dictionary of available server types as <IString, IServerType> pairs");
-    cls.def("add_server",
-        [](daq::IInstance *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverTypeId, daq::IPropertyObject* serverConfig)
-        {
-            const auto objectPtr = daq::InstancePtr::Borrow(object);
-            return objectPtr.addServer(getVariantValue<daq::IString*>(serverTypeId), serverConfig).detach();
-        },
-        py::arg("server_type_id"), py::arg("server_config"),
-        "Creates and adds a server with the provided serverType and configuration.");
     cls.def("add_standard_servers",
         [](daq::IInstance *object)
         {
@@ -95,20 +87,4 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
             return objectPtr.addStandardServers().detach();
         },
         "Creates and adds streaming and \"OpenDAQOPCUA\" servers with default configurations.");
-    cls.def("remove_server",
-        [](daq::IInstance *object, daq::IServer* server)
-        {
-            const auto objectPtr = daq::InstancePtr::Borrow(object);
-            objectPtr.removeServer(server);
-        },
-        py::arg("server"),
-        "Removes the server provided as argument.");
-    cls.def_property_readonly("servers",
-        [](daq::IInstance *object)
-        {
-            const auto objectPtr = daq::InstancePtr::Borrow(object);
-            return objectPtr.getServers().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Get list of added servers.");
 }

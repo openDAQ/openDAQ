@@ -138,7 +138,7 @@ TEST_F(EvalValueTest, IntResultConversion)
     ASSERT_EQ(r1, 2.0);
 
     Bool r2 = EvalValue("1 + 1");
-    ASSERT_EQ(r2, True);
+    ASSERT_TRUE(IsTrue(r2));
 
     std::string r3 = EvalValue("1 + 1");
     ASSERT_EQ(r3, "2");

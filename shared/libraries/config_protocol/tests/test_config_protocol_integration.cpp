@@ -7,13 +7,13 @@
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include "test_utils.h"
-#include "coreobjects/argument_info_factory.h"
-#include "coreobjects/callable_info_factory.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
+#include <opendaq/context_factory.h>
 #include <config_protocol/config_client_device_impl.h>
-
-#include "opendaq/packet_factory.h"
+#include <opendaq/packet_factory.h>
 #include <coreobjects/user_factory.h>
+#include <config_protocol/exceptions.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -27,13 +27,19 @@ public:
     {
         auto anonymousUser = User("", "");
 
-        serverDevice = test_utils::createServerDevice();
+        serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                nullptr
+            );
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
@@ -46,10 +52,18 @@ public:
         return str;
     }
     
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    // client handling
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
     
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
@@ -132,7 +146,13 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     
-    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(
+        clientContext,
+        std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+        std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+        nullptr,
+        nullptr
+    );
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 
@@ -580,4 +600,10 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
+{
+    ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);
+    ASSERT_THROW(clientDevice.getOnPropertyValueRead("location"), NativeClientCallNotAvailableException);
 }

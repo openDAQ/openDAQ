@@ -2,7 +2,9 @@ set(LIB_NAME py_opendaq)
 
 set(SRC_Headers
     include/py_opendaq/py_opendaq.h
+    include/py_opendaq/py_packet_buffer.h
 )
+
 set(SRC_Cpp
     py_opendaq.cpp
     generated/opendaq/py_instance.cpp

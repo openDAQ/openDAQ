@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline PermissionMaskBuilderPtr PermissionMaskBuilder()
 {
-    PermissionMaskBuilderPtr obj(PermissionMaskBuilder_Create(0));
+    PermissionMaskBuilderPtr obj(PermissionMaskBuilder_Create());
     return obj;
 }
 
@@ -40,7 +40,7 @@ inline PermissionMaskBuilderPtr PermissionMaskBuilder()
  */
 inline PermissionMaskBuilderPtr PermissionMaskBuilder(Int permissionMask)
 {
-    PermissionMaskBuilderPtr obj(PermissionMaskBuilder_Create(permissionMask));
+    PermissionMaskBuilderPtr obj(PermissionMaskBuilderFromMask_Create(permissionMask));
     return obj;
 }
 

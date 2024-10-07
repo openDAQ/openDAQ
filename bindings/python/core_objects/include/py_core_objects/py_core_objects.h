@@ -38,6 +38,12 @@ PyDaqIntf<daq::IValidator, daq::IBaseObject> declareIValidator(pybind11::module_
 PyDaqIntf<daq::IUnit, daq::IBaseObject> declareIUnit(pybind11::module_ m);
 PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> declareIUnitBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
+PyDaqIntf<daq::IUser, daq::IBaseObject> declareIUser(pybind11::module_ m);
+PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> declareIAuthenticationProvider(pybind11::module_ m);
+PyDaqIntf<daq::IPermissionsBuilder, daq::IBaseObject> declareIPermissionsBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IPermissionMaskBuilder, daq::IBaseObject> declareIPermissionMaskBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IPermissionManager, daq::IBaseObject> declareIPermissionManager(pybind11::module_ m);
+PyDaqIntf<daq::IPermissions, daq::IBaseObject> declareIPermissions(pybind11::module_ m);
 
 void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq::IBaseObject> cls);
 void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq::IBaseObject> cls);
@@ -55,3 +61,9 @@ void defineIValidator(pybind11::module_ m, PyDaqIntf<daq::IValidator, daq::IBase
 void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cls);
 void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> cls);
 void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
+void defineIUser(pybind11::module_ m, PyDaqIntf<daq::IUser, daq::IBaseObject> cls);
+void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> cls);
+void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsBuilder, daq::IBaseObject> cls);
+void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionMaskBuilder, daq::IBaseObject> cls);
+void defineIPermissionManager(pybind11::module_ m, PyDaqIntf<daq::IPermissionManager, daq::IBaseObject> cls);
+void defineIPermissions(pybind11::module_ m, PyDaqIntf<daq::IPermissions, daq::IBaseObject> cls);

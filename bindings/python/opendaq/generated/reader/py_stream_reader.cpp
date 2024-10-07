@@ -30,20 +30,16 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
 
     m.def(
         "StreamReader",
-        [](daq::ISignal* signal, daq::SampleType valueType, daq::SampleType domainType, daq::ReadTimeoutType timeoutType)
+        [](daq::ISignal* signal, daq::SampleType valueType, daq::SampleType domainType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType)
         {
+            PyTypedReader::checkTypes(valueType, domainType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
-            if (valueType != daq::SampleType::Invalid || domainType != daq::SampleType::Invalid)
-            {
-                PyTypedReader::checkTypes(valueType, domainType);
-                return daq::StreamReader(signalPtr, valueType, domainType, daq::ReadMode::Scaled, timeoutType).detach();
-            }
-            else
-                return daq::StreamReader(signalPtr, daq::ReadMode::Scaled, timeoutType).detach();
+            return daq::StreamReader_Create(signal, valueType, domainType, mode, timeoutType);
         },
         py::arg("signal"),
-        py::arg("value_type") = daq::SampleType::Invalid,
-        py::arg("domain_type") = daq::SampleType::Invalid,
+        py::arg("value_type") = daq::SampleType::Float64,
+        py::arg("domain_type") = daq::SampleType::Int64,
+        py::arg("read_mode") = daq::ReadMode::Scaled,
         py::arg("timeout_type") = daq::ReadTimeoutType::All,
         "");
     m.def("StreamReaderFromExisting", &daq::StreamReaderFromExisting_Create);

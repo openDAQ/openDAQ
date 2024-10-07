@@ -26,7 +26,7 @@ public:
     OpcUaServerModule(ContextPtr context);
 
     DictPtr<IString, IServerType> onGetAvailableServerTypes() override;
-    ServerPtr onCreateServer(StringPtr serverType, PropertyObjectPtr serverConfig, DevicePtr rootDevice) override;
+    ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice) override;
 
 private:
     std::mutex sync;

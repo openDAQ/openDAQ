@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -43,8 +44,14 @@ public:
 
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
         server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                NullContext(),
+                std::bind(&ConfigProtocolTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1)
+            );
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
     }
@@ -55,6 +62,11 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     BaseObjectPtr notificationObj;
 
+    virtual PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const
+    {
+        return server->processRequestAndGetReply(requestPacket);
+    }
+
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket)
     {
@@ -62,10 +74,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket)
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
-        auto replyPacket = server->processRequestAndGetReply(requestPacket);
+        auto replyPacket = getRequestReplyFromServer(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     bool onServerNotificationReceived(const BaseObjectPtr& obj)
@@ -416,5 +435,30 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
     ASSERT_EQ(deviceName, "devName");
     client->getClientComm()->setAttributeValue("//root", "Description", "devDescription");
     ASSERT_EQ(deviceDescription, "devDescription");
+}
+
+class RejectConnectionTest : public ConfigProtocolTest
+{
+public:
+    RejectConnectionTest()
+        : ConfigProtocolTest()
+    {
+    }
+
+protected:
+    PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const override
+    {
+        return ConfigProtocolServer::generateConnectionRejectedReply(
+            requestPacket.getId(),
+            OPENDAQ_ERR_GENERALERROR,
+            "Test connection rejected",
+            JsonSerializer()
+        );
+    }
+};
+
+TEST_F(RejectConnectionTest, Connect)
+{
+    ASSERT_THROW_MSG(client->connect(), GeneralErrorException, "Test connection rejected");
 }
 

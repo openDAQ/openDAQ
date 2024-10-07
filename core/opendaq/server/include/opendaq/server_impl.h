@@ -26,26 +26,32 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/discovery_server_ptr.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/signal_container_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+template <typename TInterface = IServer, typename... Interfaces>
 class ServerImpl;
 
-using Server = ServerImpl;
-class ServerImpl : public ImplementationOf<IServer>
+using Server = ServerImpl<>;
+
+template <typename TInterface, typename... Interfaces>
+class ServerImpl : public SignalContainerImpl<TInterface, Interfaces...>
 {
 public:
-    using Super = ImplementationOf<IServer>;
-    using Self = ServerImpl;
+    using Self = ServerImpl<TInterface, Interfaces...>;
+    using Super = SignalContainerImpl<TInterface, Interfaces...>;
 
-    explicit ServerImpl(StringPtr id,
-                        PropertyObjectPtr serverConfig,
-                        DevicePtr rootDevice,
-                        ContextPtr context)
-        : id(std::move(id))
-        , config(std::move(serverConfig))
-        , rootDevice(std::move(rootDevice))
-        , context(std::move(context))
+    explicit ServerImpl(const StringPtr& id,
+                        const PropertyObjectPtr& serverConfig,
+                        const DevicePtr& rootDevice,
+                        const ContextPtr& context,
+                        const ComponentPtr& parent = nullptr)
+        : Super(context, parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), id)
+        , id(id)
+        , config(serverConfig)
+        , rootDeviceRef(rootDevice)
+        , context(context)
     {
     }
 
@@ -59,14 +65,12 @@ public:
 
     ErrCode INTERFACE_FUNC enableDiscovery() override
     {
-        if (context != nullptr)
+        if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned() && context.assigned())
         {
-            DeviceInfoPtr rootDeviceInfo;
-            if (this->rootDevice != nullptr)
-                rootDeviceInfo = this->rootDevice.getInfo();
+            DeviceInfoPtr rootDeviceInfo = rootDevice.getInfo();
             for (const auto& [_, service] : context.getDiscoveryServers())
             {
-                service.asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
+                service.template asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
             }
         }
         return OPENDAQ_SUCCESS;
@@ -78,10 +82,77 @@ public:
         {
             for (const auto& [_, service] : context.getDiscoveryServers())
             {
-                service.asPtr<IDiscoveryServer>().unregisterService(id);
+                service.template asPtr<IDiscoveryServer>().unregisterService(id);
             }
         }
         return wrapHandler(this, &Self::onStopServer);
+    }
+
+    ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(signals);
+
+        if (this->isComponentRemoved)
+            return OPENDAQ_ERR_COMPONENT_REMOVED;
+
+        if (!searchFilter)
+            return this->signals->getItems(signals);
+
+        const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+        return this->signals->getItems(signals, searchFilter);
+    }
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override
+    {
+        OPENDAQ_PARAM_NOT_NULL(id);
+
+        *id = SerializeId();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    static ConstCharPtr SerializeId()
+    {
+        return "Server";
+    }
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    {
+        OPENDAQ_PARAM_NOT_NULL(obj);
+
+        return daqTry([&obj, &serialized, &context, &factoryCallback]()
+            {
+                *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                       const ComponentDeserializeContextPtr& deserializeContext,
+                       const StringPtr& /*className*/) -> BaseObjectPtr
+                    {
+                        const auto id = serialized.readString("id");
+                        DevicePtr parentDevice;
+
+                        const auto parentFolder = deserializeContext.getParent();
+                        if (parentFolder.assigned())
+                        {
+                            if (parentFolder.getLocalId() == "Srv" &&
+                                parentFolder.getParent().assigned() &&
+                                parentFolder.getParent().supportsInterface<IDevice>())
+                                parentDevice = parentFolder.getParent().asPtr<IDevice>();
+                            else
+                                throw GeneralErrorException("The server-component can be placed only under device's servers folder");
+                        }
+
+                        return createWithImplementation<IServer, Server>(
+                            id,
+                            nullptr,
+                            parentDevice,
+                            deserializeContext.getContext(),
+                            parentFolder);
+                    }).detach();
+            });
     }
 
 protected:
@@ -95,10 +166,26 @@ protected:
     {
     }
 
+    void removed() override
+    {
+        checkErrorInfo(stop());
+        Super::removed();
+    }
+
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override
+    {
+        serializer.key("id");
+        serializer.writeString(id);
+
+        Super::serializeCustomObjectValues(serializer, forUpdate);
+    }
+
     StringPtr id;
     PropertyObjectPtr config;
-    DevicePtr rootDevice;
+    WeakRefPtr<IDevice> rootDeviceRef;
     ContextPtr context;
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Server)
 
 END_NAMESPACE_OPENDAQ

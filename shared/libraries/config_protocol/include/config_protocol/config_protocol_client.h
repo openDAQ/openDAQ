@@ -28,13 +28,17 @@
 #include <coreobjects/core_event_args_factory.h>
 #include <set>
 #include <opendaq/custom_log.h>
+#include <config_protocol/config_protocol_streaming_producer.h>
 
 namespace daq::config_protocol
 {
 
 using SendRequestCallback = std::function<PacketBuffer(PacketBuffer&)>;
+using SendNoReplyRequestCallback = std::function<void(PacketBuffer&)>;
 using ServerNotificationReceivedCallback = std::function<bool(const BaseObjectPtr& obj)>;
 using ComponentDeserializeCallback = std::function<ErrCode(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)>;
+
+using ConfigProtocolStreamingProducerPtr = std::shared_ptr<ConfigProtocolStreamingProducer>;
 
 class ConfigProtocolClientComm : public std::enable_shared_from_this<ConfigProtocolClientComm>
 {
@@ -43,6 +47,8 @@ public:
     friend class ConfigProtocolClient;
     explicit ConfigProtocolClientComm(const ContextPtr& daqContext,
                                       SendRequestCallback sendRequestCallback,
+                                      SendNoReplyRequestCallback sendNoReplyRequestCallback,
+                                      const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                       ComponentDeserializeCallback rootDeviceDeserializeCallback);
 
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
@@ -66,6 +72,7 @@ public:
                                        const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
+    void sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
 
     static SignalPtr findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId);
 
@@ -74,24 +81,29 @@ public:
 
     void connectDomainSignals(const ComponentPtr& component);
     void connectInputPorts(const ComponentPtr& component);
+    void disconnectExternalSignals();
 
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback,
                                              ComponentDeserializeCallback deviceDeserialzeCallback);
+    bool isComponentNested(const StringPtr& componentGlobalId);
+    void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
 
     uint16_t getProtocolVersion() const;
 
 private:
     ContextPtr daqContext;
-    uint64_t id;
+    std::atomic<uint64_t> id;
     SendRequestCallback sendRequestCallback;
+    SendNoReplyRequestCallback sendNoReplyRequestCallback;
     ComponentDeserializeCallback rootDeviceDeserializeCallback;
-    DeserializerPtr deserializer;
     bool connected;
     WeakRefPtr<IDevice> rootDeviceRef;
     uint16_t protocolVersion;
+    std::weak_ptr<ConfigProtocolStreamingProducer> streamingProducerRef;
 
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
@@ -102,9 +114,10 @@ private:
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);
-    BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
-                                            const ComponentDeserializeContextPtr& context = nullptr,
-                                            bool isGetRootDeviceReply = false);
+    PacketBuffer createNoReplyRpcRequestPacketBuffer(const StringPtr& name, const ParamsDictPtr& params);
+    BaseObjectPtr parseRpcOrRejectReply(const StringPtr& jsonReply,
+                                        const ComponentDeserializeContextPtr& context = nullptr,
+                                        bool isGetRootDeviceReply = false);
     uint64_t generateId();
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
@@ -123,6 +136,8 @@ private:
     void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
 
     void setProtocolVersion(uint16_t protocolVersion);
+    std::tuple<uint32_t, StringPtr, StringPtr> getExternalSignalParams(const SignalPtr& signal,
+                                                                       const ConfigProtocolStreamingProducerPtr& streamingProducer);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -139,11 +154,14 @@ public:
 
     explicit ConfigProtocolClient(const ContextPtr& daqContext,
                                   const SendRequestCallback& sendRequestCallback,
+                                  const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
+                                  const SendDaqPacketCallback& sendDaqPacketCallback,
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
     DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = std::numeric_limits<uint16_t>::max());
     void reconnect();
+    void disconnectExternalSignals();
 
     DevicePtr getDevice();
     ConfigProtocolClientCommPtr getClientComm();
@@ -155,8 +173,11 @@ public:
 private:
     ContextPtr daqContext;
     SendRequestCallback sendRequestCallback;
+    SendNoReplyRequestCallback sendNoReplyRequestCallback;
+    SendDaqPacketCallback sendDaqPacketCallback;
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
+    ConfigProtocolStreamingProducerPtr streamingProducer;
 
     ConfigProtocolClientCommPtr clientComm;
     
@@ -172,15 +193,23 @@ private:
 };
 
 template<class TRootDeviceImpl>
-ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext, const SendRequestCallback& sendRequestCallback, const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
+ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext,
+                                                            const SendRequestCallback& sendRequestCallback,
+                                                            const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
+                                                            const SendDaqPacketCallback& sendDaqPacketCallback,
+                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
+    , sendDaqPacketCallback(sendDaqPacketCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
+    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, sendDaqPacketCallback))
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,
               sendRequestCallback,
+              sendNoReplyRequestCallback,
+              streamingProducer,
               [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
               {
                   return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
@@ -192,13 +221,16 @@ template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolVersion)
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
-    const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
+    const auto replyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1};
+    if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
+        clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
+
+    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3};
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;
-    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
+    replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
     if (protocolVersion != std::numeric_limits<uint16_t>::max())
     {
@@ -303,6 +335,12 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
 }
 
 template<class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::disconnectExternalSignals()
+{
+    clientComm->disconnectExternalSignals();
+}
+
+template<class TRootDeviceImpl>
 DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent, uint16_t protocolVersion)
 {
     protocolHandshake(protocolVersion);
@@ -376,7 +414,6 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const Base
 
     const ComponentPtr component = findComponent(packedEvent[0]);
     const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
-
     if (component.assigned())
     {
         component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);

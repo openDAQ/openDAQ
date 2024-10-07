@@ -461,8 +461,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             const auto devConfig = populateDeviceConfig(config, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, devConfig);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            checkErrorInfo(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
@@ -566,6 +565,12 @@ StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
         return "OpenDAQNativeStreaming";
     if (id == "opendaq_lt_streaming")
         return "OpenDAQLTStreaming";
+    if (id == "openDAQ LT Streaming")
+        return "OpenDAQLTStreaming";
+    if (id == "openDAQ Native Streaming")
+        return "OpenDAQNativeStreaming";
+    if (id == "openDAQ OpcUa")
+        return "OpenDAQOPCUA";
     return id;
 }
 
@@ -770,6 +775,45 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(serverTypeId);
+    OPENDAQ_PARAM_NOT_NULL(server);
+    OPENDAQ_PARAM_NOT_NULL(rootDevice);
+
+    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        DictPtr<IString, IServerType> serverTypes;
+        try
+        {
+            serverTypes = module.getAvailableServerTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            serverTypes = nullptr;
+        }
+
+        if (!serverTypes.assigned())
+            continue;
+
+        for (const auto& [id, serverType] : serverTypes)
+        {
+            if (id == typeId)
+            {
+                auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
+
+                *server = createdServer.detach();
+                return OPENDAQ_SUCCESS;
+            }
+        }
+    }
+
+    return OPENDAQ_ERR_NOTFOUND;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
@@ -1006,15 +1050,27 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
     // set the streaming source with the highest priority as active for device signals
     if (!prioritizedStreamingSourcesMap.empty())
     {
-        const auto streaming = prioritizedStreamingSourcesMap.begin()->second;
-        const auto connectionString = streaming.getConnectionString();
         for (const auto& signal : signals)
         {
             if (!signal.getPublic())
                 continue;
+
             MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
             if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
-                mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+            {
+                auto signalStreamingSources = mirroredSignalConfigPtr.getStreamingSources();
+                for (const auto& [_, streaming] : prioritizedStreamingSourcesMap)
+                {
+                    auto connectionString = streaming.getConnectionString();
+
+                    auto it = std::find(signalStreamingSources.begin(), signalStreamingSources.end(), connectionString);
+                    if (it != signalStreamingSources.end())
+                    {
+                        mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

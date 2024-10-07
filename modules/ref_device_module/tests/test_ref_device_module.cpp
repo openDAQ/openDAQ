@@ -18,6 +18,7 @@
 #include <testutils/testutils.h>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <opendaq/instance_factory.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -877,4 +878,30 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
 
     DevicePtr ptr;
     ASSERT_THROW(ptr = module.createDevice("daqref://device1", nullptr), GeneralErrorException);
+}
+
+TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
+{
+    const auto instance = Instance();
+
+    auto dev0 = instance.addDevice("daqref://device0");
+    auto dev1 = instance.addDevice("daqref://device1");
+    instance.removeDevice(dev0);
+    instance.removeDevice(dev1);
+
+    dev0.release();
+    dev1.release();
+
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_TRUE(dev0.assigned());
+    ASSERT_TRUE(dev1.assigned());
+
+    instance.removeDevice(dev0);
+    instance.removeDevice(dev1);
+
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_TRUE(dev0.assigned());
+    ASSERT_TRUE(dev1.assigned());
 }

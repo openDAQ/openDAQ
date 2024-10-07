@@ -22,7 +22,7 @@
 
 namespace py = pybind11;
 
-extern py::handle blueberry_daq_module;
+extern py::handle opendaq_daq_module;
 extern py::handle python_class_fraction;
 extern std::unordered_map<daq::IntfID, std::function<py::object(const daq::ObjectPtr<daq::IBaseObject>&)>> daqInterfaceIdToClass;
 

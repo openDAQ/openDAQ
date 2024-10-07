@@ -24,13 +24,19 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     auto typeManager = TypeManager();
     auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
-    auto instance = InstanceCustom(context, "local");
+    auto instance = InstanceCustom(context, "serverLocal");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     const auto refDevice = instance.addDevice("daqref://device0");
     refDevice.addProperty(IntProperty("CustomProp", 0));
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
+
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
 
     return instance;
 }
@@ -50,7 +56,7 @@ static InstancePtr CreateUpdatedServerInstance()
     auto authenticationProvider = AuthenticationProvider();
     auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
-    auto instance = InstanceCustom(context, "local");
+    auto instance = InstanceCustom(context, "serverLocal");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleScaling");
     const auto refDevice = instance.addDevice("daqref://device0");
@@ -71,7 +77,17 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
 
 static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max())
 {
-    auto instance = Instance();
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("");
+    auto typeManager = TypeManager();
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceCustom(context, "clientLocal");
 
     auto config = instance.createDefaultAddDeviceConfig();
     if (nativeConfigProtocolVersion != std::numeric_limits<uint16_t>::max())
@@ -107,7 +123,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 1);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 3);
 
     client->releaseRef();
     server->releaseRef();
@@ -474,6 +490,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 "OpenDAQNativeStreamingServerModule":
                 {
                     "NativeStreamingPort": 1234,
+                    "MaxAllowedConfigConnections": 123,
                     "Path": "/test/native_congifurator/checkDeviceInfoPopulated/"
                 }
             }
@@ -491,6 +508,11 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), path);
+    ASSERT_EQ(serverConfig.getPropertyValue("MaxAllowedConfigConnections").asPtr<IInteger>(), 123);
+
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
@@ -687,6 +709,24 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+    auto servers = devices[0].getServers();
+    ASSERT_EQ(servers.getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, GetStatuses)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto statuses = client.getDevices()[0].getStatusContainer().getStatuses();
+
+    ASSERT_EQ(statuses.getCount(), 2u);
+
+    ASSERT_TRUE(statuses.hasKey("TestStatus"));
+    ASSERT_EQ(statuses.get("TestStatus").getValue(), "On");
+
+    ASSERT_TRUE(statuses.hasKey("ConnectionStatus"));
+    ASSERT_EQ(statuses.get("ConnectionStatus").getValue(), "Connected");
 }
 
 TEST_F(NativeDeviceModulesTest, RemoveDevice)
@@ -1413,8 +1453,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     std::promise<StringPtr> reconnectionStatusPromise;
     std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
-    client.getDevices()[0].getOnComponentCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
@@ -1793,4 +1832,299 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     const auto sources = dev.getStreamingSources();
     ASSERT_EQ(sources.getCount(), 1);
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
+}
+
+TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
+{
+    SKIP_TEST_MAC_CI;
+
+    const auto server = Instance();
+    auto ns_config = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    ns_config.setPropertyValue("MaxAllowedConfigConnections", 1);
+    server.addServer("OpenDAQNativeStreaming", ns_config);
+
+    // Establish the first client connection, within the allowed limit
+    const auto client1 = Instance();
+    const MirroredDeviceConfigPtr dev = client1.addDevice("daq.nd://127.0.0.1");
+
+    // Attempt to establish a second connection exceeding the limit
+    const auto client2 = Instance();
+    ASSERT_THROW(client2.addDevice("daq.nd://127.0.0.1"), ConnectionLimitReachedException);
+
+    // Disconnect the first client, reducing the number of active connections
+    client1.removeDevice(dev);
+
+    // Give the server some time to process the disconnection
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Reattempt the second connection, now under the allowed limit
+    ASSERT_NO_THROW(client2.addDevice("daq.nd://127.0.0.1"));
+
+    // Attempt to reconnect the first client, exceeding the limit again
+    ASSERT_THROW(client1.addDevice("daq.nd://127.0.0.1"), ConnectionLimitReachedException);
+
+    // Attempt to establish a streaming connection which is not limited
+    ASSERT_NO_THROW(client1.addDevice("daq.ns://127.0.0.1"));
+}
+
+using NativeC2DStreamingTest = testing::Test;
+
+TEST_F(NativeC2DStreamingTest, ConnectSignalWithOldProtocolVersion)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(1);
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    ASSERT_THROW_MSG(mirroredInputPort.connect(clientLocalSignal),
+                     SignalNotAcceptedException,
+                     "Client-to-device streaming operations are not supported by the protocol version currently in use");
+}
+
+TEST_F(NativeC2DStreamingTest, ConnectAndRead)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    // read output signal of function block to which external signal connected
+    {
+        auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(fbSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
+    // read mirrored external signal directly
+    {
+        auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(mirroredExternalSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+}
+
+TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+
+    MirroredSignalConfigPtr mirroredExtSig;
+    SignalPtr clientLocalSignal;
+    InputPortPtr serverIp = server.getFunctionBlocks()[0].getInputPorts()[0];
+    const ComponentPtr mirroredExtSigFolder = server.getServers()[0].getItem("Sig");
+
+    std::promise<void> signalAddedPromise;
+    std::promise<void> signalConnectedPromise;
+    std::promise<void> signalDescChangedPromise;
+    std::promise<void> signalDisconnectedPromise;
+    std::promise<void> signalRemovedPromise;
+
+    serverIp.getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        auto coreEventId = static_cast<CoreEventId>(args.getEventId());
+        if (coreEventId == CoreEventId::SignalConnected)
+            signalConnectedPromise.set_value();
+        else if (coreEventId == CoreEventId::SignalDisconnected)
+            signalDisconnectedPromise.set_value();
+    };
+
+    mirroredExtSigFolder.getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        auto coreEventId = static_cast<CoreEventId>(args.getEventId());
+        if (coreEventId == CoreEventId::ComponentAdded &&
+            params.get("Component").asPtr<IMirroredSignalConfig>().getRemoteId() == clientLocalSignal.getGlobalId())
+            signalAddedPromise.set_value();
+        else if (coreEventId == CoreEventId::ComponentRemoved && params.get("Id") == mirroredExtSig.getLocalId())
+            signalRemovedPromise.set_value();
+    };
+
+    std::future<void> signalAddedFuture = signalAddedPromise.get_future();
+    std::future<void> signalConnectedFuture = signalConnectedPromise.get_future();
+    std::future<void> signalDescChangedFuture = signalDescChangedPromise.get_future();
+    std::future<void> signalDisconnectedFuture = signalDisconnectedPromise.get_future();
+    std::future<void> signalRemovedFuture = signalRemovedPromise.get_future();
+
+    auto client = CreateClientInstance();
+    auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    // connects external signal to server input port
+    mirroredInputPort.connect(clientLocalSignal);
+    ASSERT_TRUE(signalAddedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_TRUE(signalConnectedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    mirroredExtSig = serverIp.getSignal();
+    ASSERT_EQ(mirroredExtSig.getRemoteId(), clientLocalSignal.getGlobalId());
+
+    mirroredExtSig.getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::DataDescriptorChanged)
+            signalDescChangedPromise.set_value();
+    };
+
+    // changes descriptor
+    clientLocalSignal.asPtr<ISignalConfig>().setDescriptor(
+        DataDescriptorBuilderCopy(clientLocalSignal.getDescriptor()).setName("Test").build()
+    );
+    ASSERT_TRUE(signalDescChangedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    // disconnects external signal from server input port
+    mirroredInputPort.disconnect();
+    ASSERT_TRUE(signalDisconnectedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+}
+
+TEST_F(NativeC2DStreamingTest, ClientLostConnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    ASSERT_EQ(mirroredInputPort.getSignal(), clientLocalSignal);
+    ASSERT_GT(clientLocalSignal.getConnections().getCount(), 0u);
+    auto mirroredExternalSignals = server.getServers()[0].getSignals(search::Any());
+    ASSERT_EQ(mirroredExternalSignals.getCount(), 2u);
+
+    std::promise<void> reconnectionStatusPromise;
+    std::future<void> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+            reconnectionStatusPromise.set_value();
+    };
+
+    // remove server to emulate disconnection
+    server.removeServer(server.getServers()[0]);
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    ASSERT_FALSE(mirroredInputPort.getSignal().assigned());
+    ASSERT_EQ(clientLocalSignal.getConnections().getCount(), 0u);
+    for (const auto& mirroredExternalSignal : mirroredExternalSignals)
+    {
+        ASSERT_TRUE(mirroredExternalSignal.isRemoved());
+    }
+}
+
+TEST_F(NativeC2DStreamingTest, ServerLostConnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    auto mirroredExternalSignals = server.getServers()[0].getSignals(search::Any());
+    ASSERT_EQ(mirroredExternalSignals.getCount(), 2u);
+
+    std::promise<void> signalsRemovalPromise;
+    std::future<void> signalsRemovalFuture = signalsRemovalPromise.get_future();
+    SizeT signalsRemovalCounter = 0;
+    server.getServers()[0].getItem("Sig").getOnComponentCoreEvent() +=  [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved && ++signalsRemovalCounter == 2)
+            signalsRemovalPromise.set_value();
+    };
+
+    // disconnect client
+    client.removeDevice(mirroredDevice);
+    ASSERT_TRUE(signalsRemovalFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    for (const auto& mirroredExternalSignal : mirroredExternalSignals)
+    {
+        ASSERT_TRUE(mirroredExternalSignal.isRemoved());
+    }
+    ASSERT_EQ(server.getServers()[0].getSignals(search::Any()).getCount(), 0u);
+}
+
+TEST_F(NativeC2DStreamingTest, StreamingData)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientLocalDevice = client.addDevice("daqmock://phys_device");
+    const auto clientLocalSignal = clientLocalDevice.getSignalsRecursive(search::LocalId("ByteStep"))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    const ComponentPtr mirroredExtSigFolder = server.getServers()[0].getItem("Sig");
+    std::promise<void> signalAddedPromise;
+    mirroredExtSigFolder.getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded &&
+            params.get("Component").asPtr<IMirroredSignalConfig>().getRemoteId() == clientLocalSignal.getGlobalId())
+            signalAddedPromise.set_value();
+    };
+    std::future<void> signalAddedFuture = signalAddedPromise.get_future();
+
+    // connects external signal to server input port
+    mirroredInputPort.connect(clientLocalSignal);
+
+    // wait for mirrored external signal appears
+    ASSERT_TRUE(signalAddedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[1];
+    auto clientReader = PacketReader(clientLocalSignal);
+    auto serverReader = PacketReader(mirroredExternalSignal);
+
+    // Expect to receive all data packets,
+    // +1 signal initial descriptor changed event packet
+    const int packetsToGenerate = 10;
+    const int packetsToRead = packetsToGenerate + 1;
+
+    clientLocalDevice.setPropertyValue("GeneratePackets", packetsToRead);
+
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
+
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
 }

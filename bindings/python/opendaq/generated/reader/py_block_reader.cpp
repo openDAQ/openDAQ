@@ -30,7 +30,7 @@
 
 PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::module_ m)
 {
-    return wrapInterface<daq::IBlockReader, daq::ISampleReader>(m, "IBlockReader");
+    return wrapInterface<daq::IBlockReader, daq::ISampleReader>(m, "IBlockReader", py::dynamic_attr());
 }
 
 void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::ISampleReader> cls)
@@ -42,23 +42,24 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
 
     m.def(
         "BlockReader",
-        [](daq::ISignal* signal, size_t blockSize, daq::SampleType valueType, daq::SampleType domainType)
+        [](daq::ISignal* signal, size_t blockSize, daq::SampleType valueType, daq::SampleType domainType, daq::ReadMode mode)
         {
-            const auto signalPtr = daq::SignalPtr::Borrow(signal);
-            if (blockSize < 1)
+            PyTypedReader::checkTypes(valueType, domainType);
+            if (blockSize < 1u)
                 throw daq::InvalidParameterException("Block size must be greater than 0");
-            if (valueType != daq::SampleType::Invalid || domainType != daq::SampleType::Invalid)
-            {
-                PyTypedReader::checkTypes(valueType, domainType);
-                return daq::BlockReader(signalPtr, blockSize, valueType, domainType).detach();
-            }
-            else
-                return daq::BlockReader(signalPtr, blockSize).detach();
+            const auto signalPtr = daq::SignalPtr::Borrow(signal);
+
+            daq::BlockReaderBuilderPtr builder = daq::BlockReaderBuilder_Create();
+            builder.setSignal(signal).setBlockSize(blockSize).setValueReadType(valueType)
+            .setDomainReadType(domainType).setReadMode(mode).setSkipEvents(false);
+
+            return daq::BlockReaderFromBuilder_Create(builder);
         },
         py::arg("signal"),
         py::arg("block_size"),
-        py::arg("value_type") = daq::SampleType::Invalid,
-        py::arg("domain_type") = daq::SampleType::Invalid,
+        py::arg("value_type") = daq::SampleType::Float64,
+        py::arg("domain_type") = daq::SampleType::Int64,
+        py::arg("read_mode") = daq::ReadMode::Scaled,
         "");
     m.def("BlockReaderFromExisting", &daq::BlockReaderFromExisting_Create);
 

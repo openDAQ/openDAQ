@@ -106,7 +106,10 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableServerTypes(IDict** serverTypes
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockFunctionBlockModuleImpl::createServer(IServer** server, IString* /*serverType*/, IDevice* /*rootDevice*/, IPropertyObject* /*config*/)
+ErrCode MockFunctionBlockModuleImpl::createServer(IServer** server,
+                                                  IString* /*serverType*/,
+                                                  IDevice* /*rootDevice*/,
+                                                  IPropertyObject* /*config*/)
 {
     *server = nullptr;
     return OPENDAQ_SUCCESS;

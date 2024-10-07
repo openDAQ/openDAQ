@@ -1,0 +1,324 @@
+
+= Adding a protected object
+
+OpenDAQ devices, channels, signals, and other components are property objects. Each property object includes a permission manager
+that can be used to grant or restrict access to that object based on user group membership. In this section, we will demonstrate how to add
+a protected object to the reference device module implementation. The implementation is available in the openDAQ repository, in the 
+"modules/ref_device_module" folder.
+
+We can now examine the `RefDeviceImpl::createProtectedObject()` method in the reference device implementation. This method is responsible for
+creating a property object with one string property and one function property which calculates a sum of two numbers. We will make this object
+read-only for everyone but the `admin` group. Only users in the `admin` group can change the properties of that object and execute its methods.
+
+It is important to note that by default, *each property object inherits its permission from its parent.* By default, we also grant read, write, and
+execute permission for a group `everyone` on the root device. *Each object below the root device is thus granted read, write, and execute permissions
+for the group `everyone` unless otherwise specified.*
+
+We can describe the permissions of our object using a permission builder. First, we call the method `inherit(false)`. This method will tell the
+permission manager not to inherit any permissions of the parent object. After calling this method, no user groups will be able to access our object. We
+then call `assign("everyone", PermissionMaskBuilder().read())` to allow read-only access for the group `everyone`. Finally, we add read, write, and execute
+permissions for the group `admin` by calling `assign("admin", PermissionMaskBuilder().read().write().execute())`.
+
+.Assigning permissions to a property object
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+{
+    const auto func = Function([](Int a, Int b) { return a + b; });
+
+    const auto funcProp =
+        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(false)
+            .build();
+
+    auto protectedObject = PropertyObject();
+    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
+    protectedObject.addProperty(funcProp);
+    protectedObject.setPropertyValue("Sum", func);
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+
+    protectedObject.getPermissionManager().setPermissions(permissions);
+
+    return protectedObject;
+}
+----
+====
+
+== Difference between assign, allow and deny
+
+The `PermissionsBuilder` class provides three methods for defining permissions on a property object. In this section, we will describe
+these methods and explain their differences. The differences between these methods become apparent when permissions are inherited from
+a parent object. Therefore, the `inherit` flag is enabled unless stated otherwise.
+
+=== Allow
+
+The `allow()` method grants permissions for a specified group on the target object. Any permissions already granted to that group on the parent
+object will also be present on the target object. In the example below, any user in the group `everyone` has read, write, and 
+execute permissions. The read and write permissions are inherited, while we explicitly grant the execute permission.
+
+.Method allow()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write()).build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).allow("everyone", PermissionMaskBuilder().execute()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permissions:
+// everyone: rwx
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rw = opendaq.PermissionMaskBuilder()
+mask_rw.read()
+mask_rw.write()
+
+mask_x = opendaq.PermissionMaskBuilder()
+mask_x.execute()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.assign("everyone", mask_rw)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.allow("everyone", mask_x)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: rwx
+----
+C#::
++
+[source,csharp]
+----
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRw = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRw.Read();
+maskRw.Write();
+
+var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskX.Execute();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Assign("everyone", maskRw);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Allow("everyone", maskX);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: rwx
+----
+====
+
+=== Deny
+
+The method `deny()` does the opposite of `allow()`. It denies permissions on a target object for a specific group.
+Any permission denied on a parent object is also denied on the target. The deny method overrules the allow method.
+Thus, if a permission is granted to the parent, but is explicitly denied on the target, it will stay
+denied on the target object. In the example below, the target object has read and write permissions for the group `everyone`, as they are inherited
+from its parent. However, it does not have the execute permission, because it is explicitly denied for the group `everyone`.
+
+.Method deny()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder().allow("everyone", PermissionMaskBuilder().read().write().execute()).build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).deny("everyone", PermissionMaskBuilder().execute()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permisisons:
+// everyone: rw
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rwx = opendaq.PermissionMaskBuilder()
+mask_rwx.read()
+mask_rwx.write()
+mask_rwx.execute()
+
+mask_x = opendaq.PermissionMaskBuilder()
+mask_x.execute()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.allow("everyone", mask_rwx)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.deny("everyone", mask_x)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: rw
+----
+C#::
++
+[source,csharp]
+----
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRwx.Read();
+maskRwx.Write();
+maskRwx.Execute();
+
+var maskX = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskX.Execute();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Allow("everyone", maskRwx);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Deny("everyone", maskX);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: rw
+----
+====
+
+=== Assign
+
+The method `assign()` behaves similarly to `allow()`. The group is granted the specified permissions, but it no longer inherits the permissions of its parent.
+It allows you to override the permissions of the specified group. In the example below, the target object grants the read permission to the group `everyone`.
+Write and execute permissions for `everyone` are not inherited because they were overridden by `.assign("everyone", PermissionMaskBuilder().read())`.
+The read permission for `guest` is inherited from the object's parent.
+
+.Method assign()
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto targetObject = PropertyObject();
+auto parentObject = PropertyObject();
+parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
+
+auto parentPermissions = PermissionsBuilder()
+							 .assign("everyone", PermissionMaskBuilder().read().write().execute())
+							 .assign("guest", PermissionMaskBuilder().read())
+							 .build();
+parentObject.getPermissionManager().setPermissions(parentPermissions);
+
+auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read()).build();
+targetObject.getPermissionManager().setPermissions(permissions);
+
+// target object permisisons:
+// everyone: r
+// guest: r
+----
+Python::
++
+[source,python]
+----
+target_object = opendaq.PropertyObject()
+parent_object = opendaq.PropertyObject()
+parent_object.add_property(opendaq.ObjectProperty("TargetObject", target_object))
+
+mask_rwx = opendaq.PermissionMaskBuilder()
+mask_rwx.read()
+mask_rwx.write()
+mask_rwx.execute()
+
+mask_r = opendaq.PermissionMaskBuilder()
+mask_r.read()
+
+parent_permissions = opendaq.PermissionsBuilder()
+parent_permissions.assign("everyone", mask_rwx)
+parent_permissions.assign("guest", mask_r)
+parent_object.permission_manager.permissions = parent_permissions.build()
+
+permissions = opendaq.PermissionsBuilder()
+permissions.inherit(True)
+permissions.assign("everyone", mask_r)
+target_object.permission_manager.permissions = permissions.build()
+
+# target object permissions:
+# everyone: r
+# guest: r
+----
+C#::
++
+[source,csharp]
+----
+var targetObject = CoreObjectsFactory.CreatePropertyObject();
+var parentObject = CoreObjectsFactory.CreatePropertyObject();
+parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+
+var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskRwx.Read();
+maskRwx.Write();
+maskRwx.Execute();
+
+var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+maskR.Read();
+
+var parentPermissions = CoreObjectsFactory.CreatePermissionsBuilder();
+parentPermissions.Assign("everyone", maskRwx);
+parentPermissions.Assign("guest", maskR);
+parentObject.PermissionManager.SetPermissions(parentPermissions.Build());
+
+var permissions = CoreObjectsFactory.CreatePermissionsBuilder();
+permissions.Inherit(true);
+permissions.Assign("everyone", maskR);
+targetObject.PermissionManager.SetPermissions(permissions.Build());
+
+// target object permissions:
+// everyone: r
+// guest: r
+----
+====

@@ -197,7 +197,7 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
     else if (auto native = std::get_if<NativeType>(&v))
     {
         std::optional<py::gil_scoped_acquire> acquire; 
-        if (std::is_base_of_v<py::handle, NativeType>) acquire.emplace();
+        if constexpr (std::is_base_of_v<py::handle, NativeType>) acquire.emplace();
         
         auto variant = variant_full_t(*native);
         return getVariantValueInternal(variant);

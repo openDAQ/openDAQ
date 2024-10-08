@@ -121,7 +121,8 @@ private:
         SignalPtr daqSignal;
         SignalNumericIdType numericId;
         std::unordered_set<std::string> subscribedClientsIds;
-        DataDescriptorPtr lastDataDescriptor;
+        DataDescriptorPtr lastDataDescriptorParam;
+        DataDescriptorPtr lastDomainDescriptorParam;
     };
 
     void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,

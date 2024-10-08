@@ -104,7 +104,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 
     this->internalAddRef();
     inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
@@ -169,7 +169,7 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -343,6 +343,12 @@ ErrCode StreamReaderImpl::markAsInvalid()
 void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const
 {
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
+}
+
+EventPacketPtr StreamReaderImpl::createInitDataDescriptorChangedEventPacket()
+{
+    return DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(),
+                                            domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor());
 }
 
 void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)

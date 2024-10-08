@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <opcuatms/core_types_utils.h>
 #include <open62541/types_generated_handling.h>
+#include <testutils/testutils.h>
 
 using CoreTypesUtilsTest = testing::Test;
 
@@ -59,4 +60,7 @@ TEST_F(CoreTypesUtilsTest, SampleTypeConverter)
     ASSERT_EQ(SampleTypeFromTmsEnum(SampleTypeToTmsEnum(SampleType::Int32)), SampleType::Int32);
     ASSERT_EQ(SampleTypeFromTmsEnum(SampleTypeToTmsEnum(SampleType::Int64)), SampleType::Int64);
     ASSERT_EQ(SampleTypeFromTmsEnum(SampleTypeToTmsEnum(SampleType::UInt64)), SampleType::UInt64);
+    ASSERT_THROW_MSG(SampleTypeToTmsEnum(SampleType::Null),
+                     ConversionFailedException,
+                     "SampleType \"Null\" is not convertible and reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
 }

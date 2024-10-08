@@ -1174,14 +1174,14 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     DeviceInfoPtr deviceInfo;
     checkErrorInfo(this->getInfo(&deviceInfo));
-    if (deviceInfo.assigned())
-    {
-        serializer.key("deviceInfo");
-        deviceInfo.serialize(serializer);
-    }
 
     if (!forUpdate)
     {
+        if (deviceInfo.assigned())
+        {
+            serializer.key("deviceInfo");
+            deviceInfo.serialize(serializer);
+        }
         if (deviceDomain.assigned())
         {
             serializer.key("deviceDomain");
@@ -1190,6 +1190,27 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
     else
     {
+        if (deviceInfo.assigned())
+        {
+            auto connectionString = deviceInfo.getConnectionString();
+            if (connectionString.getLength() != 0)
+            {
+                serializer.key("connectionString");
+                serializer.writeString(deviceInfo.getConnectionString());
+            }
+            
+            auto manufacturer = deviceInfo.getManufacturer();
+            auto serialNumber = deviceInfo.getSerialNumber();
+            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            {
+                serializer.key("manufacturer");
+                serializer.writeString(manufacturer);
+
+                serializer.key("serialNumber");
+                serializer.writeString(serialNumber);
+            }
+        }
+
         if (deviceConfig.assigned())
         {
             serializer.key("deviceConfig");
@@ -1246,44 +1267,56 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             return;
         }
 
-        DeviceInfoPtr deviceInfo;
         PropertyObjectPtr deviceConfig;
         DeviceInfoPtr discoveredDeviceInfo;
-
-        if (serializedDevice.hasKey("deviceInfo"))
-            deviceInfo = serializedDevice.readObject("deviceInfo");
-        else
-            LOG_W("Device {} not found as the device info is not provided", deviceId);
 
         if (serializedDevice.hasKey("deviceConfig"))
             deviceConfig = serializedDevice.readObject("deviceConfig");
 
-        for (const auto& availableDevice : onGetAvailableDevices())
+        if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {
-            if (availableDevice.getManufacturer() == deviceInfo.getManufacturer() &&
-                availableDevice.getSerialNumber() == deviceInfo.getSerialNumber())
+            StringPtr manufacturer = serializedDevice.readString("manufacturer");
+            StringPtr serialNumber = serializedDevice.readString("serialNumber");
+
+            for (const auto& availableDevice : onGetAvailableDevices())
             {
+                Bool deviceFound = false;
+                availableDevice.getManufacturer()->equals(manufacturer, &deviceFound);
+                if (!deviceFound)
+                    continue;
+                
+                availableDevice.getSerialNumber()->equals(serialNumber, &deviceFound);
+                if (!deviceFound)
+                    continue;
+
                 discoveredDeviceInfo = availableDevice;
                 break;
             }
+        }
+
+        StringPtr connectionString;
+        if (discoveredDeviceInfo.assigned())
+        {
+            connectionString = discoveredDeviceInfo.getConnectionString();
+        }
+        else if (serializedDevice.hasKey("connectionString"))
+        {
+            connectionString = serializedDevice.readString("connectionString");
+        }
+        else
+        {
+            LOG_W("No connection string found for device {}", deviceId);
+            return;
         }
 
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
             this->removeDevice(device);
-            device = nullptr;
-        }
-
-        StringPtr connectionString = deviceInfo.getConnectionString();
-        if (discoveredDeviceInfo.assigned())
-        {
-            connectionString = discoveredDeviceInfo.getConnectionString();
         }
 
         DevicePtr device;
         this->addDevice(&device, connectionString, deviceConfig);
-
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }

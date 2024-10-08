@@ -1,4 +1,5 @@
 #include "setup_regression.h"
+#include <testutils/testutils.h>
 
 class RegressionTestDevice : public testing::Test
 {
@@ -159,9 +160,7 @@ TEST_F(RegressionTestDevice, getDevices)
 
 TEST_F(RegressionTestDevice, getAvailableDevices)
 {
-    ListPtr<IDeviceInfo> infos;
-    ASSERT_NO_THROW(infos = device.getAvailableDevices());
-    ASSERT_EQ(infos.getCount(), 0);
+    ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "Operation not supported by the protocol version currently in use");
 }
 
 TEST_F(RegressionTestDevice, getAvailableDeviceTypes)

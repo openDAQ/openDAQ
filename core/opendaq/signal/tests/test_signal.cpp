@@ -1,5 +1,6 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/context_factory.h>
@@ -389,6 +390,26 @@ TEST_F(SignalTest, SignalDescriptor)
 
     signal.setDescriptor(dataDescriptor);
     ASSERT_EQ(signal.getDescriptor(), dataDescriptor);
+
+    signal.setDescriptor(nullptr);
+    ASSERT_FALSE(signal.getDescriptor().assigned());
+}
+
+TEST_F(SignalTest, SignalNullTypeDescriptor)
+{
+    SignalConfigPtr signal;
+    const auto nullDescriptor = NullDataDescriptor();
+
+    ASSERT_THROW_MSG(signal = SignalWithDescriptor(NullContext(), nullDescriptor, nullptr, "sig"),
+                     InvalidSampleTypeException,
+                     "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
+    ASSERT_NO_THROW(signal = SignalWithDescriptor(NullContext(), nullptr, nullptr, "sig"));
+    ASSERT_THROW_MSG(signal.setDescriptor(nullDescriptor),
+                     InvalidSampleTypeException,
+                     "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
+    ASSERT_FALSE(signal.getDescriptor().assigned());
 }
 
 TEST_F(SignalTest, SignalDescriptorStruct)

@@ -384,6 +384,12 @@ protected:
         }
     }
 
+    EventPacketPtr createInitDataDescriptorChangedEventPacket()
+    {
+        return DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(),
+                                                domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor());
+    }
+
     virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket)
     {
         if (!eventPacket.assigned())
@@ -449,7 +455,7 @@ protected:
             }
         }
 
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+        handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)

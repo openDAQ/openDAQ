@@ -1,4 +1,4 @@
-# 14.10.2024:
+# 21.10.2024:
 ## Description
 - Introduce a new Sample Type "Null"
 - Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned

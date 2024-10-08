@@ -47,26 +47,9 @@ bool PacketStreamingClient::areReferencesCleared() const
     return (referencedPacketBuffers.empty() && referencedPackets.empty() && packetBuffersWaitingForDomainPackets.empty());
 }
 
-EventPacketPtr PacketStreamingClient::getDataDescriptorChangedEventPacket(uint32_t signalId) const
-{
-    std::scoped_lock lock(descriptorsSync);
-
-    DataDescriptorPtr dataDescriptor;
-    const auto dataDescIt = dataDescriptors.find(signalId);
-    if (dataDescIt != dataDescriptors.end())
-        dataDescriptor = dataDescIt->second;
-
-    DataDescriptorPtr domainDescriptor;
-    const auto domainDescIt = domainDescriptors.find(signalId);
-    if (domainDescIt != domainDescriptors.end())
-        domainDescriptor = domainDescIt->second;
-
-    return DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
-}
-
 void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBuffer)
 {
-    bool forwardPacket = true;
+    bool forwardPacket = false;
     auto signalId = packetBuffer->packetHeader->signalId;
 
     const auto eventPayloadString = String((ConstCharPtr) packetBuffer->payload);
@@ -75,25 +58,37 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        // drop packet if signal descriptors have not been changed
-        if (BaseObjectPtr::Equals(packet, getDataDescriptorChangedEventPacket(signalId)))
-            forwardPacket = false;
+        const auto valueDescriptorParam = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        const auto domainDescriptorParam = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        const bool valueDescriptorChanged = valueDescriptorParam.assigned();
+        const bool domainDescriptorChanged = domainDescriptorParam.assigned();
+        const DataDescriptorPtr newValueDescriptor =
+            valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
+        const DataDescriptorPtr newDomainDescriptors =
+            domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
 
-        const DataDescriptorPtr valueDescriptorParam = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr domainDescriptorParam = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         std::scoped_lock lock(descriptorsSync);
-        if (valueDescriptorParam.assigned())
-            dataDescriptors.insert_or_assign(
-                signalId,
-                valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr);
-        if (domainDescriptorParam.assigned())
-            domainDescriptors.insert_or_assign(
-                signalId,
-                domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr);
+
+        const auto dataDescIt = dataDescriptors.find(signalId);
+        const auto domainDescIt = domainDescriptors.find(signalId);
+        if (valueDescriptorChanged && dataDescIt != dataDescriptors.end() && dataDescIt->second != newValueDescriptor ||
+            domainDescriptorChanged && domainDescIt != domainDescriptors.end() && domainDescIt->second != newDomainDescriptors ||
+            dataDescIt == dataDescriptors.end() ||
+            domainDescIt == domainDescriptors.end())
+        {
+            forwardPacket = true;
+        }
+
+        if (valueDescriptorChanged)
+            dataDescriptors.insert_or_assign(signalId, newValueDescriptor);
+        if (domainDescriptorChanged)
+            domainDescriptors.insert_or_assign(signalId, newDomainDescriptors);
     }
 
     if (forwardPacket)
+    {
         queue.push({signalId, packet});
+    }
 }
 
 DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& packetBuffer, const DataPacketPtr& domainPacket)

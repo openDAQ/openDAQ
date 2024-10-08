@@ -35,11 +35,11 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
                 const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 if (dataDescriptorParam.assigned())
-                {
-                    registeredSignal.lastDataDescriptor =
-                        dataDescriptorParam != NullDataDescriptor() ? dataDescriptorParam : nullptr;
-                }
+                    registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                if (domainDescriptorParam.assigned())
+                    registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
             }
         }
 
@@ -198,12 +198,13 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
             {
                 // does not trigger creating a reader
                 // so create and send event packet to initialize packet streaming
-                // dataDescriptor not assigned means initial event packet is not yet processed by streaming
-                if (registeredSignal.lastDataDescriptor.assigned())
+                // descriptor params not assigned means initial event packet is not yet processed by streaming
+                if (registeredSignal.lastDataDescriptorParam.assigned())
                 {
                     sendDaqPacket(sendPacketBufferCb,
                                   packetStreamingServers.at(subscribedClientId),
-                                  DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptor, nullptr),
+                                  DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptorParam,
+                                                                   registeredSignal.lastDomainDescriptorParam),
                                   subscribedClientId,
                                   registeredSignal.numericId);
                 }

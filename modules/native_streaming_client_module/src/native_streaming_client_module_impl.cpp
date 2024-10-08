@@ -197,28 +197,42 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
             LOG_I("Native device reconnection processing thread finished");
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
-                                                             transportClient,
-                                                             config.getPropertyValue("ConfigProtocolRequestTimeout"),
-                                                             processingIOContextPtr,
-                                                             reconnectionProcessingIOContextPtr,
-                                                             reconnectionProcessingThread.get_id());
-    auto device = deviceHelper->connectAndGetDevice(parent);
 
-    deviceHelper->subscribeToCoreEvent(context);
+    try
+    {
+        auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
+                                                                 transportClient,
+                                                                 config.getPropertyValue("ConfigProtocolRequestTimeout"),
+                                                                 processingIOContextPtr,
+                                                                 reconnectionProcessingIOContextPtr,
+                                                                 reconnectionProcessingThread.get_id());
+        auto device = deviceHelper->connectAndGetDevice(parent);
 
-    device.asPtr<INativeDevicePrivate>(true)->initializeStatus();
-    device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
-    device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
+        deviceHelper->subscribeToCoreEvent(context);
 
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
-                                                    std::move(processingThread),
-                                                    processingIOContextPtr);
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
-                                                    std::move(reconnectionProcessingThread),
-                                                    reconnectionProcessingIOContextPtr);
+        device.asPtr<INativeDevicePrivate>(true)->initializeStatus();
+        device.asPtr<INativeDevicePrivate>(true)->attachDeviceHelper(std::move(deviceHelper));
+        device.asPtr<INativeDevicePrivate>(true)->setConnectionString(connectionString);
 
-    return device;
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
+                                                        std::move(processingThread),
+                                                        processingIOContextPtr);
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
+                                                        std::move(reconnectionProcessingThread),
+                                                        reconnectionProcessingIOContextPtr);
+
+        return device;
+    }
+    catch (...)
+    {
+        processingIOContextPtr->stop();
+        processingThread.join();
+
+        reconnectionProcessingIOContextPtr->stop();
+        reconnectionProcessingThread.join();
+
+        throw;
+    }
 }
 
 void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig)

@@ -533,7 +533,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
             {
                 SignalPtr domainSignal;
 
-                // try to find domain singal recursively starting from top component
+                // try to find domain signal recursively starting from top component
                 {
                     const auto domainSingalRemoteId = domainSignalId.toStdString();
                     StringPtr topComponentRemoteId;
@@ -545,7 +545,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
                     }
                 }
 
-                // try to find domain singal recursively starting from root device
+                // try to find domain signal recursively starting from root device
                 if (!domainSignal.assigned())
                     domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
                 if (domainSignal.assigned())

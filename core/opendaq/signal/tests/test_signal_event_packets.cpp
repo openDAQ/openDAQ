@@ -14,23 +14,39 @@ using SignalEventPacketTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-TEST_F(SignalEventPacketTest, DescriptorChanged1)
+TEST_F(SignalEventPacketTest, ValueDescriptorChanged)
 {
     const auto sig = Signal(NullContext(), nullptr, "sig");
     const auto ip = InputPort(NullContext(), nullptr, "ip");
 
     ip.connect(sig);
-    ASSERT_EQ(ip.getConnection().dequeue().getType(), PacketType::Event);
+    const EventPacketPtr initialEventPacket = ip.getConnection().dequeue();
+    ASSERT_EQ(initialEventPacket.getType(), PacketType::Event);
+    ASSERT_EQ(initialEventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_TRUE(initialEventPacket.getParameters().get("DataDescriptor").assigned());
+    ASSERT_TRUE(initialEventPacket.getParameters().get("DomainDataDescriptor").assigned());
+    ASSERT_EQ(initialEventPacket.getParameters().get("DataDescriptor"), NullDataDescriptor());
+    ASSERT_EQ(initialEventPacket.getParameters().get("DomainDataDescriptor"), NullDataDescriptor());
 
-    sig.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build());
-    const EventPacketPtr eventPacket = ip.getConnection().dequeue();
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    sig.setDescriptor(valueDescriptor);
+    const EventPacketPtr eventPacket1 = ip.getConnection().dequeue();
 
-    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
-    ASSERT_EQ(eventPacket.getParameters().get("DataDescriptor").assigned(), true);
-    ASSERT_EQ(eventPacket.getParameters().get("DomainDataDescriptor").assigned(), false);
+    ASSERT_EQ(eventPacket1.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_TRUE(eventPacket1.getParameters().get("DataDescriptor").assigned());
+    ASSERT_EQ(eventPacket1.getParameters().get("DataDescriptor"), valueDescriptor);
+    ASSERT_FALSE(eventPacket1.getParameters().get("DomainDataDescriptor").assigned());
+
+    sig.setDescriptor(nullptr);
+    const EventPacketPtr eventPacket2 = ip.getConnection().dequeue();
+
+    ASSERT_EQ(eventPacket2.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_TRUE(eventPacket2.getParameters().get("DataDescriptor").assigned());
+    ASSERT_EQ(eventPacket2.getParameters().get("DataDescriptor"), NullDataDescriptor());
+    ASSERT_FALSE(eventPacket2.getParameters().get("DomainDataDescriptor").assigned());
 }
 
-TEST_F(SignalEventPacketTest, DescriptorChanged2)
+TEST_F(SignalEventPacketTest, DomainDescriptorChanged)
 {
     const auto sig = Signal(NullContext(), nullptr, "sig");
     const auto sigDomain = Signal(NullContext(), nullptr, "sig");
@@ -38,14 +54,30 @@ TEST_F(SignalEventPacketTest, DescriptorChanged2)
     const auto ip = InputPort(NullContext(), nullptr, "ip");
 
     ip.connect(sig);
-    ASSERT_EQ(ip.getConnection().dequeue().getType(), PacketType::Event);
+    const EventPacketPtr initialEventPacket = ip.getConnection().dequeue();
+    ASSERT_EQ(initialEventPacket.getType(), PacketType::Event);
+    ASSERT_EQ(initialEventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_TRUE(initialEventPacket.getParameters().get("DataDescriptor").assigned());
+    ASSERT_TRUE(initialEventPacket.getParameters().get("DomainDataDescriptor").assigned());
+    ASSERT_EQ(initialEventPacket.getParameters().get("DataDescriptor"), NullDataDescriptor());
+    ASSERT_EQ(initialEventPacket.getParameters().get("DomainDataDescriptor"), NullDataDescriptor());
 
-    sigDomain.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build());
-    const EventPacketPtr eventPacket = ip.getConnection().dequeue();
+    const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    sigDomain.setDescriptor(domainDescriptor);
+    const EventPacketPtr eventPacket1 = ip.getConnection().dequeue();
 
-    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
-    ASSERT_EQ(eventPacket.getParameters().get("DataDescriptor").assigned(), false);
-    ASSERT_EQ(eventPacket.getParameters().get("DomainDataDescriptor").assigned(), true);
+    ASSERT_EQ(eventPacket1.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_FALSE(eventPacket1.getParameters().get("DataDescriptor").assigned());
+    ASSERT_TRUE(eventPacket1.getParameters().get("DomainDataDescriptor").assigned());
+    ASSERT_EQ(eventPacket1.getParameters().get("DomainDataDescriptor"), domainDescriptor);
+
+    sigDomain.setDescriptor(nullptr);
+    const EventPacketPtr eventPacket2 = ip.getConnection().dequeue();
+
+    ASSERT_EQ(eventPacket2.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_FALSE(eventPacket2.getParameters().get("DataDescriptor").assigned());
+    ASSERT_TRUE(eventPacket2.getParameters().get("DomainDataDescriptor").assigned());
+    ASSERT_EQ(eventPacket2.getParameters().get("DomainDataDescriptor"), NullDataDescriptor());
 }
 
 END_NAMESPACE_OPENDAQ

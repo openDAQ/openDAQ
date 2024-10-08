@@ -653,7 +653,8 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
 
 MultiReaderStatusPtr MultiReaderImpl::createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets, const NumberPtr& offset)
 {
-    auto mainDescriptor = DataDescriptorChangedEventPacket(mainValueDescriptor, mainDomainDescriptor);
+    auto mainDescriptor = DataDescriptorChangedEventPacket(mainValueDescriptor.assigned() ? mainValueDescriptor : NullDataDescriptor(),
+                                                           mainDomainDescriptor.assigned() ? mainDomainDescriptor : NullDataDescriptor());
     return MultiReaderStatus(mainDescriptor, eventPackets, !invalid, offset);
 }
 

@@ -51,7 +51,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)

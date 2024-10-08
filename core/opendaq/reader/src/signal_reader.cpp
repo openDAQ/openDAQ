@@ -299,6 +299,8 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     EventPacketPtr packetToReturn;
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
+    bool valueDescriptorChanged = false;
+    bool domainDescriptorChanged = false;
 
     PacketPtr packet;
     while (true)
@@ -324,18 +326,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                 auto params = eventPacket.getParameters();
                 DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
                 DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-                bool valueDescriptorChanged = valueDescriptorParam.assigned();
-                bool domainDescriptorChanged = domainDescriptorParam.assigned();
-                DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-                DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+                valueDescriptorChanged |= valueDescriptorParam.assigned();
+                domainDescriptorChanged |= domainDescriptorParam.assigned();
 
-                if (valueDescriptorChanged)
+                if (valueDescriptorParam.assigned())
                 {
-                    dataDescriptor = newValueDescriptor;
+                    dataDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;;
                 }
-                if (domainDescriptorChanged)
+                if (domainDescriptorParam.assigned())
                 {
-                    domainDescriptor = newDomainDescriptor;
+                    domainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
                 }
             }
             else if (packetId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
@@ -357,8 +357,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         info.prevSampleIndex = 0;
     }
 
-    if (!packetToReturn.assigned() && (dataDescriptor.assigned() || domainDescriptor.assigned()))
-        packetToReturn = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+    if (!packetToReturn.assigned() && (valueDescriptorChanged || domainDescriptorChanged))
+    {
+        const auto valueDescriptorParam = valueDescriptorChanged
+                                              ? (dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor())
+                                              : nullptr;
+        const auto domainDescriptorParam = domainDescriptorChanged
+                                               ? (domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor())
+                                               : nullptr;
+        packetToReturn = DataDescriptorChangedEventPacket(valueDescriptorParam, domainDescriptorParam);
+    }
 
     if (packetToReturn.assigned())
     {

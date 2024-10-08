@@ -1,6 +1,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 #include <opendaq/function_block_type_ptr.h>
+#include <opendaq/update_parameters_factory.h>
 
 using InstanceTest = testing::Test;
 
@@ -569,8 +570,8 @@ TEST_F(InstanceTest, SaveLoadReaddDevice)
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.addDevice("daqmock://phys_device");
     instance2.addDevice("daqmock://client_device");
-    auto loadConfig = PropertyObject();
-    loadConfig.addProperty(BoolProperty("ReAddDevices", true));
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
     instance2.loadConfiguration(config, loadConfig);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());

@@ -647,9 +647,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     OPENDAQ_PARAM_NOT_NULL(id);
 
     return daqTry(
-        [&]()
+        [&]
         {
-            
             std::string str = StringPtr(id);
             if (str != "" && str[0] == '/')
             {
@@ -721,6 +720,12 @@ void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /*
 template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
+    auto configPtr = BaseObjectPtr::Borrow(config);
+    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
+    }
+    
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
     const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
@@ -750,12 +755,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::deserializeValues(ISerializedObject* seri
     auto contextPtr = BaseObjectPtr::Borrow(context);
     auto callbackFactoryPtr = FunctionPtr::Borrow(callbackFactory);
 
-    return daqTry(
-        [&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]()
-        {
-            deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]
+    {
+        deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class Intf, class ... Intfs>
@@ -771,10 +775,10 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(I
     OPENDAQ_PARAM_NOT_NULL(value);
 
     return daqTry([this, &parameter, &value]
-        {
-            const auto parameterPtr = StringPtr::Borrow(parameter);
-            *value = getDeserializedParameter(parameterPtr).detach();
-        });
+    {
+        const auto parameterPtr = StringPtr::Borrow(parameter);
+        *value = getDeserializedParameter(parameterPtr).detach();
+    });
 }
 
 template <class Intf, class ... Intfs>
@@ -798,22 +802,21 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeComponent(
-                serialized,
-                context,
-                factoryCallback, 
-                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-                {
-                    return createWithImplementation<IComponent, ComponentImpl>(
-                        deserializeContext.getContext(),
-                        deserializeContext.getParent(),
-                        deserializeContext.getLocalId(),
-                        className);
-                }).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeComponent(
+            serialized,
+            context,
+            factoryCallback, 
+            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+            {
+                return createWithImplementation<IComponent, ComponentImpl>(
+                    deserializeContext.getContext(),
+                    deserializeContext.getParent(),
+                    deserializeContext.getLocalId(),
+                    className);
+            }).detach();
+    });
 }
 
 template <class Intf, class... Intfs>
@@ -927,12 +930,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
         return errCode;
 
     return daqTry(
-        [&serializerPtr, forUpdate, this]()
-        {
-            serializeCustomObjectValues(serializerPtr, forUpdate);
+    [&serializerPtr, forUpdate, this]
+    {
+        serializeCustomObjectValues(serializerPtr, forUpdate);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
  
 template <class Intf, class... Intfs>

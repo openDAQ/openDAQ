@@ -549,7 +549,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
         });
 }
 
-ErrCode InstanceImpl::loadConfiguration(IString* configuration, IPropertyObject* config)
+ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameters* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
     auto configPtr = BaseObjectPtr(config);

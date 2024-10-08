@@ -113,7 +113,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
-    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config) override;
 
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
@@ -1039,7 +1039,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration, IPropertyObject* config)
+ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration, IUpdateParameters* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 

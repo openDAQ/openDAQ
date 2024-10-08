@@ -68,7 +68,7 @@ public:
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
-    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr) override;
 
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 

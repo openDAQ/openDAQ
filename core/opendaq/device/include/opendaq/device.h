@@ -25,6 +25,7 @@
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/server.h>
+#include <opendaq/update_parameters.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -238,7 +239,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @brief Loads the configuration of the device from string.
      * @param configuration Serialized configuration of the device.
      */
-    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IPropertyObject* config = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr) = 0;
 
     /*!
      * @brief Gets the number of ticks passed since the device's absolute origin.

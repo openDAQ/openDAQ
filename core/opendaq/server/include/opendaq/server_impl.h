@@ -45,8 +45,9 @@ public:
     explicit ServerImpl(const StringPtr& id,
                         const PropertyObjectPtr& serverConfig,
                         const DevicePtr& rootDevice,
-                        const ContextPtr& context)
-        : Super(context, rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr, id)
+                        const ContextPtr& context,
+                        const ComponentPtr& parent = nullptr)
+        : Super(context, parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), id)
         , id(id)
         , config(serverConfig)
         , rootDeviceRef(rootDevice)
@@ -133,7 +134,8 @@ public:
                         const auto id = serialized.readString("id");
                         DevicePtr parentDevice;
 
-                        if (const auto parentFolder = deserializeContext.getParent(); parentFolder.assigned())
+                        const auto parentFolder = deserializeContext.getParent();
+                        if (parentFolder.assigned())
                         {
                             if (parentFolder.getLocalId() == "Srv" &&
                                 parentFolder.getParent().assigned() &&
@@ -147,7 +149,8 @@ public:
                             id,
                             nullptr,
                             parentDevice,
-                            deserializeContext.getContext());
+                            deserializeContext.getContext(),
+                            parentFolder);
                     }).detach();
             });
     }

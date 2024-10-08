@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("local_id",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getLocalId().toStdString();
         },
@@ -53,6 +56,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("global_id",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getGlobalId().toStdString();
         },
@@ -60,11 +64,13 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property("active",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getActive();
         },
         [](daq::IComponent *object, const bool active)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setActive(active);
         },
@@ -72,6 +78,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("context",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getContext().detach();
         },
@@ -80,6 +87,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("parent",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getParent().detach();
         },
@@ -88,11 +96,13 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property("name",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
         [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
@@ -100,11 +110,13 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property("description",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
         [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setDescription(getVariantValue<daq::IString*>(description));
         },
@@ -112,6 +124,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("tags",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getTags().detach();
         },
@@ -120,11 +133,13 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property("visible",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getVisible();
         },
         [](daq::IComponent *object, const bool visible)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setVisible(visible);
         },
@@ -132,6 +147,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("locked_attributes",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getLockedAttributes().detach();
         },
@@ -141,6 +157,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("on_component_core_event",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getOnComponentCoreEvent().detach();
         },
@@ -150,6 +167,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def_property_readonly("status_container",
         [](daq::IComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getStatusContainer().detach();
         },
@@ -158,6 +176,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.def("find_component",
         [](daq::IComponent *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.findComponent(getVariantValue<daq::IString*>(id)).detach();
         },

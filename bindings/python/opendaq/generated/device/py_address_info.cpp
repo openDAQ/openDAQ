@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -49,6 +51,7 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
     cls.def_property_readonly("address",
         [](daq::IAddressInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoPtr::Borrow(object);
             return objectPtr.getAddress().toStdString();
         },
@@ -56,6 +59,7 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
     cls.def_property_readonly("connection_string",
         [](daq::IAddressInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },
@@ -63,6 +67,7 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
     cls.def_property_readonly("type",
         [](daq::IAddressInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoPtr::Borrow(object);
             return objectPtr.getType().toStdString();
         },
@@ -70,6 +75,7 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
     cls.def_property_readonly("reachability_status",
         [](daq::IAddressInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AddressInfoPtr::Borrow(object);
             return objectPtr.getReachabilityStatus();
         },

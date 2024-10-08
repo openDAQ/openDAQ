@@ -50,6 +50,9 @@ public:
     bool getReconnected();
     UserPtr getUser();
 
+    bool isConfigProtocolUsed();
+    void triggerUseConfigProtocol();
+
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
     daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
@@ -65,5 +68,6 @@ private:
 
     std::string clientId;
     bool reconnected;
+    bool useConfigProtocol;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

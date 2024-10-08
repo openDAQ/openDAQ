@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBase
     cls.def("cancel",
         [](daq::IAwaitable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AwaitablePtr::Borrow(object);
             return objectPtr.cancel();
         },
@@ -48,6 +51,7 @@ void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBase
     cls.def("wait",
         [](daq::IAwaitable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AwaitablePtr::Borrow(object);
             objectPtr.wait();
         },
@@ -55,6 +59,7 @@ void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBase
     cls.def_property_readonly("result",
         [](daq::IAwaitable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AwaitablePtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getResult());
         },
@@ -63,6 +68,7 @@ void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBase
     cls.def("has_completed",
         [](daq::IAwaitable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::AwaitablePtr::Borrow(object);
             return objectPtr.hasCompleted();
         },

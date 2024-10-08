@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_typed_reader.h"
 
@@ -47,13 +49,10 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
             PyTypedReader::checkTypes(valueType, domainType);
             if (blockSize < 1u)
                 throw daq::InvalidParameterException("Block size must be greater than 0");
+
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
 
-            daq::BlockReaderBuilderPtr builder = daq::BlockReaderBuilder_Create();
-            builder.setSignal(signal).setBlockSize(blockSize).setValueReadType(valueType)
-            .setDomainReadType(domainType).setReadMode(mode).setSkipEvents(false);
-
-            return daq::BlockReaderFromBuilder_Create(builder);
+            return daq::BlockReader_Create(signalPtr, blockSize, valueType, domainType, mode);
         },
         py::arg("signal"),
         py::arg("block_size"),
@@ -66,7 +65,10 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
     cls.def(
         "read",
         [](daq::IBlockReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValues(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValues(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -76,7 +78,10 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
     cls.def(
         "read_with_domain",
         [](daq::IBlockReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValuesWithDomain(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValuesWithDomain(daq::BlockReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -87,10 +92,9 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
         "block_size",
         [](daq::IBlockReader* object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::BlockReaderPtr::Borrow(object);
-            daq::SizeT blockSize = 0;
-            objectPtr->getBlockSize(&blockSize);
-            return blockSize;
+            return objectPtr.getBlockSize();
         },
         "The amount of samples the reader considers as one block.");
 }

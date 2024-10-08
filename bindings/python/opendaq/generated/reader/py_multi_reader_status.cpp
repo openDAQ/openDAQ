@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderSt
     cls.def_property_readonly("event_packets",
         [](daq::IMultiReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderStatusPtr::Borrow(object);
             return objectPtr.getEventPackets().detach();
         },
@@ -54,6 +57,7 @@ void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderSt
     cls.def_property_readonly("main_descriptor",
         [](daq::IMultiReaderStatus *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderStatusPtr::Borrow(object);
             return objectPtr.getMainDescriptor().detach();
         },

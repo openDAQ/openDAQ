@@ -32,6 +32,12 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
+
     return instance;
 }
 
@@ -117,7 +123,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 2);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 3);
 
     client->releaseRef();
     server->releaseRef();
@@ -484,6 +490,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 "OpenDAQNativeStreamingServerModule":
                 {
                     "NativeStreamingPort": 1234,
+                    "MaxAllowedConfigConnections": 123,
                     "Path": "/test/native_congifurator/checkDeviceInfoPopulated/"
                 }
             }
@@ -501,6 +508,11 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
+    ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), path);
+    ASSERT_EQ(serverConfig.getPropertyValue("MaxAllowedConfigConnections").asPtr<IInteger>(), 123);
+
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
@@ -699,6 +711,22 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
     auto servers = devices[0].getServers();
     ASSERT_EQ(servers.getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, GetStatuses)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto statuses = client.getDevices()[0].getStatusContainer().getStatuses();
+
+    ASSERT_EQ(statuses.getCount(), 2u);
+
+    ASSERT_TRUE(statuses.hasKey("TestStatus"));
+    ASSERT_EQ(statuses.get("TestStatus").getValue(), "On");
+
+    ASSERT_TRUE(statuses.hasKey("ConnectionStatus"));
+    ASSERT_EQ(statuses.get("ConnectionStatus").getValue(), "Connected");
 }
 
 TEST_F(NativeDeviceModulesTest, RemoveDevice)
@@ -1804,6 +1832,39 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     const auto sources = dev.getStreamingSources();
     ASSERT_EQ(sources.getCount(), 1);
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
+}
+
+TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
+{
+    SKIP_TEST_MAC_CI;
+
+    const auto server = Instance();
+    auto ns_config = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    ns_config.setPropertyValue("MaxAllowedConfigConnections", 1);
+    server.addServer("OpenDAQNativeStreaming", ns_config);
+
+    // Establish the first client connection, within the allowed limit
+    const auto client1 = Instance();
+    const MirroredDeviceConfigPtr dev = client1.addDevice("daq.nd://127.0.0.1");
+
+    // Attempt to establish a second connection exceeding the limit
+    const auto client2 = Instance();
+    ASSERT_THROW(client2.addDevice("daq.nd://127.0.0.1"), ConnectionLimitReachedException);
+
+    // Disconnect the first client, reducing the number of active connections
+    client1.removeDevice(dev);
+
+    // Give the server some time to process the disconnection
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Reattempt the second connection, now under the allowed limit
+    ASSERT_NO_THROW(client2.addDevice("daq.nd://127.0.0.1"));
+
+    // Attempt to reconnect the first client, exceeding the limit again
+    ASSERT_THROW(client1.addDevice("daq.nd://127.0.0.1"), ConnectionLimitReachedException);
+
+    // Attempt to establish a streaming connection which is not limited
+    ASSERT_NO_THROW(client1.addDevice("daq.ns://127.0.0.1"));
 }
 
 using NativeC2DStreamingTest = testing::Test;

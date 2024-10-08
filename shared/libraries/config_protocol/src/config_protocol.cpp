@@ -331,6 +331,26 @@ StringPtr PacketBuffer::parseNoReplyRpcRequest() const
     return jsonStr;
 }
 
+PacketBuffer PacketBuffer::createConnectionRejectedReply(uint64_t id, const char* json, size_t jsonSize)
+{
+    auto packetBuffer = PacketBuffer(PacketType::ConnectionRejected, id, json, jsonSize);
+    return packetBuffer;
+}
+
+StringPtr PacketBuffer::parseConnectionRejectedReply() const
+{
+    if (getPacketType() != PacketType::ConnectionRejected)
+        throw ConfigProtocolException("Invalid packet type");
+
+    const auto payloadSize = getPayloadSize();
+
+    if (payloadSize == 0)
+        throw ConfigProtocolException("Invalid payload");
+
+    auto jsonStr = String(static_cast<char*>(getPayload()), payloadSize);
+    return jsonStr;
+}
+
 ConfigProtocolException::ConfigProtocolException(const std::string& msg)
     : runtime_error(msg)
 {

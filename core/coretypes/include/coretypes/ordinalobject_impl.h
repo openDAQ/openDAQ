@@ -167,10 +167,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toBool(Bool* val)
     if (val == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    if (value)
-        *val = True;
-    else
-        *val = False;
+    *val = value;
 
     return OPENDAQ_SUCCESS;
 }

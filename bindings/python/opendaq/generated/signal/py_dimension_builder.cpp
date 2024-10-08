@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -44,6 +46,7 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
     cls.def("build",
         [](daq::IDimensionBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -51,11 +54,13 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
     cls.def_property("name",
         [](daq::IDimensionBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
         [](daq::IDimensionBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
@@ -63,11 +68,13 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
     cls.def_property("unit",
         [](daq::IDimensionBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             return objectPtr.getUnit().detach();
         },
         [](daq::IDimensionBuilder *object, daq::IUnit* unit)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             objectPtr.setUnit(unit);
         },
@@ -76,11 +83,13 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
     cls.def_property("rule",
         [](daq::IDimensionBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             return objectPtr.getRule().detach();
         },
         [](daq::IDimensionBuilder *object, daq::IDimensionRule* rule)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
             objectPtr.setRule(rule);
         },

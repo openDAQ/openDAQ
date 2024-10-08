@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -63,6 +65,7 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
     cls.def_property_readonly("type",
         [](daq::IDataRule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRulePtr::Borrow(object);
             return objectPtr.getType();
         },
@@ -70,6 +73,7 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
     cls.def_property_readonly("parameters",
         [](daq::IDataRule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataRulePtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },

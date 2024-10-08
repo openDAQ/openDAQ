@@ -49,7 +49,8 @@ enum PacketType: uint8_t
     Rpc = 0x82,
     ServerNotification = 0x83,
     InvalidRequest = 0x84,
-    NoReplyRpc = 0x85
+    NoReplyRpc = 0x85,
+    ConnectionRejected = 0x86
 };
 
 #pragma pack(push, 1)
@@ -130,6 +131,9 @@ public:
     static PacketBuffer createNoReplyRpcRequest(const char* json, size_t jsonSize);
     StringPtr parseNoReplyRpcRequest() const;
 
+    static PacketBuffer createConnectionRejectedReply(uint64_t id, const char* json, size_t jsonSize);
+    StringPtr parseConnectionRejectedReply() const;
+
 private:
     PacketHeader* buffer;
     bool captured;
@@ -158,6 +162,8 @@ inline auto format_as(PacketType type)
             return "InvalidRequest";
         case NoReplyRpc:
             return "NoReplyRpc";
+        case ConnectionRejected:
+            return "ConnectionRejected";
     }
     return "Unknown type";
 }

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -44,6 +46,7 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
     cls.def("build",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -51,11 +54,13 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
     cls.def_property("reference_domain_id",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             return objectPtr.getReferenceDomainId().toStdString();
         },
         [](daq::IReferenceDomainInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& referenceDomainId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             objectPtr.setReferenceDomainId(getVariantValue<daq::IString*>(referenceDomainId));
         },
@@ -63,11 +68,13 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
     cls.def_property("reference_domain_offset",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             return objectPtr.getReferenceDomainOffset().detach();
         },
         [](daq::IReferenceDomainInfoBuilder *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& referenceDomainOffset)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             objectPtr.setReferenceDomainOffset(getVariantValue<daq::IInteger*>(referenceDomainOffset));
         },
@@ -76,11 +83,13 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
     cls.def_property("reference_time_source",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             return objectPtr.getReferenceTimeSource();
         },
         [](daq::IReferenceDomainInfoBuilder *object, daq::TimeSource referenceTimeSource)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             objectPtr.setReferenceTimeSource(referenceTimeSource);
         },
@@ -88,11 +97,13 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
     cls.def_property("uses_offset",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             return objectPtr.getUsesOffset();
         },
         [](daq::IReferenceDomainInfoBuilder *object, daq::UsesOffset usesOffset)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
             objectPtr.setUsesOffset(usesOffset);
         },

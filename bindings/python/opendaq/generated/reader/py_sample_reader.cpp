@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -46,6 +48,7 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
     cls.def_property_readonly("value_read_type",
         [](daq::ISampleReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SampleReader::Borrow(object);
             return objectPtr.getValueReadType();
         },
@@ -53,6 +56,7 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
     cls.def_property_readonly("domain_read_type",
         [](daq::ISampleReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SampleReader::Borrow(object);
             return objectPtr.getDomainReadType();
         },
@@ -61,6 +65,7 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
         nullptr,
         [](daq::ISampleReader *object, daq::IFunction* transform)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SampleReader::Borrow(object);
             objectPtr.setValueTransformFunction(transform);
         },
@@ -69,6 +74,7 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
         nullptr,
         [](daq::ISampleReader *object, daq::IFunction* transform)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SampleReader::Borrow(object);
             objectPtr.setDomainTransformFunction(transform);
         },
@@ -76,6 +82,7 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
     cls.def_property_readonly("read_mode",
         [](daq::ISampleReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SampleReader::Borrow(object);
             return objectPtr.getReadMode();
         },

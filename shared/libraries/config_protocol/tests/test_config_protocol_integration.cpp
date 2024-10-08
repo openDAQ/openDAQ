@@ -7,13 +7,13 @@
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include "test_utils.h"
-#include "coreobjects/argument_info_factory.h"
-#include "coreobjects/callable_info_factory.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
+#include <opendaq/context_factory.h>
 #include <config_protocol/config_client_device_impl.h>
-
-#include "opendaq/packet_factory.h"
+#include <opendaq/packet_factory.h>
 #include <coreobjects/user_factory.h>
+#include <config_protocol/exceptions.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -600,4 +600,10 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
+{
+    ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);
+    ASSERT_THROW(clientDevice.getOnPropertyValueRead("location"), NativeClientCallNotAvailableException);
 }

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisuali
     cls.def("dump",
         [](daq::IGraphVisualization *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::GraphVisualizationPtr::Borrow(object);
             return objectPtr.dump().toStdString();
         },

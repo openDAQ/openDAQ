@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cl
     cls.def_property_readonly("list",
         [](daq::ITags *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPtr::Borrow(object);
             return objectPtr.getList().detach();
         },
@@ -51,6 +54,7 @@ void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cl
     cls.def("contains",
         [](daq::ITags *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPtr::Borrow(object);
             return objectPtr.contains(getVariantValue<daq::IString*>(name));
         },
@@ -59,6 +63,7 @@ void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cl
     cls.def("query",
         [](daq::ITags *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& query)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TagsPtr::Borrow(object);
             return objectPtr.query(getVariantValue<daq::IString*>(query));
         },

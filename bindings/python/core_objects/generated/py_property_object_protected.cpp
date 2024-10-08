@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropert
     cls.def("set_protected_property_value",
         [](daq::IPropertyObjectProtected *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
             objectPtr.setProtectedPropertyValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
         },
@@ -49,6 +52,7 @@ void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropert
     cls.def("clear_protected_property_value",
         [](daq::IPropertyObjectProtected *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
             objectPtr.clearProtectedPropertyValue(getVariantValue<daq::IString*>(propertyName));
         },

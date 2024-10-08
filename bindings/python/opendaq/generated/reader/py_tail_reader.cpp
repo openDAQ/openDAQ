@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_typed_reader.h"
 
@@ -47,6 +49,7 @@ void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISa
         "read",
         [](daq::ITailReader* object, size_t count, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderPtr::Borrow(object);
             return PyTypedReader::readValues(objectPtr, count, 0, returnStatus);
         },
@@ -57,6 +60,7 @@ void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISa
         "read_with_domain",
         [](daq::ITailReader* object, size_t count, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderPtr::Borrow(object);
             return PyTypedReader::readValuesWithDomain(objectPtr, count, 0, returnStatus);
         },
@@ -68,6 +72,7 @@ void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISa
         "history_size",
         [](daq::ITailReader* object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderPtr::Borrow(object);
             return objectPtr.getHistorySize();
         },

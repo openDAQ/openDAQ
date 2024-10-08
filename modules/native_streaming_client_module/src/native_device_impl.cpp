@@ -445,7 +445,6 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
     , deviceInfoSet(false)
 {
-    initStatuses(ctx);
 }
 
 NativeDeviceImpl::~NativeDeviceImpl()
@@ -456,20 +455,58 @@ NativeDeviceImpl::~NativeDeviceImpl()
     }
 }
 
-void NativeDeviceImpl::initStatuses(const ContextPtr& ctx)
+void NativeDeviceImpl::initStatuses()
 {
     if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
     {
         const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
                                                                                       "Reconnecting",
                                                                                       "Unrecoverable"));
-        ctx.getTypeManager().addType(statusType);
+        this->context.getTypeManager().addType(statusType);
     }
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
 }
 
 // INativeDevicePrivate
+void NativeDeviceImpl::publishConnectionStatus(ConstCharPtr statusValue)
+{
+    auto newStatusValue = this->statusContainer.getStatus("ConnectionStatus");
+    newStatusValue = statusValue;
+
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", newStatusValue);
+}
+
+void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)
+{
+    initStatuses();
+    attachDeviceHelper(deviceHelper);
+    updateDeviceInfo(connectionString);
+}
+
+ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
+                                      IBaseObject* context,
+                                      IFunction* factoryCallback,
+                                      IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+                  {
+                      *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
+                  });
+}
+
+void NativeDeviceImpl::removed()
+{
+    if (this->deviceHelper)
+    {
+        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
+        this->deviceHelper->closeConnectionOnRemoval();
+    }
+
+    Super::removed();
+}
 
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
@@ -511,38 +548,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 
     deviceInfo = newDeviceInfo;
     deviceInfoSet = true;
-}
-
-void NativeDeviceImpl::publishConnectionStatus(ConstCharPtr statusValue)
-{
-    auto newStatusValue = this->statusContainer.getStatus("ConnectionStatus");
-    newStatusValue = statusValue;
-
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", newStatusValue);
-}
-
-ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
-                                      IBaseObject* context,
-                                      IFunction* factoryCallback,
-                                      IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
-                  {
-                      *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
-                  });
-}
-
-void NativeDeviceImpl::removed()
-{
-    if (this->deviceHelper)
-    {
-        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
-        this->deviceHelper->closeConnectionOnRemoval();
-    }
-
-    Super::removed();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

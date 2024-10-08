@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
@@ -59,6 +62,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
@@ -67,6 +71,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, daq::IDeviceType* deviceType)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setDeviceType(deviceType);
         },
@@ -75,6 +80,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& manufacturer)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setManufacturer(getVariantValue<daq::IString*>(manufacturer));
         },
@@ -83,6 +89,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& manufacturerUri)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setManufacturerUri(getVariantValue<daq::IString*>(manufacturerUri));
         },
@@ -91,6 +98,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& model)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setModel(getVariantValue<daq::IString*>(model));
         },
@@ -99,6 +107,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& productCode)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setProductCode(getVariantValue<daq::IString*>(productCode));
         },
@@ -107,6 +116,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceRevision)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setDeviceRevision(getVariantValue<daq::IString*>(deviceRevision));
         },
@@ -115,6 +125,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& hardwareRevision)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setHardwareRevision(getVariantValue<daq::IString*>(hardwareRevision));
         },
@@ -123,6 +134,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& softwareRevision)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setSoftwareRevision(getVariantValue<daq::IString*>(softwareRevision));
         },
@@ -131,6 +143,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceManual)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setDeviceManual(getVariantValue<daq::IString*>(deviceManual));
         },
@@ -139,6 +152,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceClass)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setDeviceClass(getVariantValue<daq::IString*>(deviceClass));
         },
@@ -147,6 +161,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serialNumber)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setSerialNumber(getVariantValue<daq::IString*>(serialNumber));
         },
@@ -155,6 +170,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& productInstanceUri)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setProductInstanceUri(getVariantValue<daq::IString*>(productInstanceUri));
         },
@@ -163,6 +179,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, daq::Int revisionCounter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setRevisionCounter(revisionCounter);
         },
@@ -171,6 +188,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setAssetId(getVariantValue<daq::IString*>(id));
         },
@@ -179,6 +197,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& macAddress)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setMacAddress(getVariantValue<daq::IString*>(macAddress));
         },
@@ -187,6 +206,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& macAddress)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setParentMacAddress(getVariantValue<daq::IString*>(macAddress));
         },
@@ -195,6 +215,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& platform)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setPlatform(getVariantValue<daq::IString*>(platform));
         },
@@ -203,6 +224,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, daq::Int position)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setPosition(position);
         },
@@ -211,6 +233,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setSystemType(getVariantValue<daq::IString*>(type));
         },
@@ -219,6 +242,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& uuid)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setSystemUuid(getVariantValue<daq::IString*>(uuid));
         },
@@ -227,6 +251,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         nullptr,
         [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& location)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setLocation(getVariantValue<daq::IString*>(location));
         },

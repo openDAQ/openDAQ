@@ -57,7 +57,19 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
 /*!@}*/
 
 /*!
+ * @brief Creates an empty authentication provider without any user.
+ * @param allowAnonymous True if anonymous authentication is allowed.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+                                                            AuthenticationProvider,
+                                                            IAuthenticationProvider,
+                                                            createAuthenticationProvider,
+                                                            Bool,
+                                                            allowAnonymous)
+
+/*!
  * @brief Creates an authentication provider out of static list of users.
+ * @param allowAnonymous True if anonymous authentication is allowed.
  * @param userList List of User objects.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,

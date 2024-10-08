@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
     cls.def_property_readonly("sync_locked",
         [](daq::ISyncComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
             return objectPtr.getSyncLocked();
         },
@@ -53,11 +56,13 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
     cls.def_property("selected_source",
         [](daq::ISyncComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
             return objectPtr.getSelectedSource();
         },
         [](daq::ISyncComponent *object, daq::Int selectedSource)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
             objectPtr.setSelectedSource(selectedSource);
         },
@@ -65,6 +70,7 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
     cls.def_property_readonly("interfaces",
         [](daq::ISyncComponent *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPtr::Borrow(object);
             return objectPtr.getInterfaces().detach();
         },

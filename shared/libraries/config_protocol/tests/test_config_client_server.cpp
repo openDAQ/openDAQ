@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -61,6 +62,11 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     BaseObjectPtr notificationObj;
 
+    virtual PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const
+    {
+        return server->processRequestAndGetReply(requestPacket);
+    }
+
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket)
     {
@@ -70,7 +76,7 @@ protected:
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
-        auto replyPacket = server->processRequestAndGetReply(requestPacket);
+        auto replyPacket = getRequestReplyFromServer(requestPacket);
         return replyPacket;
     }
 
@@ -429,5 +435,30 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
     ASSERT_EQ(deviceName, "devName");
     client->getClientComm()->setAttributeValue("//root", "Description", "devDescription");
     ASSERT_EQ(deviceDescription, "devDescription");
+}
+
+class RejectConnectionTest : public ConfigProtocolTest
+{
+public:
+    RejectConnectionTest()
+        : ConfigProtocolTest()
+    {
+    }
+
+protected:
+    PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const override
+    {
+        return ConfigProtocolServer::generateConnectionRejectedReply(
+            requestPacket.getId(),
+            OPENDAQ_ERR_GENERALERROR,
+            "Test connection rejected",
+            JsonSerializer()
+        );
+    }
+};
+
+TEST_F(RejectConnectionTest, Connect)
+{
+    ASSERT_THROW_MSG(client->connect(), GeneralErrorException, "Test connection rejected");
 }
 

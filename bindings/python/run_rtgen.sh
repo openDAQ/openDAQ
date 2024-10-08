@@ -69,6 +69,12 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated component_type
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated user
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated authentication_provider
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_mask_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_manager
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions
 
 #
 # opendaq

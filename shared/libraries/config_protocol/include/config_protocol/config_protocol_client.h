@@ -115,9 +115,9 @@ private:
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createNoReplyRpcRequestPacketBuffer(const StringPtr& name, const ParamsDictPtr& params);
-    BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
-                                            const ComponentDeserializeContextPtr& context = nullptr,
-                                            bool isGetRootDeviceReply = false);
+    BaseObjectPtr parseRpcOrRejectReply(const StringPtr& jsonReply,
+                                        const ComponentDeserializeContextPtr& context = nullptr,
+                                        bool isGetRootDeviceReply = false);
     uint64_t generateId();
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
@@ -221,13 +221,16 @@ template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolVersion)
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
-    const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
+    const auto replyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1, 2};
+    if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
+        clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
+
+    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3};
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;
-    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
+    replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
     if (protocolVersion != std::numeric_limits<uint16_t>::max())
     {

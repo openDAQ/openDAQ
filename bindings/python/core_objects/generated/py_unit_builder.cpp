@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -44,6 +46,7 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     cls.def("build",
         [](daq::IUnitBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -51,11 +54,13 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     cls.def_property("id",
         [](daq::IUnitBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getId();
         },
         [](daq::IUnitBuilder *object, daq::Int id)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             objectPtr.setId(id);
         },
@@ -63,11 +68,13 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     cls.def_property("symbol",
         [](daq::IUnitBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getSymbol().toStdString();
         },
         [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& symbol)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             objectPtr.setSymbol(getVariantValue<daq::IString*>(symbol));
         },
@@ -75,11 +82,13 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     cls.def_property("name",
         [](daq::IUnitBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
         [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
@@ -87,11 +96,13 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     cls.def_property("quantity",
         [](daq::IUnitBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             return objectPtr.getQuantity().toStdString();
         },
         [](daq::IUnitBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& quantity)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
             objectPtr.setQuantity(getVariantValue<daq::IString*>(quantity));
         },

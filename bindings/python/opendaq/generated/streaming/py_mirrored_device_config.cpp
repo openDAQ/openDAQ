@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDe
     cls.def("add_streaming_source",
         [](daq::IMirroredDeviceConfig *object, daq::IStreaming* streamingSource)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredDeviceConfigPtr::Borrow(object);
             objectPtr.addStreamingSource(streamingSource);
         },
@@ -49,6 +52,7 @@ void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDe
     cls.def("remove_streaming_source",
         [](daq::IMirroredDeviceConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredDeviceConfigPtr::Borrow(object);
             objectPtr.removeStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },

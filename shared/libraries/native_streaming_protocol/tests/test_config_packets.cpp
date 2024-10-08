@@ -11,7 +11,7 @@ using namespace daq::config_protocol;
 class ConfigProtocolPacketGenerator
 {
 public:
-    static constexpr size_t PacketToGenerate = 8;
+    static constexpr size_t PacketToGenerate = 9;
     ConfigProtocolPacketGenerator()
         : packetIndex(0)
         {};
@@ -36,6 +36,8 @@ public:
                 return PacketBuffer::createInvalidRequestReply(packetIndex);
             case 7:
                 return PacketBuffer::createNoReplyRpcRequest(json.c_str(), json.length());
+            case 8:
+                return PacketBuffer::createConnectionRejectedReply(packetIndex, json.c_str(), json.length());
             default:
                 return PacketBuffer();
         }
@@ -151,13 +153,13 @@ public:
             {
                 this->configProtocolHandler->receivePacket(std::move(packetBuffer));
             };
-            clientConnectedPromise.set_value();
+            configProtocolTriggeredPromise.set_value();
             return std::make_pair(receivePacketCb, nullptr);
         };
 
         client.setUp();
-        clientConnectedPromise = std::promise< void > ();
-        clientConnectedFuture = clientConnectedPromise.get_future();
+        configProtocolTriggeredPromise = std::promise< void > ();
+        configProtocolTriggeredFuture = configProtocolTriggeredPromise.get_future();
     }
 
     void TearDown() override
@@ -196,10 +198,15 @@ public:
         serverHandler.reset();
     }
 
+    void triggerConfigProtocolSetUp()
+    {
+        client.clientHandler->sendConfigRequest(PacketBuffer::createGetProtocolInfoRequest(0));
+    }
+
 protected:
     std::shared_ptr<TestConfigProtocolInstance> configProtocolHandler;
-    std::promise< void > clientConnectedPromise;
-    std::future< void > clientConnectedFuture;
+    std::promise< void > configProtocolTriggeredPromise;
+    std::future< void > configProtocolTriggeredFuture;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 
     ConfigProtocolAttributes client;
@@ -210,7 +217,8 @@ TEST_P(ConfigPacketsTest, Reconnection)
     startServer();
 
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
-    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+    triggerConfigProtocolSetUp();
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
     stopServer();
 
@@ -220,14 +228,15 @@ TEST_P(ConfigPacketsTest, Reconnection)
     client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
     client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 
-    clientConnectedPromise = std::promise< void > ();
-    clientConnectedFuture = clientConnectedPromise.get_future();
+    configProtocolTriggeredPromise = std::promise< void > ();
+    configProtocolTriggeredFuture = configProtocolTriggeredPromise.get_future();
 
     startServer();
 
     ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
     ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Connected);
-    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+    triggerConfigProtocolSetUp();
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
     client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
     client.connectionStatusFuture = client.connectionStatusPromise.get_future();
@@ -238,7 +247,8 @@ TEST_P(ConfigPacketsTest, ServerToClientPackets)
     startServer();
 
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
-    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+    triggerConfigProtocolSetUp();
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
     for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
     {
@@ -265,7 +275,6 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
     startServer();
 
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
-    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
 
     for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
     {
@@ -273,6 +282,7 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
         client.configProtocolHandler->sendPacket(packet);
     }
 
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
     ASSERT_EQ(configProtocolHandler->future.wait_for(timeout), std::future_status::ready);
 
     auto packetsReceived = configProtocolHandler->receivedPackets.size();

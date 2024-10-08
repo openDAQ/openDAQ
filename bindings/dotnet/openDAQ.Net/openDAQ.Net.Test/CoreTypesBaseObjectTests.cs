@@ -39,6 +39,8 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
     [Test]
     public void CreateTest()
     {
+        var trackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
 
         Assert.Multiple(() =>
@@ -46,7 +48,9 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
             Assert.That(testObject, Is.Not.Null);
             Assert.That(testObject.IsDisposed, Is.False);
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
         });
 
         if (!testObject.IsDisposed) //not necessarily needed
@@ -55,18 +59,24 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(testObject.IsDisposed, Is.True);
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0));
         });
     }
 
     [Test]
     public void QueryInterfaceTest()
     {
+        var trackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
         Assert.Multiple(() =>
         {
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
         });
 
         BaseObject queriedObject = testObject.QueryInterface<BaseObject>();
@@ -74,28 +84,34 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(queriedObject, Is.Not.Null);
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
         });
 
         Assert.That(testObject.IsDisposed, Is.Not.True);
         testObject.Dispose();
 
-        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1)); //because QueryInterface() increments refCount
+        var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));  //because QueryInterface() increments refCount
 
         Assert.That(queriedObject.IsDisposed, Is.Not.True);
         queriedObject.Dispose();
 
-        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+        newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0));
     }
 
     [Test]
     public void BorrowInterfaceTest()
     {
+        var trackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
         Assert.Multiple(() =>
         {
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
         });
 
         //should just return the testObject since we don't "change" the type
@@ -105,18 +121,21 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
         {
             Assert.That(queriedObject, Is.Not.Null);
             Assert.That(queriedObject, Is.SameAs(testObject));
-            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
         });
 
         Assert.That(testObject.IsDisposed, Is.Not.True);
         testObject.Dispose(); //also disposes of queriedObject since both point to the same object
 
-        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0)); //because BorrowInterface() doesn't increment refCount
+        var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0)); //because BorrowInterface() doesn't increment refCount
 
         Assert.That(queriedObject.IsDisposed, Is.True);
         queriedObject.Dispose();
 
-        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+        newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
+        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0));
     }
 
     [Test]

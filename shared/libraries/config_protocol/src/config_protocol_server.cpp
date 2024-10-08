@@ -78,7 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions({0, 1, 2})
+    , supportedServerVersions({0, 1, 2, 3})
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -177,6 +177,19 @@ PacketBuffer ConfigProtocolServer::processRequestAndGetReply(void* mem)
     return processPacketAndGetReply(packetBuffer);
 }
 
+PacketBuffer ConfigProtocolServer::generateConnectionRejectedReply(uint64_t requestId,
+                                                                   ErrCode errCode,
+                                                                   const StringPtr& message,
+                                                                   const SerializerPtr& serializer)
+{
+    assert(OPENDAQ_FAILED(errCode));
+
+    const auto jsonReply = prepareErrorResponse(errCode, message, serializer);
+
+    auto reply = PacketBuffer::createConnectionRejectedReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
+    return reply;
+}
+
 void ConfigProtocolServer::processNoReplyRequest(const PacketBuffer& packetBuffer)
 {
     processNoReplyPacket(packetBuffer);
@@ -247,8 +260,6 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
             }
         case PacketType::Rpc:
             {
-                std::unique_ptr<char[]> json;
-
                 const auto jsonRequest = packetBuffer.parseRpcRequestOrReply();
                 const auto jsonReply = processRpcAndGetReply(jsonRequest);
 
@@ -293,17 +304,17 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
     }
     catch (const daq::DaqException& e)
     {
-        return prepareErrorResponse(e.getErrCode(), e.what());
+        return prepareErrorResponse(e.getErrCode(), e.what(), this->serializer);
     }
     catch (const std::exception& e)
     {
-        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what());
+        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
     }
 
-    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization");
+    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", this->serializer);
 }
 
-StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message)
+StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer)
 {
     auto errorObject = Dict<IString, IBaseObject>();
     errorObject.set("ErrorCode", errorCode);

@@ -167,6 +167,8 @@ void ScalingFbImpl::configure()
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
+
+        setInputStatus(InputConnected);
     }
     catch (const std::exception& e)
     {
@@ -174,8 +176,6 @@ void ScalingFbImpl::configure()
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
-
-    setInputStatus(InputConnected);
 }
 
 

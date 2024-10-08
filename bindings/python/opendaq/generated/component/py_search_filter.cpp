@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -62,6 +64,7 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
     cls.def("accepts_component",
         [](daq::ISearchFilter *object, daq::IComponent* component)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SearchFilterPtr::Borrow(object);
             return objectPtr.acceptsComponent(component);
         },
@@ -70,6 +73,7 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
     cls.def("visit_children",
         [](daq::ISearchFilter *object, daq::IComponent* component)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SearchFilterPtr::Borrow(object);
             return objectPtr.visitChildren(component);
         },

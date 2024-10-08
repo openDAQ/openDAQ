@@ -644,3 +644,12 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(availableDevicesClient[2].getConnectionString(), availableDevicesServer[2].getConnectionString());
     ASSERT_EQ(availableDevicesClient[2].getManufacturer(), availableDevicesServer[2].getManufacturer());
 }
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevice)
+{
+    DevicePtr dev;
+    ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    ASSERT_NE(dev, nullptr);
+    // TODO: ADDITIONAL CHECKS
+    // TODO: domain signals + function blocks + connect to input ports + check if same on both client/server
+}

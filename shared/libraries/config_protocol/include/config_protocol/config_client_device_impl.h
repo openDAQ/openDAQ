@@ -95,8 +95,6 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
     const ComponentHolderPtr fbHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddFunctionBlock", params, this->functionBlocks);
 
-    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
-
     FunctionBlockPtr fb = fbHolder.getComponent();
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
@@ -147,9 +145,25 @@ DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetA
 }
 
 template <class TDeviceBase>
-DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    throw NotImplementedException{};
+    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    auto params = Dict<IString, IBaseObject>({{"ConnectionString", connectionString}, {"Config", config}});
+    const ComponentHolderPtr devHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddDevice", params, this->devices);
+
+    DevicePtr dev = devHolder.getComponent();
+    if (!this->devices.hasItem(dev.getLocalId()))
+    {
+        this->clientComm->connectDomainSignals(dev); // TODO ???
+        this->devices.addItem(dev);
+        this->clientComm->connectInputPorts(dev); // TODO ???
+
+        return dev;
+    }
+    return this->devices.getItem(dev.getLocalId());
 }
 
 template <class TDeviceBase>

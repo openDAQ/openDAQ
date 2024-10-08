@@ -129,6 +129,17 @@ namespace daq::config_protocol::test_utils
             }
             return availableDevices;
         }
+
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
+        {
+            if (connectionString == "mock://test")
+            {
+                auto dev = createWithImplementation<IDevice, MockDevice1Impl>(this->context, this->devices, "newDevice");
+                return dev;
+            }
+            return nullptr;
+        }
+
     };
 
     class MockSrvImpl final : public Server

@@ -1052,7 +1052,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* con
 
         auto updatable = this->template borrowInterface<IUpdatable>();
 
-        deserializer.update(updatable, configuration, PropertyObjectPtr::Borrow(config));
+        deserializer.update(updatable, configuration, config);
 
         return OPENDAQ_SUCCESS;
     });

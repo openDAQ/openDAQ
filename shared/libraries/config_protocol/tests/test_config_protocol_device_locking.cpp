@@ -65,17 +65,14 @@ public:
 
     PropertyObjectPtr createAdvancedObject()
     {
-        const auto func = Function([](Int a, Int b) { return a + b; });
+        const auto countFunc = Function([this]() { return ++counter; });
 
-        const auto funcProp =
-            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
-                .setReadOnly(false)
-                .build();
+        const auto countFuncProp =
+            FunctionPropertyBuilder("CountProp", FunctionInfo(ctInt, List<IArgumentInfo>())).setReadOnly(false).build();
 
         auto advancedObject = PropertyObject();
-
-        advancedObject.addProperty(funcProp);
-        advancedObject.setPropertyValue("SumProp", func);
+        advancedObject.addProperty(countFuncProp);
+        advancedObject.setPropertyValue("CountProp", countFunc);
 
         advancedObject.addProperty(StringProperty("StringProp", "-"));
         advancedObject.setPropertyValue("StringProp", "Hello World!");
@@ -86,6 +83,7 @@ public:
 protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
+    size_t counter = 0;
 
 private:
     std::unique_ptr<ConfigProtocolServer> server;
@@ -198,12 +196,39 @@ TEST_F(ConfigProtocolDeviceLockingTest, SetProtectedPropertyValue)
 TEST_F(ConfigProtocolDeviceLockingTest, CallProperty)
 {
     auto device = createDevice();
+    SizeT counter = 0;
+
+    {
+        const auto func = Function([&counter]() { return ++counter; });
+
+        const auto funcProp = FunctionPropertyBuilder("CountProp", FunctionInfo(ctInt)).setReadOnly(false).build();
+
+        device.addProperty(funcProp);
+        device.setPropertyValue("CountProp", func);
+    }
+
+    setupServerAndClient(device, UserTomaz);
+
+    clientDevice.lock();
+
+    ASSERT_THROW(clientDevice.getPropertyValue("CountProp").call(), DeviceLockedException);
+
+    clientDevice.unlock();
+
+    ASSERT_EQ(counter, 0u);
+    auto result = clientDevice.getPropertyValue("CountProp").call();
+    ASSERT_EQ(result, 1u);
+}
+
+TEST_F(ConfigProtocolDeviceLockingTest, CallConstProperty)
+{
+    auto device = createDevice();
 
     {
         const auto func = Function([](Int a, Int b) { return a + b; });
 
         const auto funcProp =
-            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt)), true))
                 .setReadOnly(false)
                 .build();
 
@@ -215,12 +240,10 @@ TEST_F(ConfigProtocolDeviceLockingTest, CallProperty)
 
     clientDevice.lock();
 
-    ASSERT_THROW(clientDevice.getPropertyValue("SumProp").call(1, 2), DeviceLockedException);
-
-    clientDevice.unlock();
-
     auto result = clientDevice.getPropertyValue("SumProp").call(1, 2);
     ASSERT_EQ(result, 3);
+
+    clientDevice.unlock();
 }
 
 TEST_F(ConfigProtocolDeviceLockingTest, BeginEndUpdate)
@@ -437,10 +460,11 @@ TEST_F(ConfigProtocolDeviceLockingTest, NestedCallProperty)
 
     clientDevice.lock();
 
-    ASSERT_THROW(clientDevice.getPropertyValue("Advanced.SumProp").call(1, 2), DeviceLockedException);
+    ASSERT_THROW(clientDevice.getPropertyValue("Advanced.CountProp").call(), DeviceLockedException);
 
     clientDevice.unlock();
 
-    auto result = clientDevice.getPropertyValue("Advanced.SumProp").call(1, 2);
-    ASSERT_EQ(result, 3);
+    ASSERT_EQ(counter, 0u);
+    auto result = clientDevice.getPropertyValue("Advanced.CountProp").call();
+    ASSERT_EQ(result, 1u);
 }

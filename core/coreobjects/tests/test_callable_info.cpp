@@ -136,3 +136,33 @@ TEST_F(CallableInfoTest, SerializeDeserialize)
     const CallableInfoPtr functionInfo2 = deserializer.deserialize(jsonStr);
     ASSERT_EQ(functionInfo1, functionInfo2);
 }
+
+TEST_F(CallableInfoTest, Const)
+{
+    auto functionInfo = FunctionInfo(ctInt, nullptr, true);
+    ASSERT_TRUE(functionInfo.isConst());
+
+    functionInfo = FunctionInfo(ctInt, nullptr);
+    ASSERT_FALSE(functionInfo.isConst());
+
+    auto procInfo = ProcedureInfo(nullptr, true);
+    ASSERT_TRUE(procInfo.isConst());
+
+    procInfo = ProcedureInfo(nullptr);
+    ASSERT_FALSE(procInfo.isConst());
+}
+
+TEST_F(CallableInfoTest, ConstEquals)
+{
+    auto functionInfo1 = FunctionInfo(ctInt, nullptr, true);
+    auto functionInfo2 = FunctionInfo(ctInt, nullptr, false);
+
+    ASSERT_EQ(functionInfo1, functionInfo1);
+    ASSERT_NE(functionInfo1, functionInfo2);
+
+    auto procInfo1 = ProcedureInfo(nullptr, true);
+    auto procInfo2 = ProcedureInfo(nullptr, false);
+
+    ASSERT_EQ(procInfo1, procInfo1);
+    ASSERT_NE(procInfo1, procInfo2);
+}

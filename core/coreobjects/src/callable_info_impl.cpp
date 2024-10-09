@@ -2,8 +2,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coretypes/impl.h>
 #include <utility>
-
-#include "coretypes/validation.h"
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 namespace detail
@@ -11,12 +10,13 @@ namespace detail
     static const StructTypePtr callableInfoStructType = CallableInfoStructType();
 }
 
-CallableInfoImpl::CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType)
+CallableInfoImpl::CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType, Bool constFlag)
     : GenericStructImpl<daq::ICallableInfo, daq::IStruct>(
           detail::callableInfoStructType, Dict<IString, IBaseObject>({{"Arguments", arguments}, {"ReturnType", static_cast<Int>(returnType)}}))
 {
     this->returnType = this->fields.get("ReturnType");
     this->arguments = this->fields.get("Arguments");
+    this->constFlag = constFlag;
 }
 
 ErrCode CallableInfoImpl::getReturnType(CoreType* type)
@@ -41,6 +41,14 @@ ErrCode CallableInfoImpl::getArguments(IList** argumentInfo)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC CallableInfoImpl::isConst(Bool* constFlag)
+{
+    OPENDAQ_PARAM_NOT_NULL(constFlag);
+
+    *constFlag = this->constFlag;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
     return daqTry([this, &other, &equal]() {
@@ -59,6 +67,9 @@ ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
             return OPENDAQ_SUCCESS;
 
         if (arguments != callableInfo.getArguments())
+            return OPENDAQ_SUCCESS;
+
+        if (constFlag != callableInfo.isConst())
             return OPENDAQ_SUCCESS;
 
         *equal = true;
@@ -84,6 +95,9 @@ ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
 
                 serializerPtr.key("returnType");
                 serializerPtr.writeInt(static_cast<Int>(returnType));
+
+                serializerPtr.key("const");
+                serializerPtr.writeBool(static_cast<Bool>(constFlag));
             }
 
             serializerPtr.endObject();
@@ -121,7 +135,9 @@ ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
             const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
 
-            *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType).detach();
+            const auto isConst = static_cast<Bool>(serializedObj.readBool("const"));
+
+            *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType, isConst).detach();
         });
 }
 
@@ -131,7 +147,9 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IList*,
     argumentInfo,
     CoreType,
-    returnType
+    returnType,
+    Bool,
+    constFlag
     );
 
 END_NAMESPACE_OPENDAQ

@@ -27,10 +27,11 @@ BEGIN_NAMESPACE_OPENDAQ
 class CallableInfoImpl : public GenericStructImpl<ICallableInfo, IStruct>
 {
 public:
-    CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType);
+    CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType, Bool constFlag);
 
     ErrCode INTERFACE_FUNC getReturnType(CoreType* type) override;
     ErrCode INTERFACE_FUNC getArguments(IList** argumentInfo) override;
+    ErrCode INTERFACE_FUNC isConst(Bool* constFlag) override;
     
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -44,6 +45,7 @@ public:
 private:
     CoreType returnType{};
     ListPtr<IArgumentInfo> arguments;
+    Bool constFlag = false;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(CallableInfoImpl)

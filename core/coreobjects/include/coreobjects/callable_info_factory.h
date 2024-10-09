@@ -30,21 +30,25 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates a CallableInfo object that describes a function-type callable with the specified arguments and return type.
- * @param arguments The list of `IArgumentInfo` type argument information.
  * @param returnType The return type of the described function callable object.
+ * @param arguments The list of `IArgumentInfo` type argument information.
+ * @param isConst Flag indicating if the function is marked as const. A const function promises not to modify the state
+ * of the device or any other objects under the openDAQ instance.
  */
-inline CallableInfoPtr FunctionInfo(CoreType returnType, ListPtr<IArgumentInfo> arguments = nullptr)
+inline CallableInfoPtr FunctionInfo(CoreType returnType, ListPtr<IArgumentInfo> arguments = nullptr, Bool isConst = false)
 {
-    return CallableInfoPtr::Adopt(CallableInfo_Create(arguments, returnType));
+    return CallableInfoPtr::Adopt(CallableInfo_Create(arguments, returnType, isConst));
 }
 
 /*!
  * @brief Creates a CallableInfo object that describes a procedure-type callable with the specified arguments.
  * @param arguments The list of `IArgumentInfo` type argument information.
+ * @param isConst Flag indicating if the function is marked as const. A const function promises not to modify the state
+ * of the device or any other objects under the openDAQ instance.
  */
-inline CallableInfoPtr ProcedureInfo(ListPtr<IArgumentInfo> arguments = nullptr)
+inline CallableInfoPtr ProcedureInfo(ListPtr<IArgumentInfo> arguments = nullptr, Bool isConst = false)
 {
-    return FunctionInfo(CoreType::ctUndefined, std::move(arguments));
+    return FunctionInfo(CoreType::ctUndefined, std::move(arguments), isConst);
 }
 
 /*!

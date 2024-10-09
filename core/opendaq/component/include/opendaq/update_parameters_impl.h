@@ -27,8 +27,8 @@ public:
 
     UpdateParametersImpl();
 
-    ErrCode getReAddDevicesEnabled(Bool* enabled) override;
-    ErrCode setReAddDevicesEnabled(Bool enabled) override;
+    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) override;
 
 protected:
     template <typename T>

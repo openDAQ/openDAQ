@@ -647,6 +647,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 
 TEST_F(ConfigProtocolIntegrationTest, AddDevice)
 {
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger(); // TODO: test with and without
+
     ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
     ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
 

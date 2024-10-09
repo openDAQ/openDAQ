@@ -134,7 +134,20 @@ namespace daq::config_protocol::test_utils
         {
             if (connectionString == "mock://test")
             {
-                auto dev = createWithImplementation<IDevice, MockDevice1Impl>(this->context, this->devices, "newDevice");
+                auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
+
+                if (dev.getParent() != this->devices)
+                    throw InvalidParameterException("Invalid parent of device");
+
+                try
+                {
+                    this->devices.addItem(dev);
+                }
+                catch (DuplicateItemException&)
+                {
+                    throw DuplicateItemException("Device with the same local ID already exists.");
+                }
+
                 return dev;
             }
             return nullptr;

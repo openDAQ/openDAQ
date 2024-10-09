@@ -584,6 +584,55 @@ TEST_F(InstanceTest, SaveLoadReaddDevice)
     }
 }
 
+TEST_F(InstanceTest, SaveLoadReaddDevice2)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadReaddDevice3)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
 TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
 {
     StringPtr config;

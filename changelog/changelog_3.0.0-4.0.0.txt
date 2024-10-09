@@ -1,3 +1,14 @@
+08.10.2024
+Description:
+    - Add an option to mark functions and procedures as const
+    - Allow triggering of const function properties under locked device over native config protocol
+    - Native config protocol bumped to version 4
+
+Required integration changes:
+    - Breaks binary compatibility
+
++ [function] ICallableInfo::isConst(Bool* constFlag)
+
 4.10.2024
 Description:
     - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less

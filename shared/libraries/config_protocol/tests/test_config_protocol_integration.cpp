@@ -647,9 +647,21 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 
 TEST_F(ConfigProtocolIntegrationTest, AddDevice)
 {
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+
     DevicePtr dev;
     ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
     ASSERT_NE(dev, nullptr);
+
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
+    ASSERT_EQ(clientDevice.getDevices()[2].getGlobalId(), "/root_dev/Dev/newDevice");
+    ASSERT_EQ(clientDevice.getDevices()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(), "/root_dev/Dev/newDevice");
+
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
+    ASSERT_EQ(serverDevice.getDevices()[2].getGlobalId(), "/root_dev/Dev/newDevice");
+
+
     // TODO: ADDITIONAL CHECKS
     // TODO: domain signals + function blocks + connect to input ports + check if same on both client/server
 }

@@ -160,7 +160,16 @@ TEST_F(RegressionTestDevice, getDevices)
 
 TEST_F(RegressionTestDevice, getAvailableDevices)
 {
-    ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "Operation not supported by the protocol version currently in use");
+    if (protocol == "opcua" || protocol == "lt" || protocol == "ns")
+    {
+        ListPtr<IDeviceInfo> infos;
+        ASSERT_NO_THROW(infos = device.getAvailableDevices());
+        ASSERT_EQ(infos.getCount(), 0);
+    }
+    else if (protocol == "nd")
+    {
+        ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "Operation not supported by the protocol version currently in use");
+    }
 }
 
 TEST_F(RegressionTestDevice, getAvailableDeviceTypes)

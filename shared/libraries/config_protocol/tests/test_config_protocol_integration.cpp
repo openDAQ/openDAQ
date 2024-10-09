@@ -645,10 +645,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(availableDevicesClient[2].getManufacturer(), availableDevicesServer[2].getManufacturer());
 }
 
-TEST_F(ConfigProtocolIntegrationTest, AddDevice)
+void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
 {
-    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger(); // TODO: test with and without
-
     ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
     ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
 
@@ -663,7 +661,17 @@ TEST_F(ConfigProtocolIntegrationTest, AddDevice)
     ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
     ASSERT_EQ(serverDevice.getDevices()[2].getGlobalId(), "/root_dev/Dev/newDevice");
 
-
     // TODO: ADDITIONAL CHECKS
     // TODO: domain signals + function blocks + connect to input ports + check if same on both client/server
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    addDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceCoreEventTrigger)
+{
+    addDeviceTest(clientDevice, serverDevice);
 }

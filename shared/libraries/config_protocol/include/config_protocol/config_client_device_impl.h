@@ -50,12 +50,15 @@ public:
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     uint64_t onGetTicksSinceOrigin() override;
-
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
+
+    ErrCode INTERFACE_FUNC lock(IUser* user) override;
+    ErrCode INTERFACE_FUNC unlock(IUser* user) override;
+    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -156,6 +159,36 @@ template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
     return PropertyObject();
+}
+
+template <class TDeviceBase>
+ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
+{
+    if (user != nullptr)
+    {
+        DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
+    }
+
+    return daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
+{
+    if (user != nullptr)
+    {
+        DAQLOGF_I(this->loggerComponent, "The specified user was ignored when unlocking a remote device. A session user was used instead.");
+    }
+
+    return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::isLocked(Bool* locked)
+{
+    OPENDAQ_PARAM_NOT_NULL(locked);
+
+    return daqTry([this, &locked] { *locked = this->clientComm->isLocked(this->remoteGlobalId); });
 }
 
 template <class TDeviceBase>

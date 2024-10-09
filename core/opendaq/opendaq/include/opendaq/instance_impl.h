@@ -21,6 +21,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/function_block_ptr.h>
+#include <opendaq/device_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -77,6 +78,9 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC lock() override;
+    ErrCode INTERFACE_FUNC unlock() override;
+    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;

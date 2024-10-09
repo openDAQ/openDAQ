@@ -27,6 +27,10 @@ public:
     static void protectObject(const PropertyObjectPtr& component, const UserPtr& user, Permission requiredPermission);
     static void protectObject(const PropertyObjectPtr& component, const UserPtr& user, const std::vector<Permission>& requiredPermissions);
     static PropertyObjectPtr getFirstPropertyParent(const ComponentPtr& component, const StringPtr& propertyName);
+    static void protectLockedComponent(const ComponentPtr& component);
+
+private:
+    static DevicePtr getParentDevice(const ComponentPtr& component);
 };
 
 
@@ -65,6 +69,29 @@ inline PropertyObjectPtr daq::config_protocol::ConfigServerAccessControl::getFir
 
     auto parentObject = component.getPropertyValue(parentObjectName);
     return parentObject.asPtr<IPropertyObject>();
+}
+
+inline void ConfigServerAccessControl::protectLockedComponent(const ComponentPtr& component)
+{
+    const auto device = getParentDevice(component);
+
+    if (device.assigned() && device.isLocked())
+        throw DeviceLockedException();
+}
+
+inline DevicePtr ConfigServerAccessControl::getParentDevice(const ComponentPtr& component)
+{
+    ComponentPtr current = component;
+
+    while (current.assigned())
+    {
+        if (current.asPtrOrNull<IDevice>().assigned())
+            return current;
+
+        current = current.getParent();
+    }
+
+    return nullptr;
 }
 
 };

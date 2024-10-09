@@ -4,12 +4,12 @@ Description
 
 Required integration changes:
     - Breaks binary compatibility
-    - For function blocks that contain nested function blocks, developers should override the method 
-    `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process. 
-    Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()` 
+    - For function blocks that contain nested function blocks, developers should override the method
+    `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process.
+    Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()`
     and `void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)`.
-    
-    Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`) 
+
+    Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`)
     or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
 IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
@@ -39,6 +39,17 @@ Required integration changes:
 
 -m[function] IDevice::loadConfiguration(IString* configuration)
 +m[function] IDevice::loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr)
+
+08.10.2024
+Description:
+    - Add an option to mark functions and procedures as const
+    - Allow triggering of const function properties under locked device over native config protocol
+    - Native config protocol bumped to version 4
+
+Required integration changes:
+    - Breaks binary compatibility
+
++ [function] ICallableInfo::isConst(Bool* constFlag)
 
 4.10.2024
 Description:

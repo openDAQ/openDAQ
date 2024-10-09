@@ -106,13 +106,12 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
                                                          const ComponentPtr& component,
                                                          const ParamsDictPtr& params)
 {
-    ConfigServerAccessControl::protectLockedComponent(component);
-
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     BaseObjectPtr callParams;
     if (params.hasKey("Params"))
         callParams = params.get("Params");
 
+    const auto prop = component.getProperty(propertyName);
     const auto propValue = component.getPropertyValue(propertyName);
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
 
@@ -120,11 +119,17 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
 
     const auto propValueCoreType = propValue.getCoreType();
 
-    if (propValueCoreType == CoreType::ctProc)
+    switch (propValueCoreType)
     {
-        propValue.dispatch(callParams);
-        return nullptr;
+        case CoreType::ctProc:
+        case CoreType::ctFunc:
+            break;
+        default:
+            throw InvalidPropertyException("Property not callable");
     }
+
+    if (!prop.getCallableInfo().isConst())
+        ConfigServerAccessControl::protectLockedComponent(component);
 
     if (propValueCoreType == CoreType::ctFunc)
     {
@@ -133,7 +138,8 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
         return result;
     }
 
-    throw InvalidPropertyException("Property not callable");
+    propValue.dispatch(callParams);
+    return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& context,

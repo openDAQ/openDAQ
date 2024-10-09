@@ -729,6 +729,11 @@ To determine the parameter count and types, as well as the return type, the Call
 field must be configured. Callable info contains a list of argument types that need to
 be passed as arguments when invoking the callable object. If the Property is a Function,
 the Callable info field also contains the type of the variable returned by the function.
+Additionally, the Callable Info object contains a `const` qualifier. If the function or procedure
+is marked as `const`, it promises that it won't modify the state of the device or any properties
+under the openDAQ instance. For example, the `SumFunction` in the code below is marked as
+`const`, as it simply calculates the sum of two numbers without altering the state of a device.
+By default, functions and procedures are *not* marked as `const`.
 
 IMPORTANT: Function and Procedure type Properties are currently not accessible through the
 OPC UA layer. Thus, they will not appear on connected-to devices.
@@ -740,7 +745,7 @@ Function and Procedure type Properties can't have a default value.
 ----
 auto propObj = PropertyObject();
 
-auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt));
+auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt), true);
 propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments)));
 
 auto func = Function([](IntegerPtr val1, IntegerPtr val2)

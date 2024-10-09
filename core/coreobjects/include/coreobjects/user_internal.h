@@ -36,7 +36,7 @@ DECLARE_OPENDAQ_INTERFACE(IUserInternal, IBaseObject)
     /*!
      * @brief Returns true if user is anonymous. Anonymous user is any user without defined username and passowrd.
      *
-     * @param passwordHash[out] Returns true if user is anonymous.
+     * @param anonymous[out] Returns true if user is anonymous.
      */
     virtual ErrCode INTERFACE_FUNC isAnonymous(Bool* anonymous) = 0;
 };

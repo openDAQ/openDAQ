@@ -57,9 +57,7 @@ public:
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
-    ErrCode INTERFACE_FUNC lockInternal(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
-    ErrCode INTERFACE_FUNC unlockInternal(IUser* user) override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -166,12 +164,6 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 template <class TDeviceBase>
 ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
 {
-    return lockInternal(user);
-}
-
-template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lockInternal(IUser* user)
-{
     if (user != nullptr)
     {
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
@@ -182,12 +174,6 @@ inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lockIn
 
 template <class TDeviceBase>
 ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
-{
-    return unlockInternal(user);
-}
-
-template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlockInternal(IUser* user)
 {
     if (user != nullptr)
     {

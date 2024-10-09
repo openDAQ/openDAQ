@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("scheduler",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getScheduler().detach();
         },
@@ -54,6 +57,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("logger",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getLogger().detach();
         },
@@ -62,6 +66,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("module_manager",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getModuleManager());
         },
@@ -70,6 +75,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("type_manager",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getTypeManager().detach();
         },
@@ -78,6 +84,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("authentication_provider",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getAuthenticationProvider().detach();
         },
@@ -87,6 +94,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("on_core_event",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getOnCoreEvent().detach();
         },
@@ -96,6 +104,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("options",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getOptions().detach();
         },
@@ -104,6 +113,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def("get_module_options",
         [](daq::IContext *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& moduleId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getModuleOptions(getVariantValue<daq::IString*>(moduleId)).detach();
         },
@@ -112,6 +122,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
     cls.def_property_readonly("discovery_servers",
         [](daq::IContext *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
             return objectPtr.getDiscoveryServers().detach();
         },

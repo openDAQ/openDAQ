@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -46,6 +48,7 @@ void defineIPacket(pybind11::module_ m, PyDaqIntf<daq::IPacket, daq::IBaseObject
     cls.def_property_readonly("type",
         [](daq::IPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PacketPtr::Borrow(object);
             return objectPtr.getType();
         },
@@ -53,6 +56,7 @@ void defineIPacket(pybind11::module_ m, PyDaqIntf<daq::IPacket, daq::IBaseObject
     cls.def("subscribe_for_destruct_notification",
         [](daq::IPacket *object, daq::IPacketDestructCallback* packetDestructCallback)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PacketPtr::Borrow(object);
             objectPtr.subscribeForDestructNotification(packetDestructCallback);
         },
@@ -61,6 +65,7 @@ void defineIPacket(pybind11::module_ m, PyDaqIntf<daq::IPacket, daq::IBaseObject
     cls.def_property_readonly("ref_count",
         [](daq::IPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PacketPtr::Borrow(object);
             return objectPtr.getRefCount();
         },

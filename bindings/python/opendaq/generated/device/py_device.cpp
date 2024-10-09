@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("info",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getInfo().detach();
         },
@@ -49,6 +52,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("domain",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getDomain().detach();
         },
@@ -57,6 +61,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("inputs_outputs_folder",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getInputsOutputsFolder().detach();
         },
@@ -65,6 +70,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("custom_components",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getCustomComponents().detach();
         },
@@ -73,6 +79,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("signals",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getSignals().detach();
         },
@@ -81,6 +88,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_signals",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getSignals(searchFilter).detach();
         },
@@ -89,6 +97,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("signals_recursive",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getSignalsRecursive().detach();
         },
@@ -97,6 +106,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_signals_recursive",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getSignalsRecursive(searchFilter).detach();
         },
@@ -105,6 +115,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("channels",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getChannels().detach();
         },
@@ -113,6 +124,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_channels",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getChannels(searchFilter).detach();
         },
@@ -121,6 +133,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("channels_recursive",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getChannelsRecursive().detach();
         },
@@ -129,6 +142,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_channels_recursive",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getChannelsRecursive(searchFilter).detach();
         },
@@ -137,6 +151,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("devices",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getDevices().detach();
         },
@@ -145,6 +160,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_devices",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getDevices(searchFilter).detach();
         },
@@ -153,6 +169,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("available_devices",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getAvailableDevices().detach();
         },
@@ -161,6 +178,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("available_device_types",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getAvailableDeviceTypes().detach();
         },
@@ -169,6 +187,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("add_device",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.addDevice(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
@@ -177,6 +196,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("remove_device",
         [](daq::IDevice *object, daq::IDevice* device)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.removeDevice(device);
         },
@@ -185,6 +205,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("function_blocks",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getFunctionBlocks().detach();
         },
@@ -193,6 +214,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("get_function_blocks",
         [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getFunctionBlocks(searchFilter).detach();
         },
@@ -201,6 +223,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("available_function_block_types",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getAvailableFunctionBlockTypes().detach();
         },
@@ -209,6 +232,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("add_function_block",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.addFunctionBlock(getVariantValue<daq::IString*>(typeId), config).detach();
         },
@@ -217,6 +241,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("remove_function_block",
         [](daq::IDevice *object, daq::IFunctionBlock* functionBlock)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.removeFunctionBlock(functionBlock);
         },
@@ -225,6 +250,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("save_configuration",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.saveConfiguration().toStdString();
         },
@@ -232,6 +258,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("load_configuration",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration, daq::IUpdateParameters* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration), config);
         },
@@ -240,6 +267,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("ticks_since_origin",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getTicksSinceOrigin();
         },
@@ -247,6 +275,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("add_streaming",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.addStreaming(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
@@ -255,6 +284,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("create_default_add_device_config",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.createDefaultAddDeviceConfig().detach();
         },
@@ -262,6 +292,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("sync_component",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getSyncComponent().detach();
         },
@@ -270,6 +301,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("add_server",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.addServer(getVariantValue<daq::IString*>(typeId), config).detach();
         },
@@ -278,6 +310,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("remove_server",
         [](daq::IDevice *object, daq::IServer* server)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.removeServer(server);
         },
@@ -286,6 +319,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("servers",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.getServers().detach();
         },

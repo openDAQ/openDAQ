@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
     cls.def_property_readonly("parent_name",
         [](daq::IPropertyObjectClass *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
             return objectPtr.getParentName().toStdString();
         },
@@ -50,6 +53,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
     cls.def("get_property",
         [](daq::IPropertyObjectClass *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
             return objectPtr.getProperty(getVariantValue<daq::IString*>(propertyName)).detach();
         },
@@ -58,6 +62,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
     cls.def("has_property",
         [](daq::IPropertyObjectClass *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
             return objectPtr.hasProperty(getVariantValue<daq::IString*>(propertyName));
         },
@@ -66,6 +71,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
     cls.def("get_properties",
         [](daq::IPropertyObjectClass *object, const bool includeInherited)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectClassPtr::Borrow(object);
             return objectPtr.getProperties(includeInherited).detach();
         },

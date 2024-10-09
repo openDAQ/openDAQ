@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIUser(pybind11::module_ m, PyDaqIntf<daq::IUser, daq::IBaseObject> cl
     cls.def_property_readonly("username",
         [](daq::IUser *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UserPtr::Borrow(object);
             return objectPtr.getUsername().toStdString();
         },
@@ -53,6 +56,7 @@ void defineIUser(pybind11::module_ m, PyDaqIntf<daq::IUser, daq::IBaseObject> cl
     cls.def_property_readonly("groups",
         [](daq::IUser *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UserPtr::Borrow(object);
             return objectPtr.getGroups().detach();
         },

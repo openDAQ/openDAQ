@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineICoercer(pybind11::module_ m, PyDaqIntf<daq::ICoercer, daq::IBaseObje
     cls.def("coerce",
         [](daq::ICoercer *object, const py::object& propObj, const py::object& value)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CoercerPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.coerce(pyObjectToBaseObject(propObj), pyObjectToBaseObject(value)));
         },
@@ -54,6 +57,7 @@ void defineICoercer(pybind11::module_ m, PyDaqIntf<daq::ICoercer, daq::IBaseObje
     cls.def_property_readonly("eval",
         [](daq::ICoercer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CoercerPtr::Borrow(object);
             return objectPtr.getEval().toStdString();
         },

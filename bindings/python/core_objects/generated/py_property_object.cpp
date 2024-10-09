@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -47,6 +49,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("class_name",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getClassName().toStdString();
         },
@@ -54,6 +57,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("set_property_value",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.setPropertyValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
         },
@@ -62,6 +66,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("get_property_value",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getPropertyValue(getVariantValue<daq::IString*>(propertyName)));
         },
@@ -70,6 +75,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("get_property_selection_value",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getPropertySelectionValue(getVariantValue<daq::IString*>(propertyName)));
         },
@@ -78,6 +84,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("clear_property_value",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.clearPropertyValue(getVariantValue<daq::IString*>(propertyName));
         },
@@ -86,6 +93,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("has_property",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.hasProperty(getVariantValue<daq::IString*>(propertyName));
         },
@@ -94,6 +102,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("get_property",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getProperty(getVariantValue<daq::IString*>(propertyName)).detach();
         },
@@ -102,6 +111,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("add_property",
         [](daq::IPropertyObject *object, daq::IProperty* property)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.addProperty(property);
         },
@@ -110,6 +120,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("remove_property",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.removeProperty(getVariantValue<daq::IString*>(propertyName));
         },
@@ -119,6 +130,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("get_on_property_value_write",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getOnPropertyValueWrite(getVariantValue<daq::IString*>(propertyName)).detach();
         },
@@ -129,6 +141,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("get_on_property_value_read",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getOnPropertyValueRead(getVariantValue<daq::IString*>(propertyName)).detach();
         },
@@ -138,6 +151,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("visible_properties",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getVisibleProperties().detach();
         },
@@ -146,6 +160,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("all_properties",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getAllProperties().detach();
         },
@@ -155,6 +170,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         nullptr,
         [](daq::IPropertyObject *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& orderedPropertyNames)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.setPropertyOrder(getVariantValue<daq::IList*>(orderedPropertyNames));
         },
@@ -162,6 +178,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("begin_update",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.beginUpdate();
         },
@@ -169,6 +186,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def("end_update",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             objectPtr.endUpdate();
         },
@@ -176,6 +194,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("updating",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getUpdating();
         },
@@ -184,6 +203,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("on_end_update",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getOnEndUpdate().detach();
         },
@@ -193,6 +213,7 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
     cls.def_property_readonly("permission_manager",
         [](daq::IPropertyObject *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
             return objectPtr.getPermissionManager().detach();
         },

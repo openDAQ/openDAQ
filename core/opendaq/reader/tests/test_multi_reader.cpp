@@ -4384,3 +4384,30 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
     ASSERT_EQ(state, 6);
 }
+
+TEST_F(MultiReaderTest, ExpectSR)
+{
+    const auto ctx = NullContext();
+
+    auto valueDesc = DataDescriptorBuilder().setSampleType(SampleType::Int32).build();
+    auto timeDesc = DataDescriptorBuilder()
+                        .setSampleType(SampleType::Int64)
+                        .setRule(LinearDataRule(0, 10))
+                        .setTickResolution(Ratio(1, 1000))
+                        .setUnit(Unit("s", -1, "second", "time"))
+                        .build();
+
+    const auto valueSignal = SignalWithDescriptor(ctx, valueDesc, nullptr, "value");
+    const auto timeSignal = SignalWithDescriptor(ctx, timeDesc, nullptr, "time");
+    valueSignal.setDomainSignal(timeSignal);
+
+    const auto reader = MultiReaderBuilder().addSignal(valueSignal).setDomainReadType(SampleType::Int64).setValueReadType(SampleType::Int32).setRequiredCommonSampleRate(10).build();
+
+    size_t count = 0;
+    auto status = reader.read(nullptr, &count, 0);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = 0;
+    status = reader.read(nullptr, &count, 0);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Fail);
+}

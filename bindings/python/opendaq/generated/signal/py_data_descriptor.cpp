@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("name",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
@@ -50,6 +53,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("dimensions",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getDimensions().detach();
         },
@@ -58,6 +62,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("sample_type",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getSampleType();
         },
@@ -65,6 +70,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("unit",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getUnit().detach();
         },
@@ -73,6 +79,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("value_range",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getValueRange().detach();
         },
@@ -81,6 +88,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("rule",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getRule().detach();
         },
@@ -89,6 +97,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("origin",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getOrigin().toStdString();
         },
@@ -96,6 +105,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("tick_resolution",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getTickResolution().detach();
         },
@@ -104,6 +114,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("post_scaling",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getPostScaling().detach();
         },
@@ -112,6 +123,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("struct_fields",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getStructFields().detach();
         },
@@ -120,6 +132,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("metadata",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getMetadata().detach();
         },
@@ -128,6 +141,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("sample_size",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getSampleSize();
         },
@@ -135,6 +149,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("raw_sample_size",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getRawSampleSize();
         },
@@ -142,6 +157,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
     cls.def_property_readonly("reference_domain_info",
         [](daq::IDataDescriptor *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
             return objectPtr.getReferenceDomainInfo().detach();
         },

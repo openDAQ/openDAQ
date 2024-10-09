@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
     cls.def_property_readonly("name",
         [](daq::IArgumentInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ArgumentInfoPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
@@ -53,6 +56,7 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
     cls.def_property_readonly("type",
         [](daq::IArgumentInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ArgumentInfoPtr::Borrow(object);
             return objectPtr.getType();
         },

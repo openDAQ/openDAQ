@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
@@ -42,6 +44,7 @@ void defineIOwnable(pybind11::module_ m, PyDaqIntf<daq::IOwnable, daq::IBaseObje
         nullptr,
         [](daq::IOwnable *object, daq::IPropertyObject* owner)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::OwnablePtr::Borrow(object);
             objectPtr.setOwner(owner);
         },

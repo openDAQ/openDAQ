@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
     cls.def_property_readonly("id",
         [](daq::IComponentType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.getId().toStdString();
         },
@@ -48,6 +51,7 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
     cls.def_property_readonly("name",
         [](daq::IComponentType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
@@ -55,6 +59,7 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
     cls.def_property_readonly("description",
         [](daq::IComponentType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
@@ -62,6 +67,7 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
     cls.def("create_default_config",
         [](daq::IComponentType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.createDefaultConfig().detach();
         },

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIRange(pybind11::module_ m, PyDaqIntf<daq::IRange, daq::IBaseObject> 
     cls.def_property_readonly("low_value",
         [](daq::IRange *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::RangePtr::Borrow(object);
             return objectPtr.getLowValue().detach();
         },
@@ -54,6 +57,7 @@ void defineIRange(pybind11::module_ m, PyDaqIntf<daq::IRange, daq::IBaseObject> 
     cls.def_property_readonly("high_value",
         [](daq::IRange *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::RangePtr::Borrow(object);
             return objectPtr.getHighValue().detach();
         },

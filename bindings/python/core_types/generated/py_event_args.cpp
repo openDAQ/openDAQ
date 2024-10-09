@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 
@@ -42,6 +44,7 @@ void defineIEventArgs(pybind11::module_ m, PyDaqIntf<daq::IEventArgs, daq::IBase
     cls.def_property_readonly("event_id",
         [](daq::IEventArgs *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::EventArgsPtr<>::Borrow(object);
             return objectPtr.getEventId();
         },
@@ -49,6 +52,7 @@ void defineIEventArgs(pybind11::module_ m, PyDaqIntf<daq::IEventArgs, daq::IBase
     cls.def_property_readonly("event_name",
         [](daq::IEventArgs *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::EventArgsPtr<>::Borrow(object);
             return objectPtr.getEventName().toStdString();
         },

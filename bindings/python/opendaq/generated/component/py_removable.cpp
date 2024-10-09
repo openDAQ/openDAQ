@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIRemovable(pybind11::module_ m, PyDaqIntf<daq::IRemovable, daq::IBase
     cls.def("remove",
         [](daq::IRemovable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::RemovablePtr::Borrow(object);
             objectPtr.remove();
         },
@@ -48,6 +51,7 @@ void defineIRemovable(pybind11::module_ m, PyDaqIntf<daq::IRemovable, daq::IBase
     cls.def_property_readonly("removed",
         [](daq::IRemovable *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::RemovablePtr::Borrow(object);
             return objectPtr.isRemoved();
         },

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -44,6 +46,7 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def("build",
         [](daq::IScalingBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -51,11 +54,13 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def_property("input_data_type",
         [](daq::IScalingBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.getInputDataType();
         },
         [](daq::IScalingBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setInputDataType(type);
         },
@@ -63,11 +68,13 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def_property("output_data_type",
         [](daq::IScalingBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.getOutputDataType();
         },
         [](daq::IScalingBuilder *object, daq::ScaledSampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setOutputDataType(type);
         },
@@ -75,11 +82,13 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def_property("scaling_type",
         [](daq::IScalingBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.getScalingType();
         },
         [](daq::IScalingBuilder *object, daq::ScalingType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setScalingType(type);
         },
@@ -87,11 +96,13 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def_property("parameters",
         [](daq::IScalingBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             return objectPtr.getParameters().detach();
         },
         [](daq::IScalingBuilder *object, std::variant<daq::IDict*, py::dict>& parameters)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setParameters(getVariantValue<daq::IDict*>(parameters));
         },
@@ -100,6 +111,7 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def("add_parameter",
         [](daq::IScalingBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const py::object& parameter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.addParameter(getVariantValue<daq::IString*>(name), pyObjectToBaseObject(parameter));
         },
@@ -108,6 +120,7 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     cls.def("remove_parameter",
         [](daq::IScalingBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.removeParameter(getVariantValue<daq::IString*>(name));
         },

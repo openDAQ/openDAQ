@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -53,6 +55,7 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
     cls.def_property_readonly("reference_domain_id",
         [](daq::IReferenceDomainInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
             return objectPtr.getReferenceDomainId().toStdString();
         },
@@ -60,6 +63,7 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
     cls.def_property_readonly("reference_domain_offset",
         [](daq::IReferenceDomainInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
             return objectPtr.getReferenceDomainOffset().detach();
         },
@@ -68,6 +72,7 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
     cls.def_property_readonly("reference_time_source",
         [](daq::IReferenceDomainInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
             return objectPtr.getReferenceTimeSource();
         },
@@ -75,6 +80,7 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
     cls.def_property_readonly("uses_offset",
         [](daq::IReferenceDomainInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
             return objectPtr.getUsesOffset();
         },

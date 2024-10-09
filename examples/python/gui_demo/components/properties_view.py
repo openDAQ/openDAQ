@@ -62,9 +62,7 @@ class PropertiesView(tk.Frame):
             else:
                 return value
 
-        properties_info = node.visible_properties
-        sorted_properties_info = self.properties_sort(properties_info)
-        for property_info in sorted_properties_info:
+        for property_info in node.visible_properties:
             iid = property_info.name if parent_iid is None else parent_iid + "." + property_info.name
             self.nodes_by_iids[iid] = node
 
@@ -93,19 +91,6 @@ class PropertiesView(tk.Frame):
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fillStruct(
                     iid, node.get_property_value(property_info.name))
-
-    def properties_sort(self, list):
-        def compare_strings(item1, item2):
-            if (item2.name > item1.name):
-                return -1
-            elif (item2.name < item1.name):
-                return 1
-            else:
-                return 0
-
-        new_list = [item for item in list]
-        sorted_list = sorted(new_list, key=cmp_to_key(compare_strings))
-        return sorted_list
 
     def handle_copy(self):
         selected_item = treeview_get_first_selection(self.tree)

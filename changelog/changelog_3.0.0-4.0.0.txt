@@ -51,6 +51,9 @@ Required integration changes:
 
 + [function] ICallableInfo::isConst(Bool* constFlag)
 
+-m[factory] CallableInfo_Create(IList* arguments, CoreType returnType)
++m[factory] CallableInfo_Create(IList* arguments, CoreType returnType, Bool constFlag)
+
 4.10.2024
 Description:
     - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less

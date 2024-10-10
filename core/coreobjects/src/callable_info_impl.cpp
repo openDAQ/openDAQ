@@ -12,11 +12,13 @@ namespace detail
 
 CallableInfoImpl::CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType returnType, Bool constFlag)
     : GenericStructImpl<daq::ICallableInfo, daq::IStruct>(
-          detail::callableInfoStructType, Dict<IString, IBaseObject>({{"Arguments", arguments}, {"ReturnType", static_cast<Int>(returnType)}}))
+          detail::callableInfoStructType,
+          Dict<IString, IBaseObject>(
+              {{"Arguments", arguments}, {"ReturnType", static_cast<Int>(returnType)}, {"Const", constFlag}}))
 {
     this->returnType = this->fields.get("ReturnType");
     this->arguments = this->fields.get("Arguments");
-    this->constFlag = constFlag;
+    this->constFlag = this->fields.get("Const");
 }
 
 ErrCode CallableInfoImpl::getReturnType(CoreType* type)

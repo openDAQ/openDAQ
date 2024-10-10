@@ -19,6 +19,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/tags_factory.h>
 #include <coretypes/validation.h>
+#include <opendaq/module_manager_utils_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,6 +43,9 @@ public:
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
+
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -90,6 +94,21 @@ ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
         });
 }
 
+template <typename... Interfaces>
+void ChannelImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
+{
+    if (obj.hasKey("IP"))
+    {
+        const auto ipFolder = obj.readSerializedObject("IP");
+        this->updateFolder(ipFolder,
+                     "Folder",                    
+                     "InputPort",
+                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                     { updateInputPort(localId, obj, context); });
+    }
+
+    return Super::Super::updateObject(obj, context);
+}
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Channel)
 
 END_NAMESPACE_OPENDAQ

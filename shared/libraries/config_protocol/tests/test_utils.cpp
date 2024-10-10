@@ -188,6 +188,12 @@ MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     addNestedFunctionBlock(childFb);
 }
 
+DictPtr<IString, IFunctionBlockType> MockFb2Impl::onGetAvailableFunctionBlockTypes()
+{
+    auto fbTypes = Dict<IString, IFunctionBlockType>({{"childFb", FunctionBlockType("childFb", "ChildFb", "Child FB1", nullptr)}});
+    return fbTypes;
+}
+
 MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Channel(FunctionBlockType("Ch", "", ""), ctx, parent, localId, "MockClass")
 {

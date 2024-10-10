@@ -22,6 +22,14 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
     createTestConfigProperties(config);
 }
 
+DictPtr<IString, IFunctionBlockType> MockFunctionBlockImpl::onGetAvailableFunctionBlockTypes()
+{
+    auto fbTypes = Dict<IString, IFunctionBlockType>({
+        {"NestedFBId", FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc")}
+    });
+    return fbTypes;
+}
+
 void MockFunctionBlockImpl::createFunctionBlocks()
 {
     auto childFB = MockNestedFunctionBlock(
@@ -37,7 +45,8 @@ void MockFunctionBlockImpl::createInputPorts()
 
 void MockFunctionBlockImpl::createSignals()
 {
-    auto createDescriptor = [](std::string name) {
+    auto createDescriptor = [](std::string name) 
+    {
 
         return DataDescriptorBuilder()
             .setSampleType(SampleType::Float32)

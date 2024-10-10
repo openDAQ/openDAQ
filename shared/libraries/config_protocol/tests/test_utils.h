@@ -36,6 +36,7 @@ namespace daq::config_protocol::test_utils
     {
     public:
         MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+        DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     };
 
     class MockChannel1Impl final : public Channel

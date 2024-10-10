@@ -464,7 +464,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
 template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    throw NotSupportedException("Function block does not support adding nested function blocks");
 }
 
 template <typename TInterface, typename... Interfaces>

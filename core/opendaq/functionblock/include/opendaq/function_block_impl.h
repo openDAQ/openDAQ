@@ -81,6 +81,10 @@ public:
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
 
+    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
+    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -275,6 +279,27 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
                      { updateInputPort(localId, obj, context); });
     }
 
+    if (obj.hasKey("FB"))
+    {
+        const auto fbFolder = obj.readSerializedObject("FB");
+        fbFolder.checkObjectType("Folder");
+        auto serializedItems = this->getSerializedItems(fbFolder);
+
+        if (!serializedItems.empty())
+        {
+            auto availableFbs = onGetAvailableFunctionBlockTypes();
+            for (const auto& [id, serializedItem] : serializedItems)
+            {
+                serializedItem.checkObjectType("FunctionBlock");
+                const auto typeId = serializedItem.readString("typeId");
+                if (!availableFbs.hasKey(typeId))
+                {
+                    throw NotSupportedException("Function block type not supported");
+                }
+            }
+        }
+    }
+
     return Super::updateObject(obj, context);
 }
 
@@ -405,23 +430,41 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockT
 {
     if (functionBlockTypes == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    *functionBlockTypes = Dict<IString, IFunctionBlockType>().detach();
-    return OPENDAQ_SUCCESS;
+
+    DictPtr<IString, IFunctionBlockType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
+
+    *functionBlockTypes = dict.detach();
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* /*config*/)
+DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
+{
+    return Dict<IString, IFunctionBlockType>().detach();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
     if (functionBlock == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     if (typeId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    return this->makeErrorInfo(
-        OPENDAQ_ERR_NOTFOUND,
-        ("Function block with given uid and config is not available [" + StringPtr::Borrow(typeId).toStdString() + "]")
-    );
+
+    FunctionBlockPtr functionBlockPtr;
+    const auto typeIdPtr = StringPtr::Borrow(typeId);
+    const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
+
+    *functionBlock = functionBlockPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotImplementedException();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -432,9 +475,18 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 
     if (!this->functionBlocks.hasItem(functionBlock))
         return OPENDAQ_ERR_NOTFOUND;
-    
+
+    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    std::lock_guard lock(this->sync);
     this->functionBlocks.removeItem(functionBlock);
-    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

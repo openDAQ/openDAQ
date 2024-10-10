@@ -33,7 +33,8 @@ public:
                     ReadMode mode,
                     ReadTimeoutType timeoutType,
                     Int requiredCommonSampleRate = -1,
-                    Bool startOnFullUnitOfDomain = false);
+                    Bool startOnFullUnitOfDomain = false,
+                    SizeT minReadCount = 1);
 
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,
@@ -97,6 +98,7 @@ private:
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
+    bool hasEventOrGapInQueue();
 
     SyncStatus getSyncStatus() const;
 
@@ -106,8 +108,9 @@ private:
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);
 
     [[nodiscard]] Duration durationFromStart() const;
-
     void readSamples(SizeT samples);
+
+    void readSamplesAndSetRemainingSamples(SizeT samples);
 
     void readDomainStart();
     void sync();
@@ -154,6 +157,8 @@ private:
     ContextPtr context;
     struct ReferenceDomainBin;
     bool isActive{true};
+
+    SizeT minReadCount;
 };
 
 END_NAMESPACE_OPENDAQ

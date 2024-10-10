@@ -190,7 +190,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
     Int, requiredCommonSampleRate,
-    Bool, startOnFullUnitOfDomain
+    Bool, startOnFullUnitOfDomain,
+    SizeT, minReadCount
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

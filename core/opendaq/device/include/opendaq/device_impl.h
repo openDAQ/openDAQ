@@ -289,7 +289,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
@@ -305,7 +305,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObjec
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 {
-    std::scoped_lock syncLock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     ErrCode status = OPENDAQ_SUCCESS;
 
@@ -340,7 +340,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 {
-    std::scoped_lock syncLock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     ErrCode status = unlockInternal(user);
 
@@ -617,7 +617,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
@@ -647,7 +647,7 @@ template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& typeId,
                                                                               const PropertyObjectPtr& config)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         return nullptr;
 
@@ -837,7 +837,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
 {
     OPENDAQ_PARAM_NOT_NULL(locked);
 
-    std::scoped_lock syncLock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     *locked = this->userLock.has_value();
     return OPENDAQ_SUCCESS;
 }
@@ -904,7 +904,7 @@ ListPtr<IDeviceInfo> GenericDevice<TInterface, Interfaces...>::onGetAvailableDev
     if (!allowAddDevicesFromModules())
         return List<IDeviceInfo>();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDevices();
 }
@@ -930,7 +930,7 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
 }
@@ -958,7 +958,7 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
     if (!allowAddDevicesFromModules())
         return nullptr;
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto device = managerUtils.createDevice(connectionString, devices, config);
@@ -996,7 +996,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     ServerPtr server = managerUtils.createServer(typeId, this->template thisPtr<DevicePtr>(), config);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     if (!this->isRootDevice)
         throw NotFoundException("Device does not allow adding/removing servers.");
     this->servers.addItem(server);
@@ -1007,7 +1007,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& server)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (!this->isRootDevice)
         throw NotFoundException("Device does not allow adding/removing servers.");

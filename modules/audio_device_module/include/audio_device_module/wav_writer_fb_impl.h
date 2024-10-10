@@ -50,7 +50,6 @@ private:
 
     void fileNameChanged();
     void storingChanged(bool store);
-    void storingChangedNoLock(bool store);
     void startStore();
     void stopStore();
     void stopStoreInternal();

@@ -136,7 +136,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
 {
     OPENDAQ_PARAM_NOT_NULL(items);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (searchFilter)
     {
@@ -172,7 +172,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItem(IString* localId, IComponent** item)
     OPENDAQ_PARAM_NOT_NULL(localId);
     OPENDAQ_PARAM_NOT_NULL(item);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
@@ -197,7 +197,7 @@ ErrCode FolderImpl<Intf, Intfs...>::hasItem(IString* localId, Bool* value)
 {
     OPENDAQ_PARAM_NOT_NULL(localId);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     const auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
@@ -214,7 +214,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     OPENDAQ_PARAM_NOT_NULL(item);
 
     {
-        std::scoped_lock lock(this->sync);
+        auto lock = this->getRecursiveConfigLock();
 
         const ErrCode err = daqTry(
             [this, &item]
@@ -251,7 +251,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
     const auto str = ComponentPtr::Borrow(item).getLocalId().toStdString();
 
     {
-        std::scoped_lock lock(this->sync);
+        auto lock = this->getRecursiveConfigLock();
 
         const ErrCode err = daqTry(
             [this, &str]
@@ -286,7 +286,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
     const auto str = StringPtr::Borrow(localId).toStdString();
 
     {
-        std::scoped_lock lock(this->sync);
+        auto lock = this->getRecursiveConfigLock();
 
         const ErrCode err = daqTry(
             [this, &str]
@@ -316,7 +316,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::clear()
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     clearInternal();
 
     return OPENDAQ_SUCCESS;

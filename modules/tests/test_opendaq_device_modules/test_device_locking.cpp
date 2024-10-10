@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "test_helpers/test_helpers.h"
 #include <opendaq/instance_factory.h>
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/user_factory.h>
@@ -8,7 +8,7 @@
 
 using namespace daq;
 
-class TestDeviceLocking : public testing::Test
+class DeviceLockingTest : public testing::Test
 {
 public:
     const UserPtr UserTomaz = User("tomaz", "tomaz");
@@ -57,7 +57,7 @@ public:
 };
 
 
-TEST_F(TestDeviceLocking, LockSingleClientDevice)
+TEST_F(DeviceLockingTest, LockSingleClientDevice)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -74,7 +74,7 @@ TEST_F(TestDeviceLocking, LockSingleClientDevice)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockBottomUp)
+TEST_F(DeviceLockingTest, LockBottomUp)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -95,7 +95,7 @@ TEST_F(TestDeviceLocking, LockBottomUp)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockTopDown)
+TEST_F(DeviceLockingTest, LockTopDown)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -116,7 +116,7 @@ TEST_F(TestDeviceLocking, LockTopDown)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(TestDeviceLocking, UnlockBottomUp)
+TEST_F(DeviceLockingTest, UnlockBottomUp)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -139,7 +139,7 @@ TEST_F(TestDeviceLocking, UnlockBottomUp)
     ASSERT_FALSE(devices[3].isLocked());
 }
 
-TEST_F(TestDeviceLocking, UnlockTopDown)
+TEST_F(DeviceLockingTest, UnlockTopDown)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -162,7 +162,7 @@ TEST_F(TestDeviceLocking, UnlockTopDown)
     ASSERT_FALSE(devices[3].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockUnlockRoot)
+TEST_F(DeviceLockingTest, LockUnlockRoot)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -190,7 +190,7 @@ TEST_F(TestDeviceLocking, LockUnlockRoot)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockUnlockRootWithUser)
+TEST_F(DeviceLockingTest, LockUnlockRootWithUser)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -219,7 +219,7 @@ TEST_F(TestDeviceLocking, LockUnlockRootWithUser)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, AlreadyLockedSameUser)
+TEST_F(DeviceLockingTest, AlreadyLockedSameUser)
 {
     auto serverInstance = createServerInstance();
     serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserTomaz);
@@ -242,7 +242,7 @@ TEST_F(TestDeviceLocking, AlreadyLockedSameUser)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, AlreadyLockedDifferentUser)
+TEST_F(DeviceLockingTest, AlreadyLockedDifferentUser)
 {
     auto serverInstance = createServerInstance();
     serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
@@ -261,7 +261,7 @@ TEST_F(TestDeviceLocking, AlreadyLockedDifferentUser)
     ASSERT_THROW(clientInstance.unlock(), AccessDeniedException);
 }
 
-TEST_F(TestDeviceLocking, LockUnlockSpecific)
+TEST_F(DeviceLockingTest, LockUnlockSpecific)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -289,7 +289,7 @@ TEST_F(TestDeviceLocking, LockUnlockSpecific)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, UnlockUnlocked)
+TEST_F(DeviceLockingTest, UnlockUnlocked)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -313,7 +313,7 @@ TEST_F(TestDeviceLocking, UnlockUnlocked)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockRevert)
+TEST_F(DeviceLockingTest, LockRevert)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -337,7 +337,7 @@ TEST_F(TestDeviceLocking, LockRevert)
     ASSERT_TRUE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, UnlockRevert)
+TEST_F(DeviceLockingTest, UnlockRevert)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -361,7 +361,7 @@ TEST_F(TestDeviceLocking, UnlockRevert)
     ASSERT_TRUE(devices[2].isLocked());
 }
 
-TEST_F(TestDeviceLocking, LockedWithAnonymousUser)
+TEST_F(DeviceLockingTest, LockedWithAnonymousUser)
 {
     const auto anonymousUser = User("", "");
 

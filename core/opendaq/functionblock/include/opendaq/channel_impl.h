@@ -104,7 +104,7 @@ void ChannelImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, co
                      "Folder",                    
                      "InputPort",
                      [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj, context); });
+                     { Super::updateInputPort(localId, obj, context); });
     }
 
     return Super::Super::updateObject(obj, context);

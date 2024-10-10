@@ -328,6 +328,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("lock",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.lock();
         },
@@ -335,6 +336,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("unlock",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.unlock();
         },
@@ -342,6 +344,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("locked",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.isLocked();
         },

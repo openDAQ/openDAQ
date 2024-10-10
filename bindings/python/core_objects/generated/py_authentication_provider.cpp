@@ -71,4 +71,12 @@ void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenti
             return objectPtr.isAnonymousAllowed();
         },
         "Returns true if anonymous authentication is allowed. When anonymous authentication is enabled, user can connect to the server without providing username or password.");
+    cls.def("authenticate_anonymous",
+        [](daq::IAuthenticationProvider *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AuthenticationProviderPtr::Borrow(object);
+            return objectPtr.authenticateAnonymous().detach();
+        },
+        "Authenticate as anonymous user. If anonymous authentication is not allowed, an exception is thrown.");
 }

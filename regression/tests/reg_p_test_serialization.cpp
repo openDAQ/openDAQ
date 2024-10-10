@@ -57,7 +57,7 @@ TEST_F(RegressionTestSerialization, deserializeCallInfo)
     list.pushBack(1);
     list.pushBack(2);
     list.pushBack(3);
-    CallableInfoPtr expectedDefault = CallableInfo_Create(list, CoreType::ctInt);
+    CallableInfoPtr expectedDefault = CallableInfo_Create(list, CoreType::ctInt, false);
     CallableInfoPtr defaultVal = prop.getDefaultValue();
     ASSERT_EQ(expectedDefault, defaultVal);
 
@@ -69,7 +69,7 @@ TEST_F(RegressionTestSerialization, deserializeCallInfo)
     newList.pushBack(4);
     newList.pushBack(2);
     newList.pushBack(6);
-    CallableInfoPtr newVal = CallableInfo_Create(newList, CoreType::ctInt);
+    CallableInfoPtr newVal = CallableInfo_Create(newList, CoreType::ctInt, false);
     device.setPropertyValue("TestCallInfoProp", newVal);
     ASSERT_EQ(newVal, device.getPropertyValue("TestCallInfoProp"));
 }

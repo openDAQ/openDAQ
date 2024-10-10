@@ -45,12 +45,20 @@ DECLARE_OPENDAQ_INTERFACE(ICallableInfo, IBaseObject)
      * @param[out] type The return type of the callable.
      */
     virtual ErrCode INTERFACE_FUNC getReturnType(CoreType* type) = 0;
+
     // [elementType(argumentInfo, IArgumentInfo)]
     /*!
      * @brief Gets the list of arguments the callable function/procedure expects.
      * @param[out] argumentInfo the list of arguments of type `ArgumentInfo`.
      */
     virtual ErrCode INTERFACE_FUNC getArguments(IList** argumentInfo) = 0;
+
+    /*!
+     * @brief A flag indicating if function is marked as const. A const function promises not to modify the state
+     * of the device or any other objects under the openDAQ instance.
+     * @param[out] constFlag a flag indicating if the function is marked as const or not.
+     */
+    virtual ErrCode INTERFACE_FUNC isConst(Bool* constFlag) = 0;
 };
 
 /*!@}*/
@@ -64,11 +72,14 @@ DECLARE_OPENDAQ_INTERFACE(ICallableInfo, IBaseObject)
  * @brief Creates a CallableInfo object with the specified arguments and return type.
  * @param argumentInfo The list of `ArgumentInfo` type argument information.
  * @param returnType The return type of the described callable object.
+ * @param constFlag A flag indicating if the function is marked as const or not. A const function promises not to modify the state
+ * of the device or any other objects under the openDAQ instance.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, CallableInfo,
     IList*, argumentInfo,
-    CoreType, returnType
+    CoreType, returnType,
+    Bool, constFlag
 );
 
 /*!@}*/

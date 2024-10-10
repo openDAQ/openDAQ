@@ -136,17 +136,9 @@ namespace daq::config_protocol::test_utils
             {
                 auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
 
-                if (dev.getParent() != this->devices)
-                    throw InvalidParameterException("Invalid parent of device");
+                dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
 
-                try
-                {
-                    this->devices.addItem(dev);
-                }
-                catch (DuplicateItemException&)
-                {
-                    throw DuplicateItemException("Device with the same local ID already exists.");
-                }
+                this->devices.addItem(dev);
 
                 return dev;
             }

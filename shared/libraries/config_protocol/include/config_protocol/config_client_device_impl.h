@@ -157,9 +157,9 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
     DevicePtr dev = devHolder.getComponent();
     if (!this->devices.hasItem(dev.getLocalId()))
     {
-        this->clientComm->connectDomainSignals(dev); // TODO ???
+        this->clientComm->connectDomainSignals(dev);
         this->devices.addItem(dev);
-        this->clientComm->connectInputPorts(dev); // TODO ???
+        this->clientComm->connectInputPorts(dev);
 
         return dev;
     }
@@ -349,7 +349,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     {
         this->clientComm->connectDomainSignals(comp);
         this->addExistingComponent(comp);
-        this->clientComm->connectInputPorts(comp); // TODO: check if this is needed
+        this->clientComm->connectInputPorts(comp);
     }
 }
 

@@ -185,6 +185,7 @@ void ConfigClientBaseFolderImpl<Impl>::componentAdded(const CoreEventArgsPtr& ar
     {
         this->clientComm->connectDomainSignals(comp);
         checkErrorInfo(Impl::addItem(comp));
+        this->clientComm->connectInputPorts(comp);
     }
 }
 

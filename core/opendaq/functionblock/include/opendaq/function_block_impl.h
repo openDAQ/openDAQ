@@ -473,9 +473,6 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
     if (functionBlock == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    if (!this->functionBlocks.hasItem(functionBlock))
-        return OPENDAQ_ERR_NOTFOUND;
-
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
 

@@ -235,7 +235,15 @@ private:
             if (triggerModeChangeFoundAt != triggerModeChangesBeforePackets.end())
             {
                 // Change trigger mode if appropriate
-                fb.setPropertyValue("TriggerMode", newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesBeforePackets.begin()]);
+                bool enableTrigger = newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesBeforePackets.begin()];
+                if (enableTrigger && fb.getFunctionBlocks().getCount() == 0)
+                {
+                    fb.addFunctionBlock("RefFBModuleTrigger");
+                }
+                else if (!enableTrigger && fb.getFunctionBlocks().getCount() > 0)
+                {
+                    fb.removeFunctionBlock(fb.getFunctionBlocks()[0]);
+                }
             }
 
             // Create and send data packet for trigger
@@ -248,16 +256,8 @@ private:
                 for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
                     *triggerPacketData++ = static_cast<TT>(mockTriggerPackets[i][ii]);
 
-                // Find nested trigger function block
-                const auto& fbs = fb.getFunctionBlocks();
-                FunctionBlockPtr triggerFb = nullptr;
-                for (const auto& nfb : fbs)
-                {
-                    if (nfb.getLocalId() == "nfbt")
-                    {
-                        triggerFb = nfb;
-                    }
-                }
+                ASSERT_EQ(fb.getFunctionBlocks().getCount(), 1);
+                FunctionBlockPtr triggerFb = fb.getFunctionBlocks()[0];
 
                 // Nested trigger connect signal
                 triggerFb.getInputPorts()[0].connect(triggerSignal);

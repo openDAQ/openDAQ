@@ -117,7 +117,7 @@ bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, D
 
 void PowerReaderFbImpl::onDataReceived()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     SizeT cnt = reader.getAvailableCount();
     const auto voltageData = std::make_unique<double[]>(cnt);

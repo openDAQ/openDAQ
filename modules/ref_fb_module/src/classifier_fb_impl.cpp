@@ -259,7 +259,7 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     while (!linearReader.getEmpty())
     {
         size_t blocksToRead = 1;

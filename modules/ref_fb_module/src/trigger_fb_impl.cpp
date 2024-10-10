@@ -97,7 +97,7 @@ void TriggerFbImpl::configure()
 
 void TriggerFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

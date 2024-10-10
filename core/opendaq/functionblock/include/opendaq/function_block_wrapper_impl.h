@@ -121,7 +121,7 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
         std::unordered_map<std::string, TSmartPtr>& objects,
         TInterface* object)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     return wrapHandler(
         [this, &propertyName, &objects, &object]()

@@ -55,7 +55,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
 RefDeviceImpl::~RefDeviceImpl()
 {
     {
-        std::scoped_lock<std::mutex> lock(sync);
+        auto lock = this->getAcquisitionLock();
         stopAcq = true;
     }
     cv.notify_one();

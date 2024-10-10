@@ -209,15 +209,20 @@ protected:
 
     // Using vector to preserve write order when the same property is changed twice within an update
     using UpdatingActions = std::vector<std::pair<std::string, UpdatingAction>>;
-
+    
     // Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
     // that is called during a property value read/write event to prevent deadlocks. The lock behaves
     // similarly to a recursive mutex.
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
+
+    // Gets a lock to be used in the data acquisition loop, or in other performance-critical parts of
+    // a module implementation. The lock is not recursive in comparison to the config lock and should
+    // be used with caution to prevent deadlocks.
+    std::lock_guard<std::mutex> getAcquisitionLock();
+
+    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
+    // be used instead of locking this mutex directly unless a different type of lock is needed.
     std::mutex sync;
-    object_utils::NullMutex nullSync;
-    std::thread::id externalCallThreadId{};
-    int externalCallDepth = 0;
 
     bool frozen;
     WeakRefPtr<IPropertyObject> owner;
@@ -305,6 +310,10 @@ private:
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
     ProcedurePtr triggerCoreEvent;
+    
+    object_utils::NullMutex nullSync;
+    std::thread::id externalCallThreadId{};
+    int externalCallDepth = 0;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
@@ -583,25 +592,24 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
     }
 
     auto args = PropertyValueEventArgs(prop, readValue, PropertyEventType::Read, False);
-    
 
-        if (!localProperties.count(prop.getName()))
+    if (!localProperties.count(prop.getName()))
+    {
+        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueRead()};
+        if (propEvent.hasListeners())
         {
-            const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueRead()};
-            if (propEvent.hasListeners())
-            {
-                propEvent(objPtr, args);
-            }
+            propEvent(objPtr, args);
         }
+    }
 
-        const auto name = prop.getName();
-        if (valueReadEvents.find(name) != valueReadEvents.end())
+    const auto name = prop.getName();
+    if (valueReadEvents.find(name) != valueReadEvents.end())
+    {
+        if (valueReadEvents[name].hasListeners())
         {
-            if (valueReadEvents[name].hasListeners())
-            {
-                valueReadEvents[name](objPtr, args);
-            }
+            valueReadEvents[name](objPtr, args);
         }
+    }
 
     return args.getValue();
 }
@@ -1505,6 +1513,12 @@ std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInter
         return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(&nullSync, &externalCallThreadId, &externalCallDepth);
 
     return std::make_unique<GenericRecursiveConfigLockGuard<std::mutex>>(&sync, &externalCallThreadId, &externalCallDepth);
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+std::lock_guard<std::mutex> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAcquisitionLock()
+{
+    return std::lock_guard(sync);
 }
 
 template <class PropObjInterface, class... Interfaces>

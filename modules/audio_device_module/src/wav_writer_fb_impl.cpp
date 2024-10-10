@@ -181,7 +181,7 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void WAVWriterFbImpl::calculate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     SizeT availableData = reader.getAvailableCount();
 
     std::vector<float> inputData;

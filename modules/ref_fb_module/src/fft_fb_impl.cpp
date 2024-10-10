@@ -190,7 +190,7 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void FFTFbImpl::calculate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     while (!linearReader.getEmpty())
     {

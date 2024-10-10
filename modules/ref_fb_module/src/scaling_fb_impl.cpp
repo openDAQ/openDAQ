@@ -182,8 +182,8 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     auto outQueue = List<IPacket>();
     auto outDomainQueue = List<IPacket>();
-
-    std::scoped_lock lock(sync);
+    
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

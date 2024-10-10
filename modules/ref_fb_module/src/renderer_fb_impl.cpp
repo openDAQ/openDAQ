@@ -133,13 +133,11 @@ void RendererFbImpl::initProperties()
 
 void RendererFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
 }
 
 void RendererFbImpl::resolutionChanged()
 {
-    std::scoped_lock lock(sync);
     readResolutionProperty();
     resChanged = true;
 }

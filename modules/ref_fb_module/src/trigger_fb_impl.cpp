@@ -35,7 +35,6 @@ void TriggerFbImpl::initProperties()
 
 void TriggerFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
 }
 

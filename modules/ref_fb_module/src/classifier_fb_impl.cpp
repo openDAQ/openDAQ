@@ -78,7 +78,6 @@ void ClassifierFbImpl::initProperties()
 
 void ClassifierFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();

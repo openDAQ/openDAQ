@@ -73,7 +73,7 @@ void PowerReaderFbImpl::initProperties()
 
 void PowerReaderFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     readProperties();
     if (configure)
         this->configure(nullptr, nullptr, nullptr);

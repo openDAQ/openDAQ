@@ -467,7 +467,7 @@ void RefChannelImpl::createSignals()
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
-    const auto lock = getLock();
+    const auto lock = getRecursiveConfigLock();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);
     signalTypeChanged();
 }

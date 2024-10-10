@@ -57,28 +57,46 @@ struct PropertyNameInfo
     Int index{};
 };
 
-class ConfigLockGuard : public std::enable_shared_from_this<ConfigLockGuard>
+namespace object_utils
+{
+    struct NullMutex
+    {
+         void lock() {}
+         void unlock() noexcept {}
+         bool try_lock() { return true; }
+    };
+}
+
+class RecursiveConfigLockGuard: public std::enable_shared_from_this<RecursiveConfigLockGuard>
 {
 public:
-    ConfigLockGuard(const std::scoped_lock<std::mutex>& lock, std::thread::id& threadId, int& depth)
-        : id(std::make_shared<std::thread::id>(threadId))
-        , depth(std::make_shared<int>(depth))
-        , lock(lock)
+    virtual ~RecursiveConfigLockGuard() = default;
+};
+
+template <typename TMutex>
+class GenericRecursiveConfigLockGuard : public RecursiveConfigLockGuard
+{
+public:
+    GenericRecursiveConfigLockGuard(TMutex* lock, std::thread::id* threadId, int* depth)
+        : id(threadId)
+        , depth(depth)
+        , lock(std::lock_guard(*lock))
     {
         *id = std::this_thread::get_id();
         ++(*this->depth);
     }
 
-    ~ConfigLockGuard()
+    ~GenericRecursiveConfigLockGuard() override
     {
         --(*depth);
         if (*depth == 0)
             *id = std::thread::id();
     }
-    
-    std::shared_ptr<std::thread::id> id;
-    std::shared_ptr<int> depth;
-    const std::scoped_lock<std::mutex>& lock;
+
+private:
+    std::thread::id* id;
+    int* depth;
+    std::lock_guard<TMutex> lock;
 };
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -192,11 +210,14 @@ protected:
     // Using vector to preserve write order when the same property is changed twice within an update
     using UpdatingActions = std::vector<std::pair<std::string, UpdatingAction>>;
 
+    // Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
+    // that is called during a property value read/write event to prevent deadlocks. The lock behaves
+    // similarly to a recursive mutex.
+    std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
     std::mutex sync;
+    object_utils::NullMutex nullSync;
     std::thread::id externalCallThreadId{};
     int externalCallDepth = 0;
-
-    std::unique_ptr<ConfigLockGuard> getLock();
 
     bool frozen;
     WeakRefPtr<IPropertyObject> owner;
@@ -286,6 +307,8 @@ private:
     ProcedurePtr triggerCoreEvent;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+
+    void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true);
@@ -518,49 +541,35 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
 
     auto args = PropertyValueEventArgs(prop, newValue, changeType, isUpdating);
 
-    externalCallThreadId = std::this_thread::get_id();
-    ++externalCallDepth;
-
-    try
+    if (!localProperties.count(prop.getName()))
     {
-        if (!localProperties.count(prop.getName()))
+        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite()};
+        if (propEvent.hasListeners())
         {
-            const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite()};
-            if (propEvent.hasListeners())
-            {
-                propEvent(objPtr, args);
-            }
-        }
-
-        const auto name = prop.getName();
-        if (valueWriteEvents.find(name) != valueWriteEvents.end())
-        {
-            if (valueWriteEvents[name].hasListeners())
-            {
-                valueWriteEvents[name](objPtr, args);
-            }
-        }
-
-        const auto argsValue = args.getValue();
-        if (argsValue != newValue)
-        {
-            setPropertyValueInternal(name, argsValue, false, true, false);
-            BaseObjectPtr valuePtr;
-            PropertyPtr propPtr;
-            getPropertyAndValueInternal(name, valuePtr, propPtr, false);
-
-            return valuePtr;
+            propEvent(objPtr, args);
         }
     }
-    catch (...)
+
+    const auto name = prop.getName();
+    if (valueWriteEvents.find(name) != valueWriteEvents.end())
     {
-        externalCallThreadId = std::thread::id();
-        throw;
+        if (valueWriteEvents[name].hasListeners())
+        {
+            valueWriteEvents[name](objPtr, args);
+        }
     }
-    
-    --externalCallDepth;
-    if (externalCallDepth == 0)
-        externalCallThreadId = std::thread::id();
+
+    const auto argsValue = args.getValue();
+    if (argsValue != newValue)
+    {
+        setPropertyValueInternal(name, argsValue, false, true, false);
+        BaseObjectPtr valuePtr;
+        PropertyPtr propPtr;
+        getPropertyAndValueInternal(name, valuePtr, propPtr, false);
+
+        return valuePtr;
+    }
+
     return newValue;
 }
 
@@ -575,10 +584,7 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
 
     auto args = PropertyValueEventArgs(prop, readValue, PropertyEventType::Read, False);
     
-    externalCallThreadId = std::this_thread::get_id();
-    ++externalCallDepth;
-    try
-    {
+
         if (!localProperties.count(prop.getName()))
         {
             const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueRead()};
@@ -596,18 +602,7 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
                 valueReadEvents[name](objPtr, args);
             }
         }
-    }
-    catch (...)
-    {
-        --externalCallDepth;
-        if (externalCallDepth == 0)
-            externalCallThreadId = std::thread::id();
-        throw;
-    }
 
-    --externalCallDepth;
-    if (externalCallDepth == 0)
-        externalCallThreadId = std::thread::id();
     return args.getValue();
 }
 
@@ -698,20 +693,14 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coerceMinMax(co
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return setPropertyValueInternal(propertyName, value, true, true, updateCount > 0);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return setPropertyValueInternal(propertyName, value, true, true, updateCount > 0);
 }
 
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return setPropertyValueInternal(propertyName, value, true, false, updateCount > 0);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return setPropertyValueInternal(propertyName, value, true, false, updateCount > 0);
 }
 
@@ -999,8 +988,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             if (triggerEvent)
             {
                 const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, isUpdating);
-                if (!coreEventMuted && !isUpdating && triggerCoreEvent.assigned())
-                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
+                if (!isUpdating)
+                    triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
             }
         }
 
@@ -1322,6 +1311,13 @@ ConstCharPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProp
     return first;
 }
 
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::triggerCoreEventInternal(const CoreEventArgsPtr& args)
+{
+    if (!coreEventMuted && triggerCoreEvent.assigned())
+        triggerCoreEvent(args);
+}
+
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyAndValueInternal(const StringPtr& name,
                                                                                                 BaseObjectPtr& value,
@@ -1412,10 +1408,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return getPropertyValueInternal(propertyName, value);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return getPropertyValueInternal(propertyName, value);
 }
 
@@ -1428,10 +1421,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return getPropertySelectionValueInternal(propertyName, value);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return getPropertySelectionValueInternal(propertyName, value);
 }
 	
@@ -1444,10 +1434,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtectedPropertyValue(IString* propertyName)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return clearPropertyValueInternal(propertyName, true, updateCount > 0);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
 }
 
@@ -1512,18 +1499,18 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-std::unique_ptr<ConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLock()
+std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
-    return std::make_unique<ConfigLockGuard>(std::scoped_lock(sync), externalCallThreadId, externalCallDepth);
+    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
+        return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(&nullSync, &externalCallThreadId, &externalCallDepth);
+
+    return std::make_unique<GenericRecursiveConfigLockGuard<std::mutex>>(&sync, &externalCallThreadId, &externalCallDepth);
 }
 
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return clearPropertyValueInternal(propertyName, false, updateCount > 0);
-
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return clearPropertyValueInternal(propertyName, false, updateCount > 0);
 }
 
@@ -1612,8 +1599,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             cloneAndSetChildPropertyObject(prop);
 
             const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, isUpdating);
-            if (!coreEventMuted && !isUpdating && triggerCoreEvent.assigned())
-                triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
+            if (!isUpdating)
+                triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
         }
     }
     catch (const DaqException& e)
@@ -1810,9 +1797,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         }
 
         cloneAndSetChildPropertyObject(propPtr);
-
-        if (!coreEventMuted && triggerCoreEvent.assigned())
-            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
+        triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;
     });
@@ -1843,8 +1828,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         propValues.erase(propertyName);
     }
 
-    if(!coreEventMuted && triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
+    triggerCoreEventInternal(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
 
     return OPENDAQ_SUCCESS;
 }
@@ -2039,7 +2023,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return beginUpdateInternal(true);
 }
 
@@ -2221,14 +2205,14 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpda
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return endUpdateInternal(true);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUpdating(Bool* updating)
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return getUpdatingInternal(updating);
 }
 
@@ -2316,7 +2300,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForReferences(IProperty* property, Bool* isReferenced)
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     return checkForReferencesInternal(property, isReferenced);
 }
 
@@ -2901,8 +2885,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyPropert
         endUpdateEvent(objPtr, args);
     }
 
-    if(!coreEventMuted && triggerCoreEvent.assigned() && dict.getCount() > 0)
-        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict, path));
+    if(dict.getCount() > 0)
+        triggerCoreEventInternal(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict, path));
 }
 
 template <typename PropObjInterface, typename... Interfaces>

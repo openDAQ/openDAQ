@@ -91,7 +91,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* stream
     const auto streamingPtr = StreamingPtr::Borrow(streamingSource);
     const auto connectionString = streamingPtr.getConnectionString();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto it = std::find_if(streamingSources.begin(),
                            streamingSources.end(),

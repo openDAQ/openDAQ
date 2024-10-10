@@ -74,14 +74,12 @@ void StatisticsFbImpl::initProperties()
 
 void StatisticsFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
     configure();
 }
 
 void StatisticsFbImpl::triggerModeChanged()
 {
-    sync.lock();
     try
     {
         readProperties();
@@ -89,7 +87,6 @@ void StatisticsFbImpl::triggerModeChanged()
     catch (const std::exception& e)
     {
         LOG_E("Reading properties when trigger mode changed failed: {}", e.what());
-        sync.unlock();
         return;
     }
     if (triggerMode)
@@ -107,15 +104,12 @@ void StatisticsFbImpl::triggerModeChanged()
         catch (const std::exception& e)
         {
             LOG_E("Creating nested trigger function block when trigger mode changed failed: {}", e.what());
-            sync.unlock();
             return;
         }
-        sync.unlock();
 
         // Connect trigger
         triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
 
-        sync.lock();
         try
         {
             configure();
@@ -123,10 +117,7 @@ void StatisticsFbImpl::triggerModeChanged()
         catch (const std::exception& e)
         {
             LOG_E("Configure when trigger mode changed failed: {}", e.what());
-            sync.unlock();
-            return;
         }
-        sync.unlock();
     }
     else
     {
@@ -141,10 +132,7 @@ void StatisticsFbImpl::triggerModeChanged()
         catch (const std::exception& e)
         {
             LOG_E("Trigger mode changed failed: {}", e.what());
-            sync.unlock();
-            return;
         }
-        sync.unlock();
     }
 }
 

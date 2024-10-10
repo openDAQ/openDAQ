@@ -72,7 +72,6 @@ void PowerFbImpl::initProperties()
 
 void PowerFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure(false);

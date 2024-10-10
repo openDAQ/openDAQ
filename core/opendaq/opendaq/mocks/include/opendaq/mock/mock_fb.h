@@ -26,6 +26,8 @@ public:
                                    const daq::StringPtr& localId,
                                    const daq::PropertyObjectPtr& config);
 
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+
 protected:
     void createFunctionBlocks();
     void createSignals();

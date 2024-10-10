@@ -404,11 +404,11 @@ BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& p
     return nullptr;
 }
 
-BaseObjectPtr ConfigProtocolServer::acceptsSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
 {
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
-    return ConfigServerInputPort::accepts(protocolVersion, inputPort, signal, user);
+    return ConfigServerInputPort::accepts(context, inputPort, signal, user);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

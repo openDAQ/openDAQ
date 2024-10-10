@@ -72,6 +72,8 @@ DECLARE_OPENDAQ_INTERFACE(ICallableInfo, IBaseObject)
  * @brief Creates a CallableInfo object with the specified arguments and return type.
  * @param argumentInfo The list of `ArgumentInfo` type argument information.
  * @param returnType The return type of the described callable object.
+ * @param constFlag A flag indicating if the function is marked as const or not. A const function promises not to modify the state
+ * of the device or any other objects under the openDAQ instance.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, CallableInfo,

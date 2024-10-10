@@ -43,7 +43,8 @@ set(nuget_config --configfile "./.nuget/NuGet.Config" --ignore-failed-sources) #
 set(dotnet_config --configuration $<CONFIG>_Build)
 set(msbuild_parameters -p:NoWarn=1591 -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION}) # suppress: Warning CS1591 Missing XML comment for publicly visible type or member xy
 #set(dotnet_cmd_args ${projectFileName} --no-restore ${dotnet_config} --framework net6.0 --verbosity minimal ${msbuild_parameters})
-set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --framework net6.0 --verbosity minimal ${nuget_config} ${msbuild_parameters})
+#set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --framework net6.0 --verbosity minimal ${nuget_config} ${msbuild_parameters})
+set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --verbosity minimal ${nuget_config} ${msbuild_parameters})
 set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} --logger """junit\\\;LogFilePath=${test_path}/test_${targetName}.xml""")
 #set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})
 set(cleanCmd ${CMAKE_COMMAND} -E rm -r -f ${outputBinDir})         # clear outputBinDir (no warning if it doesn't exist)

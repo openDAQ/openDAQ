@@ -655,14 +655,22 @@ void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
     ASSERT_NE(dev, nullptr);
 
     ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
-    ASSERT_EQ(clientDevice.getDevices()[2].getGlobalId(), "/root_dev/Dev/newDevice");
-    ASSERT_EQ(clientDevice.getDevices()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(), "/root_dev/Dev/newDevice");
-
     ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
-    ASSERT_EQ(serverDevice.getDevices()[2].getGlobalId(), "/root_dev/Dev/newDevice");
 
-    // TODO: ADDITIONAL CHECKS
-    // TODO: domain signals + function blocks + connect to input ports + check if same on both client/server
+    auto newDevCli = clientDevice.getDevices()[2];
+    auto newDevSer = serverDevice.getDevices()[2];
+
+    ASSERT_EQ(newDevCli.getGlobalId(), "/root_dev/Dev/newDevice");
+    ASSERT_EQ(newDevCli.asPtr<IConfigClientObject>().getRemoteGlobalId(), "/root_dev/Dev/newDevice");
+    ASSERT_EQ(newDevSer.getGlobalId(), "/root_dev/Dev/newDevice");
+
+    auto newCliFB = newDevCli.getDevices()[0].getFunctionBlocks()[0];
+
+    auto domainClient = newCliFB.getSignals()[0].getDomainSignal();
+    ASSERT_NE(domainClient, nullptr);
+
+    auto connClient = newCliFB.getInputPorts()[0].getConnection();
+    ASSERT_NE(connClient, nullptr);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, AddDeviceDisableCoreEventTrigger)

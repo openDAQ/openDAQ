@@ -665,12 +665,19 @@ void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
     ASSERT_EQ(newDevSer.getGlobalId(), "/root_dev/Dev/newDevice");
 
     auto newCliFB = newDevCli.getDevices()[0].getFunctionBlocks()[0];
+    auto newSerFB = newDevSer.getDevices()[0].getFunctionBlocks()[0];
 
     auto domainClient = newCliFB.getSignals()[0].getDomainSignal();
     ASSERT_NE(domainClient, nullptr);
 
+    auto serverClient = newSerFB.getSignals()[0].getDomainSignal();
+    ASSERT_NE(serverClient, nullptr);
+
     auto connClient = newCliFB.getInputPorts()[0].getConnection();
     ASSERT_NE(connClient, nullptr);
+
+    auto connServer = newSerFB.getInputPorts()[0].getConnection();
+    ASSERT_NE(connServer, nullptr);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, AddDeviceDisableCoreEventTrigger)

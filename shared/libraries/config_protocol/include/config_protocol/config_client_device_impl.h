@@ -95,8 +95,6 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
     const ComponentHolderPtr fbHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddFunctionBlock", params, this->functionBlocks);
 
-    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
-
     FunctionBlockPtr fb = fbHolder.getComponent();
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
@@ -135,7 +133,9 @@ uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
 template <class TDeviceBase>
 ListPtr<IDeviceInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDevices()
 {
-    return List<IDeviceInfo>();
+    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Operation not supported by the protocol version currently in use");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDevices");
 }
 
 template <class TDeviceBase>
@@ -145,9 +145,25 @@ DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetA
 }
 
 template <class TDeviceBase>
-DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    throw NotImplementedException{};
+    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    auto params = Dict<IString, IBaseObject>({{"ConnectionString", connectionString}, {"Config", config}});
+    const ComponentHolderPtr devHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddDevice", params, this->devices);
+
+    DevicePtr dev = devHolder.getComponent();
+    if (!this->devices.hasItem(dev.getLocalId()))
+    {
+        this->clientComm->connectDomainSignals(dev);
+        this->devices.addItem(dev);
+        this->clientComm->connectInputPorts(dev);
+
+        return dev;
+    }
+    return this->devices.getItem(dev.getLocalId());
 }
 
 template <class TDeviceBase>
@@ -333,6 +349,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     {
         this->clientComm->connectDomainSignals(comp);
         this->addExistingComponent(comp);
+        this->clientComm->connectInputPorts(comp);
     }
 }
 

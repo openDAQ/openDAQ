@@ -528,6 +528,33 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
     ASSERT_EQ(deviceDescription, "devDescription");
 }
 
+TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
+{
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
+        .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
+        .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
+    EXPECT_CALL(inputPort.mock(), acceptsSignal(_, _)).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    auto params = ParamsDict({{"SignalId", "sig"}});
+    client->getClientComm()->sendComponentCommand("/dev/comp/test", "AcceptsSignal", params);
+}
+
+TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
+{
+    MockDevice::Strict device;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
+        .WillOnce(Return(device.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    client->getClientComm()->sendComponentCommand("/dev", "GetAvailableDevices");
+}
+
+
 class RejectConnectionTest : public ConfigProtocolTest
 {
 public:
@@ -552,4 +579,3 @@ TEST_F(RejectConnectionTest, Connect)
 {
     ASSERT_THROW_MSG(client->connect(), GeneralErrorException, "Test connection rejected");
 }
-

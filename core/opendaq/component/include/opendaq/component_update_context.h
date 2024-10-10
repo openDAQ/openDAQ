@@ -72,13 +72,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param parentId The ID of the parent component.
      */
     virtual ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) = 0;
+
+    /*!
+     * @brief Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process.
+     * @param[out] enabled The flag indicating whether the re-add devices is enabled.
+     *
+     * The configuration is set from the property `ReAddDevices` of configuration object.
+     */
+    virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
 };
 
 /*!
  * @}
  */
-
-
-
 
 END_NAMESPACE_OPENDAQ

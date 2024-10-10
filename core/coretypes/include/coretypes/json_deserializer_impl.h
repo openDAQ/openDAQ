@@ -31,7 +31,7 @@ public:
     using JsonList = rapidjson::GenericArray<false, JsonValue>;
 
     ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object) override;
-    ErrCode INTERFACE_FUNC update(IUpdatable* updatable, IString* serialized) override;
+    ErrCode INTERFACE_FUNC update(IUpdatable* updatable, IString* serialized, IBaseObject* config) override;
     ErrCode INTERFACE_FUNC callCustomProc(IProcedure* customDeserialize, IString* serialized) override;
 
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;

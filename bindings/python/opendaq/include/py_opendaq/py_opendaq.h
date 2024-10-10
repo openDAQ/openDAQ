@@ -110,6 +110,7 @@ PyDaqIntf<daq::ISyncComponent, daq::IComponent> declareISyncComponent(pybind11::
 PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> declareISyncComponentPrivate(pybind11::module_ m);
 PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainInfo(pybind11::module_ m);
 PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> declareIReferenceDomainInfoBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m);
 
 py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
@@ -212,3 +213,4 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
 void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> cls);
 void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> cls);
 void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> cls);
+void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> cls);

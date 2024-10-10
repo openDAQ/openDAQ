@@ -13,30 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/baseobject.h>
-#include <coretypes/serialized_object.h>
-#include <coretypes/serializer.h>
+#include <opendaq/update_parameters_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup types_utility
- * @defgroup types_updatable Updatable
+ * @ingroup opendaq_component
+ * @addtogroup opendaq_component_factories Factories
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
+inline UpdateParametersPtr UpdateParameters()
 {
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update, IBaseObject* config) = 0;
-    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
-    virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) = 0;
-    virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* update, IBaseObject* context) = 0;
-};
+    UpdateParametersPtr obj(UpdateParameters_Create());
+    return obj;
+}
 
-/*!
- * @}
- */
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

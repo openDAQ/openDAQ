@@ -1,3 +1,27 @@
+10.10.2024
+Description
+    - Restoring the device while loading the configuration.
+    - Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
+
+Required integration changes:
+    - Breaks binary compatibility
+
+-m[function] IUpdatable::update(ISerializedObject* update)
++m[function] IUpdatable::update(ISerializedObject* update, IBaseObject* config)
+
+-m[function] IDeserializer::update(IUpdatable * updatable, IString * serialized)
++m[function] IDeserializer::update(IUpdatable* updatable, IString* serialized, IBaseObject* config)
+
++ [function] IComponentUpdateContext::getReAddDevicesEnabled(Bool* enabled)
+
++ [interface] IUpdateParameters: public IPropertyObject
++ [function] IUpdateParameters::getReAddDevicesEnabled(Bool* enabled)
++ [function] IUpdateParameters::setReAddDevicesEnabled(Bool enabled)
++ [factory] UpdateParametersPtr UpdateParameters()
+
+-m[function] IDevice::loadConfiguration(IString* configuration)
++m[function] IDevice::loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr)
+
 4.10.2024
 Description:
     - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less

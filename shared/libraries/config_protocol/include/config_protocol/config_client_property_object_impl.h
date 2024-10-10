@@ -60,7 +60,7 @@ public:
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
 
     ErrCode INTERFACE_FUNC complete() override;
 
@@ -356,7 +356,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj, IBaseObject* config)
 {
    return updateInternal(obj, nullptr);
 }

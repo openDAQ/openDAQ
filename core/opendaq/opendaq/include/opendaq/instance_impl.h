@@ -69,7 +69,7 @@ public:
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
-    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
+    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr) override;
 
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
@@ -148,7 +148,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;

@@ -111,7 +111,7 @@ public:
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;
 
@@ -2705,7 +2705,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             propValue = serialized.readString(propName);
             break;
         case ctList:
-            propValue = serialized.readList<IBaseObject>(propName);
+            propValue = serialized.readList<IBaseObject>(propName, manager.assigned() ? manager.getRef() : nullptr);
             break;
         case ctDict:
         case ctRatio:
@@ -2716,7 +2716,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj);
+                return updatable->update(serializedNestedObj, manager.assigned() ? manager.getRef() : nullptr);
             }
 
             propValue = serialized.readObject(propName);
@@ -2870,7 +2870,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
 }
 
 template <class PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj, IBaseObject* /* config */)
 {
     return updateInternal(obj, nullptr);
 }

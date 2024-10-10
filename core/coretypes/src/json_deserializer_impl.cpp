@@ -209,7 +209,7 @@ ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* cont
     return errCode;
 }
 
-ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
+ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized, IBaseObject* config)
 {
     if (serialized == nullptr || updatable == nullptr)
     {
@@ -257,7 +257,7 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
         return errCode;
     }
 
-    return updatable->update(jsonSerObj);
+    return updatable->update(jsonSerObj, config);
 }
 
 ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IString* serialized)

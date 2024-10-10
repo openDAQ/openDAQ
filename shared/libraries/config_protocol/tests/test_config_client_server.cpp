@@ -536,6 +536,7 @@ TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
     EXPECT_CALL(inputPort.mock(), acceptsSignal(_, _)).WillOnce(Return(OPENDAQ_SUCCESS));
 
     auto params = ParamsDict({{"SignalId", "sig"}});

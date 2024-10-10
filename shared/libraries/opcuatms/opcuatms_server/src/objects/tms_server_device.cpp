@@ -479,6 +479,18 @@ void TmsServerDevice::addChildNodes()
     auto syncComponentNode = std::make_unique<TmsServerSyncComponent>(syncComponent, server, daqContext, tmsContext);
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
+    
+    auto usernameNodeId = getChildNodeId("UserName");
+    assert(!usernameNodeId.isNull());
+    auto username = object.getProperty("userName");
+    auto usernameNode = std::make_unique<TmsServerProperty>(username, server, daqContext, tmsContext);
+    usernameNode->registerToExistingOpcUaNode(usernameNodeId);
+
+    auto locationNodeId = getChildNodeId("Location");
+    assert(!locationNodeId.isNull());
+    auto location = object.getProperty("location");
+    auto locationNode = std::make_unique<TmsServerProperty>(location, server, daqContext, tmsContext);
+    locationNode->registerToExistingOpcUaNode(locationNodeId);
 
     // TODO add "Srv" as a default node
 

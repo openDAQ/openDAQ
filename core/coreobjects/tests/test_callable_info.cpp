@@ -113,6 +113,7 @@ TEST_F(CallableInfoTest, StructFields)
 
     ASSERT_EQ(structPtr.get("ReturnType"), static_cast<Int>(ctString));
     ASSERT_EQ(structPtr.get("Arguments"), nullptr);
+    ASSERT_EQ(structPtr.get("Const"), false);
 }
 
 TEST_F(CallableInfoTest, StructNames)

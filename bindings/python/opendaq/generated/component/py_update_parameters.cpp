@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,11 +45,13 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
     cls.def_property("re_add_devices_enabled",
         [](daq::IUpdateParameters *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
             return objectPtr.getReAddDevicesEnabled();
         },
         [](daq::IUpdateParameters *object, const bool enabled)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
             objectPtr.setReAddDevicesEnabled(enabled);
         },

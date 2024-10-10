@@ -47,6 +47,7 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
 
+    // [returnSelf]
     /*!
      * @brief Sets the re-add devices enabled flag.
      * @param enabled The flag indicating whether the re-add devices is enabled.

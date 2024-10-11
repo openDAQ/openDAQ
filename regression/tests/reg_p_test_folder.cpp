@@ -37,7 +37,7 @@ TEST_F(RegressionTestFolder, getItems)
 
 TEST_F(RegressionTestFolder, isEmpty)
 {
-    Bool isEmpty;
+    Bool isEmpty = true;
     ASSERT_NO_THROW(isEmpty = folder.isEmpty());
     ASSERT_FALSE(isEmpty);
 }

@@ -88,7 +88,7 @@ TEST_F(RegressionTestComponent, setVisibleGetVisible)
     componentPrivate.unlockAllAttributes();
 
     ASSERT_NO_THROW(component.setVisible(False));
-    Bool visible1;
+    Bool visible1 = true;
     ASSERT_NO_THROW(visible1 = component.getVisible());
     ASSERT_FALSE(visible1);
 

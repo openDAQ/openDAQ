@@ -2,6 +2,7 @@
 #include <coreobjects/eval_value_parser.h>
 #include <functional>
 #include <coreobjects/eval_value_ptr.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -59,9 +60,9 @@ EvalValueImpl::EvalValueImpl(const EvalValueImpl& ev, IPropertyObject* owner)
     using namespace std::placeholders;
 
     this->owner = owner;
-    node = ev.node->clone([this](const std::string& str, RefType refType, int argIndex, std::string& postRef)
+    node = ev.node->clone([this](const std::string& str, RefType refType, int argIndex, std::string& postRef, bool lock)
     {
-        return getReference(str, refType, argIndex, postRef);
+        return getReference(str, refType, argIndex, postRef, lock);
     });
 
     std::unordered_set<std::string> refs;
@@ -81,9 +82,9 @@ EvalValueImpl::EvalValueImpl(const EvalValueImpl& ev, IPropertyObject* owner, IF
     using namespace std::placeholders;
 
     this->owner = owner;
-    node = ev.node->clone([this](const std::string& str, RefType refType, int argIndex, std::string& postRef)
+    node = ev.node->clone([this](const std::string& str, RefType refType, int argIndex, std::string& postRef, bool lock)
     {
-        return getReference(str, refType, argIndex, postRef);
+        return getReference(str, refType, argIndex, postRef, lock);
     });
 
     std::unordered_set<std::string> refs;
@@ -100,9 +101,9 @@ void EvalValueImpl::onCreate()
         nullptr,
         nullptr,
         useFunctionResolver,
-        [this](const std::string& str, RefType refType, int argIndex, std::string& postRef)
+        [this](const std::string& str, RefType refType, int argIndex, std::string& postRef, bool lock)
         {
-            return getReference(str, refType, argIndex, postRef);
+            return getReference(str, refType, argIndex, postRef, lock);
         }
     };
 
@@ -137,7 +138,7 @@ void EvalValueImpl::checkForEvalValue(BaseObjectPtr& prop) const
         prop = e.cloneWithOwner(owner.getRef());
 }
 
-BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& propObject, const std::string& str, RefType refType) const
+BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& propObject, const std::string& str, RefType refType, bool lock) const
 {
     BaseObjectPtr value;
 
@@ -147,18 +148,18 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
     }
     else if (refType == RefType::Value)
     {
-        value = propObject.getPropertyValue(str);
+        value = lock ? propObject.getPropertyValue(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertyValueNoLock(str);
         checkForEvalValue(value);
     }
     else if (refType == RefType::SelectedValue)
     {
-        value = propObject.getPropertySelectionValue(str);
+        value = lock ? propObject.getPropertySelectionValue(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertySelectionValueNoLock(str);
         checkForEvalValue(value);
     }
     else if (refType == RefType::PropertyNames)
     {
         auto propNames = List<IString>();
-        PropertyObjectPtr child = propObject.getPropertyValue(str);
+        const PropertyObjectPtr child = lock ? propObject.getPropertyValue(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertyValueNoLock(str);
         for (const auto& prop : child.getAllProperties())
         {
             propNames.pushBack(prop.getName());
@@ -169,7 +170,7 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
     return value;
 }
 
-BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refType, int argIndex, std::string& postRef) const
+BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refType, int argIndex, std::string& postRef, bool lock) const
 {
     if (argIndex > -1)
     {
@@ -178,7 +179,7 @@ BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refTyp
             return nullptr;
         }
 
-        return getReferenceFromPrefix(arguments[argIndex], str, refType);
+        return getReferenceFromPrefix(arguments[argIndex], str, refType, lock);
     }
 
     if (refType == RefType::Func)
@@ -191,7 +192,7 @@ BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refTyp
 
     PropertyObjectPtr ownerRef = owner.getRef();
     if (pos == std::string::npos)
-        return getReferenceFromPrefix(ownerRef, str, refType);
+        return getReferenceFromPrefix(ownerRef, str, refType, lock);
 
     std::string prefix = str.substr(0, pos);
     postRef = str.substr(pos + 1, std::wstring::npos);
@@ -200,19 +201,19 @@ BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refTyp
 #else
     if (strcasecmp("value", postRef.c_str()) == 0)
 #endif
-        return getReferenceFromPrefix(ownerRef, prefix, RefType::Value);
+        return getReferenceFromPrefix(ownerRef, prefix, RefType::Value, lock);
 #if defined(_WIN32)
     if (_stricmp("selectedvalue", postRef.c_str()) == 0)
 #else
     if (strcasecmp("selectedvalue", postRef.c_str()) == 0)
 #endif
-        return getReferenceFromPrefix(ownerRef, prefix, RefType::SelectedValue);
+        return getReferenceFromPrefix(ownerRef, prefix, RefType::SelectedValue, lock);
 #if defined(_WIN32)
     if (_stricmp("propertynames", postRef.c_str()) == 0)
 #else
     if (strcasecmp("propertynames", postRef.c_str()) == 0)
 #endif
-        return getReferenceFromPrefix(ownerRef, prefix, RefType::PropertyNames);
+        return getReferenceFromPrefix(ownerRef, prefix, RefType::PropertyNames, lock);
     return nullptr;
 
     /*
@@ -226,13 +227,13 @@ BaseObjectPtr EvalValueImpl::getReference(const std::string& str, RefType refTyp
     throw std::invalid_argument("Invalid reference");*/
 }
 
-int EvalValueImpl::resolveReferences()
+int EvalValueImpl::resolveReferences(bool lock)
 {
     assert(node);
 
-    int r = node->visit([](BaseNode* input)
+    int r = node->visit([lock](BaseNode* input)
     {
-        return input->resolveReference();
+        return input->resolveReference(lock);
     });
 
     resolveStatus = r == 0 ? ResolveStatus::Resolved
@@ -240,14 +241,14 @@ int EvalValueImpl::resolveReferences()
     return r;
 }
 
-ErrCode EvalValueImpl::checkParseAndResolve()
+ErrCode EvalValueImpl::checkParseAndResolve(bool lock)
 {
     if (OPENDAQ_FAILED(parseErrCode))
     {
         return parseErrCode;
     }
 
-    int r = resolveReferences();
+    int r = resolveReferences(lock);
     if (r != 0)
         return OPENDAQ_ERR_RESOLVEFAILED;
 
@@ -259,7 +260,7 @@ ErrCode EvalValueImpl::getCoreType(CoreType* coreType)
     if (coreType == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    ErrCode err = checkParseAndResolve();
+    ErrCode err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
         return err;
 
@@ -294,7 +295,27 @@ ErrCode EvalValueImpl::getResult(IBaseObject** obj)
     if (obj == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    ErrCode err = checkParseAndResolve();
+    ErrCode err = checkParseAndResolve(true);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    try
+    {
+        *obj = calc().addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+    catch (...)
+    {
+        return OPENDAQ_ERR_CALCFAILED;
+    };
+}
+
+ErrCode EvalValueImpl::getResultNoLock(IBaseObject** obj)
+{
+    if (obj == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    ErrCode err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
         return err;
 
@@ -386,7 +407,7 @@ ErrCode EvalValueImpl::StringObject_GetLength(SizeT* size)
 template <typename T>
 ErrCode EvalValueImpl::getValueInternal(T& value)
 {
-    auto err = checkParseAndResolve();
+    auto err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
         return err;
 
@@ -454,7 +475,7 @@ ErrCode EvalValueImpl::getItemAt(SizeT index, IBaseObject** obj)
     if (obj == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    auto err = checkParseAndResolve();
+    auto err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
         return err;
 
@@ -470,7 +491,7 @@ ErrCode EvalValueImpl::getCount(SizeT* size)
     if (size == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    auto err = checkParseAndResolve();
+    auto err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
         return err;
 
@@ -538,7 +559,7 @@ ErrCode EvalValueImpl::clear()
 
 ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 {
-    ErrCode errCode = checkParseAndResolve();
+    ErrCode errCode = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -567,7 +588,7 @@ ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 
 ErrCode EvalValueImpl::createEndIterator(IIterator** iterator)
 {
-    ErrCode errCode = checkParseAndResolve();
+    ErrCode errCode = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;

@@ -38,7 +38,7 @@ enum class RefType
     PropertyNames
 };
 
-using GetReferenceEvent = std::function<BaseObjectPtr(std::string, RefType, int, std::string&)>;
+using GetReferenceEvent = std::function<BaseObjectPtr(std::string, RefType, int, std::string&, bool)>;
 
 class BaseNode
 {
@@ -50,7 +50,7 @@ public:
     virtual BaseObjectPtr getResult() = 0;
 
     virtual int visit(const std::function<int(BaseNode* node)>& visitFunc);
-    virtual int resolveReference();
+    virtual int resolveReference(bool lock);
 
     virtual std::unique_ptr<BaseNode> clone(GetReferenceEvent refCall) = 0;
 
@@ -75,7 +75,7 @@ public:
     explicit RefNode(int argIndex);
 
     BaseObjectPtr getResult() override;
-    int resolveReference() override;
+    int resolveReference(bool lock) override;
     std::unique_ptr<BaseNode> clone(GetReferenceEvent refCall) override;
 
     void useAsArgument(RefNode* node);

@@ -18,7 +18,7 @@ int BaseNode::visit(const std::function<int(BaseNode* node)>& visitFunc)
     return visitFunc(this);
 }
 
-int BaseNode::resolveReference()
+int BaseNode::resolveReference(bool /*lock*/)
 {
     return 0;
 }
@@ -52,7 +52,7 @@ BaseObjectPtr RefNode::getResult()
     return refObject;
 }
 
-int RefNode::resolveReference()
+int RefNode::resolveReference(bool lock)
 {
     if (resolveStatus == ResolveStatus::Resolved && refType != RefType::Value && refType != RefType::Func && refType != RefType::SelectedValue)
     {
@@ -63,7 +63,7 @@ int RefNode::resolveReference()
 
     try
     {
-        refObject = onResolveReference(refStr, refType, argIndex, postRef);
+        refObject = onResolveReference(refStr, refType, argIndex, postRef, lock);
         if (refObject.assigned())
         {
             resolveStatus = ResolveStatus::Resolved;

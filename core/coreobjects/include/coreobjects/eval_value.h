@@ -84,6 +84,8 @@ DECLARE_OPENDAQ_INTERFACE(IEvalValue, IBaseObject)
      * Referenced properties are all occurrences matching the '"%" propref' pattern in the evaluation string.
      */
     virtual ErrCode INTERFACE_FUNC getPropertyReferences(IList** propertyReferences) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getResultNoLock(IBaseObject** obj) = 0;
 };
 
 /*!

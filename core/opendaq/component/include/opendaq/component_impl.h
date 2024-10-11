@@ -125,7 +125,6 @@ protected:
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
-    std::mutex sync;
     ContextPtr context;
 
     bool isComponentRemoved;
@@ -267,7 +266,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     *active = this->active;
     return OPENDAQ_SUCCESS;
@@ -280,7 +279,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -364,7 +363,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -415,7 +414,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -476,7 +475,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -524,7 +523,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -544,7 +543,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -558,7 +557,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -578,7 +577,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -592,7 +591,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
 {
     OPENDAQ_PARAM_NOT_NULL(attributes);
     
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -669,7 +668,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isComponentRemoved)
         return  OPENDAQ_IGNORED;

@@ -43,6 +43,32 @@ ErrCode CoercerImpl::coerce(IBaseObject* propObj, IBaseObject* value, IBaseObjec
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode CoercerImpl::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBaseObject** result)
+{
+    try
+    {
+        this->value = value;
+
+        if (propObj != nullptr)
+        {
+            auto cloned = evalValue.cloneWithOwner(propObj);
+            *result = cloned.getResultNoLock().detach();
+        }
+        else
+        {
+            *result = evalValue.getResultNoLock().detach();
+        }
+
+        this->value = nullptr;
+    }
+    catch (...)
+    {
+        return OPENDAQ_ERR_COERCE_FAILED;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode CoercerImpl::getEval(IString** eval)
 {
     if (eval == nullptr)

@@ -30,6 +30,7 @@ struct IEvalValue;
 /*#
  * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
  * [interfaceLibrary(INumber, CoreTypes)]
+ * [interfaceLibrary(IStructType, CoreTypes)]
  */
 DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
 {
@@ -116,6 +117,26 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getClassOnPropertyValueRead(IEvent** event) = 0;
     // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
     virtual ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getValueTypeNoLock(CoreType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getKeyTypeNoLock(CoreType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getItemTypeNoLock(CoreType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getDescriptionNoLock(IString** description) = 0;
+    virtual ErrCode INTERFACE_FUNC getUnitNoLock(IUnit** unit) = 0;
+    virtual ErrCode INTERFACE_FUNC getMinValueNoLock(INumber** min) = 0;
+    virtual ErrCode INTERFACE_FUNC getMaxValueNoLock(INumber** max) = 0;
+    virtual ErrCode INTERFACE_FUNC getDefaultValueNoLock(IBaseObject** value) = 0;
+    // [templateType(values, IBaseObject)]
+    virtual ErrCode INTERFACE_FUNC getSuggestedValuesNoLock(IList** values) = 0;
+    virtual ErrCode INTERFACE_FUNC getVisibleNoLock(Bool* visible) = 0;
+    virtual ErrCode INTERFACE_FUNC getReadOnlyNoLock(Bool* readOnly) = 0;
+    virtual ErrCode INTERFACE_FUNC getSelectionValuesNoLock(IBaseObject** values) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferencedPropertyNoLock(IProperty** propertyEval) = 0;
+    virtual ErrCode INTERFACE_FUNC getIsReferencedNoLock(Bool* isReferenced) = 0;
+    virtual ErrCode INTERFACE_FUNC getValidatorNoLock(IValidator** validator) = 0;
+    virtual ErrCode INTERFACE_FUNC getCoercerNoLock(ICoercer** coercer) = 0;
+    virtual ErrCode INTERFACE_FUNC getCallableInfoNoLock(ICallableInfo** callable) = 0;
+    virtual ErrCode INTERFACE_FUNC getStructTypeNoLock(IStructType** structType) = 0;
 };
 /*!@}*/
 

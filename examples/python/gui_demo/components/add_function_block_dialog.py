@@ -76,12 +76,18 @@ class AddFunctionBlockDialog(Dialog):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
-        self.grid_columnconfigure((0,1), uniform='uniform')
+        self.grid_columnconfigure((0, 1), uniform='uniform')
 
-        self.initial_update_func = lambda: self.update_parent_devices(
+        self.initial_update_func = lambda: self.initial_update()
+
+    def initial_update(self):
+        self.update_parent_devices(
             self.device_tree, '', self.context.instance)
-        self.after(1, lambda: self.device_tree.selection_set(
-            self.context.instance.global_id))
+        self.select_parent_device(self.context.instance.global_id)
+
+    def select_parent_device(self, device_id: str):
+        if self.device_tree.exists(device_id):
+            self.device_tree.selection_set(device_id)
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())

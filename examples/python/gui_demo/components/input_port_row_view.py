@@ -7,6 +7,7 @@ from ..event_port import EventPort
 from .attributes_dialog import AttributesDialog
 from ..app_context import AppContext
 
+
 class InputPortRowView(tk.Frame):
     def __init__(self, parent, input_port, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
@@ -18,7 +19,8 @@ class InputPortRowView(tk.Frame):
 
         self.configure(padx=10, pady=5)
 
-        ttk.Label(self, text=input_port.name).grid(row=0, column=0, sticky=tk.NSEW)
+        ttk.Label(self, text=input_port.name).grid(
+            row=0, column=0, sticky=tk.NSEW)
         self.input_var = tk.StringVar()
         self.dropdown = ttk.Combobox(self, textvariable=self.input_var)
         self.dropdown.grid(row=0, column=1, sticky=tk.NSEW)
@@ -41,8 +43,7 @@ class InputPortRowView(tk.Frame):
         self.grid_columnconfigure(1, weight=16)
         self.grid_columnconfigure(2, weight=1, minsize=30)
         self.grid_columnconfigure(3, weight=1, minsize=30)
-        self.grid_columnconfigure((0,1,2,3), uniform='uniform')
-
+        self.grid_columnconfigure((0, 1, 2, 3), uniform='uniform')
 
         device = root_device(input_port)
         device = device if device is not None and daq.IDevice.can_cast_from(
@@ -63,7 +64,8 @@ class InputPortRowView(tk.Frame):
 
     def fill_dropdown(self):
         signals = ['none']
-        signals += [signal_id for signal_id in self.context.signals_for_device(self.device).keys()]
+        signals += [signal_id for signal_id in self.context.signals_for_device(
+            self.device).keys()]
         self.dropdown['values'] = signals
         self.selection = ''
 
@@ -85,7 +87,7 @@ class InputPortRowView(tk.Frame):
             self.input_port.disconnect()
             self.event_port.emit()
         elif self.selection != '':
-            selected_signal = self.context.signals_for_device(self.device)[self.selection]
+            selected_signal = self.context.signals_for_device(self.device)[
+                self.selection]
             self.input_port.connect(selected_signal)
             self.event_port.emit()
-

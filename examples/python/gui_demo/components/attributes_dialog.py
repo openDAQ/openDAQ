@@ -293,7 +293,8 @@ class AttributesDialog(Dialog):
                 descriptor['rule']['type']['value'] = desc.rule.type.value
             descriptor['rule']['core_type'] = desc.rule.core_type
             if desc.rule.parameters:
-                descriptor['rule']['parameters'] = {name: value for name, value in desc.rule.parameters.items()}
+                descriptor['rule']['parameters'] = {
+                    name: value for name, value in desc.rule.parameters.items()}
             else:
                 descriptor['rule']['parameters'] = {}
 
@@ -313,7 +314,7 @@ class AttributesDialog(Dialog):
             descriptor['post_scaling']['parameters'] = desc.post_scaling.parameters
 
         descriptor['struct_fields'] = desc.struct_fields
-        
+
         if desc.reference_domain_info:
             descriptor['reference_domain_info'] = {}
             descriptor['reference_domain_info']['reference_domain_id'] = desc.reference_domain_info.reference_domain_id

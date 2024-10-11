@@ -70,7 +70,8 @@ class AddConfigDialog(Dialog):
         entry.destroy()
         self.update_property_value(path, new_value)
 
-    # after pressing enter or if entry is out of focus it changes property value
+    # after pressing enter or if entry is out of focus it changes property
+    # value
     def update_property_value(self, path, new_value):
         def update_property(context, path, new_value, depth=0):
             for property in context.visible_properties:

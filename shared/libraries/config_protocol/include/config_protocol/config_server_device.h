@@ -121,6 +121,7 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableDevices(const RpcContext& c
                                                    const DevicePtr& device,
                                                    const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return device.getAvailableDevices();
 }
@@ -129,6 +130,7 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
                                                    const DevicePtr& device,
                                                    const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
 
     const auto connectionString = params.get("ConnectionString");

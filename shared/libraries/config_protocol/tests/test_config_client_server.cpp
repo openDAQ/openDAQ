@@ -547,8 +547,17 @@ TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
 {
     MockDevice::Strict device;
 
+    EXPECT_CALL(device.mock(), isLocked(_))
+    .WillRepeatedly(
+        [](daq::Bool* locked) -> ErrCode
+        {
+            *locked = false;
+            return OPENDAQ_SUCCESS;
+        });
+
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(device.ptr.asPtr<IComponent>()));
+
     EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
 
     client->getClientComm()->sendComponentCommand("/dev", "GetAvailableDevices");

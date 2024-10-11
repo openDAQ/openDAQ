@@ -139,7 +139,10 @@ ListPtr<IDeviceInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableD
 template <class TDeviceBase>
 DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDeviceTypes()
 {
-    return Dict<IString, IDeviceType>();
+    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDeviceTypes");
 }
 
 template <class TDeviceBase>

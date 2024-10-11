@@ -149,6 +149,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
     addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
     addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
+    addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 

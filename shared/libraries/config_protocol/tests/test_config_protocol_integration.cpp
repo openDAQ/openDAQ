@@ -636,13 +636,16 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 
     ASSERT_EQ(availableDevicesClient.getCount(), 3);
 
-    ASSERT_EQ(availableDevicesClient[2].getName(), "AvailableMockDevice2");
-    ASSERT_EQ(availableDevicesClient[2].getConnectionString(), "mock://available_dev2");
-    ASSERT_EQ(availableDevicesClient[2].getManufacturer(), "Testing");
+    auto lastC = availableDevicesClient[2];
+    auto lastS = availableDevicesServer[2];
 
-    ASSERT_EQ(availableDevicesClient[2].getName(), availableDevicesServer[2].getName());
-    ASSERT_EQ(availableDevicesClient[2].getConnectionString(), availableDevicesServer[2].getConnectionString());
-    ASSERT_EQ(availableDevicesClient[2].getManufacturer(), availableDevicesServer[2].getManufacturer());
+    ASSERT_EQ(lastC.getName(), "AvailableMockDevice2");
+    ASSERT_EQ(lastC.getConnectionString(), "mock://available_dev2");
+    ASSERT_EQ(lastC.getManufacturer(), "Testing");
+
+    ASSERT_EQ(lastC.getName(), lastS.getName());
+    ASSERT_EQ(lastC.getConnectionString(), lastS.getConnectionString());
+    ASSERT_EQ(lastC.getManufacturer(), lastS.getManufacturer());
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
@@ -713,4 +716,26 @@ TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceCoreEventTrigger)
     removeDeviceTest(clientDevice, serverDevice);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
+{
+    auto kek = clientDevice.getContext(); // TODO delete
+
+    auto availableDeviceTypesServer = serverDevice.getAvailableDeviceTypes();
+    auto availableDeviceTypesClient = clientDevice.getAvailableDeviceTypes();
+
+    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
+
+    auto lastC = availableDeviceTypesClient.get("mockDev1");
+    auto lastS = availableDeviceTypesServer.get("mockDev1");
+
+    ASSERT_EQ(lastC.getId(), "mockDev1");
+    ASSERT_EQ(lastC.getName(), "MockDev1");
+    ASSERT_EQ(lastC.getDescription(), "Mock Device 1");
+    ASSERT_EQ(lastC.getConnectionStringPrefix(), "prefix");
+
+    ASSERT_EQ(lastC.getId(), lastS.getId());
+    ASSERT_EQ(lastC.getName(), lastS.getName());
+    ASSERT_EQ(lastC.getDescription(), lastS.getDescription());
+    ASSERT_EQ(lastC.getConnectionStringPrefix(), lastS.getConnectionStringPrefix());
+}
 

@@ -38,6 +38,7 @@ public:
     static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableDeviceTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -161,6 +162,16 @@ inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
     device.removeDevice(devs[0]);
 
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableDeviceTypes(const RpcContext& context,
+                                                                 const DevicePtr& device,
+                                                                 const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const auto devTypes = device.getAvailableDeviceTypes();
+    return devTypes;
 }
 
 }

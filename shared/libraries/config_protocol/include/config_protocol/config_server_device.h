@@ -37,6 +37,7 @@ public:
     static BaseObjectPtr isLocked(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -140,6 +141,26 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
 
     const auto dev = device.addDevice(connectionString, config);
     return ComponentHolder(dev);
+}
+
+inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+
+    const auto localId = params.get("LocalId");
+
+    const auto devs = device.getDevices(search::LocalId(localId));
+
+    if (devs.getCount() == 0)
+        throw NotFoundException("Device not found");
+
+    if (devs.getCount() > 1)
+        throw InvalidStateException("Duplicate device");
+
+    device.removeDevice(devs[0]);
+
+    return nullptr;
 }
 
 }

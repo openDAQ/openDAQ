@@ -690,3 +690,27 @@ TEST_F(ConfigProtocolIntegrationTest, AddDeviceCoreEventTrigger)
 {
     addDeviceTest(clientDevice, serverDevice);
 }
+
+void removeDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
+{
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+
+    clientDevice.removeDevice(clientDevice.getDevices()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 1);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 1);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    removeDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceCoreEventTrigger)
+{
+    removeDeviceTest(clientDevice, serverDevice);
+}
+
+

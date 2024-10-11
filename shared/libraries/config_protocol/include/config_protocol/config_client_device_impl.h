@@ -115,8 +115,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const Fun
     auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlock.getLocalId()}});
     this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveFunctionBlock", params);
 
-    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
-
     if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
     {
         this->removeNestedFunctionBlock(functionBlock);
@@ -167,8 +165,22 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
 }
 
 template <class TDeviceBase>
-void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& /*device*/)
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
+    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    if (!device.assigned())
+        throw InvalidParameterException();
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", device.getLocalId()}});
+    this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveDevice", params);
+
+    if (this->devices.hasItem(device.getLocalId()))
+    {
+        this->devices.removeItem(device);
+    }
 }
 
 template <class TDeviceBase>

@@ -145,6 +145,11 @@ namespace daq::config_protocol::test_utils
             return nullptr;
         }
 
+        void onRemoveDevice(const DevicePtr& device) override
+        {
+            devices.removeItem(device);
+        }
+
     };
 
     class MockSrvImpl final : public Server

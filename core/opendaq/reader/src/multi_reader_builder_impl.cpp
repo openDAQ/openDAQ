@@ -14,6 +14,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , readTimeoutType(ReadTimeoutType::All)
     , requiredCommonSampleRate(-1)
     , startOnFullUnitOfDomain(false)
+    , minReadCount(1)
 {
 }
 
@@ -127,6 +128,21 @@ ErrCode MultiReaderBuilderImpl::getStartOnFullUnitOfDomain(Bool* enabled)
 {
     OPENDAQ_PARAM_NOT_NULL(enabled);
     *enabled = startOnFullUnitOfDomain;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::setMinReadCount(SizeT minReadCount)
+{
+    this->minReadCount = minReadCount;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::getMinReadCount(SizeT* minReadCount)
+{
+    OPENDAQ_PARAM_NOT_NULL(minReadCount);
+
+    *minReadCount = this->minReadCount;
     return OPENDAQ_SUCCESS;
 }
 

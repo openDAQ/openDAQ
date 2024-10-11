@@ -52,6 +52,13 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
      * @param allowedOut[out] True if anonymous authentication is allowed.
      */
     virtual ErrCode INTERFACE_FUNC isAnonymousAllowed(Bool* allowedOut) = 0;
+
+    /*!
+     * @brief Authenticate as anonymous user. If anonymous authentication is not allowed, an exception is thrown.
+     * 
+     * @param user[out] Pointer to anonymous user instance. If authentication is not successful, an exception is thrown.
+     */
+    virtual ErrCode INTERFACE_FUNC authenticateAnonymous(IUser** userOut) = 0;
 };
 
 /*!@}*/

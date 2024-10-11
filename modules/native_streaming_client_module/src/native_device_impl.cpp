@@ -18,6 +18,7 @@ using namespace config_protocol;
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
                                        SizeT configProtocolRequestTimeout,
+                                       Bool restoreClientConfigOnReconnect,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId)
@@ -27,7 +28,9 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(ClientConnectionStatus::Connected)
+    , acceptNotificationPackets(true)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
+    , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
 {
 }
 
@@ -236,16 +239,19 @@ void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus s
     {
         try
         {
-            configProtocolClient->reconnect();
+            acceptNotificationPackets = true;
+            configProtocolClient->reconnect(restoreClientConfigOnReconnect);
         }
         catch(const std::exception& e)
         {
+            acceptNotificationPackets = false;
             LOG_W("Reconnection failed: {}", e.what());
             return;
         }
     }
     else
     {
+        acceptNotificationPackets = false;
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
     }
@@ -388,10 +394,14 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
     if (packet.getPacketType() == ServerNotification)
     {
-        // allow server notifications only if connected / reconnection finished
-        if (connectionStatus == ClientConnectionStatus::Connected)
+        // allow server notifications only if connected / reconnection started
+        if (acceptNotificationPackets)
         {
             configProtocolClient->triggerNotificationPacket(packet);
+        }
+        else
+        {
+            LOG_W("Notification packet from server ignored: \n{}\n", packet.parseServerNotification());
         }
     }
     else
@@ -418,7 +428,7 @@ void NativeDeviceHelper::doConfigNoReplyRequest(const config_protocol::PacketBuf
     sendConfigRequest(reqPacket);
 }
 
-void  NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& reqPacket)
+void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& reqPacket)
 {
     // using a thread id is a hacky way to disable all config requests
     // except those related to reconnection until reconnection is finished

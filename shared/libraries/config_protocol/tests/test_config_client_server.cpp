@@ -128,6 +128,7 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
     component->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(component));
+    EXPECT_CALL(component.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
     client->getClientComm()->setPropertyValue("/dev/comp/test", "PropName", "PropValue");
 
@@ -136,6 +137,14 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
 
 TEST_F(ConfigProtocolTest, SetPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
 
     client->getClientComm()->setPropertyValue("//root", "PropName", "PropValue");
@@ -145,6 +154,14 @@ TEST_F(ConfigProtocolTest, SetPropertyValueRoot)
 
 TEST_F(ConfigProtocolTest, SetProtectedPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").setReadOnly(True).build());
 
     ASSERT_THROW(client->getClientComm()->setPropertyValue("//root", "PropName", "PropValue"), AccessDeniedException);
@@ -155,6 +172,14 @@ TEST_F(ConfigProtocolTest, SetProtectedPropertyValueRoot)
 
 TEST_F(ConfigProtocolTest, ClearPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     device->setPropertyValue("PropName", "PropValue");
 
@@ -204,6 +229,14 @@ TEST_F(ConfigProtocolTest, GetChildObjectPropertyValue)
 
 TEST_F(ConfigProtocolTest, SetChildObjectPropertyValue)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     const auto defaultValue = PropertyObject();
     defaultValue.addProperty(StringPropertyBuilder("StringProp", "-").build());
     defaultValue.addProperty(IntPropertyBuilder("IntProp", 0).build());
@@ -217,6 +250,14 @@ TEST_F(ConfigProtocolTest, SetChildObjectPropertyValue)
 
 TEST_F(ConfigProtocolTest, CallProcedurePropertyOneParam)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     Int p1 = 0;
     device->addProperty(
         FunctionPropertyBuilder(
@@ -237,6 +278,14 @@ TEST_F(ConfigProtocolTest, CallProcedurePropertyOneParam)
 
 TEST_F(ConfigProtocolTest, CallProcedurePropertyTwoParams)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     Int p1 = 0;
     StringPtr p2;
     device->addProperty(
@@ -300,6 +349,14 @@ TEST_F(ConfigProtocolTest, AddFunctionBlock)
                                                                    "fb");
             });
 
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     auto params = Dict<IString, IBaseObject>({{"TypeId", "fbId"}});
     const ComponentHolderPtr fbHolder = client->getClientComm()->sendComponentCommand("//root", "AddFunctionBlock", params);
     ASSERT_EQ(fbHolder.getLocalId(), "fb");
@@ -314,6 +371,14 @@ TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
     auto functionBlocks = List<IFunctionBlock>(fb.ptr);
 
     EXPECT_CALL(fb.mock(), getLocalId(_)).WillRepeatedly(Get<StringPtr>(String("lid")));
+
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
 
     EXPECT_CALL(device.mock(), getFunctionBlocks(_, _))
         .WillRepeatedly([functionBlocks](IList** fbs, ISearchFilter* searchFilter)
@@ -358,6 +423,7 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), connect(_)).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
     auto params = ParamsDict({{"SignalId", "sig"}});
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
@@ -372,6 +438,7 @@ TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "DisconnectSignal");
 }
@@ -384,6 +451,14 @@ TEST_F(ConfigProtocolTest, GetTypeManager)
 
 TEST_F(ConfigProtocolTest, BeginEndUpdate)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
 
@@ -396,6 +471,14 @@ TEST_F(ConfigProtocolTest, BeginEndUpdate)
 
 TEST_F(ConfigProtocolTest, BeginEndUpdateWithProps)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
 
@@ -416,6 +499,14 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
 {
     StringPtr deviceName;
     StringPtr deviceDescription;
+
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
 
     EXPECT_CALL(device.mock(), setName(_)).WillOnce([&](IString* name)
     {

@@ -22,7 +22,7 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
-
+#include <coreobjects/user_ptr.h>
 #include <set>
 
 namespace daq::config_protocol
@@ -167,5 +167,12 @@ inline auto format_as(PacketType type)
     }
     return "Unknown type";
 }
+
+class RpcContext
+{
+public:
+    uint16_t protocolVersion = 0;
+    UserPtr user;
+};
 
 }

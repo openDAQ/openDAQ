@@ -42,7 +42,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, addFunctionBlock, (IFunctionBlock**, IString*, IPropertyObject*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, removeFunctionBlock, (IFunctionBlock*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, saveConfiguration, (IString**), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, loadConfiguration, (IString*), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, loadConfiguration, (IString*, IUpdateParameters*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getTicksSinceOrigin, (UInt*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, addStreaming, (IStreaming**, IString*, IPropertyObject*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, createDefaultAddDeviceConfig, (IPropertyObject**), (override MOCK_CALL));
@@ -50,6 +50,9 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, addServer, (IString*, IPropertyObject*, IServer**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, removeServer, (IServer*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getServers, (IList**), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, lock, (), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, unlock, (), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, isLocked, (Bool*), (override MOCK_CALL));
 };
 
 END_NAMESPACE_OPENDAQ

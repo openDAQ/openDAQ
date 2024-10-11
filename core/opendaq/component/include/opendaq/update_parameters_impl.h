@@ -15,28 +15,25 @@
  */
 
 #pragma once
-#include <coretypes/baseobject.h>
-#include <coretypes/serialized_object.h>
-#include <coretypes/serializer.h>
+#include <opendaq/update_parameters.h>
+#include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup types_utility
- * @defgroup types_updatable Updatable
- * @{
- */
-
-DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
+class UpdateParametersImpl : public GenericPropertyObjectImpl<IUpdateParameters>
 {
-    virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update, IBaseObject* config) = 0;
-    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
-    virtual ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) = 0;
-    virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* update, IBaseObject* context) = 0;
+public:
+    using Super = GenericPropertyObjectImpl<IUpdateParameters>;
+
+    UpdateParametersImpl();
+
+    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) override;
+
+protected:
+    template <typename T>
+    typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 };
 
-/*!
- * @}
- */
 
 END_NAMESPACE_OPENDAQ

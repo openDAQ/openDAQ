@@ -4411,3 +4411,77 @@ TEST_F(MultiReaderTest, ExpectSR)
     status = reader.read(nullptr, &count, 0);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Fail);
 }
+
+class MinReadCountTest : public MultiReaderTest, public testing::WithParamInterface<SizeT>
+{
+};
+
+TEST_P(MinReadCountTest, MinReadCount)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig2 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto multi = MultiReaderBuilder().addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig1.signal).setMinReadCount(20).build();
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    constexpr const SizeT SAMPLES = 20u;
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    int64_t domain[SAMPLES];
+
+    SizeT count{10};
+    MultiReaderStatusPtr status;
+
+    ASSERT_EQ(multi.getAvailableCount(), 0);
+
+    ASSERT_THROW(multi.read(valuesPerSignal, &count, GetParam()), InvalidParameterException);
+    count = 10;
+    ASSERT_THROW(multi.skipSamples(&count), InvalidParameterException);
+    count = 10;
+    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domain, &count, GetParam()), InvalidParameterException);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    ASSERT_EQ(multi.getAvailableCount(), 0);
+    count = 0;
+    status = multi.read(nullptr, &count, GetParam());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    ASSERT_EQ(multi.getAvailableCount(), 20);
+
+    count = 20;
+    multi.read(valuesPerSignal, &count, GetParam());
+
+    ASSERT_EQ(count, 20);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    ASSERT_EQ(multi.getAvailableCount(), 0);
+
+    sig0.setValueDescriptor(setupDescriptor(SampleType::Int32));
+
+    ASSERT_EQ(multi.getAvailableCount(), 0);
+
+    count = 0;
+    status = multi.read(nullptr, &count, GetParam());
+    ASSERT_EQ(count, 0);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+    count = 0;
+    status = multi.read(nullptr, &count, GetParam());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(count, 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(MinReadCountSuite, MinReadCountTest, testing::Values(0, 1000));

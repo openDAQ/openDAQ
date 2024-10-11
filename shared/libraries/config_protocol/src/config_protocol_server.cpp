@@ -97,41 +97,26 @@ ConfigProtocolServer::~ConfigProtocolServer()
         daqContext.getOnCoreEvent() -= event(this, &ConfigProtocolServer::coreEventCallback);
 }
 
-template <class SmartPtr, class F>
-BaseObjectPtr ConfigProtocolServer::bindComponentWrapper(const F& f, const ParamsDictPtr& params)
+template <class SmartPtr>
+void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler)
 {
-    const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
-    const auto component = findComponent(componentGlobalId);
+    auto wrappedHanler = [this, handler](const ParamsDictPtr& params)
+    {
+        RpcContext context;
+        context.protocolVersion = this->protocolVersion;
+        context.user = this->user;
 
-    if (!component.assigned())
-        throw NotFoundException("Component not found");
+        const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+        const auto component = findComponent(componentGlobalId);
 
-    const auto ptr = component.asPtr<typename SmartPtr::DeclaredInterface>();
+        if (!component.assigned())
+            throw NotFoundException("Component not found");
 
-    return f(ptr, params, this->user);
-}
+        const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
+        return handler(context, componentPtr, params);
+    };
 
-template <class SmartPtr, class Handler>
-void ConfigProtocolServer::addHandler(const std::string& name, const Handler& handler)
-{
-    using namespace std::placeholders;
-
-    auto h = std::bind(handler, _1, _2, _3, _4);
-
-    rpcDispatch.insert(
-        {
-            name,
-            [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
-            {
-                uint16_t protocolVersion = this->protocolVersion;
-                return bindComponentWrapper<SmartPtr>(
-                        [&h, protocolVersion](const SmartPtr& component, const ParamsDictPtr& params, const UserPtr& user) -> BaseObjectPtr
-                        {
-                            return h(protocolVersion, component, params, user);
-                        },
-                    params);
-            }
-        });
+    rpcDispatch.insert({name, wrappedHanler});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -158,6 +143,9 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
     addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
+    addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
+    addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
+    addHandler<DevicePtr>("IsLocked", &ConfigServerDevice::isLocked);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
@@ -388,25 +376,28 @@ BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr&
     return serializer.getOutput();
 }
 
-BaseObjectPtr ConfigProtocolServer::connectSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
 {
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
     if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
         throw InvalidParameterException("Mirrored external signal cannot be connected to server input port");
-    return ConfigServerInputPort::connect(protocolVersion, inputPort, signal, user);
+    return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 
-BaseObjectPtr ConfigProtocolServer::connectExternalSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& context,
+                                                          const InputPortPtr& inputPort,
+                                                          const ParamsDictPtr& params)
 {
     const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
-    return ConfigServerInputPort::connect(protocolVersion, inputPort, signal, user);
+    return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)
 {
-    streamingConsumer.removeExternalSignals(params);
+    ConfigServerAccessControl::protectLockedComponent(rootDevice);
 
+    streamingConsumer.removeExternalSignals(params);
     return nullptr;
 }
 

@@ -25,6 +25,8 @@
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/server.h>
+#include <opendaq/update_parameters.h>
+#include <coreobjects/user.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: DevicePtr)]
  * [interfaceSmartPtr(IDevice, GenericDevicePtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
+ * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
  */
 
 /*!
@@ -238,7 +241,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @brief Loads the configuration of the device from string.
      * @param configuration Serialized configuration of the device.
      */
-    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) = 0;
+    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr) = 0;
 
     /*!
      * @brief Gets the number of ticks passed since the device's absolute origin.
@@ -302,6 +305,25 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] servers List of added servers.
      */
     virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
+
+    /*!
+     * @brief Lock a device with a session user. Once locked, no properties of the device can be changed via the protocol layer.
+     * Only the same user who locked the device can unlock it. If no user was specified when the device was locked, any user
+     * will be able to unlock it.
+     */
+    virtual ErrCode INTERFACE_FUNC lock() = 0;
+
+    /*!
+     * @brief Unlock a device with a session user. A device can only be unlocked by the same user who locked it.
+     * If no user was specified when the device was locked, any user will be able to unlock it.
+     */
+    virtual ErrCode INTERFACE_FUNC unlock() = 0;
+
+    /*!
+     * @brief Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.
+     * @param[out] locked True if device is locked.
+     */
+    virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;
 };
 /*!@}*/
 

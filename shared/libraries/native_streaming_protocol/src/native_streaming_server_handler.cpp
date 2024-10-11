@@ -189,14 +189,17 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
     {
         case AuthenticationType::Anonymous:
         {
-            if (authProvider.isAnonymousAllowed())
+            try
             {
-                auto anonymousUser = User("", "");
-                userContextOut = std::shared_ptr<daq::IUser>(anonymousUser.detach(), UserContextDeleter());
+                UserPtr user = authProvider.authenticateAnonymous();
+                userContextOut = std::shared_ptr<daq::IUser>(user.detach(), UserContextDeleter());
                 return true;
             }
+            catch (const DaqException& e)
+            {
+                LOG_W("Anonymous authentication rejected: ", e.what());
+            }
 
-            LOG_W("Anonymous authentication rejected");
             break;
         }
         case AuthenticationType::Basic:
@@ -423,6 +426,8 @@ void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<Se
 
 void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
+    std::scoped_lock lock(sync);
+
     streamingManager.registerClient(sessionHandler->getClientId(), sessionHandler->getReconnected());
 
     auto registeredSignals = streamingManager.getRegisteredSignals();

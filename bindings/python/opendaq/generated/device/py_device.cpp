@@ -256,13 +256,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         "Saves the configuration of the device to string.");
     cls.def("load_configuration",
-        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration, daq::IUpdateParameters* config)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration));
+            objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration), config);
         },
-        py::arg("configuration"),
+        py::arg("configuration"), py::arg("config") = nullptr,
         "Loads the configuration of the device from string.");
     cls.def_property_readonly("ticks_since_origin",
         [](daq::IDevice *object)
@@ -325,4 +325,25 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Get list of added servers.");
+    cls.def("lock",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.lock();
+        },
+        "Lock a device with a session user. Once locked, no properties of the device can be changed via the protocol layer. Only the same user who locked the device can unlock it. If no user was specified when the device was locked, any user will be able to unlock it.");
+    cls.def("unlock",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.unlock();
+        },
+        "Unlock a device with a session user. A device can only be unlocked by the same user who locked it. If no user was specified when the device was locked, any user will be able to unlock it.");
+    cls.def_property_readonly("locked",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.isLocked();
+        },
+        "Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.");
 }

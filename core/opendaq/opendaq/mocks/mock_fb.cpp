@@ -13,6 +13,7 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
+    , nesteadFbCount(1)
 {
     this->tags.add("mock_fb");
 
@@ -29,6 +30,20 @@ DictPtr<IString, IFunctionBlockType> MockFunctionBlockImpl::onGetAvailableFuncti
     });
     return fbTypes;
 }
+
+FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    if (typeId == "NestedFBId")
+    {
+        auto fbLocaId = "NestedFBId" + std::to_string(nesteadFbCount++);
+        auto childFB = MockNestedFunctionBlock(
+            FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, fbLocaId);
+        this->addNestedFunctionBlock(childFB);
+        return childFB;
+    }
+    throw NotSupportedException("Mock function block supports only NestedFBId");
+}
+
 
 void MockFunctionBlockImpl::createFunctionBlocks()
 {

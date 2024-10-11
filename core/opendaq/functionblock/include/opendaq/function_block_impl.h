@@ -279,27 +279,6 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
                      { updateInputPort(localId, obj, context); });
     }
 
-    if (obj.hasKey("FB"))
-    {
-        const auto fbFolder = obj.readSerializedObject("FB");
-        fbFolder.checkObjectType("Folder");
-        auto serializedItems = this->getSerializedItems(fbFolder);
-
-        if (!serializedItems.empty())
-        {
-            auto availableFbs = onGetAvailableFunctionBlockTypes();
-            for (const auto& [id, serializedItem] : serializedItems)
-            {
-                serializedItem.checkObjectType("FunctionBlock");
-                const auto typeId = serializedItem.readString("typeId");
-                if (!availableFbs.hasKey(typeId))
-                {
-                    throw NotSupportedException("Function block type not supported");
-                }
-            }
-        }
-    }
-
     return Super::updateObject(obj, context);
 }
 
@@ -351,19 +330,21 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
                                                                        const SerializedObjectPtr& serializedFunctionBlock,
                                                                        const BaseObjectPtr& context)
 {
+    UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
-        DAQLOGF_W(loggerComponent,
-                  "Sub function block "
-                  "{}"
-                  "not found",
-                  fbId);
-        return;
+        auto typeId = serializedFunctionBlock.readString("typeId");
+
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("LocalId", fbId));
+
+        auto fb = onAddFunctionBlock(typeId, config);
+        updatableFb = fb.template asPtr<IUpdatable>(true);
     }
-
-    const auto fb = this->functionBlocks.getItem(fbId);
-
-    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
+    else
+    {
+        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
+    }
 
     updatableFb.updateInternal(serializedFunctionBlock, context);
 }

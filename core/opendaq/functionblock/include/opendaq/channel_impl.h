@@ -44,11 +44,11 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
-
-
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock, const BaseObjectPtr& context) override;
 };
 
 template <typename... Interfaces>
@@ -95,20 +95,27 @@ ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
 }
 
 template <typename... Interfaces>
-void ChannelImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
+void ChannelImpl<Interfaces...>::updateFunctionBlock(const std::string& fbId,
+                                                     const SerializedObjectPtr& serializedFunctionBlock,
+                                                     const BaseObjectPtr& context)
 {
-    if (obj.hasKey("IP"))
+    if (!this->functionBlocks.hasItem(fbId))
     {
-        const auto ipFolder = obj.readSerializedObject("IP");
-        this->updateFolder(ipFolder,
-                     "Folder",                    
-                     "InputPort",
-                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
-                     { Super::updateInputPort(localId, obj, context); });
+        DAQLOGF_W(this->loggerComponent,
+                  "Sub function block "
+                  "{}"
+                  "not found",
+                  fbId);
+        return;
     }
 
-    return Super::Super::updateObject(obj, context);
+    const auto fb = this->functionBlocks.getItem(fbId);
+
+    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
+
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
+
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Channel)
 
 END_NAMESPACE_OPENDAQ

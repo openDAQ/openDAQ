@@ -30,10 +30,10 @@ class AddFunctionBlockDialog(Dialog):
             yscrollcommand=parent_device_scroll_bar.set)
         parent_device_scroll_bar.pack(side="right", fill="y")
 
-        parent_device_tree.heading('#0', text='Parent device')
+        parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
         parent_device_tree.column(
-            '#0', anchor=tk.W, width=200, stretch=True)
+            '#0', anchor=tk.W, minwidth=200, stretch=True)
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
@@ -53,15 +53,15 @@ class AddFunctionBlockDialog(Dialog):
         scroll_bar.pack(side="right", fill="y")
 
         # define headings
-        tree.heading('id', text='TypeId')
-        tree.heading('name', text='Name')
+        tree.heading('id', text='TypeId', anchor=tk.W)
+        tree.heading('name', text='Name', anchor=tk.W)
 
         # layout
-        tree.column('#0', anchor=tk.CENTER, width=0, stretch=False)
-        tree.column('#1', anchor=tk.CENTER, width=300 *
-                                                  self.context.ui_scaling_factor, stretch=False)
-        tree.column('#2', anchor=tk.CENTER, width=300 *
-                                                  self.context.ui_scaling_factor, stretch=True)
+        tree.column('#0', width=0, stretch=False)
+        tree.column('id', anchor=tk.W, minwidth=200, width=300 *
+                    self.context.ui_scaling_factor, stretch=False)
+        tree.column('name', anchor=tk.W, minwidth=200, width=300 *
+                    self.context.ui_scaling_factor)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
@@ -74,9 +74,9 @@ class AddFunctionBlockDialog(Dialog):
         self.device_tree = parent_device_tree
         self.fb_tree = tree
 
-        self.grid_rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=2)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=2)
+        self.grid_columnconfigure((0,1), uniform='uniform')
 
         self.initial_update_func = lambda: self.update_parent_devices(
             self.device_tree, '', self.context.instance)

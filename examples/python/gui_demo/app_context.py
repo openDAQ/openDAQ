@@ -11,6 +11,9 @@ class DeviceInfoLocal:
 
 
 class AppContext(object):
+
+    default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
+
     def __init__(self):
 
         # logic

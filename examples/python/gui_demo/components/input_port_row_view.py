@@ -18,11 +18,10 @@ class InputPortRowView(tk.Frame):
 
         self.configure(padx=10, pady=5)
 
-        ttk.Label(self, text=input_port.name).pack(side=tk.LEFT, padx=5)
+        ttk.Label(self, text=input_port.name).grid(row=0, column=0, sticky=tk.NSEW)
         self.input_var = tk.StringVar()
         self.dropdown = ttk.Combobox(self, textvariable=self.input_var)
-        self.dropdown.pack(side=tk.LEFT, fill=tk.X, padx=5, expand=True)
-
+        self.dropdown.grid(row=0, column=1, sticky=tk.NSEW)
         self.dropdown.bind('<<ComboboxSelected>>', self.handle_dropdown_select)
         self.dropdown.configure(state='readonly')
 
@@ -30,13 +29,20 @@ class InputPortRowView(tk.Frame):
         self.connect_icon = context.icons['link'] if context and context.icons and 'link' in context.icons else None
         self.disconnect_icon = context.icons['unlink'] if context and context.icons and 'unlink' in context.icons else None
 
-        self.edit_button = tk.Button(
-            self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
-        self.edit_button.pack(side=tk.RIGHT)
-
         self.connect_button = tk.Button(
             self, text='Connect', image=self.connect_icon, borderwidth=0, command=self.handle_connect_clicked)
-        self.connect_button.pack(side=tk.RIGHT, padx=5)
+        self.connect_button.grid(row=0, column=2, sticky=tk.NSEW)
+
+        self.edit_button = tk.Button(
+            self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
+        self.edit_button.grid(row=0, column=3, sticky=tk.NSEW)
+
+        self.grid_columnconfigure(0, weight=3)
+        self.grid_columnconfigure(1, weight=16)
+        self.grid_columnconfigure(2, weight=1, minsize=30)
+        self.grid_columnconfigure(3, weight=1, minsize=30)
+        self.grid_columnconfigure((0,1,2,3), uniform='uniform')
+
 
         device = root_device(input_port)
         device = device if device is not None and daq.IDevice.can_cast_from(

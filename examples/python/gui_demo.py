@@ -81,7 +81,7 @@ class App(tk.Tk):
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1400 * self.context.ui_scaling_factor, 1000 * self.context.ui_scaling_factor))
+            1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
 
         main_frame_top = tk.Frame(self)
         main_frame_top.pack(fill=tk.constants.X)
@@ -139,6 +139,7 @@ class App(tk.Tk):
         style.configure('Treeview', rowheight=30 * self.context.ui_scaling_factor)
 
         style.configure("Treeview.Heading", font='Arial 10 bold')
+        style.configure("Treeview.Column", padding=(5 * self.context.ui_scaling_factor))
 
         default_font = tkfont.nametofont("TkDefaultFont")
         default_font.configure(size=9 * self.context.ui_scaling_factor)
@@ -452,11 +453,8 @@ class App(tk.Tk):
 
     # MARK: - Right hand side panel
 
-    def find_fb_or_device(self, node):
-
-        if node is None:
-            return None
-        elif daq.IChannel.can_cast_from(node):
+    def find_fb_device_folder(self, node):
+        if daq.IChannel.can_cast_from(node):
             return daq.IChannel.cast_from(node)
         elif daq.IFunctionBlock.can_cast_from(node):
             return daq.IFunctionBlock.cast_from(node)
@@ -464,10 +462,12 @@ class App(tk.Tk):
             return daq.IDevice.cast_from(node)
         elif daq.ISyncComponent.can_cast_from(node):
             return daq.ISyncComponent.cast_from(node)
-        else:
-            if daq.IFolderConfig.can_cast_from(node):
-                folder = daq.IFolderConfig.cast_from(node)
-            return self.find_fb_or_device(node.parent)
+        elif daq.IFolder.can_cast_from(node):
+            folder = daq.IFolder.cast_from(node)
+            if folder.name not in AppContext.default_folders:
+                return folder
+        
+        return self.find_fb_device_folder(node.parent) if node is not None else None
 
     def right_side_panel_clear(self):
         for widget in self.right_side_panel.children.values():
@@ -477,56 +477,63 @@ class App(tk.Tk):
         if node is None:
             return
 
-        found = self.find_fb_or_device(
+        found = self.find_fb_device_folder(
             node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
-        elif type(found) in (daq.IChannel, daq.IFunctionBlock):
+        elif type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
 
             upper_nodes = list()
 
-            if daq.IFunctionBlock.can_cast_from(found):  # traversing up
-                current = found.parent
-                while current is not None:
-                    if daq.IDevice.can_cast_from(current):
-                        break  # stop at device
-                    if daq.ISyncComponent.can_cast_from(current):
-                        break  # stop at sync component
-                    if daq.IFolder.can_cast_from(current):
-                        if current.local_id == 'IO':
-                            break  # stop at IO folder
-                        elif current.local_id == 'FB':
-                            pass  # skip FB folder
-                        else:
-                            upper_nodes.append(
-                                daq.IFolder.cast_from(current))
-                    elif daq.IFunctionBlock.can_cast_from(current):
+            current = found.parent
+            while current is not None:
+                if daq.IDevice.can_cast_from(current):
+                    break  # stop at device
+                if daq.ISyncComponent.can_cast_from(current):
+                    break  # stop at sync component
+                if daq.IFolder.can_cast_from(current):
+                    if current.local_id == 'IO':
+                        break  # stop at IO folder
+                    elif current.local_id == 'FB':
+                        pass  # skip FB folder
+                    else:
                         upper_nodes.append(
-                            daq.IFunctionBlock.cast_from(current))
-                    current = current.parent
+                            daq.IFolder.cast_from(current))
+                elif daq.IFunctionBlock.can_cast_from(current):
+                    upper_nodes.append(
+                        daq.IFunctionBlock.cast_from(current))
+                current = current.parent
 
             for upper_node in reversed(upper_nodes):
                 block_view = BlockView(
                     self.right_side_panel, upper_node, self.context)
                 block_view.pack(fill=tk.X, padx=5, pady=5)
 
-            def draw_sub_fbs(fb, level=0):
-                if fb is None:
+            def draw_sub_components(component, level=0):
+                if component is None:
                     return
 
-                if daq.IFunctionBlock.can_cast_from(fb):
-                    fb = daq.IFunctionBlock.cast_from(fb)
-                    b = BlockView(self.right_side_panel, fb,
+                if daq.IFunctionBlock.can_cast_from(component):
+                    component = daq.IFunctionBlock.cast_from(component)
+                    b = BlockView(self.right_side_panel, component,
                                   self.context, level == 0)
                     b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
+                    if component.has_item('FB'):
+                        fb_folder = component.get_item('FB')
+                        fb_folder = daq.IFolder.cast_from(fb_folder)
+                        for component in fb_folder.items:
+                            draw_sub_components(component, level + 1)
+                elif daq.IFolder.can_cast_from(component):
+                    component = daq.IFolder.cast_from(component)
+                    if component.name not in AppContext.default_folders:                    
+                        b = BlockView(self.right_side_panel, component,
+                                    self.context, level == 0)
+                        b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
 
-                if fb.has_item('FB'):
-                    fb_folder = fb.get_item('FB')
-                    fb_folder = daq.IFolder.cast_from(fb_folder)
-                    for fb in fb_folder.items:
-                        draw_sub_fbs(fb, level + 1)
+                        for item in component.items:
+                            draw_sub_components(item, level + 1)
 
-            draw_sub_fbs(found)
+            draw_sub_components(found)
 
         elif type(found) in (daq.IDevice, daq.IComponent, daq.ISyncComponent):
             block_view = BlockView(self.right_side_panel, found, self.context)

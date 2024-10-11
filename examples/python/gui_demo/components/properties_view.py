@@ -27,11 +27,11 @@ class PropertiesView(tk.Frame):
         tree.pack(fill="both", expand=True)
 
         # define headings
-        tree.heading('#0', text='Property name')
-        tree.heading('value', text='Value')
+        tree.heading('#0', anchor=tk.W, text='Property name')
+        tree.heading('value', anchor=tk.W, text='Value')
         # layout
-        tree.column('#0', anchor=tk.CENTER)
-        tree.column('#1', anchor=tk.CENTER)
+        tree.column('#0', anchor=tk.W)
+        tree.column('#1', anchor=tk.W)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)

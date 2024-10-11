@@ -36,6 +36,9 @@ class BlockView(tk.Frame):
         self.folder_img = None
         self.component_img = None
         self.sync_component_img = None
+
+        self.rows = []
+        self.cols = []
         
         if context and context.icons:
             if 'settings' in context.icons:
@@ -89,6 +92,8 @@ class BlockView(tk.Frame):
                 self.output_signals = OutputSignalsView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.device_img)
+                self.cols = [0, 1]
+                self.rows = [0]
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -98,21 +103,29 @@ class BlockView(tk.Frame):
                 self.output_signals = OutputSignalsView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.function_block_img)
+                self.cols = [0, 1]
+                self.rows = [0, 1]
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.folder_img)
+                self.cols = [0]
+                self.rows = [0]
             elif daq.ISyncComponent.can_cast_from(self.node):
                 self.node = daq.ISyncComponent.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.sync_component_img)
+                self.cols = [0]
+                self.rows = [0]
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.component_img)
+                self.cols = [0]
+                self.rows = [0]
         self.on_expand()
 
     def handle_expand_toggle(self):
@@ -122,25 +135,19 @@ class BlockView(tk.Frame):
     def on_expand(self):
         if self.expanded:
             self.expanded_frame.pack(fill=tk.BOTH)
-            self.expanded_frame.grid_columnconfigure(0, weight=1, minsize=300)
-            self.expanded_frame.grid_rowconfigure(0, weight=1, minsize=200)
+            self.expanded_frame.grid_columnconfigure(self.cols, weight=1, minsize=300, uniform='column')
+            self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=200)
 
             if self.properties is not None:
                 self.properties.grid(
-                    row=0, column=0, rowspan=2 if self.properties and self.output_signals else 1, sticky=tk.NSEW)
+                    row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)
 
             if self.input_ports is not None:
                 self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-                self.expanded_frame.grid_columnconfigure(
-                    1, weight=1, minsize=300)
-
+                
             if self.output_signals is not None:
                 self.output_signals.grid(
                     row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
-                self.expanded_frame.grid_rowconfigure(
-                    1 if self.input_ports else 0, weight=1, minsize=200)
-                self.expanded_frame.grid_columnconfigure(
-                    1, weight=1, minsize=300)
 
             self.toggle_button.config(text='-', image=self.expanded_img)
         else:  # collapsed

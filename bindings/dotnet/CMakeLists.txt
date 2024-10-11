@@ -41,9 +41,10 @@ set(test_path ${bindingsDir}/test_results)
 set(outFile ${outputBinDir}/${outputFileName})
 set(nuget_config --configfile "./.nuget/NuGet.Config" --ignore-failed-sources) # "/property:Configuration=$<CONFIG>_Build")
 set(dotnet_config --configuration $<CONFIG>_Build)
-set(msbuild_parameters -p:NoWarn=1591 -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION}) # suppress: Warning CS1591 Missing XML comment for publicly visible type or member xy
-#set(dotnet_cmd_args ${projectFileName} --no-restore ${dotnet_config} --framework net6.0 --verbosity minimal ${msbuild_parameters})
-#set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --framework net6.0 --verbosity minimal ${nuget_config} ${msbuild_parameters})
+# suppress warnings:
+# > CS1591: Missing XML comment for publicly visible type or member 'xyz'.
+# > NU1801: The local source 'path' doesn't exist.
+set(msbuild_parameters -p:NoWarn="CS1591,NU1801" -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION})
 set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --verbosity minimal ${nuget_config} ${msbuild_parameters})
 set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} --logger """junit\\\;LogFilePath=${test_path}/test_${targetName}.xml""")
 #set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})

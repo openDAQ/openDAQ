@@ -53,8 +53,9 @@ class PropertiesView(tk.Frame):
         for key, value in node.as_dictionary.items():
             iid = key if parent_iid is None else parent_iid + "." + key
             self.nodes_by_iids[iid] = node
-            self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=key, values=(value,))
-                    
+            self.tree.insert('' if not parent_iid else parent_iid,
+                             tk.END, iid=iid, text=key, values=(value,))
+
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:

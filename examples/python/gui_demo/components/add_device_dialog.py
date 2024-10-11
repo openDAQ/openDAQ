@@ -98,11 +98,14 @@ class AddDeviceDialog(Dialog):
 
         self.dialog_parent_device = None
 
-        self.initial_update_func = lambda: self.update_parent_devices(
+        self.initial_update_func = lambda: self.initial_update()
+
+    def initial_update(self):
+        self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)
-        self.after('idle', lambda: self.select_parent_device(
-            self.context.instance.global_id))
-        
+        self.select_parent_device(
+            self.context.instance.global_id)
+
     def select_parent_device(self, device_id: str):
         if self.parent_device_tree.exists(device_id):
             self.parent_device_tree.selection_set(device_id)

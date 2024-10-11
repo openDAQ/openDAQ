@@ -30,7 +30,7 @@ class BlockView(tk.Frame):
         self.edit_image = None
         self.collapsed_img = None
         self.expanded_img = None
-        
+
         self.device_img = None
         self.function_block_img = None
         self.folder_img = None
@@ -39,7 +39,7 @@ class BlockView(tk.Frame):
 
         self.rows = []
         self.cols = []
-        
+
         if context and context.icons:
             if 'settings' in context.icons:
                 self.edit_image = context.icons['settings']
@@ -47,7 +47,7 @@ class BlockView(tk.Frame):
                 self.collapsed_img = context.icons['right']
             if 'down' in context.icons:
                 self.expanded_img = context.icons['down']
-            
+
             if 'device' in context.icons:
                 self.device_img = context.icons['device']
             if 'function_block' in context.icons:
@@ -135,8 +135,10 @@ class BlockView(tk.Frame):
     def on_expand(self):
         if self.expanded:
             self.expanded_frame.pack(fill=tk.BOTH)
-            self.expanded_frame.grid_columnconfigure(self.cols, weight=1, minsize=300, uniform='column')
-            self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=200)
+            self.expanded_frame.grid_columnconfigure(
+                self.cols, weight=1, minsize=300, uniform='column')
+            self.expanded_frame.grid_rowconfigure(
+                self.rows, weight=1, minsize=200)
 
             if self.properties is not None:
                 self.properties.grid(
@@ -144,7 +146,7 @@ class BlockView(tk.Frame):
 
             if self.input_ports is not None:
                 self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-                
+
             if self.output_signals is not None:
                 self.output_signals.grid(
                     row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)

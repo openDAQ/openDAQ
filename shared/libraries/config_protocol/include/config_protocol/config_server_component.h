@@ -216,7 +216,7 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    deserializer.update(updatable, serializedString);
+    deserializer.update(updatable, serializedString, nullptr);
 
     return nullptr;
 }

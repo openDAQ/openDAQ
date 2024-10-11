@@ -18,14 +18,17 @@
 #include <opendaq/component_update_context.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/update_parameters_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext>
 {
 public:
-    ComponentUpdateContextImpl(const ComponentPtr& curComponent)
-        : connections(Dict<IString, IBaseObject>())
+
+    ComponentUpdateContextImpl(const ComponentPtr& curComponent, const UpdateParametersPtr& config)
+        : config(config.assigned() ? config : UpdateParameters())
+        , connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
         , parentDependencies(List<IString>())
         , rootComponent(getRootComponent(curComponent))
@@ -39,12 +42,16 @@ public:
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
 
+    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+
 private:
 
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
     static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
     static StringPtr getRemoteId(const std::string& globalId);
+
+    UpdateParametersPtr config;
 
     DictPtr<IString, IBaseObject> connections;
     DictPtr<IString, IString> signalDependencies;
@@ -245,6 +252,11 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     parentComponent->findComponent(signalLocalId, &signalComponent);
     *signal = signalComponent.asPtrOrNull<ISignal>().detach();
     return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
+{
+    return config->getReAddDevicesEnabled(enabled);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -21,6 +21,7 @@ try:
     from gui_demo.components.block_view import BlockView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
+    from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from gui_demo.app_context import *
     from gui_demo.utils import *
     from gui_demo.app_context import *
@@ -29,6 +30,7 @@ except:
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
+    from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from opendaq.gui_demo.app_context import *
     from opendaq.gui_demo.utils import *
     from opendaq.gui_demo.app_context import *
@@ -407,14 +409,8 @@ class App(tk.Tk):
         file.close()
 
     def handle_load_config_button_clicked(self):
-        file = askopenfile(initialfile='config.json', title="Load configuration",
-                           defaultextension=".json", filetypes=[("All Files", "*.*"), ("Json", "*.json")])
-        if file is None:
-            return
-        config_string = file.read()
-        file.close()
-
-        self.context.instance.load_configuration(config_string)
+        dialog = LoadInstanceConfigDialog(self, self.context)
+        dialog.show()
         self.tree_update()
 
     def handle_refresh_button_clicked(self):

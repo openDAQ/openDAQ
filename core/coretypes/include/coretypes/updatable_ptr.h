@@ -83,12 +83,12 @@ public:
         return *this;
     }
 
-    void update(const SerializedObjectPtr& update) const
+    void update(const SerializedObjectPtr& update, const BaseObjectPtr& config) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->update(update);
+        auto errCode = this->object->update(update, config);
         daq::checkErrorInfo(errCode);
     }
 

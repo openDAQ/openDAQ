@@ -1133,7 +1133,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         StringPtr id;
         for (auto const& [typeId, type] : types)
         {
-            if (type.getConnectionStringPrefix()== prefix)
+            if (type.getConnectionStringPrefix() == prefix)
             {
                 id = typeId;
                 break;

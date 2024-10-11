@@ -256,13 +256,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         "Saves the configuration of the device to string.");
     cls.def("load_configuration",
-        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration)
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& configuration, daq::IUpdateParameters* config)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration));
+            objectPtr.loadConfiguration(getVariantValue<daq::IString*>(configuration), config);
         },
-        py::arg("configuration"),
+        py::arg("configuration"), py::arg("config") = nullptr,
         "Loads the configuration of the device from string.");
     cls.def_property_readonly("ticks_since_origin",
         [](daq::IDevice *object)

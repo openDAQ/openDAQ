@@ -59,6 +59,9 @@ public:
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
+
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
 
@@ -77,8 +80,10 @@ protected:
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
 
+/*
     void beginApplyUpdate() override;
     void endApplyUpdate() override;
+    */
 
     bool remoteUpdating;
 
@@ -115,6 +120,9 @@ public:
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
+
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
 
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
                                              IBaseObject* context,
@@ -169,8 +177,8 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* prop
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    if (this->updateCount > 0)
-        return Impl::setPropertyValue(propertyName, value);
+//    if (this->updateCount > 0)
+//        return Impl::setPropertyValue(propertyName, value);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
     const auto valuePtr = BaseObjectPtr::Borrow(value);
@@ -316,7 +324,6 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
-/*
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
@@ -340,7 +347,7 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
                 path = this->path.toStdString();
             clientComm->endUpdate(remoteGlobalId, path);
         });
-}*/
+}
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
@@ -630,6 +637,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
     }
 }
 
+/*
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::beginApplyUpdate()
 {
@@ -668,7 +676,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::endApplyUpdate()
     this->updatingPropsAndValues.clear();
 
     clientComm->endUpdate(remoteGlobalId, getPath(), propsAndValuesEx);
-}
+}*/
 
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::applyUpdatingPropsAndValuesProtocolVer0()
@@ -882,6 +890,22 @@ inline ErrCode ConfigClientPropertyObjectImpl::removeProperty(IString* propertyN
     if (remoteUpdating)
         return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::removeProperty(propertyName);
     return ConfigClientPropertyObjectBaseImpl<GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::removeProperty(propertyName);
+}
+
+inline ErrCode ConfigClientPropertyObjectImpl::beginUpdate()
+{
+    if (remoteUpdating)
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::beginUpdate();
+    return ConfigClientPropertyObjectBaseImpl<
+        GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::beginUpdate();
+}
+
+inline ErrCode ConfigClientPropertyObjectImpl::endUpdate()
+{
+    if (remoteUpdating)
+        return GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>::endUpdate();
+    return ConfigClientPropertyObjectBaseImpl<
+        GenericPropertyObjectImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>::endUpdate();
 }
 
 inline ErrCode ConfigClientPropertyObjectImpl::deserializeValues(ISerializedObject* serializedObject,

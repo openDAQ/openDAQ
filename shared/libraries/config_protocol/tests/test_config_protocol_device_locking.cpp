@@ -83,7 +83,7 @@ public:
 protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
-    size_t counter = 0;
+    Int counter = 0;
 
 private:
     std::unique_ptr<ConfigProtocolServer> server;
@@ -196,7 +196,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, SetProtectedPropertyValue)
 TEST_F(ConfigProtocolDeviceLockingTest, CallProperty)
 {
     auto device = createDevice();
-    SizeT counter = 0;
+    Int counter = 0;
 
     {
         const auto func = Function([&counter]() { return ++counter; });
@@ -215,9 +215,9 @@ TEST_F(ConfigProtocolDeviceLockingTest, CallProperty)
 
     clientDevice.unlock();
 
-    ASSERT_EQ(counter, 0u);
+    ASSERT_EQ(counter, 0);
     auto result = clientDevice.getPropertyValue("CountProp").call();
-    ASSERT_EQ(result, 1u);
+    ASSERT_EQ(result, 1);
 }
 
 TEST_F(ConfigProtocolDeviceLockingTest, CallConstProperty)
@@ -464,7 +464,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, NestedCallProperty)
 
     clientDevice.unlock();
 
-    ASSERT_EQ(counter, 0u);
+    ASSERT_EQ(counter, 0);
     auto result = clientDevice.getPropertyValue("Advanced.CountProp").call();
-    ASSERT_EQ(result, 1u);
+    ASSERT_EQ(result, 1);
 }

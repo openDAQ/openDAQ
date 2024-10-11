@@ -1,3 +1,14 @@
+11.10.2024
+Description
+    - Add methods in function block to add/remove nestead fb
+
+Required integration changes:
+    - Breaks binary compatibility
+
+IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
+IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
+IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
+
 10.10.2024
 Description
     - Restoring the device while loading the configuration.

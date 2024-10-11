@@ -13,7 +13,7 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
-    , nesteadFbCount(1)
+    , nesteadFbCount(0)
 {
     this->tags.add("mock_fb");
 
@@ -31,7 +31,7 @@ DictPtr<IString, IFunctionBlockType> MockFunctionBlockImpl::onGetAvailableFuncti
     return fbTypes;
 }
 
-FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& /* config */)
 {
     if (typeId == "NestedFBId")
     {
@@ -47,9 +47,7 @@ FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& type
 
 void MockFunctionBlockImpl::createFunctionBlocks()
 {
-    auto childFB = MockNestedFunctionBlock(
-        FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, "NestedFBId");
-    this->addNestedFunctionBlock(childFB);
+   onAddFunctionBlock("NestedFBId", nullptr);
 }
 
 void MockFunctionBlockImpl::createInputPorts()

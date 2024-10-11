@@ -837,6 +837,83 @@ TEST_F(InstanceTest, SaveLoadFunctionConnectingSignalFromDev)
     ASSERT_EQ(restoredSig.getGlobalId(), signalId);
 }
 
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb2)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    auto fb = instance2.addFunctionBlock("mock_fb_uid");
+    fb.addFunctionBlock("NestedFBId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb3)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    auto fb = instance2.addFunctionBlock("mock_fb_uid");
+    fb.addFunctionBlock("NestedFBId");
+    fb.addFunctionBlock("NestedFBId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
 TEST_F(InstanceTest, DISABLED_SaveLoadServers)
 {
     StringPtr config;

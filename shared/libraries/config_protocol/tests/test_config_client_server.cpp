@@ -17,6 +17,7 @@
 #include <opendaq/component_holder_ptr.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/device_type_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -306,7 +307,7 @@ TEST_F(ConfigProtocolTest, CallProcedurePropertyTwoParams)
     ASSERT_EQ(p2, "value");
 }
 
-TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
+TEST_F(ConfigProtocolTest, GetAvailableFunctionBlockTypes)
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
@@ -561,6 +562,23 @@ TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
     EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
 
     client->getClientComm()->sendComponentCommand("/dev", "GetAvailableDevices");
+}
+
+TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
+{
+    const auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
+    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+
+    auto devTypes = Dict<IString, IDeviceType>();
+    devTypes.set("Id", DeviceType("Id", "Name", "Desc", "Prefix", defaultConfig));
+
+    EXPECT_CALL(device.mock(), getAvailableDeviceTypes(_)).WillOnce(daq::Get<DictPtr<IString, IDeviceType>>(devTypes));
+
+    const DictPtr<IString, IDeviceType> value =
+        client->getClientComm()->sendComponentCommand("//root", "GetAvailableDeviceTypes");
+    ASSERT_EQ(devTypes.get("Id"), value.get("Id"));
+    ASSERT_EQ(devTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
 }
 
 

@@ -174,9 +174,17 @@ TEST_F(RegressionTestDevice, getAvailableDevices)
 
 TEST_F(RegressionTestDevice, getAvailableDeviceTypes)
 {
-    DictPtr<IString, IDeviceType> types;
-    ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
-    ASSERT_EQ(types.getCount(), 0);
+    if (protocol == "opcua" || protocol == "lt" || protocol == "ns")
+    {
+        DictPtr<IString, IDeviceType> types;
+        ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
+        ASSERT_EQ(types.getCount(), 0);
+    }
+    else if (protocol == "nd")
+    {
+        ASSERT_THROW_MSG(
+            device.getAvailableDeviceTypes(), DaqException, "Operation not supported by the protocol version currently in use");
+    }
 }
 
 TEST_F(RegressionTestDevice, getFunctionBlocks)

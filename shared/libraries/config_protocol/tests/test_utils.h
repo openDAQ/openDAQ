@@ -20,7 +20,6 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/server_impl.h>
-#include "opendaq/device_type_factory.h"
 
 namespace daq::config_protocol::test_utils
 {
@@ -60,6 +59,7 @@ namespace daq::config_protocol::test_utils
         void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
         DeviceInfoPtr onGetInfo() override;
         uint64_t onGetTicksSinceOrigin() override;
+        DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
 
     protected:
         bool clearFunctionBlocksOnUpdate() override
@@ -149,13 +149,6 @@ namespace daq::config_protocol::test_utils
         void onRemoveDevice(const DevicePtr& device) override
         {
             devices.removeItem(device);
-        }
-
-        DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
-        {
-            auto devTypes =
-                Dict<IString, IDeviceType>({{"mockDev1", DeviceType("mockDev1", "MockDev1", "Mock Device 1", "prefix", nullptr)}});
-            return devTypes;
         }
 
     };

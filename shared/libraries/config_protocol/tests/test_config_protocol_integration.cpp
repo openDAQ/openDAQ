@@ -720,8 +720,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
 {
     auto kek = clientDevice.getContext(); // TODO delete
 
-    auto availableDeviceTypesServer = serverDevice.getAvailableDeviceTypes();
-    auto availableDeviceTypesClient = clientDevice.getAvailableDeviceTypes();
+    auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
+    auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
 
     ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
 

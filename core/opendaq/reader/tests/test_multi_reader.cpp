@@ -8,6 +8,7 @@
 
 #include <gmock/gmock-matchers.h>
 
+#include <chrono>
 #include <future>
 #include <thread>
 #include <utility>
@@ -2195,7 +2196,96 @@ TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
     ASSERT_THROW(MultiReaderFromBuilder(builder), InvalidParameterException);
 }
 
-TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
+TEST_F(MultiReaderTest, MultiReaderBuilderFromSignalsTimeouts)
+{
+    using namespace std::chrono_literals;
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 10, createDomainSignal());
+    auto sig1 = addSignal(0, 10, createDomainSignal());
+    auto sig2 = addSignal(0, 10, createDomainSignal());
+
+    SignalPtr signal0 = sig0.signal;
+    SignalPtr signal1 = sig1.signal;
+    SignalPtr signal2 = sig2.signal;
+
+    MultiReaderBuilderPtr builder = MultiReaderBuilder().addSignal(signal0).addSignal(signal1).addSignal(signal2);
+    auto multireader = builder.build();
+
+    using Type = SampleTypeToType<SampleType::Float64>::Type;
+    Type sig0Samples[10];
+    Type sig1Samples[10];
+    Type sig2Samples[10];
+
+    void* samples[3] = {sig0Samples, sig1Samples, sig2Samples};
+    auto count = SizeT{0};
+    auto status = multireader.read(samples, &count, 1000);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    auto start = std::chrono::steady_clock::now();
+    auto sendThread = std::thread([&sig0, &sig1, &sig2]() {
+        std::this_thread::sleep_for(1s);
+        sig0.createAndSendPacket(0);
+        sig1.createAndSendPacket(0);
+        sig2.createAndSendPacket(0);
+    });
+    count = SizeT(sig0.packetSize);
+    status = multireader.read(samples, &count, 10000);
+    auto end = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10);
+    ASSERT_LT(diff, 5000);
+
+    sendThread.join();
+}
+
+TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
+{
+    using namespace std::chrono_literals;
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 10, createDomainSignal());
+    auto sig1 = addSignal(0, 10, createDomainSignal());
+    auto sig2 = addSignal(0, 10, createDomainSignal());
+
+    auto multireader = MultiReader(signalsToList());
+
+    using Type = SampleTypeToType<SampleType::Float64>::Type;
+    Type sig0Samples[10];
+    Type sig1Samples[10];
+    Type sig2Samples[10];
+
+    void* samples[3] = {sig0Samples, sig1Samples, sig2Samples};
+    auto count = SizeT{0};
+    auto start = std::chrono::steady_clock::now();
+    auto status = multireader.read(samples, &count, 10000);
+    auto end = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_LT(diff, 5000);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    ASSERT_EQ(multireader.getAvailableCount(), 10);
+
+    count = SizeT(sig0.packetSize);
+    start = std::chrono::steady_clock::now();
+    status = multireader.read(samples, &count, 10000);
+    end = std::chrono::steady_clock::now();
+    diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Diff = " << diff << std::endl;
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10);
+    ASSERT_LT(diff, 5000);
+}
+
+TEST_F(MultiReaderTest, MultiReaderExceptionOnConstructor)
 {
     readSignals.reserve(1);
 

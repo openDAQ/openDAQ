@@ -89,7 +89,10 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
+    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list,
+                                                 bool overrideMethod,
+                                                 bool& fromInputPorts,
+                                                 InputPortNotificationsPtr listener = nullptr);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 

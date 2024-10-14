@@ -229,7 +229,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
         clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1, 2, /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */ 3, 4};
+    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3, 4};
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;

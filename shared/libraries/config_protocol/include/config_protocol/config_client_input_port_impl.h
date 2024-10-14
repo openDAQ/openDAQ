@@ -146,7 +146,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
-            if (!(clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+            if (!(clientComm->getProtocolVersion() >= 4))
                 return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
                                      "Operation not supported by the protocol version currently in use");
 

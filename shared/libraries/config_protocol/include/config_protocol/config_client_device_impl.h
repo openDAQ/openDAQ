@@ -131,15 +131,16 @@ uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
 template <class TDeviceBase>
 ListPtr<IDeviceInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDevices()
 {
-    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
-        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Operation not supported by the protocol version currently in use");
+    if (!(this->clientComm->getProtocolVersion() >= 4))
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
     return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDevices");
 }
 
 template <class TDeviceBase>
 DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDeviceTypes()
 {
-    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+    if (!(this->clientComm->getProtocolVersion() >= 4))
         throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
                                     "Operation not supported by the protocol version currently in use");
     return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDeviceTypes");
@@ -148,7 +149,7 @@ DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetA
 template <class TDeviceBase>
 DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+    if (!(this->clientComm->getProtocolVersion() >= 4))
         throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
                                     "Operation not supported by the protocol version currently in use");
 
@@ -170,7 +171,7 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
 template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
-    if (!(this->clientComm->getProtocolVersion() >= 4)) /* TODO: INCREASE CORRECTLY AND DELETE THIS COMMENT BEFORE MERGE */
+    if (!(this->clientComm->getProtocolVersion() >= 4))
         throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
                                     "Operation not supported by the protocol version currently in use");
 

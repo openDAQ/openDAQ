@@ -718,8 +718,6 @@ TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceCoreEventTrigger)
 
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
 {
-    auto kek = clientDevice.getContext(); // TODO delete
-
     auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
     auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
 

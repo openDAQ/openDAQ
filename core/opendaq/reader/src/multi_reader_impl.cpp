@@ -30,9 +30,11 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  ReadMode mode,
                                  ReadTimeoutType timeoutType,
                                  std::int64_t requiredCommonSampleRate,
-                                 Bool startOnFullUnitOfDomain)
+                                 Bool startOnFullUnitOfDomain,
+                                 SizeT minReadCount)
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
+    , minReadCount(minReadCount)
 {
     this->internalAddRef();
     try
@@ -61,6 +63,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     old->invalid = true;
     portBinder = old->portBinder;
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
+    isActive = old->isActive;
+    minReadCount = old->minReadCount;
 
     bool fromInputPorts;
 
@@ -84,6 +88,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
+    : minReadCount(1)
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -116,6 +121,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
+    , minReadCount(builder.getMinReadCount())
 {
     auto sourceComponents = builder.getSourceComponents();
     checkEarlyPreconditionsAndCacheContext(sourceComponents);
@@ -370,7 +376,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
 
             if (overrideMethod && port.getConnection().assigned())
-                throw InvalidParameterException("Signal has to be connected to port after reader is created");
+                throw InvalidParameterException("Signal has been connected to the port before the reader is created");
 
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -515,12 +521,15 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
         return errCode;
     }
 
-    *count = 0;
+    SizeT cnt = 0;
     if (syncStatus == SyncStatus::Synchronized)
     {
-        *count = (min / sampleRateDividerLcm) * sampleRateDividerLcm;
+        cnt = (min / sampleRateDividerLcm) * sampleRateDividerLcm;
+        if (cnt < minReadCount)
+            cnt = 0;
     }
 
+    *count = cnt;
     return OPENDAQ_SUCCESS;
 }
 
@@ -530,6 +539,9 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
     if (*count != 0)
     {
         OPENDAQ_PARAM_NOT_NULL(samples);
+
+        if (minReadCount > *count)
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -561,6 +573,9 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     {
         OPENDAQ_PARAM_NOT_NULL(samples);
         OPENDAQ_PARAM_NOT_NULL(domain);
+
+        if (minReadCount > *count)
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -599,6 +614,9 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
         *count = 0;
         return OPENDAQ_IGNORED;
     }
+
+    if (minReadCount > *count)
+        return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
@@ -736,11 +754,24 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     return OPENDAQ_SUCCESS;
 }
 
+bool MultiReaderImpl::hasEventOrGapInQueue()
+{
+    auto it = signals.begin();
+    for (; it != signals.end(); ++it)
+    {
+        if (it->connection.hasEventPacket() || it->connection.hasGapPacket())
+            break;
+    }
+
+    return it != signals.end();
+}
+
 MultiReaderStatusPtr MultiReaderImpl::readPackets()
 {
     std::unique_lock notifyLock(notify.mutex);
     SizeT availableSamples{};
     SyncStatus syncStatus{};
+    const bool zeroDataRead = remainingSamplesToRead == 0;
 
     if (timeout.count() > 0)
     {
@@ -826,6 +857,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
         if (remainingSamplesToRead == 0)
         {
+            if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
+            {
+                // skip remaining samples
+                readSamples(availableSamples);
+            }
+
             return createReaderStatus();
         }
     }
@@ -846,7 +883,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         SizeT samplesToRead = remainingSamplesToRead;
         auto start = std::chrono::steady_clock::now();
 #endif
-        readSamples(toRead);
+        readSamplesAndSetRemainingSamples(toRead);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
@@ -913,7 +950,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     {
         for (auto& signal : signals)
         {
-            signal.port.setActive(true);
+            signal.port.setActive(isActive);
         }
         portConnected = true;
     }
@@ -1061,6 +1098,11 @@ void MultiReaderImpl::readSamples(SizeT samples)
         signals[i].info.remainingToRead = samples / signals[i].sampleRateDivider;
         signals[i].readPackets();
     }
+}
+
+void MultiReaderImpl::readSamplesAndSetRemainingSamples(SizeT samples)
+{
+    readSamples(samples);
 
     remainingSamplesToRead -= samples;
 }
@@ -1172,6 +1214,38 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderImpl::setActive(Bool isActive)
+{
+    std::scoped_lock lock{mutex, notify.mutex};
+
+    bool modified = this->isActive != static_cast<bool>(isActive);
+    this->isActive = isActive;
+
+    for (auto& signalReader : signals)
+    {
+        if (modified)
+            signalReader.synced = SyncStatus::Unsynchronized;
+
+        if (signalReader.port.assigned())
+            signalReader.port.setActive(this->isActive);
+
+        if (modified && !this->isActive)
+            signalReader.skipUntilLastEventPacket();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getActive(Bool* isActive)
+{
+    OPENDAQ_PARAM_NOT_NULL(isActive);
+
+    std::lock_guard lock{mutex};
+    *isActive = this->isActive;
+
+    return OPENDAQ_SUCCESS;
+}
+
 #pragma region ReaderConfig
 
 ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
@@ -1237,24 +1311,17 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY,
                              ReadTimeoutType,
                              timeoutType)
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
-                                                               MultiReaderImpl,
-                                                               IMultiReader,
-                                                               createMultiReaderEx,
-                                                               IList*,
-                                                               signals,
-                                                               SampleType,
-                                                               valueReadType,
-                                                               SampleType,
-                                                               domainReadType,
-                                                               ReadMode,
-                                                               mode,
-                                                               ReadTimeoutType,
-                                                               timeoutType,
-                                                               Int,
-                                                               requiredCommonSampleRate,
-                                                               Bool,
-                                                               startOnFullUnitOfDomain)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, MultiReaderImpl, IMultiReader, createMultiReaderEx,
+    IList*, signals,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType,
+    Int, requiredCommonSampleRate,
+    Bool, startOnFullUnitOfDomain,
+    SizeT, minReadCount
+)
 
 template <>
 struct ObjectCreator<IMultiReader>

@@ -2,6 +2,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
 #include <coreobjects/exceptions.h>
+#include <coreobjects/user_internal_ptr.h>
 
 using namespace daq;
 
@@ -133,5 +134,24 @@ TEST_F(AuthenticationProviderTest, AuthenticateBcrypt)
     ASSERT_THROW(provider.authenticate("admin", "wrongPass"), AuthenticationFailedException);
     ASSERT_THROW(provider.authenticate("admin", "$2a$12$vEipziDschmoMw2iVaoUbeDX3p1u3W8NQn.wgu0KkJn/C.tvIPEpG"), AuthenticationFailedException);
     ASSERT_EQ(provider.authenticate("admin", "admin123").getUsername(), "admin");
+}
+
+TEST_F(AuthenticationProviderTest, AuthanticateAnonymous)
+{
+    auto provider = AuthenticationProvider(true);
+    auto user1 = provider.authenticateAnonymous();
+    auto user2 = provider.authenticateAnonymous();
+
+    ASSERT_EQ(user1, user2);
+    ASSERT_EQ(user1.getUsername(), "");
+    ASSERT_EQ(user1.asPtr<IUserInternal>().getPasswordHash(), "");
+    ASSERT_EQ(user1.getGroups().getCount(), 1u);
+    ASSERT_EQ(user1.getGroups()[0], "everyone");
+}
+
+TEST_F(AuthenticationProviderTest, AuthanticateAnonymousDisabled)
+{
+    auto provider = AuthenticationProvider(false);
+    ASSERT_THROW(provider.authenticateAnonymous(), AuthenticationFailedException);
 }
 

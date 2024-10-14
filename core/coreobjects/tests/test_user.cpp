@@ -89,3 +89,14 @@ TEST_F(UserTest, SerializeEmptyGroups)
 
     ASSERT_TRUE(BaseObjectPtr::Equals(user1, user1));
 }
+
+TEST_F(UserTest, IsAnonymous)
+{
+    auto userJan = User("jan", "psswordHash");
+    auto userEmpty = User("", "psswordHash");
+    auto userAnonymous = User("", "");
+
+    ASSERT_FALSE(userJan.asPtr<IUserInternal>().isAnonymous());
+    ASSERT_FALSE(userEmpty.asPtr<IUserInternal>().isAnonymous());
+    ASSERT_TRUE(userAnonymous.asPtr<IUserInternal>().isAnonymous());
+}

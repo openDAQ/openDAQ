@@ -5,6 +5,7 @@
 #include <coreobjects/errors.h>
 #include <coreobjects/user_factory.h>
 #include <bcrypt/BCrypt.hpp>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -18,6 +19,7 @@ static const std::regex BcryptRegex("^\\$(2[ayb]?)\\$[0-9]+\\$[a-zA-Z0-9\\.\\/]{
 AuthenticationProviderImpl::AuthenticationProviderImpl(bool allowAnonymous)
     : allowAnonymous(allowAnonymous)
     , users(Dict<IString, IUser>())
+    , anonymousUser(User("", ""))
 {
 }
 
@@ -37,7 +39,20 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
 
 ErrCode INTERFACE_FUNC AuthenticationProviderImpl::isAnonymousAllowed(Bool* allowedOut)
 {
+    OPENDAQ_PARAM_NOT_NULL(allowedOut);
+
     *allowedOut = this->allowAnonymous;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticateAnonymous(IUser** userOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(userOut);
+
+    if (!this->allowAnonymous)
+        return OPENDAQ_ERR_AUTHENTICATION_FAILED;
+
+    *userOut = this->anonymousUser.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -194,6 +209,13 @@ std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& fi
 
 
 // Factories
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               AuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createAuthenticationProvider,
+                                                               Bool,
+                                                               allowAnonymous)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
                                                                StaticAuthenticationProviderImpl,

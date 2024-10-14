@@ -1,3 +1,7 @@
+#include <optional>
+
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_converter.h"
 #include "py_core_types/py_base_object.h"
 #include "py_core_types/py_opendaq_daq.h"
@@ -14,8 +18,11 @@ py::object PyConverter::ToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseO
     return py::reinterpret_steal<py::object>(baseObjectToPyObject(baseObject));
 }
 
-daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle)
+daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, bool acquireGil)
 {
+    std::optional<py::gil_scoped_acquire> gil;
+    if (acquireGil)
+        gil.emplace();
     if (auto intf = pyQI<daq::IBaseObject>(handle))
     {
         return intf;
@@ -51,8 +58,11 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle)
     return wrapPyObject(std::move(obj));
 }
 
-py::object baseObjectToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObject, const daq::IntfID requestedInterfaceId)
+py::object baseObjectToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObject, const daq::IntfID requestedInterfaceId, bool acquireGil)
 {
+    std::optional<py::gil_scoped_acquire> gil;
+    if (acquireGil)
+        gil.emplace();
     if (baseObject == nullptr)
         return py::none();
 

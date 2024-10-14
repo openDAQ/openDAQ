@@ -96,8 +96,7 @@ TEST_F(StreamingTest, StartCompleteReconnection)
     // reconnection can be restarted multiple times before completion
     ASSERT_NO_THROW(streaming.mock().triggerReconnectionStart());
 
-    // signal unavailable triggering is not allowed during reconnection
-    ASSERT_THROW(streaming.mock().makeSignalUnavailable("Signal"), InvalidStateException);
+    ASSERT_THROW(streaming.mock().makeSignalUnavailable("Signal"), NotFoundException);
 
     ASSERT_NO_THROW(streaming.mock().triggerReconnectionCompletion());
     ASSERT_THROW(streaming.mock().triggerReconnectionCompletion(), InvalidStateException);

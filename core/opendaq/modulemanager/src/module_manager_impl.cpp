@@ -461,8 +461,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             const auto devConfig = populateDeviceConfig(config, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, devConfig);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            checkErrorInfo(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
@@ -1134,7 +1133,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         StringPtr id;
         for (auto const& [typeId, type] : types)
         {
-            if (type.getConnectionStringPrefix()== prefix)
+            if (type.getConnectionStringPrefix() == prefix)
             {
                 id = typeId;
                 break;

@@ -1,0 +1,66 @@
+
+= Connect with username and password
+
+To connect to a device, you can provide the username and password using the `config` parameter of the `addDevice` method.
+If you don't provide these credentials, the device will attempt to connect as an anonymous user. Whether anonymous authentication
+is allowed is defined by the server's device implementation.
+
+.Connecting with username and password
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+	auto instance = Instance();
+
+	auto config = instance.createDefaultAddDeviceConfig();	
+	PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+	
+	generalConfig.setPropertyValue("Username", "opendaq");
+	generalConfig.setPropertyValue("Password", "opendaq123");
+
+	auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+	std::cout << "Connected to: " << device.getName() << std::endl;
+	
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+instance = opendaq.Instance()
+
+config = instance.create_default_add_device_config()
+general_config = config.get_property_value("General")
+
+general_config.set_property_value("Username", "opendaq")
+general_config.set_property_value("Password", "opendaq")
+
+device = instance.add_device("daq.nd://127.0.0.1")
+print("Connected to:", device.name)
+----
+C#::
++
+[source,csharp]
+----
+var instance = OpenDAQFactory.Instance();
+
+var config = instance.CreateDefaultAddDeviceConfig();
+var generalConfig = config.GetPropertyValue("General").Cast<PropertyObject>();
+
+generalConfig.SetPropertyValue("Username", "opendaq");
+generalConfig.SetPropertyValue("Password", "opendaq123");
+
+var device = instance.AddDevice("daq.nd://127.0.0.1", config);
+Console.WriteLine("Connected to: " + device.Name);
+----
+====

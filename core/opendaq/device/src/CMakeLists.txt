@@ -2,6 +2,7 @@ set(BASE_NAME device)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Device device.h)
+    rtgen(SRC_DevicePrivate device_private.h)
     rtgen(SRC_DeviceDomain device_domain.h)
     rtgen(SRC_DeviceInfo device_info.h)
     rtgen(SRC_DeviceInfoInternal device_info_internal.h)

@@ -59,6 +59,9 @@ public:
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
     BaseObjectPtr getLastValue(const std::string& globalId);
+    void lock(const std::string& globalId);
+    void unlock(const std::string& globalId);
+    bool isLocked(const std::string& globalId);
 
     void beginUpdate(const std::string& globalId, const std::string& path);
     void endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props = nullptr);
@@ -115,9 +118,9 @@ private:
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createNoReplyRpcRequestPacketBuffer(const StringPtr& name, const ParamsDictPtr& params);
-    BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
-                                            const ComponentDeserializeContextPtr& context = nullptr,
-                                            bool isGetRootDeviceReply = false);
+    BaseObjectPtr parseRpcOrRejectReply(const StringPtr& jsonReply,
+                                        const ComponentDeserializeContextPtr& context = nullptr,
+                                        bool isGetRootDeviceReply = false);
     uint64_t generateId();
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
@@ -160,7 +163,7 @@ public:
 
     // called from client module
     DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = std::numeric_limits<uint16_t>::max());
-    void reconnect();
+    void reconnect(Bool restoreClientConfigOnReconnect);
     void disconnectExternalSignals();
 
     DevicePtr getDevice();
@@ -221,13 +224,16 @@ template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolVersion)
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
-    const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
+    const auto replyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1, 2};
+    if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
+        clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
+
+    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3};
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;
-    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
+    replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
     if (protocolVersion != std::numeric_limits<uint16_t>::max())
     {
@@ -310,7 +316,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
 }
 
 template<class TRootDeviceImpl>
-void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
+void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOnReconnect)
 {
     if (!clientComm->getConnected())
         throw ConfigProtocolException("The 'reconnect' called without a prior successful 'connect' call.");
@@ -322,13 +328,25 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
-    const StringPtr serializedDevice = clientComm->requestSerializedRootDevice();
+    if (restoreClientConfigOnReconnect)
+    {
+        const auto serializer = JsonSerializer();
+        rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
+        StringPtr serializedClientRootDevice = serializer.getOutput();
 
-    auto dict = Dict<IString, IBaseObject>();
-    dict.set("SerializedComponent", serializedDevice);
+        const auto deserializer = JsonDeserializer();
+        deserializer.update(rootDevice.asPtr<IUpdatable>(), serializedClientRootDevice);
+    }
+    else
+    {
+        const StringPtr serializedServerRootDevice = clientComm->requestSerializedRootDevice();
 
-    auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd, nullptr, dict);
-    rootDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(rootDevice, args);
+        auto dict = Dict<IString, IBaseObject>();
+        dict.set("SerializedComponent", serializedServerRootDevice);
+
+        auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd, nullptr, dict);
+        rootDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(rootDevice, args);
+    }
 }
 
 template<class TRootDeviceImpl>

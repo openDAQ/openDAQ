@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("function_block_type",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getFunctionBlockType().detach();
         },
@@ -49,6 +52,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("input_ports",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getInputPorts().detach();
         },
@@ -57,6 +61,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def("get_input_ports",
         [](daq::IFunctionBlock *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getInputPorts(searchFilter).detach();
         },
@@ -65,6 +70,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("signals",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getSignals().detach();
         },
@@ -73,6 +79,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def("get_signals",
         [](daq::IFunctionBlock *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getSignals(searchFilter).detach();
         },
@@ -81,6 +88,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("signals_recursive",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getSignalsRecursive().detach();
         },
@@ -89,6 +97,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def("get_signals_recursive",
         [](daq::IFunctionBlock *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getSignalsRecursive(searchFilter).detach();
         },
@@ -97,6 +106,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("status_signal",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getStatusSignal().detach();
         },
@@ -105,6 +115,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def_property_readonly("function_blocks",
         [](daq::IFunctionBlock *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getFunctionBlocks().detach();
         },
@@ -113,6 +124,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
     cls.def("get_function_blocks",
         [](daq::IFunctionBlock *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getFunctionBlocks(searchFilter).detach();
         },

@@ -35,6 +35,7 @@ private:
     size_t maxNumberOfDevices;
 
     size_t getIdFromConnectionString(const std::string& connectionString) const;
+    void clearRemovedDevices();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

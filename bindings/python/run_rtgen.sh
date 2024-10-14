@@ -69,6 +69,12 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated component_type
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated user
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated authentication_provider
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_mask_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_manager
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions
 
 #
 # opendaq
@@ -84,6 +90,7 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_private
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container_private
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        update_parameters
 run_rtgen opendaq opendaq/context         opendaq opendaq/generated/context          context
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_domain

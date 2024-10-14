@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_typed_reader.h"
 
@@ -43,6 +45,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def("read",
         [](daq::IMultiReader *object, size_t count, const size_t timeoutMs, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return PyTypedReader::readValues(objectPtr, count, timeoutMs, returnStatus);
         },
@@ -51,6 +54,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def("read_with_domain",
         [](daq::IMultiReader *object, size_t count, const size_t timeoutMs, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return PyTypedReader::readValuesWithDomain(objectPtr, count, timeoutMs, returnStatus);
         },
@@ -59,6 +63,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def("skip_samples",
         [](daq::IMultiReader *object, size_t count, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             auto status = objectPtr.skipSamples(&count);
             return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status.detach())} :
@@ -70,6 +75,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def_property_readonly("tick_resolution",
         [](daq::IMultiReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return objectPtr.getTickResolution().detach();
         },
@@ -78,6 +84,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def_property_readonly("origin",
         [](daq::IMultiReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return objectPtr.getOrigin().toStdString();
         },
@@ -85,6 +92,7 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def_property_readonly("is_synchronized",
         [](daq::IMultiReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return objectPtr.getIsSynchronized();
         },
@@ -92,8 +100,23 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
     cls.def_property_readonly("common_sample_rate",
         [](daq::IMultiReader *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
             return objectPtr.getCommonSampleRate();
         },
         "Gets the common sample rate in case input signal have different rates. The value of common sample rate is such that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple of individual signal's sample rates. The number of samples to be read is specified in common sample rate.");
+    cls.def_property("active",
+        [](daq::IMultiReader *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            return objectPtr.getActive();
+        },
+        [](daq::IMultiReader *object, const bool isActive)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderPtr::Borrow(object);
+            objectPtr.setActive(isActive);
+        },
+        "Gets / Sets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.");
 }

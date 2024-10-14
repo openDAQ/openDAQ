@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def("build",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,11 +53,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("signal",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getSignal().detach();
         },
         [](daq::IStreamReaderBuilder *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setSignal(signal);
         },
@@ -63,11 +68,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("input_port",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getInputPort().detach();
         },
         [](daq::IStreamReaderBuilder *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPort(port);
         },
@@ -76,11 +83,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("value_read_type",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getValueReadType();
         },
         [](daq::IStreamReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setValueReadType(type);
         },
@@ -88,11 +97,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("domain_read_type",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getDomainReadType();
         },
         [](daq::IStreamReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setDomainReadType(type);
         },
@@ -100,11 +111,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("read_mode",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getReadMode();
         },
         [](daq::IStreamReaderBuilder *object, daq::ReadMode mode)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setReadMode(mode);
         },
@@ -112,11 +125,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("read_timeout_type",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getReadTimeoutType();
         },
         [](daq::IStreamReaderBuilder *object, daq::ReadTimeoutType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setReadTimeoutType(type);
         },
@@ -124,11 +139,13 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
     cls.def_property("skip_events",
         [](daq::IStreamReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             return objectPtr.getSkipEvents();
         },
         [](daq::IStreamReaderBuilder *object, const bool skipEvents)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
             objectPtr.setSkipEvents(skipEvents);
         },

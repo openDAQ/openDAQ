@@ -156,6 +156,17 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
      */
     virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
+
+    /*!
+     * @brief Sets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
+     * @param isActive Set true for the active state.
+     */
+    virtual ErrCode INTERFACE_FUNC setActive(Bool isActive) = 0;
+
+    /*!
+     * @brief Gets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
+     */
+    virtual ErrCode INTERFACE_FUNC getActive(Bool* isActive) = 0;
 };
 
 /*!@}*/
@@ -179,7 +190,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
     Int, requiredCommonSampleRate,
-    Bool, startOnFullUnitOfDomain
+    Bool, startOnFullUnitOfDomain,
+    SizeT, minReadCount
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

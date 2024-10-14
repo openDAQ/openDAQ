@@ -199,27 +199,42 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
             LOG_I("Native device reconnection processing thread finished");
         }
     );
-    auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
-                                                             transportClient,
-                                                             config.getPropertyValue("ConfigProtocolRequestTimeout"),
-                                                             processingIOContextPtr,
-                                                             reconnectionProcessingIOContextPtr,
-                                                             reconnectionProcessingThread.get_id());
-    deviceHelper->setupProtocolClients(context);
-    auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
-    deviceHelper->subscribeToCoreEvent(context);
+    try
+    {
+        auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
+                                                                 transportClient,
+                                                                 config.getPropertyValue("ConfigProtocolRequestTimeout"),
+                                                                 config.getPropertyValue("RestoreClientConfigOnReconnect"),
+                                                                 processingIOContextPtr,
+                                                                 reconnectionProcessingIOContextPtr,
+                                                                 reconnectionProcessingThread.get_id());
+        deviceHelper->setupProtocolClients(context);
+        auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
 
-    device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
+        deviceHelper->subscribeToCoreEvent(context);
 
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
-                                                    std::move(processingThread),
-                                                    processingIOContextPtr);
-    processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
-                                                    std::move(reconnectionProcessingThread),
-                                                    reconnectionProcessingIOContextPtr);
+        device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
 
-    return device;
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
+                                                        std::move(processingThread),
+                                                        processingIOContextPtr);
+        processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
+                                                        std::move(reconnectionProcessingThread),
+                                                        reconnectionProcessingIOContextPtr);
+
+        return device;
+    }
+    catch (...)
+    {
+        processingIOContextPtr->stop();
+        processingThread.join();
+
+        reconnectionProcessingIOContextPtr->stop();
+        reconnectionProcessingThread.join();
+
+        throw;
+    }
 }
 
 void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig)
@@ -233,6 +248,13 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
         auto value = options.get("ConfigProtocolRequestTimeout");
         if (value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", value);
+    }
+
+    if (options.hasKey("RestoreClientConfigOnReconnect"))
+    {
+        auto value = options.get("RestoreClientConfigOnReconnect");
+        if (value.getCoreType() == CoreType::ctBool)
+            deviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", value);
     }
 }
 
@@ -442,6 +464,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     defaultConfig.addProperty(StringProperty("Password", ""));
 
     defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+    defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
+
     if (nativeConfigType == NativeType::config)
         defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
 
@@ -768,6 +792,8 @@ bool NativeStreamingClientModule::validateDeviceConfig(const PropertyObjectPtr& 
 {
     return config.hasProperty("ConfigProtocolRequestTimeout") &&
            config.getProperty("ConfigProtocolRequestTimeout").getValueType() == ctInt &&
+           config.hasProperty("RestoreClientConfigOnReconnect") &&
+           config.getProperty("RestoreClientConfigOnReconnect").getValueType() == ctBool &&
            validateConnectionConfig(config);
 }
 

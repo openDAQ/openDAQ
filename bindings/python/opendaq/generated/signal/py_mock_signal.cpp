@@ -15,27 +15,29 @@
  */
 
 #include <chrono>
+#include <cstddef>
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <sstream>
+#include <thread>
 
 #include "py_opendaq/py_mock_signal.h"
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
 #include "py_opendaq/py_opendaq.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MockSignal::MockSignal(const std::string& id, const std::string& epoch)
+MockSignal::MockSignal(const std::string& id, const std::string& epoch, bool initValueDescriptor)
 {
-    logger = daq::Logger();
-    context = daq::Context(daq::Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
-    scheduler = context.getScheduler();
-    signal = daq::Signal(context, nullptr, id + "_valueSignal");
-    domainSignal = daq::Signal(context, nullptr, id + "_domainSignal");
+    signal = daq::Signal(NullContext(), nullptr, id + "_valueSignal");
+    domainSignal = daq::Signal(NullContext(), nullptr, id + "_domainSignal");
 
     auto valueDescriptor = daq::DataDescriptorBuilder()
                                .setSampleType(daq::SampleType::Float64)
                                .setUnit(Unit("V", -1, "volts", "voltage"))
-                               .setName(id + " values")
+                               .setName(id + "_values")
                                .build();
     auto domainDescriptor = daq::DataDescriptorBuilder()
                                 .setSampleType(daq::SampleType::Int64)
@@ -43,10 +45,11 @@ MockSignal::MockSignal(const std::string& id, const std::string& epoch)
                                 .setTickResolution(daq::Ratio(1, 1000))
                                 .setRule(daq::LinearDataRule(1, 0))
                                 .setOrigin(epoch.empty() ? MockSignal::currentEpoch() : epoch)
-                                .setName(id + " time")
+                                .setName(id + "_time")
                                 .build();
 
-    signal->setDescriptor(valueDescriptor);
+    if (initValueDescriptor)
+        signal->setDescriptor(valueDescriptor);
     domainSignal->setDescriptor(domainDescriptor);
     signal->setDomainSignal(domainSignal);
 }
@@ -68,12 +71,146 @@ void MockSignal::addData(const py::array_t<double>& data)
     auto valuePacket = daq::DataPacketWithDomain(domainPacket, signal.getDescriptor(), size);
 
     auto dataPtr = static_cast<daq::SampleTypeToType<daq::SampleType::Float64>::Type*>(valuePacket.getRawData());
-    for (auto i = 0; i < size; i++)
+    for (auto i = 0; i < size; ++i)
         dataPtr[i] = data.at(i);
 
     signal.sendPacket(valuePacket);
     domainSignal.sendPacket(domainPacket);
     offset += size;
+}
+
+void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
+{
+    daq::DataDescriptorPtr descriptor;
+    size_t size = 1;
+    if (py::isinstance<py::dict>(objects) || py::isinstance<py::list>(objects))
+    {
+        if (py::isinstance<py::dict>(objects))
+        {
+            const auto& dict = py::cast<py::dict>(objects);
+            if (dict.empty())
+                throw daq::InvalidParameterException("Cannot add empty dictionary");
+            descriptor = createDataDescriptor(dict, "obj");
+        }
+        else if (py::isinstance<py::list>(objects))
+        {
+            const auto& list = py::cast<py::list>(objects);
+            if (list.empty())
+                throw daq::InvalidParameterException("Cannot add empty list");
+            descriptor = createDataDescriptor(list[0], "obj");
+            size = list.size();
+        }
+    }
+    else
+    {
+        throw daq::InvalidParameterException("Unsupported type: Should be a list or a dictionary");
+    }
+
+    if (updateDescriptor)
+        signal.setDescriptor(descriptor);
+
+    std::function<void*(const py::object&, void*)> fillBuffer = [&fillBuffer](const py::object& obj, void* data) -> void*
+    {
+        if (py::isinstance<py::dict>(obj))
+        {
+            for (const auto& field : py::cast<py::dict>(obj))
+            {
+                auto& value = field.second;
+                data = fillBuffer(py::cast<py::object>(value), data);
+            }
+        }
+        else if (py::isinstance<py::list>(obj))
+        {
+            for (const auto& currentObj : obj)
+            {
+                data = fillBuffer(py::cast<py::object>(currentObj), data);
+            }
+        }
+        else if (py::isinstance<py::int_>(obj))
+        {
+            *static_cast<daq::SampleTypeToType<daq::SampleType::Int64>::Type*>(data) =
+                py::cast<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(obj);
+            data = static_cast<daq::SampleTypeToType<daq::SampleType::Int64>::Type*>(data) + 1;
+        }
+        else if (py::isinstance<py::float_>(obj))
+        {
+            *static_cast<daq::SampleTypeToType<daq::SampleType::Float64>::Type*>(data) =
+                py::cast<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(obj);
+            data = static_cast<daq::SampleTypeToType<daq::SampleType::Float64>::Type*>(data) + 1;
+        }
+        else
+        {
+            throw py::type_error("Unsupported type");
+        }
+        return data;
+    };
+
+    auto domainPacket = daq::DataPacket(domainSignal.getDescriptor(), size, offset);
+    auto valuePacket = daq::DataPacketWithDomain(domainPacket, signal.getDescriptor(), size);
+    if (py::isinstance<py::dict>(objects))
+    {
+        const auto& dict = py::cast<py::dict>(objects);
+        fillBuffer(py::cast<py::object>(dict), valuePacket.getRawData());
+    }
+    else if (py::isinstance<py::list>(objects))
+    {
+        const auto& list = py::cast<py::list>(objects);
+        fillBuffer(py::cast<py::object>(list), valuePacket.getRawData());
+    }
+
+    signal.sendPacket(valuePacket);
+    domainSignal.sendPacket(domainPacket);
+    offset += size;
+}
+
+daq::DataDescriptorPtr MockSignal::createDataDescriptor(const py::object& object, const std::string& name)
+{
+    if (py::isinstance<py::list>(object))
+    {
+        const auto& list = py::cast<py::list>(object);
+        if (list.empty())
+        {
+            throw py::value_error("Cannot create DataDescriptor from empty list");
+        }
+
+        const auto& first = list[0];
+
+        auto firstDescriptor = createDataDescriptor(first, name);
+        auto listDescriptorBuilder = daq::DataDescriptorBuilderCopy(firstDescriptor);
+        listDescriptorBuilder.setDimensions(
+            daq::List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, list.size())).build()));
+
+        return listDescriptorBuilder.build();
+    }
+    else if (py::isinstance<py::dict>(object))
+    {
+        auto fields = daq::List<daq::DataDescriptorPtr>();
+        for (const auto& field : py::cast<py::dict>(object))
+        {
+            const std::string& field_name = py::cast<std::string>(field.first);
+            const py::object& value = py::cast<py::object>(field.second);
+
+            fields.pushBack(createDataDescriptor(value, field_name));
+        }
+
+        auto structDescriptor = daq::DataDescriptorBuilder();
+        return structDescriptor.setName(name)
+            .setSampleType(daq::SampleType::Struct)
+            .setStructFields(fields)
+            .setRule(ExplicitDataRule())
+            .build();
+    }
+    else if (py::isinstance<py::int_>(object))
+    {
+        auto intDescriptor = daq::DataDescriptorBuilder();
+        return intDescriptor.setName(name).setSampleType(daq::SampleType::Int64).setRule(ExplicitDataRule()).build();
+    }
+    else if (py::isinstance<py::float_>(object))
+    {
+        auto floatDescriptor = daq::DataDescriptorBuilder();
+        return floatDescriptor.setName(name).setSampleType(daq::SampleType::Float64).setRule(ExplicitDataRule()).build();
+    }
+    throw py::type_error("Unsupported argument type");
 }
 
 std::string MockSignal::currentEpoch()
@@ -100,9 +237,11 @@ void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls)
 {
     cls.doc() = "A mock signal that can be used for testing purposes.";
 
-    cls.def(py::init([](const std::string& id, const std::string& epoch) { return std::make_unique<daq::MockSignal>(id, epoch); }),
+    cls.def(py::init([](const std::string& id, const std::string& epoch, bool initializeValueDescriptor)
+                     { return std::make_unique<daq::MockSignal>(id, epoch, initializeValueDescriptor); }),
             py::arg("id") = "mock",
             py::arg("epoch") = "",
+            py::arg("initialize_value_descriptor") = true,
             "Constructs a mock signal.");
 
     cls.def(
@@ -110,6 +249,24 @@ void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls)
         [](daq::MockSignal* object, py::array_t<double, py::array::c_style> data) { object->addData(data); },
         py::arg("data"),
         "Adds the given data to the signal.");
+
+    cls.def(
+        "add_objects",
+        [](daq::MockSignal* object, const py::object& objects, bool updateDescriptor) { object->addObjects(objects, updateDescriptor); },
+        py::arg("objects"),
+        py::arg("update_descriptor") = true,
+        "Adds the given data objects to the signal. Should be either a list or a dictionary. Only int and float are supported.");
+
+    cls.def_static(
+        "wait_for_ms",
+        [](int msec, bool gilRelease)
+        {
+            std::optional<py::gil_scoped_release> gil_release;
+            if (gilRelease)
+                gil_release.emplace();
+            std::this_thread::sleep_for(std::chrono::milliseconds(msec));
+        },
+        "Waits for the given amount of milliseconds with or without releasing the GIL.");
 
     cls.def_property_readonly("signal", [](daq::MockSignal* object) { return object->getSignal().detach(); }, "The value signal.");
 

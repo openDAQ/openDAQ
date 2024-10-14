@@ -59,6 +59,10 @@ public:
     // called from transport layer
     PacketBuffer processRequestAndGetReply(const PacketBuffer& packetBuffer);
     PacketBuffer processRequestAndGetReply(void *mem);
+    static PacketBuffer generateConnectionRejectedReply(uint64_t requestId,
+                                                        ErrCode errCode,
+                                                        const StringPtr& message,
+                                                        const SerializerPtr& serializer);
 
     // called from transport layer
     void processNoReplyRequest(const PacketBuffer& packetBuffer);
@@ -80,6 +84,8 @@ public:
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
+    template <typename T>
+    using RpcHandlerFunction = std::function<BaseObjectPtr(const RpcContext& context, const T& component, const ParamsDictPtr& params)>;
 
     DevicePtr rootDevice;
     ContextPtr daqContext;
@@ -99,7 +105,7 @@ private:
     void processNoReplyPacket(const PacketBuffer& packetBuffer);
     StringPtr processRpcAndGetReply(const StringPtr& jsonStr);
     void processNoReplyRpc(const StringPtr& jsonStr);
-    StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message);
+    static StringPtr prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer);
 
     BaseObjectPtr callRpc(const StringPtr& name, const ParamsDictPtr& params);
     ComponentPtr findComponent(const std::string& componentGlobalId) const;
@@ -107,15 +113,12 @@ private:
     BaseObjectPtr getComponent(const ParamsDictPtr& params) const;
     BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
     BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
-    BaseObjectPtr connectSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params);
-    BaseObjectPtr connectExternalSignal(uint16_t protocolVersion, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr connectExternalSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
 
-    template <class SmartPtr, class F>
-    BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);
-
-    template <class SmartPtr, class Handler>
-    void addHandler(const std::string& name, const Handler& handler);
+    template <class SmartPtr>
+    void addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler);
     
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     

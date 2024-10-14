@@ -23,9 +23,9 @@
 #include <opendaq/deserialize_component_ptr.h>
 #include <config_protocol/config_protocol_deserialize_context.h>
 #include <opendaq/custom_log.h>
-
-#include "config_protocol_deserialize_context_impl.h"
+#include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/context_factory.h>
+#include <config_protocol/errors.h>
 
 namespace daq::config_protocol
 {
@@ -60,7 +60,7 @@ public:
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
 
     ErrCode INTERFACE_FUNC complete() override;
 
@@ -283,13 +283,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* proper
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueWrite(propertyName, event);
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
-    return Impl::getOnPropertyValueRead(propertyName, event);
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>
@@ -356,7 +356,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj, IBaseObject* config)
 {
    return updateInternal(obj, nullptr);
 }

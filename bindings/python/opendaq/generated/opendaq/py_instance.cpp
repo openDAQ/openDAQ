@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.def_property_readonly("module_manager",
         [](daq::IInstance *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             return objectPtr.getModuleManager().detach();
         },
@@ -59,6 +62,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.def_property_readonly("root_device",
         [](daq::IInstance *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             return objectPtr.getRootDevice().detach();
         },
@@ -67,6 +71,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.def("set_root_device",
         [](daq::IInstance *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             objectPtr.setRootDevice(getVariantValue<daq::IString*>(connectionString), config);
         },
@@ -75,6 +80,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.def_property_readonly("available_server_types",
         [](daq::IInstance *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             return objectPtr.getAvailableServerTypes().detach();
         },
@@ -83,6 +89,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.def("add_standard_servers",
         [](daq::IInstance *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstancePtr::Borrow(object);
             return objectPtr.addStandardServers().detach();
         },

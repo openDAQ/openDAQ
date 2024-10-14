@@ -198,6 +198,7 @@ TEST_F(ModulesTest, CreateServer)
     daq::ListPtr<IProperty> nativeStreamingConfigFields = nativeStreamingConfig.getVisibleProperties();
     ASSERT_NO_THROW(nativeStreamingConfigFields[0].getName());
     nativeStreamingConfig.setPropertyValue("NativeStreamingPort", 7420);
+    nativeStreamingConfig.setPropertyValue("MaxAllowedConfigConnections", 0);
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(),
                                                              device,
                                                              nativeStreamingConfig));

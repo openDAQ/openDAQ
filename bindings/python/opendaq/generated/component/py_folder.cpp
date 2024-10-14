@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
     cls.def_property_readonly("items",
         [](daq::IFolder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderPtr::Borrow(object);
             return objectPtr.getItems().detach();
         },
@@ -49,6 +52,7 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
     cls.def("get_items",
         [](daq::IFolder *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderPtr::Borrow(object);
             return objectPtr.getItems(searchFilter).detach();
         },
@@ -57,6 +61,7 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
     cls.def_property_readonly("empty",
         [](daq::IFolder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderPtr::Borrow(object);
             return objectPtr.isEmpty();
         },
@@ -64,6 +69,7 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
     cls.def("has_item",
         [](daq::IFolder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderPtr::Borrow(object);
             return objectPtr.hasItem(getVariantValue<daq::IString*>(localId));
         },
@@ -72,6 +78,7 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
     cls.def("get_item",
         [](daq::IFolder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderPtr::Borrow(object);
             return objectPtr.getItem(getVariantValue<daq::IString*>(localId)).detach();
         },

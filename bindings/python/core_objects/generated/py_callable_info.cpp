@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq:
     cls.def_property_readonly("return_type",
         [](daq::ICallableInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CallableInfoPtr::Borrow(object);
             return objectPtr.getReturnType();
         },
@@ -53,6 +56,7 @@ void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq:
     cls.def_property_readonly("arguments",
         [](daq::ICallableInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CallableInfoPtr::Borrow(object);
             return objectPtr.getArguments().detach();
         },

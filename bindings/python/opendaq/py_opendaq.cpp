@@ -119,6 +119,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
     auto classIReferenceDomainInfo = declareIReferenceDomainInfo(m);
     auto classIReferenceDomainInfoBuilder = declareIReferenceDomainInfoBuilder(m);
+    auto classIUpdateParameters = declareIUpdateParameters(m);
 
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
@@ -212,6 +213,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineISyncComponentPrivate(m, classISyncComponentPrivate);
     defineIReferenceDomainInfo(m, classIReferenceDomainInfo);
     defineIReferenceDomainInfoBuilder(m, classIReferenceDomainInfoBuilder);
+    defineIUpdateParameters(m, classIUpdateParameters);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
     m.def("NullContext", []() { return daq::NullContext().detach(); });

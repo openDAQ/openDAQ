@@ -19,16 +19,15 @@
 #include <cstddef>
 #include <utility>
 
-template <typename ReaderType, typename ValueType, typename = void>
+template <typename ReaderType, typename = void>
 struct ReaderHasReadWithTimeout : std::false_type
 {
 };
 
-template <typename ReaderType, typename ValueType>
+template <typename ReaderType>
 struct ReaderHasReadWithTimeout<
     ReaderType,
-    ValueType,
-    std::void_t<decltype(std::declval<ReaderType>().read(std::declval<ValueType*>(), std::declval<size_t*>(), std::declval<size_t>()))>>
+    std::void_t<decltype(std::declval<ReaderType>().read(std::declval<void*>(), std::declval<size_t*>(), std::declval<size_t>()))>>
     : std::true_type
 {
 };

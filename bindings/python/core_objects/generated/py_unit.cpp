@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,6 +48,7 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
     cls.def_property_readonly("id",
         [](daq::IUnit *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitPtr::Borrow(object);
             return objectPtr.getId();
         },
@@ -53,6 +56,7 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
     cls.def_property_readonly("symbol",
         [](daq::IUnit *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitPtr::Borrow(object);
             return objectPtr.getSymbol().toStdString();
         },
@@ -60,6 +64,7 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
     cls.def_property_readonly("name",
         [](daq::IUnit *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
@@ -67,6 +72,7 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
     cls.def_property_readonly("quantity",
         [](daq::IUnit *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::UnitPtr::Borrow(object);
             return objectPtr.getQuantity().toStdString();
         },

@@ -243,12 +243,14 @@ protected:
 
 TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 {
+    // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
     serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                    ioContextPtrServer,
                                                                    List<ISignal>(),
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
-                                                                   setUpConfigProtocolServerCb);
+                                                                   setUpConfigProtocolServerCb,
+                                                                   1);
 }
 
 TEST_P(StreamingProtocolTest, CreateClient)

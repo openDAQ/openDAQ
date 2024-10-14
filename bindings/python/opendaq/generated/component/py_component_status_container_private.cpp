@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::
     cls.def("add_status",
         [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* initialValue)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
             objectPtr.addStatus(getVariantValue<daq::IString*>(name), initialValue);
         },
@@ -49,6 +52,7 @@ void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::
     cls.def("set_status",
         [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* value)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
             objectPtr.setStatus(getVariantValue<daq::IString*>(name), value);
         },

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def("build",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,11 +53,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("signal",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getSignal().detach();
         },
         [](daq::ITailReaderBuilder *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setSignal(signal);
         },
@@ -63,11 +68,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("input_port",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getInputPort().detach();
         },
         [](daq::ITailReaderBuilder *object, daq::IInputPort* port)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPort(port);
         },
@@ -76,11 +83,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("value_read_type",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getValueReadType();
         },
         [](daq::ITailReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setValueReadType(type);
         },
@@ -88,11 +97,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("domain_read_type",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getDomainReadType();
         },
         [](daq::ITailReaderBuilder *object, daq::SampleType type)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setDomainReadType(type);
         },
@@ -100,11 +111,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("read_mode",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getReadMode();
         },
         [](daq::ITailReaderBuilder *object, daq::ReadMode mode)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setReadMode(mode);
         },
@@ -112,11 +125,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("history_size",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getHistorySize();
         },
         [](daq::ITailReaderBuilder *object, const size_t historySize)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setHistorySize(historySize);
         },
@@ -124,11 +139,13 @@ void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBui
     cls.def_property("skip_events",
         [](daq::ITailReaderBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             return objectPtr.getSkipEvents();
         },
         [](daq::ITailReaderBuilder *object, const bool skipEvents)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TailReaderBuilderPtr::Borrow(object);
             objectPtr.setSkipEvents(skipEvents);
         },

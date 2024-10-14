@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,11 +43,13 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property("public",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getPublic();
         },
         [](daq::ISignal *object, const bool isPublic)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             objectPtr.setPublic(isPublic);
         },
@@ -53,6 +57,7 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property_readonly("descriptor",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getDescriptor().detach();
         },
@@ -61,6 +66,7 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property_readonly("domain_signal",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getDomainSignal().detach();
         },
@@ -69,6 +75,7 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property_readonly("related_signals",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getRelatedSignals().detach();
         },
@@ -77,6 +84,7 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property_readonly("connections",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getConnections().detach();
         },
@@ -85,11 +93,13 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property("streamed",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return objectPtr.getStreamed();
         },
         [](daq::ISignal *object, const bool streamed)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             objectPtr.setStreamed(streamed);
         },
@@ -97,6 +107,7 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
     cls.def_property_readonly("last_value",
         [](daq::ISignal *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getLastValue());
         },

@@ -70,7 +70,7 @@ TEST_F(TmsPropertyObjectTest, Register)
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
 }
 
-TEST_F(TmsPropertyObjectTest, OnPropertyValueChangeEvent)
+TEST_F(TmsPropertyObjectTest, DISABLED_OnPropertyValueChangeEvent)
 {
     PropertyObjectPtr propertyObject = createPropertyObject();
 

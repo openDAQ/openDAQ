@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
     cls.def("stop",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             objectPtr.stop();
         },
@@ -48,6 +51,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
     cls.def_property_readonly("id",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             return objectPtr.getId().toStdString();
         },
@@ -55,6 +59,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
     cls.def("enable_discovery",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             objectPtr.enableDiscovery();
         },
@@ -62,6 +67,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
     cls.def_property_readonly("signals",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             return objectPtr.getSignals().detach();
         },
@@ -70,6 +76,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
     cls.def("get_signals",
         [](daq::IServer *object, daq::ISearchFilter* searchFilter)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             return objectPtr.getSignals(searchFilter).detach();
         },

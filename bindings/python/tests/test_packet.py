@@ -48,6 +48,6 @@ class TestPacket(opendaq_test.TestCase):
         
         self.assertTrue(np.array_equal(values, test_scaled_data))
         self.assertTrue(np.array_equal(time, np.arange(10, dtype=np.int64)))
-                
+
 if __name__ == '__main__':
     unittest.main()

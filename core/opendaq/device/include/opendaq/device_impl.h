@@ -37,7 +37,10 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/component_update_context_ptr.h>
 #include <set>
+#include <optional>
+#include <coreobjects/user_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -91,11 +94,16 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC lock() override;
+    ErrCode INTERFACE_FUNC unlock() override;
+    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
     ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC lock(IUser* user) override;
+    ErrCode INTERFACE_FUNC unlock(IUser* user) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -112,7 +120,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
-    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
+    ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config) override;
 
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
@@ -133,6 +141,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     PropertyObjectPtr deviceConfig;
     bool isRootDevice;
+    std::optional<UserPtr> userLock;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -184,6 +193,9 @@ private:
     ListPtr<IChannel> getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursive(const SearchFilterPtr& searchFilter);
     ListPtr<IDevice> getDevicesRecursive(const SearchFilterPtr& searchFilter);
+    ErrCode lockInternal(IUser* user);
+    ErrCode unlockInternal(IUser* user);
+    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
 };
@@ -291,6 +303,75 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObjec
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
+{
+    std::scoped_lock syncLock(this->sync);
+
+    ErrCode status = OPENDAQ_SUCCESS;
+
+    ListPtr<IDevice> devices;
+    this->getDevices(&devices, search::Any());
+    std::vector<bool> lockStatuses(devices.getCount());
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+        lockStatuses[i] = devices[i].isLocked();
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+    {
+        status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+
+        if (OPENDAQ_FAILED(status))
+        {
+            const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
+
+            if (OPENDAQ_FAILED(revertStatus))
+                return revertStatus;
+
+            break;
+        }
+    }
+
+    if (OPENDAQ_SUCCEEDED(status))
+        status = lockInternal(user);
+
+    return status;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
+{
+    std::scoped_lock syncLock(this->sync);
+
+    ErrCode status = unlockInternal(user);
+
+    if (OPENDAQ_FAILED(status))
+        return status;
+
+    ListPtr<IDevice> devices;
+    this->getDevices(&devices, search::Any());
+    std::vector<bool> lockStatuses(devices.getCount());
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+        lockStatuses[i] = devices[i].isLocked();
+
+    for (SizeT i = 0; i < devices.getCount(); i++)
+    {
+        status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
+
+        if (OPENDAQ_FAILED(status))
+        {
+            const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
+
+            if (OPENDAQ_FAILED(revertStatus))
+                return revertStatus;
+
+            return status;
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInputsOutputsFolder(IFolder** inputsOutputsFolder)
@@ -740,6 +821,29 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
     return this->servers->getItems(servers);
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::lock()
+{
+    return this->lock(nullptr);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::unlock()
+{
+    return this->unlock(nullptr);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
+{
+    OPENDAQ_PARAM_NOT_NULL(locked);
+
+    std::scoped_lock syncLock(this->sync);
+    *locked = this->userLock.has_value();
+    return OPENDAQ_SUCCESS;
+}
+
+
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter)
 {
@@ -1015,6 +1119,55 @@ ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(c
     return devList;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
+{
+    UserPtr userPtr = UserPtr::Borrow(user);
+
+    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>().isAnonymous())
+        userPtr = nullptr;
+
+    if (this->userLock.has_value() && this->userLock != userPtr)
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
+    this->userLock = userPtr;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::unlockInternal(IUser* user)
+{
+    if (this->userLock.has_value() && this->userLock != nullptr && this->userLock != user)
+        return OPENDAQ_ERR_ACCESSDENIED;
+
+    this->userLock.reset();
+    return OPENDAQ_SUCCESS;
+}
+
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
+    ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock)
+{
+    ErrCode status = OPENDAQ_SUCCESS;
+
+    for (size_t i = 0; i < deviceCount; i++)
+    {
+        if (targetLockStatuses[i] != doLock)
+            continue;
+
+        if (doLock)
+            status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+        else
+            status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
+
+        if (OPENDAQ_FAILED(status))
+            return status;
+    }
+
+    return status;
+}
+
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** configuration)
 {
@@ -1038,24 +1191,23 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration)
+ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* configuration, IUpdateParameters* config)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    return daqTry(
-        [this, &configuration]()
-        {
-            const auto deserializer = JsonDeserializer();
+    return daqTry([this, &configuration, &config]
+    {
+        const auto deserializer = JsonDeserializer();
 
-            auto updatable = this->template borrowInterface<IUpdatable>();
+        auto updatable = this->template borrowInterface<IUpdatable>();
 
-            deserializer.update(updatable, configuration);
+        deserializer.update(updatable, configuration, config);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class TInterface, class... Interfaces>
@@ -1174,6 +1326,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     DeviceInfoPtr deviceInfo;
     checkErrorInfo(this->getInfo(&deviceInfo));
+
     if (!forUpdate)
     {
         if (deviceInfo.assigned())
@@ -1181,11 +1334,39 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             serializer.key("deviceInfo");
             deviceInfo.serialize(serializer);
         }
-
         if (deviceDomain.assigned())
         {
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
+        }
+    }
+    else
+    {
+        if (deviceInfo.assigned())
+        {
+            auto connectionString = deviceInfo.getConnectionString();
+            if (connectionString.getLength() != 0)
+            {
+                serializer.key("connectionString");
+                serializer.writeString(deviceInfo.getConnectionString());
+            }
+            
+            auto manufacturer = deviceInfo.getManufacturer();
+            auto serialNumber = deviceInfo.getSerialNumber();
+            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            {
+                serializer.key("manufacturer");
+                serializer.writeString(manufacturer);
+
+                serializer.key("serialNumber");
+                serializer.writeString(serialNumber);
+            }
+        }
+
+        if (deviceConfig.assigned())
+        {
+            serializer.key("deviceConfig");
+            deviceConfig.serialize(serializer);
         }
     }
 
@@ -1227,17 +1408,67 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 {
     try
     {
-        DevicePtr device;
-        if (devices.hasItem(deviceId))
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
+
+        if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
         {
-            device = devices.getItem(deviceId);
-        }
-        else
-        {
-            LOG_W("Device {} not found", deviceId);
+            LOG_D("Device {} already exists and re-add is not enabled", deviceId);
+            auto device = devices.getItem(deviceId);
+            const auto updatableDevice = device.template asPtr<IUpdatable>(true);
+            updatableDevice.updateInternal(serializedDevice, context);
             return;
         }
 
+        PropertyObjectPtr deviceConfig;
+        DeviceInfoPtr discoveredDeviceInfo;
+
+        if (serializedDevice.hasKey("deviceConfig"))
+            deviceConfig = serializedDevice.readObject("deviceConfig");
+
+        if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
+        {
+            StringPtr manufacturer = serializedDevice.readString("manufacturer");
+            StringPtr serialNumber = serializedDevice.readString("serialNumber");
+
+            for (const auto& availableDevice : onGetAvailableDevices())
+            {
+                Bool deviceFound = false;
+                availableDevice.getManufacturer()->equals(manufacturer, &deviceFound);
+                if (!deviceFound)
+                    continue;
+                
+                availableDevice.getSerialNumber()->equals(serialNumber, &deviceFound);
+                if (!deviceFound)
+                    continue;
+
+                discoveredDeviceInfo = availableDevice;
+                break;
+            }
+        }
+
+        StringPtr connectionString;
+        if (discoveredDeviceInfo.assigned())
+        {
+            connectionString = discoveredDeviceInfo.getConnectionString();
+        }
+        else if (serializedDevice.hasKey("connectionString"))
+        {
+            connectionString = serializedDevice.readString("connectionString");
+        }
+        else
+        {
+            LOG_W("No connection string found for device {}", deviceId);
+            return;
+        }
+
+        if (devices.hasItem(deviceId))
+        {
+            DevicePtr device = devices.getItem(deviceId);
+            this->removeDevice(device);
+        }
+
+        DevicePtr device;
+        this->addDevice(&device, connectionString, deviceConfig);
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }

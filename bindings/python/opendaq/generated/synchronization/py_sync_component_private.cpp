@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -42,6 +44,7 @@ void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncCompon
         nullptr,
         [](daq::ISyncComponentPrivate *object, const bool synchronizationLocked)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPrivatePtr::Borrow(object);
             objectPtr.setSyncLocked(synchronizationLocked);
         },
@@ -49,6 +52,7 @@ void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncCompon
     cls.def("add_interface",
         [](daq::ISyncComponentPrivate *object, daq::IPropertyObject* syncInterface)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPrivatePtr::Borrow(object);
             objectPtr.addInterface(syncInterface);
         },
@@ -57,6 +61,7 @@ void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncCompon
     cls.def("remove_interface",
         [](daq::ISyncComponentPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& syncInterfaceName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponentPrivatePtr::Borrow(object);
             objectPtr.removeInterface(getVariantValue<daq::IString*>(syncInterfaceName));
         },

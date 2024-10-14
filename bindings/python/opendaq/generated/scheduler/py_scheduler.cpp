@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def("schedule_function",
         [](daq::IScheduler *object, daq::IFunction* function)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             return objectPtr.scheduleFunction(function).detach();
         },
@@ -51,6 +54,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def("schedule_work",
         [](daq::IScheduler *object, daq::IWork* work)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             objectPtr.scheduleWork(work);
         },
@@ -59,6 +63,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def("schedule_graph",
         [](daq::IScheduler *object, daq::ITaskGraph* graph)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             return objectPtr.scheduleGraph(graph).detach();
         },
@@ -67,6 +72,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def("stop",
         [](daq::IScheduler *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             objectPtr.stop();
         },
@@ -74,6 +80,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def("wait_all",
         [](daq::IScheduler *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             objectPtr.waitAll();
         },
@@ -81,6 +88,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.def_property_readonly("multi_threaded",
         [](daq::IScheduler *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             return objectPtr.isMultiThreaded();
         },

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq:
     cls.def("listener_connected",
         [](daq::ISignalEvents *object, daq::IConnection* connection)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalEventsPtr::Borrow(object);
             objectPtr.listenerConnected(connection);
         },
@@ -49,6 +52,7 @@ void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq:
     cls.def("listener_disconnected",
         [](daq::ISignalEvents *object, daq::IConnection* connection)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalEventsPtr::Borrow(object);
             objectPtr.listenerDisconnected(connection);
         },
@@ -57,6 +61,7 @@ void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq:
     cls.def("domain_signal_reference_set",
         [](daq::ISignalEvents *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalEventsPtr::Borrow(object);
             objectPtr.domainSignalReferenceSet(signal);
         },
@@ -65,6 +70,7 @@ void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq:
     cls.def("domain_signal_reference_removed",
         [](daq::ISignalEvents *object, daq::ISignal* signal)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SignalEventsPtr::Borrow(object);
             objectPtr.domainSignalReferenceRemoved(signal);
         },

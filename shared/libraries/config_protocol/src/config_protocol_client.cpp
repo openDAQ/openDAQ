@@ -47,7 +47,7 @@ void ConfigProtocolClientComm::setPropertyValue(
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::setProtectedPropertyValue(const std::string& globalId,
@@ -62,7 +62,7 @@ void ConfigProtocolClientComm::setProtectedPropertyValue(const std::string& glob
     const auto setProtectedPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setProtectedPropertyValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(setProtectedPropertyValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(setProtectedPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& globalId, const std::string& propertyName)
@@ -75,7 +75,7 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
 
     const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
 
-    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
+    return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
 void ConfigProtocolClientComm::clearPropertyValue(
@@ -89,7 +89,7 @@ void ConfigProtocolClientComm::clearPropertyValue(
     const auto clearPropertyValueRpcReplyPacketBuffer = sendRequestCallback(clearPropertyValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(clearPropertyValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
@@ -102,7 +102,7 @@ void ConfigProtocolClientComm::update(const std::string& globalId, const std::st
     const auto updateRpcReplyPacketBuffer = sendRequestCallback(updateRpcRequestPacketBuffer );
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(updateRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(updateRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId,
@@ -117,7 +117,7 @@ BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId
     auto callPropertyRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "CallProperty", dict);
     const auto callPropertyRpcReplyPacketBuffer = sendRequestCallback(callPropertyRpcRequestPacketBuffer);
 
-    const auto result = parseRpcReplyPacketBuffer(callPropertyRpcReplyPacketBuffer);
+    const auto result = parseRpcOrRejectReply(callPropertyRpcReplyPacketBuffer.parseRpcRequestOrReply());
     return result;
 }
 
@@ -133,7 +133,7 @@ void ConfigProtocolClientComm::setAttributeValue(const std::string& globalId,
     const auto setAttributeValueRpcReplyPacketBuffer = sendRequestCallback(setAttributeValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(setAttributeValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(setAttributeValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const std::string& path)
@@ -146,7 +146,7 @@ void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const st
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props)
@@ -161,7 +161,7 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+    parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
@@ -172,7 +172,31 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
     const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
-    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
+    return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
+}
+
+void ConfigProtocolClientComm::lock(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    sendCommand("Lock", params);
+}
+
+void ConfigProtocolClientComm::unlock(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    sendCommand("Unlock", params);
+}
+
+bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    return sendCommand("IsLocked", params);
 }
 
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
@@ -211,19 +235,17 @@ PacketBuffer ConfigProtocolClientComm::createNoReplyRpcRequestPacketBuffer(const
     return packetBuffer;
 }
 
-BaseObjectPtr ConfigProtocolClientComm::parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
-                                                                  const ComponentDeserializeContextPtr& context,
-                                                                  bool isGetRootDeviceReply)
+BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& jsonReply,
+                                                              const ComponentDeserializeContextPtr& context,
+                                                              bool isGetRootDeviceReply)
 {
-    const auto jsonStr = packetBuffer.parseRpcRequestOrReply();
-
     ParamsDictPtr reply;
     try
     {
         ComponentDeserializeCallback customDeviceDeserilazeCallback = isGetRootDeviceReply ? rootDeviceDeserializeCallback : nullptr;
         const auto deserializer = JsonDeserializer();
         reply = deserializer.deserialize(
-            jsonStr,
+            jsonReply,
             context,
             [this, &customDeviceDeserilazeCallback](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
             {
@@ -476,7 +498,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, co
     auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
-    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, nullptr);
+    return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), nullptr);
 }
 
 void ConfigProtocolClientComm::sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params)
@@ -614,7 +636,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
 
     const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent, nullptr, nullptr);
 
-    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext, isGetRootDeviceCommand);
+    return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext, isGetRootDeviceCommand);
 }
 
 template <class Interface, class F>

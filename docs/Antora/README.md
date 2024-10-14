@@ -1,7 +1,7 @@
 Blueberry documentation
 =======================
 
-This directory contains files required to build the official Blueberry
+This directory contains files required to build the official openDAQ
 documentation. To build the documentation locally, execute the following Docker
 command in the root folder of this repository:
 

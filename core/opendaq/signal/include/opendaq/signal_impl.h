@@ -360,8 +360,6 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
 {
-    OPENDAQ_PARAM_NOT_NULL(descriptor);
-
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
     bool success;
 
@@ -382,7 +380,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
             try {
-                if (dataDescriptor.getSampleType() == SampleType::Struct)
+                if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
                 {
                     auto typeManager = this->context.getTypeManager();
                     addToTypeManagerRecursively(typeManager, dataDescriptor);

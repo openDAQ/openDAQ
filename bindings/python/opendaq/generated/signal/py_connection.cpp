@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("enqueue",
         [](daq::IConnection *object, daq::IPacket* packet)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             objectPtr.enqueue(packet);
         },
@@ -51,6 +54,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("enqueue_on_this_thread",
         [](daq::IConnection *object, daq::IPacket* packet)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             objectPtr.enqueueOnThisThread(packet);
         },
@@ -59,6 +63,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("dequeue",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.dequeue().detach();
         },
@@ -66,6 +71,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("peek",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.peek().detach();
         },
@@ -73,6 +79,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("packet_count",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getPacketCount();
         },
@@ -80,6 +87,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("signal",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getSignal().detach();
         },
@@ -88,6 +96,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("input_port",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getInputPort().detach();
         },
@@ -96,6 +105,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("available_samples",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getAvailableSamples();
         },
@@ -103,6 +113,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("samples_until_next_descriptor",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getSamplesUntilNextDescriptor();
         },
@@ -110,6 +121,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("remote",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.isRemote();
         },
@@ -117,6 +129,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("enqueue_multiple",
         [](daq::IConnection *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& packets)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             objectPtr.enqueueMultiple(getVariantValue<daq::IList*>(packets));
         },
@@ -125,6 +138,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("dequeue_all",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.dequeueAll().detach();
         },
@@ -132,6 +146,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("samples_until_next_event_packet",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getSamplesUntilNextEventPacket();
         },
@@ -139,6 +154,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def_property_readonly("samples_until_next_gap_packet",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.getSamplesUntilNextGapPacket();
         },
@@ -146,6 +162,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("has_event_packet",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.hasEventPacket();
         },
@@ -153,6 +170,7 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
     cls.def("has_gap_packet",
         [](daq::IConnection *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionPtr::Borrow(object);
             return objectPtr.hasGapPacket();
         },

@@ -21,6 +21,7 @@ try:
     from gui_demo.components.block_view import BlockView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
+    from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from gui_demo.app_context import *
     from gui_demo.utils import *
     from gui_demo.app_context import *
@@ -29,6 +30,7 @@ except:
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
+    from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from opendaq.gui_demo.app_context import *
     from opendaq.gui_demo.utils import *
     from opendaq.gui_demo.app_context import *
@@ -211,6 +213,8 @@ class App(tk.Tk):
         popup.add_command(label="Close")
         popup.add_command(label="Begin update", command=self.handle_begin_update)
         popup.add_command(label="End update", command=self.handle_end_update)
+        popup.add_command(label="Lock", command=self.handle_lock)
+        popup.add_command(label="Unlock", command=self.handle_unlock)
         self.tree_popup = popup
 
     def tree_update(self, new_selected_node=None):
@@ -224,6 +228,7 @@ class App(tk.Tk):
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
+        self.set_node_lock_status()
 
     def tree_traverse_components_recursive(self, component, display_type=DisplayType.UNSPECIFIED):
         if component is None:
@@ -404,14 +409,8 @@ class App(tk.Tk):
         file.close()
 
     def handle_load_config_button_clicked(self):
-        file = askopenfile(initialfile='config.json', title="Load configuration",
-                           defaultextension=".json", filetypes=[("All Files", "*.*"), ("Json", "*.json")])
-        if file is None:
-            return
-        config_string = file.read()
-        file.close()
-
-        self.context.instance.load_configuration(config_string)
+        dialog = LoadInstanceConfigDialog(self, self.context)
+        dialog.show()
         self.tree_update()
 
     def handle_refresh_button_clicked(self):
@@ -617,6 +616,28 @@ class App(tk.Tk):
         node_obj = daq.IPropertyObject.cast_from(node_obj)
         node_obj.end_update()
 
+    def handle_lock(self):
+        node = treeview_get_first_selection(self.tree)
+        component = find_component(node, self.context.instance)
+
+        try:
+            device = daq.IDevice.cast_from(component)
+            device.lock()
+            self._set_node_lock_status_recursive(node)
+        except Exception as e:
+            print("Lock failed: ", e)
+
+    def handle_unlock(self):
+        node = treeview_get_first_selection(self.tree)
+        component = find_component(node, self.context.instance)
+
+        try:
+            device = daq.IDevice.cast_from(component)
+            device.unlock()
+            self._set_node_lock_status_recursive(node)
+        except Exception as e:
+            print("Unlock failed: ", e)
+
     def set_node_update_status(self):
         for node in self.tree.get_children():
             self._set_node_update_status_recursive(node)
@@ -634,6 +655,30 @@ class App(tk.Tk):
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_update_status_recursive(child)
+
+    def set_node_lock_status(self):
+        for node in self.tree.get_children():
+            self._set_node_lock_status_recursive(node)
+
+    def _set_node_lock_status_recursive(self, node, parent_locked=False):
+        color = 'gray'
+        component = find_component(node, self.context.instance)
+
+        if daq.IDevice.can_cast_from(component):
+            device = daq.IDevice.cast_from(component)
+            locked = device.locked
+        else:
+            locked = parent_locked
+
+        if locked:
+            self.tree.item(node, tags=('locked',))
+            self.tree.tag_configure('locked', foreground=color)
+        else:
+            self.tree.item(node, tags=())
+
+        children = self.tree.get_children(node)
+        for child in children:
+            self._set_node_lock_status_recursive(child, locked)
 
 
 # MARK: - Entry point

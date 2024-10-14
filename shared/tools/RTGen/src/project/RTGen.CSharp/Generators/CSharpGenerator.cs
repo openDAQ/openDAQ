@@ -248,6 +248,7 @@ namespace RTGen.CSharp.Generators
                 _factoryArgumentDefaults.Add("ReadTimeoutType",         "ReadTimeoutType.All");
                 _factoryArgumentDefaults.Add("startOnFullUnitOfDomain", "false");
                 _factoryArgumentDefaults.Add("requiredCommonSampleRate", "-1");
+                _factoryArgumentDefaults.Add("minReadCount", "1");
 
                 _keyWords.Add("base");
                 _keyWords.Add("event");

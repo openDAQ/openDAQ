@@ -42,6 +42,7 @@ public:
     explicit NativeDeviceHelper(const ContextPtr& context,
                                 opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                 SizeT configProtocolRequestTimeout,
+                                Bool restoreClientConfigOnReconnect,
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId);
@@ -81,7 +82,9 @@ private:
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
+    bool acceptNotificationPackets;
     std::chrono::milliseconds configProtocolRequestTimeout;
+    Bool restoreClientConfigOnReconnect;
     std::mutex sync;
 };
 

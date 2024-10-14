@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -51,6 +53,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("data_descriptor",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDataDescriptor().detach();
         },
@@ -59,6 +62,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("sample_count",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getSampleCount();
         },
@@ -66,6 +70,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("offset",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getOffset().detach();
         },
@@ -74,6 +79,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("data",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return std::make_unique<PyBuffer::Buffer>(objectPtr, objectPtr.getData(), objectPtr.getDataSize());
         },
@@ -82,6 +88,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("raw_data",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return std::make_unique<PyBuffer::Buffer>(objectPtr, objectPtr.getRawData(), objectPtr.getRawDataSize());
         },
@@ -90,6 +97,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("data_size",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDataSize();
         },
@@ -97,6 +105,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("raw_data_size",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getRawDataSize();
         },
@@ -104,6 +113,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("domain_packet",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDomainPacket().detach();
         },
@@ -112,6 +122,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("packet_id",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getPacketId();
         },
@@ -119,6 +130,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("last_value",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getLastValue());
         },
@@ -127,6 +139,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def("get_last_value",
         [](daq::IDataPacket *object, daq::ITypeManager* typeManager)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getLastValue(typeManager));
         },

@@ -153,10 +153,9 @@ if(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS)
     )
 endif()
 
-# this is somehow doing nothing when packing (CPack)
-#install(DIRECTORY "${outputBinDir}/"
-#        DESTINATION ${CMAKE_INSTALL_PREFIX}/bindings/dotnet
-#        COMPONENT openDAQ_opendaq_Development
-#)
+# for packing (CPack)
+install(DIRECTORY "${outputBinDir}/"
+        DESTINATION bindings/dotnet
+)
 
 message(STATUS "=== .NET Bindings end ===")

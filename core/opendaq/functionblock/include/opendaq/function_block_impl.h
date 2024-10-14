@@ -54,6 +54,9 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getStatusSignal(ISignal** statusSignal) override;
     ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
+    ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -77,6 +80,10 @@ public:
     virtual void onConnected(const InputPortPtr& port);
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
+
+    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
+    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -323,19 +330,21 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
                                                                        const SerializedObjectPtr& serializedFunctionBlock,
                                                                        const BaseObjectPtr& context)
 {
+    UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
-        DAQLOGF_W(loggerComponent,
-                  "Sub function block "
-                  "{}"
-                  "not found",
-                  fbId);
-        return;
+        auto typeId = serializedFunctionBlock.readString("typeId");
+
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("LocalId", fbId));
+
+        auto fb = onAddFunctionBlock(typeId, config);
+        updatableFb = fb.template asPtr<IUpdatable>(true);
     }
-
-    const auto fb = this->functionBlocks.getItem(fbId);
-
-    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
+    else
+    {
+        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
+    }
 
     updatableFb.updateInternal(serializedFunctionBlock, context);
 }
@@ -395,6 +404,67 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
         fbList.pushBack(fb);
 
     return fbList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
+{
+    if (functionBlockTypes == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    DictPtr<IString, IFunctionBlockType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
+
+    *functionBlockTypes = dict.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
+{
+    return Dict<IString, IFunctionBlockType>().detach();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (typeId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    FunctionBlockPtr functionBlockPtr;
+    const auto typeIdPtr = StringPtr::Borrow(typeId);
+    const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
+
+    *functionBlock = functionBlockPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotSupportedException("Function block does not support adding nested function blocks");
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    std::lock_guard lock(this->sync);
+    this->functionBlocks.removeItem(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>

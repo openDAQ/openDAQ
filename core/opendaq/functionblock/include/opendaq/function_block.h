@@ -26,6 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IFolder, GenericFolderPtr, "<opendaq/folder_ptr.h>")]
  * [templated(defaultAliasName: FunctionBlockPtr)]
  * [interfaceSmartPtr(IFunctionBlock, GenericFunctionBlockPtr)]
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
 /*!
@@ -106,6 +107,28 @@ DECLARE_OPENDAQ_INTERFACE(IFunctionBlock, IFolder)
      * child function blocks.
      */
     virtual ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) = 0;
+
+    // [templateType(functionBlockTypes, IString, IFunctionBlockType)]
+    /*!
+     * @brief Gets all neasted function block types that are supported, containing their description.
+     * @param[out] functionBlockTypes A dictionary of available function block types.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) = 0;
+
+    /*!
+     * @brief Creates and adds a function block as the neasted of current function block with the provided unique ID and returns it.
+     * @param[out] functionBlock The added function block.
+     * @param typeId The unique ID of the function block. Can be obtained from its corresponding Function Block Info
+     * object.
+     * @param config A config object to configure a function block with custom settings specific to that function block type.
+     */
+    virtual ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) = 0;
+
+    /*!
+     * @brief Removes the function block provided as argument, disconnecting its signals and input ports.
+     * @param functionBlock The function block to be removed.
+     */
+    virtual ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) = 0;
 };
 /*!@}*/
 

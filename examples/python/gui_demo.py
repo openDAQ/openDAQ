@@ -686,7 +686,10 @@ class App(tk.Tk):
 
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            locked = device.locked
+            try:
+                locked = device.locked
+            except:
+                locked = False
         else:
             locked = parent_locked
 

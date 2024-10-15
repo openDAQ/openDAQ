@@ -82,6 +82,9 @@ public:
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
+    ErrCode INTERFACE_FUNC getAvailableLogFiles(IList** logFiles) override;
+    ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
+
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 

@@ -328,6 +328,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("lock",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.lock();
         },
@@ -335,6 +336,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def("unlock",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.unlock();
         },
@@ -342,8 +344,27 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
     cls.def_property_readonly("locked",
         [](daq::IDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             return objectPtr.isLocked();
         },
         "Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.");
+    cls.def_property_readonly("available_log_files",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getAvailableLogFiles().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets a list of available log files.");
+    cls.def("get_log",
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::Int size, daq::Int offset)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getLog(getVariantValue<daq::IString*>(id), size, offset).toStdString();
+        },
+        py::arg("id"), py::arg("size") = -1, py::arg("offset") = 0,
+        "Retrieves a chunk of the log file with the provided ID.");
 }

@@ -97,6 +97,8 @@ public:
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
+    ErrCode INTERFACE_FUNC getAvailableLogFiles(IList** logFiles) override;
+    ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -186,6 +188,10 @@ protected:
     virtual StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config);
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
+
+
+    virtual ListPtr<ILogFileInfo> onGetAvailableLogFiles();
+    virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -843,6 +849,48 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::onGetAvailableLogFiles()
+{
+    return List<ILogFileInfo>();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableLogFiles(IList** logFiles)
+{
+    OPENDAQ_PARAM_NOT_NULL(logFiles);
+
+    ListPtr<ILogFileInfo> logFilesPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableLogFiles, logFilesPtr);
+
+    *logFiles = logFilesPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    return "";
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getLog(IString** log, IString* id, Int size, Int offset)
+{
+    OPENDAQ_PARAM_NOT_NULL(log);
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    if (offset < 0)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
+
+    if (size < -1)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
+
+    StringPtr logPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLog, logPtr, id, size, offset);
+
+    *log = logPtr.detach();
+    return errCode;
+}
 
 template <typename TInterface, typename ... Interfaces>
 ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter)

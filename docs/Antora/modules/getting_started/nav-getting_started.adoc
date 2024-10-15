@@ -3,5 +3,6 @@
 ** Setting up openDAQ(TM)
 *** xref:quick_start_setting_up_cpp.adoc[{cpp}]
 *** xref:quick_start_setting_up_python.adoc[Python]
+*** xref:quick_start_setting_up_csharp.adoc[C#]
 *** xref:quick_start_building_opendaq.adoc[Building from source]
 ** xref:quick_start_application.adoc[Application Quick Start]

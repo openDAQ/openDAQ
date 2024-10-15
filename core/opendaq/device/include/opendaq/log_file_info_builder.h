@@ -28,6 +28,12 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(ILogFileInfoBuilder, IBaseObject)
 {
     /*!
+     * @brief Builds the log file info.
+     * @param[out] logFileInfo The log file info.
+     */
+    virtual ErrCode INTERFACE_FUNC build(ILogFileInfo** logFileInfo) = 0;
+
+    /*!
      * @brief Gets the local path of the log file. The local path can be not assigned as it is optional.
      * @param[out] localPath The local path of the log file.
      */

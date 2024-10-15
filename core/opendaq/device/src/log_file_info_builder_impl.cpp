@@ -1,4 +1,6 @@
 #include <opendaq/log_file_info_builder_impl.h>
+#include <opendaq/log_file_info_builder_ptr.h>
+#include <opendaq/log_file_info_impl.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -6,6 +8,19 @@ BEGIN_NAMESPACE_OPENDAQ
 LogFileInfoBuilderImpl::LogFileInfoBuilderImpl()
     : encoding(LogFileEncodingType::Utf8)
 {
+}
+
+ErrCode LogFileInfoBuilderImpl::build(ILogFileInfo** logFileInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(logFileInfo);
+
+    const auto builderPtr = this->borrowPtr<LogFileInfoBuilderPtr>();
+
+    return daqTry([&]
+    {
+        *logFileInfo = createWithImplementation<ILogFileInfo, LogFileInfoImpl>(builderPtr).detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode LogFileInfoBuilderImpl::getLocalPath(IString** localPath)

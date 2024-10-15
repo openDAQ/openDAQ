@@ -130,9 +130,12 @@ function(create_component_source_groups_${BASE_NAME})
 
     source_group("device//log_file_info" FILES 
         ${SDK_HEADERS_DIR}/log_file_info.h
+        ${SDK_HEADERS_DIR}/log_file_info_impl.h
         ${SDK_HEADERS_DIR}/log_file_info_builder.h
         ${SDK_HEADERS_DIR}/log_file_info_builder_impl.h
+        ${SDK_HEADERS_DIR}/log_file_info_factory.h
         ${SDK_SRC_DIR}/log_file_info_builder_impl.cpp
+        ${SDK_SRC_DIR}/log_file_info_impl.cpp
     )
     
     source_group("device" FILES 
@@ -160,6 +163,7 @@ set(SRC_PublicHeaders_Component
     address_info_factory.h
     log_file_info.h
     log_file_info_builder.h
+    log_file_info_factory.h
     PARENT_SCOPE
 )
 
@@ -169,6 +173,7 @@ set(SRC_PrivateHeaders_Component
     device_domain_impl.h
     address_info_impl.h
     address_info_builder_impl.h
+    log_file_info_impl.h
     log_file_info_builder_impl.h
     PARENT_SCOPE
 )
@@ -182,6 +187,7 @@ set(SRC_Cpp_Component
     device_domain_impl.cpp
     address_info_impl.cpp
     address_info_builder_impl.cpp
+    log_file_info_impl.cpp
     log_file_info_builder_impl.cpp
     device.natvis
     PARENT_SCOPE

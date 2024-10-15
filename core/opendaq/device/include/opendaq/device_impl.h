@@ -868,7 +868,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableLogFiles(IList** l
 }
 
 template <typename TInterface, typename... Interfaces>
-StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& id, Int size, Int offset)
+StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /* id */, Int /* size */, Int /* offset */)
 {
     return "";
 }

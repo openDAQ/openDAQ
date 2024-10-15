@@ -101,6 +101,7 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    channel
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block_type

@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2022-2024 openDAQ d.o.o.
  *
@@ -15,36 +16,36 @@
  */
 
 #pragma once
-#include <opendaq/log_file_info_builder.h>
+#include <opendaq/log_file_info.h>
+#include <opendaq/log_file_info_builder_ptr.h>
 #include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class LogFileInfoBuilderImpl : public ImplementationOf<ILogFileInfoBuilder>
+class LogFileInfoImpl : public ImplementationOf<ILogFileInfo>
 {
 public:
-    explicit LogFileInfoBuilderImpl();
+    LogFileInfoImpl(const StringPtr& localPath,
+                             const StringPtr& name,
+                             const StringPtr& description,
+                             LogFileEncodingType encoding);
 
-    ErrCode INTERFACE_FUNC build(ILogFileInfo** logFileInfo) override;
+    LogFileInfoImpl(const LogFileInfoBuilderPtr& builder);
 
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getLocalPath(IString** localPath) override;
-    ErrCode INTERFACE_FUNC setLocalPath(IString* localPath) override;
-
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
-
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
-    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
-
+    ErrCode INTERFACE_FUNC getSize(SizeT* size) override;
     ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) override;
-    ErrCode INTERFACE_FUNC setEncoding(LogFileEncodingType encoding) override;
+    ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) override;
 
 private:
     StringPtr localPath;
     StringPtr name;
+    StringPtr id;
     StringPtr description;
     LogFileEncodingType encoding;
 };
 
 END_NAMESPACE_OPENDAQ
-

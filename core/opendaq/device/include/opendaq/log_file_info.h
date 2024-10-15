@@ -19,6 +19,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct ILogFileInfoBuilder;
+
 /*!
  * @ingroup opendaq_log_file_info
  * @addtogroup opendaq_log_file_info log_file_info
@@ -83,18 +85,24 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfo, IBaseObject)
  */
 
 /*!
- * @brief Creates an log file info with no parameters configured.
+ * @brief Creates an log file info with parameters.
  */
-// OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, LogFileInfo, ILogFileInfo)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, LogFileInfo, ILogFileInfo,
+    IString*, localPath,
+    IString*, name,
+    IString*, description,
+    LogFileEncodingType, encoding
+)
 
-// /*!
-//  * @brief Creates an log file info from the builder.
-//  * @param builder The log file info builder.
-//  */
-// OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-//     LIBRARY_FACTORY, LogFileInfoBuilder, ILogFileInfo,
-//     ILogFileInfoBuilder*, builder
-// )
+/*!
+ * @brief Creates an log file info from the builder.
+ * @param builder The log file info builder.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, LogFileInfoFromBuilder, ILogFileInfo,
+    ILogFileInfoBuilder*, builder
+)
 
 /*!@}*/
 

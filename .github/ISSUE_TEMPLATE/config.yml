@@ -5,6 +5,6 @@ contact_links:
     about: For support tickets and membership inquiries fill out the form and our team will get back to you as soon as possible
   - name: 🔒 Contact openDAQ stakeholder support (bugs and requests)
     url: https://blueberrydaq.atlassian.net/servicedesk/customer/portal/34
-    about: Support for stakeholders that wish to keep their queries private
+    about: Support for stakeholders that wish to keep their requests private
 
 # TODO: we can add more links here, for example https://community.opendaq.com/ - however, that one appears to be bugged ATM (can't even register or log in)

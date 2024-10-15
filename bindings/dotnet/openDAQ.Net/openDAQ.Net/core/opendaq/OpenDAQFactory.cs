@@ -114,9 +114,12 @@ public static partial class OpenDAQFactory
 
 #if _WIN32
     /// <summary>Creates a Logger Sink object with WinDebug output as a target.</summary>
-    /// <returns></returns>
+    /// <returns>The sink when called on Windows, otherwise <c>null</c>.</returns>
     public static LoggerSink WinDebugLoggerSink()
     {
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            return null;
+
         /*
             inline LoggerSinkPtr WinDebugLoggerSink()
             {
@@ -256,12 +259,15 @@ public static partial class OpenDAQFactory
         }
 
 #if _WIN32
-        var winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", (int)LogLevel.Info);
-        if (winDebugSinkLogLevel != LogLevel.Off)
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
-            var winDebugSink = WinDebugLoggerSink();
-            winDebugSink.Level = winDebugSinkLogLevel;
-            sinks.Add(winDebugSink);
+            var winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", (int)LogLevel.Info);
+            if (winDebugSinkLogLevel != LogLevel.Off)
+            {
+                var winDebugSink   = WinDebugLoggerSink();
+                winDebugSink.Level = winDebugSinkLogLevel;
+                sinks.Add(winDebugSink);
+            }
         }
 #endif
 

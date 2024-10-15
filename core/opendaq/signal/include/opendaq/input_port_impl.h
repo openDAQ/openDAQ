@@ -187,13 +187,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             return err;
 
         auto signalPtr = SignalPtr::Borrow(signal);
-        Bool accepted;
-        err = this->GenericInputPortImpl::acceptsSignal(signalPtr, &accepted); // TODO ???
-        if (OPENDAQ_FAILED(err))
-            return err;
-
-        if (!accepted)
-            return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
 
         const auto connection = createConnection(signalPtr);
 

@@ -60,12 +60,6 @@ TEST_F(TestPacketE2E, Basic)
             connected(inputPort.getObject())
         )
         .WillOnce(Return(OPENDAQ_SUCCESS));
-        
-        EXPECT_CALL(
-            listener.mock(),
-            acceptsSignal(inputPort.getObject(), signal.getObject(), _)
-        )
-        .WillOnce(DoAll(SetArgPointee<2>(True), Return(OPENDAQ_SUCCESS)));
 
         ASSERT_NO_THROW(inputPort.connect(signal));
         auto connection = inputPort.getConnection();

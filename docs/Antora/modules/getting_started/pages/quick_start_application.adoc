@@ -155,7 +155,7 @@ instance = opendaq.Instance()
 C#::
 +
 --
-We start by editing our code with a basic application skeleton in a new `.cs` file, starting with creating a openDAQ(TM) instance:
+We start by editing our code in `Program.cs` from xref:quick_start_setting_up_csharp.adoc[Setting up C#] and create an openDAQ(TM) instance:
 
 [source,csharp]
 ----

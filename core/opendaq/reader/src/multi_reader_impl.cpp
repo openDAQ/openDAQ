@@ -799,10 +799,26 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         MultiReaderStatusPtr status;
         auto condition = [this, &status, &availableSamples, &syncStatus]
         {
-            if (notify.packetReady == false)
+            //-----------------
+            bool hasEventPacket = false;
+            bool hasDataPacket = true;
+
+            for (auto& signal : signals)
             {
-                return false;
+                if (signal.isFirstPacketEvent())
+                {
+                    hasEventPacket = true;
+                    break;
+                }
+                hasDataPacket &= (signal.getAvailable(true) != 0);
             }
+
+            notify.packetReady = (hasEventPacket || hasDataPacket) && !portDisconnected;
+            //-----------------
+
+            if (notify.packetReady == false)
+                return false;
+
             notify.packetReady = false;
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
@@ -836,18 +852,13 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             return false;
         };
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-        auto start = std::chrono::steady_clock::now();
-#endif
+        notify.condition.wait_for(notifyLock, timeout, condition);
 
-        [[maybe_unused]] bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
+        auto statusAssigned = status.assigned();
+        auto statusHasEvents = statusAssigned && (status.getReadStatus() == ReadStatus::Event);
+        auto statusEventCount = statusHasEvents ? status.getEventPackets().getCount() : 0;
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-        auto end = std::chrono::steady_clock::now();
-        LOG_T("Waited {} ms {} success", std::chrono::duration_cast<Milliseconds>(end - start).count(), ok ? "with" : "without")
-#endif
-
-        if (status.assigned() && portConnected)
+        if ((portConnected && status.assigned()) || statusEventCount)
         {
             updateCommonSampleRateAndDividers();
             portConnected = false;
@@ -891,6 +902,17 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     NumberPtr offset = 0;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
     {
+        if (remainingSamplesToRead == 0)
+        {
+            if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
+            {
+                // skip remaining samples
+                readSamples(availableSamples);
+            }
+
+            return createReaderStatus();
+        }
+
         auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
         if (domainPacket.assigned() && domainPacket.getOffset().assigned())
         {

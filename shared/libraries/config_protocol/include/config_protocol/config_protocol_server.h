@@ -116,6 +116,7 @@ private:
     BaseObjectPtr connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr connectExternalSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
+    BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 
     template <class SmartPtr>
     void addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler);

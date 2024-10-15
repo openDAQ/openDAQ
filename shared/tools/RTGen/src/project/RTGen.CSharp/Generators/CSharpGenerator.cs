@@ -2982,6 +2982,12 @@ namespace RTGen.CSharp.Generators
                 castOperators.Append(RenderFileTemplate(getter, templatePath, GetMethodVariable));
             }
 
+            if (rtClass.Type.Name.Equals("IRatio"))
+            {
+                //get the operators for the Ratio class
+                castOperators.Append(File.ReadAllText(Utility.GetTemplate($"{Options.Language}.{rtClass.Type.Name.ToLower()}.operators.template")));
+            }
+
             if (castOperators.Length <= 0)
             {
                 return string.Empty;

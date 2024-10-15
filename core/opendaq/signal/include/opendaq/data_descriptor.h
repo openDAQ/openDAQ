@@ -55,7 +55,7 @@ struct IDataDescriptorBuilder;
  *   - `SampleType`: An enum value that specifies the underlying data type (eg. Float64, Int32, String,...)
  *   - `Unit`: The unit of the data in the signal's packets.
  *   - `ValueRange`: The value range of the data in a signal's packets defining the lowest and highest expected values. The range is not
- * enforced.
+ *                   enforced.
  *   - `Rule`: The data rule that defines how a signal value is calculated from an implicit initialization value when the rule type is not
  *             `Explicit`.
  *   - `Origin`: Defines the starting point of the signal. If set, all values are added to the absolute origin when read.
@@ -68,6 +68,10 @@ struct IDataDescriptorBuilder;
  *                     buffer is laid out so that the data described by the first DataDescriptor is at the start, followed by the data
  *                     described by the second and so on. If the list is not empty, all descriptor parameters except for `Name` and
  *                     `Dimensions` should not be configured. See below for a explanation of Structure data descriptors.
+ *   - `ReferenceDomainInfo`: If set, gives the common identifier of one domain group. Signals with the same Reference Domain ID share a
+ *                            common synchronization source (all the signals in a group either come from the same device or are synchronized
+ *                            using a protocol, such as PTP, NTP, IRIG, etc.). Those signals can always be read together, implying that a
+ *                            Multi Reader can be used to read the signals if their sampling rates are compatible.
  *
  * @subsection data_descriptor_dimensions Dimensions
  * The list of dimensions determines the rank of values described by the descriptor. In example, if the list contains 1 dimension, the data

@@ -924,13 +924,30 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
 
     const auto instance = instanceBuilder.build();
 
-    auto logFiles = instance.getAvailableLogFiles();
-    ASSERT_EQ(logFiles.getCount(), 1u);
-    auto logFile = logFiles[0];
-    
-    ASSERT_EQ(logFile.getName(), loggerPath);
-    ASSERT_NE(logFile.getSize(), 0);
+    {
+        auto logFiles = instance.getAvailableLogFiles();
+        ASSERT_EQ(logFiles.getCount(), 1u);
+        auto logFile = logFiles[0];
+        
+        ASSERT_EQ(logFile.getName(), loggerPath);
+        ASSERT_NE(logFile.getSize(), 0);
 
-    StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
-    ASSERT_EQ(firstSymb, "[");
+        StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+    }
+
+    {
+        instance.getRootDevice().setPropertyValue("EnableLogging", false);
+        auto logFiles = instance.getAvailableLogFiles();
+        ASSERT_EQ(logFiles.getCount(), 0u);
+    }
+
+    {
+        instance.getRootDevice().setPropertyValue("EnableLogging", true);
+        auto logFiles = instance.getAvailableLogFiles();
+        ASSERT_EQ(logFiles.getCount(), 1u);
+
+        StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+    }
 }

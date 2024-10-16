@@ -891,9 +891,6 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         {
             if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
             {
-                // set condition_flag = true;
-//                dataAvailable = true;
-
                 // skip remaining samples
                 readSamples(availableSamples);
             }

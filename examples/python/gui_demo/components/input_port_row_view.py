@@ -63,9 +63,13 @@ class InputPortRowView(tk.Frame):
             self.dropdown.set(short_id)
 
     def fill_dropdown(self):
-        signals = ['none']
-        signals += [signal_id for signal_id in self.context.signals_for_device(
+        signals = [signal_id for signal_id in self.context.signals_for_device(
             self.device).keys()]
+        if not self.context.view_hidden_components:
+            signals = list(filter(lambda signal_id: self.context.signals_for_device(
+                self.device)[signal_id].visible, signals))
+        signals = ['none'] + signals
+
         self.dropdown['values'] = signals
         self.selection = ''
 

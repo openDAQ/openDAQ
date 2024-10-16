@@ -813,13 +813,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
                 hasDataPacket &= (signal.getAvailable(true) != 0);
             }
 
-            notify.packetReady = (hasEventPacket || hasDataPacket) && !portDisconnected;
-            //-----------------
-
-            if (notify.packetReady == false)
+            auto packetReady = (hasEventPacket || hasDataPacket) && !portDisconnected;
+            if (!packetReady)
                 return false;
 
-            notify.packetReady = false;
+            //-----------------
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
             {
@@ -1059,7 +1057,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     std::unique_lock lock(notify.mutex);
     if (portDisconnected)
     {
-        notify.packetReady = false;
         return OPENDAQ_SUCCESS;
     }
 
@@ -1075,7 +1072,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     if (hasEventPacket || hasDataPacket)
     {
-        notify.packetReady = true;
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();

@@ -1,5 +1,6 @@
 build
 external
+examples
 crypt_blowfish.h
 RTGen
 obj

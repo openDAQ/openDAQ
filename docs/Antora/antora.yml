@@ -1,6 +1,6 @@
 name: opendaq
 title: openDAQ Documentation
-version: 3.4.0
+version: opendaq_version
 start_page: ROOT:introduction.adoc
 asciidoc:
   attributes:

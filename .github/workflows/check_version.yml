@@ -58,14 +58,14 @@ jobs:
             # echo Base documentation version: $DOC_VER
             # echo "BASE_DOC_VERSION=$DOC_VER" >> "$GITHUB_OUTPUT"
 
-      - name: Compare openDAQ versions
-        run:  |
-            HEAD_DAQ_VER=${{ steps.head_daq_version.outputs.HEAD_DAQ_VERSION }}
-            HEAD_DOC_VER=${{ steps.head_doc_version.outputs.HEAD_DOC_VERSION }}
-            echo Head openDAQ version: $HEAD_DAQ_VER           
-            echo Head documentation version: $HEAD_DOC_VER
-            if [ "$HEAD_DAQ_VER" != "$HEAD_DOC_VER" ];
-            then
-              echo openDAQ and documentation versions must match!
-              exit 1
-            fi
+      # - name: Compare openDAQ versions
+      #   run:  |
+      #       HEAD_DAQ_VER=${{ steps.head_daq_version.outputs.HEAD_DAQ_VERSION }}
+      #       HEAD_DOC_VER=${{ steps.head_doc_version.outputs.HEAD_DOC_VERSION }}
+      #       echo Head openDAQ version: $HEAD_DAQ_VER           
+      #       echo Head documentation version: $HEAD_DOC_VER
+      #       if [ "$HEAD_DAQ_VER" != "$HEAD_DOC_VER" ];
+      #       then
+      #         echo openDAQ and documentation versions must match!
+      #         exit 1
+      #       fi

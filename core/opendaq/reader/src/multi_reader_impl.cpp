@@ -792,7 +792,6 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     std::unique_lock notifyLock(notify.mutex);
     SizeT availableSamples{};
     SyncStatus syncStatus{};
-    bool dataAvailable{};
     const bool zeroDataRead = remainingSamplesToRead == 0;
 
     if (timeout.count() > 0)

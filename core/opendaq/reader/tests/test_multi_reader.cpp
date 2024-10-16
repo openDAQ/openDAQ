@@ -2423,7 +2423,7 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
 
-    // check that we read 0 sampes as one of the ports is not connected
+    // check that we read 0 samples as one of the ports is not connected
     SizeT count{SAMPLES};
     MultiReaderStatusPtr status = multi.read(valuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
@@ -4508,6 +4508,8 @@ class MinReadCountTest : public MultiReaderTest, public testing::WithParamInterf
 
 TEST_P(MinReadCountTest, MinReadCount)
 {
+    auto timeoutMs = GetParam();
+
     constexpr auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
 
@@ -4515,7 +4517,7 @@ TEST_P(MinReadCountTest, MinReadCount)
     auto& sig1 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig2 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
-    auto multi = MultiReaderBuilder().addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig1.signal).setMinReadCount(20).build();
+    auto multi = MultiReaderBuilder().addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig2.signal).setMinReadCount(20).build();
 
     sig0.createAndSendPacket(0);
     sig1.createAndSendPacket(0);
@@ -4531,11 +4533,11 @@ TEST_P(MinReadCountTest, MinReadCount)
 
     ASSERT_EQ(multi.getAvailableCount(), 0);
 
-    ASSERT_THROW(multi.read(valuesPerSignal, &count, GetParam()), InvalidParameterException);
+    ASSERT_THROW(multi.read(valuesPerSignal, &count, timeoutMs), InvalidParameterException);
     count = 10;
     ASSERT_THROW(multi.skipSamples(&count), InvalidParameterException);
     count = 10;
-    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domain, &count, GetParam()), InvalidParameterException);
+    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domain, &count, timeoutMs), InvalidParameterException);
 
     sig0.createAndSendPacket(1);
     sig1.createAndSendPacket(1);
@@ -4543,13 +4545,13 @@ TEST_P(MinReadCountTest, MinReadCount)
 
     ASSERT_EQ(multi.getAvailableCount(), 0);
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     ASSERT_EQ(multi.getAvailableCount(), 20);
 
     count = 20;
-    multi.read(valuesPerSignal, &count, GetParam());
+    multi.read(valuesPerSignal, &count, timeoutMs);
 
     ASSERT_EQ(count, 20);
 
@@ -4564,12 +4566,12 @@ TEST_P(MinReadCountTest, MinReadCount)
     ASSERT_EQ(multi.getAvailableCount(), 0);
 
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(count, 0);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(count, 0);
 }

@@ -792,6 +792,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     std::unique_lock notifyLock(notify.mutex);
     SizeT availableSamples{};
     SyncStatus syncStatus{};
+    bool dataAvailable{};
     const bool zeroDataRead = remainingSamplesToRead == 0;
 
     if (timeout.count() > 0)
@@ -854,8 +855,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
         notify.condition.wait_for(notifyLock, timeout, condition);
 
-        auto statusAssigned = status.assigned();
-        auto statusHasEvents = statusAssigned && (status.getReadStatus() == ReadStatus::Event);
+        auto statusHasEvents = status.assigned() && (status.getReadStatus() == ReadStatus::Event);
         auto statusEventCount = statusHasEvents ? status.getEventPackets().getCount() : 0;
 
         if ((portConnected && status.assigned()) || statusEventCount)
@@ -891,6 +891,9 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         {
             if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
             {
+                // set condition_flag = true;
+//                dataAvailable = true;
+
                 // skip remaining samples
                 readSamples(availableSamples);
             }
@@ -898,6 +901,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             return createReaderStatus();
         }
     }
+
+    //////
 
     NumberPtr offset = 0;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)

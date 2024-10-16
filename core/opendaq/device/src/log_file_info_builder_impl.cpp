@@ -6,7 +6,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 LogFileInfoBuilderImpl::LogFileInfoBuilderImpl()
-    : encoding(LogFileEncodingType::Utf8)
+    : encoding(LogFileEncodingType::Unknown)
 {
 }
 

@@ -19,6 +19,8 @@
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 #include <opendaq/instance_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -904,4 +906,31 @@ TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
     ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
     ASSERT_TRUE(dev0.assigned());
     ASSERT_TRUE(dev1.assigned());
+}
+
+TEST_F(RefDeviceModuleTest, EnableLogging)
+{
+    StringPtr loggerPath = "ref_device_simulator.log";
+
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(BoolProperty("EnableLogging", true));
+    config.addProperty(StringProperty("LoggingPath", loggerPath));
+
+    auto instanceBuilder = InstanceBuilder();
+    instanceBuilder.setRootDevice("daqref://device0", config);
+    auto sinks = DefaultSinks(loggerPath);
+    for (const auto& sink : sinks)
+        instanceBuilder.addLoggerSink(sink);
+
+    const auto instance = instanceBuilder.build();
+
+    auto logFiles = instance.getAvailableLogFiles();
+    ASSERT_EQ(logFiles.getCount(), 1u);
+    auto logFile = logFiles[0];
+    
+    ASSERT_EQ(logFile.getName(), loggerPath);
+    ASSERT_NE(logFile.getSize(), 0);
+
+    StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
+    ASSERT_EQ(firstSymb, "[");
 }

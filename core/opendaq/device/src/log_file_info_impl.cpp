@@ -4,6 +4,7 @@
 #include <coretypes/validation.h>
 #include <coretypes/filesystem.h>
 #include <chrono>
+#include <fstream>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -19,7 +20,10 @@ LogFileInfoImpl::LogFileInfoImpl(const StringPtr& localPath,
     if (name == nullptr || name.getLength() == 0)
         throw InvalidParameterException("Log file name is not assigned or empty.");
 
-    this->id = (this->localPath.assigned() ? this->localPath : "") + "/" + this->name;
+    if (localPath.assigned())
+        this->id = localPath + "/" + name;
+    else
+        this->id = name;
 }
 
 LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
@@ -35,7 +39,10 @@ LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
     if (this->name == nullptr || this->name.getLength() == 0)
         throw InvalidParameterException("Log file name is not assigned or empty.");
 
-    this->id = (this->localPath.assigned() ? this->localPath : "") + "/" + this->name;
+    if (localPath.assigned())
+        this->id = localPath + "/" + name;
+    else
+        this->id = name;
 }
 
 ErrCode LogFileInfoImpl::getId(IString** id)
@@ -72,18 +79,18 @@ ErrCode LogFileInfoImpl::getSize(SizeT* size)
 
     try 
     {
-        std::filesystem::path path(id);
+        fs::path path(id);
 
-        if (!std::filesystem::exists(path)) 
+        if (!fs::exists(path)) 
         {
            this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, "Log file \"%s\" does not exist.", id.getCharPtr());
         }
 
-        *size = std::filesystem::file_size(path);
+        *size = fs::file_size(path);
     } 
-    catch (const std::filesystem::filesystem_error& e) 
+    catch (const fs::filesystem_error& e) 
     {
-       return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Error getting last modified time for log file \"%s\": %s", id.getCharPtr(), e.what());
+       return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Error getting size for log file \"%s\": %s", id.getCharPtr(), e.what());
     }
 
     return OPENDAQ_SUCCESS;
@@ -112,23 +119,23 @@ ErrCode LogFileInfoImpl::getLastModified(IString** lastModified)
 
     try 
     {
-        std::filesystem::path path(id);
+        fs::path path(id);
 
-        if (!std::filesystem::exists(path)) 
+        if (!fs::exists(path)) 
         {
            this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, "Log file \"%s\" does not exist.", id.getCharPtr());
         }
 
-        auto ftime = std::filesystem::last_write_time(path);
+        auto ftime = fs::last_write_time(path);
 
         // Convert to time_point
         auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-            ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
+            ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
         );
 
         *lastModified = String(toIso8601(sctp)).detach();
     } 
-    catch (const std::filesystem::filesystem_error& e) 
+    catch (const fs::filesystem_error& e) 
     {
        return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Error getting last modified time for log file \"%s\": %s", id.getCharPtr(), e.what());
     }

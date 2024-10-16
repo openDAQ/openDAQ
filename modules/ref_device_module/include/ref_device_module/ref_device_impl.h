@@ -22,6 +22,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <thread>
 #include <condition_variable>
+#include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -41,6 +42,10 @@ public:
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
 
+protected:
+    ListPtr<ILogFileInfo> onGetAvailableLogFiles() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
+
 private:
     void initClock();
     void initIoFolder();
@@ -52,6 +57,7 @@ private:
     void enableProtectedChannel();
     void updateAcqLoopTime();
     void updateGlobalSampleRate();
+    void enableLogging();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
     PropertyObjectPtr createProtectedObject() const;
 
@@ -76,6 +82,9 @@ private:
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+
+    StringPtr loggingPath;
+    LogFileInfoPtr logFileInfo;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

@@ -31,6 +31,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
+    , sinks(List<ILoggerSink>())
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
@@ -156,8 +157,14 @@ ErrCode InstanceBuilderImpl::addLoggerSink(ILoggerSink* sink)
 {
     if (sink == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    for (const auto & s: sinks)
+    {
+        if (s == sink)
+            return OPENDAQ_IGNORED;
+    }
 
-    sinks.insert(sink);
+    sinks.pushBack(sink);
     return OPENDAQ_SUCCESS;
 }
 
@@ -167,7 +174,14 @@ ErrCode InstanceBuilderImpl::setSinkLogLevel(ILoggerSink* sink, LogLevel logLeve
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
     sink->setLevel(logLevel);
-    sinks.insert(sink);
+
+    for (const auto & s: sinks)
+    {
+        if (s == sink)
+            return OPENDAQ_SUCCESS;
+    }
+    sinks.pushBack(sink);
+
     return OPENDAQ_SUCCESS;
 }
 

@@ -12,6 +12,10 @@
 #include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
+#include <opendaq/log_file_info_factory.h>
+#include <coretypes/filesystem.h>
+#include <fstream>
+#include <sstream>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -80,7 +84,10 @@ DeviceTypePtr RefDeviceImpl::CreateType()
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
     defaultConfig.addProperty(BoolProperty("EnableCANChannel", False));
+    defaultConfig.addProperty(BoolProperty("EnableProtectedChannel", False));
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+    defaultConfig.addProperty(BoolProperty("EnableLogging", False));
+    defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
 
     return DeviceType("daqref",
                       "Reference device",
@@ -228,6 +235,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     size_t numberOfChannels = 2;
     bool enableCANChannel = false;
     bool enableProtectedChannel = false;
+    bool enabledLogging = false;
 
     if (config.assigned())
     {
@@ -239,6 +247,12 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableProtectedChannel"))
             enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
+        
+        if (config.hasProperty("EnableLogging"))
+            enabledLogging = config.getPropertyValue("EnableLogging");
+
+        if (config.hasProperty("LoggingPath"))
+            loggingPath = config.getPropertyValue("LoggingPath");
     } 
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -283,6 +297,11 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
     auto protectedObject = createProtectedObject();
     objPtr.addProperty(ObjectProperty("Protected", protectedObject));
+
+    objPtr.addProperty(BoolProperty("EnableLogging", enabledLogging));
+    objPtr.getOnPropertyValueWrite("EnableLogging") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
+    enableLogging();
 }
 
 void RefDeviceImpl::updateNumberOfChannels()
@@ -385,6 +404,75 @@ void RefDeviceImpl::updateAcqLoopTime()
 
     std::scoped_lock lock(sync);
     this->acqLoopTime = static_cast<size_t>(loopTime);
+}
+
+void RefDeviceImpl::enableLogging()
+{
+    auto enableLogging = objPtr.getPropertyValue("EnableLogging");
+
+    std::scoped_lock lock(sync);
+    if (enableLogging == true && !logFileInfo.assigned())
+    {
+        if (!loggingPath.assigned())
+        {
+            LOG_I("Logging path is not set for the device");
+            return;
+        }
+
+        logFileInfo = LogFileInfo(loggingPath, nullptr, "Example log file for the reference device");
+    }
+    else
+    {
+        logFileInfo = nullptr;
+    }
+}
+
+ListPtr<ILogFileInfo> RefDeviceImpl::onGetAvailableLogFiles()
+{
+    auto logFileInfos = List<ILogFileInfo>();
+    
+    std::scoped_lock lock(sync);
+    if (logFileInfo.assigned())
+        logFileInfos.pushBack(logFileInfo);
+
+    return logFileInfos;
+}
+
+StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    LogFileInfoPtr logFileInfoTmp;
+    {
+        std::scoped_lock lock(sync);
+        if (!logFileInfo.assigned())
+            return "";
+
+        logFileInfoTmp = logFileInfo;
+    }
+
+    if (id != logFileInfoTmp.getId())
+        return "";
+    
+    std::ifstream file(logFileInfoTmp.getId().toStdString(), std::ios::binary);
+    if (!file.is_open())
+        return "";
+
+    file.seekg(0, std::ios::end);
+    std::streampos fileSize = file.tellg();
+    if (offset >= fileSize)
+        return "";
+
+    file.seekg(offset, std::ios::beg);
+
+    if (size == -1)
+        size = fileSize - offset;
+    else
+        size = std::min(size, static_cast<Int>(fileSize - offset));
+
+    std::vector<char> buffer(size);
+    file.read(buffer.data(), size);
+    file.close();
+
+    return String(buffer.data(), size);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

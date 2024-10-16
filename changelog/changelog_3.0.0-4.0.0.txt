@@ -26,9 +26,9 @@ Required integration changes:
 + [function] ILogFileInfo::getEncoding(LogFileEncodingType* encoding)
 + [function] ILogFileInfo::getLastModified(IString** lastModified)
 + [factory] LogFileInfoPtr LogFileInfo(const StringPtr& name,
-                                       LogFileEncodingType encoding = LogFileEncodingType::Utf8,
+                                       const StringPtr& localPath = nullptr,
                                        const StringPtr& description = nullptr,
-                                       const StringPtr& localPath = nullptr)
+                                       LogFileEncodingType encoding = LogFileEncodingType::Unknown)
 
 + [function] IDevice::getAvailableLogFiles(IList** logFiles)
 + [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)

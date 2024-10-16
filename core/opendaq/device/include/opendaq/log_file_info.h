@@ -29,7 +29,13 @@ struct ILogFileInfoBuilder;
 
 enum class LogFileEncodingType: uint32_t
 {
-    Utf8 = 0
+    Utf8 = 0,
+    Utf16Le = 1,
+    Utf16Be = 2,
+    Utf32Le = 3,
+    Utf32Be = 4,
+    Ascii = 5,
+    Unknown = 0xFFFFFFFF
 };
 
 DECLARE_OPENDAQ_INTERFACE(ILogFileInfo, IBaseObject)

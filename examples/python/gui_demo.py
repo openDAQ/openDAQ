@@ -22,18 +22,16 @@ try:
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from gui_demo.app_context import *
+    from gui_demo.app_context import AppContext
     from gui_demo.utils import *
-    from gui_demo.app_context import *
     from gui_demo.event_port import EventPort
 except BaseException:
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from opendaq.gui_demo.app_context import *
+    from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo.utils import *
-    from opendaq.gui_demo.app_context import *
     from opendaq.gui_demo.event_port import EventPort
 
 
@@ -160,6 +158,9 @@ class App(tk.Tk):
 
         self.tree_update()
 
+        #TODO: remove before merge
+        self.context.instance.add_property(daq.StringProperty('Hidden', 'Value', False))
+
     # MARK: - Menu bar
     def menu_bar_create(self):
         menu_bar = tk.Menu(self)
@@ -276,7 +277,7 @@ class App(tk.Tk):
 
         if folder is not None:
             if not (daq.IFunctionBlock.can_cast_from(component)
-                    and display_type == DisplayType.FUNCTION_BLOCKS):
+                    and display_type == DisplayType.FUNCTION_BLOCKS) and (self.context.view_hidden_components or folder.visible):
                 for item in folder.items:
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type)
@@ -284,9 +285,10 @@ class App(tk.Tk):
         if device is not None and display_type == DisplayType.TOPOLOGY:
             custom_components = device.custom_components
             for item in custom_components:
-                self.context.custom_component_ids.add(item.global_id)
-                self.tree_traverse_components_recursive(
-                    item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
+                if item.visible or self.context.view_hidden_components:
+                    self.context.custom_component_ids.add(item.global_id)
+                    self.tree_traverse_components_recursive(
+                        item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
 
     def tree_add_component(self, parent_node_id,
                            component, show_unknown=False):
@@ -493,12 +495,18 @@ class App(tk.Tk):
             node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
-        elif type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
+        if not found.visible and not self.context.show_hidden_components:
+            return
+        if type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
 
             upper_nodes = list()
+            parent_hidden = False
 
             current = found.parent
             while current is not None:
+                if not current.visible and not self.context.show_hidden_components:
+                    parent_hidden = True
+                    break
                 if daq.IDevice.can_cast_from(current):
                     break  # stop at device
                 if daq.ISyncComponent.can_cast_from(current):
@@ -516,6 +524,9 @@ class App(tk.Tk):
                         daq.IFunctionBlock.cast_from(current))
                 current = current.parent
 
+            if parent_hidden:
+                return
+
             for upper_node in reversed(upper_nodes):
                 block_view = BlockView(
                     self.right_side_panel, upper_node, self.context)
@@ -523,6 +534,9 @@ class App(tk.Tk):
 
             def draw_sub_components(component, level=0):
                 if component is None:
+                    return
+                
+                if not component.visible and not self.context.view_hidden_components:
                     return
 
                 if daq.IFunctionBlock.can_cast_from(component):

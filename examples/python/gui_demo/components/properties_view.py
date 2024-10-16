@@ -5,11 +5,12 @@ from functools import cmp_to_key
 
 from ..utils import *
 from ..event_port import EventPort
+from ..app_context import AppContext
 from .function_dialog import FunctionDialog
 
 
 class PropertiesView(tk.Frame):
-    def __init__(self, parent: tk.Frame, node=None, context=None, **kwargs):
+    def __init__(self, parent: tk.Frame, node=None, context: AppContext = None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.node = node
@@ -63,7 +64,7 @@ class PropertiesView(tk.Frame):
             else:
                 return value
 
-        for property_info in node.visible_properties:
+        for property_info in node.all_properties if self.context.view_hidden_components else node.visible_properties:
             iid = property_info.name if parent_iid is None else parent_iid + "." + property_info.name
             self.nodes_by_iids[iid] = node
 

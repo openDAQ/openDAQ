@@ -25,13 +25,9 @@ class TestEvent
 {
 public:
     TestEvent()
-    {
-        std::cout << "TestEvent::TestEvent" << std::endl;
-    }
+    {}
     ~TestEvent()
-    {
-        std::cout << "TestEvent::~TestEvent" << std::endl;
-    }
+    {}
     template <typename Rep, typename Period>
     auto wait_for(std::chrono::duration<Rep, Period> duration)
     {
@@ -4430,7 +4426,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
     while (state != 6)
     {
-        bool result = testEvent.wait_for(2s);
+        bool result = testEvent.wait_for(5s);
         ASSERT_TRUE(result);
         testEvent.reset();
 

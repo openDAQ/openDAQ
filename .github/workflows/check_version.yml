@@ -32,9 +32,8 @@ jobs:
 
       - name: Read head documentation version
         id: head_doc_version
-        working-directory: ./docs/Antora
         run: |
-            DOC_VER=$(grep -Po '\d.\d?(.\d?(.\d))' antora.yml)
+            DOC_VER=$(grep -Po '\d.\d?(.\d?(.\d))' opendaq_version)
             echo Head documentation version: $DOC_VER
             echo "HEAD_DOC_VERSION=$DOC_VER" >> "$GITHUB_OUTPUT"
 

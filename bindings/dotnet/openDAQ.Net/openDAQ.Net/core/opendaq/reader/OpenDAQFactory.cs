@@ -39,23 +39,23 @@ public static partial class OpenDAQFactory
         //create a .NET variable to be switched for its type
         TValueType value = default;
 
-        switch (value) //discarding all casts since we do not need the value
+        return value switch //discarding all casts since we do not need the value
         {
-          //case ? _:      return SampleType.Int8;
-            case Byte _:   return SampleType.UInt8;
-            case Int16 _:  return SampleType.Int16;
-            case UInt16 _: return SampleType.UInt16;
-            case Int32 _:  return SampleType.Int32;
-            case UInt32 _: return SampleType.UInt32;
-            case Int64 _:  return SampleType.Int64;
-          //case ? _:      return SampleType.RangeInt64; //ToDo: a generic struct in openDAQ with operators and `{ T start; T end; }` as fields
-            case UInt64 _: return SampleType.UInt64;
-            case Single _: return SampleType.Float32;
-            case Double _: return SampleType.Float64;
-          //case ? _:      return SampleType.ComplexFloat32;
-          //case ? _:      return SampleType.ComplexFloat64;
-            default:       return SampleType.Undefined;
-        }
+          // ?     _ => SampleType.Int8;
+            Byte   _ => SampleType.UInt8,
+            Int16  _ => SampleType.Int16,
+            UInt16 _ => SampleType.UInt16,
+            Int32  _ => SampleType.Int32,
+            UInt32 _ => SampleType.UInt32,
+            Int64  _ => SampleType.Int64,
+          // ?     _ => SampleType.RangeInt64; //ToDo: a generic struct in openDAQ with operators and `{ T start; T end; }` as fields
+            UInt64 _ => SampleType.UInt64,
+            Single _ => SampleType.Float32,
+            Double _ => SampleType.Float64,
+          // ?     _ => SampleType.ComplexFloat32;
+          // ?     _ => SampleType.ComplexFloat64;
+                   _ => SampleType.Undefined,
+        };
     }
 
     /// <summary>
@@ -65,29 +65,29 @@ public static partial class OpenDAQFactory
     /// <returns>The .NET type.</returns>
     public static Type GetSampleType(SampleType sampleType)
     {
-        switch (sampleType)
+        return sampleType switch
         {
-            case SampleType.Float32:        return typeof(float);
-            case SampleType.Float64:        return typeof(double);
-            case SampleType.UInt8:          return typeof(byte);
-            case SampleType.Int8:           return typeof(sbyte);
-            case SampleType.UInt16:         return typeof(UInt16);
-            case SampleType.Int16:          return typeof(Int16);
-            case SampleType.UInt32:         return typeof(UInt32);
-            case SampleType.Int32:          return typeof(Int32);
-            case SampleType.UInt64:         return typeof(UInt64);
-            case SampleType.Int64:          return typeof(Int64);
-            case SampleType.RangeInt64:     return null;
-            case SampleType.ComplexFloat32: return null;
-            case SampleType.ComplexFloat64: return null;
-            case SampleType.Binary:         return null;
-            case SampleType.String:         return typeof(string);
-            case SampleType.Struct:         return null;
-            //case SampleType.Invalid:
-            //case SampleType.Undefined:
-            //case SampleType._count:
-            default:                        return null;
-        }
+            SampleType.Float32        => typeof(float),
+            SampleType.Float64        => typeof(double),
+            SampleType.UInt8          => typeof(byte),
+            SampleType.Int8           => typeof(sbyte),
+            SampleType.UInt16         => typeof(UInt16),
+            SampleType.Int16          => typeof(Int16),
+            SampleType.UInt32         => typeof(UInt32),
+            SampleType.Int32          => typeof(Int32),
+            SampleType.UInt64         => typeof(UInt64),
+            SampleType.Int64          => typeof(Int64),
+            SampleType.RangeInt64     => null,
+            SampleType.ComplexFloat32 => null,
+            SampleType.ComplexFloat64 => null,
+            SampleType.Binary         => null,
+            SampleType.String         => typeof(string),
+            SampleType.Struct         => null,
+          //SampleType.Invalid        =>
+          //SampleType.Undefined      =>
+          //SampleType._count         =>
+            _                         => null
+        };
     }
 
     /// <summary>

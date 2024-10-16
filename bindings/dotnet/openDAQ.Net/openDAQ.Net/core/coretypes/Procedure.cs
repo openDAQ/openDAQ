@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:25.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ public class Procedure : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawProcedure.Dispatch(base.NativePointer, @params);
 
             if (Result.Failed(errorCode))
             {
@@ -101,7 +101,7 @@ public static partial class CoreTypesFactory
     [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern ErrorCode createProcedure(out IntPtr obj, ProcCall value);
 
-    public static ErrorCode CreateProcedure(out Procedure obj, ProcCall value)
+    public static ErrorCode CreateProcedure(out Procedure obj, ProcCallDelegate value)
     {
         //initialize output argument
         obj = default;
@@ -109,8 +109,11 @@ public static partial class CoreTypesFactory
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateProcCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, value);
+        ErrorCode errorCode = createProcedure(out objPtr, wrappedValue);
 
         if (Result.Succeeded(errorCode))
         {
@@ -121,13 +124,16 @@ public static partial class CoreTypesFactory
         return errorCode;
     }
 
-    public static Procedure CreateProcedure(ProcCall value)
+    public static Procedure CreateProcedure(ProcCallDelegate value)
     {
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateProcCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createProcedure(out objPtr, value);
+        ErrorCode errorCode = createProcedure(out objPtr, wrappedValue);
 
         if (Result.Failed(errorCode))
         {

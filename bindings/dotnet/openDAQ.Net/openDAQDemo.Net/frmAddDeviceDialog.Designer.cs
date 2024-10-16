@@ -111,7 +111,7 @@
             // 
             contextMenuStripChildDevices.Items.AddRange(new ToolStripItem[] { contextMenuItemChildDevicesAddDevice, toolStripSeparator1, contextMenuItemChildDevicesRefresh });
             contextMenuStripChildDevices.Name = "contextMenuStrip1";
-            contextMenuStripChildDevices.Size = new Size(223, 76);
+            contextMenuStripChildDevices.Size = new Size(223, 54);
             contextMenuStripChildDevices.Opening += contextMenuStripChildDevices_Opening;
             // 
             // contextMenuItemChildDevicesAddDevice

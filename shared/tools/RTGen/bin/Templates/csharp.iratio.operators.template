@@ -1,0 +1,100 @@
+﻿
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.Ratio"/> to <see cref="double"/>.</summary>
+    /// <param name="value">The SDK <c>Ratio</c>.</param>
+    /// <returns>The managed <c>double</c> value.</returns>
+    public static implicit operator double(Ratio value) => (value == null) ? double.NaN : (double)value.Numerator / (double)value.Denominator;
+
+    /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
+    /// <param name="other">The other <c>double</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>double</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(double other) => ((double)this).Equals(other);
+
+    /// <summary>Determines whether this instance and a specified <c>Ratio</c>, have the same value.</summary>
+    /// <param name="other">The other <c>Ratio</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>Ratio</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(Ratio other) => (this.Numerator == other?.Numerator) && (this.Denominator == other?.Denominator);
+
+    /// <summary>
+    /// Implements the operator to multiply two <c>Ratio</c> objects.
+    /// </summary>
+    /// <param name="x">The first <c>Ratio</c>.</param>
+    /// <param name="y">The second <c>Ratio</c>.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator *(Ratio x, Ratio y)
+    {
+        CheckDenominatorAndThrow(x.Denominator);
+        CheckDenominatorAndThrow(y.Denominator);
+
+        return CoreTypesFactory.CreateRatio(x.Numerator * y.Numerator, x.Denominator * y.Denominator);
+    }
+
+    /// <summary>
+    /// Implements the operator to multiply a long value with a <c>Ratio</c> object's numerator.
+    /// </summary>
+    /// <param name="x">The <c>long</c> value.</param>
+    /// <param name="y">The <c>Ratio</c>.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator *(long x, Ratio y)
+    {
+        CheckDenominatorAndThrow(y.Denominator);
+
+        return CoreTypesFactory.CreateRatio(x * y.Numerator, y.Denominator);
+    }
+
+    /// <summary>
+    /// Implements the operator to multiply a <c>Ratio</c> object's numerator with a long value.
+    /// </summary>
+    /// <param name="y">The <c>Ratio</c>.</param>
+    /// <param name="x">The <c>long</c> value.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator *(Ratio y, long x)
+    {
+        return x * y;
+    }
+
+    /// <summary>
+    /// Implements the operator to divide a long value by a <c>Ratio</c> object.
+    /// </summary>
+    /// <param name="x">The <c>long</c> value.</param>
+    /// <param name="y">The <c>Ratio</c>.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator /(long x, Ratio y)
+    {
+        CheckDenominatorAndThrow(y.Numerator);
+
+        return CoreTypesFactory.CreateRatio(x * y.Denominator, y.Numerator);
+    }
+
+    /// <summary>
+    /// Implements the operator to divide a <c>Ratio</c> object by a long value.
+    /// </summary>
+    /// <param name="y">The <c>Ratio</c>.</param>
+    /// <param name="x">The <c>long</c> value.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator /(Ratio y, long x)
+    {
+        CheckDenominatorAndThrow(y.Denominator);
+        CheckDenominatorAndThrow(x);
+
+        return CoreTypesFactory.CreateRatio(y.Numerator, y.Denominator * x);
+    }
+
+    /// <summary>
+    /// Implements the operator to divide two <c>Ratio</c> objects.
+    /// </summary>
+    /// <param name="x">The first <c>Ratio</c>.</param>
+    /// <param name="y">The second <c>Ratio</c>.</param>
+    /// <returns>The result of the operator.</returns>
+    public static Ratio operator /(Ratio x, Ratio y)
+    {
+        CheckDenominatorAndThrow(x.Denominator);
+        CheckDenominatorAndThrow(y.Numerator);
+
+        return CoreTypesFactory.CreateRatio(x.Numerator * y.Denominator, x.Denominator * y.Numerator);
+    }
+
+    private static void CheckDenominatorAndThrow(long denominator)
+    {
+        if (denominator == 0)
+            throw new ArgumentOutOfRangeException(nameof(denominator), "Denominator can't be zero");
+    }

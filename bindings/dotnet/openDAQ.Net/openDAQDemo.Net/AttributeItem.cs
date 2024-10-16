@@ -15,8 +15,8 @@
  */
 
 
+using System.Collections;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 
 using Daq.Core.Objects;
 using Daq.Core.Types;
@@ -49,15 +49,24 @@ public class AttributeItem
     /// <param name="value">The attribute value's text representation.</param>
     /// <param name="valueType">The attribute's value type.</param>
     /// <param name="openDaqObject">The owner of this attribute.</param>
-    public AttributeItem(bool isLocked, string name, string displayName, string? value, CoreType valueType, BaseObject openDaqObject)
+    /// <param name="subItems">The sub items list (default <c>null</c>).</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    public AttributeItem(bool isLocked,
+                         string name,
+                         string displayName,
+                         string? value,
+                         CoreType valueType,
+                         BaseObject openDaqObject,
+                         List<AttributeItem>? subItems = null)
     {
-        _isLocked    = isLocked;
+        _isLocked      = isLocked;
         _name          = name;
         _valueType     = valueType;
         _openDaqObject = openDaqObject;
 
         this.DisplayName = displayName;
         this.Value       = value ?? string.Empty;
+        this.SubItems    = subItems;
     }
 
     #region fields to show in table
@@ -79,6 +88,11 @@ public class AttributeItem
     /// </summary>
     [DisplayName("Value")]
     public string Value { get; }
+
+    /// <summary>
+    /// Gets the sub items.
+    /// </summary>
+    public List<AttributeItem>? SubItems { get; private set; }
 
     #endregion
 

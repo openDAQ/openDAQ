@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-#include "py_core_objects/py_variant_extractor.h"
+
 
 PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::module_ m)
 {
@@ -48,10 +48,6 @@ PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::mod
 void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> cls)
 {
     cls.doc() = "";
-
-    m.def("LogFileInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& localPath, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, daq::LogFileEncodingType encoding){
-        return daq::LogFileInfo_Create(getVariantValue<daq::IString*>(localPath), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), encoding);
-    }, py::arg("local_path"), py::arg("name"), py::arg("description"), py::arg("encoding"));
 
     m.def("LogFileInfoFromBuilder", &daq::LogFileInfoFromBuilder_Create);
 

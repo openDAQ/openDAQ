@@ -7,6 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 LogFileInfoBuilderImpl::LogFileInfoBuilderImpl()
     : encoding(LogFileEncodingType::Unknown)
+    , size(0)
 {
 }
 
@@ -49,6 +50,19 @@ ErrCode LogFileInfoBuilderImpl::setName(IString* name)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode LogFileInfoBuilderImpl::getId(IString** id)
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+    *id = this->id.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode LogFileInfoBuilderImpl::setId(IString* id)
+{
+    this->id = id;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode LogFileInfoBuilderImpl::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
@@ -62,6 +76,19 @@ ErrCode LogFileInfoBuilderImpl::setDescription(IString* description)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode LogFileInfoBuilderImpl::getSize(SizeT* size)
+{
+    OPENDAQ_PARAM_NOT_NULL(size);
+    *size = this->size;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode LogFileInfoBuilderImpl::setSize(SizeT size)
+{
+    this->size = size;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode LogFileInfoBuilderImpl::getEncoding(LogFileEncodingType* encoding)
 {
     OPENDAQ_PARAM_NOT_NULL(encoding);
@@ -72,6 +99,19 @@ ErrCode LogFileInfoBuilderImpl::getEncoding(LogFileEncodingType* encoding)
 ErrCode LogFileInfoBuilderImpl::setEncoding(LogFileEncodingType encoding)
 {
     this->encoding = encoding;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode LogFileInfoBuilderImpl::getLastModified(IString** lastModified)
+{
+    OPENDAQ_PARAM_NOT_NULL(lastModified);
+    *lastModified = this->lastModified.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode LogFileInfoBuilderImpl::setLastModified(IString* lastModified)
+{
+    this->lastModified = lastModified;
     return OPENDAQ_SUCCESS;
 }
 

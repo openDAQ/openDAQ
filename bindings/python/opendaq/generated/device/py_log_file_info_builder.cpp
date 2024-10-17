@@ -78,6 +78,20 @@ void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoB
             objectPtr.setName(getVariantValue<daq::IString*>(name));
         },
         "Gets the name of the log file. / Sets the name of the log file.");
+    cls.def_property("id",
+        [](daq::ILogFileInfoBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            return objectPtr.getId().toStdString();
+        },
+        [](daq::ILogFileInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            objectPtr.setId(getVariantValue<daq::IString*>(id));
+        },
+        "Gets the id of the log file. If the local path is not assigned, the id is equal to the `localPath + \"/\" + name`. / Sets the id of the log file. Oth");
     cls.def_property("description",
         [](daq::ILogFileInfoBuilder *object)
         {
@@ -92,6 +106,20 @@ void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoB
             objectPtr.setDescription(getVariantValue<daq::IString*>(description));
         },
         "Gets the description of the log file. / Sets the description of the log file.");
+    cls.def_property("size",
+        [](daq::ILogFileInfoBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            return objectPtr.getSize();
+        },
+        [](daq::ILogFileInfoBuilder *object, const size_t size)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            objectPtr.setSize(size);
+        },
+        "Gets the size of the log file in bytes. / Sets the size of the log file in bytes.");
     cls.def_property("encoding",
         [](daq::ILogFileInfoBuilder *object)
         {
@@ -106,4 +134,18 @@ void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoB
             objectPtr.setEncoding(encoding);
         },
         "Gets the encoding of the log file. / Sets the encoding of the log file.");
+    cls.def_property("last_modified",
+        [](daq::ILogFileInfoBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            return objectPtr.getLastModified().toStdString();
+        },
+        [](daq::ILogFileInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& lastModified)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
+            objectPtr.setLastModified(getVariantValue<daq::IString*>(lastModified));
+        },
+        "Gets the date of the last modification of the log file in ISO 8601 format. / Sets the date of the last modification of the log file in ISO 8601 format.");
 }

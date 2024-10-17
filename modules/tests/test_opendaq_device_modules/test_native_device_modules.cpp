@@ -11,6 +11,8 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/module_impl.h>
+#include <chrono>
+#include <coretypes/filesystem.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -2010,6 +2012,70 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration3)
     auto nestedFb = restoredFb[0].getFunctionBlocks();
     ASSERT_EQ(nestedFb.getCount(), 1u);
     ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
+}
+
+InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
+{
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(BoolProperty("EnableLogging", true));
+    config.addProperty(StringProperty("LoggingPath", loggerPath));
+
+    auto instance = InstanceBuilder().setLogger(Logger(loggerPath))
+                                     .setRootDevice("daqref://device0", config)
+                                     .build();
+    
+    instance.addServer("OpenDAQNativeStreaming", nullptr);
+    return instance;
+}
+
+StringPtr getFileLastModifiedTime(const std::string& path)
+{
+    auto ftime = fs::last_write_time(path);
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+    std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);
+
+    std::ostringstream oss;
+    oss << std::put_time(std::gmtime(&cftime), "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
+TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
+{
+    StringPtr loggerPath = "native_ref_device.log";
+    auto server = CreateServerInstanceWithEnabledLogFileInfo(loggerPath);
+    auto client = CreateClientInstance();
+    auto clientDevice = client.getDevices()[0];
+
+    {
+        auto logFiles = clientDevice.getAvailableLogFiles();
+        auto logFileLastModified = getFileLastModifiedTime(loggerPath);
+        ASSERT_EQ(logFiles.getCount(), 1u);
+        auto logFile = logFiles[0];
+
+        ASSERT_EQ(logFile.getName(), loggerPath);
+        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
+
+        StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+    }
+
+    {
+        clientDevice.setPropertyValue("EnableLogging", false);
+        auto logFiles = clientDevice.getAvailableLogFiles();
+        ASSERT_EQ(logFiles.getCount(), 0u);
+    }
+
+    {
+        clientDevice.setPropertyValue("EnableLogging", true);
+        auto logFiles = clientDevice.getAvailableLogFiles();
+        ASSERT_EQ(logFiles.getCount(), 1u);
+
+        StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+    }
 }
 
 using NativeC2DStreamingTest = testing::Test;

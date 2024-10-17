@@ -33,17 +33,29 @@ public:
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC setName(IString* name) override;
 
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
+    ErrCode INTERFACE_FUNC setId(IString* id) override;
+
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+
+    ErrCode INTERFACE_FUNC getSize(SizeT* size) override;
+    ErrCode INTERFACE_FUNC setSize(SizeT size) override;
 
     ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) override;
     ErrCode INTERFACE_FUNC setEncoding(LogFileEncodingType encoding) override;
 
+    ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) override;
+    ErrCode INTERFACE_FUNC setLastModified(IString* lastModified) override;
+
 private:
     StringPtr localPath;
     StringPtr name;
+    StringPtr id;
     StringPtr description;
     LogFileEncodingType encoding;
+    SizeT size;
+    StringPtr lastModified;
 };
 
 END_NAMESPACE_OPENDAQ

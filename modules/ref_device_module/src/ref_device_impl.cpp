@@ -16,6 +16,8 @@
 #include <coretypes/filesystem.h>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <iomanip>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -235,7 +237,6 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     size_t numberOfChannels = 2;
     bool enableCANChannel = false;
     bool enableProtectedChannel = false;
-    bool enabledLogging = false;
 
     if (config.assigned())
     {
@@ -249,7 +250,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
             enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
         
         if (config.hasProperty("EnableLogging"))
-            enabledLogging = config.getPropertyValue("EnableLogging");
+            loggingEnabled = config.getPropertyValue("EnableLogging");
 
         if (config.hasProperty("LoggingPath"))
             loggingPath = config.getPropertyValue("LoggingPath");
@@ -298,7 +299,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     auto protectedObject = createProtectedObject();
     objPtr.addProperty(ObjectProperty("Protected", protectedObject));
 
-    objPtr.addProperty(BoolProperty("EnableLogging", enabledLogging));
+    objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
     objPtr.getOnPropertyValueWrite("EnableLogging") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
     enableLogging();
@@ -408,51 +409,67 @@ void RefDeviceImpl::updateAcqLoopTime()
 
 void RefDeviceImpl::enableLogging()
 {
-    auto enableLogging = objPtr.getPropertyValue("EnableLogging");
-
     std::scoped_lock lock(sync);
-    if (enableLogging == true && !logFileInfo.assigned())
-    {
-        if (!loggingPath.assigned())
-        {
-            LOG_I("Logging path is not set for the device");
-            return;
-        }
+    loggingEnabled = objPtr.getPropertyValue("EnableLogging");
+}
 
-        logFileInfo = LogFileInfo(loggingPath, nullptr, "Example log file for the reference device");
-    }
-    else
-    {
-        logFileInfo = nullptr;
-    }
+StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint) 
+{
+    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
+    std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ"); // ISO 8601 format
+    return oss.str();
 }
 
 ListPtr<ILogFileInfo> RefDeviceImpl::onGetAvailableLogFiles()
-{
-    auto logFileInfos = List<ILogFileInfo>();
-    
-    std::scoped_lock lock(sync);
-    if (logFileInfo.assigned())
-        logFileInfos.pushBack(logFileInfo);
+{    
+    {
+        std::scoped_lock lock(sync);
+        if (!loggingEnabled)
+        {
+            return List<ILogFileInfo>();
+        }
+    }
 
-    return logFileInfos;
+    fs::path path(loggingPath);
+    if (!fs::exists(path))
+    {
+        return List<ILogFileInfo>();
+    }
+
+    SizeT size = fs::file_size(path);
+
+    auto ftime = fs::last_write_time(path);
+
+    // Convert to time_point
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+
+    auto lastModified = toIso8601(sctp);
+
+    auto logFileInfo = LogFileInfoBuilder().setName(path.filename().string())
+                                           .setId(path.string())
+                                           .setDescription("Log file for the reference device")
+                                           .setSize(size)
+                                           .setEncoding(LogFileEncodingType::Utf8)
+                                           .setLastModified(lastModified)
+                                           .build();
+    
+    return List<ILogFileInfo>(logFileInfo);
 }
 
 StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 {
-    LogFileInfoPtr logFileInfoTmp;
     {
         std::scoped_lock lock(sync);
-        if (!logFileInfo.assigned())
+        if (!loggingEnabled)
             return "";
-
-        logFileInfoTmp = logFileInfo;
     }
-
-    if (id != logFileInfoTmp.getId())
-        return "";
     
-    std::ifstream file(logFileInfoTmp.getId().toStdString(), std::ios::binary);
+    std::ifstream file(loggingPath.toStdString(), std::ios::binary);
     if (!file.is_open())
         return "";
 

@@ -60,6 +60,19 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfoBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
 
     /*!
+     * @brief Gets the id of the log file. If the local path is not assigned, the id is equal to the `localPath + "/" + name`.
+     * @param id The id of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
+
+    // [returnSelf()]
+    /*!
+     * @brief Sets the id of the log file. Oth
+     * @param id The id of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC setId(IString* id) = 0;
+
+    /*!
      * @brief Gets the description of the log file.
      * @param[out] description The description of the log file.
      */
@@ -73,6 +86,19 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfoBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setDescription(IString* description) = 0;
 
     /*!
+     * @brief Gets the size of the log file in bytes.
+     * @param[out] size The size of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC getSize(SizeT* size) = 0;
+
+    // [returnSelf()]
+    /*!
+     * @brief Sets the size of the log file in bytes.
+     * @param size The size of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC setSize(SizeT size) = 0;
+
+    /*!
      * @brief Gets the encoding of the log file.
      * @param[out] encoding The encoding of the log file. Has a type of enum class `LogFileEncodingType`.
      */
@@ -84,6 +110,19 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfoBuilder, IBaseObject)
      * @param encoding The encoding of the log file. Has a type of enum class `LogFileEncodingType`.
      */
     virtual ErrCode INTERFACE_FUNC setEncoding(LogFileEncodingType encoding) = 0;
+
+    /*!
+     * @brief Gets the date of the last modification of the log file in ISO 8601 format.
+     * @param[out] lastModified The date of the last modification of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) = 0;
+
+    // [returnSelf()]
+    /*!
+     * @brief Sets the date of the last modification of the log file in ISO 8601 format.
+     * @param lastModified The date of the last modification of the log file.
+     */
+    virtual ErrCode INTERFACE_FUNC setLastModified(IString* lastModified) = 0;
 };
 
 /*!@}*/

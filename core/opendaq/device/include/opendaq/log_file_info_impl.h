@@ -26,11 +26,6 @@ BEGIN_NAMESPACE_OPENDAQ
 class LogFileInfoImpl : public ImplementationOf<ILogFileInfo, ISerializable>
 {
 public:
-    LogFileInfoImpl(const StringPtr& localPath,
-                             const StringPtr& name,
-                             const StringPtr& description,
-                             LogFileEncodingType encoding);
-
     LogFileInfoImpl(const LogFileInfoBuilderPtr& builder);
 
     // ILogFileInfo
@@ -54,6 +49,8 @@ private:
     StringPtr id;
     StringPtr description;
     LogFileEncodingType encoding;
+    SizeT size;
+    StringPtr lastModified;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(LogFileInfoImpl)

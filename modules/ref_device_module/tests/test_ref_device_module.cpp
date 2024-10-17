@@ -21,6 +21,8 @@
 #include <opendaq/instance_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <chrono>
+#include <coretypes/filesystem.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -908,6 +910,19 @@ TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
     ASSERT_TRUE(dev1.assigned());
 }
 
+StringPtr getFileLastModifiedTime(const std::string& path)
+{
+    auto ftime = fs::last_write_time(path);
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+    std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);
+
+    std::ostringstream oss;
+    oss << std::put_time(std::gmtime(&cftime), "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
 TEST_F(RefDeviceModuleTest, EnableLogging)
 {
     StringPtr loggerPath = "ref_device_simulator.log";
@@ -926,11 +941,13 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
 
     {
         auto logFiles = instance.getAvailableLogFiles();
+        auto logFileLastModified = getFileLastModifiedTime(loggerPath);
         ASSERT_EQ(logFiles.getCount(), 1u);
         auto logFile = logFiles[0];
         
         ASSERT_EQ(logFile.getName(), loggerPath);
         ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
 
         StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
         ASSERT_EQ(firstSymb, "[");

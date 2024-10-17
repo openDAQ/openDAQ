@@ -25,19 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
     
 /*!
- * @brief Creates an Address with no parameters configured.
- */
-inline LogFileInfoPtr LogFileInfo(const StringPtr& name,
-                                  const StringPtr& localPath = nullptr,
-                                  const StringPtr& description = nullptr,
-                                  LogFileEncodingType encoding = LogFileEncodingType::Unknown)
-{
-    LogFileInfoPtr obj(LogFileInfo_Create(localPath, name, description, encoding));
-    return obj;
-}
-
-/*!
- * @brief Creates an Address builder with no parameters configured.
+ * @brief Creates an LogFileInfo builder with no parameters configured.
  */
 inline LogFileInfoBuilderPtr LogFileInfoBuilder()
 {

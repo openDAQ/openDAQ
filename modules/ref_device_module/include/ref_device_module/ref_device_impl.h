@@ -83,8 +83,8 @@ private:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
+    bool loggingEnabled;
     StringPtr loggingPath;
-    LogFileInfoPtr logFileInfo;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

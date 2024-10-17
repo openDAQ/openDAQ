@@ -91,17 +91,6 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfo, IBaseObject)
  */
 
 /*!
- * @brief Creates an log file info with parameters.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, LogFileInfo, ILogFileInfo,
-    IString*, localPath,
-    IString*, name,
-    IString*, description,
-    LogFileEncodingType, encoding
-)
-
-/*!
  * @brief Creates an log file info from the builder.
  * @param builder The log file info builder.
  */

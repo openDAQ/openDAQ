@@ -14,8 +14,11 @@ TEST_F(LogFileInfoTest, BuilderDefaultValues)
     auto logInfoBuilder = LogFileInfoBuilder();
     ASSERT_EQ(logInfoBuilder.getName(), nullptr);
     ASSERT_EQ(logInfoBuilder.getLocalPath(), nullptr);
+    ASSERT_EQ(logInfoBuilder.getId(), nullptr);
     ASSERT_EQ(logInfoBuilder.getDescription(), nullptr);
     ASSERT_EQ(logInfoBuilder.getEncoding(), LogFileEncodingType::Unknown);
+    ASSERT_EQ(logInfoBuilder.getSize(), 0);
+    ASSERT_EQ(logInfoBuilder.getLastModified(), nullptr);
 }
 
 TEST_F(LogFileInfoTest, BuilderSetGet)
@@ -23,13 +26,19 @@ TEST_F(LogFileInfoTest, BuilderSetGet)
     auto logInfoBuilder = LogFileInfoBuilder();
     logInfoBuilder.setName("log_file_name");
     logInfoBuilder.setLocalPath("log_file_path");
+    logInfoBuilder.setId("log_file_id");
     logInfoBuilder.setDescription("log_file_description");
     logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setSize(100);
+    logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     ASSERT_EQ(logInfoBuilder.getName(), "log_file_name");
     ASSERT_EQ(logInfoBuilder.getLocalPath(), "log_file_path");
+    ASSERT_EQ(logInfoBuilder.getId(), "log_file_id");
     ASSERT_EQ(logInfoBuilder.getDescription(), "log_file_description");
     ASSERT_EQ(logInfoBuilder.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfoBuilder.getSize(), 100);
+    ASSERT_EQ(logInfoBuilder.getLastModified(), "2022-01-01T00:00:00Z");
 }
 
 TEST_F(LogFileInfoTest, CreateFromBuilder)
@@ -39,6 +48,7 @@ TEST_F(LogFileInfoTest, CreateFromBuilder)
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
     logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     auto logInfo = logInfoBuilder.build();
     ASSERT_TRUE(logInfo.assigned());
@@ -47,6 +57,8 @@ TEST_F(LogFileInfoTest, CreateFromBuilder)
     ASSERT_EQ(logInfo.getId(), "log_file_path/log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
     ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfo.getSize(), 0);
+    ASSERT_EQ(logInfo.getLastModified(), "2022-01-01T00:00:00Z");
 }
 
 TEST_F(LogFileInfoTest, MissedName)
@@ -56,6 +68,7 @@ TEST_F(LogFileInfoTest, MissedName)
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
     logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     ASSERT_ANY_THROW(logInfoBuilder.build());
 }
@@ -67,6 +80,7 @@ TEST_F(LogFileInfoTest, MissedLocalPath)
     // logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
     logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     auto logInfo = logInfoBuilder.build();
     ASSERT_TRUE(logInfo.assigned());
@@ -75,151 +89,44 @@ TEST_F(LogFileInfoTest, MissedLocalPath)
     ASSERT_EQ(logInfo.getId(), "log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
     ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfo.getSize(), 0);
 }
 
-TEST_F(LogFileInfoTest, ObjectFromConstructor)
+TEST_F(LogFileInfoTest, MissedLastModified)
 {
-    auto logInfo = LogFileInfo("log_file_name", "log_file_path", "log_file_description", LogFileEncodingType::Utf8);
+    auto logInfoBuilder = LogFileInfoBuilder();
+    logInfoBuilder.setName("log_file_name");
+    logInfoBuilder.setLocalPath("log_file_path");
+    logInfoBuilder.setDescription("log_file_description");
+    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+
+    ASSERT_ANY_THROW(logInfoBuilder.build());
+}
+
+TEST_F(LogFileInfoTest, CustomId)
+{
+    auto logInfoBuilder = LogFileInfoBuilder();
+    logInfoBuilder.setName("log_file_name");
+    logInfoBuilder.setId("log_file_id");
+    // logInfoBuilder.setLocalPath("log_file_path");
+    logInfoBuilder.setDescription("log_file_description");
+    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
+
+    auto logInfo = logInfoBuilder.build();
     ASSERT_TRUE(logInfo.assigned());
     ASSERT_EQ(logInfo.getName(), "log_file_name");
-    ASSERT_EQ(logInfo.getLocalPath(), "log_file_path");
-    ASSERT_EQ(logInfo.getId(), "log_file_path/log_file_name");
+    ASSERT_EQ(logInfo.getLocalPath(), nullptr);
+    ASSERT_EQ(logInfo.getId(), "log_file_id");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
     ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
 }
 
-TEST_F(LogFileInfoTest, ObjectFromConstructorMissedName)
+TEST(LogFileInfoTest, SerializeDeserializeEmptyFields)
 {
-    ASSERT_ANY_THROW(LogFileInfo(nullptr, "log_file_path", "log_file_description", LogFileEncodingType::Utf8));
-}
-
-TEST(LogFileInfoTest, GetSizeOfNotExistingFile)
-{
-    auto logInfo = LogFileInfo("not_existing_file");
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Unknown);
-    ASSERT_ANY_THROW(logInfo.getSize());
-}
-
-void createFile(const std::string& path, const std::string& content) 
-{
-    // Open the file in binary mode
-    std::ofstream outFile(path, std::ios::binary);
-
-    if (!outFile) 
-    {
-        std::cerr << "Error opening file for writing: " << path << std::endl;
-        return;
-    }
-
-    // Write content
-    outFile.write(content.c_str(), content.size());
-    outFile.close();
-}
-
-
-TEST(LogFileInfoTest, GetSizeOfExistingFile)
-{
-    const std::string path = "test_file";
-    const std::string content = "test_content";
-    createFile(path, content);
-
-    auto logInfo = LogFileInfo(path);
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Unknown);
-    ASSERT_EQ(logInfo.getSize(), content.size());
-}
-
-TEST(LogFileInfoTest, GetSizeOfEmptyFile)
-{
-    const std::string path = "empty_file";
-    createFile(path, "");
-
-    auto logInfo = LogFileInfo(path);
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Unknown);
-    ASSERT_EQ(logInfo.getSize(), 0);
-}
-
-TEST(LogFileInfoTest, GetSizeWhileOpened)
-{
-    const std::string path = "opened_file";
-    const std::string content = "test_content";
-
-    std::ofstream outFile(path, std::ios::binary);
-
-    if (!outFile) 
-    {
-        std::cerr << "Error opening file for writing: " << path << std::endl;
-        return;
-    }
-
-    outFile.write(content.c_str(), content.size());
-    outFile.flush();
-
-    auto logInfo = LogFileInfo(path);
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Unknown);
-    ASSERT_EQ(logInfo.getSize(), content.size());
-}
-
-std::string getFileLastModifiedTime(const std::string& path)
-{
-    auto ftime = fs::last_write_time(path);
-    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
-    );
-    std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);
-
-    std::ostringstream oss;
-    oss << std::put_time(std::gmtime(&cftime), "%Y-%m-%dT%H:%M:%SZ");
-    return oss.str();
-}
-
-TEST(LogFileInfoTest, GetFileModified)
-{
-    const std::string path = "opened_file";
-    const std::string content = "test_content";
-    createFile(path, content);
-
-    auto logInfo = LogFileInfo(path);
-    std::string expectedLastModified = getFileLastModifiedTime(path);
-    ASSERT_EQ(logInfo.getLastModified(), expectedLastModified);
-}
-
-TEST(LogFileInfoTest, GetNotExistingFileModified)
-{
-    const std::string path = "not_existing_file";
-    auto logInfo = LogFileInfo(path);
-    ASSERT_ANY_THROW(logInfo.getLastModified());
-}
-
-TEST(LogFileInfoTest, GetFileModifiedWhileOpened)
-{
-    const std::string path = "opened_file";
-    const std::string content = "test_content";
-
-    std::ofstream outFile(path, std::ios::binary);
-
-    if (!outFile) 
-    {
-        std::cerr << "Error opening file for writing: " << path << std::endl;
-        return;
-    }
-
-    std::string expectedLastModified = getFileLastModifiedTime(path);
-    outFile.write(content.c_str(), content.size());
-    outFile.flush();
-
-    auto logInfo = LogFileInfo(path);
-
-    ASSERT_EQ(logInfo.getLastModified(), expectedLastModified);
-}
-
-TEST(LogFileInfoTest, SerializeDeserialize)
-{
-    StringPtr name = "test_name";
-    StringPtr localPath = "test_local_path";
-    StringPtr description = "test_description";
-    LogFileEncodingType encoding = LogFileEncodingType::Utf8;
-
-    auto logInfo = LogFileInfo(localPath, name, description, encoding);
+    auto logInfo = LogFileInfoBuilder().setName("log_file_name")
+                                       .setLastModified("2022-01-01T00:00:00Z")
+                                       .build();
 
     const auto serializer = JsonSerializer();
     logInfo.serialize(serializer);
@@ -234,6 +141,8 @@ TEST(LogFileInfoTest, SerializeDeserialize)
     ASSERT_EQ(logInfo.getId(), newLogFileInfo.getId());
     ASSERT_EQ(logInfo.getDescription(), newLogFileInfo.getDescription());
     ASSERT_EQ(logInfo.getEncoding(), newLogFileInfo.getEncoding());
+    ASSERT_EQ(logInfo.getSize(), newLogFileInfo.getSize());
+    ASSERT_EQ(logInfo.getLastModified(), newLogFileInfo.getLastModified());
 
     serializer.reset();
     newLogFileInfo.serialize(serializer);
@@ -242,10 +151,16 @@ TEST(LogFileInfoTest, SerializeDeserialize)
     ASSERT_EQ(serializedLogFileInfo, newSerializedLogFileInfo);
 }
 
-TEST(LogFileInfoTest, SerializeDeserializeEmptyFields)
+TEST(LogFileInfoTest, SerializeDeserialize)
 {
-    StringPtr name = "test_name";
-    auto logInfo = LogFileInfo(name);
+    auto logInfo = LogFileInfoBuilder().setName("log_file_name")
+                                       .setLocalPath("log_file_path")
+                                       .setId("log_file_id")
+                                       .setDescription("log_file_description")
+                                       .setEncoding(LogFileEncodingType::Utf8)
+                                       .setSize(100)
+                                       .setLastModified("2022-01-01T00:00:00Z")
+                                       .build();
 
     const auto serializer = JsonSerializer();
     logInfo.serialize(serializer);
@@ -260,6 +175,8 @@ TEST(LogFileInfoTest, SerializeDeserializeEmptyFields)
     ASSERT_EQ(logInfo.getId(), newLogFileInfo.getId());
     ASSERT_EQ(logInfo.getDescription(), newLogFileInfo.getDescription());
     ASSERT_EQ(logInfo.getEncoding(), newLogFileInfo.getEncoding());
+    ASSERT_EQ(logInfo.getSize(), newLogFileInfo.getSize());
+    ASSERT_EQ(logInfo.getLastModified(), newLogFileInfo.getLastModified());
 
     serializer.reset();
     newLogFileInfo.serialize(serializer);

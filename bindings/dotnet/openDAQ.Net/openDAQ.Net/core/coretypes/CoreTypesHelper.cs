@@ -77,6 +77,10 @@ internal static class CoreTypesHelper
         {
             foreach (var pinnedHandle in pinnedHandles)
             {
+                //we only need to free what's been allocated before
+                if (!pinnedHandle.IsAllocated)
+                    continue;
+
                 try
                 {
                     pinnedHandle.Free();

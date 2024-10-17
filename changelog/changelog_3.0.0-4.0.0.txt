@@ -11,10 +11,16 @@ Required integration changes:
 + [function] ILogFileInfoBuilder::setLocalPath(IString* localPath)
 + [function] ILogFileInfoBuilder::getName(IString** name)
 + [function] ILogFileInfoBuilder::setName(IString* name)
++ [function] ILogFileInfoBuilder::getId(IString** id)
++ [function] ILogFileInfoBuilder::setId(IString* id)
 + [function] ILogFileInfoBuilder::getDescription(IString** description)
 + [function] ILogFileInfoBuilder::setDescription(IString* description)
 + [function] ILogFileInfoBuilder::getEncoding(LogFileEncodingType* encoding)
 + [function] ILogFileInfoBuilder::setEncoding(LogFileEncodingType encoding)
++ [function] ILogFileInfoBuilder::getSize(SizeT* size)
++ [function] ILogFileInfoBuilder::setSize(SizeT size)
++ [function] ILogFileInfoBuilder::getLastModified(IString** lastModified)
++ [function] ILogFileInfoBuilder::setLastModified(IString* lastModified)
 + [factory] LogFileInfoBuilderPtr::LogFileInfoBuilder()
 
 + [interface] ILogFileInfo : public IBaseObject
@@ -25,10 +31,6 @@ Required integration changes:
 + [function] ILogFileInfo::getSize(SizeT* size)
 + [function] ILogFileInfo::getEncoding(LogFileEncodingType* encoding)
 + [function] ILogFileInfo::getLastModified(IString** lastModified)
-+ [factory] LogFileInfoPtr LogFileInfo(const StringPtr& name,
-                                       const StringPtr& localPath = nullptr,
-                                       const StringPtr& description = nullptr,
-                                       LogFileEncodingType encoding = LogFileEncodingType::Unknown)
 
 + [function] IDevice::getAvailableLogFiles(IList** logFiles)
 + [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)

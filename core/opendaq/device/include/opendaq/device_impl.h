@@ -189,7 +189,6 @@ protected:
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
 
-
     virtual ListPtr<ILogFileInfo> onGetAvailableLogFiles();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
 

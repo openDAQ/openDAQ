@@ -35,6 +35,8 @@ public:
     static BaseObjectPtr lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr isLocked(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableLogFiles(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -113,6 +115,23 @@ inline BaseObjectPtr ConfigServerDevice::isLocked(const RpcContext& context, con
 {
     const auto locked = device.isLocked();
     return locked;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableLogFiles(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return device.getAvailableLogFiles();
+}
+
+inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    
+    const auto Id = params.get("Id");
+    const auto size = params.get("Size");
+    const auto offset = params.get("Offset");
+
+    return device.getLog(Id, size, offset);
 }
 
 }

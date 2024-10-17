@@ -137,7 +137,9 @@ ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
             const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
 
-            const auto isConst = static_cast<Bool>(serializedObj.readBool("const"));
+            bool isConst = false;
+            if (serializedObj.hasKey("const"))
+                isConst = static_cast<Bool>(serializedObj.readBool("const"));
 
             *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType, isConst).detach();
         });

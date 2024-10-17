@@ -20,7 +20,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
     <Authors>openDAQ</Authors>
-    <Description>.Net bindings to the openDAQ SDK (open data-acquisition source-development-kit)</Description>
+    <Description>.Net bindings to the openDAQ SDK (open data acquisition software development kit)</Description>
     <Company>openDAQ d.o.o., Slovenia</Company>
     <Copyright>2024 by openDAQ d.o.o.</Copyright>
     <!--<Version>2.0.0.12</Version>-->

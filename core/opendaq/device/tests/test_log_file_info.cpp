@@ -3,6 +3,7 @@
 #include <fstream>
 #include <chrono>
 #include <coretypes/filesystem.h>
+#include <coretypes/json_serializer_factory.h>
 
 using LogFileInfoTest = testing::Test;
 
@@ -187,6 +188,84 @@ TEST(LogFileInfoTest, GetNotExistingFileModified)
     const std::string path = "not_existing_file";
     auto logInfo = LogFileInfo(path);
     ASSERT_ANY_THROW(logInfo.getLastModified());
+}
+
+TEST(LogFileInfoTest, GetFileModifiedWhileOpened)
+{
+    const std::string path = "opened_file";
+    const std::string content = "test_content";
+
+    std::ofstream outFile(path, std::ios::binary);
+
+    if (!outFile) 
+    {
+        std::cerr << "Error opening file for writing: " << path << std::endl;
+        return;
+    }
+
+    std::string expectedLastModified = getFileLastModifiedTime(path);
+    outFile.write(content.c_str(), content.size());
+    outFile.flush();
+
+    auto logInfo = LogFileInfo(path);
+
+    ASSERT_EQ(logInfo.getLastModified(), expectedLastModified);
+}
+
+TEST(LogFileInfoTest, SerializeDeserialize)
+{
+    StringPtr name = "test_name";
+    StringPtr localPath = "test_local_path";
+    StringPtr description = "test_description";
+    LogFileEncodingType encoding = LogFileEncodingType::Utf8;
+
+    auto logInfo = LogFileInfo(localPath, name, description, encoding);
+
+    const auto serializer = JsonSerializer();
+    logInfo.serialize(serializer);
+    const auto serializedLogFileInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const LogFileInfoPtr newLogFileInfo = deserializer.deserialize(serializedLogFileInfo, nullptr, nullptr);
+
+    ASSERT_EQ(logInfo.getName(), newLogFileInfo.getName());
+    ASSERT_EQ(logInfo.getLocalPath(), newLogFileInfo.getLocalPath());
+    ASSERT_EQ(logInfo.getId(), newLogFileInfo.getId());
+    ASSERT_EQ(logInfo.getDescription(), newLogFileInfo.getDescription());
+    ASSERT_EQ(logInfo.getEncoding(), newLogFileInfo.getEncoding());
+
+    serializer.reset();
+    newLogFileInfo.serialize(serializer);
+    const auto newSerializedLogFileInfo = serializer.getOutput();
+
+    ASSERT_EQ(serializedLogFileInfo, newSerializedLogFileInfo);
+}
+
+TEST(LogFileInfoTest, SerializeDeserializeEmptyFields)
+{
+    StringPtr name = "test_name";
+    auto logInfo = LogFileInfo(name);
+
+    const auto serializer = JsonSerializer();
+    logInfo.serialize(serializer);
+    const auto serializedLogFileInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const LogFileInfoPtr newLogFileInfo = deserializer.deserialize(serializedLogFileInfo, nullptr, nullptr);
+
+    ASSERT_EQ(logInfo.getName(), newLogFileInfo.getName());
+    ASSERT_EQ(logInfo.getLocalPath(), newLogFileInfo.getLocalPath());
+    ASSERT_EQ(logInfo.getId(), newLogFileInfo.getId());
+    ASSERT_EQ(logInfo.getDescription(), newLogFileInfo.getDescription());
+    ASSERT_EQ(logInfo.getEncoding(), newLogFileInfo.getEncoding());
+
+    serializer.reset();
+    newLogFileInfo.serialize(serializer);
+    const auto newSerializedLogFileInfo = serializer.getOutput();
+
+    ASSERT_EQ(serializedLogFileInfo, newSerializedLogFileInfo);
 }
 
 END_NAMESPACE_OPENDAQ

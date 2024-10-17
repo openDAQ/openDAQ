@@ -18,11 +18,12 @@
 #pragma once
 #include <opendaq/log_file_info.h>
 #include <opendaq/log_file_info_builder_ptr.h>
+#include <coretypes/serializable.h>
 #include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class LogFileInfoImpl : public ImplementationOf<ILogFileInfo>
+class LogFileInfoImpl : public ImplementationOf<ILogFileInfo, ISerializable>
 {
 public:
     LogFileInfoImpl(const StringPtr& localPath,
@@ -32,6 +33,7 @@ public:
 
     LogFileInfoImpl(const LogFileInfoBuilderPtr& builder);
 
+    // ILogFileInfo
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getLocalPath(IString** localPath) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -40,6 +42,12 @@ public:
     ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) override;
     ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) override;
 
+    // ISerializable
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     StringPtr localPath;
     StringPtr name;
@@ -47,5 +55,7 @@ private:
     StringPtr description;
     LogFileEncodingType encoding;
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(LogFileInfoImpl)
 
 END_NAMESPACE_OPENDAQ

@@ -5,6 +5,7 @@
 #include <coretypes/filesystem.h>
 #include <chrono>
 #include <fstream>
+#include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -140,6 +141,88 @@ ErrCode LogFileInfoImpl::getLastModified(IString** lastModified)
        return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Error getting last modified time for log file \"%s\": %s", id.getCharPtr(), e.what());
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode LogFileInfoImpl::getSerializeId(ConstCharPtr* id) const
+{
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr LogFileInfoImpl::SerializeId()
+{
+    return "LogFileInfo";
+}
+
+ErrCode LogFileInfoImpl::serialize(ISerializer* serializer)
+{
+    serializer->startTaggedObject(this);
+
+    serializer->key("name");
+    serializer->writeString(name.getCharPtr(), name.getLength());
+
+    serializer->key("encoding");
+    serializer->writeInt(static_cast<Int>(encoding));
+
+    if (localPath.assigned())
+    {
+        serializer->key("localPath");
+        serializer->writeString(localPath.getCharPtr(), localPath.getLength());
+    }
+
+    if (description.assigned())
+    {
+        serializer->key("description");
+        serializer->writeString(description.getCharPtr(), description.getLength());
+    }
+
+    serializer->endObject();
+    return OPENDAQ_SUCCESS;
+
+}
+
+ErrCode LogFileInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    ErrCode errCode;
+    StringPtr name;
+    Int encoding;
+    StringPtr localPath;
+    StringPtr description;
+
+    errCode = serialized->readString(String("name"), &name);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    errCode = serialized->readInt(String("encoding"), &encoding);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    Bool hasKey;
+
+    errCode = serialized->hasKey(String("localPath"), &hasKey);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    if (hasKey)
+    {
+        errCode = serialized->readString(String("localPath"), &localPath);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    errCode = serialized->hasKey(String("description"), &hasKey);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    if (hasKey)
+    {
+        errCode = serialized->readString(String("description"), &description);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    LogFileInfoPtr info = LogFileInfo_Create(localPath, name, description, static_cast<LogFileEncodingType>(encoding));
+    *obj = info.detach();
     return OPENDAQ_SUCCESS;
 }
 

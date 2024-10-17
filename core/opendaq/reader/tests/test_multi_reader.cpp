@@ -21,44 +21,6 @@ struct ReadSignal;
 static void zeroOutPacketData(const DataPacketPtr& packet);
 static DataPacketPtr createPacket(daq::SizeT numSamples, daq::Int offset, const ReadSignal& read);
 
-class TestEvent
-{
-public:
-    TestEvent()
-    {}
-    ~TestEvent()
-    {}
-    template <typename Rep, typename Period>
-    auto wait_for(std::chrono::duration<Rep, Period> duration)
-    {
-        std::unique_lock ulock(m);
-        auto result = cv.wait_for(ulock, duration, [this] { return flag; });
-        return result;
-    }
-    void notify_one()
-    {
-        std::unique_lock ulock{m};
-        flag = true;
-        cv.notify_one();
-    }
-    void notify_all()
-    {
-        std::unique_lock ulock{m};
-        flag = true;
-        cv.notify_all();
-    }
-    void reset()
-    {
-        std::unique_lock ulock{m};
-        flag = false;
-    }
-
-private:
-    std::mutex m{};
-    std::condition_variable cv{};
-    bool flag{false};
-};
-
 struct ReadSignal
 {
     explicit ReadSignal(const SignalConfigPtr& signal, Int packetOffset, Int packetSize)
@@ -4254,18 +4216,25 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
         domainSignal.setDescriptor(newDomainDescriptor);
     };
 
+    auto notified = false;
     auto state = 0;
-    auto testEvent = TestEvent{};
+    auto cv = std::condition_variable{};
+    auto m = std::mutex{};
 
     multiReader.setOnDataAvailable(
         [this,
          &multiReader,
-         &testEvent,
+         &cv,
+         &m,
+         &notified,
          &state,
          &valuesPerSignal,
          &domainValuesPerSignal,
          NUM_SAMPLES]
         {
+            auto lck = std::unique_lock{m};
+            ASSERT_FALSE(notified);
+            
             switch (state)
             {
                 case 0:
@@ -4289,7 +4258,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                         ASSERT_EQ(domainDescriptor.getSampleType(), SampleTypeFromType<ClockTick>::SampleType);
                     }
 
-                    testEvent.notify_all();
                     state = 1;
                     break;
                 }
@@ -4299,7 +4267,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
                     ASSERT_EQ(count, NUM_SAMPLES);
-                    testEvent.notify_all();
 
                     state = 2;
                     break;
@@ -4330,7 +4297,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::UInt64);
 
                     multiReader.setActive(false);
-                    testEvent.notify_all();
 
                     state = 3;
                     break;
@@ -4359,8 +4325,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                         eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
                     ASSERT_TRUE(domainDescriptor.assigned());
                     ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::Float64);
-
-                    testEvent.notify_all();
 
                     state = 4;
                     break;
@@ -4392,8 +4356,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
                     multiReader.setActive(true);
 
-                    testEvent.notify_all();
-
                     state = 5;
                     break;
                 }
@@ -4409,7 +4371,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
                     ASSERT_EQ(count, NUM_SAMPLES);
-                    testEvent.notify_all();
 
                     state = 6;
                     break;
@@ -4419,6 +4380,8 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     GTEST_FAIL();
                 }
             }
+            notified = true;
+            cv.notify_all();
         });
 
     for (size_t i = 0; i < NUM_SIGNALS; i++)
@@ -4426,9 +4389,10 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
     while (state != 6)
     {
-        bool result = testEvent.wait_for(5s);
-        ASSERT_TRUE(result);
-        testEvent.reset();
+        auto lck = std::unique_lock{m};
+        auto cv_status = cv.wait_for(lck, 10s, [&notified] { return notified; });
+        ASSERT_TRUE(cv_status);
+        notified = false;
 
         switch (state)
         {

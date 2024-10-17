@@ -93,7 +93,7 @@ private:
     DeviceInfoPtr defaultRootDeviceInfo;
 
     DictPtr<IString, LogLevel> componentsLogLevel;
-    std::set<LoggerSinkPtr> sinks;
+    ListPtr<ILoggerSink> sinks;
     LoggerPtr logger;
 
     SchedulerPtr scheduler;

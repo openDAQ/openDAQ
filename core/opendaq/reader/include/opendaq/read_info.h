@@ -78,12 +78,10 @@ struct NotifyInfo
     NotifyInfo() = default;
 
     NotifyInfo(const NotifyInfo& other)
-        : packetReady(other.packetReady)
     {
     }
 
     NotifyInfo(NotifyInfo&& other) noexcept
-        : packetReady(other.packetReady)
     {
     }
 
@@ -92,7 +90,6 @@ struct NotifyInfo
         if (this == &other)
             return *this;
 
-        packetReady = other.packetReady;
         return *this;
     }
 
@@ -101,14 +98,11 @@ struct NotifyInfo
         if (this == &other)
             return *this;
 
-        packetReady = other.packetReady;
         return *this;
     }
 
     std::mutex mutex;
     std::condition_variable condition;
-
-    bool packetReady{};
 };
 
 END_NAMESPACE_OPENDAQ

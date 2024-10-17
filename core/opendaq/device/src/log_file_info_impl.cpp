@@ -5,6 +5,7 @@
 #include <coretypes/filesystem.h>
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ

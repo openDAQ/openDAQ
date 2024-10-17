@@ -42,8 +42,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         checkEarlyPreconditionsAndCacheContext(list);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto listener = this->thisPtr<InputPortNotificationsPtr>();
-        auto ports = checkPreconditions(list, true, fromInputPorts, listener);
+        auto ports = checkPreconditions(list, true, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -139,8 +138,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
         checkEarlyPreconditionsAndCacheContext(sourceComponents);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto listener = this->thisPtr<InputPortNotificationsPtr>();
-        auto ports = checkPreconditions(sourceComponents, false, fromInputPorts, listener);
+        auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -367,10 +365,7 @@ void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComp
     context = list[0].getContext();
 }
 
-ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list,
-                                                              bool overrideMethod,
-                                                              bool& fromInputPorts,
-                                                              InputPortNotificationsPtr listener)
+ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
 {
     bool haveInputPorts = false;
     bool haveSignals = false;
@@ -383,8 +378,6 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
             if (haveInputPorts)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
-            if (listener.assigned())
-                port.setListener(listener);
             port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);
             portList.pushBack(port);
@@ -816,7 +809,6 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             auto packetReady = (hasEventPacket || hasDataPacket) && !portDisconnected;
             if (!packetReady)
                 return false;
-
             //-----------------
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)

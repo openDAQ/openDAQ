@@ -7,6 +7,7 @@
 #include "opendaq/context_factory.h"
 #include "opendaq/component_status_container_private_ptr.h"
 #include "opendaq/device_domain_factory.h"
+#include "opendaq/device_type_factory.h"
 #include "opendaq/mock/mock_device_module.h"
 #include "opendaq/mock/mock_physical_device.h"
 
@@ -270,6 +271,12 @@ DeviceInfoPtr MockDevice1Impl::onGetInfo()
 uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
 {
     return ticksSinceOrigin++;
+}
+
+DictPtr<IString, IDeviceType> MockDevice1Impl::onGetAvailableDeviceTypes()
+{
+    auto devTypes = Dict<IString, IDeviceType>({{"mockDev1", DeviceType("mockDev1", "MockDev1", "Mock Device 1", "prefix", nullptr)}});
+    return devTypes;
 }
 
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)

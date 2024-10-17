@@ -230,7 +230,7 @@ TEST_F(ConfigProtocolDeviceLockingTest, BeginEndUpdate)
 
     clientDevice.lock();
 
-    clientDevice.beginUpdate();
+    ASSERT_THROW(clientDevice.beginUpdate(), DeviceLockedException);
     ASSERT_THROW(clientDevice.endUpdate(), DeviceLockedException);
 
     clientDevice.unlock();

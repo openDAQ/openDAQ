@@ -56,7 +56,7 @@ inline StructTypePtr DeviceTypeStructType()
     return StructType("DeviceType",
                       List<IString>("Id", "Name", "Description", "Prefix"),
                       List<IString>("", "", "", ""),
-                      List<IType>(SimpleType(ctInt), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
 }
 
 /*!@}*/

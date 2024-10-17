@@ -78,7 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions({0, 1, 2, 3})
+    , supportedServerVersions({0, 1, 2, 3, 4})
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -147,13 +147,18 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
     addHandler<DevicePtr>("IsLocked", &ConfigServerDevice::isLocked);
     addHandler<DevicePtr>("GetAvailableLogFiles", &ConfigServerDevice::getAvailableLogFiles);
+    addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
+    addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
+    addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
     addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
+    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
+    addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -401,6 +406,13 @@ BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& p
 
     streamingConsumer.removeExternalSignals(params);
     return nullptr;
+}
+
+BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    return ConfigServerInputPort::accepts(context, inputPort, signal, user);
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

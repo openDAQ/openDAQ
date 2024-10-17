@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:19.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -173,7 +173,7 @@ public class EnumerationType : DaqType
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetEnumeratorIntValue(base.NativePointer, namePtr.NativePointer, out value);
+            ErrorCode errorCode = (ErrorCode)_rawEnumerationType.GetEnumeratorIntValue(base.NativePointer, namePtr, out value);
 
             if (Result.Failed(errorCode))
             {
@@ -208,7 +208,7 @@ public static partial class CoreTypesFactory
         var enumeratorNamesPtr = (ListObject<BaseObject>)enumeratorNames;
 
         //call native function
-        ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr.NativePointer, enumeratorNamesPtr.NativePointer, firstEnumeratorIntValue);
+        ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr, enumeratorNamesPtr, firstEnumeratorIntValue);
 
         if (Result.Succeeded(errorCode))
         {
@@ -229,7 +229,7 @@ public static partial class CoreTypesFactory
         var enumeratorNamesPtr = (ListObject<BaseObject>)enumeratorNames;
 
         //call native function
-        ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr.NativePointer, enumeratorNamesPtr.NativePointer, firstEnumeratorIntValue);
+        ErrorCode errorCode = createEnumerationType(out objPtr, typeNamePtr, enumeratorNamesPtr, firstEnumeratorIntValue);
 
         if (Result.Failed(errorCode))
         {
@@ -258,7 +258,7 @@ public static partial class CoreTypesFactory
         var enumeratorsPtr = (DictObject<BaseObject, BaseObject>)enumerators;
 
         //call native function
-        ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr.NativePointer, enumeratorsPtr.NativePointer);
+        ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr, enumeratorsPtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -279,7 +279,7 @@ public static partial class CoreTypesFactory
         var enumeratorsPtr = (DictObject<BaseObject, BaseObject>)enumerators;
 
         //call native function
-        ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr.NativePointer, enumeratorsPtr.NativePointer);
+        ErrorCode errorCode = createEnumerationTypeWithValues(out objPtr, typeNamePtr, enumeratorsPtr);
 
         if (Result.Failed(errorCode))
         {

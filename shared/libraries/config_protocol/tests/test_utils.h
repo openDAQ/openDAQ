@@ -59,6 +59,7 @@ namespace daq::config_protocol::test_utils
         void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
         DeviceInfoPtr onGetInfo() override;
         uint64_t onGetTicksSinceOrigin() override;
+        DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
 
     protected:
         bool clearFunctionBlocksOnUpdate() override
@@ -114,6 +115,42 @@ namespace daq::config_protocol::test_utils
             info.freeze();
             return info.detach();
         }
+
+        ListPtr<IDeviceInfo> onGetAvailableDevices() override
+        {
+            auto availableDevices = List<IDeviceInfo>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                const auto num = std::to_string(i);
+                const auto deviceInfo = DeviceInfo("mock://available_dev" + num, "AvailableMockDevice" + num);
+                deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
+                deviceInfo.freeze();
+                availableDevices.pushBack(deviceInfo);
+            }
+            return availableDevices;
+        }
+
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
+        {
+            if (connectionString == "mock://test")
+            {
+                auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
+
+                dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
+
+                this->devices.addItem(dev);
+
+                return dev;
+            }
+            return nullptr;
+        }
+
+        void onRemoveDevice(const DevicePtr& device) override
+        {
+            devices.removeItem(device);
+        }
+
     };
 
     class MockSrvImpl final : public Server

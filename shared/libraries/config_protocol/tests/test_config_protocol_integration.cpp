@@ -14,6 +14,7 @@
 #include <opendaq/packet_factory.h>
 #include <coreobjects/user_factory.h>
 #include <config_protocol/exceptions.h>
+#include <testutils/testutils.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -607,3 +608,132 @@ TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
     ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);
     ASSERT_THROW(clientDevice.getOnPropertyValueRead("location"), NativeClientCallNotAvailableException);
 }
+
+TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
+{
+    auto clientSignal = clientDevice.getSignals()[0];
+    daq::Bool clientAcceptsClientSignal = False;
+    ASSERT_NO_THROW(clientAcceptsClientSignal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(clientSignal));
+    ASSERT_TRUE(clientAcceptsClientSignal);
+
+    auto serverSignal = serverDevice.getSignals()[0];
+    daq::Bool clientAcceptsServerSignal = True;
+    ASSERT_NO_THROW(clientAcceptsServerSignal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
+    ASSERT_FALSE(clientAcceptsServerSignal);
+
+    auto falseSignal = Signal(clientSignal.getContext(), nullptr, "test");
+    ASSERT_THROW_MSG(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(falseSignal),
+                     NativeClientCallNotAvailableException,
+                     "Signal is not from the same component tree");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
+{
+    auto availableDevicesServer = serverDevice.getAvailableDevices();
+    auto availableDevicesClient = clientDevice.getAvailableDevices();
+
+    ASSERT_EQ(availableDevicesClient.getCount(), 3);
+
+    auto lastC = availableDevicesClient[2];
+    auto lastS = availableDevicesServer[2];
+
+    ASSERT_EQ(lastC.getName(), "AvailableMockDevice2");
+    ASSERT_EQ(lastC.getConnectionString(), "mock://available_dev2");
+    ASSERT_EQ(lastC.getManufacturer(), "Testing");
+
+    ASSERT_EQ(lastC.getName(), lastS.getName());
+    ASSERT_EQ(lastC.getConnectionString(), lastS.getConnectionString());
+    ASSERT_EQ(lastC.getManufacturer(), lastS.getManufacturer());
+}
+
+void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
+{
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+
+    DevicePtr dev;
+    ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    ASSERT_NE(dev, nullptr);
+
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
+
+    auto newDevCli = clientDevice.getDevices()[2];
+    auto newDevSer = serverDevice.getDevices()[2];
+
+    ASSERT_EQ(newDevCli.getGlobalId(), "/root_dev/Dev/newDevice");
+    ASSERT_EQ(newDevCli.asPtr<IConfigClientObject>().getRemoteGlobalId(), "/root_dev/Dev/newDevice");
+    ASSERT_EQ(newDevSer.getGlobalId(), "/root_dev/Dev/newDevice");
+
+    auto newCliFB = newDevCli.getDevices()[0].getFunctionBlocks()[0];
+    auto newSerFB = newDevSer.getDevices()[0].getFunctionBlocks()[0];
+
+    auto domainClient = newCliFB.getSignals()[0].getDomainSignal();
+    ASSERT_NE(domainClient, nullptr);
+
+    auto serverClient = newSerFB.getSignals()[0].getDomainSignal();
+    ASSERT_NE(serverClient, nullptr);
+
+    auto connClient = newCliFB.getInputPorts()[0].getConnection();
+    ASSERT_NE(connClient, nullptr);
+
+    auto connServer = newSerFB.getInputPorts()[0].getConnection();
+    ASSERT_NE(connServer, nullptr);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    addDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceCoreEventTrigger)
+{
+    addDeviceTest(clientDevice, serverDevice);
+}
+
+void removeDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
+{
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+
+    clientDevice.removeDevice(clientDevice.getDevices()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 1);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 1);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    removeDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceCoreEventTrigger)
+{
+    removeDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
+{
+    auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
+    auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
+
+    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
+
+    auto lastC = availableDeviceTypesClient.get("mockDev1");
+    auto lastS = availableDeviceTypesServer.get("mockDev1");
+
+    ASSERT_EQ(lastC.getId(), "mockDev1");
+    ASSERT_EQ(lastC.getName(), "MockDev1");
+    ASSERT_EQ(lastC.getDescription(), "Mock Device 1");
+    ASSERT_EQ(lastC.getConnectionStringPrefix(), "prefix");
+
+    ASSERT_EQ(lastC.getId(), lastS.getId());
+    ASSERT_EQ(lastC.getName(), lastS.getName());
+    ASSERT_EQ(lastC.getDescription(), lastS.getDescription());
+    ASSERT_EQ(lastC.getConnectionStringPrefix(), lastS.getConnectionStringPrefix());
+}
+

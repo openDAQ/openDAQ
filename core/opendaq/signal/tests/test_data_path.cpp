@@ -53,12 +53,6 @@ TEST_F(DataPathTest, DestroyListenerInNotification)
     inputPort.setListener(notifications);
     notifications.mock().setInputPort(inputPort);
 
-    EXPECT_CALL(notifications.mock(), acceptsSignal)
-        .WillOnce([](IInputPort*, ISignal*, daq::Bool* accepted)
-            {
-                *accepted = True;
-                return OPENDAQ_SUCCESS;
-            });
     EXPECT_CALL(notifications.mock(), connected).WillOnce(Return(OPENDAQ_SUCCESS));
 
     bool eventPacketReceived;

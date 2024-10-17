@@ -196,6 +196,13 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         if (currentDescriptor.assigned())
             this->currentDescriptor = currentDescriptor;
 
+        if (this->domainDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input domain descriptor is not set");
+        if (this->voltageDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input voltage descriptor is not set");
+        if (this->currentDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input current descriptor is not set");
+
         if (this->voltageDescriptor.assigned() &&
             this->voltageDescriptor.getUnit().assigned() &&
             this->voltageDescriptor.getUnit().getSymbol() != "V")

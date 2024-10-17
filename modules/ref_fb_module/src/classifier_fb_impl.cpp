@@ -285,6 +285,7 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
+        // TODO handle Null-descriptor params ('Null' sample type descriptors)
         DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);

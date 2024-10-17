@@ -33,7 +33,7 @@ ErrCode EventPacketImpl::getParameters(IDict** parameters)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC EventPacketImpl::equals(IBaseObject* other, Bool* equals) const
+ErrCode EventPacketImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");

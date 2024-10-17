@@ -147,30 +147,40 @@ OutputValueSignalBase::OutputValueSignalBase(daq::streaming_protocol::BaseValueS
 {
 }
 
-void OutputValueSignalBase::writeEventPacket(const EventPacketPtr& packet)
+void OutputValueSignalBase::writeDaqDataPacket(const DataPacketPtr& packet)
 {
-    const auto eventId = packet.getEventId();
+    std::scoped_lock lock(subscribedSync);
 
-    if (eventId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        writeDescriptorChangedPacket(packet);
-    }
-    else
-    {
-        STREAMING_PROTOCOL_LOG_E("Event type {} is not supported by streaming.", eventId);
-    }
+    if (!this->subscribed)
+        return;
+
+    writeDataPacket(packet);
 }
 
-void OutputValueSignalBase::writeDescriptorChangedPacket(const EventPacketPtr& packet)
+void OutputValueSignalBase::writeValueDescriptorChanges(const DataDescriptorPtr& valueDescriptor)
 {
-    const auto params = packet.getParameters();
-    const DataDescriptorPtr valueDescriptor = params.get(event_packet_param::DATA_DESCRIPTOR);
-    const DataDescriptorPtr domainDescriptor = params.get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+    std::scoped_lock lock(subscribedSync);
+
+    if (!this->subscribed)
+        return;
 
     if (valueDescriptor.assigned())
     {
         this->writeDescriptorChangedEvent(valueDescriptor);
     }
+    else
+    {
+        throw ConversionFailedException("Unassigned value descriptor");
+    }
+}
+
+void OutputValueSignalBase::writeDomainDescriptorChanges(const DataDescriptorPtr& domainDescriptor)
+{
+    std::scoped_lock lock(subscribedSync);
+
+    if (!this->subscribed)
+        return;
+
     if (domainDescriptor.assigned())
     {
         if (outputDomainSignal->isTimeConfigChanged(domainDescriptor))
@@ -184,28 +194,9 @@ void OutputValueSignalBase::writeDescriptorChangedPacket(const EventPacketPtr& p
         }
         outputDomainSignal->writeDescriptorChangedEvent(domainDescriptor);
     }
-}
-
-void OutputValueSignalBase::writeDaqPacket(const PacketPtr& packet)
-{
-    std::scoped_lock lock(subscribedSync);
-
-    if (!this->subscribed)
-        return;
-
-    const auto type = packet.getType();
-
-    switch (type)
+    else
     {
-        case PacketType::Data:
-            writeDataPacket(packet);
-            break;
-        case PacketType::Event:
-            writeEventPacket(packet);
-            break;
-        default:
-            STREAMING_PROTOCOL_LOG_E("Failed to write a packet of unsupported type.");
-            break;
+        throw ConversionFailedException("Unassigned domain descriptor");
     }
 }
 
@@ -254,7 +245,17 @@ OutputDomainSignalBase::OutputDomainSignalBase(daq::streaming_protocol::BaseDoma
 {
 }
 
-void OutputDomainSignalBase::writeDaqPacket(const PacketPtr& packet)
+void OutputDomainSignalBase::writeDaqDataPacket(const DataPacketPtr& packet)
+{
+    throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
+}
+
+void OutputDomainSignalBase::writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor)
+{
+    throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
+}
+
+void OutputDomainSignalBase::writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor)
 {
     throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
 }
@@ -732,7 +733,15 @@ OutputNullSignal::OutputNullSignal(const SignalPtr& signal, daq::streaming_proto
 {
 }
 
-void OutputNullSignal::writeDaqPacket(const PacketPtr& packet)
+void OutputNullSignal::writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor)
+{
+}
+
+void OutputNullSignal::writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor)
+{
+}
+
+void OutputNullSignal::writeDaqDataPacket(const DataPacketPtr& packet)
 {
 }
 

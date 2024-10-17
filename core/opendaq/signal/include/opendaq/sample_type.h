@@ -39,6 +39,7 @@ enum class SampleType : EnumType
     Binary,
     String,
     Struct,
+    Null,
     // ReSharper disable once CppInconsistentNaming
     _count
 };

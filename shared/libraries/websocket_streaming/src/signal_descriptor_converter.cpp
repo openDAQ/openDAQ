@@ -128,7 +128,7 @@ void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valu
 
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != valueStream->getSampleType())
-        throw ConversionFailedException();
+        throw ConversionFailedException("Sample type has been changed");
 
     UnitPtr unit = dataDescriptor.getUnit();
     if (unit.assigned())
@@ -181,7 +181,7 @@ void SignalDescriptorConverter::ToStreamedLinearSignal(const daq::SignalPtr& dom
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_S64 &&
         requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_U64)
-        throw ConversionFailedException();
+        throw ConversionFailedException("Non-64bit domain sample types are not supported");
 
     DataRulePtr rule = domainDescriptor.getRule();
     SetLinearTimeRule(rule, linearStream);
@@ -242,7 +242,7 @@ void SignalDescriptorConverter::SetLinearTimeRule(const daq::DataRulePtr& rule, 
 {
     if (!rule.assigned() || rule.getType() != DataRuleType::Linear)
     {
-        throw ConversionFailedException();
+        throw ConversionFailedException("Time rule is not supported");
     }
     uint64_t delta = rule.getParameters().get("delta");
     linearStream->setOutputRate(delta);

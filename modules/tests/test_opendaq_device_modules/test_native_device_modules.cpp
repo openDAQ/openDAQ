@@ -823,7 +823,7 @@ TEST_F(NativeDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 9u);
+    ASSERT_EQ(properties.getCount(), 10u);
 }
 
 TEST_F(NativeDeviceModulesTest, DeviceInfo)

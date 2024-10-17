@@ -53,6 +53,7 @@ set(cleanCmd ${CMAKE_COMMAND} -E rm -r -f ${outputBinDir})         # clear outpu
 set(buildCmd dotnet build ${dotnet_cmd_args})                      # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build
 set(testCmd dotnet test ${dotnet_test_args})                       # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test
 #set(packCmd dotnet pack ${dotnet_pack_args})                       # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-pack
+set(generateCoreTypesDllInfoCmd ${RTGEN} -ns daq.core.coretypes -ln CoreTypes -config -lo daqcoretypes -lv ${OPENDAQ_PACKAGE_VERSION} -lang csharp -d "${bindingsSrcDir}")
 
 set(configEnabled "$<CONFIG:Debug,Release>")
 set(configRelease "$<CONFIG:Release>")
@@ -74,6 +75,7 @@ message(DEBUG "buildCmd                       = '${buildCmd}'")
 message(DEBUG "testCmd                        = '${testCmd}'")
 #message(DEBUG "packCmd                        = '${packCmd}'")
 message(DEBUG "configEnabled                  = '${configEnabled}'")
+message(DEBUG "generateCoreTypesDllInfoCmd    = '${generateCoreTypesDllInfoCmd}'")
 #-- [openDAQ.bindings.dotnet] targetName                     = 'DotNetBindings'
 #-- [openDAQ.bindings.dotnet] projectName                    = 'openDAQ.NET'
 #-- [openDAQ.bindings.dotnet] projectFileName                = 'openDAQ.NET.sln'
@@ -85,9 +87,10 @@ message(DEBUG "configEnabled                  = '${configEnabled}'")
 #-- [openDAQ.bindings.dotnet] outFile                        = 'C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/bin/x64/$<CONFIG>/openDAQ.NET.dll'
 #-- [openDAQ.bindings.dotnet] test_path                      = 'C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/test_results'
 #-- [openDAQ.bindings.dotnet] cleanCmd                       = 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe;-E;rm;-r;-f;C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/bin/x64/$<CONFIG>'
-#-- [openDAQ.bindings.dotnet] buildCmd                       = 'dotnet;build;openDAQ.NET.sln;--configuration;$<CONFIG>_Build;--framework;net6.0;--verbosity;minimal;--configfile;./.nuget/NuGet.Config;--ignore-failed-sources;-p:NoWarn=1591;-p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/x64/msvc-22/full/bin;-p:OPENDAQ_PACKAGE_VERSION=3.4.0'
+#-- [openDAQ.bindings.dotnet] buildCmd                       = 'dotnet;build;openDAQ.NET.sln;--configuration;$<CONFIG>_Build;--verbosity;minimal;--configfile;./.nuget/NuGet.Config;--ignore-failed-sources;-p:NoWarn="CS1591,NU1801";-p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/x64/msvc-22/full/bin;-p:OPENDAQ_PACKAGE_VERSION=3.4.0'
 #-- [openDAQ.bindings.dotnet] testCmd                        = 'dotnet;test;openDAQ.NET.sln;--no-build;--configuration;$<CONFIG>_Build;--logger;junit\;LogFilePath=C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/test_results/test_DotNetBindings.xml'
 #-- [openDAQ.bindings.dotnet] configEnabled                  = '$<CONFIG:Debug,Release>'
+#-- [openDAQ.bindings.dotnet] generateCoreTypesDllInfoCmd    = 'C:/VS_NETProjects/C++/BlueBerry/openDAQ/shared/tools/RTGen/bin/rtgen.exe;-ns;daq.core.coretypes;-ln;CoreTypes;-config;-lo;daqcoretypes;-lv;3.4.0;-lang;csharp;-d;C:/VS_NETProjects/C++/BlueBerry/openDAQ/build/bindings/CSharp/core'
 #-- [openDAQ.bindings.dotnet] Adding target dependencies: daq::coretypes;daq::coreobjects;daq::opendaq;opcua_client_module;ws_stream_cl_module;native_stream_cl_module;opcua_server_module;ws_stream_srv_module;native_stream_srv_module;empty_module;ref_device_module;ref_fb_module;audio_device_module
 #-- [openDAQ.bindings.dotnet] === .NET Bindings end ===
 
@@ -127,8 +130,9 @@ add_dependencies(${targetName} ${dependencyTargets}
 add_custom_command(TARGET ${targetName}
                    # On Visual Studio Generators, run before any other rules are executed within the target. On other generators, run just before PRE_LINK commands
                    PRE_BUILD
-                   COMMENT "[${targetName}] cleanup '${outputBinDir}' (${platform}/$<CONFIG>)"
+                   COMMENT "[${targetName}] cleanup '${outputBinDir}' (${platform}/$<CONFIG>) and RTGen CoreTypesDllInfo.cs"
                    COMMAND "$<${configEnabled}:${cleanCmd}>"
+                   COMMAND "$<${configEnabled}:${generateCoreTypesDllInfoCmd}>"
                    COMMAND_EXPAND_LISTS
                    VERBATIM
 )

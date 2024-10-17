@@ -34,7 +34,13 @@
 PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::module_ m)
 {
     py::enum_<daq::LogFileEncodingType>(m, "LogFileEncodingType")
-        .value("Utf8", daq::LogFileEncodingType::Utf8);
+        .value("Utf8", daq::LogFileEncodingType::Utf8)
+        .value("Utf16Le", daq::LogFileEncodingType::Utf16Le)
+        .value("Utf16Be", daq::LogFileEncodingType::Utf16Be)
+        .value("Utf32Le", daq::LogFileEncodingType::Utf32Le)
+        .value("Utf32Be", daq::LogFileEncodingType::Utf32Be)
+        .value("Ascii", daq::LogFileEncodingType::Ascii)
+        .value("Unknown", daq::LogFileEncodingType::Unknown);
 
     return wrapInterface<daq::ILogFileInfo, daq::IBaseObject>(m, "ILogFileInfo");
 }

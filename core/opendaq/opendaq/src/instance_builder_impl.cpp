@@ -190,11 +190,7 @@ ErrCode InstanceBuilderImpl::getLoggerSinks(IList** sinks)
     if (sinks == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    auto result = List<ILoggerSink>();
-    for (auto & sink: this->sinks)
-        result.pushBack(sink);
-    
-    *sinks = result.detach();
+    *sinks = this->sinks.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

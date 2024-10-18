@@ -104,8 +104,8 @@ than "min read count" samples in the queue and there's an event after those samp
 ## Description
 - Enable openDAQ servers to be added to the component tree under the device
 
-# Required integration changes
-##    - Breaks binary compatibility
+## Required integration changes
+- Breaks binary compatibility
 ```
 -m[interface] IServer : public IBaseObject
 +m[interface] IServer : public IFolder

@@ -350,6 +350,7 @@ inline bool isScaledSampleType(SampleType sampleType)
         case SampleType::RangeInt64:
             return SampleTypeToType<SampleType::RangeInt64>::IsScaledType;
         case SampleType::Invalid:
+        case SampleType::Null:
         case SampleType::_count:
             return false;
     }
@@ -391,6 +392,7 @@ inline std::size_t getSampleSize(SampleType sampleType)
         case SampleType::Binary:
         case SampleType::Struct:
         case SampleType::Invalid:
+        case SampleType::Null:
         case SampleType::_count:
             break;
     }
@@ -429,6 +431,7 @@ inline ScaledSampleType getDefaultScaledType(SampleType type)
         case SampleType::RangeInt64:
         case SampleType::Struct:
         case SampleType::Invalid:
+        case SampleType::Null:
         case SampleType::_count:
             break;
     }
@@ -487,6 +490,8 @@ inline std::string convertSampleTypeToString(SampleType type)
             return "Binary";
         case SampleType::Struct:
             return "Struct";
+        case SampleType::Null:
+            return "Null";
         case SampleType::Invalid:
         case SampleType::_count:
             break;

@@ -63,6 +63,14 @@ inline DataDescriptorPtr DataDescriptorFromBuilder(const DataDescriptorBuilderPt
 }
 
 /*!
+ * @brief Creates a Data Descriptor to be used as a substitute in the event packet when a signal's descriptor is not assigned.
+ */
+inline DataDescriptorPtr NullDataDescriptor()
+{
+    return DataDescriptorBuilder().setSampleType(SampleType::Null).build();
+}
+
+/*!
  * @brief Creates the Struct type object that defines the Data descriptor struct.
  */
 inline StructTypePtr DataDescriptorStructType()

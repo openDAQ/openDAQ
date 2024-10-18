@@ -502,4 +502,11 @@ TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceWithPostScaling)
                      "Reference Domain Info not supported with post scaling.");
 }
 
+TEST_F(DataDescriptorTest, NullDataDescriptor)
+{
+    auto descriptor = NullDataDescriptor();
+
+    ASSERT_EQ(descriptor.getSampleType(), SampleType::Null);
+}
+
 END_NAMESPACE_OPENDAQ

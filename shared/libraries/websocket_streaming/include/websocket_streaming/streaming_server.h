@@ -76,6 +76,10 @@ protected:
     void addToOutputSignals(const SignalPtr& signal,
                             SignalMap& outputSignals,
                             const streaming_protocol::StreamWriterPtr& writer);
+    OutputDomainSignalBasePtr addUpdateOrFindDomainSignal(const SignalPtr& domainSignal,
+                                                          SignalMap& outputSignals,
+                                                          const streaming_protocol::StreamWriterPtr& writer);
+
     void publishSignalsToClient(const streaming_protocol::StreamWriterPtr& writer,
                                 const ListPtr<ISignal>& signals,
                                 SignalMap& outputSignals);
@@ -87,9 +91,15 @@ protected:
                                                 const OutputDomainSignalBasePtr& outputDomainSignal,
                                                 const std::string& tableId,
                                                 const streaming_protocol::StreamWriterPtr& writer);
-    void updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
-                                 SignalMap& outputSignals,
-                                 const streaming_protocol::StreamWriterPtr& writer);
+    void handleDataDescriptorChanges(OutputSignalBasePtr& outputSignal,
+                                     SignalMap& outputSignals,
+                                     const streaming_protocol::StreamWriterPtr& writer,
+                                     const EventPacketPtr& packet);
+
+    void updateOutputPlaceholderSignal(OutputSignalBasePtr& outputSignal,
+                                       SignalMap& outputSignals,
+                                       const streaming_protocol::StreamWriterPtr& writer,
+                                       bool subscribed);
 
     void writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer);
     void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer,

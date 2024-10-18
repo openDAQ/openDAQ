@@ -274,8 +274,10 @@ void StreamingClient::onSignalMeta(const SubscribedSignal& subscribedSignal, con
         if (auto it = availableSignals.find(signalId); it != availableSignals.end())
         {
             auto inputSignal = it->second;
-            // skips the first subscribe ACK from server as inputSignal is not initialized at the moment
-            if (inputSignal)
+            // forwards ACK to upper level only if signal is explicitly subscribed
+            // and doesn't if just temporary subscribed for descriptors initialization
+            // i.e. skips the first subscribe ACK from server if signal is not explicitly subscribed by streaming
+            if (inputSignal && inputSignal->getSubscribed())
             {
                 // ignores ACKs for domain signals
                 if (!inputSignal->isDomainSignal())
@@ -334,7 +336,7 @@ void StreamingClient::availableSignalsHandler(const nlohmann::json::const_iterat
 
         if (auto signalIt = availableSignals.find(signalId); signalIt == availableSignals.end())
         {
-            availableSignals.insert({signalId, nullptr});
+            availableSignals.insert({signalId, InputPlaceHolderSignal(signalId, logCallback)});
         }
         else
         {
@@ -413,13 +415,21 @@ void StreamingClient::unavailableSignalsHandler(const nlohmann::json::const_iter
 void StreamingClient::subscribeSignal(const std::string& signalId)
 {
     if (auto it = availableSignals.find(signalId); it != availableSignals.end())
+    {
+        if (auto inputSignal = it->second)
+            inputSignal->setSubscribed(true);
         protocolHandler->subscribe({signalId});
+    }
 }
 
 void StreamingClient::unsubscribeSignal(const std::string& signalId)
 {
     if (auto it = availableSignals.find(signalId); it != availableSignals.end())
+    {
+        if (auto inputSignal = it->second)
+            inputSignal->setSubscribed(false);
         protocolHandler->unsubscribe({signalId});
+    }
 }
 
 void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
@@ -438,6 +448,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         inputSignal = hiddenSigIt->second;
 
     if (inputSignal &&
+        !isPlaceHolderSignal(inputSignal) &&
         inputSignal->hasDescriptors() &&
         inputSignal->getSignalDescriptor().getSampleType() != daq::SampleType::Struct)
     {
@@ -513,9 +524,11 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
         onDomainSignalInitCallback(signalId, domainInputSignal->getSignalId());
         publishSignalChanges(inputSignal, true, true);
     }
-    else if (available && !inputSignal)
+    else if (available && isPlaceHolderSignal(inputSignal))
     {
+        bool subscribed = inputSignal->getSubscribed();
         inputSignal = InputSignal(signalId, tableId, sInfo, false, domainInputSignal, logCallback);
+        inputSignal->setSubscribed(subscribed);
         availableSignals[signalId] = inputSignal;
         onAvailableSignalInitCb(signalId, sInfo);
         onDomainSignalInitCallback(signalId, domainInputSignal->getSignalId());
@@ -560,9 +573,11 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
         onHiddenStreamingSignalCb(timeSignalId, sInfo);
         onHiddenDeviceSignalInitCb(timeSignalId, sInfo);
     }
-    else if (available && !inputSignal)
+    else if (available && isPlaceHolderSignal(inputSignal))
     {
+        bool subscribed = inputSignal->getSubscribed();
         inputSignal = InputSignal(timeSignalId, tableId, sInfo, true, nullptr, logCallback);
+        inputSignal->setSubscribed(subscribed);
         availableSignals[timeSignalId] = inputSignal;
         // the time signal is published as available by server,
         // so do the initialization of its mirrored copy
@@ -603,14 +618,14 @@ std::vector<InputSignalBasePtr> StreamingClient::findDataSignalsByTableId(const 
     std::vector<InputSignalBasePtr> result;
     for (const auto& [_, inputSignal] : availableSignals)
     {
-        if (inputSignal && tableId == inputSignal->getTableId() && !inputSignal->isDomainSignal())
+        if (inputSignal && !isPlaceHolderSignal(inputSignal) && tableId == inputSignal->getTableId() && !inputSignal->isDomainSignal())
         {
             result.push_back(inputSignal);
         }
     }
     for (const auto& [_, inputSignal] : hiddenSignals)
     {
-        if (inputSignal && tableId == inputSignal->getTableId() && !inputSignal->isDomainSignal())
+        if (inputSignal && !isPlaceHolderSignal(inputSignal) && tableId == inputSignal->getTableId() && !inputSignal->isDomainSignal())
         {
             result.push_back(inputSignal);
         }
@@ -705,12 +720,35 @@ void StreamingClient::checkTmpSubscribedSignalsInit()
             if (status != std::future_status::ready)
             {
                 LOG_W("signal {} has incomplete descriptors", id);
+
+                // publish signal descriptor changes as event packet if signal is subscribed by streaming
+                if (auto availableSigIt = availableSignals.find(id); availableSigIt != availableSignals.end())
+                {
+                    auto inputSignal = availableSigIt->second;
+                    publishSignalChanges(inputSignal, true, true);
+                }
             }
         }
     }
 
     // unsubscribe previously subscribed signals
-    protocolHandler->unsubscribe(std::vector<std::string>(tmpSubscribedSignalIds.begin(), tmpSubscribedSignalIds.end()));
+    std::vector<std::string> signalIdsToUnsubscribe;
+    signalIdsToUnsubscribe.reserve(tmpSubscribedSignalIds.size());
+    std::copy_if(
+        tmpSubscribedSignalIds.begin(),
+        tmpSubscribedSignalIds.end(),
+        std::back_inserter(signalIdsToUnsubscribe),
+        [this](std::string signalId)
+        {
+            if (auto availableSigIt = availableSignals.find(signalId); availableSigIt != availableSignals.end())
+            {
+                if (auto inputSignal = availableSigIt->second; inputSignal && inputSignal->getSubscribed())
+                    return false;
+            }
+            return true;
+        }
+    );
+    protocolHandler->unsubscribe(signalIdsToUnsubscribe);
     tmpSubscribedSignalIds.clear();
 
     onSignalsInitDone();

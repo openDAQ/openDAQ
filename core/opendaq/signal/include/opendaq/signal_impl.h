@@ -31,6 +31,9 @@
 #include <opendaq/component_impl.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <utility>
+#include <opendaq/signal_exceptions.h>
+#include <opendaq/signal_errors.h>
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -179,6 +182,8 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , isPublic(true)
     , keepLastValue(true)
 {
+    if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
+        throw InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
     setKeepLastPacket();
 }
 
@@ -260,8 +265,12 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
     DataDescriptorPtr domainDataDescriptor;
     if (domainSignalObj.assigned())
         domainDataDescriptor = domainSignalObj.getDescriptor();
+    if (!domainDataDescriptor.assigned())
+        domainDataDescriptor = NullDataDescriptor();
 
-    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+    DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+    if (!dataDescriptorObj.assigned())
+        dataDescriptorObj = NullDataDescriptor();
 
     EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
     return packet;
@@ -360,14 +369,19 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
 {
+    const auto descriptorPtr = DataDescriptorPtr::Borrow(descriptor);
+    if (descriptorPtr.assigned() && descriptorPtr.getSampleType() == SampleType::Null)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
+                                   "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
     bool success;
 
     {
         std::scoped_lock lock(this->sync);
 
-        dataDescriptor = descriptor;
-        const auto packet = DataDescriptorChangedEventPacket(descriptor, nullptr);
+        dataDescriptor = descriptorPtr;
+        const auto packet = DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(), nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
         success = sendPacketInternal(packet, true);
@@ -401,7 +415,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 
     if (!valueSignalsOfDomainSignal.empty())
     {
-        const EventPacketPtr domainChangedPacket = DataDescriptorChangedEventPacket(nullptr, descriptor);
+        const EventPacketPtr domainChangedPacket =
+            DataDescriptorChangedEventPacket(nullptr, dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor());
         for (const auto& sig : valueSignalsOfDomainSignal)
         {
             const auto err = sig->sendPacket(domainChangedPacket);

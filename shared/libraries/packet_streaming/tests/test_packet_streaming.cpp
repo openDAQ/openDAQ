@@ -39,7 +39,7 @@ protected:
     }
 };
 
-TEST_F(PacketStreamingTest, EventPacket)
+TEST_F(PacketStreamingTest, DataDescChangedEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
@@ -58,11 +58,25 @@ TEST_F(PacketStreamingTest, EventPacket)
     ASSERT_EQ(serverEventPacket, clientEventPacket);
 
     ASSERT_TRUE(client.areReferencesCleared());
+}
 
-    EventPacketPtr descriptorEventPacket;
-    ASSERT_NO_THROW(descriptorEventPacket = client.getDataDescriptorChangedEventPacket(1));
+TEST_F(PacketStreamingTest, DataDescNullEventPacket)
+{
+    const auto serverEventPacket = DataDescriptorChangedEventPacket(NullDataDescriptor(), NullDataDescriptor());
 
-    ASSERT_EQ(descriptorEventPacket, clientEventPacket);
+    server.addDaqPacket(1, serverEventPacket);
+    const auto serverPacketBuffer = server.getNextPacketBuffer();
+
+    transmission.sendPacketBuffer(serverPacketBuffer);
+    const auto clientPacketBuffer = transmission.recvPacketBuffer();
+
+    client.addPacketBuffer(clientPacketBuffer);
+    auto [signalId, clientEventPacket] = client.getNextDaqPacket();
+
+    ASSERT_EQ(signalId, 1u);
+    ASSERT_EQ(serverEventPacket, clientEventPacket);
+
+    ASSERT_TRUE(client.areReferencesCleared());
 }
 
 TEST_F(PacketStreamingTest, DataPacket)

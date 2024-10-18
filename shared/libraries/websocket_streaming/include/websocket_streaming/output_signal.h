@@ -41,7 +41,9 @@ public:
                      daq::streaming_protocol::LogCallback logCb);
     virtual ~OutputSignalBase();
 
-    virtual void writeDaqPacket(const PacketPtr& packet) = 0;
+    virtual void writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor) = 0;
+    virtual void writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor) = 0;
+    virtual void writeDaqDataPacket(const DataPacketPtr& packet) = 0;
     virtual void setSubscribed(bool subscribed) = 0;
     virtual bool isDataSignal() = 0;
 
@@ -84,7 +86,9 @@ class OutputNullSignal : public OutputSignalBase
 public:
     OutputNullSignal(const SignalPtr& signal, daq::streaming_protocol::LogCallback logCb);
 
-    void writeDaqPacket(const PacketPtr& packet) override;
+    void writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor) override;
+    void writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor) override;
+    void writeDaqDataPacket(const DataPacketPtr& packet) override;
     void setSubscribed(bool subscribed) override;
     bool isDataSignal() override;
 
@@ -100,7 +104,9 @@ public:
                           OutputDomainSignalBasePtr outputDomainSignal,
                           daq::streaming_protocol::LogCallback logCb);
 
-    void writeDaqPacket(const PacketPtr& packet) override;
+    void writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor) override;
+    void writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor) override;
+    void writeDaqDataPacket(const DataPacketPtr& packet) override;
     virtual void setSubscribed(bool subscribed) override;
     bool isDataSignal() override;
 
@@ -111,9 +117,6 @@ protected:
     OutputDomainSignalBasePtr outputDomainSignal;
 
 private:
-    void writeEventPacket(const EventPacketPtr& packet);
-    void writeDescriptorChangedPacket(const EventPacketPtr& packet);
-
     daq::streaming_protocol::BaseValueSignalPtr valueStream;
 };
 
@@ -127,7 +130,9 @@ public:
                        const SignalPtr& signal,
                        daq::streaming_protocol::LogCallback logCb);
 
-    void writeDaqPacket(const PacketPtr& packet) override;
+    void writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor) override;
+    void writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor) override;
+    void writeDaqDataPacket(const DataPacketPtr& packet) override;
     void setSubscribed(bool subscribed) override;
     bool isDataSignal() override;
 

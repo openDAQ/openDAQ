@@ -1,4 +1,4 @@
-#include "opcuatms_client/objects/tms_client_server_capability_impl.h"
+#include <opcuatms_client/objects/tms_client_server_capability_impl.h>
 #include <opcuatms_client/objects/tms_client_property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS

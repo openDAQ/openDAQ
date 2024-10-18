@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include "coreobjects/property_impl.h"
-#include "opcuatms/opcuatms.h"
-#include "opcuatms_client/objects/tms_client_object_impl.h"
+#include <coreobjects/property_impl.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms_client/objects/tms_client_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

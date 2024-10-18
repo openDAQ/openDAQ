@@ -1,8 +1,8 @@
 #include <coretypes/validation.h>
 #include <opendaq/custom_log.h>
-#include "opcuatms_client/objects/tms_client_function_factory.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <opcuatms_client/objects/tms_client_function_factory.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
     using namespace opcua;

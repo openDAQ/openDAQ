@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include "tms_object_test.h"
+#include <tms_object_test.h>
 #include <opcuatms_client/objects/tms_client_context.h>
-#include "opcuatms_server/tms_server_context.h"
+#include <opcuatms_server/tms_server_context.h>
 #include <opendaq/logger_sink_ptr.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 

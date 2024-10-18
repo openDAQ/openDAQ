@@ -1,12 +1,12 @@
-#include "opcuatms_client/objects/tms_client_property_impl.h"
+#include <opcuatms_client/objects/tms_client_property_impl.h>
 #include <opcuatms/core_types_utils.h>
-#include "coreobjects/coercer_factory.h"
-#include "coreobjects/eval_value_factory.h"
-#include "coreobjects/validator_factory.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/selection_converter.h"
-#include "open62541/daqbt_nodeids.h"
-#include "opendaq/custom_log.h"
+#include <coreobjects/coercer_factory.h>
+#include <coreobjects/eval_value_factory.h>
+#include <coreobjects/validator_factory.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/selection_converter.h>
+#include <open62541/daqbt_nodeids.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

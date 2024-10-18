@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include "opcuatms_client/objects/tms_client_component_impl.h"
-#include "opendaq/input_port_impl.h"
+#include <opcuatms_client/objects/tms_client_component_impl.h>
+#include <opendaq/input_port_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

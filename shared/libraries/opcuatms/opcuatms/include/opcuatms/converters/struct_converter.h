@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include "opcuatms/opcuatms.h"
-#include "opcuashared/opcuavariant.h"
-#include "opcuashared/opcuaobject.h"
-#include "opendaq/context_ptr.h"
+#include <opcuatms/opcuatms.h>
+#include <opcuashared/opcuavariant.h>
+#include <opcuashared/opcuaobject.h>
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

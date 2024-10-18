@@ -1,12 +1,12 @@
 #include <opcuatms/core_types_utils.h>
 
-#include "opcuashared/opcuadatatypearraylist.h"
-#include "opcuatms/extension_object.h"
-#include "open62541/daqbt_nodeids.h"
-#include "open62541/nodeids.h"
-#include "open62541/types_daqesp_generated.h"
-#include "open62541/types_daqhbk_generated.h"
-#include "open62541/types_di_generated.h"
+#include <opcuashared/opcuadatatypearraylist.h>
+#include <opcuatms/extension_object.h>
+#include <open62541/daqbt_nodeids.h>
+#include <open62541/nodeids.h>
+#include <open62541/types_daqesp_generated.h>
+#include <open62541/types_daqhbk_generated.h>
+#include <open62541/types_di_generated.h>
 
 using namespace daq::opcua;
 using namespace daq;

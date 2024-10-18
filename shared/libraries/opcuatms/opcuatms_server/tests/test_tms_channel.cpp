@@ -2,13 +2,13 @@
 #include <opcuatms/type_mappings.h>
 #include <opendaq/instance_factory.h>
 #include <coreobjects/unit_factory.h>
-#include "coreobjects/property_object_factory.h"
-#include "gtest/gtest.h"
-#include "opendaq/mock/mock_channel_factory.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_server/objects/tms_server_channel.h"
+#include <coreobjects/property_object_factory.h>
+#include <gtest/gtest.h>
+#include <opendaq/mock/mock_channel_factory.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_server/objects/tms_server_channel.h>
 #include "tms_server_test.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <open62541/daqbsp_nodeids.h>
 
 using namespace daq;
 using namespace opcua::tms;

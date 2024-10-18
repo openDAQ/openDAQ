@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include "opcuashared/opcuavariant.h"
-#include "opcuatms/opcuatms.h"
-#include "opcuatms/extension_object.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/struct_converter.h"
+#include <opcuashared/opcuavariant.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms/extension_object.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/struct_converter.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

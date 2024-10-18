@@ -2,11 +2,11 @@
 #include <string>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
-#include "opcuatms_server/objects/tms_server_device.h"
-#include "opcuatms/core_types_utils.h"
-#include "opcuatms/type_mappings.h"
+#include <opcuatms_server/objects/tms_server_device.h>
+#include <opcuatms/core_types_utils.h>
+#include <opcuatms/type_mappings.h>
 #include <open62541/daqdevice_nodeids.h>
-#include "opcuatms/converters/struct_converter.h"
+#include <opcuatms/converters/struct_converter.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/device_private.h>
 #include <opendaq/search_filter_factory.h>
@@ -33,7 +33,7 @@ namespace detail
 
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
         {"AssetId", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getAssetId().getCharPtr()}; }},
-        {"ComponentName", [](const DeviceInfoPtr& info){ return createLocalizedTextVariant(info.getName().getCharPtr()); }},
+        {"ComponentName", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getName().getCharPtr()); }},
         {"DeviceClass", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceClass().getCharPtr()}; }},
         {"DeviceManual", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceManual().getCharPtr()}; }},
         {"DeviceRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceRevision().getCharPtr()}; }},
@@ -89,7 +89,7 @@ bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)
 
 void TmsServerDevice::bindCallbacks()
 {
-    this->addReadCallback("Domain",[this]()
+    this->addReadCallback("Domain", [this]
         {
 
             const auto deviceDomain = object.getDomain();
@@ -479,18 +479,26 @@ void TmsServerDevice::addChildNodes()
     auto syncComponentNode = std::make_unique<TmsServerSyncComponent>(syncComponent, server, daqContext, tmsContext);
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
-    
+
+    // Replacing the display name `userName` with `UserName`
+    // ignoring standard way of registering property "userName"
+    tmsPropertyObject->ignoredProps.insert("userName");
+    // Attach property `userName` to the node "UserName"
     auto usernameNodeId = getChildNodeId("UserName");
     assert(!usernameNodeId.isNull());
     auto username = object.getProperty("userName");
-    auto usernameNode = std::make_unique<TmsServerProperty>(username, server, daqContext, tmsContext);
+    auto usernameNode = std::make_shared<TmsServerProperty>(username, server, daqContext, tmsContext, "UserName");
     usernameNode->registerToExistingOpcUaNode(usernameNodeId);
+    tmsPropertyObject->addProperty(usernameNode);
 
+    // Do the same replacement for `location` as for `userName`
+    tmsPropertyObject->ignoredProps.insert("location");
     auto locationNodeId = getChildNodeId("Location");
     assert(!locationNodeId.isNull());
     auto location = object.getProperty("location");
-    auto locationNode = std::make_unique<TmsServerProperty>(location, server, daqContext, tmsContext);
+    auto locationNode = std::make_shared<TmsServerProperty>(location, server, daqContext, tmsContext, "Location");
     locationNode->registerToExistingOpcUaNode(locationNodeId);
+    tmsPropertyObject->addProperty(locationNode);
 
     // TODO add "Srv" as a default node
 

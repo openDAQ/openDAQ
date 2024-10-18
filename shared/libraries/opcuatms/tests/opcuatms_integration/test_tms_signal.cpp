@@ -7,12 +7,12 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_ptr.h>
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms/exceptions.h"
-#include "opcuatms_client/objects/tms_client_signal_factory.h"
-#include "opcuatms_server/objects/tms_server_signal.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms/exceptions.h>
+#include <opcuatms_client/objects/tms_client_signal_factory.h>
+#include <opcuatms_server/objects/tms_server_signal.h>
+#include <open62541/daqbsp_nodeids.h>
 #include "tms_object_integration_test.h"
 
 using namespace daq;

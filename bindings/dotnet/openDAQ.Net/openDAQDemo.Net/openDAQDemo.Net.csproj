@@ -18,7 +18,7 @@
 
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
-    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.4.0</OPENDAQ_PACKAGE_VERSION>
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">0.0.0</OPENDAQ_PACKAGE_VERSION>
     <Title>openDAQ SDK .Net-Bindings Demo</Title>
     <Authors>openDAQ</Authors>
     <Description>.Net bindings Demo to the openDAQ SDK (open data acquisition software development kit)</Description>

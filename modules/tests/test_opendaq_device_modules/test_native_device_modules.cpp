@@ -1,7 +1,6 @@
 #include <opendaq/component_exceptions.h>
 #include <opendaq/exceptions.h>
 #include "test_helpers/test_helpers.h"
-#include <fstream>
 #include <coreobjects/authentication_provider_factory.h>
 #include "opendaq/mock/mock_device_module.h"
 #include <opendaq/device_info_internal_ptr.h>
@@ -1382,24 +1381,9 @@ TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
     ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(),  "custom");
 }
 
-static void CreateConfigFile(const std::string& data)
-{
-    std::ofstream file;
-    file.open("opendaq-config.json");
-    if (!file.is_open()) 
-        throw std::runtime_error("can not open file for writing");
-
-    file << data;
-    file.close();
-}
-
-static void RemoveConfigFile()
-{
-    remove("opendaq-config.json");
-}
-
 TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
 {
+    std::string filename = "opendaq-config.json";
     std::string options = R"(
     {
     "Modules": {
@@ -1410,25 +1394,26 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
             "ConnectionTimeout": 300,
             "StreamingInitTimeout": 400,
             "ReconnectionPeriod": 500,
-            "ConfigProtocolRequestTimeout": 6000,
+            "ProtocolVersion": 6,
+            "ConfigProtocolRequestTimeout": 7000,
             "RestoreClientConfigOnReconnect": true
             }
         }
     }
     )";
     
-    CreateConfigFile(options);
-    Finally final([] { RemoveConfigFile(); });
+    auto finally = test_helpers::CreateConfigFile(filename, options);
 
     InstancePtr instance;
-    ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
+    ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(filename)).build());
 
     auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
-    ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 6000);
+    ASSERT_EQ(deviceConfig.getPropertyValue("ProtocolVersion"), 6);
+    ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 7000);
     ASSERT_EQ(deviceConfig.getPropertyValue("RestoreClientConfigOnReconnect"), True);
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
-    PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
+    PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
     ASSERT_EQ(transportLayerConfig.getPropertyValue("MonitoringEnabled"), True);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("HeartbeatPeriod"), 100);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("InactivityTimeout"), 200);
@@ -1437,6 +1422,12 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 
     auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+
+    // the next three is only for native config device and should not be included for streaming pseudo-device
+    ASSERT_FALSE(pseudoDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_FALSE(pseudoDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_FALSE(pseudoDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+
     ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
     transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
 

@@ -218,7 +218,7 @@ than "min read count" samples in the queue and there's an event after those samp
 - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
 ## Required integration changes
 - Each device now has a sync component, which is visible in default components as `Synchronization`.
-- To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
+- To set Mode selection values or Status.State, developer can set custom values for property ModeOptions or Status.StateOptions.
 - Sync component is replacing dummy property object in the ref device.
 ```
 + [interface] ISyncComponent : public IComponent

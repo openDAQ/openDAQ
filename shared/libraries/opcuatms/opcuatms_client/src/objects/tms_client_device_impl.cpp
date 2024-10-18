@@ -262,17 +262,15 @@ void TmsClientDeviceImpl::findAndCreateSyncComponent()
 
 void TmsClientDeviceImpl::findAndCreateProporties()
 {
-    this->removeProperty(String("userName"));
-    auto username = getNodeId("UserName");
-    addProperty(TmsClientProperty(context, 
-                                  clientContext, 
-                                  username));
-
-    this->removeProperty(String("location"));
-    auto location = getNodeId("Location");
-    addProperty(TmsClientProperty(context, 
-                                  clientContext, 
-                                  location));
+    if (auto it = this->introspectionVariableIdMap.find("UserName"); it != this->introspectionVariableIdMap.end())
+    {
+        introspectionVariableIdMap.emplace("userName", it->second);
+    }
+    
+    if (auto it = this->introspectionVariableIdMap.find("Location"); it != this->introspectionVariableIdMap.end())
+    {
+        introspectionVariableIdMap.emplace("location", it->second);
+    }
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()

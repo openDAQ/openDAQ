@@ -1091,3 +1091,47 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoGatewayDevice)
     ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
     ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
 }
+
+TEST_F(OpcuaDeviceModulesTest, GetSetDeviceUserNameLocation)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverDevice = server.getDevices()[0];
+    auto clientDevice = client.getDevices()[0].getDevices()[0];
+
+    // set from server
+    {
+        serverDevice.setPropertyValue("userName", "testUser");
+        serverDevice.setPropertyValue("location", "testLocation");
+
+        // old style
+        ASSERT_EQ(clientDevice.getPropertyValue("userName"), "testUser");
+        ASSERT_EQ(clientDevice.getPropertyValue("location"), "testLocation");
+        // new style
+        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "testUser");
+        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "testLocation");
+    }
+
+    // set from client old style
+    {
+        clientDevice.setPropertyValue("userName", "newUser");
+        clientDevice.setPropertyValue("location", "newLocation");
+
+        ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser");
+        ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation");
+        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser");
+        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation");
+    }
+
+    // set from client new style
+    {
+        clientDevice.setPropertyValue("UserName", "newUser2");
+        clientDevice.setPropertyValue("Location", "newLocation2");
+
+        ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser2");
+        ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation2");
+        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser2");
+        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation2");
+    }
+}

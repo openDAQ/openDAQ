@@ -1231,24 +1231,7 @@ namespace RTGen.CSharp.Generators
 
             if (_useArgumentPointers && !argument.IsOutParam) //special handling for not 'out' arguments
             {
-                if (!isValueType)
-                {
-                    if (!isVoidArgumentType)
-                    {
-                        //[2024-09-04 commented out] - BaseObject has an implicit operator IntPtr(BaseObject baseObject)
-
-                        //use native pointer getter for reference type variable
-                        //if (hasDefaultValue)
-                        //{
-                        //    argumentName += "?.NativePointer ?? IntPtr.Zero";
-                        //}
-                        //else
-                        //{
-                        //    argumentName += ".NativePointer";
-                        //}
-                    }
-                }
-                else if (IsRefArg(argument, useArgumentPointers: true))
+                if (isValueType && IsRefArg(argument, useArgumentPointers: true))
                 {
                     //decorate value type variable
                     argumentName = "ref " + argumentName;
@@ -2980,6 +2963,12 @@ namespace RTGen.CSharp.Generators
                     continue;
 
                 castOperators.Append(RenderFileTemplate(getter, templatePath, GetMethodVariable));
+            }
+
+            if (rtClass.Type.Name.Equals("IRatio"))
+            {
+                //get the operators for the Ratio class
+                castOperators.Append(File.ReadAllText(Utility.GetTemplate($"{Options.Language}.{rtClass.Type.Name.ToLower()}.operators.template")));
             }
 
             if (castOperators.Length <= 0)

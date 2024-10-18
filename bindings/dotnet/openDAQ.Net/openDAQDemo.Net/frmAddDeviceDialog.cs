@@ -297,13 +297,6 @@ public partial class frmAddDeviceDialog : Form
 
         try
         {
-            //HACK: just for now, as HBK devices cannot handle port numbers at the moment
-            if (childDevice?.Name.StartsWith("HBK") ?? false)
-            {
-                //remove port number for now
-                connectionString = string.Join(':', connectionString.Split(':'), 0, 2) + "/";
-            }
-
             //connect the device
             Device newDevice = selectedParentDevice.AddDevice(connectionString);
 

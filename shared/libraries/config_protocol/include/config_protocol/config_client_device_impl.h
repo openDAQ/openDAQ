@@ -95,8 +95,6 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
     const ComponentHolderPtr fbHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddFunctionBlock", params, this->functionBlocks);
 
-    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
-
     FunctionBlockPtr fb = fbHolder.getComponent();
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
@@ -117,8 +115,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const Fun
     auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlock.getLocalId()}});
     this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveFunctionBlock", params);
 
-    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
-
     if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
     {
         this->removeNestedFunctionBlock(functionBlock);
@@ -135,24 +131,60 @@ uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
 template <class TDeviceBase>
 ListPtr<IDeviceInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDevices()
 {
-    return List<IDeviceInfo>();
+    if (!(this->clientComm->getProtocolVersion() >= 4))
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDevices");
 }
 
 template <class TDeviceBase>
 DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDeviceTypes()
 {
-    return Dict<IString, IDeviceType>();
+    if (!(this->clientComm->getProtocolVersion() >= 4))
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableDeviceTypes");
 }
 
 template <class TDeviceBase>
-DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    throw NotImplementedException{};
+    if (!(this->clientComm->getProtocolVersion() >= 4))
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    auto params = Dict<IString, IBaseObject>({{"ConnectionString", connectionString}, {"Config", config}});
+    const ComponentHolderPtr devHolder = this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddDevice", params, this->devices);
+
+    DevicePtr dev = devHolder.getComponent();
+    if (!this->devices.hasItem(dev.getLocalId()))
+    {
+        this->clientComm->connectDomainSignals(dev);
+        this->devices.addItem(dev);
+        this->clientComm->connectInputPorts(dev);
+
+        return dev;
+    }
+    return this->devices.getItem(dev.getLocalId());
 }
 
 template <class TDeviceBase>
-void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& /*device*/)
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
+    if (!(this->clientComm->getProtocolVersion() >= 4))
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    if (!device.assigned())
+        throw InvalidParameterException();
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", device.getLocalId()}});
+    this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveDevice", params);
+
+    if (this->devices.hasItem(device.getLocalId()))
+    {
+        this->devices.removeItem(device);
+    }
 }
 
 template <class TDeviceBase>
@@ -333,6 +365,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     {
         this->clientComm->connectDomainSignals(comp);
         this->addExistingComponent(comp);
+        this->clientComm->connectInputPorts(comp);
     }
 }
 

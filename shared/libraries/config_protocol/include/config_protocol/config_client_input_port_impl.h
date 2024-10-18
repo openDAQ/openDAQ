@@ -40,6 +40,8 @@ public:
 
     ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
 
+    ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -135,6 +137,40 @@ inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
         return Super::disconnect();
     return Super::connect(signal);
 }
+
+inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+
+    return daqTry(
+        [this, &signal, &accepts]
+        {
+            if (!(clientComm->getProtocolVersion() >= 4))
+                return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                     "Operation not supported by the protocol version currently in use");
+
+            const auto signalPtr = SignalPtr::Borrow(signal);
+            if (!isSignalFromTheSameComponentTree(signalPtr))
+                return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");
+
+            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+            {
+                StringPtr signalRemoteGlobalId;
+                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+
+                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
+
+                BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                *accepts = acceptsPtr.getValue(False);
+                return OPENDAQ_SUCCESS;
+            }
+            *accepts = False;
+            return OPENDAQ_SUCCESS;
+        });
+}
+
 
 inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {

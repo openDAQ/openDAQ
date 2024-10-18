@@ -101,7 +101,7 @@ public:
         const auto func = Function([](Int a, Int b) { return a + b; });
 
         const auto funcProp =
-            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            FunctionPropertyBuilder("SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt)), true))
                 .setReadOnly(false)
                 .build();
 
@@ -239,7 +239,7 @@ TEST_F(ConfigProtocolAccessControlTest, CallProperty)
         const auto func = Function([](Int a, Int b) { return a + b; });
 
         const auto funcProp = FunctionPropertyBuilder(
-                                  "SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+                                  "SumProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt)), true))
                                   .setReadOnly(false)
                                   .build();
 
@@ -263,7 +263,7 @@ TEST_F(ConfigProtocolAccessControlTest, BeginEndUpdate)
 
     setupServerAndClient(device, UserRegular);
 
-    clientDevice.beginUpdate();
+    ASSERT_THROW(clientDevice.beginUpdate(), AccessDeniedException);
     ASSERT_THROW(clientDevice.endUpdate(), AccessDeniedException);
 
     setupServerAndClient(device, UserAdmin);

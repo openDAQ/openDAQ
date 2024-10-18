@@ -12,7 +12,8 @@ class Dialog(tk.Toplevel):
         self.initial_update_func = None
 
         self.configure(padx=10, pady=5)
-        self.wm_attributes("-topmost", True)
+        self.attributes("-topmost", True)
+        self.transient(parent)
 
     def center_window(self):
         main_window = self.parent.winfo_toplevel()

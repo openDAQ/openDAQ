@@ -27,11 +27,11 @@ class PropertiesView(tk.Frame):
         tree.pack(fill="both", expand=True)
 
         # define headings
-        tree.heading('#0', text='Property name')
-        tree.heading('value', text='Value')
+        tree.heading('#0', anchor=tk.W, text='Property name')
+        tree.heading('value', anchor=tk.W, text='Value')
         # layout
-        tree.column('#0', anchor=tk.CENTER)
-        tree.column('#1', anchor=tk.CENTER)
+        tree.column('#0', anchor=tk.W)
+        tree.column('#1', anchor=tk.W)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)
@@ -53,8 +53,9 @@ class PropertiesView(tk.Frame):
         for key, value in node.as_dictionary.items():
             iid = key if parent_iid is None else parent_iid + "." + key
             self.nodes_by_iids[iid] = node
-            self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=key, values=(value,))
-                    
+            self.tree.insert('' if not parent_iid else parent_iid,
+                             tk.END, iid=iid, text=key, values=(value,))
+
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:

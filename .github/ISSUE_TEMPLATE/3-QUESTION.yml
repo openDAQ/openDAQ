@@ -1,0 +1,11 @@
+name: ❓ Question
+description: Ask a question
+title: "[QUESTION] <title here>"
+labels: ["question"]
+body:
+- type: textarea
+  attributes:
+    label: Question
+    description: What is your question regarding the openDAQ SDK?
+  validations:
+    required: true

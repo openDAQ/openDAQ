@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <!-- using function pointers (C# 9) and file scoped namespaces (C# 10) so netstandard2.0 not possible (C# 7.3) -->
     <!--<TargetFramework>netstandard2.0</TargetFramework>-->
     <TargetFrameworks>net6.0</TargetFrameworks>
@@ -14,7 +15,7 @@
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
     <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">3.4.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>17</_BuildNumber>
+    <_BuildNumber>18</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -25,7 +26,7 @@
     <!--<Version>2.0.0.12</Version>-->
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->
-    <VersionSuffix Condition="'$(Configuration)' != 'Release_Build'">beta-VS</VersionSuffix>
+    <VersionSuffix Condition="'$(Configuration)' != 'Release'">beta-VS</VersionSuffix>
     <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>

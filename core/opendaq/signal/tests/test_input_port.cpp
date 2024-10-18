@@ -59,8 +59,6 @@ TEST_F(InputPortTest, ConnectAndDisconnect)
     // connect() should work (even if connected() hook returns an error)
     // check object graph for proper bookkeeping
     EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
-    EXPECT_CALL(notifications.mock(), acceptsSignal(inputPort.getObject(), &signal.mock(), _))
-        .WillOnce(DoAll(SetArgPointee<2>(True), Return(OPENDAQ_SUCCESS)));
     EXPECT_CALL(signal.mock(), listenerConnected).Times(1);
     EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
     EXPECT_NO_THROW(inputPort.connect(signal));
@@ -121,8 +119,6 @@ TEST_F(InputPortTest, StandardProperties)
 TEST_F(InputPortTest, SerializeAndDeserialize)
 {
     EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
-    EXPECT_CALL(notifications.mock(), acceptsSignal(inputPort.getObject(), &signal.mock(), _))
-        .WillOnce(DoAll(SetArgPointee<2>(True), Return(OPENDAQ_SUCCESS)));
     EXPECT_CALL(signal.mock(), listenerConnected).Times(2);
     EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
     EXPECT_CALL(signal.mock(), getGlobalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig"));

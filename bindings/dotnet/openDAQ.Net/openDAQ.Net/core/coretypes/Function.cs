@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:22.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ public class Function : BaseObject
         unsafe //use native function pointer
         {
             //call native function
-            ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params.NativePointer, out resultPtr);
+            ErrorCode errorCode = (ErrorCode)_rawFunction.Call(base.NativePointer, @params, out resultPtr);
 
             if (Result.Failed(errorCode))
             {
@@ -112,7 +112,7 @@ public static partial class CoreTypesFactory
     [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern ErrorCode createFunction(out IntPtr obj, FuncCall value);
 
-    public static ErrorCode CreateFunction(out Function obj, FuncCall value)
+    public static ErrorCode CreateFunction(out Function obj, FuncCallDelegate value)
     {
         //initialize output argument
         obj = default;
@@ -120,8 +120,11 @@ public static partial class CoreTypesFactory
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateFuncCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createFunction(out objPtr, value);
+        ErrorCode errorCode = createFunction(out objPtr, wrappedValue);
 
         if (Result.Succeeded(errorCode))
         {
@@ -132,13 +135,16 @@ public static partial class CoreTypesFactory
         return errorCode;
     }
 
-    public static Function CreateFunction(FuncCall value)
+    public static Function CreateFunction(FuncCallDelegate value)
     {
         //native output argument
         IntPtr objPtr;
 
+        //wrap SDK delegate around .NET delegate
+        var wrappedValue = CreateFuncCallWrapper(value);
+
         //call native function
-        ErrorCode errorCode = createFunction(out objPtr, value);
+        ErrorCode errorCode = createFunction(out objPtr, wrappedValue);
 
         if (Result.Failed(errorCode))
         {

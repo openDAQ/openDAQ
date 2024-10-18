@@ -151,7 +151,7 @@ protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
 
-    std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
+    std::vector<std::pair<std::string, SerializedObjectPtr>> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
@@ -945,17 +945,18 @@ int ComponentImpl<Intf, Intfs...>::getSerializeFlags()
 }
 
 template <class Intf, class... Intfs>
-std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs...>::getSerializedItems(const SerializedObjectPtr& object)
+std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Intfs...>::getSerializedItems(const SerializedObjectPtr& object)
 {
-    std::unordered_map<std::string, SerializedObjectPtr> serializedItems;
+    std::vector<std::pair<std::string, SerializedObjectPtr>> serializedItems;
     if (object.hasKey("items"))
     {
         const auto itemsObject = object.readSerializedObject("items");
         const auto itemsObjectKeys = itemsObject.getKeys();
+        serializedItems.reserve(itemsObjectKeys.getCount());
         for (const auto& key : itemsObjectKeys)
         {
             auto itemObject = itemsObject.readSerializedObject(key);
-            serializedItems.insert(std::pair(key.toStdString(), std::move(itemObject)));
+            serializedItems.push_back(std::pair(key.toStdString(), std::move(itemObject)));
         }
     }
 

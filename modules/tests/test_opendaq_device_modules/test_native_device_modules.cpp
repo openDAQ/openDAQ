@@ -126,7 +126,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 3);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 4);
 
     client->releaseRef();
     server->releaseRef();
@@ -1936,6 +1936,80 @@ TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
 
     // Attempt to establish a streaming connection which is not limited
     ASSERT_NO_THROW(client1.addDevice("daq.ns://127.0.0.1"));
+}
+
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
+{
+    StringPtr config;
+    auto server = CreateServerInstance();
+    
+    {
+        auto client = CreateClientInstance();
+        auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
+        clientFb.addFunctionBlock("RefFBModuleTrigger");
+
+        config = client.saveConfiguration();
+    }
+    
+    auto restoredClient = Instance();
+    restoredClient.loadConfiguration(config);
+    auto restoredFb = restoredClient.getFunctionBlocks();
+    ASSERT_EQ(restoredFb.getCount(), 1u);
+    ASSERT_EQ(restoredFb[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    auto nestedFb = restoredFb[0].getFunctionBlocks();
+    ASSERT_EQ(nestedFb.getCount(), 1u);
+    ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
+}
+
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration2)
+{
+    StringPtr config;
+    auto server = CreateServerInstance();
+    
+    {
+        auto client = CreateClientInstance();
+        auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
+        clientFb.addFunctionBlock("RefFBModuleTrigger");
+
+        config = client.saveConfiguration();
+    }
+    
+    auto restoredClient = Instance();
+    restoredClient.addFunctionBlock("RefFBModuleStatistics");
+
+    restoredClient.loadConfiguration(config);
+    auto restoredFb = restoredClient.getFunctionBlocks();
+    ASSERT_EQ(restoredFb.getCount(), 1u);
+    ASSERT_EQ(restoredFb[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    auto nestedFb = restoredFb[0].getFunctionBlocks();
+    ASSERT_EQ(nestedFb.getCount(), 1u);
+    ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
+}
+
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration3)
+{
+    StringPtr config;
+    auto server = CreateServerInstance();
+    
+    {
+        auto client = CreateClientInstance();
+        auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
+        clientFb.addFunctionBlock("RefFBModuleTrigger");
+
+        config = client.saveConfiguration();
+    }
+    
+    auto restoredClient = Instance();
+    auto fb = restoredClient.addFunctionBlock("RefFBModuleStatistics");
+    fb.addFunctionBlock("RefFBModuleTrigger");
+
+    restoredClient.loadConfiguration(config);
+    auto restoredFb = restoredClient.getFunctionBlocks();
+    ASSERT_EQ(restoredFb.getCount(), 1u);
+    ASSERT_EQ(restoredFb[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    auto nestedFb = restoredFb[0].getFunctionBlocks();
+    ASSERT_EQ(nestedFb.getCount(), 1u);
+    ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
 }
 
 using NativeC2DStreamingTest = testing::Test;

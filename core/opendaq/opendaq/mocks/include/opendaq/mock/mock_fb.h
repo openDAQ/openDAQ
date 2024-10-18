@@ -26,11 +26,17 @@ public:
                                    const daq::StringPtr& localId,
                                    const daq::PropertyObjectPtr& config);
 
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& config) override;
+
 protected:
     void createFunctionBlocks();
     void createSignals();
     void createInputPorts();
     void createTestConfigProperties(const daq::PropertyObjectPtr& config);
+
+private:
+    daq::SizeT nesteadFbCount;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

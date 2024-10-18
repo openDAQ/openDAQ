@@ -23,6 +23,8 @@ using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
 
+using openDAQDemoNet.Helpers;
+
 using Component = Daq.Core.OpenDAQ.Component;
 using GlblRes = global::openDAQDemoNet.Properties.Resources;
 
@@ -50,8 +52,8 @@ public partial class frmMain : Form
     private const AnchorStyles ANCHOR_L         = AnchorStyles.Left;
     private const AnchorStyles ANCHOR_LR        = AnchorStyles.Left | AnchorStyles.Right;
 
-    private readonly BindingList<PropertyItem>  _propertyItems  = new();
-    private readonly BindingList<AttributeItem> _attributeItems = new();
+    private readonly BindingList<PropertyItem>  _propertyItems  = [];
+    private readonly BindingList<AttributeItem> _attributeItems = [];
     private Instance? _instance;
 
     private int _tableLayoutRowHeight = -1;
@@ -88,8 +90,8 @@ public partial class frmMain : Form
         this.treeComponents.ImageList     = this.imglTreeImages;
         this.treeComponents.Nodes.Clear();
 
-        InitializeDataGridView(this.gridProperties);
-        InitializeDataGridView(this.gridAttributes);
+        GuiHelper.InitializeDataGridView(this.gridProperties);
+        GuiHelper.InitializeDataGridView(this.gridAttributes);
         InitializeInputPortsView();
         InitializeOutputSignalsView();
 
@@ -113,8 +115,8 @@ public partial class frmMain : Form
     {
         _outputValueTimer.Stop();
 
-        Clear(this.tableInputPorts);
-        Clear(this.tableOutputSignals);
+        GuiHelper.Clear(this.tableInputPorts);
+        GuiHelper.Clear(this.tableOutputSignals);
 
         _propertyItems.Clear();
         _attributeItems.Clear();
@@ -126,20 +128,21 @@ public partial class frmMain : Form
 
     private void frmMain_Shown(object sender, EventArgs e)
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
         this.Update();
 
         //binding data late to not to "trash" GUI display beforehand
         this.gridProperties.DataSource = _propertyItems;
-        this.gridProperties.Columns[nameof(PropertyItem.LockedImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         this.gridProperties.Refresh();
         this.gridAttributes.DataSource = _attributeItems;
-        this.gridAttributes.Columns[nameof(PropertyItem.LockedImage)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         this.gridAttributes.Refresh();
+
+        GuiHelper.Update(this.gridProperties);
+        GuiHelper.Update(this.gridAttributes);
 
         UpdateTree();
 
-        ResetWaitCursor();
+        GuiHelper.ResetWaitCursor(this);
 
         this.treeComponents.Select();
     }
@@ -223,17 +226,17 @@ public partial class frmMain : Form
         if (_instance == null)
             return;
 
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         using (var frm = new frmAddDeviceDialog(_instance))
         {
             frm.ShowDialog(this);
-            SetWaitCursor();
+            GuiHelper.SetWaitCursor(this);
         }
 
         UpdateTree();
 
-        ResetWaitCursor();
+        GuiHelper.ResetWaitCursor(this);
     }
 
     private void btnAddFunctionBlock_Click(object sender, EventArgs e)
@@ -241,17 +244,17 @@ public partial class frmMain : Form
         if (_instance == null)
             return;
 
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         using (var frm = new frmAddFunctionBlockDialog(_instance))
         {
             frm.ShowDialog(this);
-            SetWaitCursor();
+            GuiHelper.SetWaitCursor(this);
         }
 
         UpdateTree();
 
-        ResetWaitCursor();
+        GuiHelper.ResetWaitCursor(this);
     }
 
     private void btnRefresh_Click(object sender, EventArgs e)
@@ -270,7 +273,7 @@ public partial class frmMain : Form
 
     private void treeComponents_AfterSelect(object sender, TreeViewEventArgs e)
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         try
         {
@@ -286,8 +289,8 @@ public partial class frmMain : Form
                 UpdateInputPorts(_selectedComponent);
                 UpdateOutputSignals(_selectedComponent);
 
-                SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: (this.tableInputPorts.RowCount == 0));
-                SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: (this.tableOutputSignals.RowCount == 0));
+                GuiHelper.SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: (this.tableInputPorts.RowCount == 0));
+                GuiHelper.SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: (this.tableOutputSignals.RowCount == 0));
 
                 if (this.tableOutputSignals.RowCount > 0)
                     _outputValueTimer.Start();
@@ -295,7 +298,7 @@ public partial class frmMain : Form
         }
         finally
         {
-            ResetWaitCursor();
+            GuiHelper.ResetWaitCursor(this);
         }
     }
 
@@ -333,7 +336,7 @@ public partial class frmMain : Form
             item.Enabled = false;
 
         bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
+                                    || ((eTabstrip)this.tabControl1.SelectedTab!.Tag! != eTabstrip.SystemOverview);
 
         //ContextMenu only for Device and FunctionBlock nodes (but not a Channel)
         BaseObject? baseObject = selectedNode.Tag as BaseObject;
@@ -379,7 +382,7 @@ public partial class frmMain : Form
         Device parentDevice = GetParentDevice((Component)selectedNode.Tag);
 
         bool useComponentApproach = this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked
-                                    || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview);
+                                    || ((eTabstrip)this.tabControl1.SelectedTab!.Tag! != eTabstrip.SystemOverview);
 
         bool isRemoved = false;
 
@@ -459,7 +462,7 @@ public partial class frmMain : Form
         if ((e.RowIndex < 0) || (e.ColumnIndex < 0))
             return;
 
-        DataGridView dataGridView = ((DataGridView)sender);
+        DataGridView dataGridView = (DataGridView)sender;
 
         //select the clicked cell/row for context menu (which opens automatically after this)
         dataGridView.CurrentCell = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex];
@@ -471,7 +474,7 @@ public partial class frmMain : Form
         this.conetxtMenuItemGridPropertiesEdit.Enabled = false;
 
         //get the DataGridView on which the context menu has been triggered
-        var grid = (DataGridView)((ContextMenuStrip)sender).SourceControl;
+        var grid = (DataGridView)((ContextMenuStrip)sender).SourceControl!;
 
         if (grid.SelectedRows.Count == 0)
         {
@@ -496,7 +499,7 @@ public partial class frmMain : Form
     private void conetxtMenuItemGridPropertiesEdit_Click(object sender, EventArgs e)
     {
         var toolStripMenuItem = (ToolStripMenuItem)sender;
-        var gridControl       = ((ContextMenuStrip)toolStripMenuItem.Owner).SourceControl;
+        var gridControl       = ((ContextMenuStrip)toolStripMenuItem.Owner!).SourceControl;
 
         if (gridControl == this.gridProperties)
             EditSelectedProperty();
@@ -529,7 +532,7 @@ public partial class frmMain : Form
         EditSelectedAttribute();
     }
 
-    #endregion gridProperties
+    #endregion gridAttributes
 
     private void _outputValueTimer_Tick(object? sender, EventArgs e)
     {
@@ -542,48 +545,19 @@ public partial class frmMain : Form
         //try to get the Signal.LastValue for each output signal and show in the label
         for (int row = 0; row < this.tableOutputSignals.RowCount; ++ row)
         {
-            var label  = this.tableOutputSignals.GetControlFromPosition(1, row) as Label;
-            var button = this.tableOutputSignals.GetControlFromPosition(2, row) as Button;
-            var signal = button?.Tag as Signal;
+            if (this.tableOutputSignals.GetControlFromPosition(1, row) is Label label)
+            {
+                var button = this.tableOutputSignals.GetControlFromPosition(2, row) as Button;
+                var signal = button?.Tag as Signal;
 
-            if (label != null)
                 label.Text = GetLastValueForSignal(signal);
+            }
         }
     }
 
     #endregion //event handlers .................................................................................
 
     #region Common GUI methods
-
-    /// <summary>
-    /// Initializes the given <c>DataGridView</c>.
-    /// </summary>
-    /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
-    internal static void InitializeDataGridView(DataGridView grid)
-    {
-        var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
-
-        grid.EnableHeadersVisualStyles                   = false; //enable ColumnHeadersDefaultCellStyle
-        columnHeadersDefaultCellStyle.BackColor          = Color.FromKnownColor(KnownColor.ButtonFace);
-        columnHeadersDefaultCellStyle.Font               = new Font(grid.Font, FontStyle.Bold);
-        columnHeadersDefaultCellStyle.SelectionBackColor = Color.Transparent;
-        columnHeadersDefaultCellStyle.SelectionForeColor = Color.Transparent;
-        columnHeadersDefaultCellStyle.WrapMode           = DataGridViewTriState.False;
-        grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-        grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
-        grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
-        grid.DefaultCellStyle.SelectionBackColor         = Color.Transparent;
-        grid.DefaultCellStyle.SelectionForeColor         = Color.Transparent;
-
-        grid.DefaultCellStyle.DataSourceNullValue = null;
-
-        grid.SelectionMode       = DataGridViewSelectionMode.FullRowSelect;
-        grid.MultiSelect         = false;
-        grid.RowHeadersVisible   = false;
-        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-        grid.AutoSizeRowsMode    = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
-        grid.ShowCellToolTips    = false;
-    }
 
     /// <summary>
     /// Gets the preferred width of the specified grid control.
@@ -612,61 +586,6 @@ public partial class frmMain : Form
         imageList.Images.Add(nameof(GlblRes.link),           (Bitmap)GlblRes.link.Clone());
     }
 
-    /// <summary>
-    /// Sets the specified information label visibility.
-    /// </summary>
-    /// <param name="label">The label.</param>
-    /// <param name="isVisible">If set to <c>true</c> the label is visible and <c>Dock.Fill</c>, otherwise <c>false</c>.</param>
-    private static void SetInfoLabelVisibility(Label label, bool isVisible)
-    {
-        if (!isVisible)
-        {
-            label.Dock     = DockStyle.None;
-            label.AutoSize = true;
-            label.Visible  = false;
-        }
-        else
-        {
-            label.Visible  = true;
-            label.AutoSize = false;
-            label.Dock     = DockStyle.Fill;
-            label.BringToFront();
-            label.Refresh();
-        }
-    }
-
-    /// <summary>
-    /// Clears the specified table layout panel.
-    /// </summary>
-    /// <param name="tableLayoutPanel">The table layout panel.</param>
-    private static void Clear(TableLayoutPanel tableLayoutPanel)
-    {
-        tableLayoutPanel.Controls.Clear();
-        tableLayoutPanel.RowStyles.Clear();
-        tableLayoutPanel.RowCount = 0;
-    }
-
-    /// <summary>
-    /// Sets the wait cursor.
-    /// </summary>
-    private void SetWaitCursor()
-    {
-        Cursor.Current     = Cursors.WaitCursor;
-        this.Cursor        = Cursors.WaitCursor;
-        this.UseWaitCursor = true;
-    }
-
-    /// <summary>
-    /// Resets to the default cursor.
-    /// </summary>
-    private void ResetWaitCursor()
-    {
-        this.UseWaitCursor = false;
-        this.Cursor        = Cursors.Default;
-        Cursor.Current     = Cursors.Default;
-        base.ResetCursor();
-    }
-
     #endregion Common GUI methods
 
     #region Tree view
@@ -676,7 +595,7 @@ public partial class frmMain : Form
     /// </summary>
     private void UpdateTree()
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         string? selectedNodeName = this.treeComponents.SelectedNode?.Name;
 
@@ -684,7 +603,7 @@ public partial class frmMain : Form
         _propertyItems.Clear();
         _attributeItems.Clear();
 
-        if (this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked || ((eTabstrip)this.tabControl1.SelectedTab.Tag != eTabstrip.SystemOverview))
+        if (this.componentsInsteadOfDirectObjectAccessToolStripMenuItem.Checked || ((eTabstrip)this.tabControl1.SelectedTab!.Tag! != eTabstrip.SystemOverview))
             TreeTraverseComponentsRecursive(_instance); //components approach
         else
             PopulateSystemOverviewTree(_instance!); //object lists approach
@@ -701,7 +620,7 @@ public partial class frmMain : Form
 
         this.treeComponents.SelectedNode = foundNode;
 
-        ResetWaitCursor();
+        GuiHelper.ResetWaitCursor(this);
     }
 
     #region Components approach (as in Python Demo)
@@ -720,7 +639,7 @@ public partial class frmMain : Form
         Folder? folder = component.Cast<Folder>();
         if ((folder == null) || (folder.GetItems().Count > 0))
         {
-            switch ((eTabstrip)this.tabControl1.SelectedTab.Tag)
+            switch ((eTabstrip)this.tabControl1.SelectedTab!.Tag!)
             {
                 case eTabstrip.SystemOverview:
                     if (!(component.CanCastTo<InputPort>() || component.CanCastTo<Signal>())
@@ -754,7 +673,7 @@ public partial class frmMain : Form
 
         if (folder != null)
         {
-            if (!(component.CanCastTo<FunctionBlock>() && ((eTabstrip)this.tabControl1.SelectedTab.Tag == eTabstrip.FunctionBlocks)))
+            if (!(component.CanCastTo<FunctionBlock>() && ((eTabstrip)this.tabControl1.SelectedTab!.Tag! == eTabstrip.FunctionBlocks)))
             {
                 foreach (var folderItem in folder.GetItems())
                     TreeTraverseComponentsRecursive(folderItem);
@@ -884,7 +803,7 @@ public partial class frmMain : Form
 
         if (functionBlocks.Count > 0)
         {
-            var inputsOutputsRootNode = AddNode(deviceNode.Nodes, key: device.GlobalId + "/FB", "Function blocks", nameof(GlblRes.folder));
+            var _/*inputsOutputsRootNode*/ = AddNode(deviceNode.Nodes, key: device.GlobalId + "/FB", "Function blocks", nameof(GlblRes.folder));
 
 //ToDo:            PopulateFunctionBlocksInSystemOverviewTree(deviceNode.Nodes, functionBlocks);
         }
@@ -927,7 +846,7 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="nodes">The nodes.</param>
     /// <param name="signals">The signals.</param>
-    private void PopulateSignalsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Signal> signals)
+    private static void PopulateSignalsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Signal> signals)
     {
         foreach (var signal in signals)
         {
@@ -941,7 +860,7 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="nodes">The nodes.</param>
     /// <param name="channels">The channels.</param>
-    private void PopulateChannelsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Channel> channels)
+    private static void PopulateChannelsInSystemOverviewTree(TreeNodeCollection nodes, IListObject<Channel> channels)
     {
         foreach (var channel in channels)
         {
@@ -962,7 +881,7 @@ public partial class frmMain : Form
     /// <param name="text">The text.</param>
     /// <param name="imageKey">The image key.</param>
     /// <returns>The newly created <c>TreeNode</c>.</returns>
-    private TreeNode AddNode(TreeNodeCollection nodesCollection, string? key, string text, string imageKey)
+    private static TreeNode AddNode(TreeNodeCollection nodesCollection, string? key, string text, string imageKey)
     {
         return nodesCollection.Add(key, text, imageKey, imageKey);
     }
@@ -997,15 +916,23 @@ public partial class frmMain : Form
     /// <param name="component">The openDAQ <c>Component</c> to get the properties from.</param>
     private void UpdateProperties(Component? component)
     {
-        _propertyItems.Clear();
+        try
+        {
+            this.gridProperties.SuspendLayout();
 
-        if (component == null)
-            return;
+            _propertyItems.Clear();
 
-        ListProperties(component);
+            if (component == null)
+                return;
 
-        this.gridProperties.ClearSelection();
-        this.gridProperties.AutoResizeColumns();
+            ListProperties(component);
+
+            GuiHelper.Update(this.gridProperties);
+        }
+        finally
+        {
+            this.gridProperties.ResumeLayout();
+        }
     }
 
     /// <summary>
@@ -1014,27 +941,61 @@ public partial class frmMain : Form
     /// <param name="propertyObject">The property object.</param>
     private void ListProperties(PropertyObject propertyObject)
     {
-        var properties = propertyObject.AllProperties;
-
-        foreach (var property in properties)
-        {
-            if (!property.Visible)
-                continue;
-
-            var propertyName            = property.Name;
-            var propertyType            = property.ValueType;
-            var propertyValueObject     = propertyObject.GetPropertyValue(propertyName);
-            var propertyValue           = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, propertyType);
-            var propertySelectionValues = property.SelectionValues;
-
-            if (propertySelectionValues != null)
-                propertyValue = HandleSelectionValues(propertyValue, propertySelectionValues);
-
-            _propertyItems.Add(new(property.ReadOnly, propertyName, propertyValue.ToString(), property.Unit, property.Description, property));
-        }
+        AddPropertiesRecursive(propertyObject, _propertyItems);
 
 
         //----- local functions ------------------------------------------------
+
+        static void AddPropertiesRecursive(PropertyObject propertyObject, IList<PropertyItem> propertyItems, string? parentName = null)
+        {
+            IListObject<Property> properties = propertyObject.AllProperties;
+
+            foreach (var property in properties)
+            {
+                if (property == null)
+                    continue;
+
+                if (!property.Visible)
+                   continue;
+
+                try
+                {
+                    var propertyName            = property.Name;
+                    var propertyPath            = ((parentName == null) ? string.Empty : parentName + ".") + propertyName;
+                    var propertyType            = property.ValueType;
+                    var propertyValueObject     = propertyObject.GetPropertyValue(propertyName);
+                    var propertyValue           = CoreTypesFactory.GetPropertyValueObject(propertyValueObject, propertyType);
+                    var propertySelectionValues = property.SelectionValues;
+
+                    if (propertySelectionValues != null)
+                        propertyValue = HandleSelectionValues(propertyValue, propertySelectionValues);
+
+                    List<PropertyItem>? subItems = null;
+                    if (propertyValue.Cast<PropertyObject>() is PropertyObject subPropertyObject)
+                    {
+                        subItems = [];
+                        AddPropertiesRecursive(subPropertyObject, subItems!, propertyName);
+                    }
+                    else if (propertyValue.Cast<Struct>() is Struct structObject)
+                    {
+                        //ToDo: Struct property
+                    }
+
+                    PropertyItem propertyItem = new(property.ReadOnly,
+                                                    propertyPath,
+                                                    propertyValue.ToString(),
+                                                    property.Unit,
+                                                    property.Description,
+                                                    property,
+                                                    subItems);
+                    propertyItems.Add(propertyItem);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.Print($"+++++> AddPropertiesRecursive() - {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+        }
 
         static BaseObject HandleSelectionValues(BaseObject propertyValue, BaseObject propertySelectionValues)
         {
@@ -1076,6 +1037,9 @@ public partial class frmMain : Form
     {
         var selectedComponent    = (Component)this.treeComponents.SelectedNode.Tag;
         var selectedPropertyItem = (PropertyItem)this.gridProperties.SelectedRows[0].DataBoundItem;
+
+        if (selectedPropertyItem == null)
+            return;
 
         var propertyName            = selectedPropertyItem.Name;
         var property                = (Property)selectedPropertyItem.OpenDaqObject; //selectedComponent.GetProperty(propertyName);
@@ -1163,14 +1127,16 @@ public partial class frmMain : Form
                 break;
 //            case CoreType.ctRatio:
 //                break;
-            //case CoreType.ctProc:
-            //    break;
+            case CoreType.ctProc:
+                frmFunctionDialog.OpenProcedure(this, property, (Procedure)propertyValue);
+                break;
             //case CoreType.ctObject:
             //    break;
             //case CoreType.ctBinaryData:
             //    break;
-            //case CoreType.ctFunc:
-            //    break;
+            case CoreType.ctFunc:
+                frmFunctionDialog.OpenFunction(this, property, (Function)propertyValue);
+                break;
             //case CoreType.ctComplexNumber:
             //    break;
             //case CoreType.ctStruct:
@@ -1216,8 +1182,7 @@ public partial class frmMain : Form
     {
         UpdateAttributes(component, _attributeItems);
 
-        this.gridAttributes.ClearSelection();
-        this.gridAttributes.AutoResizeColumns();
+        GuiHelper.Update(this.gridAttributes);
     }
 
     /// <summary>
@@ -1283,7 +1248,7 @@ public partial class frmMain : Form
     /// <param name="attributeItems">The list to be updated.</param>
     private static void ListAttributes(Signal signal, BindingList<AttributeItem> attributeItems)
     {
-        string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? Array.Empty<string>());
+        string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? []);
 
         attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
         attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
@@ -1413,8 +1378,8 @@ public partial class frmMain : Form
         //set the new attribute value
         switch (selectedAttributeObject)
         {
-            case Instance rootDevice:
-            case Device device:
+            case Instance /*rootDevice*/:
+            case Device /*device*/:
                 //nothing
                 break;
 
@@ -1427,11 +1392,11 @@ public partial class frmMain : Form
                 }
                 break;
 
-            case InputPort inputPort:
+            case InputPort /*inputPort*/:
                 //nothing
                 break;
 
-            case FunctionBlock functionBlock:
+            case FunctionBlock /*functionBlock*/:
                 //nothing
                 break;
 
@@ -1524,14 +1489,6 @@ public partial class frmMain : Form
         int preferredSplitterDistance = Math.Min(GetPreferredGridWidth(this.gridProperties), this.splitContainerPropertiesInputs.Width * 60 / 100);
         if (this.splitContainerPropertiesInputs.SplitterDistance < preferredSplitterDistance)
             this.splitContainerPropertiesInputs.SplitterDistance = preferredSplitterDistance;
-
-        this.tableInputPorts.Left  = this.groupInputPorts.Margin.Left;
-        this.tableInputPorts.Width = this.groupInputPorts.ClientRectangle.Width - this.groupInputPorts.Margin.Left - this.groupInputPorts.Margin.Right;
-        //this.tableInputPorts.PerformLayout();
-
-        this.tableOutputSignals.Left  = this.groupOutputSignals.Margin.Left;
-        this.tableOutputSignals.Width = this.groupOutputSignals.ClientRectangle.Width - this.groupOutputSignals.Margin.Left - this.groupOutputSignals.Margin.Right;
-        //this.tableOutputSignals.PerformLayout();
     }
 
     #region Input-ports view
@@ -1547,7 +1504,7 @@ public partial class frmMain : Form
         this.tableInputPorts.GrowStyle = TableLayoutPanelGrowStyle.FixedSize; //we take care of RowCount ourselves
 
         //RowCount / RowStyles dynamically set in UpdateInputPorts()
-        Clear(this.tableInputPorts);
+        GuiHelper.Clear(this.tableInputPorts);
 
         this.tableInputPorts.ColumnStyles.Clear();
         this.tableInputPorts.ColumnCount = 4;
@@ -1556,7 +1513,7 @@ public partial class frmMain : Form
         this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
         this.tableInputPorts.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
 
-        SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: true);
+        GuiHelper.SetInfoLabelVisibility(this.lblNoInputPorts, isVisible: true);
     }
 
     /// <summary>
@@ -1566,7 +1523,7 @@ public partial class frmMain : Form
     /// <returns><c>true</c> when input ports have been rendered, otherwise <c>false</c>.</returns>
     private bool UpdateInputPorts(Component? component)
     {
-        Clear(this.tableInputPorts);
+        GuiHelper.Clear(this.tableInputPorts);
 
         //let only FunctionBlock through (no Channel which inherits from FunctionBlock)
         if ((component == null)
@@ -1717,7 +1674,7 @@ public partial class frmMain : Form
             if (this.tableInputPorts.GetControlFromPosition(cellPos.Column + 1, cellPos.Row) is not Button btnLink)
                 return;
 
-            int  originalSelection    = (int)comboBox.Tag;
+            int  originalSelection    = (int)comboBox.Tag!;
             bool isOriginalSelected   = (originalSelection == comboBox.SelectedIndex);
             bool isInputPortConnected = (originalSelection > 0);
 
@@ -1755,7 +1712,7 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="isLinked">If set to <c>true</c> get the linked symbol (closed), otherwise the unlinked symbol (open).</param>
     /// <returns>The image.</returns>
-    private static Image GetLinkImage(bool isLinked)
+    private static Bitmap GetLinkImage(bool isLinked)
     {
         return new Bitmap(isLinked ? GlblRes.link : GlblRes.unlink, 24, 24);
     }
@@ -1811,7 +1768,7 @@ public partial class frmMain : Form
         this.tableOutputSignals.GrowStyle = TableLayoutPanelGrowStyle.FixedSize; //we take care of RowCount ourselves
 
         //RowCount / RowStyles dynamically set in UpdateOutputSignals()
-        Clear(this.tableOutputSignals);
+        GuiHelper.Clear(this.tableOutputSignals);
 
         this.tableOutputSignals.ColumnStyles.Clear();
         this.tableOutputSignals.ColumnCount = 3;
@@ -1819,7 +1776,7 @@ public partial class frmMain : Form
         this.tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));//SizeType.AutoSize));
         this.tableOutputSignals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FLOW_ITEM_HEIGHT + _tableLayoutMarginLR));
 
-        SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: true);
+        GuiHelper.SetInfoLabelVisibility(this.lblNoOutputSignals, isVisible: true);
     }
 
     /// <summary>
@@ -1829,7 +1786,7 @@ public partial class frmMain : Form
     /// <returns><c>true</c> when output signals have been rendered, otherwise <c>false</c>.</returns>
     private bool UpdateOutputSignals(Component? component)
     {
-        Clear(this.tableOutputSignals);
+        GuiHelper.Clear(this.tableOutputSignals);
 
         //let only Device and FunctionBlock through (no Channel which inherits from FunctionBlock)
         if ((component == null)
@@ -1961,7 +1918,7 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="baseObject">The last value.</param>
     /// <returns>The value or <c>"n/a"</c> when object is <c>null</c>.</returns>
-    private static string GetValue(BaseObject baseObject)
+    private static string GetValue(BaseObject? baseObject)
     {
         if (baseObject == null)
             return "n/a";
@@ -1992,7 +1949,7 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="signal">The <c>Signal</c>.</param>
     /// <returns>The short identifier.</returns>
-    private string GetShortId(Signal? signal)
+    private static string GetShortId(Signal? signal)
     {
         if (signal == null)
             return string.Empty;
@@ -2014,20 +1971,17 @@ public partial class frmMain : Form
     /// </summary>
     /// <param name="outputSignal">The output signal.</param>
     /// <returns>The last sample.</returns>
-    private string GetLastValueForSignal(Signal? outputSignal)
+    private static string GetLastValueForSignal(Signal? outputSignal)
     {
         string lastValue = "N/A";
 
-        if (outputSignal != null)
+        try
         {
-            try
-            {
-                lastValue = GetValue(outputSignal.LastValue);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.Print($"Error reading last value: {ex.GetType().Name} - {ex.Message}");
-            }
+            lastValue = GetValue(outputSignal?.LastValue);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.Print($"Error reading last value: {ex.GetType().Name} - {ex.Message}");
         }
 
         return lastValue;

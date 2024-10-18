@@ -36,17 +36,10 @@ public:
     }
     void dropHistoryTo(Int dropToExcludingDomainValue)
     {
-        while (true)
+        while (domainValues.size() && domainValues.front() < dropToExcludingDomainValue)
         {
-            if (values.size() > 0 && domainValues[0] < dropToExcludingDomainValue)
-            {
-                values.erase(values.begin());
-                domainValues.erase(domainValues.begin());
-            }
-            else
-            {
-                break;
-            }
+            values.erase(values.begin());
+            domainValues.erase(domainValues.begin());
         }
     }
     void dropHistory()
@@ -118,7 +111,6 @@ private:
         }
     };
 
-    bool triggerMode;
     FunctionBlockPtr nestedTriggerFunctionBlock;
     InputPortConfigPtr triggerInput;
     TriggerHistory triggerHistory;
@@ -157,7 +149,6 @@ private:
 
     void initProperties();
     void propertyChanged();
-    void triggerModeChanged();
     void configure();
     void readProperties();
 
@@ -195,6 +186,9 @@ private:
     void processTriggerPackets(const InputPortPtr& port);
     void processInputPackets(const InputPortPtr& port);
     void calculateAndSendPackets(const DataPacketPtr& domainPacket, const DataPacketPtr& packet);
+
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
 };
 
 }

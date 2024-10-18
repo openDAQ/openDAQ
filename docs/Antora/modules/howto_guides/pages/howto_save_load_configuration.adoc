@@ -126,10 +126,62 @@ instance.LoadConfiguration(jsonStr);
 
 [NOTE]
 ====
-The current implementation of SDK does not add Devices that are described in the Configuration string. 
-xref:knowledge_base:device.adoc[Devices] must be already mounted in the openDAQ tree. However, 
-xref:knowledge_base:function_blocks.adoc[Function Blocks] present in the Configuration string will be 
-instantiated and added under the Function Blocks folder before they are configured from JSON Configuration string.
+While loading the Configuration, the SDK checking the circular dependencies of signal (for example output signal of function block connected as input signal to the same function block). At that case LoadConfiguration method will not stop the proccess but will notify user with the warning message of the trace of the circular dependencies. 
+====
+
+== Load Configuration with custom parameters
+
+Load congiguration method has an optional parameter of IUpdateParameters which has set of paramters that gived developer control over how the configuration is loaded. The following parameters are available:
+
+ * `setReAddDevicesEnabled(bool)` - If the instance has a device which is also presented in the configuration, with this parameter the developer can decide if the device should be re-added to the instance or not. Default is `false`.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Read Configuration from file
+std::ifstream configFile("config.json");
+std::stringstream jsonStr;
+jsonStr << configFile.rdbuf();
+
+// Set custom load parameters
+auto loadConfig = UpdateParameters();
+loadConfig.setReAddDevicesEnabled(true);
+
+// Load Configuration from string
+instance.loadConfiguration(jsonStr.str(), loadConfig);
+----
+Python::
++
+[source,python]
+----
+# Read Configuration from file
+config_file = open("config.json", "r")
+json_str = config_file.read()
+config_file.close()
+
+# Set custom load parameters
+load_config = UpdateParameters()
+load_config.re_add_devices_enabled = True
+# Load Configuration from string
+instance.load_configuration(json_str, load_config)
+----
+C#::
++
+[source,csharp]
+----
+// Read Configuration from file
+string jsonStr = File.ReadAllText("openDAQconfig.json", System.Text.Encoding.UTF8);
+
+// Set custom load parameters
+var loadConfig = OpenDAQFactory.UpdateParameters();
+loadConfig.SetReAddDevicesEnabled(true);
+
+// Load Configuration from string
+instance.LoadConfiguration(jsonStr);
+----
 ====
 
 == Saving and loading Configuration of specific components

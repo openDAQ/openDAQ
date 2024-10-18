@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:21.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ public class DaqEventHandler : BaseObject
         unsafe //use native method pointer
         {
             //call native method
-            ErrorCode errorCode = (ErrorCode)_rawDaqEventHandler.HandleEvent(base.NativePointer, sender.NativePointer, eventArgs.NativePointer);
+            ErrorCode errorCode = (ErrorCode)_rawDaqEventHandler.HandleEvent(base.NativePointer, sender, eventArgs);
 
             if (Result.Failed(errorCode))
             {

@@ -49,5 +49,5 @@ TEST_F(RegressionTestChannel, setPropertyValueGetPropertyValue)
     ASSERT_NO_THROW(channel.setPropertyValue("NoiseAmplitude", 0.2));
     FloatPtr property;
     ASSERT_NO_THROW(property = channel.getPropertyValue("NoiseAmplitude"));
-    ASSERT_FLOAT_EQ(property, 0.2);
+    ASSERT_FLOAT_EQ(property, 0.2f);
 }

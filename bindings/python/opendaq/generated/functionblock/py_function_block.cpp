@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m)
 {
@@ -130,4 +130,31 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
         },
         py::arg("search_filter") = nullptr,
         "Gets a list of sub-function blocks.");
+    cls.def_property_readonly("available_function_block_types",
+        [](daq::IFunctionBlock *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            return objectPtr.getAvailableFunctionBlockTypes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets all neasted function block types that are supported, containing their description.");
+    cls.def("add_function_block",
+        [](daq::IFunctionBlock *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            return objectPtr.addFunctionBlock(getVariantValue<daq::IString*>(typeId), config).detach();
+        },
+        py::arg("type_id"), py::arg("config") = nullptr,
+        "Creates and adds a function block as the neasted of current function block with the provided unique ID and returns it.");
+    cls.def("remove_function_block",
+        [](daq::IFunctionBlock *object, daq::IFunctionBlock* functionBlock)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            objectPtr.removeFunctionBlock(functionBlock);
+        },
+        py::arg("function_block"),
+        "Removes the function block provided as argument, disconnecting its signals and input ports.");
 }

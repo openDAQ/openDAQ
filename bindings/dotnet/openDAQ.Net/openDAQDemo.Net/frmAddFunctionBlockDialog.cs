@@ -20,6 +20,8 @@ using System.Windows.Forms;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
 
+using openDAQDemoNet.Helpers;
+
 
 namespace openDAQDemoNet;
 
@@ -41,7 +43,7 @@ public partial class frmAddFunctionBlockDialog : Form
 
         this.treeParentDevices.HideSelection = false;
 
-        InitializeDataGridView(this.gridFunctionBlocks);
+        GuiHelper.InitializeDataGridView(this.gridFunctionBlocks);
 
         this._instance = instance;
     }
@@ -56,7 +58,7 @@ public partial class frmAddFunctionBlockDialog : Form
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
     private void frmAddFunctionBlockDialog_Shown(object sender, EventArgs e)
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
         this.Update();
 
         PopulateParentDevices(_instance);
@@ -65,7 +67,9 @@ public partial class frmAddFunctionBlockDialog : Form
         //binding data late to not to "trash" GUI display beforehand
         this.gridFunctionBlocks.DataSource = _functionBlocks;
 
-        ResetWaitCursor();
+        GuiHelper.Update(this.gridFunctionBlocks);
+
+        GuiHelper.ResetWaitCursor(this);
     }
 
     #region Context Menu
@@ -132,53 +136,6 @@ public partial class frmAddFunctionBlockDialog : Form
     #endregion //event handlers .................................................................................
 
     /// <summary>
-    /// Sets the wait cursor.
-    /// </summary>
-    private void SetWaitCursor()
-    {
-        Cursor.Current     = Cursors.WaitCursor;
-        this.Cursor        = Cursors.WaitCursor;
-        this.UseWaitCursor = true;
-    }
-
-    /// <summary>
-    /// Resets the wait cursor.
-    /// </summary>
-    private void ResetWaitCursor()
-    {
-        this.UseWaitCursor = false;
-        this.Cursor        = Cursors.Default;
-        Cursor.Current     = Cursors.Default;
-        base.ResetCursor();
-    }
-
-    /// <summary>
-    /// Initializes the given <c>DataGridView</c>.
-    /// </summary>
-    /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
-    private void InitializeDataGridView(DataGridView grid)
-    {
-        var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
-
-        grid.EnableHeadersVisualStyles                   = false; //enable ColumnHeadersDefaultCellStyle
-        columnHeadersDefaultCellStyle.BackColor          = Color.FromKnownColor(KnownColor.ButtonFace);
-        columnHeadersDefaultCellStyle.Font               = new Font(grid.Font, FontStyle.Bold);
-        columnHeadersDefaultCellStyle.SelectionBackColor = Color.Transparent;
-        columnHeadersDefaultCellStyle.SelectionForeColor = Color.Transparent;
-        grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-        grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
-        grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
-
-        grid.DefaultCellStyle.DataSourceNullValue = null;
-
-        grid.SelectionMode       = DataGridViewSelectionMode.FullRowSelect;
-        grid.MultiSelect         = false;
-        grid.RowHeadersVisible   = false;
-        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-        grid.AutoSizeRowsMode    = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
-    }
-
-    /// <summary>
     /// Populates the parent devices tree (recursion).
     /// </summary>
     /// <param name="device">The device to be added.</param>
@@ -223,7 +180,7 @@ public partial class frmAddFunctionBlockDialog : Form
         bool isWaitCursorAlreadyOn = this.UseWaitCursor;
 
         if (!isWaitCursorAlreadyOn)
-            SetWaitCursor();
+            GuiHelper.SetWaitCursor(this);
 
         _functionBlocks.Clear();
         this.gridFunctionBlocks.Refresh(); //clear in GUI
@@ -235,7 +192,7 @@ public partial class frmAddFunctionBlockDialog : Form
         }
 
         if (!isWaitCursorAlreadyOn)
-            ResetWaitCursor();
+            GuiHelper.ResetWaitCursor(this);
     }
 
     /// <summary>
@@ -254,7 +211,7 @@ public partial class frmAddFunctionBlockDialog : Form
             return false;
         }
 
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         try
         {
@@ -274,7 +231,7 @@ public partial class frmAddFunctionBlockDialog : Form
         }
         finally
         {
-            ResetWaitCursor();
+            GuiHelper.ResetWaitCursor(this);
         }
 
         return true;

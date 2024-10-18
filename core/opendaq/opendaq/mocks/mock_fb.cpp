@@ -13,6 +13,7 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
+    , nesteadFbCount(0)
 {
     this->tags.add("mock_fb");
 
@@ -22,11 +23,31 @@ MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
     createTestConfigProperties(config);
 }
 
+DictPtr<IString, IFunctionBlockType> MockFunctionBlockImpl::onGetAvailableFunctionBlockTypes()
+{
+    auto fbTypes = Dict<IString, IFunctionBlockType>({
+        {"NestedFBId", FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc")}
+    });
+    return fbTypes;
+}
+
+FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& /* config */)
+{
+    if (typeId == "NestedFBId")
+    {
+        auto fbLocaId = "NestedFBId" + std::to_string(nesteadFbCount++);
+        auto childFB = MockNestedFunctionBlock(
+            FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, fbLocaId);
+        this->addNestedFunctionBlock(childFB);
+        return childFB;
+    }
+    throw NotSupportedException("Mock function block supports only NestedFBId");
+}
+
+
 void MockFunctionBlockImpl::createFunctionBlocks()
 {
-    auto childFB = MockNestedFunctionBlock(
-        FunctionBlockType("NestedFBId", "NestedFBName", "NestedFBDesc"), context, functionBlocks, "NestedFBId");
-    this->addNestedFunctionBlock(childFB);
+   onAddFunctionBlock("NestedFBId", nullptr);
 }
 
 void MockFunctionBlockImpl::createInputPorts()
@@ -37,7 +58,8 @@ void MockFunctionBlockImpl::createInputPorts()
 
 void MockFunctionBlockImpl::createSignals()
 {
-    auto createDescriptor = [](std::string name) {
+    auto createDescriptor = [](std::string name) 
+    {
 
         return DataDescriptorBuilder()
             .setSampleType(SampleType::Float32)

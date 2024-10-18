@@ -8,6 +8,7 @@ from ..event_port import *
 from .dialog import Dialog
 from tkinter.filedialog import askopenfile
 
+
 class LoadInstanceConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext):
         super().__init__(parent, "Load configuration", context)
@@ -15,26 +16,28 @@ class LoadInstanceConfigDialog(Dialog):
             1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
 
         button_frame = tk.Frame(self)
-        button_frame.pack(side = tk.BOTTOM)
+        button_frame.pack(side=tk.BOTTOM, anchor=tk.E)
 
-        tk.Button(button_frame, text="Load configuration", command=self.load_configuration).pack(padx=10, ipadx=20 * self.context.ui_scaling_factor, side=tk.LEFT)
-        tk.Button(button_frame, text="Cancel", command=self.cancel).pack(padx=10, ipadx=10 * self.context.ui_scaling_factor, side=tk.LEFT)
+        tk.Button(button_frame, text="Load configuration", command=self.load_configuration).pack(
+            padx=10, ipadx=20 * self.context.ui_scaling_factor, side=tk.LEFT)
+        tk.Button(button_frame, text="Cancel", command=self.cancel).pack(
+            padx=10, ipadx=10 * self.context.ui_scaling_factor, side=tk.LEFT)
 
         self.frame = tk.Frame(self)
         self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        self.tree = ttk.Treeview(self.frame, columns=('value',), show='tree headings')
-        self.tree.heading('#0', text='Property')
-        self.tree.heading('value', text='Value')
+        self.tree = ttk.Treeview(self.frame, columns=(
+            'value',), show='tree headings')
+        self.tree.heading('#0', anchor=tk.W, text='Property')
+        self.tree.heading('value', anchor=tk.W, text='Value')
+        self.tree.column('#0', anchor=tk.W)
+        self.tree.column('value', anchor=tk.W)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
         self.updata_params = daq.UpdateParameters()
         self.display_config_options('', self.updata_params)
-        
-        self.protocol("WM_DELETE_WINDOW", self.cancel)
 
-        self.grab_set()
-        self.transient(parent)
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
 
     # initial display of properties
     def display_config_options(self, parent_node, context):
@@ -48,11 +51,14 @@ class LoadInstanceConfigDialog(Dialog):
             prop = context.get_property_value(property.name)
             if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
                 casted_property = daq.IPropertyObject.cast_from(prop)
-                node_id = self.tree.insert(parent_node, 'end', text=property.name, open=True)
+                node_id = self.tree.insert(
+                    parent_node, 'end', text=property.name, open=True)
                 self.display_config_options(node_id, casted_property)
             else:
-                property_value = printed_value(property.item_type, context.get_property_value(property.name))
-                self.tree.insert(parent_node, 'end', text=property.name, values=(property_value,))
+                property_value = printed_value(
+                    property.item_type, context.get_property_value(property.name))
+                self.tree.insert(parent_node, 'end',
+                                 text=property.name, values=(property_value,))
                 self.tree.bind('<Double-1>', self.edit_value)
 
     def save_value(self, entry, item_id, column, path):
@@ -87,8 +93,10 @@ class LoadInstanceConfigDialog(Dialog):
             entry.insert(0, value)
             entry.focus()
             path = self.get_item_path(item_id)
-            entry.bind('<Return>', lambda e: self.save_value(entry, item_id, column, path))
-            entry.bind('<FocusOut>', lambda e: self.save_value(entry, item_id, column, path))
+            entry.bind('<Return>', lambda e: self.save_value(
+                entry, item_id, column, path))
+            entry.bind('<FocusOut>', lambda e: self.save_value(
+                entry, item_id, column, path))
 
     def load_configuration(self):
         file = askopenfile(parent=self, initialfile='config.json', title="Load configuration",
@@ -98,7 +106,8 @@ class LoadInstanceConfigDialog(Dialog):
         config_string = file.read()
         file.close()
 
-        self.context.instance.load_configuration(config_string, self.updata_params)
+        self.context.instance.load_configuration(
+            config_string, self.updata_params)
         self.destroy()
 
     def cancel(self):
@@ -113,4 +122,3 @@ class LoadInstanceConfigDialog(Dialog):
             path.insert(0, item_text)
             item_id = self.tree.parent(item_id)
         return path
-

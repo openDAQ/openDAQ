@@ -30,13 +30,13 @@ class AttributesDialog(Dialog):
         tree_frame.pack(fill="both", expand=True)
 
         # define headings
-        tree.heading('#0', text='Name')
-        tree.heading('#1', text='Value')
-        tree.heading('#2', text='Locked')
+        tree.heading('#0', anchor=tk.W, text='Name')
+        tree.heading('#1', anchor=tk.W, text='Value')
+        tree.heading('#2', anchor=tk.W, text='Locked')
         # layout
-        tree.column('#0', anchor=tk.W, width=80, stretch=True)
-        tree.column('#1', anchor=tk.CENTER)
-        tree.column('#2', anchor=tk.CENTER, width=60, stretch=False)
+        tree.column('#0', anchor=tk.W, minwidth=100, width=100)
+        tree.column('#1', anchor=tk.W, minwidth=100, width=300)
+        tree.column('#2', anchor=tk.W, minwidth=80, width=80)
 
         tree.bind("<Double-1>", self.handle_double_click)
         tree.bind("<Button-3>", self.handle_right_click)
@@ -70,11 +70,11 @@ class AttributesDialog(Dialog):
             additional_tree_frame.pack(fill="both", expand=True)
 
             # define headings
-            additional_tree.heading('#0', text='Name')
-            additional_tree.heading('#1', text='Value')
+            additional_tree.heading('#0', anchor=tk.W, text='Name')
+            additional_tree.heading('#1', anchor=tk.W, text='Value')
             # layout
-            additional_tree.column('#0', anchor=tk.W, width=80)
-            additional_tree.column('#1', anchor=tk.CENTER, stretch=True)
+            additional_tree.column('#0', anchor=tk.W, minwidth=100)
+            additional_tree.column('#1', anchor=tk.W, minwidth=100)
 
             self.additional_tree = additional_tree
             additional_tree.bind("<Button-3>", self.handle_right_click_additional)
@@ -293,7 +293,8 @@ class AttributesDialog(Dialog):
                 descriptor['rule']['type']['value'] = desc.rule.type.value
             descriptor['rule']['core_type'] = desc.rule.core_type
             if desc.rule.parameters:
-                descriptor['rule']['parameters'] = {name: value for name, value in desc.rule.parameters.items()}
+                descriptor['rule']['parameters'] = {
+                    name: value for name, value in desc.rule.parameters.items()}
             else:
                 descriptor['rule']['parameters'] = {}
 
@@ -313,7 +314,7 @@ class AttributesDialog(Dialog):
             descriptor['post_scaling']['parameters'] = desc.post_scaling.parameters
 
         descriptor['struct_fields'] = desc.struct_fields
-        
+
         if desc.reference_domain_info:
             descriptor['reference_domain_info'] = {}
             descriptor['reference_domain_info']['reference_domain_id'] = desc.reference_domain_info.reference_domain_id

@@ -11,6 +11,9 @@ class DeviceInfoLocal:
 
 
 class AppContext(object):
+
+    default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
+
     def __init__(self):
 
         # logic
@@ -38,13 +41,14 @@ class AppContext(object):
             self.enabled_devices[conn] = {
                 'device_info': device_info, 'device': None}
 
-    def add_device(self, device_info, parent_device: daq.IDevice, config = None):
+    def add_device(self, device_info, parent_device: daq.IDevice, config=None):
         if device_info is None:
             return None
         if parent_device is None:
             return None
         try:
-            device = parent_device.add_device(device_info.connection_string, config)
+            device = parent_device.add_device(
+                device_info.connection_string, config)
             if device:
                 device_info.name = device.local_id
                 device_info.serial_number = device.info.serial_number
@@ -113,7 +117,7 @@ class AppContext(object):
             # found subdevice
             if part == 'Dev' and index + 2 <= n_parts:
                 # recreate device id
-                device_id = '/'.join(parts[:index+2])
+                device_id = '/'.join(parts[:index + 2])
                 # found server device
                 if self.is_server(device_id):
                     server_device_index = index + 1
@@ -121,7 +125,8 @@ class AppContext(object):
 
         # filter realitive to device id
         filtered_parts = []
-        for index, part in reversed(list(enumerate(parts[server_device_index:]))):
+        for index, part in reversed(
+                list(enumerate(parts[server_device_index:]))):
             if part not in ('IO', 'FB', 'Sig', 'Dev'):
                 filtered_parts.append(part)
 

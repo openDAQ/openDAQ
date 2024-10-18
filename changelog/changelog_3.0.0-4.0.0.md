@@ -1,29 +1,32 @@
-11.10.2024
-Description
-    - Add methods in function block to add/remove nested fb
+# 11.10.2024
+## Description:
+- Add methods in function block to add/remove nested fb
 
-Required integration changes:
-    - Breaks binary compatibility
-    - For function blocks that contain nested function blocks, developers should override the method
-    `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process.
-    Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()`
+##  Required integration changes:
+- Breaks binary compatibility
+- For function blocks that contain nested function blocks, developers should override the method 
+    `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process. 
+    Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()` 
     and `void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)`.
-
-    Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`)
+    
+    Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`) 
     or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
+```
 IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
 IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
+```
 
-10.10.2024
-Description
-    - Restoring the device while loading the configuration.
-    - Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
+# 10.10.2024
+## Description:
+- Restoring the device while loading the configuration.
+- Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
 
-Required integration changes:
-    - Breaks binary compatibility
+## Required integration changes:
+- Breaks binary compatibility
 
+```
 -m[function] IUpdatable::update(ISerializedObject* update)
 +m[function] IUpdatable::update(ISerializedObject* update, IBaseObject* config)
 
@@ -39,81 +42,71 @@ Required integration changes:
 
 -m[function] IDevice::loadConfiguration(IString* configuration)
 +m[function] IDevice::loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr)
+```
 
-08.10.2024
-Description:
-    - Add an option to mark functions and procedures as const
-    - Allow triggering of const function properties under locked device over native config protocol
-    - Native config protocol bumped to version 4
-
-Required integration changes:
-    - Breaks binary compatibility
-
-+ [function] ICallableInfo::isConst(Bool* constFlag)
-
--m[factory] CallableInfo_Create(IList* arguments, CoreType returnType)
-+m[factory] CallableInfo_Create(IList* arguments, CoreType returnType, Bool constFlag)
-
-4.10.2024
-Description:
-    - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
+# 4.10.2024
+## Description:
+- Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
       than "min read count" samples in the queue and there's an event after those samples, it will discard the samples and return event.
 
-Required integration changes: None
+## Required integration changes: 
+- None
 
+```
 + [function] IMultiReaderBuilder::setMinReadCount(SizeT minReadCount)
 + [function] IMultiReaderBuilder::getMinReadCount(SizeT* minReadCount)
 -m [factory] MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false)
 +m [factory] MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false,  SizeT minReadCount = 1)
+```
 
-03.10.2024
-Description:
-    - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
-    - Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
-    - Native config protocol bumped to version 3
+# 03.10.2024
+## Description:
+- Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
+- Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
+- Native config protocol bumped to version 3
 
-03.10.2024
-Description:
-	- Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
-	- Said property object events were disabled to reduce probability of misuse.
-	- CoreEvents should be used instead of onWrite/Read events where needed.
+# 03.10.2024
+## Description:
+- Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
+- Said property object events were disabled to reduce probability of misuse.
+- CoreEvents should be used instead of onWrite/Read events where needed.
 
-03.10.2024
-Description:
-    - Add support for device locking over native config protocol
+# 03.10.2024
+## Description:
+- Add support for device locking over native config protocol
 
-Required integration changes:
-    - Breaks binary compatibility
-
+## Required integration changes:
+- Breaks binary compatibility
+```
 + [function] IDevice::lock()
 + [function] IDevice::unlock()
 + [function] IDevice::isLocked(Bool* locked)
 
 + [function] IAuthenticationProvider::authenticateAnonymous(IUser** userOut)
-
-23.09.2024
-Description:
-    - Enable multireader to be manually set inactive to drop data packets
-    - Add validation of unit parameters for power-reader function block input voltage signal
-Required integration changes:
+```
+# 23.09.2024
+## Description:
+- Enable multireader to be manually set inactive to drop data packets
+- Add validation of unit parameters for power-reader function block input voltage signal
+## Required integration changes:
     - Unit symbol should be set to "V" within the unit object assigned for voltage input signal descriptor of "RefFBModulePowerReader" function block
-
+```
 + [function] IMultiReader::setActive(Bool isActive)
 + [function] IMultiReader::getActive(Bool* isActive)
+```
+# 11.09.2024
+## Description:
+- Enable client-to-device streaming feature within the Native protocol
+- Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
+- Native config protocol bumped to version 2
 
-11.09.2024
-Description:
-    - Enable client-to-device streaming feature within the Native protocol
-    - Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
-    - Native config protocol bumped to version 2
+# 11.09.2024
+## Description:
+- Enable openDAQ servers to be added to the component tree under the device
 
-11.09.2024
-Description:
-    - Enable openDAQ servers to be added to the component tree under the device
-
-Required integration changes:
-    - Breaks binary compatibility
-
+# Required integration changes:
+##    - Breaks binary compatibility
+```
 -m[interface] IServer : public IBaseObject
 +m[interface] IServer : public IFolder
 + [function] IServer::getSignals(IList** signals, ISearchFilter* searchFilter = nullptr)
@@ -127,19 +120,19 @@ Required integration changes:
 + [function] IDevice::getServers(IList** servers)
 
 + [function] IModuleManagerUtils::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr)
+```
+# 28.08.2024
+## Description:
+- Multi reader returns events on first read
+- Set default skip event for block reader to false
+# Required integration changes:
+- By default creating block reader with signal had skip events true. Now skip events set to false
+- Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
 
-28.08.2024
-Description:
-    - Multi reader returns events on first read
-    - Set default skip event for block reader to false
-Required integration changes:
-    - By default creating block reader with signal had skip events true. Now skip events set to false
-    - Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
-
-28.08.2024
-Description:
-    - Improving save/load mechanism for restoring input ports connection
-
+# 28.08.2024
+## Description:
+- Improving save/load mechanism for restoring input ports connection
+```
 + [interface] IComponentUpdateContext : public IBaseObject
 + [function] IComponentUpdateContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
 + [function] IComponentUpdateContext::getInputPortConnections(IString* parentId, IDict** connections)
@@ -151,35 +144,35 @@ Description:
 -m[function] IUpdatable::updateEnded()
 +m[function] IUpdatable::updateEnded(IBaseObject* context)
 + [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
+```
+# 26.08.2024
+## Description:
+- Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
 
-26.08.2024
-Description:
-    - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
+## Required integration changes:
+- None, however, disconnection errors can now be identified by a specific error type.
 
-Required integration changes:
-    - None, however, disconnection errors can now be identified by a specific error type.
+#  21.08.2024
+## Description:
+- Reference Domain Info was added as an interface that gives additional information about the reference domain
+- Reference Domain Info has getters for:
+    - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
+    - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
+    - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
+        - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
+        - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
+        - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
+        - Unknown
+    - Uses Offset
+- There is also a builder available for creating Reference Domain Info
+- Reference Domain Info is a part of two interfaces:
+    - Device Domain
+    - Data Descriptor
+- Reference Domain Info is currently only supported over Native, not over OPC UA or LT Streaming protocols (this will cause two data descriptor changed events to be sent when combining supported and unsupported protocols for configuration/streaming - for example OPC UA and Native streaming)
 
-21.08.2024
-Description:
-    - Reference Domain Info was added as an interface that gives additional information about the reference domain
-    - Reference Domain Info has getters for:
-        - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
-        - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
-        - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
-            - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
-            - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
-            - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
-            - Unknown
-        - Uses Offset
-    - There is also a builder available for creating Reference Domain Info
-    - Reference Domain Info is a part of two interfaces:
-        - Device Domain
-        - Data Descriptor
-    - Reference Domain Info is currently only supported over Native, not over OPC UA or LT Streaming protocols (this will cause two data descriptor changed events to be sent when combining supported and unsupported protocols for configuration/streaming - for example OPC UA and Native streaming)
-
-Required integration changes:
-    - None, however, users are encouraged to use Reference Domain Info
-
+## Required integration changes:
+- None, however, users are encouraged to use Reference Domain Info
+```
 + [interface] IReferenceDomainInfo : public IBaseObject
 + [function] IReferenceDomainInfo::getReferenceDomainId(IString** referenceDomainId)
 + [function] IReferenceDomainInfo::getReferenceDomainOffset(IInteger** referenceDomainOffset)
@@ -208,26 +201,26 @@ Required integration changes:
 + [function] IDataDescriptor::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
 + [function] IDataDescriptorBuilder::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
 + [function] IDataDescriptorBuilder::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
-
-12.08.2024
-Description:
-    - Changed logic of IProperty::getOnPropertyValue events.
-    - Now returns the owner's event when called, if the owner is assigned.
-    - A new function is available to get the class's event. That function is used internally to trigger class value change events.
-    
+```
+# 12.08.2024
+## Description:
+- Changed logic of IProperty::getOnPropertyValue events.
+- Now returns the owner's event when called, if the owner is assigned.
+- A new function is available to get the class's event. That function is used internally to trigger class value change events.
+```
 + [function] IEvent::getSubscribers(IList** subscribers)
 + [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
 + [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
-
-12.08.2024
-Description
-    - Integration the Sync Component
-    - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
-Required integration changes:
-    - Each device now has a sync component, which is visible in default components as `Synchronization`.
-    - To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
-    - Sync component is replacing dummy property object in the ref device.
-
+```
+# 12.08.2024
+## Description
+- Integration the Sync Component
+- Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
+## Required integration changes:
+- Each device now has a sync component, which is visible in default components as `Synchronization`.
+- To set Mode selection values or Status.State, develop can set custom values for property ModeOptions or Status.StateOptions.
+- Sync component is replacing dummy property object in the ref device.
+```
 + [interface] ISyncComponent : public IComponent
 + [function] ISyncComponent::getSyncLocked(Bool* synchronizationLocked)
 + [function] ISyncComponent::getSelectedSource(Int* selectedSource)
@@ -240,7 +233,7 @@ Required integration changes:
 + [function] ISyncComponentPrivate::removeInterface(IString* syncInterfaceName);
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
-
+```
 08.08.2024
 Description:
     - Add get/setValue method to IProperty

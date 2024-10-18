@@ -19,10 +19,10 @@
 #include <opendaq/tags_ptr.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/core_event_args_ids.h>
-#include "opcuatms_server/objects/tms_server_property_object.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms_server/tms_server_context.h"
-#include "open62541/daqdevice_nodeids.h"
+#include <opcuatms_server/objects/tms_server_property_object.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms_server/tms_server_context.h>
+#include <open62541/daqdevice_nodeids.h>
 
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -123,31 +123,33 @@ bool TmsServerComponent<Ptr>::createOptionalNode(const OpcUaNodeId& nodeId)
 template <typename Ptr>
 void TmsServerComponent<Ptr>::bindCallbacks()
 {
-    this->addReadCallback("Tags",[this]()
-      {
-          const TagsPtr tags = this->object.getTags();
-          if (tags.assigned())
-              return VariantConverter<IString>::ToArrayVariant(tags.getList());
-          return VariantConverter<IString>::ToArrayVariant(List<IString>());
-      });
+    this->addReadCallback("Tags",[this]
+        {
+            const TagsPtr tags = this->object.getTags();
+            if (tags.assigned())
+                return VariantConverter<IString>::ToArrayVariant(tags.getList());
+            return VariantConverter<IString>::ToArrayVariant(List<IString>());
+        });
 
-    this->addReadCallback("Active", [this]() { return VariantConverter<IBoolean>::ToVariant( this->object.getActive()); });
+    this->addReadCallback("Active", [this] { return VariantConverter<IBoolean>::ToVariant( this->object.getActive()); });
     if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
-        this->addWriteCallback("Active", [this](const OpcUaVariant& variant){
-            this->object.setActive(VariantConverter<IBoolean>::ToDaqObject(variant));
-            return UA_STATUSCODE_GOOD;
-        });
+        this->addWriteCallback("Active", [this] (const OpcUaVariant& variant)
+            {
+                this->object.setActive(VariantConverter<IBoolean>::ToDaqObject(variant));
+                return UA_STATUSCODE_GOOD;
+            });
     }
 
-	this->addReadCallback("Visible", [this]() { return VariantConverter<IBoolean>::ToVariant( this->object.getVisible()); });
+	this->addReadCallback("Visible", [this] { return VariantConverter<IBoolean>::ToVariant( this->object.getVisible()); });
 
     if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
-        this->addWriteCallback("Visible", [this](const OpcUaVariant& variant){
-            this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));
-            return UA_STATUSCODE_GOOD;
-        });
+        this->addWriteCallback("Visible", [this] (const OpcUaVariant& variant) 
+            {
+                this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));
+                return UA_STATUSCODE_GOOD;
+            });
     }
 
     DisplayNameChangedCallback nameChangedCallback =

@@ -1,10 +1,10 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/input_port_ptr.h>
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_server/objects/tms_server_input_port.h"
-#include "opcuatms_server/objects/tms_server_signal.h"
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_server/objects/tms_server_input_port.h>
+#include <opcuatms_server/objects/tms_server_signal.h>
 #include "tms_server_test.h"
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
@@ -12,7 +12,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/tags_private_ptr.h>
 #include <open62541/daqbsp_nodeids.h>
-#include <test_input_port_notifications.h>
+#include "test_input_port_notifications.h"
 #include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;

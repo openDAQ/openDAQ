@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_channel_impl.h"
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_client/objects/tms_client_channel_impl.h>
 #include <opendaq/channel_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS

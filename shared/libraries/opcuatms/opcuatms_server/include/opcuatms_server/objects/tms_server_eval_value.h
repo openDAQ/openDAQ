@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include "coreobjects/eval_value_factory.h"
-#include "opcuatms_server/objects/tms_server_variable.h"
+#include <coreobjects/eval_value_factory.h>
+#include <opcuatms_server/objects/tms_server_variable.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

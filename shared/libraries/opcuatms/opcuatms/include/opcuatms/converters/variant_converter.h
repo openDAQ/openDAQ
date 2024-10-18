@@ -16,11 +16,11 @@
 
 #pragma once
 #include <type_traits>
-#include "opcuashared/opcuavariant.h"
-#include "opcuatms/opcuatms.h"
-#include "opcuatms/type_mappings.h"
-#include "opcuashared/opcuaobject.h"
-#include "opendaq/context_ptr.h"
+#include <opcuashared/opcuavariant.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms/type_mappings.h>
+#include <opcuashared/opcuaobject.h>
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

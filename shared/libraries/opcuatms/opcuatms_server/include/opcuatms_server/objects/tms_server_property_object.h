@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include "coreobjects/property_object_ptr.h"
-#include "opcuatms_server/objects/tms_server_object.h"
-#include "opcuatms_server/objects/tms_server_property.h"
+#include <coreobjects/property_object_ptr.h>
+#include <opcuatms_server/objects/tms_server_object.h>
+#include <opcuatms_server/objects/tms_server_property.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -52,6 +52,7 @@ public:
     void bindCallbacks() override;
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
     void setMethodParentNodeId(const opcua::OpcUaNodeId& methodParentNodeId);
+    void addProperty(const TmsServerPropertyPtr& childProperty);
     std::unordered_set<std::string> ignoredProps;
 
 protected:
@@ -59,7 +60,7 @@ protected:
     void triggerEvent(PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args);
     opcua::OpcUaNodeId getTmsTypeId() override;
     void addPropertyNode(const std::string& name, const opcua::OpcUaNodeId& parentId);
-    void bindPropertyCallbacks(const std::string& name);
+    void bindPropertyCallbacks(const std::string& nodeName, const std::string& propName);
 
     std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyPtr> childProperties;
     std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyObjectPtr> childObjects;
@@ -75,6 +76,7 @@ protected:
     StringPtr name;
     PropertyInternalPtr objProp;
     opcua::OpcUaNodeId methodParentNodeId;
+    uint32_t numberinList = 0;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

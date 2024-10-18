@@ -17,10 +17,10 @@
 #pragma once
 
 #include "tms_client_context.h"
-#include "coretypes/function.h"
-#include "coretypes/coretype.h"
-#include "opcuashared/opcuanodeid.h"
-#include "opendaq/context_ptr.h"
+#include <coretypes/function.h>
+#include <coretypes/coretype.h>
+#include <opcuashared/opcuanodeid.h>
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

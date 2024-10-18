@@ -16,9 +16,9 @@
 
 #pragma once
 #include <opendaq/device_ptr.h>
-#include "opcuatms/opcuatms.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_context.h"
+#include <opcuatms/opcuatms.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_client/objects/tms_client_context.h>
 #include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA

@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include "opcuatms/opcuatms.h"
-#include "opcuaclient/opcuaclient.h"
+#include <opcuatms/opcuatms.h>
+#include <opcuaclient/opcuaclient.h>
 #include <mutex>
 #include <opcuaclient/cached_reference_browser.h>
 #include <opcuaclient/attribute_reader.h>

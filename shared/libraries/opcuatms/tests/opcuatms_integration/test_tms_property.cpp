@@ -1,9 +1,9 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "tms_object_integration_test.h"
-#include "coreobjects/property_factory.h"
-#include "coreobjects/property_object_class_ptr.h"
-#include "opcuatms_server/objects/tms_server_property.h"
-#include "opcuatms_client/objects/tms_client_property_factory.h"
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_class_ptr.h>
+#include <opcuatms_server/objects/tms_server_property.h>
+#include <opcuatms_client/objects/tms_client_property_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <opendaq/context_factory.h>
 

@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include "coretypes/coretype.h"
-#include "coretypes/procedure.h"
-#include "opcuashared/opcuanodeid.h"
+#include <coretypes/coretype.h>
+#include <coretypes/procedure.h>
+#include <opcuashared/opcuanodeid.h>
 #include "tms_client_context.h"
-#include "opendaq/context_ptr.h"
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

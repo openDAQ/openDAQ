@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #pragma once
-#include "opcuatms_client/objects/tms_client_context.h"
-#include "opcuatms_client/objects/tms_client_device_impl.h"
+#include <opcuatms_client/objects/tms_client_context.h>
+#include <opcuatms_client/objects/tms_client_device_impl.h>
 #include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS

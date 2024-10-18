@@ -1,6 +1,6 @@
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/struct_converter.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/struct_converter.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

@@ -18,7 +18,7 @@
 #include <opcuatms/opcuatms.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/instance_ptr.h>
-#include "opcuaserver/opcuaserver.h"
+#include <opcuaserver/opcuaserver.h>
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms_server/tms_server_context.h>
 

@@ -16,13 +16,13 @@
 
 #pragma once
 #include <opendaq/device_ptr.h>
-#include "opcuatms_server/objects/tms_server_function_block.h"
-#include "opcuatms_server/objects/tms_server_channel.h"
-#include "opcuatms_server/objects/tms_server_folder.h"
-#include "opcuatms_server/objects/tms_server_component.h"
-#include "opcuatms_server/objects/tms_server_property_object.h"
-#include "opcuatms_server/objects/tms_server_function_block_type.h"
-#include "opcuatms_server/objects/tms_server_sync_component.h"
+#include <opcuatms_server/objects/tms_server_function_block.h>
+#include <opcuatms_server/objects/tms_server_channel.h>
+#include <opcuatms_server/objects/tms_server_folder.h>
+#include <opcuatms_server/objects/tms_server_component.h>
+#include <opcuatms_server/objects/tms_server_property_object.h>
+#include <opcuatms_server/objects/tms_server_function_block_type.h>
+#include <opcuatms_server/objects/tms_server_sync_component.h>
 
 #include <list>
 

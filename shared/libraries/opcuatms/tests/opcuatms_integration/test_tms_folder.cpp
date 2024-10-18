@@ -1,11 +1,11 @@
-#include "coreobjects/property_object_factory.h"
-#include "opcuatms_client/objects/tms_client_folder_factory.h"
-#include "opcuatms_server/objects/tms_server_folder.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/property_object_factory.h>
+#include <opcuatms_client/objects/tms_client_folder_factory.h>
+#include <opcuatms_server/objects/tms_server_folder.h>
+#include <opendaq/context_factory.h>
 #include "tms_object_integration_test.h"
-#include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opendaq/io_folder_factory.h"
-#include "opendaq/mock/mock_channel_factory.h"
+#include <opcuatms_client/objects/tms_client_io_folder_factory.h>
+#include <opendaq/io_folder_factory.h>
+#include <opendaq/mock/mock_channel_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;

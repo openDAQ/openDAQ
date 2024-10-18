@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "tms_object_integration_test.h"
 #include <opendaq/function_block_type_factory.h>
 #include <opcuatms_server/objects/tms_server_function_block_type.h>

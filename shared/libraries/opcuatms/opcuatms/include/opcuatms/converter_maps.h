@@ -16,14 +16,14 @@
 
 #pragma once
 
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/selection_converter.h"
-#include "opendaq/data_descriptor_ptr.h"
-#include "open62541/daqbt_nodeids.h"
-#include "open62541/daqbsp_nodeids.h"
-#include "open62541/daqhbk_nodeids.h"
-#include "open62541/nodeids.h"
-#include "opendaq/function_block_type_ptr.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/selection_converter.h>
+#include <opendaq/data_descriptor_ptr.h>
+#include <open62541/daqbt_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
+#include <open62541/daqhbk_nodeids.h>
+#include <open62541/nodeids.h>
+#include <opendaq/function_block_type_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

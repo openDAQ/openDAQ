@@ -8,8 +8,8 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/signal_factory.h>
 #include <testutils/memcheck_listener.h>
-#include "websocket_streaming/websocket_streaming_server.h"
-#include "stream/WebsocketClientStream.hpp"
+#include <websocket_streaming/websocket_streaming_server.h>
+#include <stream/WebsocketClientStream.hpp>
 #include <spdlog/spdlog.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/search_filter_factory.h>

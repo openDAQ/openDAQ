@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>

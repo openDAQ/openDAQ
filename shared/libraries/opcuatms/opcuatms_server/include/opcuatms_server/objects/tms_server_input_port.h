@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/input_port_ptr.h>
-#include "opcuatms_server/objects/tms_server_component.h"
+#include <opcuatms_server/objects/tms_server_component.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

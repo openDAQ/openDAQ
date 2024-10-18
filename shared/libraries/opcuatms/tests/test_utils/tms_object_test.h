@@ -16,8 +16,8 @@
 
 #pragma once
 #include <gtest/gtest.h>
-#include "opcuaclient/opcuaclient.h"
-#include "opcuaserver/opcuaserver.h"
+#include <opcuaclient/opcuaclient.h>
+#include <opcuaserver/opcuaserver.h>
 
 class TmsObjectTest : public testing::Test
 {

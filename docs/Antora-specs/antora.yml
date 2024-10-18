@@ -1,6 +1,6 @@
 name: opendaq
 title: openDAQ protocols specification
-version: opendaq_version
+version: latest_dev_opendaq_version
 start_page: ROOT:overview.adoc
 asciidoc:
   attributes:

@@ -262,8 +262,8 @@ than "min read count" samples in the queue and there's an event after those samp
 - Reader improvement
 - Implementing reader builder for all Readers
 - Populate connection methods 
-Required integration changes
-- Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
+## Required integration changes
+- Its refused to create reader with input port which connected to signal, so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
 - In first read, reader returns first event packet
 - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
 - reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true. 
@@ -385,7 +385,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 ## Required integration changes
 - Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
-- If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs. eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
+- If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs, eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
 - Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
 
 # 10.07.2024

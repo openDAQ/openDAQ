@@ -434,7 +434,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 -m [function] IInstanceBuilder::getDiscoveryServices
 +m [function] IInstanceBuilder::getDiscoveryServers
 ``` 
-17.06.2024
+# 17.06.2024
 ## Description
 - Add StreamingType object
 - Change ComponentType objects to use builder pattern

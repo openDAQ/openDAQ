@@ -467,6 +467,9 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
         std::scoped_lock lock(sync);
         if (!loggingEnabled)
             return "";
+
+        if (id != loggingPath)
+            return "";
     }
     
     std::ifstream file(loggingPath.toStdString(), std::ios::binary);

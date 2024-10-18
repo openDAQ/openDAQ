@@ -234,40 +234,41 @@ IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 ```
-08.08.2024
-Description:
-    - Add get/setValue method to IProperty
-    - Helpers allowing easier access to the property's value when iterating through an object's properties
+# 08.08.2024
+## Description:
+- Add get/setValue method to IProperty
+- Helpers allowing easier access to the property's value when iterating through an object's properties
     
 + [function] IProperty::getValue(IBaseObject** value)
 + [function] IProperty::setValue(IBaseObject* value)
 
-26.07.2024
-Description:
-    - Add method to IPropertyObject to detect begin/end update status
-Required integration changes:
+# 26.07.2024
+## Description:
+- Add method to IPropertyObject to detect begin/end update status
+##Required integration changes:
     - Breaks binary compatibility
-
+```
 + [function] IPropertyObject::getUpdating(Bool* updating)
-
-25.07.2024
-Description:
-    - Add user context to json serializer
+```
+# 25.07.2024
+## Description:
+- Add user context to json serializer
+```
 + [function] ISerializer::getUser(IBaseObject** user)
 + [function] ISerializer::setUser(IBaseObject* user)
-
-23.07.2024
-Description
-    - Reader improvement
-    - Implementing reader builder for all Readers
-    - Populate connection methods 
+```
+# 23.07.2024
+## Description
+- Reader improvement
+- Implementing reader builder for all Readers
+- Populate connection methods 
 Required integration changes:
-    - Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
-    - In first read, reader returns first event packet
-    - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
-    - reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true. 
-    To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
-
+- Its refused to create reader with input port which connected to signal. so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
+- In first read, reader returns first event packet
+- to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
+- reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true. 
+To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
+```
 + [function] IReader::getEmpty(Bool* empty)
 
 + [function] IBlockReaderBuilder::setSkipEvents(Bool skipEvents)
@@ -350,7 +351,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IConnection::getSamplesUntilNextGapPacket(SizeT* samples)
 + [function] IConnection::hasEventPacket(Bool* hasEventPacket)
 + [function] IConnection::hasGapPacket(Bool* hasGapPacket)
-
+```
 22.07.2024
 Description:
     - Standardize cases to PascalCase

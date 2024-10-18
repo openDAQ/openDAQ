@@ -293,6 +293,16 @@ ErrCode INTERFACE_FUNC InstanceImpl::isLocked(Bool* locked)
     return rootDevice->isLocked(locked);
 }
 
+ErrCode INTERFACE_FUNC InstanceImpl::getAvailableLogFiles(IList** logFiles)
+{
+    return rootDevice->getAvailableLogFiles(logFiles);
+}
+
+ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
+{
+    return rootDevice->getLog(log, id, size, offset);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);

@@ -35,7 +35,7 @@ if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
         set(TESTING_LIBS gtest gmock ${TESTING_LIBS})
     endif()
 
-    set(GTEST_TARGET GTest::gtest)
+    set(GTEST_TARGET GTest::gtest_main)
     set(GMOCK_TARGET GTest::gmock)
 
     if (TARGET gtest)

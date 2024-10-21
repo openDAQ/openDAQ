@@ -1,15 +1,17 @@
 # 12.04.2024
 ## Description
-  - Implement BlockReaderStatus
+- Implement BlockReaderStatus
+```
 + [interface] IBlockReaderStatus
 + [function] IBlockReaderStatus::getReadSamples(SizeT* readSamples)
 + [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
-
+```
 # 29.03.2024
 ## Description
-	- Grouping discovered deivces with IServerCapability
-	- Replacing IStreamingInfo with IServerCapability
+- Grouping discovered deivces with IServerCapability
+- Replacing IStreamingInfo with IServerCapability
 
+```
 - [interface] IStreamingInfo
 - [function] IStreamingInfo::getPrimaryAddress(IString** address)
 - [function] IStreamingInfo::getProtocolId(IString** protocolId)
@@ -55,11 +57,12 @@
 +m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr)
 -m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config)
 +m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability)
+```
 
 # 26.03.2024
 ## Description
-  - Implement multi reader builder
-
+- Implement multi reader builder
+```
 + [interface] IMultiReaderBuilder
 + [interface] IMultiReaderBuilder::build(IMultiReader** multiReader)
 + [interface] IMultiReaderBuilder::addSignal(ISignal* signal)
@@ -80,11 +83,11 @@
 + [factory] MultiReaderBuilderPtr MultiReaderBuilder()
 
 + [factory] MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
-
+```
 # 26.03.2024:
 ## Description
-	- Fix outdated data descriptor before subscription
-
+- Fix outdated data descriptor before subscription
+```
 -m [function] Bool IMirroredSignalPrivate::triggerEvent(const EventPacketPtr& eventPacket)
 +m [function] ErrCode IMirroredSignalPrivate::triggerEvent(IEventPacket* eventPacket, Bool* forward)
 -m [function] ErrCode IMirroredSignalPrivate::INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming)
@@ -99,22 +102,22 @@
 + [function] ErrCode IMirroredSignalPrivate::setMirroredDataDescriptor(IDataDescriptor* descriptor)
 + [function] ErrCode IMirroredSignalPrivate::getMirroredDomainSignal(IMirroredSignalConfig** domainSignals)
 + [function] ErrCode IMirroredSignalPrivate::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
-
+```
 # 25.04.2024
 ## Description
-    Constant rule rework in openDAQ core and support for native streaming
-    
+- Constant rule rework in openDAQ core and support for native streaming
+```
 -m [factory] DataRulePtr ConstantDataRule(const NumberPtr& value)
 +m [factory] DataRulePtr ConstantDataRule()
 +  [factory] template <class T> DataPacketPtr ConstantDataPacketWithDomain(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, T initialValue, const std::vector<ConstantPosAndValue<T>>& otherValues = {})
 -m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr)
 +m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr, SizeT bufferSize = std::numeric_limits<SizeT>::max())
-
+```
 # 21.03.2024
 ## Description
-	- Move create fb/device logic to module manager
-	- Move client device logic for adding fbs/devices to device_impl
-
+- Move create fb/device logic to module manager
+- Move client device logic for adding fbs/devices to device_impl
+```
 + [interface] IModuleManagerUtils
 + [function] IModuleManagerUtils::getAvailableDevices(IList** availableDevices)
 + [function] IModuleManagerUtils::getAvailableDeviceTypes(IDict** deviceTypes)
@@ -123,43 +126,43 @@
 + [function] IModuleManagerUtils::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr)
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
-
+```
 # 11.03.2024
 ## Description
-	- Make DeviceDomain a standalone object in DeviceImpl
-		- Devices no longer override the DeviceDomain getters, but instead set it via the protected `setDeviceDomain` method
-		- Changing the DeviceDomain triggers a core event
-	- Move getTicksSinceOrigin to IDevice
-	
+- Make DeviceDomain a standalone object in DeviceImpl
+	- Devices no longer override the DeviceDomain getters, but instead set it via the protected `setDeviceDomain` method
+	- Changing the DeviceDomain triggers a core event
+- Move getTicksSinceOrigin to IDevice
+```
 + [factory] DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit)
 - [function] IDeviceDomain::getTicksSinceOrigin(UInt* ticks)
 + [function] IDevice::getTicksSinceOrigin(UInt* ticks)
 + [factory] CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
-
+```
 # 11.03.2024
 ## Description
-    Update native transport protocol - initiate streaming only upon client request;
-    New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
+- Update native transport protocol - initiate streaming only upon client request;
+- New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
 
 # 08.03.2024
 ## Description
-  - Propagate server IUpdatable::Update to native protocol clients
-  - Properly handle nested property objects in native protocol
-
+- Propagate server IUpdatable::Update to native protocol clients
+- Properly handle nested property objects in native protocol
+```
 + [function] IDeserializer::callCustomProc(IProcedure* customDeserialize, IString* serialized)
 + [function] ISerializedObject::isRoot(Bool* isRoot)
 + [function] IUpdatable::updateEnded()
-
+```
 # 26.02.2024
 ## Description
-  - Integrating config provider options in modules
-
+- Integrating config provider options in modules
+```
 + [function] IModule::getId(IString** id)
-
+```
 # 26.02.2024
 ## Description
-  - Streaming framework refactoring
-
+- Streaming framework refactoring
+```
 - [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
 - [function] IMirroredSignalPrivate::hasMatchingId(const StringPtr& signalId);
 
@@ -173,13 +176,13 @@
 +m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId);
 
 + [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
-
+```
 # 25.02.2024
 ## Description
-  - readers returns IReaderStatus
-  - Support creating readers with IInputPort
-  - Add callback on available packet for reader
-
+- Readers return IReaderStatus
+- Support creating readers with IInputPort
+- Add callback on available packet for reader
+```
 + [interface] IReaderStatus : public IBaseObject
 + [function] IReaderStatus::getReadStatus(ReadStatus* status)
 + [function] IReaderStatus::getEventPacket(IEventPacket** packet)
@@ -221,26 +224,26 @@
 
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
-
+```
 # 25.02.2024
 ## Description
-  - rename search filter search::SearchId to search::InterfaceId
-  - add local ID search filter
-
+- rename search filter search::SearchId to search::InterfaceId
+- add local ID search filter
+```
 -m [factory] SearchFilterPtr SearchId(IntfID intfId)
 +m [factory] SearchFilterPtr InterfaceId(const IntfID& intfId)
 + [factory] SearchFilterPtr LocalId(const StringPtr& localId)
-
+```
 # 12.02.2024
 ## Description
-  - Add module implementations for device based on the native config protocol
-
+- Add module implementations for device based on the native config protocol
+```
 + [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
-
+```
 # 06.02.2024
 ## Description
-	- Support configuring instance builder from config provider
-
+- Support configuring instance builder from config provider
+```
 -m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager)
 +m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const DictPtr<IString, IBaseObject> options)
 
@@ -253,20 +256,20 @@
 + [factory] ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
 + [factory] ConfigProviderPtr EnvConfigProvider()
 + [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
-
+```
 # 05.02.2024
 ## Description
-	- Add core event support to config client
-
+- Add core event support to config client
+```
 -m [function] IInstance::findComponent(IComponent* component, IString* id, IComponent** outComponent)
 +m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
 + [function] ITags::set(IList* tags) = 0;
-
+```
 # 5.2.2024
 ## Description
-  - Add Component status implementations
-  - Add method getIntValue for Enumeration object
-
+- Add Component status implementations
+- Add method getIntValue for Enumeration object
+```
 + [function] IEnumeration::getIntValue(Int* value)
 
 + [function] IComponent::getStatusContainer(IComponentStatus** statusContainer)
@@ -280,26 +283,26 @@
 + [function] IComponentStatusContainer::getStatuses(IDict** statuses)
 + [function] IComponentStatusContainer::getOnStatusChanged(IEvent** event)
 + [factory] ComponentStatusContainerPtr ComponentStatusContainer()
-
+```
 # 23.01.2024
 ## Description
-	- Add debug logger sink for testing purpose
-
+- Add debug logger sink for testing purpose
+```
 + [interface] ILastMessageLoggerSinkPrivate : public IBaseObject
 + [function] ILastMessageLoggerSinkPrivate::getLastMessage(IString** lastMessage)
 + [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
 + [factory] LoggerSinkPtr LastMessageLoggerSink()
-
+```
 # 1.2.2024
-
+```
 +m [function] IMultiReader::skipSamples
-
+```
 # 23.1.2024
 ## Description
-	- Change ITagsConfig to ITagsPrivate and remove inheritance
-	- Add TagsChanged core event
-	- Make Tags changeable after creation (Tags are no longer freezable)
-	
+- Change ITagsConfig to ITagsPrivate and remove inheritance
+- Add TagsChanged core event
+- Make Tags changeable after creation (Tags are no longer freezable)
+```
 -m [interface] ITagsConfig : public ITags
 +m [interface] ITagsPrivate : public IBaseObject
 - [factory] inline TagsConfigPtr TagsCopy(TagsPtr tags)
@@ -307,11 +310,11 @@
 +m [factory] inline TagsPtr Tags()
 -m [function] IComponent::getTags(ITagsConfig** tags)
 -m [function] IComponent::getTags(ITags** tags)
-
+```
 # 22.1.2024
 ## Description
-  - Support for external deserialization factory
-  
+- Support for external deserialization factory
+```
 -m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IBaseObject** object)
 +m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 -m [function] ISerializedObject::readList(IString* key, IBaseObject* context, IList** list)
@@ -325,14 +328,14 @@
 +  [function] IUpdatable::serializeForUpdate(ISerializer* serializer)
 +  [interface] IComponentDeserializeContext: public IBaseObject
 +  [interface] IDeserializeComponent: public IBaseObject
-
+```
 # 16.01.2024
 ## Description
-Nested object-type property enhancement
-  - Object-type property default values are now frozen when added to Property objects 
-  - Said default values are cloned as local values that can be modified by users
-  - Property object core events now contain the path to the property if the property is contained within a nested property object
-
+- Nested object-type property enhancement
+    - Object-type property default values are now frozen when added to Property objects 
+    - Said default values are cloned as local values that can be modified by users
+    - Property object core events now contain the path to the property if the property is contained within a nested property object
+```
 + [function] IPropertyObjectInternal::clone(IPropertyObject** cloned)
 + [function] IPropertyObjectInternal::setPath(IString* path)
 -m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
@@ -343,19 +346,19 @@ Nested object-type property enhancement
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
 -m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
-
+```
 # 12.01.2024
 ## Description
-Search filters, visible flag, component attributes
-  - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
-  - Add visible flag to Component
-  - Default component getters were modified to return only components with visible==true
-  - PropertyChanged event packets were removed
-  - ComponentModified core event was changed to AttributeModified
-  - Attribute lock was added to components preventing changes to locked attributes
-  - Name and Description are no longer properties, but component attributes
-  - Add per-component core event triggers
-  
+- Search filters, visible flag, component attributes
+	- Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
+  	- Add visible flag to Component
+  	- Default component getters were modified to return only components with visible==true
+  	- PropertyChanged event packets were removed
+  	- ComponentModified core event was changed to AttributeModified
+  	- Attribute lock was added to components preventing changes to locked attributes
+  	- Name and Description are no longer properties, but component attributes
+  	- Add per-component core event triggers
+```
 + [interface] ISearchFilter : public IBaseObject
 + [function] ISearchFilter::acceptsComponent(IComponent* component, Bool* accepts)
 + [function] ISearchFilter::visitChildren(IComponent* component, Bool* visit)
@@ -420,11 +423,11 @@ Search filters, visible flag, component attributes
 
 -m [factory] CoreEventArgsPtr CoreEventArgsComponentModified(const DictPtr<IString, IBaseObject>& modifiedAttributes)
 +m [factory] CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attributeName, const BaseObjectPtr& attributeValue)
-
+```
 # 11.01.2024
 ## Description
-  - Add Enumeration Core type implementations
-
+- Add Enumeration Core type implementations
+```
 + [interface] IEnumerationType : public IType
 + [function] IEnumerationType::getEnumeratorNames(IList** names)
 + [function] IEnumerationType::getAsDictionary(IDict** dictionary)
@@ -437,18 +440,18 @@ Search filters, visible flag, component attributes
 + [function] IEnumeration::getEnumerationType(IEnumerationType** type)
 + [function] IEnumeration::getValue(IString** value)
 + [factory] EnumerationPtr Enumeration(const StringPtr& typeName, const StringPtr& value, const TypeManagerPtr& typeManager)
-
+```
 # 03.01.2024
 ## Description
-  - Add method getLastValue in ISignal
-
+- Add method getLastValue in ISignal
+```
 + [function] ISignal::getLastValue(IBaseObject** value)
 + [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
-
+```
 # 18.12.2023
 ## Description
-  - Builder pattern implementation for IInstance
-
+- Builder pattern implementation for IInstance
+```
 + [interface] IInstanceBuilder : public IBaseObject
 + [function] IInstanceBuilder::build(IInstance** instance)
 + [function] IInstanceBuilder::setLogger(ILogger* logger)
@@ -476,13 +479,13 @@ Search filters, visible flag, component attributes
 
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
-
+```
 # 13.12.2023
 ## Description
-  - Add Core event to Context object that triggers on core changes
-  - Add automatic triggers for Property Object changes
-     - Add/Remove property, Value changed, Update ended
-	 
+- Add Core event to Context object that triggers on core changes
+- Add automatic triggers for Property Object changes
+    - Add/Remove property, Value changed, Update ended
+``` 
 + [interface] ICoreEventArgs : public IEventArgs
 + [function] ICoreEventArgs::getParameters(IDict** parameters)
 + [factory] CoreEventArgsPtr CoreEventArgs(Int id, const DictPtr<IString, IBaseObject>& parameters)
@@ -492,11 +495,11 @@ Search filters, visible flag, component attributes
 + [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const StringPtr& propName)
 
 + [function] IContext::getOnCoreEvent(IEvent** event)
-
+```
 # 7.12.2023
 ## Description
-  - Add Struct Builder for generic struct creation
-  
+- Add Struct Builder for generic struct creation
+```
 + [interface] IStructBuilder
 + [function] IStructBuilder::build(IStruct** struct_)
 + [function] IStructBuilder::getStructType(IStructType** type)
@@ -510,11 +513,11 @@ Search filters, visible flag, component attributes
 + [factory] StructPtr StructFromBuilder(const StructBuilderPtr& builder)
 + [factory] StructBuilderPtr StructBuilder(const StringPtr& name, const TypeManagerPtr& typeManager)
 + [factory] StructBuilderPtr StructBuilder(const StructPtr& struct_)
-
+```
 # 7.12.2023
 ## Description
 - Add subscribe/unsubscribe completion acknowledgement Events
-
+```
 + [function] IMirroredSignalConfig::getOnSubscribeComplete(IEvent** event)
 + [function] IMirroredSignalConfig::getOnUnsubscribeComplete(IEvent** event)
 
@@ -526,23 +529,23 @@ Search filters, visible flag, component attributes
 + [function] ISubscriptionEventArgs::getSubscriptionEventType(SubscriptionEventType* type)
 
 + [factory] SubscriptionEventArgsPtr SubscriptionEventArgs(const StringPtr& streamingConnectionString, SubscriptionEventType eventType)
-
+```
 # 5.12.2023
 ## Description
-  - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
-  - Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
-
+- Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
+- Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
+```
 + [function] IMultiReader::getTickResolution(IRatio** resolution)
 + [function] IMultiReader::getOrigin(IString** origin)
 + [function] IMultiReader::getOffset(void* domainStart)
-
+```
 # 28.11.2023
 
 ## Description
-Builder pattern improvement
-  - Expand builder classes with getters
-  - Support creating objects from builder
-
+- Builder pattern improvement
+    - Expand builder classes with getters
+    - Support creating objects from builder
+```
 + [function] IPropertyBuilder::getValueType(CoreType* type)
 + [function] IPropertyBuilder::getName(IString** name)
 + [function] IPropertyBuilder::getDescription(IString** description)
@@ -609,13 +612,13 @@ Builder pattern improvement
 + [function] IScalingBuilder::getScalingType(ScalingType* type)
 + [function] IScalingBuilder::getParameters(IDict** parameters)
 + [factory] ScalingPtr ScalingFromBuilder(const ScalingBuilderPtr& builder)
-
+```
 # 23.11.2023
 
 ## Description
- - setDescription, getDescription, and setName were moved to IComponent.
- - OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
- 
+- setDescription, getDescription, and setName were moved to IComponent.
+- OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
+```
 + [function] IComponent::setName(IString* name)
 + [function] IComponent::getDescription(IString** description)
 + [function] IComponent::setDescription(IString* description)
@@ -632,16 +635,16 @@ Builder pattern improvement
 +m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 -m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
-
+```
 # 17.11.2023
 
 ## Description
 
-Streaming framework changes:
-  - ISignalRemote renamed to IMirroredSignalConfig
-  - IMirroredSignalConfig inherits ISignalConfig
-  - Streaming source management methods moved from ISignalConfig to IMirroredSignalConfig
-
+- Streaming framework changes:
+    - ISignalRemote renamed to IMirroredSignalConfig
+    - IMirroredSignalConfig inherits ISignalConfig
+    - Streaming source management methods moved from ISignalConfig to IMirroredSignalConfig
+```
 - [function] ISignalConfig::getStreamingSources(IList** streamingConnectionStrings)
 - [function] ISignalConfig::setActiveStreamingSource(IString* streamingConnectionString)
 - [function] ISignalConfig::getActiveStreamingSource(IString** streamingConnectionString)
@@ -673,14 +676,14 @@ Streaming framework changes:
 
 + [function] ISignal::getStreamed(Bool* streamed)
 + [function] ISignal::setStreamed(Bool streamed)
-
+```
 # 22.03.2024
 
 ## Description
-  - Add support for multiple module search paths in ModuleManager
-
+- Add support for multiple module search paths in ModuleManager
+```
 + [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
 
 + [function] IInstanceBuilder::addModulePath(IString* path)
 + [function] IInstanceBuilder::getModulePathsList(IList** paths)
-
+```

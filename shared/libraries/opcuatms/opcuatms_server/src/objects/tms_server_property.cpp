@@ -1,12 +1,12 @@
-#include "opcuatms_server/objects/tms_server_property.h"
+#include <opcuatms_server/objects/tms_server_property.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_eval_value.h>
 #include <open62541/daqbt_nodeids.h>
 #include <open62541/types_daqbt_generated.h>
 #include <opcuatms/core_types_utils.h>
-#include "opcuatms/converters/variant_converter.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <open62541/daqbsp_nodeids.h>
 #include <coreobjects/unit_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -16,10 +16,13 @@ using namespace opcua;
 TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
-                                     const TmsServerContextPtr& tmsContext)
+                                     const TmsServerContextPtr& tmsContext,
+                                     const std::string& browseName)
     : Super(object, server, context, tmsContext)
+    , browseName(browseName)
 {
     objectInternal = object.asPtr<IPropertyInternal>(false);
+
     if (isReferenceType())
         hideReferenceTypeChildren();
     if (isNumericType())
@@ -36,8 +39,9 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
                                      const TmsServerContextPtr& tmsContext,
-                                     const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context, tmsContext)
+                                     const std::unordered_map<std::string, uint32_t>& propOrder,
+                                     const std::string& browseName)
+    : TmsServerProperty(object, server, context, tmsContext, browseName)
 {
     this->propOrder = propOrder;
     this->numberInList = propOrder.at(object.getName());
@@ -48,27 +52,33 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const ContextPtr& context,
                                      const TmsServerContextPtr& tmsContext,
                                      const PropertyObjectPtr& parent,
-                                     const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context, tmsContext, propOrder)
+                                     const std::unordered_map<std::string, uint32_t>& propOrder,
+                                     const std::string& browseName)
+    : TmsServerProperty(object, server, context, tmsContext, propOrder, browseName)
 {
     this->parent = parent;
 }
 
-std::string TmsServerProperty::getBrowseName()
+std::string TmsServerProperty::getPropertyName()
 {
     return this->object.getName();
+}
+
+std::string TmsServerProperty::getBrowseName()
+{
+    return this->browseName.empty() ? this->object.getName().toStdString() : this->browseName;
 }
 
 void TmsServerProperty::bindCallbacks()
 {
     if (!HiddenNodes.count("CoercionExpression"))
     {
-        addReadCallback("CoercionExpression", [this]() { return VariantConverter<IString>::ToVariant(object.getCoercer().getEval()); });
+        addReadCallback("CoercionExpression", [this] { return VariantConverter<IString>::ToVariant(object.getCoercer().getEval()); });
     }
 
     if (!HiddenNodes.count("ValidationExpression"))
     {
-        addReadCallback("ValidationExpression", [this]() { return VariantConverter<IString>::ToVariant(object.getValidator().getEval()); });
+        addReadCallback("ValidationExpression", [this] { return VariantConverter<IString>::ToVariant(object.getValidator().getEval()); });
     }
 
     for (auto childProp : childProperties)
@@ -77,26 +87,29 @@ void TmsServerProperty::bindCallbacks()
         auto parentObj = this->parent.getRef();
         if (!parentObj.getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved().assigned())
         {
-            addReadCallback(name, [this, name]() {
-                const auto value = this->parent.getRef().getPropertyValue(name);
-                return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
-            });
+            addReadCallback(name, [this, name]
+                {
+                    const auto value = this->parent.getRef().getPropertyValue(name);
+                    return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+                });
 
             if (!parentObj.supportsInterface<IFreezable>() || !parentObj.isFrozen())
             {
-                addWriteCallback(name, [this, name](const OpcUaVariant& variant) {
-                    const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-                    this->parent.getRef().setPropertyValue(name, value);
-                    return UA_STATUSCODE_GOOD;
-                });
+                addWriteCallback(name, [this, name](const OpcUaVariant& variant) 
+                    {
+                        const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+                        this->parent.getRef().setPropertyValue(name, value);
+                        return UA_STATUSCODE_GOOD;
+                    });
             }
         }
         else
         {
-            addReadCallback(name, [this, name]() {
-                const auto refProp = this->parent.getRef().getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
-                return VariantConverter<IBaseObject>::ToVariant(refProp.getEval(), nullptr, daqContext);
-            });
+                addReadCallback(name, [this, name]
+                {
+                    const auto refProp = this->parent.getRef().getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
+                    return VariantConverter<IBaseObject>::ToVariant(refProp.getEval(), nullptr, daqContext);
+                });
         }
 
     }
@@ -320,7 +333,7 @@ void TmsServerProperty::addReferenceTypeChildNodes()
         auto prop = parent.getRef().getProperty(propName);
         if (prop.getValueType() != ctObject)
         {
-            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), parent.getRef(),propOrder);
+            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), parent.getRef(), propOrder);
             auto childNodeId = serverInfo->getNodeId();
             childProperties.insert({childNodeId, serverInfo});
         }
@@ -330,28 +343,28 @@ void TmsServerProperty::addReferenceTypeChildNodes()
 void TmsServerProperty::addNumericTypeChildNodes()
 {
     if (!HiddenNodes.count("MinValue"))
-        registerEvalValueNode("MinValue", [this]() { return this->objectInternal.getMinValueUnresolved(); });
+        registerEvalValueNode("MinValue", [this] { return this->objectInternal.getMinValueUnresolved(); });
     if (!HiddenNodes.count("MaxValue"))
-        registerEvalValueNode("MaxValue", [this]() { return this->objectInternal.getMaxValueUnresolved(); });
+        registerEvalValueNode("MaxValue", [this] { return this->objectInternal.getMaxValueUnresolved(); });
     if (!HiddenNodes.count("SuggestedValues"))
-        registerEvalValueNode("SuggestedValues", [this]() { return this->objectInternal.getSuggestedValuesUnresolved(); });
+        registerEvalValueNode("SuggestedValues", [this] { return this->objectInternal.getSuggestedValuesUnresolved(); });
 }
 
 void TmsServerProperty::addSelectionTypeChildNodes()
 {
-    registerEvalValueNode("SelectionValues", [this]() { return this->objectInternal.getSelectionValuesUnresolved(); }, true);
+    registerEvalValueNode("SelectionValues", [this] { return this->objectInternal.getSelectionValuesUnresolved(); }, true);
 }
 
 void TmsServerProperty::addIntrospectionTypeChildNodes()
 {
     if (!HiddenNodes.count("IsReadOnly"))
-        registerEvalValueNode("IsReadOnly", [this]() { return this->objectInternal.getReadOnlyUnresolved(); });
+        registerEvalValueNode("IsReadOnly", [this] { return this->objectInternal.getReadOnlyUnresolved(); });
     if (!HiddenNodes.count("IsVisible"))
-        registerEvalValueNode("IsVisible", [this]() { return this->objectInternal.getVisibleUnresolved(); });
+        registerEvalValueNode("IsVisible", [this] { return this->objectInternal.getVisibleUnresolved(); });
     if (!HiddenNodes.count("DefaultValue"))
-        registerEvalValueNode("DefaultValue", [this]() { return this->objectInternal.getDefaultValueUnresolved(); });
+        registerEvalValueNode("DefaultValue", [this] { return this->objectInternal.getDefaultValueUnresolved(); });
     if (!HiddenNodes.count("Unit"))
-        registerEvalValueNode("Unit", [this]() { return this->objectInternal.getUnitUnresolved(); });
+        registerEvalValueNode("Unit", [this] { return this->objectInternal.getUnitUnresolved(); });
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

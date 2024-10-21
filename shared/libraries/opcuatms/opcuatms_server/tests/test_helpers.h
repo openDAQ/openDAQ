@@ -21,10 +21,10 @@
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <open62541/di_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
-#include "opendaq/mock/mock_device_module.h"
-#include "opendaq/mock/mock_fb_module.h"
-#include "opendaq/mock/mock_physical_device.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <opendaq/mock/mock_device_module.h>
+#include <opendaq/mock/mock_fb_module.h>
+#include <opendaq/mock/mock_physical_device.h>
+#include <open62541/daqbsp_nodeids.h>
 #include <coreobjects/authentication_provider_factory.h>
 
 namespace test_helpers

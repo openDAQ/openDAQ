@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include "opcuatms/opcuatms.h"
-#include "opcuashared/opcuavariant.h"
+#include <opcuatms/opcuatms.h>
+#include <opcuashared/opcuavariant.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

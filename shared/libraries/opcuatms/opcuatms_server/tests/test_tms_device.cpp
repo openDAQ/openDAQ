@@ -5,9 +5,9 @@
 #include <opendaq/instance_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/unit_factory.h>
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_server/objects/tms_server_device.h"
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_server/objects/tms_server_device.h>
 #include "test_helpers.h"
 #include "tms_server_test.h"
 

@@ -1,9 +1,9 @@
-#include "opendaq/component_factory.h"
-#include "opcuatms_client/objects/tms_client_component_factory.h"
-#include "opcuatms_server/objects/tms_server_component.h"
+#include <opendaq/component_factory.h>
+#include <opcuatms_client/objects/tms_client_component_factory.h>
+#include <opcuatms_server/objects/tms_server_component.h>
 #include "tms_object_integration_test.h"
-#include "coreobjects/property_object_factory.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/property_object_factory.h>
+#include <opendaq/context_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;

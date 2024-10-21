@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include "tms_object_test.h"
+#include <tms_object_test.h>
 #include <opendaq/context_factory.h>
-#include "opcuatms_server/tms_server_context.h"
+#include <opcuatms_server/tms_server_context.h>
 
 class TmsServerObjectTest : public TmsObjectTest
 {

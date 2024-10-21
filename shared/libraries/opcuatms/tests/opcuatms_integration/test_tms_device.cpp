@@ -7,12 +7,12 @@
 #include <opendaq/mock/mock_physical_device.h>
 #include <opendaq/mock/default_mocks_factory.h>
 #include <opendaq/folder_config_ptr.h>
-#include "opcuatms/exceptions.h"
+#include <opcuatms/exceptions.h>
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include "tms_object_integration_test.h"
-#include "opendaq/device_info_internal_ptr.h"
+#include <opendaq/device_info_internal_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;

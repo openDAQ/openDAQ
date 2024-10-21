@@ -1,14 +1,14 @@
-#include "coreobjects/property_object_factory.h"
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_property_object_impl.h"
+#include <coreobjects/property_object_factory.h>
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_client/objects/tms_client_property_object_impl.h>
 #include <opcuaclient/monitored_item_create_request.h>
 #include <opcuaclient/subscriptions.h>
 #include <future>
-#include "coreobjects/property_object_class_ptr.h"
-#include "opcuatms_server/objects/tms_server_property_object.h"
+#include <coreobjects/property_object_class_ptr.h>
+#include <opcuatms_server/objects/tms_server_property_object.h>
 #include "tms_object_integration_test.h"
-#include "opcuatms_client/objects/tms_client_property_object_factory.h"
+#include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 
 #include <coreobjects/callable_info_factory.h>

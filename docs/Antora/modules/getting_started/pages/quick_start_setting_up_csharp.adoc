@@ -21,6 +21,10 @@ Windows::
    - https://learn.microsoft.com/en-us/dotnet/core/sdk[.NET SDK] (used in this guide).
    - Visual Studio 2022(TM).
    - Visual Studio Code with extension "C# Dev Kit".
+
+NOTE: On Windows there is the https://learn.microsoft.com/en-us/windows/wsl/install[Windows Subsystem for Linux (WSL)] (use an Ubuntu 22.04 distribution)
+      where the cross-compiled executable can be tested. +
+      See also points 2 and 3 on the _Linux_ tab.
 --
 
 Linux::
@@ -30,8 +34,7 @@ Linux::
  * On Windows(TM) users can just cross-compile the project for Linux(TM) using the Windows(TM)-requirements (used in this guide).
  * For development (not tested) and running on Linux(TM): +
    https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install?tabs=dotnet8&pivots=os-linux-ubuntu-2204[Install .NET SDK or .NET Runtime on Ubuntu].
-
-NOTE: On Windows there is the https://learn.microsoft.com/en-us/windows/wsl/install[Windows Subsystem for Linux (WSL)] where the cross-compiled executables can be tested.
+ * Alternatively (cross-) compiled projects can be run on https://learn.microsoft.com/en-us/windows/wsl/install[Windows Subsystem for Linux (WSL)] (use an Ubuntu 22.04 distribution).
 --
 ====
 
@@ -41,17 +44,24 @@ https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 === Creating and building the project
 
 In this guide we use a `Developer PowerShell for VS2022` prompt on Windows(TM) for creating and (cross-) building the project. +
-For the cross-compilation we use a `bash` prompt on Linux(TM) (or WSL on Windows(TM)) to run the result.
+To run the result of the cross-compilation we use a `bash` prompt on Linux(TM) (or WSL on Windows(TM)).
 
 To start, create a `csharp/quick_start` directory and navigate to it.
 
-With  the following commands we first create an empty (.NET8.0) console application project and then we add the _openDAQ.Net_ Bindings NuGet package reference to the project, which contains all the needed binaries.
+With  the following commands:
+
+- we first create an empty (.NET8.0) console application project
+- and then we add the _openDAQ.Net_ Bindings NuGet package reference (from nuget.org) to the project, which contains all the needed binaries.
 
 [source,shell]
 ----
 dotnet new console
 dotnet add package openDAQ.Net
 ----
+
+NOTE: Alternatively, the latest version of the .NET Bindings is available at https://docs-dev.opendaq.com/ and can be used via: +
+`dotnet add package openDAQ.Net --source path/to/folder` +
+See also https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-add-package[Learn NET - dotnet add package]
 
 With this, we are ready to start developing: +
 We fill in our `Program.cs` executable code as follows (replacing the default content):

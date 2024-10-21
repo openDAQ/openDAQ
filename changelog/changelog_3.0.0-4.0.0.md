@@ -125,7 +125,7 @@ than "min read count" samples in the queue and there's an event after those samp
 ## Description
 - Multi reader returns events on first read
 - Set default skip event for block reader to false
-# Required integration changes
+## Required integration changes
 - By default creating block reader with signal had skip events true. Now skip events set to false
 - Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
 

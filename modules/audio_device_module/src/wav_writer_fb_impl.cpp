@@ -2,7 +2,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/reader_factory.h>
@@ -177,14 +177,9 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         stopStoreInternal();
-        const auto params = packet.getParameters();
 
-        DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-        DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-        bool valueDescriptorChanged = valueDescriptorParam.assigned();
-        bool domainDescriptorChanged = domainDescriptorParam.assigned();
-        const DataDescriptorPtr valueSignalDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-        const DataDescriptorPtr domainSignalDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+        const auto [valueDescriptorChanged, domainDescriptorChanged, valueSignalDescriptor, domainSignalDescriptor] =
+            parseDataDescriptorEventPacket(packet);
 
         if (valueDescriptorChanged)
             inputValueDataDescriptor = valueSignalDescriptor;

@@ -1,6 +1,6 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/signal_reader.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
@@ -151,13 +151,8 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     if (!eventPacket.assigned())
         return;
 
-    auto params = eventPacket.getParameters();
-    DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-    bool valueDescriptorChanged = valueDescriptorParam.assigned();
-    bool domainDescriptorChanged = domainDescriptorParam.assigned();
-    DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-    DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+    auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
 
     if (valueDescriptorChanged && newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
     {
@@ -323,20 +318,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
             auto packetId = eventPacket.getEventId();
             if (packetId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                auto params = eventPacket.getParameters();
-                DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-                DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-                valueDescriptorChanged |= valueDescriptorParam.assigned();
-                domainDescriptorChanged |= domainDescriptorParam.assigned();
+                const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] =
+                    parseDataDescriptorEventPacket(eventPacket);
 
-                if (valueDescriptorParam.assigned())
-                {
-                    dataDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;;
-                }
-                if (domainDescriptorParam.assigned())
-                {
-                    domainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
-                }
+                valueDescriptorChanged |= valueDescChanged;
+                domainDescriptorChanged |= domainDescChanged;
+
+                if (valueDescChanged)
+                    dataDescriptor = newValueDescriptor;
+                if (domainDescChanged)
+                    domainDescriptor = newDomainDescriptor;
             }
             else if (packetId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
@@ -360,10 +351,10 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     if (!packetToReturn.assigned() && (valueDescriptorChanged || domainDescriptorChanged))
     {
         const auto valueDescriptorParam = valueDescriptorChanged
-                                              ? (dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor())
+                                              ? descriptorToEventPacketParam(dataDescriptor)
                                               : nullptr;
         const auto domainDescriptorParam = domainDescriptorChanged
-                                               ? (domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor())
+                                               ? descriptorToEventPacketParam(domainDescriptor)
                                                : nullptr;
         packetToReturn = DataDescriptorChangedEventPacket(valueDescriptorParam, domainDescriptorParam);
     }

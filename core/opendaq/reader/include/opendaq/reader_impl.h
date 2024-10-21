@@ -19,7 +19,7 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/typed_reader.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <coretypes/validation.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
@@ -386,8 +386,8 @@ protected:
 
     EventPacketPtr createInitDataDescriptorChangedEventPacket()
     {
-        return DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(),
-                                                domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor());
+        return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor),
+                                                descriptorToEventPacketParam(domainDescriptor));
     }
 
     virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket)
@@ -395,13 +395,8 @@ protected:
         if (!eventPacket.assigned())
             return;
 
-        auto params = eventPacket.getParameters();
-        DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-        DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-        bool valueDescriptorChanged = valueDescriptorParam.assigned();
-        bool domainDescriptorChanged = domainDescriptorParam.assigned();
-        DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-        DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+        auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
 
         // Check if value is still convertible
         if (valueDescriptorChanged && newValueDescriptor.assigned())

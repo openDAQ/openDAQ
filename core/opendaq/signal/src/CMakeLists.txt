@@ -191,6 +191,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/event_packet_impl.h
         ${SDK_HEADERS_DIR}/event_packet_ids.h
         ${SDK_HEADERS_DIR}/event_packet_params.h
+        ${SDK_HEADERS_DIR}/event_packet_utils.h
         ${SDK_HEADERS_DIR}/deleter.h
         ${SDK_HEADERS_DIR}/deleter_impl.h
         ${SDK_HEADERS_DIR}/deleter_factory.h
@@ -315,6 +316,7 @@ set(SRC_PublicHeaders_Component
     sample_type_traits.h
     signal_utils.h
     event_packet_ids.h
+    event_packet_utils.h
     signal_container_impl.h
     input_port_config_ptr.custom.h
     binary_data_packet.h

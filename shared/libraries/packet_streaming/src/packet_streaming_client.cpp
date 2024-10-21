@@ -1,6 +1,6 @@
 #include <packet_streaming/packet_streaming_client.h>
 #include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -58,14 +58,8 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto valueDescriptorParam = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const auto domainDescriptorParam = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        const bool valueDescriptorChanged = valueDescriptorParam.assigned();
-        const bool domainDescriptorChanged = domainDescriptorParam.assigned();
-        const DataDescriptorPtr newValueDescriptor =
-            valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-        const DataDescriptorPtr newDomainDescriptors =
-            domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptors] =
+            parseDataDescriptorEventPacket(packet);
 
         std::scoped_lock lock(descriptorsSync);
 

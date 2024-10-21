@@ -9,6 +9,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/event_packet_utils.h>
 
 using SignalEventPacketTest = testing::Test;
 
@@ -78,6 +79,65 @@ TEST_F(SignalEventPacketTest, DomainDescriptorChanged)
     ASSERT_FALSE(eventPacket2.getParameters().get("DataDescriptor").assigned());
     ASSERT_TRUE(eventPacket2.getParameters().get("DomainDataDescriptor").assigned());
     ASSERT_EQ(eventPacket2.getParameters().get("DomainDataDescriptor"), NullDataDescriptor());
+}
+
+TEST_F(SignalEventPacketTest, EventPacketUtils)
+{
+    ASSERT_EQ(descriptorToEventPacketParam(nullptr), NullDataDescriptor());
+
+    const auto descriptor = DataDescriptorBuilder().build();
+    ASSERT_EQ(descriptorToEventPacketParam(descriptor), descriptor);
+
+    ASSERT_THROW(parseDataDescriptorEventPacket(nullptr), ArgumentNullException);
+    ASSERT_THROW(parseDataDescriptorEventPacket(ImplicitDomainGapDetectedEventPacket(12345)), InvalidParameterException);
+
+    {
+        const auto eventPacket = DataDescriptorChangedEventPacket(nullptr, nullptr);
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
+        ASSERT_FALSE(valueDescriptorChanged);
+        ASSERT_FALSE(domainDescriptorChanged);
+        ASSERT_FALSE(newValueDescriptor.assigned());
+        ASSERT_FALSE(newDomainDescriptor.assigned());
+    }
+    {
+        const auto eventPacket = DataDescriptorChangedEventPacket(NullDataDescriptor(), nullptr);
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
+        ASSERT_TRUE(valueDescriptorChanged);
+        ASSERT_FALSE(domainDescriptorChanged);
+        ASSERT_FALSE(newValueDescriptor.assigned());
+        ASSERT_FALSE(newDomainDescriptor.assigned());
+    }
+    {
+        const auto eventPacket = DataDescriptorChangedEventPacket(nullptr, NullDataDescriptor());
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
+        ASSERT_FALSE(valueDescriptorChanged);
+        ASSERT_TRUE(domainDescriptorChanged);
+        ASSERT_FALSE(newValueDescriptor.assigned());
+        ASSERT_FALSE(newDomainDescriptor.assigned());
+    }
+    {
+        const auto eventPacket = DataDescriptorChangedEventPacket(NullDataDescriptor(), NullDataDescriptor());
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
+        ASSERT_TRUE(valueDescriptorChanged);
+        ASSERT_TRUE(domainDescriptorChanged);
+        ASSERT_FALSE(newValueDescriptor.assigned());
+        ASSERT_FALSE(newDomainDescriptor.assigned());
+    }
+    {
+        const auto valueDescriptor = DataDescriptorBuilder().build();
+        const auto domainDescriptor = DataDescriptorBuilder().build();
+        const auto eventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
+        ASSERT_TRUE(valueDescriptorChanged);
+        ASSERT_TRUE(domainDescriptorChanged);
+        ASSERT_EQ(newValueDescriptor, valueDescriptor);
+        ASSERT_EQ(newDomainDescriptor, domainDescriptor);
+    }
 }
 
 END_NAMESPACE_OPENDAQ

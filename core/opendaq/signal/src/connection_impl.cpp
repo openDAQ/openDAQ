@@ -4,6 +4,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/custom_log.h>
 
 #include "opendaq/data_descriptor_factory.h"
@@ -621,10 +622,10 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = packet.getParameters();
-        const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-        bool domainDescriptorChanged = domainDescriptorParam.assigned();
-        const DataDescriptorPtr domainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+        bool domainDescriptorChanged;
+        DataDescriptorPtr newDomainDescriptor;
+        std::tie(std::ignore, domainDescriptorChanged, std::ignore, newDomainDescriptor) =
+            parseDataDescriptorEventPacket(packet);
 
         if (!domainDescriptorChanged)
         {
@@ -638,14 +639,14 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
             return;
         }
 
-        if (!domainDescriptor.assigned())
+        if (!newDomainDescriptor.assigned())
         {
             LOGP_T("Gap check not available, domain descriptor is not assigned.")
             gapCheckState = GapCheckState::not_available;
             return;
         }
 
-        const auto rule = domainDescriptor.getRule();
+        const auto rule = newDomainDescriptor.getRule();
         if (rule.getType() != DataRuleType::Linear)
         {
             LOGP_T("Gap check not available, no linear rule.")
@@ -653,7 +654,7 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
             return;
         }
 
-        domainSampleType = domainDescriptor.getSampleType();
+        domainSampleType = newDomainDescriptor.getSampleType();
         if (domainSampleType == SampleType::Float64)
             delta.valueDouble = rule.getParameters()["delta"];
         else if (domainSampleType == SampleType::Int64 || domainSampleType == SampleType::UInt64)

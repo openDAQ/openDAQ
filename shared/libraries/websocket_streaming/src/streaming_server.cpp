@@ -4,6 +4,7 @@
 #include <streaming_protocol/Logging.hpp>
 #include <streaming_protocol/jsonrpc_defines.hpp>
 
+#include <opendaq/event_packet_utils.h>
 #include "websocket_streaming/streaming_server.h"
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
@@ -572,13 +573,8 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
                                                   const StreamWriterPtr& writer,
                                                   const EventPacketPtr& packet)
 {
-    const auto params = packet.getParameters();
-    DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-    const bool valueDescriptorChanged = valueDescriptorParam.assigned();
-    const bool domainDescriptorChanged = domainDescriptorParam.assigned();
-    const DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-    const DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+    const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(packet);
     bool subscribed = outputSignal->isSubscribed();
 
     if (auto placeholderValueSignal = std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))

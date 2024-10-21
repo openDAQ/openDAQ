@@ -480,25 +480,8 @@ void TmsServerDevice::addChildNodes()
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
 
-    // Replacing the display name `userName` with `UserName`
-    // ignoring standard way of registering property "userName"
-    tmsPropertyObject->ignoredProps.insert("userName");
-    // Attach property `userName` to the node "UserName"
-    auto usernameNodeId = getChildNodeId("UserName");
-    assert(!usernameNodeId.isNull());
-    auto username = object.getProperty("userName");
-    auto usernameNode = std::make_shared<TmsServerProperty>(username, server, daqContext, tmsContext, "UserName");
-    usernameNode->registerToExistingOpcUaNode(usernameNodeId);
-    tmsPropertyObject->addProperty(usernameNode);
-
-    // Do the same replacement for `location` as for `userName`
-    tmsPropertyObject->ignoredProps.insert("location");
-    auto locationNodeId = getChildNodeId("Location");
-    assert(!locationNodeId.isNull());
-    auto location = object.getProperty("location");
-    auto locationNode = std::make_shared<TmsServerProperty>(location, server, daqContext, tmsContext, "Location");
-    locationNode->registerToExistingOpcUaNode(locationNodeId);
-    tmsPropertyObject->addProperty(locationNode);
+    tmsPropertyObject->propBrowseName.emplace("userName", "UserName");
+    tmsPropertyObject->propBrowseName.emplace("location", "Location");
 
     // TODO add "Srv" as a default node
 

@@ -128,17 +128,21 @@ void TmsServerPropertyObject::addChildNodes()
                 }
             }
 
+            std::string browseName = propName;
+            if (auto it = propBrowseName.find(propName); it != propBrowseName.end())
+                browseName = it->second;
+
             OpcUaNodeId childNodeId;
             std::shared_ptr<TmsServerProperty> serverInfo;
-            if (hasChildNode(propName))
+            if (hasChildNode(browseName))
             {
-                const auto tempId = getChildNodeId(propName);
-                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, object, propOrder);
+                const auto tempId = getChildNodeId(browseName);
+                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, object, propOrder, browseName);
                 childNodeId = serverInfo->registerToExistingOpcUaNode(tempId);
             }
             else
             {
-                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), object, propOrder);
+                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), object, propOrder, browseName);
                 childNodeId = serverInfo->getNodeId();
             }
             
@@ -172,7 +176,7 @@ void TmsServerPropertyObject::bindCallbacks()
     for (const auto& [id, prop] : childProperties)
     {
         //this->object.getOnPropertyValueWrite(prop->getBrowseName()) += event(this, &TmsServerPropertyObject::triggerEvent);
-        bindPropertyCallbacks(prop->getNodeName(), prop->getBrowseName());
+        bindPropertyCallbacks(prop->getBrowseName(), prop->getPropertyName());
     }
 
     bindMethodCallbacks();
@@ -197,11 +201,11 @@ void TmsServerPropertyObject::addProperty(const TmsServerPropertyPtr& childPrope
     childProperty->setNumberInList(numberInList++);
 }
 
-void TmsServerPropertyObject::bindPropertyCallbacks(const std::string& nodeName, const std::string& propName)
+void TmsServerPropertyObject::bindPropertyCallbacks(const std::string& browseName, const std::string& propName)
 {
     if (!this->object.getProperty(propName).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved().assigned())
     {
-        addReadCallback(nodeName, [this, propName]
+        addReadCallback(browseName, [this, propName]
         {
             const auto value = this->object.getPropertyValue(propName);
             return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
@@ -210,7 +214,7 @@ void TmsServerPropertyObject::bindPropertyCallbacks(const std::string& nodeName,
         const auto freezable = this->object.asPtrOrNull<IFreezable>();
         if (!freezable.assigned() || !this->object.isFrozen())
         {
-            addWriteCallback(nodeName, [this, propName](const OpcUaVariant& variant)
+            addWriteCallback(browseName, [this, propName](const OpcUaVariant& variant)
             {
                 const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
                 this->object.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(propName, value);
@@ -220,7 +224,7 @@ void TmsServerPropertyObject::bindPropertyCallbacks(const std::string& nodeName,
     }
     else
     {
-        addReadCallback(nodeName, [this, propName]
+        addReadCallback(browseName, [this, propName]
         {
             const auto refProp = this->object.getProperty(propName).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
             return VariantConverter<IBaseObject>::ToVariant(refProp.getEval(), nullptr, daqContext);

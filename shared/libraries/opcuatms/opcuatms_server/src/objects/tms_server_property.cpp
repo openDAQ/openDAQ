@@ -17,9 +17,9 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
                                      const TmsServerContextPtr& tmsContext,
-                                     const std::string& nodeName)
+                                     const std::string& browseName)
     : Super(object, server, context, tmsContext)
-    , nodeName(nodeName)
+    , browseName(browseName)
 {
     objectInternal = object.asPtr<IPropertyInternal>(false);
 
@@ -39,8 +39,9 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
                                      const TmsServerContextPtr& tmsContext,
-                                     const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context, tmsContext)
+                                     const std::unordered_map<std::string, uint32_t>& propOrder,
+                                     const std::string& browseName)
+    : TmsServerProperty(object, server, context, tmsContext, browseName)
 {
     this->propOrder = propOrder;
     this->numberInList = propOrder.at(object.getName());
@@ -51,20 +52,21 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const ContextPtr& context,
                                      const TmsServerContextPtr& tmsContext,
                                      const PropertyObjectPtr& parent,
-                                     const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context, tmsContext, propOrder)
+                                     const std::unordered_map<std::string, uint32_t>& propOrder,
+                                     const std::string& browseName)
+    : TmsServerProperty(object, server, context, tmsContext, propOrder, browseName)
 {
     this->parent = parent;
 }
 
-std::string TmsServerProperty::getBrowseName()
+std::string TmsServerProperty::getPropertyName()
 {
     return this->object.getName();
 }
 
-std::string TmsServerProperty::getNodeName()
+std::string TmsServerProperty::getBrowseName()
 {
-    return this->nodeName.empty() ? this->object.getName().toStdString() : this->nodeName;
+    return this->browseName.empty() ? this->object.getName().toStdString() : this->browseName;
 }
 
 void TmsServerProperty::bindCallbacks()

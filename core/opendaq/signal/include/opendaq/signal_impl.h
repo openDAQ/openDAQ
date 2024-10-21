@@ -34,6 +34,7 @@
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/signal_errors.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -261,18 +262,12 @@ template <typename TInterface, typename... Interfaces>
 EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     const SignalPtr domainSignalObj = onGetDomainSignal();
-
     DataDescriptorPtr domainDataDescriptor;
     if (domainSignalObj.assigned())
         domainDataDescriptor = domainSignalObj.getDescriptor();
-    if (!domainDataDescriptor.assigned())
-        domainDataDescriptor = NullDataDescriptor();
 
-    DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
-    if (!dataDescriptorObj.assigned())
-        dataDescriptorObj = NullDataDescriptor();
-
-    EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
+    EventPacketPtr packet = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(onGetDescriptor()),
+                                                             descriptorToEventPacketParam(domainDataDescriptor));
     return packet;
 }
 
@@ -381,7 +376,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         std::scoped_lock lock(this->sync);
 
         dataDescriptor = descriptorPtr;
-        const auto packet = DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(), nullptr);
+        const auto packet = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor), nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
         success = sendPacketInternal(packet, true);
@@ -416,7 +411,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (!valueSignalsOfDomainSignal.empty())
     {
         const EventPacketPtr domainChangedPacket =
-            DataDescriptorChangedEventPacket(nullptr, dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor());
+            DataDescriptorChangedEventPacket(nullptr, descriptorToEventPacketParam(dataDescriptor));
         for (const auto& sig : valueSignalsOfDomainSignal)
         {
             const auto err = sig->sendPacket(domainChangedPacket);

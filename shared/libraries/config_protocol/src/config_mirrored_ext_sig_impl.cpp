@@ -34,13 +34,8 @@ Bool ConfigMirroredExternalSignalImpl::onTriggerEvent(const EventPacketPtr& even
 
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = eventPacket.getParameters();
-        DataDescriptorPtr signalDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-        DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-        const bool signalDescriptorChanged = signalDescriptorParam.assigned();
-        const bool domainDescriptorChanged = domainDescriptorParam.assigned();
-        const DataDescriptorPtr newSignalDescriptor = signalDescriptorParam != NullDataDescriptor() ? signalDescriptorParam : nullptr;
-        const DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+        const auto [signalDescriptorChanged, domainDescriptorChanged, newSignalDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
 
         Bool changed = False;
 

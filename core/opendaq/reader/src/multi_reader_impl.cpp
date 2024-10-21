@@ -2,7 +2,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader_impl.h>
 #include <opendaq/packet_factory.h>
@@ -667,8 +667,8 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
 
 MultiReaderStatusPtr MultiReaderImpl::createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets, const NumberPtr& offset)
 {
-    auto mainDescriptor = DataDescriptorChangedEventPacket(mainValueDescriptor.assigned() ? mainValueDescriptor : NullDataDescriptor(),
-                                                           mainDomainDescriptor.assigned() ? mainDomainDescriptor : NullDataDescriptor());
+    auto mainDescriptor = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(mainValueDescriptor),
+                                                           descriptorToEventPacketParam(mainDomainDescriptor));
     return MultiReaderStatus(mainDescriptor, eventPackets, !invalid, offset);
 }
 
@@ -709,17 +709,13 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 
         if (i == 0 && packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
-            auto params = packet.getParameters();
-            DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-            DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-            if (valueDescriptorParam.assigned())
-            {
-                mainValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-            }
-            if (domainDescriptorParam.assigned())
-            {
-                mainDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
-            }
+            const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+                parseDataDescriptorEventPacket(packet);
+
+            if (valueDescriptorChanged)
+                mainValueDescriptor = newValueDescriptor;
+            if (domainDescriptorChanged)
+                mainDomainDescriptor = newDomainDescriptor;
         }
     }
     return packets.detach();

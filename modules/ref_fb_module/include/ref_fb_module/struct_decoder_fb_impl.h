@@ -55,8 +55,7 @@ private:
 
     void processEventPacket(const EventPacketPtr& packet);
 
-    void processSignalDescriptorChangedParams(const DataDescriptorPtr& dataDescriptorParam,
-                                              const DataDescriptorPtr& domainDataDescriptorParam);
+    void processSignalDescriptorsChangedEventPacket(const EventPacketPtr& eventPacket);
 
     void configure();
 

@@ -4,6 +4,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/sample_type_traits.h>
+#include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -36,14 +37,14 @@ EventPacketPtr InputSignalBase::createDecriptorChangedPacket(bool valueChanged, 
 
     if (isDomainSignal())
     {
-        const auto valueDescParam = currentDataDescriptor.assigned() ? currentDataDescriptor : NullDataDescriptor();
+        const auto valueDescParam = descriptorToEventPacketParam(currentDataDescriptor);
         return DataDescriptorChangedEventPacket(valueChanged ? valueDescParam : nullptr, nullptr);
     }
     else
     {
-        const auto valueDescParam = currentDataDescriptor.assigned() ? currentDataDescriptor : NullDataDescriptor();
+        const auto valueDescParam = descriptorToEventPacketParam(currentDataDescriptor);
         const auto domainDesc = inputDomainSignal->getSignalDescriptor();
-        const auto domainDescParam = domainDesc.assigned() ? domainDesc : NullDataDescriptor();
+        const auto domainDescParam = descriptorToEventPacketParam(domainDesc);
         return DataDescriptorChangedEventPacket(valueChanged ? valueDescParam : nullptr,
                                                 domainChanged ? domainDescParam : nullptr);
     }

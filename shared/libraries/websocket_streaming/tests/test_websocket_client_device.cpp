@@ -7,6 +7,7 @@
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
 #include <opendaq/mirrored_signal_config_ptr.h>
+#include <opendaq/event_packet_utils.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -504,7 +505,7 @@ TEST_P(UnsupportedSignalsTestP, MakeValueSignalUnsupported)
     testValueSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
     server->broadcastPacket(
         testValueSignal.getGlobalId(),
-        DataDescriptorChangedEventPacket(unsupportedDescriptor.assigned() ? unsupportedDescriptor : NullDataDescriptor(), nullptr)
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(unsupportedDescriptor), nullptr)
     );
 
     // wait for 1 new incomplete signal added
@@ -571,7 +572,7 @@ TEST_P(UnsupportedSignalsTestP, MakeDomainSignalUnsupported)
     testDomainSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
     server->broadcastPacket(
         testValueSignal.getGlobalId(),
-        DataDescriptorChangedEventPacket(nullptr, unsupportedDescriptor.assigned() ? unsupportedDescriptor : NullDataDescriptor())
+        DataDescriptorChangedEventPacket(nullptr, descriptorToEventPacketParam(unsupportedDescriptor))
     );
 
     // wait for 2 new incomplete signals added

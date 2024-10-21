@@ -4,7 +4,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -347,8 +347,8 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
 
 EventPacketPtr StreamReaderImpl::createInitDataDescriptorChangedEventPacket()
 {
-    return DataDescriptorChangedEventPacket(dataDescriptor.assigned() ? dataDescriptor : NullDataDescriptor(),
-                                            domainDescriptor.assigned() ? domainDescriptor : NullDataDescriptor());
+    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor),
+                                            descriptorToEventPacketParam(domainDescriptor));
 }
 
 void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)
@@ -356,13 +356,8 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (!eventPacket.assigned())
         return;
 
-    auto params = eventPacket.getParameters();
-    DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-    bool valueDescriptorChanged = valueDescriptorParam.assigned();
-    bool domainDescriptorChanged = domainDescriptorParam.assigned();
-    DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-    DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+    auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
 
     // Check if value is still convertible
     if (valueDescriptorChanged && newValueDescriptor.assigned())

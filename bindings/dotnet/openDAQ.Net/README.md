@@ -16,20 +16,21 @@ This project contains the .NET-Bindings to the _openDAQ_ SDK.
 
 
 ## Development environment
-- Visual Studio 2022 (V17.8.x)  
-- TargetFramework: net8.0  
+- Visual Studio 2022 (V17.11.x)  
+- TargetFramework: net6.0  
 - Platform: x64  
 - Language: C#  
 - Test-framework: NUnit  
 
 ## Prerequisites
-The _openDAQ_ binaries (on Windows `*.dll`) need to exist in `./build/x64/msvc-22/full/bin/Debug`
+The _openDAQ_ SDK binaries (on Windows `*.dll`) need to exist in `./build/x64/msvc-22/full/bin/Debug`
 or `*/Release`. This is normally accomplished by running `cmake`.  
 The libraries will be copied to the output directory.  
-For `NuGet` the libraries will be placed in the structure `runtime/win-x64/native/*`.  
+For `NuGet` the libraries will be placed in the structure `runtime/win-x64/native/*`
+(Linux binaries will only be packed in CI builds).  
 The generated C# code (`RTGen`) needs to reside in `./build/bindings/CSharp/core` (also from
 `cmake`).  
-The manually created C# code resides in `./bindings/dotnet/openDAQ.Net/openDAQ.Net/core`.
+The manually created/generated C# bindings code resides in `./bindings/dotnet/openDAQ.Net/openDAQ.Net/core`.
 
 ```
 ./build
@@ -59,13 +60,13 @@ which automatically handle _object destruction_ and thus _reference counters_.
 When used in C#, only object pointers (`IntPtr`) will be exchanged. Dereferencing a C++
 object has to be handled explicitly (the `BaseObject` implements the _Disposable_ pattern,
 which dereferences the underlying C++ object).  
-Though usually a .NET developer rarely would use `obj.Dispose()` directly, it will be
-automatically called on (.NET) object finalization / destruction by the
-_.NET Garbage Collector_.  
+Though usually a .NET developer rarely would use `obj.Dispose()` or the `using` pattern directly
+in `openDAQ.Net`, it will be automatically called on (.NET) object finalization / destruction by the
+_.NET Garbage Collector_ (handled in `BaseObject`).  
 
 ### Memory consumption
-C# objects do not have to be disposed of manually, as memory management is handled by the
-_.NET Garbage Collector_, which calls the `IBaseObject::Dispose()` method on object destruction.
+For `openDAQ.Net` the managed objects do not have to be disposed of manually, as memory management
+is handled by the _.NET Garbage Collector_, which calls the `IBaseObject::Dispose()` method on object destruction.
 However, users still have the option of manually freeing _openDAQ_ objects by calling the
 aforementioned `Dispose()` method or by using the `using` statement to automatically dispose
 of the object when leaving its scope.  
@@ -74,10 +75,10 @@ of the object when leaving its scope.
 
 ### Auto generated code
 Generally, the C# code is automatically generated with _RTGen_ and output to the
-`./build/bindings/CSharp/core` directory (configured in `./cmake/RTGen.cmake`).  
+directory `./build/bindings/CSharp/core` (configured in `./cmake/RTGen.cmake`).  
 Most of the core types can be generated using _RTGen_ (at least in C#), but they are still held
 manually in the repository within the `openDAQ.NET` project since they have no _RTGen_ tasks
-connected.  
+connected when building the SDK.  
 There are some [Special implementations](#special-implementations) though.  
 
 The class names come from the C++ interface names, where some names are adjusted due to possible
@@ -85,8 +86,8 @@ duplicity of .NET class names
 (e.g. `IBoolean`<sub>C++</sub> -> ~~`Boolean`~~<sub>C#</sub> -> `BoolObject`<sub>C#</sub>
 or `IList`<sub>C++</sub> -> ~~`List`~~<sub>C#</sub> -> `ListObject`<sub>C#</sub>).  
 
-The project file expects binding code in the `openDAQ.NET` project's local `core` directory as
-well as in the `./build/bindings/CSharp/core` directory.  
+The `openDAQ.NET` project file expects binding code in the project's local `core` directory as
+well as in the common `./build/bindings/CSharp/core` directory.  
 
 ### _openDAQ_ core-type conversion
 Some _openDAQ_ objects (immutable) are wrappers around types like `long` or `string`
@@ -152,7 +153,7 @@ Those are placed into the `core/coretypes` directory.
   behind the .NET interface implementation (type casting always possible).  
 
 #### Core objects
-Nothing special here.  
+- `enum CoreEventId` (not parsable by _RTGen_)  
 
 #### _openDAQ_ types
 - `SampleReader` derivatives  
@@ -161,6 +162,7 @@ Nothing special here.
   With and without a start index (e.g. for circular buffers).  
   Though, for the `OpenDAQFactory` there exist a couple of manually created functions with
   different defaults in the generic parameters, simplifying reader creation in some cases.  
+- `TimeReader` (not parsable by _RTGen_)  
 - `struct SourceLocation` (not parsable by _RTGen_)  
 - `enum SampleType` (not parsable by _RTGen_)  
 - `enum ScaledSampleType` (not parsable by _RTGen_)  
@@ -183,7 +185,7 @@ exclude.
 
 ```xml
 <Compile Include="$(_RTGenOutputPath)\**\*.cs"
-         Exclude="$(_RTGenOutputPath)\**\foo.cs;$(_RTGenOutputPath)\**\bar.cs" />
+         Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\shared\**" />
 ```  
 
 Here one can list multiple files with full path to the file(s) to be excluded (variables and
@@ -194,5 +196,7 @@ patterns allowed as displayed).
   auto-generated code.  
 - The pattern `x\**\y` means that all subdirectories behind `x` will be searched for the file `y`
   and thus excluded.  
+- The pattern `x\**` means that all subdirectories and files behind `x` will be searched
+  and excluded.  
 
-_<sub>Last changed on 2024-02-05 &copy; 2024 by openDAQ d.o.o.</sub>_
+_<sub>Last changed on 2024-10-22 &copy; 2024 by openDAQ d.o.o.</sub>_

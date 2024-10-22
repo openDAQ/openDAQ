@@ -10,8 +10,8 @@ the SDK itself.
 
 
 ## Development environment
-- Visual Studio 2022 (V17.8.x when this package has been created)
-- TargetFramework: net8.0
+- Visual Studio 2022 (V17.11.x when this package has been created)
+- TargetFramework: net6.0
 - Platform: x64
 
 ## Prerequisites

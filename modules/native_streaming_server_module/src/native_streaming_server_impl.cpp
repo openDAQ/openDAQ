@@ -23,7 +23,7 @@ using namespace config_protocol;
 
 inline uint16_t GetLatestSupportedConfigProtocolVersion()
 {
-    return *ConfigProtocolServer::SupportedServerVersions().rbegin();
+    return *SupportedConfigProtocolVersions().rbegin();
 }
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,

@@ -65,12 +65,6 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
     return nullptr;
 }
 
-const std::set<uint16_t>& ConfigProtocolServer::SupportedServerVersions()
-{
-    static const std::set<uint16_t> versions = {0, 1, 2, 3, 4};
-    return versions;
-}
-
 ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
                                            NotificationReadyCallback notificationReadyCallback,
                                            const UserPtr& user,
@@ -84,7 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions(SupportedServerVersions())
+    , supportedServerVersions(SupportedConfigProtocolVersions())
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());

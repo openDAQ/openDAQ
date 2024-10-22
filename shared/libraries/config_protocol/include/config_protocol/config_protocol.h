@@ -175,4 +175,10 @@ public:
     UserPtr user;
 };
 
+static const std::set<uint16_t>& SupportedConfigProtocolVersions()
+{
+    static const std::set<uint16_t> versions = {0, 1, 2, 3, 4};
+    return versions;
+}
+
 }

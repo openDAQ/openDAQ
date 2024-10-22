@@ -67,7 +67,7 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
 
 const std::set<uint16_t>& ConfigProtocolServer::SupportedServerVersions()
 {
-    std::set<uint16_t> versions = {0, 1, 2, 3, 4};
+    static const std::set<uint16_t> versions = {0, 1, 2, 3, 4};
     return versions;
 }
 

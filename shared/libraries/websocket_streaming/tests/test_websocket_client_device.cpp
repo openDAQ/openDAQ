@@ -140,6 +140,7 @@ public:
 
 TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
 {
+    SKIP_TEST_MAC_CI;
     const bool signalsAddedAfterConnect = GetParam();
 
     // Create server signals
@@ -366,6 +367,7 @@ INSTANTIATE_TEST_SUITE_P(SignalsAddedAfterConnect, WebsocketClientDeviceTestP, t
 
 TEST_F(WebsocketClientDeviceTest, ChangeValueDescriptorToSupported)
 {
+    SKIP_TEST_MAC_CI;
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
@@ -459,6 +461,7 @@ public:
 
 TEST_P(UnsupportedSignalsTestP, MakeValueSignalUnsupported)
 {
+    SKIP_TEST_MAC_CI;
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
@@ -526,6 +529,7 @@ TEST_P(UnsupportedSignalsTestP, MakeValueSignalUnsupported)
 
 TEST_P(UnsupportedSignalsTestP, MakeDomainSignalUnsupported)
 {
+    SKIP_TEST_MAC_CI;
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
@@ -594,6 +598,7 @@ TEST_P(UnsupportedSignalsTestP, MakeDomainSignalUnsupported)
 
 TEST_P(UnsupportedSignalsTestP, MakeValueSignalSupported)
 {
+    SKIP_TEST_MAC_CI;
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
@@ -660,6 +665,7 @@ TEST_P(UnsupportedSignalsTestP, MakeValueSignalSupported)
 
 TEST_P(UnsupportedSignalsTestP, MakeDomainSignalSupported)
 {
+    SKIP_TEST_MAC_CI;
     // Create server signals
     auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
     auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);

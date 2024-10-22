@@ -192,9 +192,9 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
                 const auto address = info.getAddress();
                 const auto addressType = info.getType();
                 if (addressType == "IPv4")
-                    ipv4Addresses.insert(std::make_pair(address.toStdString(), false));
+                    ipv4Addresses.emplace(address.toStdString(), false);
                 else if (addressType == "IPv6")
-                    ipv6Addresses.insert(std::make_pair(address.toStdString(), false));
+                    ipv6Addresses.emplace(address.toStdString(), false);
             }
         }
     }

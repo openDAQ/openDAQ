@@ -47,6 +47,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
 
                 SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
                 cap.setCoreEventsEnabled(true);
+                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
                 return cap;
             }
         },
@@ -96,7 +97,7 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
             discoveredDevice.ipv4Address,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
-            );
+        );
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
 

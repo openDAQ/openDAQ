@@ -83,6 +83,7 @@ PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("Port")));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", ""));
     return discoveryConfig;
 }
 

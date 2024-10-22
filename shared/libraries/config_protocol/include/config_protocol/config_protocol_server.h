@@ -63,6 +63,8 @@ public:
                                                         ErrCode errCode,
                                                         const StringPtr& message,
                                                         const SerializerPtr& serializer);
+    
+    static const std::set<uint16_t>& SupportedServerVersions();
 
     // called from transport layer
     void processNoReplyRequest(const PacketBuffer& packetBuffer);
@@ -98,7 +100,7 @@ private:
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
     uint16_t protocolVersion;
-    const std::set<uint16_t> supportedServerVersions;
+    const std::set<uint16_t>& supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;
 
     PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);

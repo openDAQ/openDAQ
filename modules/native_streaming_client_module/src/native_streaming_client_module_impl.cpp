@@ -244,6 +244,13 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
     if (options.getCount() == 0)
         return;
 
+    if (options.hasKey("ProtocolVersion"))
+    {
+        auto value = options.get("ProtocolVersion");
+        if (value.getCoreType() == CoreType::ctInt)
+            deviceConfig.setPropertyValue("ProtocolVersion", value);
+    }
+
     if (options.hasKey("ConfigProtocolRequestTimeout"))
     {
         auto value = options.get("ConfigProtocolRequestTimeout");
@@ -464,13 +471,14 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
 
-    defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
-    defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
-
     if (nativeConfigType == NativeType::config)
+    {
         defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
+        defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
+        defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
 
-    populateDeviceConfigFromContext(defaultConfig);
+        populateDeviceConfigFromContext(defaultConfig);
+    }
 
     return defaultConfig;
 }

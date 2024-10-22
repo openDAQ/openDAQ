@@ -48,7 +48,9 @@
     <_SdkOutputPath Condition="Exists('$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)')">$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)</_SdkOutputPath>
     <_SdkOutputPathWindows64 Condition="Exists('$(SDK_WIN64_PATH)')">$(SDK_WIN64_PATH)</_SdkOutputPathWindows64>
     <_SdkOutputPathLinux64 Condition="Exists('$(SDK_LINUX64_PATH)')">$(SDK_LINUX64_PATH)</_SdkOutputPathLinux64>
+    <_NuGetRepackPath Condition="Exists('$(NUGET_REPACK_PATH)')">$(NUGET_REPACK_PATH)</_NuGetRepackPath>
     <_IsCiPackBuild Condition="'$(_SdkOutputPathWindows64)' != ''">True</_IsCiPackBuild>
+    <_IsRePackBuild Condition="'$(_NuGetRepackPath)' != ''">True</_IsRePackBuild>
     <_RTGenOutputPath>$(_BuildPath)\bindings\CSharp</_RTGenOutputPath>
     <_DocsPath>$(_RootPath)\docs\Antora\modules\howto_guides\pages</_DocsPath>
     <!-- there is no other way to get the runtime identifier (RID) https://learn.microsoft.com/en-us/dotnet/core/rid-catalog -->
@@ -77,6 +79,7 @@
     <!--<BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>-->
     <!-- see  https://github.com/dotnet/msbuild/issues/1603 -->
     <OutputPath Condition="'$(_IsCiPackBuild)' == 'True'">$(_SdkOutputPathWindows64)</OutputPath>
+    <OutputPath Condition="'$(_IsRePackBuild)' == 'True'">$(_SdkOutputPath)</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -113,7 +116,7 @@
   </ItemGroup>
 
   <!-- SDK binaries (local build) -->
-  <ItemGroup Condition="'$(_IsCiPackBuild)' != 'True'">
+  <ItemGroup Condition="('$(_IsCiPackBuild)' != 'True') and ('$(_IsRePackBuild)' != 'True')">
     <!-- https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2022#none -->
     <!-- VS: have the bin output in layout '*.dll' and 'modules\*.dll' -->
     <!-- NuGet: pack all runtime DLLs into this layout 'runtimes\<architecture>\native\**' -->
@@ -152,6 +155,16 @@
     </None>
   </ItemGroup>
 
+  <!-- SDK binaries (re-pack build) -->
+  <ItemGroup Condition="'$(_IsRePackBuild)' == 'True'">
+    <!-- NuGet package creation for deployable release -->
+    <!-- runtimes -->
+    <OpenDaqRuntimes Include="$(_NuGetRepackPath)\runtimes\**" />
+    <None Include="@(OpenDaqRuntimes)" PackagePath="runtimes\" Pack="true" Visible="false" Condition="Exists('$(_NuGetRepackPath)')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="System.Collections" />
     <Using Include="System.Runtime.InteropServices" />
@@ -162,10 +175,13 @@
     <Message Importance="High" Text="Configuration                  = '$(Configuration)'" />
     <Message Importance="High" Text="Platform                       = '$(Platform)'" />
     <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
+    <Message Importance="High" Text="_IsRePackBuild                 = '$(_IsRePackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
+    <Message Importance="High" Text="NUGET_REPACK_PATH              = '$(NUGET_REPACK_PATH)'" />
     <Message Importance="High" Text="_SdkOutputPathWindows64        = '$(_SdkOutputPathWindows64)'" />
     <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
+    <Message Importance="High" Text="_NuGetRepackPath               = '$(_NuGetRepackPath)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
     <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />
@@ -189,10 +205,13 @@
     <!-- strangely target "Pack" messages appear AFTER the NuGet package creation was reported so using "GenerateNuspec" instead -->
     <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
     <Message Importance="High" Text="_IsCiPackBuild                 = '$(_IsCiPackBuild)'" />
+    <Message Importance="High" Text="_IsRePackBuild                 = '$(_IsRePackBuild)'" />
     <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
     <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
+    <Message Importance="High" Text="NUGET_REPACK_PATH              = '$(NUGET_REPACK_PATH)'" />
     <Message Importance="High" Text="_SdkOutputPathWindows64        = '$(_SdkOutputPathWindows64)'" />
     <Message Importance="High" Text="_SdkOutputPathLinux64          = '$(_SdkOutputPathLinux64)'" />
+    <Message Importance="High" Text="_NuGetRepackPath               = '$(_NuGetRepackPath)'" />
     <Message Importance="High" Text="VersionPrefix                  = '$(VersionPrefix)'" />
     <Message Importance="High" Text="VersionSuffix                  = '$(VersionSuffix)'" />
     <Message Importance="High" Text="OutputPath                     = '$(OutputPath)'" />

@@ -120,6 +120,9 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("MaxAllowedConfigConnections"));
     ASSERT_EQ(config.getPropertyValue("MaxAllowedConfigConnections"), 0);
+
+    ASSERT_TRUE(config.hasProperty("StreamingPacketSendTimeout"));
+    ASSERT_EQ(config.getPropertyValue("StreamingPacketSendTimeout"), 0);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

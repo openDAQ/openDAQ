@@ -31,7 +31,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
                                                            OnSignalSubscribedCallback signalSubscribedHandler,
                                                            OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                                            SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
-                                                           SizeT maxAllowedConfigConnections)
+                                                           SizeT maxAllowedConfigConnections,
+                                                           SizeT streamingPacketSendTimeout)
     : context(context)
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingServerHandler"))
@@ -42,6 +43,7 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     , connectedClientIndex(0)
     , maxAllowedConfigConnections(maxAllowedConfigConnections)
     , configConnectionsCount(0)
+    , streamingPacketSendTimeout(streamingPacketSendTimeout)
 {
     for (const auto& signal : signalsList)
     {
@@ -428,7 +430,9 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
 {
     std::scoped_lock lock(sync);
 
-    streamingManager.registerClient(sessionHandler->getClientId(), sessionHandler->getReconnected());
+    streamingManager.registerClient(sessionHandler->getClientId(),
+                                    sessionHandler->getReconnected(),
+                                    streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME);
 
     auto registeredSignals = streamingManager.getRegisteredSignals();
     for (const auto& [signalNumericId, signalPtr] : registeredSignals)
@@ -473,6 +477,8 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     // so connection closing is handled only on read failure and not handled on write failure
     session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
+    session->setWriteTimedOutHandler(errorHandler);
+
     OnSignalSubscriptionCallback signalSubscriptionHandler =
         [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
                                                const SignalPtr& signal,
@@ -496,7 +502,8 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  clientIdAssignedByServer,
                                                                  findSignalHandler,
                                                                  signalSubscriptionHandler,
-                                                                 errorHandler);
+                                                                 errorHandler,
+                                                                 streamingPacketSendTimeout);
 
     setUpTransportLayerPropsCallback(sessionHandler);
 

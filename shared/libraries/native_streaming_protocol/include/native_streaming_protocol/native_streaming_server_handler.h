@@ -45,7 +45,8 @@ public:
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
-                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS);
+                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS,
+                                          SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
@@ -94,6 +95,8 @@ protected:
 
     SizeT maxAllowedConfigConnections;
     SizeT configConnectionsCount;
+
+    SizeT streamingPacketSendTimeout;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

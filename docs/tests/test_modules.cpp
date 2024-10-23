@@ -199,6 +199,7 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(nativeStreamingConfigFields[0].getName());
     nativeStreamingConfig.setPropertyValue("NativeStreamingPort", 7420);
     nativeStreamingConfig.setPropertyValue("MaxAllowedConfigConnections", 0);
+    nativeStreamingConfig.setPropertyValue("StreamingPacketSendTimeout", 0);
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(),
                                                              device,
                                                              nativeStreamingConfig));

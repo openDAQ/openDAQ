@@ -534,6 +534,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 {
                     "NativeStreamingPort": 1234,
                     "MaxAllowedConfigConnections": 123,
+                    "StreamingPacketSendTimeout": 2000,
                     "Path": "/test/native_configurator/checkDeviceInfoPopulated/"
                 }
             }
@@ -555,6 +556,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
     ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), path);
     ASSERT_EQ(serverConfig.getPropertyValue("MaxAllowedConfigConnections").asPtr<IInteger>(), 123);
+    ASSERT_EQ(serverConfig.getPropertyValue("StreamingPacketSendTimeout").asPtr<IInteger>(), 2000);
 
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 

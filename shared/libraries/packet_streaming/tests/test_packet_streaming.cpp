@@ -39,6 +39,26 @@ protected:
     }
 };
 
+TEST_F(PacketStreamingTest, PacketTimeStamp)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
+
+    {
+        PacketStreamingServer serverEnabledTimeStamps {1, true};
+        serverEnabledTimeStamps.addDaqPacket(1, serverEventPacket);
+        const auto serverPacketBuffer = serverEnabledTimeStamps.getNextPacketBuffer();
+        ASSERT_TRUE(serverPacketBuffer->timeStamp.has_value());
+    }
+    {
+        PacketStreamingServer serverDisabledTimeStamps {1, false};
+        serverDisabledTimeStamps.addDaqPacket(1, serverEventPacket);
+        const auto serverPacketBuffer = serverDisabledTimeStamps.getNextPacketBuffer();
+        ASSERT_FALSE(serverPacketBuffer->timeStamp.has_value());
+    }
+}
+
 TEST_F(PacketStreamingTest, DataDescChangedEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();

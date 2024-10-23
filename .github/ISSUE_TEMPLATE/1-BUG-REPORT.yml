@@ -35,9 +35,11 @@ body:
       For example:
         * **openDAQ version tag or commit SHA**: v3.0.0
         * **OS**: Ubuntu 20.04
+        * **programming language**: C++
     value: |
       * openDAQ version tag or commit SHA: 
       * OS: 
+      * programming language: 
   validations:
     required: true
 - type: textarea

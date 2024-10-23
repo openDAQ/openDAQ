@@ -75,6 +75,7 @@ protected:
                                 {"MaximumElectrical", 5.0},
                                 {"UsedWires", 6}}),
                            objManager)))
+                .addProperty(StructProperty("EUInformationWithQuantity", Unit("m/s", 1, "meter per second", "50")))
                 .build();
         objManager.addType(fusionAmpClass);
     }
@@ -164,6 +165,18 @@ TEST_F(TmsFusionDevice, FullBridge)
 
     ASSERT_EQ(serverFullBridge, clientFullBridge);
     ASSERT_EQ(serverFullBridge, newFullBridge);
+}
+
+TEST_F(TmsFusionDevice, EUInformationWithQuantity)
+{
+    const auto obj = PropertyObject(objManager, "FusionAmp");
+    auto [serverObj, fusionAmp] = registerPropertyObject(obj);
+
+    // Test unit property
+    const auto EUInformationStruct = Unit("s", 1, "seconds", "50");
+    fusionAmp.setPropertyValue("EUInformationWithQuantity", EUInformationStruct);
+
+    ASSERT_EQ(fusionAmp.getPropertyValue("EUInformationWithQuantity"), EUInformationStruct);
 }
 
 TEST_F(TmsFusionDevice, EnumTest)

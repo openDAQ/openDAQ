@@ -78,7 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions(SupportedConfigProtocolVersions())
+    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());

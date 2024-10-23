@@ -175,7 +175,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& host,
                                                           const StringPtr& port,
                                                           const StringPtr& path,
-                                                          uint16_t protocolVersion)
+                                                          uint16_t& protocolVersion)
 {
     auto transportClient = createAndConnectTransportClient(host, port, path, config);
 
@@ -212,6 +212,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionProcessingThread.get_id());
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
+        protocolVersion = deviceHelper->getProtocolVersion();
 
         deviceHelper->subscribeToCoreEvent(context);
 
@@ -386,6 +387,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     StringPtr protocolName;
     StringPtr protocolPrefix;
     ProtocolType protocolType = ProtocolType::Unknown;
+    std::string protocolVersionStr;
     if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::string localId;
@@ -415,12 +417,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        const uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
+        uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
         protocolId = NativeConfigurationDeviceTypeId;
         protocolName = "OpenDAQNativeConfiguration";
         protocolPrefix = "daq.nd";
         protocolType = ProtocolType::ConfigurationAndStreaming;
+        protocolVersionStr = std::to_string(protocolVersion);
     }
 
     // Set the connection info for the device
@@ -440,6 +443,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                   .setPort(std::stoi(port.toStdString()))
                   .setPrefix(protocolPrefix)
                   .setConnectionString(connectionString)
+                  .setProtocolVersion(protocolVersionStr)
                   .addAddressInfo(addressInfo)
                   .freeze();
 
@@ -473,7 +477,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 
     if (nativeConfigType == NativeType::config)
     {
-        defaultConfig.addProperty(IntProperty("ProtocolVersion", std::numeric_limits<uint16_t>::max()));
+        defaultConfig.addProperty(IntProperty("ProtocolVersion", GetLatestSupportedConfigProtocolVersion()));
         defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
         defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
 
@@ -636,13 +640,13 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         LOG_W("Native server capability is missing port. Defaulting to 7420.")
     }
     
-    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "/";
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
         const auto prefix = target.getProtocolId() == "OpenDAQNativeStreaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix;
         
-        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port,path);
+        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(addrInfo.getAddress())
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())

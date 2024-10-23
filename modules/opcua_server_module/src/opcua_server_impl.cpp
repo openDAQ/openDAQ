@@ -20,6 +20,7 @@ OpcUaServerImpl::OpcUaServerImpl(const DevicePtr& rootDevice,
     const uint16_t port = config.getPropertyValue("Port");
 
     server.setOpcUaPort(port);
+    server.setOpcUaPath(config.getPropertyValue("Path"));
     server.start();
 }
 

@@ -98,7 +98,7 @@ private:
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
     uint16_t protocolVersion;
-    const std::set<uint16_t>& supportedServerVersions;
+    const std::set<uint16_t> supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;
 
     PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);

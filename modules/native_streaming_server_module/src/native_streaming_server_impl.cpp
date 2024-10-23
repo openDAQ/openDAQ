@@ -21,11 +21,6 @@ using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-inline uint16_t GetLatestSupportedConfigProtocolVersion()
-{
-    return *SupportedConfigProtocolVersions().rbegin();
-}
-
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
                                                      const PropertyObjectPtr& config,
                                                      const ContextPtr& context)
@@ -46,11 +41,15 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
+    StringPtr path = config.getPropertyValue("Path");
+
     ServerCapabilityConfigPtr serverCapabilityStreaming =
         ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
         .setPrefix("daq.ns")
         .setConnectionType("TCP/IP")
         .setPort(port);
+    
+    serverCapabilityStreaming.addProperty(StringProperty("Path", path));
     rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig =
@@ -59,6 +58,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         .setConnectionType("TCP/IP")
         .setPort(port)
         .setProtocolVersion(std::to_string(GetLatestSupportedConfigProtocolVersion()));
+    
+    serverCapabilityConfig.addProperty(StringProperty("Path", path));
     rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);

@@ -26,7 +26,7 @@ Windows::
 
 [source,shell]
 ----
-git clone git@github.com:openDAQ/openDAQ.git
+git clone https://github.com/openDAQ/openDAQ.git
 cd openDAQ
 ----
 
@@ -57,7 +57,7 @@ might be located at a slightly different path within the `build` folder.
 [source,shell]
 ----
 cd build/x64/msvc-22/full
-cmake --build .
+cmake --build . --config Release
 cmake --install . --prefix "openDAQ"
 ----
 
@@ -128,6 +128,16 @@ cmake --install . --prefix "openDAQ"
 
 This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different installation
 directory, you can provide the path in the CMake install `--prefix` argument.
+
+In case of error, contained message "Killed signal terminated program cc1plus", try to restrict number of parallel build
+tasks:
+
+[source,shell]
+----
+cmake --build . -- -j 5
+----
+
+or just restart build.
 
 --
 ====

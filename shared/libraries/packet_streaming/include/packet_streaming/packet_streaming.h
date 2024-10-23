@@ -67,7 +67,7 @@ struct PacketBuffer
 {
     PacketBuffer(const PacketBuffer&) = delete;
     PacketBuffer(PacketBuffer&& packetBuffer) noexcept;
-    PacketBuffer(GenericPacketHeader* packetHeader, const void* payload, std::function<void()> onDestroy);
+    PacketBuffer(GenericPacketHeader* packetHeader, const void* payload, std::function<void()> onDestroy, bool enableTimeStamp);
 
     GenericPacketHeader* packetHeader;
     const void* payload;
@@ -76,6 +76,8 @@ struct PacketBuffer
     std::vector<uint32_t> additionalSignalIds;
 
     ~PacketBuffer();
+
+    std::optional<std::chrono::system_clock::time_point> timeStamp;
 };
 
 using PacketBufferPtr = std::shared_ptr<PacketBuffer>;

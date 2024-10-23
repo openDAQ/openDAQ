@@ -112,7 +112,7 @@ bool StreamingManager::removeSignal(const SignalPtr& signal)
     return doSignalUnsubscribe;
 }
 
-void StreamingManager::registerClient(const std::string& clientId, bool reconnected)
+void StreamingManager::registerClient(const std::string& clientId, bool reconnected, bool enablePacketBufferTimestamps)
 {
     std::scoped_lock lock(sync);
 
@@ -133,7 +133,7 @@ void StreamingManager::registerClient(const std::string& clientId, bool reconnec
 
     // create new associated packet server if required
     if (auto it = packetStreamingServers.find(clientId); it == packetStreamingServers.end())
-        packetStreamingServers.insert({clientId, std::make_shared<packet_streaming::PacketStreamingServer>(10)});
+        packetStreamingServers.insert({clientId, std::make_shared<packet_streaming::PacketStreamingServer>(10, enablePacketBufferTimestamps)});
 }
 
 ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)

@@ -15,8 +15,9 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            const std::string& clientId,
                                            OnFindSignalCallback findSignalHandler,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
-                                           OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolServerSessionHandler")
+                                           OnSessionErrorCallback errorHandler,
+                                           SizeT streamingPacketSendTimeout)
+    : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolServerSessionHandler", streamingPacketSendTimeout)
     , findSignalHandler(findSignalHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , transportLayerPropsHandler(nullptr)

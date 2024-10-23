@@ -67,6 +67,7 @@ public:
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
+    ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
@@ -609,6 +610,44 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
             *value = ptr.detach();
             return OPENDAQ_SUCCESS;
         });
+}
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    const auto dimensionCount = descriptor.getDimensions().getCount();
+
+    if (dimensionCount > 1)
+        return OPENDAQ_IGNORED;
+
+    readLock.lock();
+
+    auto* addr = static_cast<char*>(data) + (sampleCount - 1) * descriptor.getSampleSize();
+    auto calcFn = [this, addr, value, typeManager]()
+    {
+        if (hasRawDataOnly)
+        {
+            auto valuePtr = buildFromDescriptor(addr, descriptor, typeManager);
+            *value = valuePtr.detach();
+        }
+        else if (hasScalingCalc)
+        {
+            void* output;
+            descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &output);
+        }
+        else if (hasDataRuleCalc)
+        {
+        }
+
+        if (hasReferenceDomainOffset)
+        {
+        }
+    };
+    daqTry(calcFn);
+
+    readLock.unlock();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface>

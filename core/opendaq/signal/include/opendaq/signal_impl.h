@@ -134,6 +134,7 @@ protected:
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
     DataPacketPtr lastDataPacket;
+    BaseObjectPtr lastDataValue;
 
 private:
     bool isPublic{};
@@ -646,7 +647,10 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
     {
         auto dataPacket = packet.asPtrOrNull<IDataPacket>();
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
+        {
             lastDataPacket = std::move(dataPacket);
+            lastDataValue = dataPacket.getValueByIndex(dataPacket.getSampleCount() - 1);
+        }
     }
 }
 
@@ -1185,6 +1189,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);
+
+    // new impl
+    switch (const auto rule = dataDescriptor.getRule(); rule.getType())
+    {
+        case DataRuleType::Other:
+            break;
+        case DataRuleType::Linear:
+            break;
+        case DataRuleType::Constant:
+            break;
+        case DataRuleType::Explicit:
+            break;
+    }
+    // end new impl
 
     if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
         return OPENDAQ_IGNORED;

@@ -135,6 +135,8 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * one dimension.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
 };
 
 /*!@}*/

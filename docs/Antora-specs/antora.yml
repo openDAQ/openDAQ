@@ -1,11 +1,12 @@
 name: opendaq
 title: openDAQ protocols specification
-version: opendaq_version
+version: {opendaq-version}
 start_page: ROOT:overview.adoc
 asciidoc:
   attributes:
     page-toclevels: 3@
     experimental: true
+    version: {opendaq-version}
 nav:
   - modules/packet_streaming/nav-packet-streaming.adoc
   - modules/native_communication_protocol/nav-native-communication-protocol.adoc

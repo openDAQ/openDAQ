@@ -640,7 +640,7 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         LOG_W("Native server capability is missing port. Defaulting to 7420.")
     }
     
-    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "/";
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();

@@ -58,7 +58,7 @@ void TmsServer::start()
     serverCapability.setPrefix("daq.opcua");
     serverCapability.setConnectionType("TCP/IP");
     serverCapability.setPort(opcUaPort);
-    serverCapability.addProperty(StringProperty("Path", opcUaPath));
+    serverCapability.addProperty(StringProperty("Path", opcUaPath == "/" ? "" : opcUaPath));
     device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);

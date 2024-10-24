@@ -138,4 +138,12 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         },
         py::return_value_policy::take_ownership,
         "Gets the list of address information objects.");
+    cls.def_property_readonly("protocol_version",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getProtocolVersion().toStdString();
+        },
+        "Gets the protocol version supported by the device's protocol.");
 }

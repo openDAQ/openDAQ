@@ -50,6 +50,7 @@ public:
 
     void setupProtocolClients(const ContextPtr& context);
     DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion);
+    uint16_t getProtocolVersion() const;
 
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);

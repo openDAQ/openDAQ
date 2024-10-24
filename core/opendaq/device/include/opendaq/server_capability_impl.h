@@ -49,6 +49,9 @@ public:
     ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
     ErrCode INTERFACE_FUNC setProtocolType(ProtocolType type) override;
 
+    ErrCode INTERFACE_FUNC getProtocolVersion(IString** version) override;
+    ErrCode INTERFACE_FUNC setProtocolVersion(IString* version) override;
+
     ErrCode INTERFACE_FUNC getPrefix(IString** prefix) override;
     ErrCode INTERFACE_FUNC setPrefix(IString* prefix) override;
     
@@ -61,20 +64,19 @@ public:
     ErrCode INTERFACE_FUNC getAddresses(IList** addresses) override;
     ErrCode INTERFACE_FUNC addAddress(IString* address) override;
 
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
-
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
-
     ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
     ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
 
     ErrCode INTERFACE_FUNC getAddressInfo(IList** addressesInfo) override;
     ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) override;
 
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
 private:
     template <typename T>

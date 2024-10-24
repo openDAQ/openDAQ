@@ -134,6 +134,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * Additionally, it provides information on what type of address it is (e.g., IPv4, IPv6), as well as whether the address is reachable.
      */
     virtual ErrCode INTERFACE_FUNC getAddressInfo(IList** addressInfo) = 0;
+
+    /*!
+     * @brief Gets the protocol version supported by the device's protocol.
+     * @param[out] version The protocol version.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolVersion(IString** version) = 0;
 };
 /*!@}*/
 

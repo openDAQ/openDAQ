@@ -46,6 +46,11 @@ DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, ui
     return device;
 }
 
+uint16_t NativeDeviceHelper::getProtocolVersion() const
+{
+    return configProtocolClient->getProtocolVersion();
+}
+
 void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
 {
     context.getOnCoreEvent() += event(this, &NativeDeviceHelper::coreEventCallback);

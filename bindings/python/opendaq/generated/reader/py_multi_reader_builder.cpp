@@ -161,4 +161,18 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             objectPtr.setStartOnFullUnitOfDomain(enabled);
         },
         "Gets the start on full unit of domain / Sets the start on full unit of domain");
+    cls.def_property("min_read_count",
+        [](daq::IMultiReaderBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            return objectPtr.getMinReadCount();
+        },
+        [](daq::IMultiReaderBuilder *object, const size_t minReadCount)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.setMinReadCount(minReadCount);
+        },
+        "Gets the minimal number of samples to read. / Sets the minimal number of samples to read.");
 }

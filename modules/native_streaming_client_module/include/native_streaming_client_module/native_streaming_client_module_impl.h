@@ -80,7 +80,7 @@ private:
                                  const StringPtr& host,
                                  const StringPtr& port,
                                  const StringPtr& path,
-                                 uint16_t protocolVersion);
+                                 uint16_t& protocolVersion);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);

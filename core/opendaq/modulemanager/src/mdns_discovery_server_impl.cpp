@@ -58,14 +58,14 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     auto serviceCap = configPtr.getPropertyValue("ServiceCap");
 
     std::unordered_map<std::string, std::string> properties;
-    properties["caps"] = serviceCap.asPtr<IString>().toStdString();
-    if (configPtr.hasProperty("Path"))
-        properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
+    properties["caps"] = serviceCap.asPtr<IString>(true).toStdString();
 
     properties["name"] = "";
     properties["manufacturer"] = "";
     properties["model"] = "";
     properties["serialNumber"] = "";
+    properties["path"] = "/";
+    properties["protocolVersion"] = "";
 
     if (deviceInfoPtr.assigned())
     {
@@ -74,6 +74,12 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
         properties["model"] = deviceInfoPtr.getModel().toStdString();
         properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
     }
+
+    if (configPtr.hasProperty("Path"))
+        properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
+    
+    if (configPtr.hasProperty("ProtocolVersion"))
+        properties["protocolVersion"] = configPtr.getPropertyValue("ProtocolVersion").asPtr<IString>().toStdString();
 
     discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties);
     if (discoveryServer.addDevice(serviceId, device))

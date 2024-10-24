@@ -100,6 +100,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
     
     // [returnSelf]
     virtual ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the protocol version
+     * @param version The protocol version
+     */
+    virtual ErrCode INTERFACE_FUNC setProtocolVersion(IString* version) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

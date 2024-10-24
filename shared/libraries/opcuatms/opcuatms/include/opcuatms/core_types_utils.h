@@ -20,7 +20,7 @@
 #include <opcuashared/node/opcuatype.h>
 #include <opcuatms/opcuatms.h>
 #include <opendaq/sample_type.h>
-#include "opcuashared/opcuavariant.h"
+#include <opcuashared/opcuavariant.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

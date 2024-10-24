@@ -4,9 +4,10 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <coretypes/function.h>
 #include <coretypes/validation.h>
@@ -103,7 +104,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 
     this->internalAddRef();
     inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
@@ -168,7 +169,7 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -344,17 +345,22 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
+EventPacketPtr StreamReaderImpl::createInitDataDescriptorChangedEventPacket()
+{
+    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor),
+                                            descriptorToEventPacketParam(domainDescriptor));
+}
+
 void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 {
     if (!eventPacket.assigned())
         return;
 
-    auto params = eventPacket.getParameters();
-    DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
 
-    // Check if value is stil convertible
-    if (newValueDescriptor.assigned())
+    // Check if value is still convertible
+    if (valueDescriptorChanged && newValueDescriptor.assigned())
     {
         dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
@@ -369,8 +375,8 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
         }
     }
 
-    // Check if domain is stil convertible
-    if (newDomainDescriptor.assigned())
+    // Check if domain is still convertible
+    if (domainDescriptorChanged && newDomainDescriptor.assigned())
     {
         if (domainReader->isUndefined())
         {

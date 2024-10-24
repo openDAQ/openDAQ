@@ -1,8 +1,8 @@
-#include "gtest/gtest.h"
-#include "opcuatms/extension_object.h"
+#include <gtest/gtest.h>
+#include <opcuatms/extension_object.h>
 #include <opendaq/range_factory.h>
-#include "opcuashared/opcuaobject.h"
-#include "opcuatms/converters/variant_converter.h"
+#include <opcuashared/opcuaobject.h>
+#include <opcuatms/converters/variant_converter.h>
 
 using ExtensionObjectTest = testing::Test;
 

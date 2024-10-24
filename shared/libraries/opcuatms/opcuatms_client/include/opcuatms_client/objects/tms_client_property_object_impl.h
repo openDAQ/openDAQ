@@ -16,11 +16,11 @@
 
 #pragma once
 #include <coreobjects/property_object_impl.h>
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms/opcuatms.h"
-#include "opcuatms_client/objects/tms_client_object_impl.h"
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms_client/objects/tms_client_object_impl.h>
 #include <opendaq/channel_impl.h>
-#include "opcuatms_client/objects/tms_client_component.h"
+#include <opcuatms_client/objects/tms_client_component.h>
 #include <opendaq/server_capability_impl.h>
 #include <opendaq/input_port_impl.h>
 

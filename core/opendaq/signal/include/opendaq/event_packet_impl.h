@@ -31,6 +31,7 @@ public:
     ErrCode INTERFACE_FUNC getEventId(IString** id) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
 
+    // IBaseObject
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
     // ISerializable

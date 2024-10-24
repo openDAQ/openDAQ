@@ -17,7 +17,7 @@
 #pragma once
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/channel_ptr.h>
-#include "opcuatms_server/objects/tms_server_function_block.h"
+#include <opcuatms_server/objects/tms_server_function_block.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

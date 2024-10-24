@@ -58,7 +58,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto argInfoProp = PropertyBuilder("TestArgInfoProp").setDefaultValue(argInfo).setValueType(CoreType::ctStruct).build();
     instance.addProperty(argInfoProp);
     // Add custom Callable Info Property
-    auto callInfo = CallableInfo_Create(list, CoreType::ctInt);
+    auto callInfo = CallableInfo_Create(list, CoreType::ctInt, false);
     auto callInfoProp = PropertyBuilder("TestCallInfoProp").setDefaultValue(callInfo).setValueType(CoreType::ctStruct).build();
     instance.addProperty(callInfoProp);
     // Add custom Unit Property

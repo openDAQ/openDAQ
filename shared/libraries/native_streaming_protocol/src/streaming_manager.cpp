@@ -3,6 +3,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -33,11 +34,12 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
             auto eventPacket = packet.asPtr<IEventPacket>();
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                auto dataDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                if (dataDescriptor.assigned())
-                {
-                    registeredSignal.lastDataDescriptor = dataDescriptor;
-                }
+                const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                if (dataDescriptorParam.assigned())
+                    registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                if (domainDescriptorParam.assigned())
+                    registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
             }
         }
 
@@ -196,12 +198,13 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
             {
                 // does not trigger creating a reader
                 // so create and send event packet to initialize packet streaming
-                // dataDescriptor not assigned means initial event packet is not yet processed by streaming
-                if (registeredSignal.lastDataDescriptor.assigned())
+                // descriptor params not assigned means initial event packet is not yet processed by streaming
+                if (registeredSignal.lastDataDescriptorParam.assigned())
                 {
                     sendDaqPacket(sendPacketBufferCb,
                                   packetStreamingServers.at(subscribedClientId),
-                                  DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptor, nullptr),
+                                  DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptorParam,
+                                                                   registeredSignal.lastDomainDescriptorParam),
                                   subscribedClientId,
                                   registeredSignal.numericId);
                 }

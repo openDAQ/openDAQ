@@ -4,6 +4,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/sample_type_traits.h>
+#include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -22,6 +23,7 @@ InputSignalBase::InputSignalBase(const std::string& signalId,
     , name(signalInfo.signalProps.name.value_or(signalInfo.signalName))
     , description(signalInfo.signalProps.description.value_or(""))
     , logCallback(logCb)
+    , subscribed(false)
 {
 }
 
@@ -35,14 +37,16 @@ EventPacketPtr InputSignalBase::createDecriptorChangedPacket(bool valueChanged, 
 
     if (isDomainSignal())
     {
-        const auto valueDesc = valueChanged ? currentDataDescriptor : nullptr;
-        return DataDescriptorChangedEventPacket(valueDesc, nullptr);
+        const auto valueDescParam = descriptorToEventPacketParam(currentDataDescriptor);
+        return DataDescriptorChangedEventPacket(valueChanged ? valueDescParam : nullptr, nullptr);
     }
     else
     {
-        const auto valueDesc = valueChanged ? currentDataDescriptor : nullptr;
-        const auto domainDesc = domainChanged ? inputDomainSignal->getSignalDescriptor() : nullptr;
-        return DataDescriptorChangedEventPacket(valueDesc, domainDesc);
+        const auto valueDescParam = descriptorToEventPacketParam(currentDataDescriptor);
+        const auto domainDesc = inputDomainSignal->getSignalDescriptor();
+        const auto domainDescParam = descriptorToEventPacketParam(domainDesc);
+        return DataDescriptorChangedEventPacket(valueChanged ? valueDescParam : nullptr,
+                                                domainChanged ? domainDescParam : nullptr);
     }
 }
 
@@ -83,6 +87,16 @@ std::string InputSignalBase::getSignalId() const
 InputSignalBasePtr InputSignalBase::getInputDomainSignal() const
 {
     return inputDomainSignal;
+}
+
+void InputSignalBase::setSubscribed(bool subscribed)
+{
+    this->subscribed = subscribed;
+}
+
+bool InputSignalBase::getSubscribed()
+{
+    return subscribed;
 }
 
 InputDomainSignal::InputDomainSignal(const std::string& signalId,
@@ -359,6 +373,40 @@ DataPacketPtr InputConstantDataSignal::createTypedConstantPacket(
     }
 
     return ConstantDataPacketWithDomain<DataType>(domainPacket, dataDescriptor, sampleCount, startValueTyped, otherValuesTyped);
+}
+
+InputNullSignal::InputNullSignal(const std::string& signalId, streaming_protocol::LogCallback logCb)
+    : InputSignalBase(signalId, std::string(), SubscribedSignalInfo(), nullptr, logCb)
+{
+}
+
+EventPacketPtr InputNullSignal::createDecriptorChangedPacket(bool valueChanged, bool domainChanged) const
+{
+    return DataDescriptorChangedEventPacket(valueChanged ? NullDataDescriptor() : nullptr,
+                                            domainChanged ? NullDataDescriptor() : nullptr);
+}
+
+bool InputNullSignal::hasDescriptors() const
+{
+    return true;
+}
+
+DataPacketPtr InputNullSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
+                                                  const uint8_t* /*data*/,
+                                                  size_t /*sampleCount*/,
+                                                  const DataPacketPtr& /*domainPacket*/)
+{
+    return nullptr;
+}
+
+bool InputNullSignal::isDomainSignal() const
+{
+    return false;
+}
+
+bool InputNullSignal::isCountable() const
+{
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

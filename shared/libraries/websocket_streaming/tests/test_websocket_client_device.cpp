@@ -7,6 +7,7 @@
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
 #include <opendaq/mirrored_signal_config_ptr.h>
+#include <opendaq/event_packet_utils.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -139,6 +140,7 @@ public:
 
 TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
 {
+    SKIP_TEST_MAC_CI;
     const bool signalsAddedAfterConnect = GetParam();
 
     // Create server signals
@@ -362,6 +364,375 @@ TEST_P(WebsocketClientDeviceTestP, SignalsWithSharedDomain)
 }
 
 INSTANTIATE_TEST_SUITE_P(SignalsAddedAfterConnect, WebsocketClientDeviceTestP, testing::Values(true, false));
+
+TEST_F(WebsocketClientDeviceTest, ChangeValueDescriptorToSupported)
+{
+    SKIP_TEST_MAC_CI;
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
+
+    // Setup and start server which will publish created signals
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) { return signals; });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+    auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+
+    // subscribe value signal
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    valueSignal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        try
+        {
+            acknowledgementPromise.set_value(args.getStreamingConnectionString());
+        }
+        catch(const std::exception& e)
+        {
+            FAIL() << e.what();
+        }
+    };
+    auto reader = PacketReader(valueSignal);
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    SizeT addedSigCount = 0;
+    std::promise<void> addSigPromise;
+    std::future<void> addSigFuture = addSigPromise.get_future();
+    auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded &&
+            params.get("Component").supportsInterface<ISignal>() &&
+            ++addedSigCount == 1)
+        {
+            addSigPromise.set_value();
+        }
+    };
+    clientDevice.getContext().getOnCoreEvent() += eventHandler;
+
+    // remove post scaling to change output sampletype
+    const auto supportedValueDescriptor =
+        DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).setPostScaling(nullptr).build();
+    testValueSignal.asPtr<ISignalConfig>().setDescriptor(supportedValueDescriptor);
+    server->broadcastPacket(
+        testValueSignal.getGlobalId(),
+        DataDescriptorChangedEventPacket(supportedValueDescriptor, nullptr)
+    );
+
+    // wait for 1 new signal added
+    ASSERT_TRUE(addSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    clientDevice.getContext().getOnCoreEvent() -= eventHandler;
+
+    // Check if old value signal removed
+    ASSERT_TRUE(valueSignal.isRemoved());
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    valueSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
+
+    // wait for subscribe ack
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    // wait for new descriptors assigned
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // Check the updated mirrored signal
+    ASSERT_TRUE(valueSignal.getDescriptor().assigned());
+    ASSERT_EQ(valueSignal.getDomainSignal(), clientDevice.getSignals()[0]);
+    ASSERT_TRUE(BaseObjectPtr::Equals(valueSignal.getDescriptor(), supportedValueDescriptor));
+}
+
+class UnsupportedSignalsTestP : public WebsocketClientDeviceTest, public testing::WithParamInterface<DataDescriptorPtr>
+{
+public:
+    void SetUp() override
+    {
+        unsupportedDescriptor = GetParam();
+        context = NullContext();
+    }
+
+    DataDescriptorPtr unsupportedDescriptor;
+};
+
+TEST_P(UnsupportedSignalsTestP, MakeValueSignalUnsupported)
+{
+    SKIP_TEST_MAC_CI;
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
+
+    // Setup and start server which will publish created signals
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) { return signals; });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+    auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+
+    // subscribe value signal
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    valueSignal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        acknowledgementPromise.set_value(args.getStreamingConnectionString());
+    };
+    auto reader = PacketReader(valueSignal);
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    SizeT addedSigCount = 0;
+    std::promise<void> addSigPromise;
+    std::future<void> addSigFuture = addSigPromise.get_future();
+
+    auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded &&
+            params.get("Component").supportsInterface<ISignal>() &&
+            ++addedSigCount == 1)
+        {
+            addSigPromise.set_value();
+        }
+    };
+    clientDevice.getContext().getOnCoreEvent() += eventHandler;
+
+    // make value signal unsupported
+    testValueSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
+    server->broadcastPacket(
+        testValueSignal.getGlobalId(),
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(unsupportedDescriptor), nullptr)
+    );
+
+    // wait for 1 new incomplete signal added
+    ASSERT_TRUE(addSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    clientDevice.getContext().getOnCoreEvent() -= eventHandler;
+
+    // Check if old value signal removed
+    ASSERT_TRUE(valueSignal.isRemoved());
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    valueSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
+    auto domainSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+
+    ASSERT_TRUE(domainSignal.getDescriptor().assigned());
+    // Check if new value signal has nullptr descriptors
+    ASSERT_FALSE(valueSignal.getDescriptor().assigned());
+}
+
+TEST_P(UnsupportedSignalsTestP, MakeDomainSignalUnsupported)
+{
+    SKIP_TEST_MAC_CI;
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
+
+    // Setup and start server which will publish created signals
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) { return signals; });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+    auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+    auto domainSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
+
+    // subscribe value signal
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    valueSignal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        acknowledgementPromise.set_value(args.getStreamingConnectionString());
+    };
+    auto reader = PacketReader(valueSignal);
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    SizeT addedSigCount = 0;
+    std::promise<void> addSigPromise;
+    std::future<void> addSigFuture = addSigPromise.get_future();
+    auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded &&
+            params.get("Component").supportsInterface<ISignal>() &&
+            ++addedSigCount == 2)
+        {
+            addSigPromise.set_value();
+        }
+    };
+    clientDevice.getContext().getOnCoreEvent() += eventHandler;
+
+    // make domain signal unsupported
+    testDomainSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
+    server->broadcastPacket(
+        testValueSignal.getGlobalId(),
+        DataDescriptorChangedEventPacket(nullptr, descriptorToEventPacketParam(unsupportedDescriptor))
+    );
+
+    // wait for 2 new incomplete signals added
+    ASSERT_TRUE(addSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    clientDevice.getContext().getOnCoreEvent() -= eventHandler;
+
+    // Check if old signals removed
+    ASSERT_TRUE(valueSignal.isRemoved());
+    ASSERT_TRUE(domainSignal.isRemoved());
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    valueSignal = clientDevice.getSignals()[0];
+    domainSignal = clientDevice.getSignals()[1];
+
+    // Check if new signals have nullptr descriptors
+    ASSERT_FALSE(valueSignal.getDescriptor().assigned());
+    ASSERT_FALSE(domainSignal.getDescriptor().assigned());
+}
+
+TEST_P(UnsupportedSignalsTestP, MakeValueSignalSupported)
+{
+    SKIP_TEST_MAC_CI;
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
+
+    const auto supportedValueDescriptor = DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).build();
+    // Set unsupported descriptor
+    testValueSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
+
+    // Setup and start server which will publish created signals
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) { return signals; });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+    auto domainSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
+    ASSERT_FALSE(valueSignal.getDescriptor().assigned());
+    ASSERT_TRUE(domainSignal.getDescriptor().assigned());
+
+    // Wait for the signals temporarily subscribed by the client during initialization to be unsubscribed,
+    // to avoid interfering with the explicit subscription triggered by reader creation.
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // subscribe value signal
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    valueSignal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        try
+        {
+            acknowledgementPromise.set_value(args.getStreamingConnectionString());
+        }
+        catch(const std::exception& e)
+        {
+            FAIL() << e.what();
+        }
+    };
+    auto reader = PacketReader(valueSignal);
+
+    // make value signal supported, it will trigger subscribe ack
+    testValueSignal.asPtr<ISignalConfig>().setDescriptor(supportedValueDescriptor);
+    server->broadcastPacket(testValueSignal.getGlobalId(), DataDescriptorChangedEventPacket(supportedValueDescriptor, nullptr));
+
+    // wait for subscribe ack
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    // wait for new descriptors assigned
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // Check the updated mirrored signals
+    ASSERT_TRUE(valueSignal.getDescriptor().assigned());
+    ASSERT_TRUE(domainSignal.getDescriptor().assigned());
+    ASSERT_FALSE(domainSignal.getDomainSignal().assigned());
+    ASSERT_EQ(valueSignal.getDomainSignal(), domainSignal);
+    ASSERT_TRUE(BaseObjectPtr::Equals(valueSignal.getDescriptor(), supportedValueDescriptor));
+    ASSERT_TRUE(BaseObjectPtr::Equals(domainSignal.getDescriptor(), testDomainSignal.getDescriptor()));
+}
+
+TEST_P(UnsupportedSignalsTestP, MakeDomainSignalSupported)
+{
+    SKIP_TEST_MAC_CI;
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+    auto signals = List<ISignal>(testValueSignal, testDomainSignal);
+
+    const auto supportedDomainDescriptor = DataDescriptorBuilderCopy(testDomainSignal.getDescriptor()).build();
+    // Set unsupported descriptor
+    testDomainSignal.asPtr<ISignalConfig>().setDescriptor(unsupportedDescriptor);
+
+    // Setup and start server which will publish created signals
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) { return signals; });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
+    auto domainSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
+    ASSERT_FALSE(valueSignal.getDescriptor().assigned());
+    ASSERT_FALSE(domainSignal.getDescriptor().assigned());
+
+    // Wait for the signals temporarily subscribed by the client during initialization to be unsubscribed,
+    // to avoid interfering with the explicit subscription triggered by reader creation.
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // subscribe value signal
+    std::promise<StringPtr> acknowledgementPromise;
+    std::future<StringPtr> acknowledgementFuture = acknowledgementPromise.get_future();
+    valueSignal.getOnSubscribeComplete() +=
+        [&acknowledgementPromise](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
+    {
+        try
+        {
+            acknowledgementPromise.set_value(args.getStreamingConnectionString());
+        }
+        catch(const std::exception& e)
+        {
+            FAIL() << e.what();
+        }
+    };
+    auto reader = PacketReader(valueSignal);
+
+    // make value signal supported, it will trigger subscribe ack
+    testDomainSignal.asPtr<ISignalConfig>().setDescriptor(supportedDomainDescriptor);
+    server->broadcastPacket(testValueSignal.getGlobalId(), DataDescriptorChangedEventPacket(nullptr, supportedDomainDescriptor));
+
+    // wait for subscribe ack
+    ASSERT_EQ(acknowledgementFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+
+    // wait for new descriptors assigned
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // Check the updated mirrored signals
+    ASSERT_TRUE(valueSignal.getDescriptor().assigned());
+    ASSERT_TRUE(domainSignal.getDescriptor().assigned());
+    ASSERT_FALSE(domainSignal.getDomainSignal().assigned());
+    ASSERT_EQ(valueSignal.getDomainSignal(), domainSignal);
+    ASSERT_TRUE(BaseObjectPtr::Equals(domainSignal.getDescriptor(), supportedDomainDescriptor));
+    ASSERT_TRUE(BaseObjectPtr::Equals(valueSignal.getDescriptor(), testValueSignal.getDescriptor()));
+}
+
+INSTANTIATE_TEST_SUITE_P(UnsupportedSignalsTest,
+                         UnsupportedSignalsTestP,
+                         testing::Values(nullptr, DataDescriptorBuilder().setSampleType(daq::SampleType::Invalid).build()));
 
 TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
 {

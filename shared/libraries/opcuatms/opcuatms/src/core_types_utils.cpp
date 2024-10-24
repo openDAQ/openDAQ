@@ -1,12 +1,12 @@
 #include <opcuatms/core_types_utils.h>
 
-#include "opcuashared/opcuadatatypearraylist.h"
-#include "opcuatms/extension_object.h"
-#include "open62541/daqbt_nodeids.h"
-#include "open62541/nodeids.h"
-#include "open62541/types_daqesp_generated.h"
-#include "open62541/types_daqhbk_generated.h"
-#include "open62541/types_di_generated.h"
+#include <opcuashared/opcuadatatypearraylist.h>
+#include <opcuatms/extension_object.h>
+#include <open62541/daqbt_nodeids.h>
+#include <open62541/nodeids.h>
+#include <open62541/types_daqesp_generated.h>
+#include <open62541/types_daqhbk_generated.h>
+#include <open62541/types_di_generated.h>
 
 using namespace daq::opcua;
 using namespace daq;
@@ -146,6 +146,10 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
             return UA_SAMPLETYPEENUMERATION_RANGEINT64;
         case SampleType::Struct:
             return UA_SAMPLETYPEENUMERATION_INVALID;
+        case SampleType::Null:
+            throw ConversionFailedException(
+                "SampleType \"Null\" is not convertible and reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."
+            );
         default:
             throw ConversionFailedException();
     }

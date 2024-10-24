@@ -50,16 +50,19 @@ public:
     virtual bool isDomainSignal() const = 0;
     virtual bool isCountable() const = 0;
 
-    EventPacketPtr createDecriptorChangedPacket(bool valueChanged = true, bool domainChanged = true) const;
+    virtual EventPacketPtr createDecriptorChangedPacket(bool valueChanged = true, bool domainChanged = true) const;
 
     void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
-    bool hasDescriptors() const;
+    virtual bool hasDescriptors() const;
 
     DataDescriptorPtr getSignalDescriptor() const;
     std::string getTableId() const;
     std::string getSignalId() const;
 
     InputSignalBasePtr getInputDomainSignal() const;
+
+    void setSubscribed(bool subscribed);
+    bool getSubscribed();
 
 protected:
     const std::string signalId;
@@ -72,6 +75,25 @@ protected:
 
     daq::streaming_protocol::LogCallback logCallback;
     mutable std::mutex descriptorsSync;
+    bool subscribed;
+};
+
+/// Used as a placeholder for uninitialized or incomplete signals which aren't supported by LT-streaming
+class InputNullSignal : public InputSignalBase
+{
+public:
+    InputNullSignal(const std::string& signalId,
+                    streaming_protocol::LogCallback logCb);
+
+    EventPacketPtr createDecriptorChangedPacket(bool valueChanged = true, bool domainChanged = true) const override;
+    bool hasDescriptors() const override;
+
+    DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
+                                     const uint8_t* data,
+                                     size_t sampleCount,
+                                     const DataPacketPtr& domainPacket) override;
+    bool isDomainSignal() const override;
+    bool isCountable() const override;
 };
 
 class InputDomainSignal : public InputSignalBase
@@ -174,6 +196,17 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
         else
             throw ConversionFailedException("Unsupported input data signal rule");
     }
+}
+
+inline InputSignalBasePtr InputPlaceHolderSignal(const std::string& signalId,
+                                                 streaming_protocol::LogCallback logCb)
+{
+    return std::make_shared<InputNullSignal>(signalId, logCb);
+}
+
+inline bool isPlaceHolderSignal(const InputSignalBasePtr& inputSignal)
+{
+    return (std::dynamic_pointer_cast<InputNullSignal>(inputSignal)) ? true : false;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

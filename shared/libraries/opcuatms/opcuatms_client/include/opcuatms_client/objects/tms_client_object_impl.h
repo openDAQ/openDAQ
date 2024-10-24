@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include "opcuaclient/monitored_item_create_request.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/opcuatms.h"
+#include <opcuaclient/monitored_item_create_request.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/opcuatms.h>
 #include <opendaq/signal_ptr.h>
 #include <opcuatms_client/objects/tms_client_context.h>
 

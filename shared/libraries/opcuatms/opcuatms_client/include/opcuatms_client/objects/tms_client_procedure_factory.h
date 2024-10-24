@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #pragma once
-#include "coretypes/procedure_ptr.h"
-#include "opcuatms_client/objects/tms_client_context.h"
-#include "opcuatms_client/objects/tms_client_procedure_impl.h"
+#include <coretypes/procedure_ptr.h>
+#include <opcuatms_client/objects/tms_client_context.h>
+#include <opcuatms_client/objects/tms_client_procedure_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

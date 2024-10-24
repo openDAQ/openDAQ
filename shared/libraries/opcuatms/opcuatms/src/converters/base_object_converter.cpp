@@ -1,6 +1,6 @@
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/core_types_utils.h"
-#include "opendaq/data_descriptor_ptr.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/core_types_utils.h>
+#include <opendaq/data_descriptor_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -25,9 +25,9 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-#include "opcuatms/converters/selection_converter.h"
-#include "opcuatms/converter_maps.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <opcuatms/converters/selection_converter.h>
+#include <opcuatms/converter_maps.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

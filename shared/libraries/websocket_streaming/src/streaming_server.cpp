@@ -4,11 +4,14 @@
 #include <streaming_protocol/Logging.hpp>
 #include <streaming_protocol/jsonrpc_defines.hpp>
 
+#include <opendaq/event_packet_utils.h>
 #include "websocket_streaming/streaming_server.h"
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/ids_parser.h>
+
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -130,13 +133,22 @@ void StreamingServer::broadcastPacket(const std::string& signalId, const PacketP
         if (auto signalIter = outputSignals.find(signalId); signalIter != outputSignals.end())
         {
             auto outputSignal = signalIter->second;
-            auto eventPacket = packet.asPtrOrNull<IEventPacket>();
 
-            if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            if (auto eventPacket = packet.asPtrOrNull<IEventPacket>(); eventPacket.assigned())
             {
-                updateOutputValueSignal(outputSignal, outputSignals, writer);
+                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                {
+                    handleDataDescriptorChanges(outputSignal, outputSignals, writer, eventPacket);
+                }
+                else
+                {
+                    STREAMING_PROTOCOL_LOG_W("Event type {} is not supported by streaming.", eventPacket.getEventId());
+                }
             }
-            outputSignal->writeDaqPacket(packet);
+            else if (auto dataPacket = packet.asPtrOrNull<IDataPacket>(); dataPacket.assigned())
+            {
+                outputSignal->writeDaqDataPacket(dataPacket);
+            }
         }
     }
 }
@@ -151,40 +163,53 @@ DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
     return descriptor.getRule().getType();
 }
 
+OutputDomainSignalBasePtr StreamingServer::addUpdateOrFindDomainSignal(const SignalPtr& domainSignal,
+                                                                       SignalMap& outputSignals,
+                                                                       const StreamWriterPtr& writer)
+{
+    auto domainSignalId = domainSignal.getGlobalId();
+
+    OutputDomainSignalBasePtr outputDomainSignal;
+    if (const auto& outputSignalIt = outputSignals.find(domainSignalId); outputSignalIt != outputSignals.end())
+    {
+        auto outputSignal = outputSignalIt->second;
+
+        if (std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))
+        {
+            // replace previously added incomplete placeholder signal
+            outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
+            outputSignals[domainSignalId] = outputDomainSignal;
+        }
+        else
+        {
+            // find previously added complete output domain signal
+            outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignal);
+            if (!outputDomainSignal)
+                throw NoInterfaceException("Previously registered domain output signal {} is not of domain type", domainSignalId);
+        }
+    }
+    else
+    {
+        // signal wasn't added before so add it now
+        outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
+        outputSignals.insert({domainSignalId, outputDomainSignal});
+    }
+
+    return outputDomainSignal;
+}
+
 void StreamingServer::addToOutputSignals(const SignalPtr& signal,
                                          SignalMap& outputSignals,
                                          const StreamWriterPtr& writer)
 {
     auto domainSignal = signal.getDomainSignal();
+
     if (domainSignal.assigned())
     {
-        auto domainSignalId = domainSignal.getGlobalId();
+        // if domain is assigned then signal is considered as value signal
+        OutputDomainSignalBasePtr outputDomainSignal = addUpdateOrFindDomainSignal(domainSignal, outputSignals, writer);
 
-        OutputDomainSignalBasePtr outputDomainSignal;
-        if (const auto& outputSignalIt = outputSignals.find(domainSignalId); outputSignalIt != outputSignals.end())
-        {
-            auto outputSignal = outputSignalIt->second;
-
-            if (std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))
-            {
-                outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
-                outputSignals[domainSignalId] = outputDomainSignal;
-            }
-            else
-            {
-                outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignal);
-                if (!outputDomainSignal)
-                    throw NoInterfaceException("Previously registered domain output signal {} is not of domain type", domainSignalId);
-            }
-        }
-        else
-        {
-            outputDomainSignal = createOutputDomainSignal(domainSignal, domainSignal.getGlobalId(), writer);
-            outputSignals.insert({domainSignalId, outputDomainSignal});
-        }
-
-        auto tableId = domainSignalId.toStdString();
-
+        auto tableId = domainSignal.getGlobalId().toStdString();
         const auto domainSignalRuleType = getSignalRuleType(domainSignal);
         if (domainSignalRuleType == DataRuleType::Linear)
         {
@@ -198,11 +223,8 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
     }
     else
     {
-        if (const auto& outputSignalIt = outputSignals.find(signal.getGlobalId()); outputSignalIt == outputSignals.end())
-        {
-            auto outputDomainSignal = createOutputDomainSignal(signal, signal.getGlobalId(), writer);
-            outputSignals.insert({signal.getGlobalId(), outputDomainSignal});
-        }
+        // if domain is not assigned then signal is considered as domain signal itself
+        addUpdateOrFindDomainSignal(signal, outputSignals, writer);
     }
 }
 
@@ -540,30 +562,95 @@ void StreamingServer::updateComponentSignals(const DictPtr<IString, ISignal>& si
     stopReadSignals(signalsToStopRead);
 }
 
-void StreamingServer::updateOutputValueSignal(OutputSignalBasePtr& outputSignal,
-                                              SignalMap& outputSignals,
-                                              const StreamWriterPtr& writer)
+/// Due to the type-specific "hardcoded" implementations of output signals,
+/// when a signal descriptor change is incompatible with the existing output signal (e.g. sample type or rule changed),
+/// the signal is replaced with a newly created one. To handle this correctly on both the server and client sides,
+/// the old signal is marked as unavailable by server, and the new one is made available under the same signal ID.
+/// This ensures any cached signal details across server and client implementations are cleared.
+/// As a result, the corresponding signal in the LT pseudo device is also removed and the new one appeared.
+void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSignal,
+                                                  SignalMap& outputSignals,
+                                                  const StreamWriterPtr& writer,
+                                                  const EventPacketPtr& packet)
 {
-    auto placeholderSignal = std::dynamic_pointer_cast<OutputNullSignal>(outputSignal);
+    const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(packet);
+    bool subscribed = outputSignal->isSubscribed();
 
-    if (placeholderSignal)
+    if (auto placeholderValueSignal = std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))
     {
-        auto daqSignal = outputSignal->getDaqSignal();
-        auto signalId = daqSignal.getGlobalId().toStdString();
+        if (valueDescriptorChanged && newValueDescriptor.assigned() ||
+            domainDescriptorChanged && newDomainDescriptor.assigned())
+            updateOutputPlaceholderSignal(outputSignal, outputSignals, writer, subscribed);
+    }
+    else
+    {
+        const auto daqValueSignal = outputSignal->getDaqSignal();
+        const auto valueSignalId = daqValueSignal.getGlobalId();
 
-        LOG_I("Parameters of unsupported signal {} has been changed, check if it is supported now ...", daqSignal.getGlobalId());
-        try
+        if (valueDescriptorChanged)
         {
-            addToOutputSignals(daqSignal, outputSignals, writer);
-            outputSignal = outputSignals.at(signalId);
+            try
+            {
+                outputSignal->writeValueDescriptorChanges(newValueDescriptor);
+            }
+            catch (const DaqException& e)
+            {
+                writeSignalsUnavailable(writer, {valueSignalId});
+                LOG_W("Failed to change value descriptor for signal {}, reason: {}", valueSignalId, e.what());
+                outputSignals.insert_or_assign(valueSignalId, std::make_shared<OutputNullSignal>(daqValueSignal, logCallback));
+                outputSignal = outputSignals.at(valueSignalId);
+                if (newValueDescriptor.assigned())
+                    updateOutputPlaceholderSignal(outputSignal, outputSignals, writer, false);
+                writeSignalsAvailable(writer, {valueSignalId});
+                outputSignal->setSubscribed(subscribed);
+            }
+        }
 
-            if (placeholderSignal->isSubscribed())
-                outputSignal->setSubscribed(true);
-        }
-        catch (const DaqException& e)
+        if (domainDescriptorChanged)
         {
-            LOG_W("Failed to re-create an output LT streaming signal for {}, reason: {}", daqSignal.getGlobalId(), e.what());
+            if (const auto daqDomainSignal = daqValueSignal.getDomainSignal(); daqDomainSignal.assigned())
+            {
+                try
+                {
+                    outputSignal->writeDomainDescriptorChanges(newDomainDescriptor);
+                }
+                catch (const DaqException& e)
+                {
+                    LOG_W("Failed to change domain descriptor for signal {}, reason: {}", valueSignalId, e.what());
+                    const auto domainSignalId = daqDomainSignal.getGlobalId();
+                    writeSignalsUnavailable(writer, {domainSignalId, valueSignalId});
+                    outputSignals.insert_or_assign(valueSignalId, std::make_shared<OutputNullSignal>(daqValueSignal, logCallback));
+                    outputSignals.insert_or_assign(domainSignalId, std::make_shared<OutputNullSignal>(daqDomainSignal, logCallback));
+                    outputSignal = outputSignals.at(valueSignalId);
+                    if (newDomainDescriptor.assigned())
+                        updateOutputPlaceholderSignal(outputSignal, outputSignals, writer, false);
+                    writeSignalsAvailable(writer, {valueSignalId, domainSignalId});
+                    outputSignal->setSubscribed(subscribed);
+                }
+            }
         }
+    }
+}
+
+void StreamingServer::updateOutputPlaceholderSignal(OutputSignalBasePtr& outputSignal,
+                                                    SignalMap& outputSignals,
+                                                    const StreamWriterPtr& writer,
+                                                    bool subscribed)
+{
+    auto daqSignal = outputSignal->getDaqSignal();
+    auto signalId = daqSignal.getGlobalId().toStdString();
+
+    LOG_I("Parameters of unsupported signal {} has been changed, check if it is supported now ...", daqSignal.getGlobalId());
+    try
+    {
+        addToOutputSignals(daqSignal, outputSignals, writer);
+        outputSignal = outputSignals.at(signalId);
+        outputSignal->setSubscribed(subscribed);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("Failed to re-create an output LT streaming signal for {}, reason: {}", daqSignal.getGlobalId(), e.what());
     }
 }
 

@@ -2,12 +2,13 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader_impl.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <fmt/ostream.h>
 #include <set>
@@ -75,16 +76,24 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     requiredCommonSampleRate = old->requiredCommonSampleRate;
 
     this->internalAddRef();
-    auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-    for (auto& signal : old->signals)
+    try
     {
-        signals.emplace_back(signal, listener, valueReadType, domainReadType);
-    }
+        auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
-    updateCommonSampleRateAndDividers();
-    if (invalid)
-        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+        for (auto& signal : old->signals)
+        {
+            signals.emplace_back(signal, listener, valueReadType, domainReadType);
+        }
+
+        updateCommonSampleRateAndDividers();
+        if (invalid)
+            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
@@ -123,17 +132,24 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
 {
-    auto sourceComponents = builder.getSourceComponents();
-    checkEarlyPreconditionsAndCacheContext(sourceComponents);
-    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-    bool fromInputPorts;
-    auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
+    internalAddRef();
+    try
+    {
+        auto sourceComponents = builder.getSourceComponents();
+        checkEarlyPreconditionsAndCacheContext(sourceComponents);
+        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+        bool fromInputPorts;
+        auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
 
-    this->internalAddRef();
-
-    if (fromInputPorts)
-        portBinder = PropertyObject();
-    connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
+        if (fromInputPorts)
+            portBinder = PropertyObject();
+        connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 MultiReaderImpl::~MultiReaderImpl()
@@ -363,8 +379,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
             if (haveInputPorts)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
-            if (overrideMethod)
-                port.setNotificationMethod(PacketReadyNotification::SameThread);
+            port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);
             portList.pushBack(port);
 
@@ -652,7 +667,8 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
 
 MultiReaderStatusPtr MultiReaderImpl::createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets, const NumberPtr& offset)
 {
-    auto mainDescriptor = DataDescriptorChangedEventPacket(mainValueDescriptor, mainDomainDescriptor);
+    auto mainDescriptor = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(mainValueDescriptor),
+                                                           descriptorToEventPacketParam(mainDomainDescriptor));
     return MultiReaderStatus(mainDescriptor, eventPackets, !invalid, offset);
 }
 
@@ -693,17 +709,13 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
 
         if (i == 0 && packet.assigned() && packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
-            auto params = packet.getParameters();
-            DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-            DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-            if (newValueDescriptor.assigned())
-            {
+            const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+                parseDataDescriptorEventPacket(packet);
+
+            if (valueDescriptorChanged)
                 mainValueDescriptor = newValueDescriptor;
-            }
-            if (newDomainDescriptor.assigned())
-            {
+            if (domainDescriptorChanged)
                 mainDomainDescriptor = newDomainDescriptor;
-            }
         }
     }
     return packets.detach();
@@ -778,11 +790,24 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         MultiReaderStatusPtr status;
         auto condition = [this, &status, &availableSamples, &syncStatus]
         {
-            if (notify.packetReady == false)
+            //-----------------
+            bool hasEventPacket = false;
+            bool hasDataPacket = true;
+
+            for (auto& signal : signals)
             {
-                return false;
+                if (signal.isFirstPacketEvent())
+                {
+                    hasEventPacket = true;
+                    break;
+                }
+                hasDataPacket &= (signal.getAvailable(true) != 0);
             }
-            notify.packetReady = false;
+
+            auto packetReady = (hasEventPacket || hasDataPacket) && !portDisconnected;
+            if (!packetReady)
+                return false;
+            //-----------------
 
             if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
             {
@@ -815,18 +840,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             return false;
         };
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-        auto start = std::chrono::steady_clock::now();
-#endif
+        notify.condition.wait_for(notifyLock, timeout, condition);
 
-        [[maybe_unused]] bool ok = notify.condition.wait_for(notifyLock, timeout, condition);
+        auto statusHasEvents = status.assigned() && (status.getReadStatus() == ReadStatus::Event);
+        auto statusEventCount = statusHasEvents ? status.getEventPackets().getCount() : 0;
 
-#if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
-        auto end = std::chrono::steady_clock::now();
-        LOG_T("Waited {} ms {} success", std::chrono::duration_cast<Milliseconds>(end - start).count(), ok ? "with" : "without")
-#endif
-
-        if (status.assigned() && portConnected)
+        if ((portConnected && status.assigned()) || statusEventCount)
         {
             updateCommonSampleRateAndDividers();
             portConnected = false;
@@ -867,9 +886,22 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         }
     }
 
+    //////
+
     NumberPtr offset = 0;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
     {
+        if (remainingSamplesToRead == 0)
+        {
+            if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
+            {
+                // skip remaining samples
+                readSamples(availableSamples);
+            }
+
+            return createReaderStatus();
+        }
+
         auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
         if (domainPacket.assigned() && domainPacket.getOffset().assigned())
         {
@@ -1015,7 +1047,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     std::unique_lock lock(notify.mutex);
     if (portDisconnected)
     {
-        notify.packetReady = false;
         return OPENDAQ_SUCCESS;
     }
 
@@ -1031,7 +1062,6 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     if (hasEventPacket || hasDataPacket)
     {
-        notify.packetReady = true;
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();

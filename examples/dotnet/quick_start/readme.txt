@@ -1,0 +1,1 @@
+no CMakeLists.txt here, this directory contains the C# quick-start examples to be used in the quick-start guide of the documentation

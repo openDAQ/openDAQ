@@ -1,18 +1,19 @@
-import opendaq as daq
 import tkinter as tk
 from tkinter import ttk
+
+import opendaq as daq
 
 from .output_signal_row import OutputSignalRow
 
 
-class OutputSignalsView(tk.Frame):
+class OutputSignalsView(ttk.Frame):
     def __init__(self, parent, node=None, context=None, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.node = node
         self.context = context
 
-        self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
+        self.configure(padding=(10, 5), border=1, relief=tk.GROOVE)
         self.refresh()
 
     def refresh(self):

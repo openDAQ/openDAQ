@@ -43,6 +43,12 @@ void defineIList(pybind11::module_ m, PyDaqIntf<daq::IList> cls)
             auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);
             listPtr.setItemAt(index, pyObjectToBaseObject(pyObject));
         });
+    cls.def("__delitem__",
+        [](daq::IList* list, size_t index)
+        {
+            auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);
+            listPtr.deleteAt(index);
+        });
     cls.def("__len__",
         [](daq::IList* list)
         {

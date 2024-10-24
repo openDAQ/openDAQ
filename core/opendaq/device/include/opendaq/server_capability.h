@@ -139,7 +139,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the protocol version supported by the device's protocol.
      * @param[out] version The protocol version.
      */
-    virtual ErrCode getProtocolVersion(IString** version) = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolVersion(IString** version) = 0;
 };
 /*!@}*/
 

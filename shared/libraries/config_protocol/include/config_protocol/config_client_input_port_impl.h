@@ -93,10 +93,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             {
                 StringPtr signalRemoteGlobalId;
                 checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-
-                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-                clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
+                clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
             }
             else
             {
@@ -120,7 +117,7 @@ inline ErrCode ConfigClientInputPortImpl::disconnect()
         {
             assert(this->deserializationComplete);
 
-            clientComm->sendComponentCommand(remoteGlobalId, "DisconnectSignal", nullptr);
+            clientComm->disconnectSignal(remoteGlobalId);
             return Super::disconnect();
         });
 }
@@ -159,10 +156,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             {
                 StringPtr signalRemoteGlobalId;
                 checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-
-                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-                BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
                 *accepts = acceptsPtr.getValue(False);
                 return OPENDAQ_SUCCESS;
             }

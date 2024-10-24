@@ -10,19 +10,19 @@ bool AppDevice::processCommand(BaseObjectPtr& device, const std::vector<std::str
     if (command.empty())
         return false;
 
-    if (command[0] == "List")
+    if (command[0] == "list")
         return list(device, command);
-    if (command[0] == "List-Available")
+    if (command[0] == "list-available")
         return listAvailable(device, command);
-    if (command[0] == "Add")
+    if (command[0] == "add")
         return add(device, command);
-    if (command[0] == "Remove")
+    if (command[0] == "remove")
         return remove(device, command);
-    if (command[0] == "Select")
+    if (command[0] == "select")
         return select(device, command);
-    if (command[0] == "Print")
+    if (command[0] == "print")
         return print(device, command);
-    if (command[0] == "Help")
+    if (command[0] == "help")
         return help();
 
     return AppPropertyObject::processCommand(device, command);

@@ -34,7 +34,7 @@ while also embracing existing standards such as MQTT and XCP via Ethernet.
 
 ## Documentation
 
-The Doxygen documentation can be built by enabling the OPENDAQ_BUILD_DOCUMENTATION cmake flag. The user guide
+The Doxygen documentation can be built by enabling the `OPENDAQ_BUILD_DOCUMENTATION` cmake flag. The user guide
 documentation can be built with Antora by following the guide found in docs/Antora/README.md.
 
 ## Building openDAQ

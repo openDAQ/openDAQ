@@ -91,7 +91,7 @@ Windows::
 cd build
 cmake --build . --config Release
 cd Release
-quick_start_empty.exe
+.\quick_start_empty.exe
 ----
 
 Linux::

@@ -1,3 +1,18 @@
+# 24.10.2024
+## Description
+- Add a way to view the server protocol version in server capabilities.
+- Fix the path issue in ConfigurationConnectionInfo of device info: If the connection to the device included a path, ensure the path is correctly reflected in the ConfigurationConnectionInfo.
+- For native configuration, update the ConfigurationConnectionInfo of device info to display the actual protocol version used in communication between the server and client.
+- Native client default config property `ProtocolVersion` is set to the latest support protocol version
+
+##  Required integration changes
+- Breaks binary compatibility
+
+```
++ [function] IServerCapability::getProtocolVersion(IString** version)
++ [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
+```
+
 # 11.10.2024
 ## Description
 - Add methods in function block to add/remove nested fb
@@ -13,9 +28,9 @@
     or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
 ```
-IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
-IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
-IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
++ [function] IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
++ [function] IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
++ [function] IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
 ```
 
 # 10.10.2024

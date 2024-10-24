@@ -745,7 +745,6 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
     }      
 }
 
-
 TEST_F(NativeDeviceModulesTest, TestProtocolVersionClientIsOlder)
 {
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();

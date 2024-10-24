@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 
 from ..app_context import AppContext
 
@@ -12,7 +13,7 @@ class Dialog(tk.Toplevel):
         self.initial_update_func = None
 
         self.configure(padx=10, pady=5)
-        self.attributes("-topmost", True)
+        self.attributes('-topmost', True)
         self.transient(parent)
 
     def center_window(self):

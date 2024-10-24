@@ -1,30 +1,32 @@
-import opendaq as daq
 import tkinter as tk
 from tkinter import ttk, simpledialog
-from functools import cmp_to_key
 
-from ..utils import *
+import opendaq as daq
+
+from .. import utils
 from ..event_port import EventPort
+from ..app_context import AppContext
 from .function_dialog import FunctionDialog
+from .edit_container_property import EditContainerPropertyDialog
 
 
-class PropertiesView(tk.Frame):
-    def __init__(self, parent: tk.Frame, node=None, context=None, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+class PropertiesView(ttk.Frame):
+    def __init__(self, parent: ttk.Frame, node=None, context: AppContext = None, **kwargs):
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.node = node
         self.context = context
         self.event_port = EventPort(self)
 
-        self.configure(padx=10, pady=5)
+        self.configure(padding=(10, 5))
 
         ttk.Label(self, text='Properties').pack(anchor=tk.W)
         tree = ttk.Treeview(self, columns=('value'), show='tree headings')
 
-        scroll_bar = ttk.Scrollbar(self, orient="vertical", command=tree.yview)
+        scroll_bar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
-        scroll_bar.pack(side="right", fill="y")
-        tree.pack(fill="both", expand=True)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(fill=tk.BOTH, expand=True)
 
         # define headings
         tree.heading('#0', anchor=tk.W, text='Property name')
@@ -51,7 +53,7 @@ class PropertiesView(tk.Frame):
 
     def fillStruct(self, parent_iid, node):
         for key, value in node.as_dictionary.items():
-            iid = key if parent_iid is None else parent_iid + "." + key
+            iid = key if parent_iid is None else parent_iid + '.' + key
             self.nodes_by_iids[iid] = node
             self.tree.insert('' if not parent_iid else parent_iid,
                              tk.END, iid=iid, text=key, values=(value,))
@@ -59,12 +61,12 @@ class PropertiesView(tk.Frame):
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:
-                return yes_no[value]
+                return utils.yes_no[value]
             else:
                 return value
 
-        for property_info in node.visible_properties:
-            iid = property_info.name if parent_iid is None else parent_iid + "." + property_info.name
+        for property_info in self.context.properties_of_component(node):
+            iid = property_info.name if parent_iid is None else parent_iid + '.' + property_info.name
             self.nodes_by_iids[iid] = node
 
             if property_info.selection_values is not None:
@@ -72,13 +74,13 @@ class PropertiesView(tk.Frame):
                     property_value = printed_value(
                         property_info.item_type, node.get_property_selection_value(property_info.name))
                 else:
-                    property_value = "Selection list is empty"
+                    property_value = 'Selection list is empty'
             elif property_info.value_type == daq.CoreType.ctProc:
-                property_value = "Method"
+                property_value = 'Method'
             elif property_info.value_type == daq.CoreType.ctFunc:
-                property_value = "Method"
+                property_value = 'Method'
             elif property_info.value_type == daq.CoreType.ctStruct:
-                property_value = "Struct {{{}}}".format(property_info.name)
+                property_value = 'Struct {{{}}}'.format(property_info.name)
             else:
                 property_value = printed_value(
                     property_info.item_type, node.get_property_value(property_info.name))
@@ -94,7 +96,7 @@ class PropertiesView(tk.Frame):
                     iid, node.get_property_value(property_info.name))
 
     def handle_copy(self):
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item is None:
             return
         item = self.tree.item(selected_item)
@@ -108,7 +110,7 @@ class PropertiesView(tk.Frame):
         self.clipboard_append(property_value)
 
     def handle_paste(self):
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
 
         if selected_item is None:
             return
@@ -134,13 +136,13 @@ class PropertiesView(tk.Frame):
 
     def handle_right_click(self, event):
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Copy", command=self.handle_copy)
-        menu.add_command(label="Paste",
+        menu.add_command(label='Copy', command=self.handle_copy)
+        menu.add_command(label='Paste',
                          command=self.handle_paste)
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self, event):
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item is None:
             return
         item = self.tree.item(selected_item)
@@ -179,7 +181,7 @@ class PropertiesView(tk.Frame):
             property_value = not property_value
         elif property_info.value_type == daq.CoreType.ctInt:
             if property_info.selection_values is not None:
-                property_value = show_selection(
+                property_value = utils.show_selection(
                     prompt, property_value, property_info.selection_values)
             else:
                 min_value = property_info.min_value
@@ -205,6 +207,8 @@ class PropertiesView(tk.Frame):
         elif property_info.value_type == daq.CoreType.ctString:
             property_value = simpledialog.askstring(
                 property_name, prompt=prompt, initialvalue=property_value)
+        elif property_info.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
+            EditContainerPropertyDialog(self, property_info, self.context).show()
         else:
             return
 

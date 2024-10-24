@@ -1,22 +1,23 @@
 import tkinter as tk
-import opendaq as daq
 from tkinter import ttk
 
-from ..utils import *
+import opendaq as daq
+
+from .. import utils
 from .attributes_dialog import AttributesDialog
 
 
-class OutputSignalRow(tk.Frame):
+class OutputSignalRow(ttk.Frame):
     def __init__(self, parent, output_signal, context=None, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.output_signal = output_signal
         self.selection = ''
         self.context = context
 
-        self.configure(padx=10, pady=5)
+        self.configure(padding=(10, 5))
 
-        last_value = get_last_value_for_signal(output_signal)
+        last_value = utils.get_last_value_for_signal(output_signal)
         ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
             row=0, column=0, sticky=tk.W)
         ttk.Label(self, text=str(last_value), anchor=tk.W).grid(
@@ -29,7 +30,7 @@ class OutputSignalRow(tk.Frame):
 
         self.grid_columnconfigure(0, weight=10)
         self.grid_columnconfigure(1, weight=10)
-        self.grid_columnconfigure(2, weight=1, minsize=30)
+        self.grid_columnconfigure(2, weight=1, minsize=40)
         self.grid_columnconfigure((0, 1, 2), uniform='uniform')
 
     def refresh(self):
@@ -37,4 +38,4 @@ class OutputSignalRow(tk.Frame):
 
     def handle_edit_clicked(self):
         if self.output_signal is not None:
-            AttributesDialog(self, 'Attributes', self.output_signal).show()
+            AttributesDialog(self, 'Attributes', self.output_signal, self.context).show()

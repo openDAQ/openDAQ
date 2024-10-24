@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import ttk
+
 import opendaq as daq
 
 from ..event_port import EventPort
@@ -8,10 +10,10 @@ from .properties_view import PropertiesView
 from .attributes_dialog import AttributesDialog
 
 
-class BlockView(tk.Frame):
+class BlockView(ttk.Frame):
 
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.expanded = expanded
         self.node = node
@@ -25,7 +27,7 @@ class BlockView(tk.Frame):
             node = daq.IComponent.cast_from(self.node)
             active = node.active
             name = node.name
-        self.configure(relief=tk.SOLID, border=0.5, padx=5, pady=5)
+        self.configure(relief=tk.SOLID, border=0.5, padding=5)
 
         self.edit_image = None
         self.collapsed_img = None
@@ -59,26 +61,25 @@ class BlockView(tk.Frame):
             if 'link' in context.icons:
                 self.sync_component_img = context.icons['link']
 
-        self.header_frame = tk.Frame(self)
+        self.header_frame = ttk.Frame(self)
         self.header_frame.pack(fill=tk.X)
         self.toggle_button = tk.Button(
             self.header_frame, text='+', image=self.collapsed_img, borderwidth=0, command=self.handle_expand_toggle)
         self.toggle_button.pack(side=tk.LEFT)
 
-        self.label_icon = tk.Label(self.header_frame)
+        self.label_icon = ttk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
-        self.label = tk.Label(self.header_frame, text=name)
+        self.label = ttk.Label(self.header_frame, text=name)
         self.label.pack(side=tk.LEFT)
-        self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0,
-                                     command=lambda: AttributesDialog(self, 'Attributes', self.node).show())
+        self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
+                                     command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
         self.edit_button.pack(side=tk.RIGHT)
-        self.checkbox = tk.Checkbutton(
-            self.header_frame, text='Active', command=self.handle_active_toggle)
-        if active:
-            self.checkbox.select()
+        self.active_var = tk.IntVar(self, value=active)
+        self.checkbox = ttk.Checkbutton(
+            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var)
         self.checkbox.pack(side=tk.RIGHT)
 
-        self.expanded_frame = tk.Frame(self, pady=5)
+        self.expanded_frame = ttk.Frame(self, padding=5)
 
         if node is not None:
             self.properties = None
@@ -169,4 +170,5 @@ class BlockView(tk.Frame):
         if daq.IComponent.can_cast_from(self.node):
             ctx = daq.IComponent.cast_from(self.node)
             ctx.active = not ctx.active
+            self.active_var.set(ctx.active)
             self.event_port.emit()

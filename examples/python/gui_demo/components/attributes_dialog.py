@@ -1,33 +1,36 @@
 import os
-import opendaq as daq
 import tkinter as tk
 from tkinter import ttk, simpledialog
 
-from ..utils import *
+import opendaq as daq
+
+from .. import utils
 from ..event_port import EventPort
+from ..app_context import AppContext
 from .dialog import Dialog
 
 
 class AttributesDialog(Dialog):
-    def __init__(self, parent, title, node, **kwargs):
+    def __init__(self, parent, title, node, context: AppContext, **kwargs):
         Dialog.__init__(self, parent, title, None, **kwargs)
         self.title(title)
         self.parent = parent
         self.node = node
+        self.context = context
         self.event_port = EventPort(parent)
 
         self.geometry(f'{600}x{800}')
-        tree_frame = tk.Frame(self)
+        tree_frame = ttk.Frame(self)
 
         tree = ttk.Treeview(tree_frame, columns=(
             'value', 'access'), show='tree headings')
 
         scroll_bar = ttk.Scrollbar(
-            tree_frame, orient="vertical", command=tree.yview)
+            tree_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
-        scroll_bar.pack(side="right", fill="y")
-        tree.pack(fill="both", expand=True)
-        tree_frame.pack(fill="both", expand=True)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(fill=tk.BOTH, expand=True)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
 
         # define headings
         tree.heading('#0', anchor=tk.W, text='Name')
@@ -38,24 +41,24 @@ class AttributesDialog(Dialog):
         tree.column('#1', anchor=tk.W, minwidth=100, width=300)
         tree.column('#2', anchor=tk.W, minwidth=80, width=80)
 
-        tree.bind("<Double-1>", self.handle_double_click)
-        tree.bind("<Button-3>", self.handle_right_click)
+        tree.bind('<Double-1>', self.handle_double_click)
+        tree.bind('<Button-3>', self.handle_right_click)
 
         self.additional_tree = None
         self.notebook = None
         if daq.ISignal.can_cast_from(node) or daq.IDevice.can_cast_from(node):
-            additional_tree_frame = tk.Frame(self)
+            additional_tree_frame = ttk.Frame(self)
             if daq.ISignal.can_cast_from(node):
                 self.notebook = ttk.Notebook(self)
-                self.notebook.pack(fill="both", anchor=tk.W)
-                signal_desc_frame = tk.Frame(self.notebook)
-                signal_domain_desc_frame = tk.Frame(self.notebook)
+                self.notebook.pack(fill=tk.BOTH, anchor=tk.W)
+                signal_desc_frame = ttk.Frame(self.notebook)
+                signal_domain_desc_frame = ttk.Frame(self.notebook)
                 self.notebook.add(signal_desc_frame, text='Signal Descriptor')
                 if node.domain_signal is not None:
                     self.notebook.add(signal_domain_desc_frame, text='Signal Domain Descriptor')
-                self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
+                self.notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
             elif daq.IDevice.can_cast_from(node):
-                tk.Label(self, text='Device Info').pack(
+                ttk.Label(self, text='Device Info').pack(
                     anchor=tk.W, pady=5)
             # additional treeview for specific attributes
 
@@ -63,11 +66,11 @@ class AttributesDialog(Dialog):
                 'value'), show='tree headings')
 
             scroll_bar = ttk.Scrollbar(
-                additional_tree_frame, orient="vertical", command=additional_tree.yview)
+                additional_tree_frame, orient=tk.VERTICAL, command=additional_tree.yview)
             additional_tree.configure(yscrollcommand=scroll_bar.set)
-            scroll_bar.pack(side="right", fill="y")
-            additional_tree.pack(fill="both", expand=True)
-            additional_tree_frame.pack(fill="both", expand=True)
+            scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+            additional_tree.pack(fill=tk.BOTH, expand=True)
+            additional_tree_frame.pack(fill=tk.BOTH, expand=True)
 
             # define headings
             additional_tree.heading('#0', anchor=tk.W, text='Name')
@@ -77,7 +80,7 @@ class AttributesDialog(Dialog):
             additional_tree.column('#1', anchor=tk.W, minwidth=100)
 
             self.additional_tree = additional_tree
-            additional_tree.bind("<Button-3>", self.handle_right_click_additional)
+            additional_tree.bind('<Button-3>', self.handle_right_click_additional)
 
         self.tree = tree
         self.initial_update_func = lambda: self.tree_update()
@@ -91,7 +94,7 @@ class AttributesDialog(Dialog):
         self.additional_tree_update()
 
     def handle_copy(self):
-        sel = treeview_get_first_selection(self.tree)
+        sel = utils.treeview_get_first_selection(self.tree)
         if sel not in self.attributes:
             return
         attr_dict = self.attributes[sel]
@@ -100,7 +103,7 @@ class AttributesDialog(Dialog):
         self.clipboard_append(value)
 
     def handle_copy_additional(self):
-        sel = treeview_get_first_selection(self.additional_tree)
+        sel = utils.treeview_get_first_selection(self.additional_tree)
         if not sel:
             return
         item = self.additional_tree.item(sel)
@@ -110,12 +113,12 @@ class AttributesDialog(Dialog):
 
     def handle_right_click(self, event):
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Copy", command=self.handle_copy)
+        menu.add_command(label='Copy', command=self.handle_copy)
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_right_click_additional(self, event):
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label="Copy", command=self.handle_copy_additional)
+        menu.add_command(label='Copy', command=self.handle_copy_additional)
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self, event):
@@ -123,7 +126,7 @@ class AttributesDialog(Dialog):
         if not node:
             return
 
-        sel = treeview_get_first_selection(self.tree)
+        sel = utils.treeview_get_first_selection(self.tree)
         if sel not in self.attributes:
             return
 
@@ -210,7 +213,7 @@ class AttributesDialog(Dialog):
             self.attributes['Streamed'] = {'Value': bool(
                 signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
             self.attributes['Last Value'] = {
-                'Value': get_last_value_for_signal(signal), 'Locked': True, 'Attribute': 'last_value'}
+                'Value': utils.get_last_value_for_signal(signal), 'Locked': True, 'Attribute': 'last_value'}
 
         if daq.IInputPort.can_cast_from(node):
             input_port = daq.IInputPort.cast_from(node)
@@ -234,7 +237,7 @@ class AttributesDialog(Dialog):
             self.attributes[locked_attribute]['Locked'] = True
 
         def tree_fill(parent: str, key: str, value: dict, locked_flag: int):
-            locked = yes_no[locked_flag]
+            locked = utils.yes_no[locked_flag]
             iid = f'{parent}.{key}'
             if type(value) is bool:
                 value = yes_no[value]
@@ -251,7 +254,7 @@ class AttributesDialog(Dialog):
             locked = self.attributes[attr]['Locked']
             value = self.attributes[attr]['Value']
             if type(value) is bool:
-                value = yes_no[value]
+                value = utils.yes_no[value]
 
             tree_fill('', attr, value, locked)
 
@@ -354,7 +357,7 @@ class AttributesDialog(Dialog):
                 if type(value) is dict or type(value) is daq.IDict:
                     self.fill_additional_tree(iid, value)
         elif type(attributes) is daq.IDeviceInfo:
-            for property in attributes.visible_properties:
+            for property in self.context.properties_of_component(attributes):
                 iid = parent_node_name + '.' + property.name
                 value = attributes.get_property_value(property.name)
                 self.additional_tree.insert(

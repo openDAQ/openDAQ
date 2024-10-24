@@ -26,7 +26,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Output the name and connection string of connected-to device
     std::cout << "Connected device:" << std::endl;
     auto info = device.getInfo();
-    std::cout << "Name: " << info.getName() << ", Connection string: " << info.getConnectionString() << std::endl;
+    std::cout << "Name: " << info.getName() << ", Connection string: " << info.getConfigurationConnectionInfo().getConnectionString() << std::endl;
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();

@@ -27,6 +27,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+static const SizeT UNLIMITED_PACKET_SEND_TIME = 0;
+
 class BaseSessionHandler: public std::enable_shared_from_this<BaseSessionHandler>
 {
 public:
@@ -34,7 +36,8 @@ public:
                        SessionPtr session,
                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                        native_streaming::OnSessionErrorCallback errorHandler,
-                       ConstCharPtr loggerComponentName);
+                       ConstCharPtr loggerComponentName,
+                       SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
     virtual ~BaseSessionHandler();
 
     void startReading();
@@ -80,5 +83,6 @@ protected:
     std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;
     LoggerComponentPtr loggerComponent;
     bool connectionActivityMonitoringStarted{false};
+    std::chrono::milliseconds streamingPacketSendTimeout;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -3,10 +3,11 @@
 namespace daq::packet_streaming
 {
 
-PacketBuffer::PacketBuffer(GenericPacketHeader* packetHeader, const void* payload, std::function<void()> onDestroy)
+PacketBuffer::PacketBuffer(GenericPacketHeader* packetHeader, const void* payload, std::function<void()> onDestroy, bool enableTimeStamp)
     : packetHeader(packetHeader)
     , payload(payload)
     , onDestroy(std::move(onDestroy))
+    , timeStamp(enableTimeStamp ? std::optional(std::chrono::steady_clock::now()) : std::nullopt)
 {
 }
 
@@ -17,6 +18,7 @@ PacketBuffer::PacketBuffer(PacketBuffer&& packetBuffer) noexcept
     payload = packetBuffer.payload;
 
     onDestroy = packetBuffer.onDestroy;
+    timeStamp = packetBuffer.timeStamp;
 
     packetBuffer.onDestroy = [](){};
     packetBuffer.packetHeader = nullptr;

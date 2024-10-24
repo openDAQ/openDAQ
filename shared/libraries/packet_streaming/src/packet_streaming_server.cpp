@@ -7,10 +7,11 @@
 namespace daq::packet_streaming
 {
 
-PacketStreamingServer::PacketStreamingServer(size_t releaseThreshold)
+PacketStreamingServer::PacketStreamingServer(size_t releaseThreshold, bool attachTimestampToPacketBuffer)
     : jsonSerializer(JsonSerializer())
     , packetCollection(std::make_shared<PacketCollection>())
     , releaseThreshold(releaseThreshold)
+    , attachTimestampToPacketBuffer(attachTimestampToPacketBuffer)
 {
 }
 
@@ -84,7 +85,9 @@ void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventP
             [packetHeader, serializedPacket]() mutable {
                 delete packetHeader;
                 serializedPacket.release();
-        });
+            },
+            attachTimestampToPacketBuffer
+        );
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
@@ -97,7 +100,7 @@ void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventP
             dataDescriptors.insert_or_assign(signalId, newValueDescriptor);
     }
 
-    queue.push(packetBuffer);
+    queuePacketBuffer(packetBuffer);
 }
 
 template <bool CheckRefCount>
@@ -172,6 +175,11 @@ Int PacketStreamingServer::getDomainPacketId(const DataPacketPtr& packet)
     return -1;
 }
 
+void PacketStreamingServer::queuePacketBuffer(const PacketBufferPtr& packetBuffer)
+{
+    queue.push(packetBuffer);
+}
+
 template <class DataPacket>
 void PacketStreamingServer::addDataPacket(const uint32_t signalId, DataPacket&& packet)
 {
@@ -214,13 +222,14 @@ void PacketStreamingServer::addDataPacket(const uint32_t signalId, DataPacket&& 
         {
             std::free(packetHeader);
             packet.release();
-        }
+        },
+        attachTimestampToPacketBuffer
     );
 
     if constexpr (isPacketRValue)
         packet.release();
 
-    queue.push(packetBuffer);
+    queuePacketBuffer(packetBuffer);
 }
 
 void PacketStreamingServer::checkAndSendReleasePacket(bool force)
@@ -252,9 +261,10 @@ void PacketStreamingServer::checkAndSendReleasePacket(bool force)
                                                              {
                                                                  delete packetHeader;
                                                                  delete[] packetIds;
-                                                             });
+                                                             },
+                                                             attachTimestampToPacketBuffer);
 
-    queue.push(packetBuffer);
+    queuePacketBuffer(packetBuffer);
 }
 
 void PacketStreamingServer::addAlreadySentPacket(uint32_t signalId, Int packetId, Int domainPacketId, bool markForRelease)
@@ -273,9 +283,10 @@ void PacketStreamingServer::addAlreadySentPacket(uint32_t signalId, Int packetId
                                                              [packetHeader]
                                                              {
                                                                  std::free(packetHeader);
-                                                             });
+                                                             },
+                                                             attachTimestampToPacketBuffer);
 
-    queue.push(packetBuffer);
+    queuePacketBuffer(packetBuffer);
 }
 
 }

@@ -10,9 +10,9 @@ bool AppChannel::processCommand(BaseObjectPtr& channel, const std::vector<std::s
     if (command.empty())
         return false;
 
-    if (command[0] == "Print")
+    if (command[0] == "print")
         return print(channel, command);
-    if (command[0] == "Help")
+    if (command[0] == "help")
         return help();
 
     return AppFunctionBlock::processCommand(channel, command);
@@ -20,7 +20,7 @@ bool AppChannel::processCommand(BaseObjectPtr& channel, const std::vector<std::s
 
 bool AppChannel::print(const ChannelPtr& channel, const std::vector<std::string>& command)
 {
-    if (command.size() == 2 && command[1] == "Tags")
+    if (command.size() == 2 && command[1] == "tags")
     {
         std::cout << "[";
         const auto tags = channel.getTags().getList();

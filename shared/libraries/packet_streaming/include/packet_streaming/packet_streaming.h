@@ -77,7 +77,7 @@ struct PacketBuffer
 
     ~PacketBuffer();
 
-    std::optional<std::chrono::system_clock::time_point> timeStamp;
+    std::optional<std::chrono::steady_clock::time_point> timeStamp;
 };
 
 using PacketBufferPtr = std::shared_ptr<PacketBuffer>;

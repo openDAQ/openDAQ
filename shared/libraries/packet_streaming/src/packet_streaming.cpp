@@ -7,7 +7,7 @@ PacketBuffer::PacketBuffer(GenericPacketHeader* packetHeader, const void* payloa
     : packetHeader(packetHeader)
     , payload(payload)
     , onDestroy(std::move(onDestroy))
-    , timeStamp(enableTimeStamp ? std::optional(std::chrono::system_clock::now()) : std::nullopt)
+    , timeStamp(enableTimeStamp ? std::optional(std::chrono::steady_clock::now()) : std::nullopt)
 {
 }
 

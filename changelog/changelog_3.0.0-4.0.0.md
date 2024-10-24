@@ -16,8 +16,8 @@
 + [function] ILogFileInfoBuilder::setId(IString* id)
 + [function] ILogFileInfoBuilder::getDescription(IString** description)
 + [function] ILogFileInfoBuilder::setDescription(IString* description)
-+ [function] ILogFileInfoBuilder::getEncoding(LogFileEncodingType* encoding)
-+ [function] ILogFileInfoBuilder::setEncoding(LogFileEncodingType encoding)
++ [function] ILogFileInfoBuilder::getEncoding(IString** encoding)
++ [function] ILogFileInfoBuilder::setEncoding(IString* encoding)
 + [function] ILogFileInfoBuilder::getSize(SizeT* size)
 + [function] ILogFileInfoBuilder::setSize(SizeT size)
 + [function] ILogFileInfoBuilder::getLastModified(IString** lastModified)
@@ -30,10 +30,10 @@
 + [function] ILogFileInfo::getName(IString** name)
 + [function] ILogFileInfo::getDescription(IString** description)
 + [function] ILogFileInfo::getSize(SizeT* size)
-+ [function] ILogFileInfo::getEncoding(LogFileEncodingType* encoding)
++ [function] ILogFileInfo::getEncoding(IString** encoding)
 + [function] ILogFileInfo::getLastModified(IString** lastModified)
 
-+ [function] IDevice::getAvailableLogFiles(IList** logFiles)
++ [function] IDevice::getLogFileInfos(IList** logFileInfos)
 + [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)
 ```
 

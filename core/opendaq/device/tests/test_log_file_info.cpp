@@ -16,7 +16,7 @@ TEST_F(LogFileInfoTest, BuilderDefaultValues)
     ASSERT_EQ(logInfoBuilder.getLocalPath(), nullptr);
     ASSERT_EQ(logInfoBuilder.getId(), nullptr);
     ASSERT_EQ(logInfoBuilder.getDescription(), nullptr);
-    ASSERT_EQ(logInfoBuilder.getEncoding(), LogFileEncodingType::Unknown);
+    ASSERT_EQ(logInfoBuilder.getEncoding(), nullptr);
     ASSERT_EQ(logInfoBuilder.getSize(), 0);
     ASSERT_EQ(logInfoBuilder.getLastModified(), nullptr);
 }
@@ -28,7 +28,7 @@ TEST_F(LogFileInfoTest, BuilderSetGet)
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setId("log_file_id");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
     logInfoBuilder.setSize(100);
     logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
@@ -36,7 +36,7 @@ TEST_F(LogFileInfoTest, BuilderSetGet)
     ASSERT_EQ(logInfoBuilder.getLocalPath(), "log_file_path");
     ASSERT_EQ(logInfoBuilder.getId(), "log_file_id");
     ASSERT_EQ(logInfoBuilder.getDescription(), "log_file_description");
-    ASSERT_EQ(logInfoBuilder.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfoBuilder.getEncoding(), "utf-8");
     ASSERT_EQ(logInfoBuilder.getSize(), 100);
     ASSERT_EQ(logInfoBuilder.getLastModified(), "2022-01-01T00:00:00Z");
 }
@@ -47,7 +47,7 @@ TEST_F(LogFileInfoTest, CreateFromBuilder)
     logInfoBuilder.setName("log_file_name");
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
     logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     auto logInfo = logInfoBuilder.build();
@@ -56,7 +56,7 @@ TEST_F(LogFileInfoTest, CreateFromBuilder)
     ASSERT_EQ(logInfo.getLocalPath(), "log_file_path");
     ASSERT_EQ(logInfo.getId(), "log_file_path/log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfo.getEncoding(), "utf-8");
     ASSERT_EQ(logInfo.getSize(), 0);
     ASSERT_EQ(logInfo.getLastModified(), "2022-01-01T00:00:00Z");
 }
@@ -67,7 +67,7 @@ TEST_F(LogFileInfoTest, MissedName)
     // logInfoBuilder.setName("log_file_name");
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
     logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     ASSERT_ANY_THROW(logInfoBuilder.build());
@@ -79,7 +79,7 @@ TEST_F(LogFileInfoTest, MissedLocalPath)
     logInfoBuilder.setName("log_file_name");
     // logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
     logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     auto logInfo = logInfoBuilder.build();
@@ -88,7 +88,7 @@ TEST_F(LogFileInfoTest, MissedLocalPath)
     ASSERT_EQ(logInfo.getLocalPath(), nullptr);
     ASSERT_EQ(logInfo.getId(), "log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfo.getEncoding(), "utf-8");
     ASSERT_EQ(logInfo.getSize(), 0);
 }
 
@@ -98,7 +98,7 @@ TEST_F(LogFileInfoTest, MissedLastModified)
     logInfoBuilder.setName("log_file_name");
     logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
 
     ASSERT_ANY_THROW(logInfoBuilder.build());
 }
@@ -110,7 +110,7 @@ TEST_F(LogFileInfoTest, CustomId)
     logInfoBuilder.setId("log_file_id");
     // logInfoBuilder.setLocalPath("log_file_path");
     logInfoBuilder.setDescription("log_file_description");
-    logInfoBuilder.setEncoding(LogFileEncodingType::Utf8);
+    logInfoBuilder.setEncoding("utf-8");
     logInfoBuilder.setLastModified("2022-01-01T00:00:00Z");
 
     auto logInfo = logInfoBuilder.build();
@@ -119,7 +119,7 @@ TEST_F(LogFileInfoTest, CustomId)
     ASSERT_EQ(logInfo.getLocalPath(), nullptr);
     ASSERT_EQ(logInfo.getId(), "log_file_id");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
-    ASSERT_EQ(logInfo.getEncoding(), LogFileEncodingType::Utf8);
+    ASSERT_EQ(logInfo.getEncoding(), "utf-8");
 }
 
 TEST(LogFileInfoTest, SerializeDeserializeEmptyFields)
@@ -157,7 +157,7 @@ TEST(LogFileInfoTest, SerializeDeserialize)
                                        .setLocalPath("log_file_path")
                                        .setId("log_file_id")
                                        .setDescription("log_file_description")
-                                       .setEncoding(LogFileEncodingType::Utf8)
+                                       .setEncoding("utf-8")
                                        .setSize(100)
                                        .setLastModified("2022-01-01T00:00:00Z")
                                        .build();

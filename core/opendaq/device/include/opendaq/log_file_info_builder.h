@@ -100,16 +100,16 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfoBuilder, IBaseObject)
 
     /*!
      * @brief Gets the encoding of the log file.
-     * @param[out] encoding The encoding of the log file. Has a type of enum class `LogFileEncodingType`.
+     * @param[out] encoding The encoding of the log file.
      */
-    virtual ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) = 0;
+    virtual ErrCode INTERFACE_FUNC getEncoding(IString** encoding) = 0;
 
     // [returnSelf()]
     /*!
      * @brief Sets the encoding of the log file.
-     * @param encoding The encoding of the log file. Has a type of enum class `LogFileEncodingType`.
+     * @param encoding The encoding of the log file.
      */
-    virtual ErrCode INTERFACE_FUNC setEncoding(LogFileEncodingType encoding) = 0;
+    virtual ErrCode INTERFACE_FUNC setEncoding(IString* encoding) = 0;
 
     /*!
      * @brief Gets the date of the last modification of the log file in ISO 8601 format.

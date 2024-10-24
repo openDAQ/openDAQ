@@ -6,8 +6,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 LogFileInfoBuilderImpl::LogFileInfoBuilderImpl()
-    : encoding(LogFileEncodingType::Unknown)
-    , size(0)
+    : size(0)
 {
 }
 
@@ -89,14 +88,14 @@ ErrCode LogFileInfoBuilderImpl::setSize(SizeT size)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LogFileInfoBuilderImpl::getEncoding(LogFileEncodingType* encoding)
+ErrCode LogFileInfoBuilderImpl::getEncoding(IString** encoding)
 {
     OPENDAQ_PARAM_NOT_NULL(encoding);
-    *encoding = this->encoding;
+    *encoding = this->encoding.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LogFileInfoBuilderImpl::setEncoding(LogFileEncodingType encoding)
+ErrCode LogFileInfoBuilderImpl::setEncoding(IString* encoding)
 {
     this->encoding = encoding;
     return OPENDAQ_SUCCESS;

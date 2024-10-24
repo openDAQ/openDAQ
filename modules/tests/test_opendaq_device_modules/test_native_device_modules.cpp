@@ -2040,7 +2040,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
     auto clientDevice = client.getDevices()[0];
 
     {
-        auto logFiles = clientDevice.getAvailableLogFiles();
+        auto logFiles = clientDevice.getLogFileInfos();
         auto logFileLastModified = getFileLastModifiedTime(loggerPath);
         ASSERT_EQ(logFiles.getCount(), 1u);
         auto logFile = logFiles[0];
@@ -2055,13 +2055,13 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
 
     {
         clientDevice.setPropertyValue("EnableLogging", false);
-        auto logFiles = clientDevice.getAvailableLogFiles();
+        auto logFiles = clientDevice.getLogFileInfos();
         ASSERT_EQ(logFiles.getCount(), 0u);
     }
 
     {
         clientDevice.setPropertyValue("EnableLogging", true);
-        auto logFiles = clientDevice.getAvailableLogFiles();
+        auto logFiles = clientDevice.getLogFileInfos();
         ASSERT_EQ(logFiles.getCount(), 1u);
 
         StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);

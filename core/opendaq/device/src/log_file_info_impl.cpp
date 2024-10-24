@@ -32,6 +32,9 @@ LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
         id = localPath + "/" + name;
     else
         id = name;
+
+    if (!encoding.assigned())
+        encoding = "";
 }
 
 ErrCode LogFileInfoImpl::getId(IString** id)
@@ -69,10 +72,10 @@ ErrCode LogFileInfoImpl::getSize(SizeT* size)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LogFileInfoImpl::getEncoding(LogFileEncodingType* encoding)
+ErrCode LogFileInfoImpl::getEncoding(IString** encoding)
 {
     OPENDAQ_PARAM_NOT_NULL(encoding);
-    *encoding = this->encoding;
+    *encoding = this->encoding.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -111,7 +114,7 @@ ErrCode LogFileInfoImpl::serialize(ISerializer* serializer)
     serializer->writeString(id.getCharPtr(), id.getLength());
 
     serializer->key("encoding");
-    serializer->writeInt(static_cast<Int>(encoding));
+    serializer->writeString(encoding.getCharPtr(), encoding.getLength());
 
     if (description.assigned())
     {
@@ -137,14 +140,14 @@ ErrCode LogFileInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     StringPtr localPath;
     StringPtr id;
     StringPtr description;
-    Int encoding;
+    StringPtr encoding;
     Int size;
     StringPtr lastModified;
 
     errCode = serialized->readString(String("name"), &name);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
-    errCode = serialized->readInt(String("encoding"), &encoding);
+    errCode = serialized->readString(String("encoding"), &encoding);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -189,7 +192,7 @@ ErrCode LogFileInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
                                      .setLocalPath(localPath)
                                      .setId(id)
                                      .setDescription(description)
-                                     .setEncoding(static_cast<LogFileEncodingType>(encoding))
+                                     .setEncoding(encoding)
                                      .setSize(size)
                                      .setLastModified(lastModified)
                                      .build();

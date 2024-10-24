@@ -97,7 +97,7 @@ public:
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
-    ErrCode INTERFACE_FUNC getAvailableLogFiles(IList** logFiles) override;
+    ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
 
     // IDevicePrivate
@@ -189,7 +189,7 @@ protected:
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
 
-    virtual ListPtr<ILogFileInfo> onGetAvailableLogFiles();
+    virtual ListPtr<ILogFileInfo> ongetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
 
 private:
@@ -849,20 +849,20 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
 }
 
 template <typename TInterface, typename... Interfaces>
-ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::onGetAvailableLogFiles()
+ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::ongetLogFileInfos()
 {
     return List<ILogFileInfo>();
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableLogFiles(IList** logFiles)
+ErrCode GenericDevice<TInterface, Interfaces...>::getLogFileInfos(IList** logFileInfos)
 {
-    OPENDAQ_PARAM_NOT_NULL(logFiles);
+    OPENDAQ_PARAM_NOT_NULL(logFileInfos);
 
-    ListPtr<ILogFileInfo> logFilesPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableLogFiles, logFilesPtr);
+    ListPtr<ILogFileInfo> logFileInfosPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::ongetLogFileInfos, logFileInfosPtr);
 
-    *logFiles = logFilesPtr.detach();
+    *logFileInfos = logFileInfosPtr.detach();
     return errCode;
 }
 

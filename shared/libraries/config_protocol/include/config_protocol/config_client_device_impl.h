@@ -56,7 +56,7 @@ public:
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
-    ListPtr<ILogFileInfo> onGetAvailableLogFiles() override;
+    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
@@ -197,13 +197,13 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 }
 
 template <class TDeviceBase>
-ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableLogFiles()
+ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::ongetLogFileInfos()
 {
     if (this->clientComm->getProtocolVersion() < 5)
         throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
                                     "Operation not supported by the protocol version currently in use");
 
-    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableLogFiles");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "getLogFileInfos");
 }
 
 template <class TDeviceBase>

@@ -34,7 +34,7 @@ public:
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC getSize(SizeT* size) override;
-    ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) override;
+    ErrCode INTERFACE_FUNC getEncoding(IString** encoding) override;
     ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) override;
 
     // ISerializable
@@ -48,7 +48,7 @@ private:
     StringPtr name;
     StringPtr id;
     StringPtr description;
-    LogFileEncodingType encoding;
+    StringPtr encoding;
     SizeT size;
     StringPtr lastModified;
 };

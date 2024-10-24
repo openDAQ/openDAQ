@@ -39,7 +39,7 @@ public:
     static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getAvailableDeviceTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr getAvailableLogFiles(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
@@ -121,10 +121,10 @@ inline BaseObjectPtr ConfigServerDevice::isLocked(const RpcContext& context, con
     return locked;
 }
 
-inline BaseObjectPtr ConfigServerDevice::getAvailableLogFiles(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    return device.getAvailableLogFiles();
+    return device.getLogFileInfos();
 }
 
 inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)

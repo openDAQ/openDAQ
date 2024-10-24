@@ -423,7 +423,7 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
     return oss.str();
 }
 
-ListPtr<ILogFileInfo> RefDeviceImpl::onGetAvailableLogFiles()
+ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
 {    
     {
         std::scoped_lock lock(sync);
@@ -454,7 +454,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetAvailableLogFiles()
                                            .setId(path.string())
                                            .setDescription("Log file for the reference device")
                                            .setSize(size)
-                                           .setEncoding(LogFileEncodingType::Utf8)
+                                           .setEncoding("utf-8")
                                            .setLastModified(lastModified)
                                            .build();
     

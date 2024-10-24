@@ -27,16 +27,6 @@ struct ILogFileInfoBuilder;
  * @{
  */
 
-enum class LogFileEncodingType: uint32_t
-{
-    Utf8 = 0,
-    Utf16Le = 1,
-    Utf16Be = 2,
-    Utf32Le = 3,
-    Utf32Be = 4,
-    Ascii = 5,
-    Unknown = 0xFFFFFFFF
-};
 
 DECLARE_OPENDAQ_INTERFACE(ILogFileInfo, IBaseObject)
 {
@@ -72,9 +62,9 @@ DECLARE_OPENDAQ_INTERFACE(ILogFileInfo, IBaseObject)
 
     /*!
      * @brief Gets the encoding of the log file.
-     * @param[out] encoding The encoding of the log file. Has a type of enum class `LogFileEncodingType`.
+     * @param[out] encoding The encoding of the log file.
      */
-    virtual ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) = 0;
+    virtual ErrCode INTERFACE_FUNC getEncoding(IString** encoding) = 0;
 
     /*!
      * @brief Gets the date of the last modification of the log file in ISO 8601 format.

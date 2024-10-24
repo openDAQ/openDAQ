@@ -82,7 +82,7 @@ public:
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
-    ErrCode INTERFACE_FUNC getAvailableLogFiles(IList** logFiles) override;
+    ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
 
     // IDeviceDomain

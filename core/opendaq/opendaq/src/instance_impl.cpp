@@ -293,9 +293,9 @@ ErrCode INTERFACE_FUNC InstanceImpl::isLocked(Bool* locked)
     return rootDevice->isLocked(locked);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getAvailableLogFiles(IList** logFiles)
+ErrCode INTERFACE_FUNC InstanceImpl::getLogFileInfos(IList** logFileInfos)
 {
-    return rootDevice->getAvailableLogFiles(logFiles);
+    return rootDevice->getLogFileInfos(logFileInfos);
 }
 
 ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)

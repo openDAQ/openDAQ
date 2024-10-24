@@ -42,8 +42,8 @@ public:
     ErrCode INTERFACE_FUNC getSize(SizeT* size) override;
     ErrCode INTERFACE_FUNC setSize(SizeT size) override;
 
-    ErrCode INTERFACE_FUNC getEncoding(LogFileEncodingType* encoding) override;
-    ErrCode INTERFACE_FUNC setEncoding(LogFileEncodingType encoding) override;
+    ErrCode INTERFACE_FUNC getEncoding(IString** encoding) override;
+    ErrCode INTERFACE_FUNC setEncoding(IString* encoding) override;
 
     ErrCode INTERFACE_FUNC getLastModified(IString** lastModified) override;
     ErrCode INTERFACE_FUNC setLastModified(IString* lastModified) override;
@@ -53,7 +53,7 @@ private:
     StringPtr name;
     StringPtr id;
     StringPtr description;
-    LogFileEncodingType encoding;
+    StringPtr encoding;
     SizeT size;
     StringPtr lastModified;
 };

@@ -940,7 +940,7 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
     const auto instance = instanceBuilder.build();
 
     {
-        auto logFiles = instance.getAvailableLogFiles();
+        auto logFiles = instance.getLogFileInfos();
         auto logFileLastModified = getFileLastModifiedTime(loggerPath);
         ASSERT_EQ(logFiles.getCount(), 1u);
         auto logFile = logFiles[0];
@@ -951,17 +951,20 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
 
         StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
         ASSERT_EQ(firstSymb, "[");
+
+        StringPtr wrongLog = instance.getLog("wrong.log", 1, 0);
+        ASSERT_EQ(wrongLog, "");
     }
 
     {
         instance.getRootDevice().setPropertyValue("EnableLogging", false);
-        auto logFiles = instance.getAvailableLogFiles();
+        auto logFiles = instance.getLogFileInfos();
         ASSERT_EQ(logFiles.getCount(), 0u);
     }
 
     {
         instance.getRootDevice().setPropertyValue("EnableLogging", true);
-        auto logFiles = instance.getAvailableLogFiles();
+        auto logFiles = instance.getLogFileInfos();
         ASSERT_EQ(logFiles.getCount(), 1u);
 
         StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);

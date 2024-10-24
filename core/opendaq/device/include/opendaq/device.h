@@ -326,12 +326,12 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;
 
-    // [elementType(logFiles, ILogFileInfo)]
+    // [elementType(logFileInfos, ILogFileInfo)]
     /*!
      * @brief Gets a list of available log files.
-     * @param[out] logFiles The list of available log files.
+     * @param[out] logFileInfos The list of available log files.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableLogFiles(IList** logFiles) = 0;
+    virtual ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) = 0;
 
     /*!
      * @brief Retrieves a chunk of the log file with the provided ID.

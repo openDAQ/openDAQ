@@ -125,13 +125,13 @@ void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoB
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
-            return objectPtr.getEncoding();
+            return objectPtr.getEncoding().toStdString();
         },
-        [](daq::ILogFileInfoBuilder *object, daq::LogFileEncodingType encoding)
+        [](daq::ILogFileInfoBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& encoding)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::LogFileInfoBuilderPtr::Borrow(object);
-            objectPtr.setEncoding(encoding);
+            objectPtr.setEncoding(getVariantValue<daq::IString*>(encoding));
         },
         "Gets the encoding of the log file. / Sets the encoding of the log file.");
     cls.def_property("last_modified",

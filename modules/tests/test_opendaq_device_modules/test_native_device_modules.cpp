@@ -151,6 +151,43 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
+{
+    // workaround until exceptionsin opendaq/excpetions.h are correctly registered
+    auto AssertErrorCode = [](const std::function<void()>& func, ErrCode expectedErrorCode)
+    {
+        try
+        {
+            func();
+            ASSERT_TRUE(false);
+        }
+        catch (const DaqException& e)
+        {
+            ASSERT_EQ(e.getErrCode(), expectedErrorCode);
+        }
+    };
+
+    // connect to server with protocol version 2
+
+    const uint16_t negotiateVersion = 2;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(negotiateVersion);
+
+    const auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), negotiateVersion);
+
+    // call some methods which require protocol version 3 or higher
+
+    AssertErrorCode([&]() { client.lock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.unlock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].isLocked(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDevices(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDeviceTypes(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+}
+
+
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())

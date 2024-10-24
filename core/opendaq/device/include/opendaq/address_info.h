@@ -86,10 +86,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, AddressInfo, IAddr
 
 /*!
  * @brief Creates an Address using the builder's configuration parameters.
- */
-/*!
- * @brief Creates a Unit with Builder
- * @param builder Unit Builder
+ * @param builder The address info builder.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, AddressInfoFromBuilder, IAddressInfo,

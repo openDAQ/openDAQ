@@ -12,6 +12,12 @@
 #include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
+#include <opendaq/log_file_info_factory.h>
+#include <coretypes/filesystem.h>
+#include <fstream>
+#include <sstream>
+#include <chrono>
+#include <iomanip>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -80,7 +86,10 @@ DeviceTypePtr RefDeviceImpl::CreateType()
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
     defaultConfig.addProperty(BoolProperty("EnableCANChannel", False));
+    defaultConfig.addProperty(BoolProperty("EnableProtectedChannel", False));
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+    defaultConfig.addProperty(BoolProperty("EnableLogging", False));
+    defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
 
     return DeviceType("daqref",
                       "Reference device",
@@ -239,6 +248,12 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableProtectedChannel"))
             enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
+        
+        if (config.hasProperty("EnableLogging"))
+            loggingEnabled = config.getPropertyValue("EnableLogging");
+
+        if (config.hasProperty("LoggingPath"))
+            loggingPath = config.getPropertyValue("LoggingPath");
     } 
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -283,6 +298,11 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
     auto protectedObject = createProtectedObject();
     objPtr.addProperty(ObjectProperty("Protected", protectedObject));
+
+    objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
+    objPtr.getOnPropertyValueWrite("EnableLogging") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
+    enableLogging();
 }
 
 void RefDeviceImpl::updateNumberOfChannels()
@@ -385,6 +405,94 @@ void RefDeviceImpl::updateAcqLoopTime()
 
     std::scoped_lock lock(sync);
     this->acqLoopTime = static_cast<size_t>(loopTime);
+}
+
+void RefDeviceImpl::enableLogging()
+{
+    std::scoped_lock lock(sync);
+    loggingEnabled = objPtr.getPropertyValue("EnableLogging");
+}
+
+StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint) 
+{
+    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
+    std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ"); // ISO 8601 format
+    return oss.str();
+}
+
+ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
+{    
+    {
+        std::scoped_lock lock(sync);
+        if (!loggingEnabled)
+        {
+            return List<ILogFileInfo>();
+        }
+    }
+
+    fs::path path(loggingPath);
+    if (!fs::exists(path))
+    {
+        return List<ILogFileInfo>();
+    }
+
+    SizeT size = fs::file_size(path);
+
+    auto ftime = fs::last_write_time(path);
+
+    // Convert to time_point
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+
+    auto lastModified = toIso8601(sctp);
+
+    auto logFileInfo = LogFileInfoBuilder().setName(path.filename().string())
+                                           .setId(path.string())
+                                           .setDescription("Log file for the reference device")
+                                           .setSize(size)
+                                           .setEncoding("utf-8")
+                                           .setLastModified(lastModified)
+                                           .build();
+    
+    return List<ILogFileInfo>(logFileInfo);
+}
+
+StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    {
+        std::scoped_lock lock(sync);
+        if (!loggingEnabled)
+            return "";
+
+        if (id != loggingPath)
+            return "";
+    }
+    
+    std::ifstream file(loggingPath.toStdString(), std::ios::binary);
+    if (!file.is_open())
+        return "";
+
+    file.seekg(0, std::ios::end);
+    std::streampos fileSize = file.tellg();
+    if (offset >= fileSize)
+        return "";
+
+    file.seekg(offset, std::ios::beg);
+
+    if (size == -1)
+        size = fileSize - offset;
+    else
+        size = std::min(size, static_cast<Int>(fileSize - offset));
+
+    std::vector<char> buffer(size);
+    file.read(buffer.data(), size);
+    file.close();
+
+    return String(buffer.data(), size);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

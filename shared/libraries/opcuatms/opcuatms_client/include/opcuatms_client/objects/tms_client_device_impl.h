@@ -51,6 +51,8 @@ protected:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 

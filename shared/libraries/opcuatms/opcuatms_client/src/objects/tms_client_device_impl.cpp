@@ -639,4 +639,14 @@ void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& function
     removeNestedFunctionBlock(functionBlock);
 }
 
+ListPtr<ILogFileInfo> TmsClientDeviceImpl::ongetLogFileInfos()
+{
+    throw OpcUaClientCallNotAvailableException("getLogFileInfos is not available for OpcUA client device");
+}
+
+StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    throw OpcUaClientCallNotAvailableException("GetLog is not available for OpcUA client device");
+}
+
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

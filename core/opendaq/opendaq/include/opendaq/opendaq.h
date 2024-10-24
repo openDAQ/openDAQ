@@ -89,6 +89,9 @@
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
 
+#include <opendaq/log_file_info_ptr.h>
+#include <opendaq/log_file_info_builder_ptr.h>
+
 
 /*!
  * @ingroup opendaq

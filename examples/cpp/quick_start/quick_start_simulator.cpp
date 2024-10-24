@@ -11,6 +11,7 @@ using namespace daq;
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
+    StringPtr loggerPath = "ref_device_simulator.log";
 
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(StringProperty("Name", "Reference device simulator"));
@@ -21,6 +22,7 @@ int main(int /*argc*/, const char* /*argv*/[])
                                  .addModulePath(MODULE_PATH)
                                  .addDiscoveryServer("mdns")
                                  .setRootDevice("daqref://device1", config)
+                                 .setLogger(Logger(loggerPath))
                                  .build();
 
     const auto servers = instance.addStandardServers();

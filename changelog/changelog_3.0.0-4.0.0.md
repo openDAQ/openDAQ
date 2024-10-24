@@ -1,3 +1,42 @@
+# 24.10.2024:
+## Description
+- Implement log file info interface
+
+## Required integration changes:
+- Breaks binary compatibility
+
+```
++ [interface] ILogFileInfoBuilder : public IBaseObject
++ [function] ILogFileInfoBuilder::build(ILogFileInfo** logFileInfo)
++ [function] ILogFileInfoBuilder::getLocalPath(IString** localPath)
++ [function] ILogFileInfoBuilder::setLocalPath(IString* localPath)
++ [function] ILogFileInfoBuilder::getName(IString** name)
++ [function] ILogFileInfoBuilder::setName(IString* name)
++ [function] ILogFileInfoBuilder::getId(IString** id)
++ [function] ILogFileInfoBuilder::setId(IString* id)
++ [function] ILogFileInfoBuilder::getDescription(IString** description)
++ [function] ILogFileInfoBuilder::setDescription(IString* description)
++ [function] ILogFileInfoBuilder::getEncoding(IString** encoding)
++ [function] ILogFileInfoBuilder::setEncoding(IString* encoding)
++ [function] ILogFileInfoBuilder::getSize(SizeT* size)
++ [function] ILogFileInfoBuilder::setSize(SizeT size)
++ [function] ILogFileInfoBuilder::getLastModified(IString** lastModified)
++ [function] ILogFileInfoBuilder::setLastModified(IString* lastModified)
++ [factory] LogFileInfoBuilderPtr::LogFileInfoBuilder()
+
++ [interface] ILogFileInfo : public IBaseObject
++ [function] ILogFileInfo::getId(IString** id)
++ [function] ILogFileInfo::getLocalPath(IString** localPath)
++ [function] ILogFileInfo::getName(IString** name)
++ [function] ILogFileInfo::getDescription(IString** description)
++ [function] ILogFileInfo::getSize(SizeT* size)
++ [function] ILogFileInfo::getEncoding(IString** encoding)
++ [function] ILogFileInfo::getLastModified(IString** lastModified)
+
++ [function] IDevice::getLogFileInfos(IList** logFileInfos)
++ [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)
+```
+
 # 21.10.2024:
 ## Description
 - Introduce a new Sample Type "Null"
@@ -7,11 +46,9 @@
 - In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
   If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.
 
+```
 + [factory] DataDescriptorPtr NullDataDescriptor()
-
-# 11.10.2024
-## Description
-- Add methods in function block to add/remove nested fb
+```
 
 # 11.10.2024
 ## Description

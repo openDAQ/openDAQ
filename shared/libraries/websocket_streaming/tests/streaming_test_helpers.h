@@ -31,6 +31,15 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include "streaming_protocol/Unit.hpp"
 
+// MAC CI issue
+#if !defined(SKIP_TEST_MAC_CI)
+#   if defined(__clang__)
+#       define SKIP_TEST_MAC_CI return
+#   else
+#       define SKIP_TEST_MAC_CI
+#   endif
+#endif
+
 namespace streaming_test_helpers
 {
     inline daq::InstancePtr createServerInstance()

@@ -13,6 +13,20 @@
 + [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
 ```
 
+# 21.10.2024:
+## Description
+- Introduce a new Sample Type "Null"
+- Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned
+- Enable resetting the signal's Data Descriptor to nullptr
+
+## Required integration changes:
+- In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
+  If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.
+
+```
++ [factory] DataDescriptorPtr NullDataDescriptor()
+```
+
 # 11.10.2024
 ## Description
 - Add methods in function block to add/remove nested fb

@@ -150,6 +150,10 @@ inline EventPacketPtr EventPacket(const StringPtr& id, const DictPtr<IString, IB
  * @param dataDescriptor The data descriptor of the value signal.
  * @param domainDataDescriptor The data descriptor of the domain signal that carries domain data of the value signal.
  *
+ * If the descriptor has not been modified, the parameter should be set to nullptr. If the descriptor itself becomes unassigned
+ * (i.e., nullptr), a stub descriptor created within the 'NullDataDescriptor()' factory having SampleType set to Null should be used
+ * as the corresponding parameter.
+ *
  * The ID of the packet is "DATA_DESCRIPTOR_CHANGED". Its parameters dictionary contains the keys "DataDescriptor"
  * and "DomainDataDescriptor", carrying their respective data descriptor objects as values.
  */

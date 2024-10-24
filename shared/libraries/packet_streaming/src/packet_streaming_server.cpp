@@ -1,7 +1,8 @@
 #include <packet_streaming/packet_streaming_server.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/packet_destruct_callback_factory.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/data_descriptor_factory.h>
 
 namespace daq::packet_streaming
 {
@@ -85,12 +86,15 @@ void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventP
                 serializedPacket.release();
         });
 
-    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
-        packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        dataDescriptors.insert_or_assign(
-            signalId,
-            packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR));
+        bool valueDescriptorChanged;
+        DataDescriptorPtr newValueDescriptor;
+        std::tie(valueDescriptorChanged, std::ignore, newValueDescriptor, std::ignore) =
+            parseDataDescriptorEventPacket(packet);
+
+        if (valueDescriptorChanged)
+            dataDescriptors.insert_or_assign(signalId, newValueDescriptor);
     }
 
     queue.push(packetBuffer);

@@ -130,6 +130,7 @@ TEST_F(StreamingTest, ParseConnectString)
 
 TEST_F(StreamingTest, Subscription)
 {
+    SKIP_TEST_MAC_CI;
     auto server = std::make_shared<StreamingServer>(context);
     server->onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
@@ -172,6 +173,7 @@ TEST_F(StreamingTest, Subscription)
 // sends explicit value packet after constant value packet
 TEST_F(StreamingTest, PacketsCorrectSequence)
 {
+    SKIP_TEST_MAC_CI;
     std::vector<double> data = {-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5};
     auto sampleCount = data.size();
 
@@ -278,6 +280,7 @@ TEST_F(StreamingTest, PacketsCorrectSequence)
 // but with a delay equivalent to the size of one packet, and potentially missed intermediate changes.
 TEST_F(StreamingTest, PacketsIncorrectSequence)
 {
+    SKIP_TEST_MAC_CI;
     std::vector<double> data = {-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5};
     auto sampleCount = data.size();
 

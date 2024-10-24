@@ -1,8 +1,9 @@
 #include <packet_streaming/packet_streaming_client.h>
 #include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
+#include <opendaq/data_descriptor_factory.h>
 
 namespace daq::packet_streaming
 {
@@ -46,26 +47,9 @@ bool PacketStreamingClient::areReferencesCleared() const
     return (referencedPacketBuffers.empty() && referencedPackets.empty() && packetBuffersWaitingForDomainPackets.empty());
 }
 
-EventPacketPtr PacketStreamingClient::getDataDescriptorChangedEventPacket(uint32_t signalId) const
-{
-    std::scoped_lock lock(descriptorsSync);
-
-    DataDescriptorPtr dataDescriptor;
-    const auto dataDescIt = dataDescriptors.find(signalId);
-    if (dataDescIt != dataDescriptors.end())
-        dataDescriptor = dataDescIt->second;
-
-    DataDescriptorPtr domainDescriptor;
-    const auto domainDescIt = domainDescriptors.find(signalId);
-    if (domainDescIt != domainDescriptors.end())
-        domainDescriptor = domainDescIt->second;
-
-    return DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
-}
-
 void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBuffer)
 {
-    bool forwardPacket = true;
+    bool forwardPacket = false;
     auto signalId = packetBuffer->packetHeader->signalId;
 
     const auto eventPayloadString = String((ConstCharPtr) packetBuffer->payload);
@@ -74,23 +58,31 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        // drop packet if signal descriptors have not been changed
-        if (BaseObjectPtr::Equals(packet, getDataDescriptorChangedEventPacket(signalId)))
-            forwardPacket = false;
+        const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptors] =
+            parseDataDescriptorEventPacket(packet);
 
         std::scoped_lock lock(descriptorsSync);
-        if (packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
-            dataDescriptors.insert_or_assign(
-                signalId,
-                packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR));
-        if (packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).assigned())
-            domainDescriptors.insert_or_assign(
-                signalId,
-                packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+
+        const auto dataDescIt = dataDescriptors.find(signalId);
+        const auto domainDescIt = domainDescriptors.find(signalId);
+        if (valueDescriptorChanged && dataDescIt != dataDescriptors.end() && dataDescIt->second != newValueDescriptor ||
+            domainDescriptorChanged && domainDescIt != domainDescriptors.end() && domainDescIt->second != newDomainDescriptors ||
+            dataDescIt == dataDescriptors.end() ||
+            domainDescIt == domainDescriptors.end())
+        {
+            forwardPacket = true;
+        }
+
+        if (valueDescriptorChanged)
+            dataDescriptors.insert_or_assign(signalId, newValueDescriptor);
+        if (domainDescriptorChanged)
+            domainDescriptors.insert_or_assign(signalId, newDomainDescriptors);
     }
 
     if (forwardPacket)
+    {
         queue.push({signalId, packet});
+    }
 }
 
 DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& packetBuffer, const DataPacketPtr& domainPacket)

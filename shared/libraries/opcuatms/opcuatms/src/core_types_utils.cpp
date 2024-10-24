@@ -146,6 +146,10 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
             return UA_SAMPLETYPEENUMERATION_RANGEINT64;
         case SampleType::Struct:
             return UA_SAMPLETYPEENUMERATION_INVALID;
+        case SampleType::Null:
+            throw ConversionFailedException(
+                "SampleType \"Null\" is not convertible and reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."
+            );
         default:
             throw ConversionFailedException();
     }

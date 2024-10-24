@@ -36,7 +36,7 @@ Some of the above limitations might be lifted in the future.
 
 Using the Multi-Reader is largely the same as any other Reader and is basically a xref:knowledge_base:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
 
-[#create]
+[#create-signals]
 .Creating a default Multi-Reader with list of Signals
 [tabs]
 ====
@@ -52,7 +52,7 @@ auto reader = MultiReader(signals, SampleType::Float64, SampleType::Int64);
 ====
 
 Developer can set list of Input Ports instead of Signals.
-[#create]
+[#create-ports]
 .Creating a default Multi-Reader with list of ports 
 [tabs]
 ====

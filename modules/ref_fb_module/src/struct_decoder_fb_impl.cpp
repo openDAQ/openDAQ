@@ -3,7 +3,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/data_packet.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/event_packet_ids.h>
@@ -33,13 +33,14 @@ FunctionBlockTypePtr StructDecoderFbImpl::CreateType()
     return FunctionBlockType("RefFBModuleStructDecoder", "Struct decoder", "Decodes signals with struct data type and outputs signal for each struct component.");
 }
 
-void StructDecoderFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                         const DataDescriptorPtr& inputDomainDataDescriptor)
+void StructDecoderFbImpl::processSignalDescriptorsChangedEventPacket(const EventPacketPtr& eventPacket)
 {
-    if (inputDataDescriptor.assigned())
-        this->inputDataDescriptor = inputDataDescriptor;
-    if (inputDomainDataDescriptor.assigned())
-        this->inputDomainDataDescriptor = inputDomainDataDescriptor;
+    const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
+    if (valueDescriptorChanged)
+        this->inputDataDescriptor = newValueDescriptor;
+    if (domainDescriptorChanged)
+        this->inputDomainDataDescriptor = newDomainDescriptor;
 
     configure();
 }
@@ -139,11 +140,7 @@ void StructDecoderFbImpl::onPacketReceived(const InputPortPtr& port)
 void StructDecoderFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        const DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
-    }
+        processSignalDescriptorsChangedEventPacket(packet);
 }
 
 template <typename T>

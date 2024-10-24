@@ -10,6 +10,7 @@
 #include "test_utils.h"
 
 #include <coreobjects/user_factory.h>
+#include <opendaq/event_packet_utils.h>
 
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -94,8 +95,12 @@ TEST_F(StreamingProducerTest, ConnectDisconnectRegisteredSignal)
     auto valueSignal = signals[0];
     auto domainSignal = valueSignal.getDomainSignal();
 
-    auto eventPacketValueSignal = DataDescriptorChangedEventPacket(valueSignal.getDescriptor(), domainSignal.getDescriptor());
-    auto eventPacketDomainSignal = DataDescriptorChangedEventPacket(domainSignal.getDescriptor(), nullptr);
+    auto eventPacketValueSignal =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(valueSignal.getDescriptor()),
+                                         descriptorToEventPacketParam(domainSignal.getDescriptor()));
+    auto eventPacketDomainSignal =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(domainSignal.getDescriptor()),
+                                         NullDataDescriptor());
 
     std::unordered_map<SignalNumericIdType, std::tuple<PacketPtr, std::promise<void>, std::future<void>>> streamingData;
     auto sendDaqPacketLambda =

@@ -22,7 +22,7 @@
 #include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
-#include "opendaq/event_packet_params.h"
+#include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename... Interfaces>
@@ -126,21 +126,20 @@ Bool MirroredSignalBase<Interfaces...>::onTriggerEvent(const EventPacketPtr& eve
 
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = eventPacket.getParameters();
-        const DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-        const DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        const auto [signalDescriptorChanged, domainDescriptorChanged, newSignalDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
 
         std::scoped_lock lock(signalMutex);
 
         Bool changed = False;
 
-        if (newSignalDescriptor.assigned() && newSignalDescriptor != mirroredDataDescriptor)
+        if (signalDescriptorChanged && newSignalDescriptor != mirroredDataDescriptor)
         {
             mirroredDataDescriptor = newSignalDescriptor;
             changed = True;
         }
 
-        if (newDomainDescriptor.assigned() && mirroredDomainDataDescriptor != newDomainDescriptor)
+        if (domainDescriptorChanged && mirroredDomainDataDescriptor != newDomainDescriptor)
         {
             mirroredDomainDataDescriptor = newDomainDescriptor;
 
@@ -603,15 +602,19 @@ template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     const EventPacketPtr eventPacketFromConfig = Super::createDataDescriptorChangedEventPacket();
-    const auto params = eventPacketFromConfig.getParameters();
+
+    DataDescriptorPtr valueDescriptorFromConfig;
+    DataDescriptorPtr domainDescriptorFromConfig;
+    std::tie(std::ignore, std::ignore, valueDescriptorFromConfig, domainDescriptorFromConfig) =
+        parseDataDescriptorEventPacket(eventPacketFromConfig);
 
     std::scoped_lock lock(signalMutex);
     if (!mirroredDataDescriptor.assigned())
     {
-        mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+        mirroredDataDescriptor = valueDescriptorFromConfig;
         if (!mirroredDomainDataDescriptor.assigned())
         {
-            mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            mirroredDomainDataDescriptor = domainDescriptorFromConfig;
             if (mirroredDomainSignal.assigned())
                 mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(mirroredDomainDataDescriptor);
             else
@@ -628,7 +631,8 @@ EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEve
         }
     }
 
-    return DataDescriptorChangedEventPacket(mirroredDataDescriptor, mirroredDomainDataDescriptor);
+    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(mirroredDataDescriptor),
+                                            descriptorToEventPacketParam(mirroredDomainDataDescriptor));
 }
 
 template <typename... Interfaces>

@@ -1,10 +1,11 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/signal_reader.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -150,11 +151,10 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     if (!eventPacket.assigned())
         return;
 
-    auto params = eventPacket.getParameters();
-    DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
 
-    if (newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
+    if (valueDescriptorChanged && newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
     {
         SampleType valueType;
         auto postScaling = newValueDescriptor.getPostScaling();
@@ -170,45 +170,51 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
         valueReader = createReaderForType(valueType, valueReader->getTransformFunction());
     }
     
-    invalid = !valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
-    auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
-    if (validDomain && newDomainDescriptor.assigned())
+    if (valueDescriptorChanged)
     {
-        auto newResolution = newDomainDescriptor.getTickResolution();
-        if (domainInfo.resolution != newResolution)
-        {
-            domainInfo.resolution = newResolution;
-            synced = SyncStatus::Unsynchronized;
-        }
-
-        std::string origin = newDomainDescriptor.getOrigin();
-        auto newOrigin = reader::parseEpoch(origin);
-        if (domainInfo.epoch != newOrigin)
-        {
-            domainInfo.epoch = newOrigin;
-            synced = SyncStatus::Unsynchronized;
-        }
-
-        auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
-        if (sampleRate == -1)
-        {
-            sampleRate = newSampleRate;
-        }
-        else if (sampleRate != newSampleRate)
-        {
-            validDomain = false;
-        }
-
-        packetDelta = 0;
-        const auto domainRule = newDomainDescriptor.getRule();
-        if (domainRule.getType() == DataRuleType::Linear)
-        {
-            const auto domainRuleParams = domainRule.getParameters();
-            packetDelta = domainRuleParams.get("delta");
-        }
+        invalid = !valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
     }
+    if (domainDescriptorChanged)
+    {
+        auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
+        if (validDomain && newDomainDescriptor.assigned())
+        {
+            auto newResolution = newDomainDescriptor.getTickResolution();
+            if (domainInfo.resolution != newResolution)
+            {
+                domainInfo.resolution = newResolution;
+                synced = SyncStatus::Unsynchronized;
+            }
 
-    invalid = invalid || !validDomain;
+            std::string origin = newDomainDescriptor.getOrigin();
+            auto newOrigin = reader::parseEpoch(origin);
+            if (domainInfo.epoch != newOrigin)
+            {
+                domainInfo.epoch = newOrigin;
+                synced = SyncStatus::Unsynchronized;
+            }
+
+            auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
+            if (sampleRate == -1)
+            {
+                sampleRate = newSampleRate;
+            }
+            else if (sampleRate != newSampleRate)
+            {
+                validDomain = false;
+            }
+
+            packetDelta = 0;
+            const auto domainRule = newDomainDescriptor.getRule();
+            if (domainRule.getType() == DataRuleType::Linear)
+            {
+                const auto domainRuleParams = domainRule.getParameters();
+                packetDelta = domainRuleParams.get("delta");
+            }
+        }
+
+        invalid = invalid || !validDomain;
+    }
 
     LOG_T("[Signal Descriptor Changed: {} | {} | {}]",
         port.getSignal().getLocalId(),
@@ -288,6 +294,8 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     EventPacketPtr packetToReturn;
     DataDescriptorPtr dataDescriptor;
     DataDescriptorPtr domainDescriptor;
+    bool valueDescriptorChanged = false;
+    bool domainDescriptorChanged = false;
 
     PacketPtr packet;
     while (true)
@@ -310,18 +318,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
             auto packetId = eventPacket.getEventId();
             if (packetId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                auto params = eventPacket.getParameters();
-                DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-                DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+                const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] =
+                    parseDataDescriptorEventPacket(eventPacket);
 
-                if (newValueDescriptor.assigned())
-                {
+                valueDescriptorChanged |= valueDescChanged;
+                domainDescriptorChanged |= domainDescChanged;
+
+                if (valueDescChanged)
                     dataDescriptor = newValueDescriptor;
-                }
-                if (newDomainDescriptor.assigned())
-                {
+                if (domainDescChanged)
                     domainDescriptor = newDomainDescriptor;
-                }
             }
             else if (packetId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
             {
@@ -342,8 +348,16 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         info.prevSampleIndex = 0;
     }
 
-    if (!packetToReturn.assigned() && (dataDescriptor.assigned() || domainDescriptor.assigned()))
-        packetToReturn = DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+    if (!packetToReturn.assigned() && (valueDescriptorChanged || domainDescriptorChanged))
+    {
+        const auto valueDescriptorParam = valueDescriptorChanged
+                                              ? descriptorToEventPacketParam(dataDescriptor)
+                                              : nullptr;
+        const auto domainDescriptorParam = domainDescriptorChanged
+                                               ? descriptorToEventPacketParam(domainDescriptor)
+                                               : nullptr;
+        packetToReturn = DataDescriptorChangedEventPacket(valueDescriptorParam, domainDescriptorParam);
+    }
 
     if (packetToReturn.assigned())
     {

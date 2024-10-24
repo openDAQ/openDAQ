@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coretypes/baseobject_factory.h>
+#include <optional>
 
 namespace daq::packet_streaming
 {

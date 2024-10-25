@@ -41,7 +41,7 @@ void exampleSimple()
     ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
     auto reader = MultiReader(signals);
 
-    // Initialy we should have event packet for each signal
+    // Initially, we should have event packet for each signal
     SizeT count = 0;
     void* emptyValuesPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
     void* emptyDomainPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
@@ -134,7 +134,7 @@ void exampleWithTimeStamps()
     auto reader = MultiReader(signals);
     TimeReader timeReader(reader);
 
-    // Initialy we should have have packet for each signal
+    // Initially, we should have have packet for each signal
     SizeT count = 0;
     void* emptyValuesPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
     void* emptyDomainPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};

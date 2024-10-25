@@ -27,9 +27,6 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 
     this->port = port;
 
-    if (this->port.getConnection().assigned())
-        throw InvalidParameterException("Signal has to be connected to port after reader is created");
-
     portBinder = PropertyObject();
     this->port.asPtr<IOwnable>().setOwner(portBinder);
 

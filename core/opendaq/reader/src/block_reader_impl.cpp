@@ -52,8 +52,6 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
     , overlap(overlap)
 {
     initOverlap();
-
-    readDescriptorFromPort();
 }
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
@@ -67,9 +65,6 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     initOverlap();
-
-    this->internalAddRef();
-    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 
     notify.dataReady = false;
 }

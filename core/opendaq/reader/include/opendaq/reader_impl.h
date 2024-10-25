@@ -72,9 +72,6 @@ public:
         , timeoutType(ReadTimeoutType::All)
         , skipEvents(skipEvents)
     {
-        if (port.getConnection().assigned())
-            throw InvalidParameterException("Signal has to be connected to port after reader is created");
-
         if (!port.assigned())
             throw ArgumentNullException("Signal must not be null.");
         
@@ -320,22 +317,20 @@ protected:
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
         , skipEvents(old->skipEvents)
     {
-        dataDescriptor = old->dataDescriptor;
-        domainDescriptor = old->domainDescriptor;
         old->invalid = true;
-
         timeoutType = old->timeoutType;
-
         portBinder = old->portBinder;
         port = old->port;
+        connection = old->connection;
+        readCallback = old->readCallback;
+
         port.asPtr<IOwnable>().setOwner(portBinder);
 
         this->internalAddRef();
         
         port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-
-        connection = old->connection;
-        readCallback = old->readCallback;
+        if (connection.assigned())
+            readDescriptorFromPort();
     }
 
     explicit ReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -359,6 +354,11 @@ protected:
 
         valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
         domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
+
+        this->internalAddRef();
+        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+        if (connection.assigned())
+            readDescriptorFromPort();
     }
 
     void inferReaderReadType(DataDescriptorPtr newDescriptor, std::unique_ptr<Reader>& reader)
@@ -384,12 +384,6 @@ protected:
         }
     }
 
-    EventPacketPtr createInitDataDescriptorChangedEventPacket()
-    {
-        return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor),
-                                                descriptorToEventPacketParam(domainDescriptor));
-    }
-
     virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket)
     {
         if (!eventPacket.assigned())
@@ -401,7 +395,6 @@ protected:
         // Check if value is still convertible
         if (valueDescriptorChanged && newValueDescriptor.assigned())
         {
-            dataDescriptor = newValueDescriptor;
             if (valueReader->isUndefined())
             {
                 inferReaderReadType(newValueDescriptor, valueReader);
@@ -417,7 +410,6 @@ protected:
         // Check if domain is still convertible
         if (domainDescriptorChanged && newDomainDescriptor.assigned())
         {
-            domainDescriptor = newDomainDescriptor;
             if (domainReader->isUndefined())
             {
                 inferReaderReadType(newDomainDescriptor, domainReader);
@@ -433,12 +425,6 @@ protected:
 
     void readDescriptorFromPort()
     {
-        auto config = port.asPtrOrNull<IInputPortConfig>();
-        if (config.assigned())
-        {
-            config.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-        }
-
         PacketPtr packet = connection.peek();
         if (packet.assigned() && packet.getType() == PacketType::Event)
         {
@@ -449,8 +435,6 @@ protected:
                 return;
             }
         }
-
-        handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -512,9 +496,6 @@ protected:
     ConnectionPtr connection;
     ProcedurePtr readCallback;
     ReadTimeoutType timeoutType;
-
-    DataDescriptorPtr dataDescriptor;
-    DataDescriptorPtr domainDescriptor;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

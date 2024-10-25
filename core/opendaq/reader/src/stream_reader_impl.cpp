@@ -50,7 +50,6 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
-
     connectInputPort(port);
 }
 
@@ -74,7 +73,8 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
     connection = inputPort.getConnection();
 
     this->internalAddRef();
-    readDescriptorFromPort();
+    if (connection.assigned())
+        readDescriptorFromPort();
 }
 
 StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
@@ -85,8 +85,6 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     , skipEvents(old->skipEvents)
 {
     std::scoped_lock lock(old->mutex);
-    dataDescriptor = old->dataDescriptor;
-    domainDescriptor = old->domainDescriptor;
     old->invalid = true;
 
     info = old->info;
@@ -103,8 +101,8 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
+    if (connection.assigned())
+        readDescriptorFromPort();
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
@@ -129,9 +127,6 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 
     if (auto port = builder.getInputPort(); port.assigned())
     {
-        if (port.getConnection().assigned())
-            throw InvalidParameterException("Signal has to be connected to port after reader is created");
-
         connectInputPort(port);
     }
     else if (auto signal = builder.getSignal(); signal.assigned())
@@ -168,8 +163,6 @@ void StreamReaderImpl::readDescriptorFromPort()
             return;
         }
     }
-
-    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -184,8 +177,6 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
 void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
 {
     inputPort = port;
-    if (inputPort.getConnection().assigned())
-        throw InvalidParameterException("Signal has to be connected to port after reader is created");
 
     portBinder = PropertyObject();
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
@@ -345,12 +336,6 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
-EventPacketPtr StreamReaderImpl::createInitDataDescriptorChangedEventPacket()
-{
-    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor),
-                                            descriptorToEventPacketParam(domainDescriptor));
-}
-
 void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 {
     if (!eventPacket.assigned())
@@ -362,7 +347,6 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     // Check if value is still convertible
     if (valueDescriptorChanged && newValueDescriptor.assigned())
     {
-        dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
         {
             inferReaderReadType(newValueDescriptor, valueReader);

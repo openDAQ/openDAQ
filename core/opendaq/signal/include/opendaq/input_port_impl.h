@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/connection_factory.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/input_port_config.h>
@@ -102,7 +103,7 @@ protected:
 
 private:
     Bool requiresSignal;
-    bool gapCheckingEnabled;
+    const bool gapCheckingEnabled;
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
 
@@ -446,8 +447,12 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
 {
     std::scoped_lock lock(this->sync);
 
-    listenerRef = port;
+    if (auto connection = getConnectionNoLock(); connection.assigned())
+    {
+        connection.template as<IConnectionInternal>(true)->enqueueLastDescriptor();
+    }
 
+    listenerRef = port;
     if (listenerRef.assigned())
     {
         auto portRef = this->template getWeakRefInternal<IInputPort>();

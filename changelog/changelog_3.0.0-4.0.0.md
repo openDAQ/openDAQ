@@ -11,9 +11,9 @@
 ```
 + [function] IServerCapability::getProtocolVersion(IString** version)
 + [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
-# 24.10.2024:
 ```
 
+# 24.10.2024:
 ## Description
 - Implement log file info interface
 

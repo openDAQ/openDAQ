@@ -87,18 +87,15 @@ class App(tk.Tk):
 
         add_device_button = ttk.Button(
             main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.LEFT, padx=5,
-                               pady=5, fill=tk.X)
+        add_device_button.pack(side=tk.LEFT, padx=5)
 
         add_function_block_button = ttk.Button(
             main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(
-            side=tk.LEFT, padx=5, pady=5, fill=tk.X)
+        add_function_block_button.pack(side=tk.LEFT, padx=5)
 
         refresh_button = ttk.Button(
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.LEFT,
-                            padx=5, pady=5, fill=tk.X)
+        refresh_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
@@ -240,12 +237,14 @@ class App(tk.Tk):
             component) if component and daq.IFolder.can_cast_from(component) else None
         device = daq.IDevice.cast_from(
             component) if component and daq.IDevice.can_cast_from(component) else None
+        items = folder.get_items(daq.AnySearchFilter(
+        ) if self.context.view_hidden_components else None) if folder else []
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
             DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None else component.parent.global_id
 
-        if folder is None or folder.items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
+        if folder is None or items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
             if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY,
                                 DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None):
                 self.tree_add_component(
@@ -272,7 +271,7 @@ class App(tk.Tk):
         if folder is not None:
             if not (daq.IFunctionBlock.can_cast_from(component)
                     and display_type == DisplayType.FUNCTION_BLOCKS) and (self.context.view_hidden_components or folder.visible):
-                for item in folder.items:
+                for item in items:
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type)
 
@@ -427,7 +426,8 @@ class App(tk.Tk):
     def handle_tree_right_button(self, event):
         iid = event.widget.identify_row(event.y)
         if iid:
-            selected_iid = utils.treeview_get_first_selection(event.widget) or ''
+            selected_iid = utils.treeview_get_first_selection(
+                event.widget) or ''
             if iid != selected_iid:
                 event.widget.selection_set(iid)
         else:
@@ -489,7 +489,7 @@ class App(tk.Tk):
             node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
-        if not found.visible and not self.context.show_hidden_components:
+        if not found.visible and not self.context.view_hidden_components:
             return
         if type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
 
@@ -498,7 +498,7 @@ class App(tk.Tk):
 
             current = found.parent
             while current is not None:
-                if not current.visible and not self.context.show_hidden_components:
+                if not current.visible and not self.context.view_hidden_components:
                     parent_hidden = True
                     break
                 if daq.IDevice.can_cast_from(current):
@@ -529,7 +529,7 @@ class App(tk.Tk):
             def draw_sub_components(component, level=0):
                 if component is None:
                     return
-                
+
                 if not component.visible and not self.context.view_hidden_components:
                     return
 

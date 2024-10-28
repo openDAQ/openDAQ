@@ -134,12 +134,12 @@ class AppContext(object):
 
         return '/'.join(reversed(filtered_parts))
 
-    def update_signals_for_device(self, device):
+    def update_signals_for_device(self, device: daq.IDevice):
         if device is None:
             return
 
         self.signals[device.global_id] = {}
-        for signal in device.signals_recursive:
+        for signal in device.get_signals_recursive(daq.AnySearchFilter() if self.view_hidden_components else None):
             short_id = self.short_id(signal.global_id)
 
             if short_id not in self.signals[device.global_id]:

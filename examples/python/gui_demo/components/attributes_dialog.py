@@ -49,15 +49,17 @@ class AttributesDialog(Dialog):
         if daq.ISignal.can_cast_from(node) or daq.IDevice.can_cast_from(node):
             additional_tree_frame = ttk.Frame(self)
             if daq.ISignal.can_cast_from(node):
+                self.node = daq.ISignal.cast_from(node)
                 self.notebook = ttk.Notebook(self)
                 self.notebook.pack(fill=tk.BOTH, anchor=tk.W)
                 signal_desc_frame = ttk.Frame(self.notebook)
                 signal_domain_desc_frame = ttk.Frame(self.notebook)
                 self.notebook.add(signal_desc_frame, text='Signal Descriptor')
-                if node.domain_signal is not None:
+                if self.node.domain_signal is not None:
                     self.notebook.add(signal_domain_desc_frame, text='Signal Domain Descriptor')
                 self.notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
             elif daq.IDevice.can_cast_from(node):
+                self.node = daq.IDevice.cast_from(node)
                 ttk.Label(self, text='Device Info').pack(
                     anchor=tk.W, pady=5)
             # additional treeview for specific attributes

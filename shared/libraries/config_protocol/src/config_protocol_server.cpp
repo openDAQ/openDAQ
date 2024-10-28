@@ -146,10 +146,12 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
     addHandler<DevicePtr>("IsLocked", &ConfigServerDevice::isLocked);
-    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
+    addHandler<DevicePtr>("getLogFileInfos", &ConfigServerDevice::getLogFileInfos);
     addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
     addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
     addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
+    addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
+    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 

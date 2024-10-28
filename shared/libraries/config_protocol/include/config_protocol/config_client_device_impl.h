@@ -56,6 +56,9 @@ public:
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
+    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
+
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
@@ -191,6 +194,27 @@ template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
     return PropertyObject();
+}
+
+template <class TDeviceBase>
+ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::ongetLogFileInfos()
+{
+    if (this->clientComm->getProtocolVersion() < 5)
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "getLogFileInfos");
+}
+
+template <class TDeviceBase>
+StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    if (this->clientComm->getProtocolVersion() < 5)
+        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
+                                    "Operation not supported by the protocol version currently in use");
+
+    auto params = Dict<IString, IBaseObject>({{"Id", id}, {"Size", size}, {"Offset", offset}});
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetLog", params);
 }
 
 template <class TDeviceBase>

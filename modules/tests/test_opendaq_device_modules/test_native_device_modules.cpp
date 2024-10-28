@@ -2005,6 +2005,31 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration3)
     ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
 }
 
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
+{
+    StringPtr config;
+    auto server = CreateServerInstance();
+    
+    {
+        auto client = CreateClientInstance();
+        config = client.saveConfiguration();
+    }
+    
+    auto restoredClient = Instance();
+    restoredClient.addDevice("daqref://device0");
+
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices[0].getInfo().getConnectionString(), "daqref://device0");
+    ASSERT_EQ(devices[1].getInfo().getConnectionString(), "daqmock://client_device");
+    auto serverDevices = devices[1].getDevices();
+    ASSERT_EQ(serverDevices.getCount(), 1u);
+    ASSERT_EQ(serverDevices[0].getInfo().getConnectionString(), "daqref://device0");
+}
+
+
 InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
 {
     PropertyObjectPtr config = PropertyObject();

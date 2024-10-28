@@ -40,8 +40,7 @@ class AddFunctionBlockDialog(Dialog):
                                 self.handle_parent_device_selected)
         parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
-        parent_device_tree_frame.grid(row=0, column=0)
-        parent_device_tree_frame.grid_configure(sticky=tk.NSEW)
+        parent_device_tree_frame.grid(row=0, column=0, sticky=tk.NSEW)
 
         # child
 
@@ -69,12 +68,12 @@ class AddFunctionBlockDialog(Dialog):
 
         tree.pack(fill=tk.BOTH, expand=True)
 
-        tree_frame.grid(row=0, column=1)
-        tree_frame.grid_configure(sticky=tk.NSEW)
+        tree_frame.grid(row=0, column=1, sticky=tk.NSEW)
 
         self.device_tree = parent_device_tree
         self.fb_tree = tree
 
+        self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')

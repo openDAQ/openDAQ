@@ -29,8 +29,9 @@ class OutputSignalsView(ttk.Frame):
             elif daq.IFunctionBlock.can_cast_from(node):
                 node = daq.IFunctionBlock.cast_from(node)
 
-            if len(node.signals) > 0:
-                for output_signal in node.signals:
+            signals = node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
+            if len(signals) > 0:
+                for output_signal in signals:
                     OutputSignalRow(self, output_signal, self.context).pack(
                         anchor=tk.NW, fill=tk.X)
                 return

@@ -162,7 +162,7 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestSupportedConfigProtocolVersion());
+    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestConfigProtocolVersion());
     void reconnect(Bool restoreClientConfigOnReconnect);
     void disconnectExternalSignals();
     uint16_t getProtocolVersion() const;
@@ -236,7 +236,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     std::set<uint16_t> supportedServerVersions;
     replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
-    if (protocolVersion != GetLatestSupportedConfigProtocolVersion())
+    if (protocolVersion != GetLatestConfigProtocolVersion())
     {
         if (std::find(supportedClientVersions.begin(), supportedClientVersions.end(), protocolVersion) == supportedClientVersions.end())
             throw ConfigProtocolException("Protocol not supported on client");

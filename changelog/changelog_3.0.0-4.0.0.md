@@ -1,3 +1,18 @@
+# 24.10.2024
+## Description
+- Add a way to view the server protocol version in server capabilities.
+- Fix the path issue in ConfigurationConnectionInfo of device info: If the connection to the device included a path, ensure the path is correctly reflected in the ConfigurationConnectionInfo.
+- For native configuration, update the ConfigurationConnectionInfo of device info to display the actual protocol version used in communication between the server and client.
+- Native client default config property `ProtocolVersion` is set to the latest support protocol version
+
+##  Required integration changes
+- Breaks binary compatibility
+
+```
++ [function] IServerCapability::getProtocolVersion(IString** version)
++ [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
+```
+
 # 24.10.2024:
 ## Description
 - Implement log file info interface
@@ -42,6 +57,7 @@
 - Introduce a new Sample Type "Null"
 - Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned
 - Enable resetting the signal's Data Descriptor to nullptr
+
 ## Required integration changes:
 - In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
   If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.
@@ -65,9 +81,9 @@
     or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
 ```
-IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
-IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
-IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
++ [function] IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
++ [function] IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
++ [function] IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
 ```
 
 # 10.10.2024

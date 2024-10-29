@@ -32,6 +32,7 @@ public:
     ~TmsServer();
 
     void setOpcUaPort(uint16_t port);
+    void setOpcUaPath(const std::string& path);
     void start();
     void stop();
 
@@ -42,6 +43,7 @@ protected:
     std::shared_ptr<daq::opcua::tms::TmsServerContext> tmsContext;
     daq::opcua::OpcUaServerPtr server;
     uint16_t opcUaPort = 4840;
+    std::string opcUaPath = "/";
 
 };
 

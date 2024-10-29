@@ -97,6 +97,8 @@ public:
     BooleanPtr acceptsSignal(const std::string& globalId, const std::string& globaSignallId);
     DeviceInfoPtr getInfo(const std::string& globalId);
     TypeManagerPtr getTypeManager();
+    ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);
+    StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
 
     bool getConnected() const;
     ContextPtr getDaqContext();

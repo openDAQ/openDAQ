@@ -180,22 +180,13 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 template <class TDeviceBase>
 ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::ongetLogFileInfos()
 {
-    if (this->clientComm->getProtocolVersion() < 5)
-        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
-                                    "Operation not supported by the protocol version currently in use");
-
-    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "getLogFileInfos");
+    return this->clientComm->getLogFileInfos(this->remoteGlobalId);
 }
 
 template <class TDeviceBase>
 StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetLog(const StringPtr& id, Int size, Int offset)
 {
-    if (this->clientComm->getProtocolVersion() < 5)
-        throwExceptionFromErrorCode(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
-                                    "Operation not supported by the protocol version currently in use");
-
-    auto params = Dict<IString, IBaseObject>({{"Id", id}, {"Size", size}, {"Offset", offset}});
-    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetLog", params);
+    return this->clientComm->getLog(this->remoteGlobalId, id, size, offset);
 }
 
 template <class TDeviceBase>

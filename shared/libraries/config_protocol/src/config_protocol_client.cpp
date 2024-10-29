@@ -267,6 +267,17 @@ TypeManagerPtr ConfigProtocolClientComm::getTypeManager()
     return sendCommand(ClientCommand("GetTypeManager"));
 }
 
+ListPtr<ILogFileInfo> ConfigProtocolClientComm::getLogFileInfos(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("getLogFileInfos", 5));
+}
+
+StringPtr ConfigProtocolClientComm::getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset)
+{
+    auto params = Dict<IString, IBaseObject>({{"Id", id}, {"Size", size}, {"Offset", offset}});
+    return sendComponentCommand(globalId, ClientCommand("GetLog", 5), params);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

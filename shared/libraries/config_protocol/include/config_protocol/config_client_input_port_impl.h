@@ -19,6 +19,7 @@
 #include <opendaq/input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
+#include <opendaq/errors.h>
 
 namespace daq::config_protocol
 {
@@ -143,10 +144,6 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
-            if (!(clientComm->getProtocolVersion() >= 4))
-                return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
-                                     "Operation not supported by the protocol version currently in use");
-
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
                 return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");

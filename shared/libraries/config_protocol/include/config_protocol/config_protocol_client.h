@@ -162,9 +162,10 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = std::numeric_limits<uint16_t>::max());
+    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestConfigProtocolVersion());
     void reconnect(Bool restoreClientConfigOnReconnect);
     void disconnectExternalSignals();
+    uint16_t getProtocolVersion() const;
 
     DevicePtr getDevice();
     ConfigProtocolClientCommPtr getClientComm();
@@ -229,13 +230,13 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
         clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3, 4, 5};
+    const std::set<uint16_t> supportedClientVersions = std::move(GetSupportedConfigProtocolVersions());
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;
     replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
-    if (protocolVersion != std::numeric_limits<uint16_t>::max())
+    if (protocolVersion != GetLatestConfigProtocolVersion())
     {
         if (std::find(supportedClientVersions.begin(), supportedClientVersions.end(), protocolVersion) == supportedClientVersions.end())
             throw ConfigProtocolException("Protocol not supported on client");
@@ -270,6 +271,12 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     clientComm->setProtocolVersion(protocolVersion);
     const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
     LOG_I("Config protocol version {} used", protocolVersion);
+}
+
+template<class TRootDeviceImpl>
+uint16_t ConfigProtocolClient<TRootDeviceImpl>::getProtocolVersion() const
+{
+    return clientComm->getProtocolVersion();
 }
 
 template<class TRootDeviceImpl>

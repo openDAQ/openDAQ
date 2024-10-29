@@ -1,6 +1,8 @@
+import os
+
 import opendaq as daq
 
-from .utils import *
+from . import utils
 
 
 class DeviceInfoLocal:
@@ -62,11 +64,11 @@ class AppContext(object):
     def remove_device(self, device):
         if device is None:
             return
-        parent_device = get_nearest_device(device.parent)
+        parent_device = utils.get_nearest_device(device.parent)
         if parent_device is None:
             return
 
-        subdevices = list_all_subdevices(device)
+        subdevices = utils.list_all_subdevices(device)
         for subdevice in subdevices:
             del self.enabled_devices[subdevice.info.connection_string]
 
@@ -86,8 +88,8 @@ class AppContext(object):
 
     def load_icons(self, directory):
         images = {}
-        for file in get_files_in_directory(directory):
-            image = load_and_resize_image(os.path.join(directory, file))
+        for file in utils.get_files_in_directory(directory):
+            image = utils.load_and_resize_image(os.path.join(directory, file))
             images[file.split('.')[0]] = image
         self.icons = images
 
@@ -132,12 +134,12 @@ class AppContext(object):
 
         return '/'.join(reversed(filtered_parts))
 
-    def update_signals_for_device(self, device):
+    def update_signals_for_device(self, device: daq.IDevice):
         if device is None:
             return
 
         self.signals[device.global_id] = {}
-        for signal in device.signals_recursive:
+        for signal in device.get_signals_recursive(daq.AnySearchFilter() if self.view_hidden_components else None):
             short_id = self.short_id(signal.global_id)
 
             if short_id not in self.signals[device.global_id]:
@@ -154,3 +156,9 @@ class AppContext(object):
         if device is None:
             return {}
         return self.signals.get(device.global_id, {})
+
+    def properties_of_component(self, component: daq.IComponent):
+        if component is None:
+            return daq.IList()
+
+        return component.all_properties if self.view_hidden_components else component.visible_properties

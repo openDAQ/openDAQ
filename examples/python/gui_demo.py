@@ -7,8 +7,7 @@ import enum
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
-from tkinter.filedialog import asksaveasfile, askopenfile
-
+from tkinter.filedialog import asksaveasfile
 import opendaq as daq
 
 try:
@@ -22,18 +21,16 @@ try:
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from gui_demo.app_context import *
-    from gui_demo.utils import *
-    from gui_demo.app_context import *
+    from gui_demo.app_context import AppContext
+    from gui_demo import utils
     from gui_demo.event_port import EventPort
-except BaseException:
+except Exception as e:
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from opendaq.gui_demo.app_context import *
-    from opendaq.gui_demo.utils import *
-    from opendaq.gui_demo.app_context import *
+    from opendaq.gui_demo.app_context import AppContext
+    from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
 
 
@@ -83,29 +80,25 @@ class App(tk.Tk):
         self.geometry('{}x{}'.format(
             1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
 
-        main_frame_top = tk.Frame(self)
-        main_frame_top.pack(fill=tk.constants.X)
-        main_frame_top.configure(background='white')
+        main_frame_top = ttk.Frame(self)
+        main_frame_top.pack(fill=tk.X)
 
         self.menu_bar_create()
 
-        add_device_button = tk.Button(
+        add_device_button = ttk.Button(
             main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.constants.LEFT, padx=5,
-                               pady=5, fill=tk.constants.X)
+        add_device_button.pack(side=tk.LEFT, padx=5)
 
-        add_function_block_button = tk.Button(
+        add_function_block_button = ttk.Button(
             main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(
-            side=tk.constants.LEFT, padx=5, pady=5, fill=tk.constants.X)
+        add_function_block_button.pack(side=tk.LEFT, padx=5)
 
-        refresh_button = tk.Button(
+        refresh_button = ttk.Button(
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.constants.LEFT,
-                            padx=5, pady=5, fill=tk.constants.X)
+        refresh_button.pack(side=tk.LEFT, padx=5)
 
-        main_frame_bottom = tk.Frame(self)
-        main_frame_bottom.pack(fill=tk.constants.BOTH, expand=True)
+        main_frame_bottom = ttk.Frame(self)
+        main_frame_bottom.pack(fill=tk.BOTH, expand=True)
 
         nb = ttk.Notebook(main_frame_bottom)
         nb.add(ttk.Frame(nb), text='System Overview')
@@ -117,11 +110,11 @@ class App(tk.Tk):
         nb.pack(fill=tk.X)
         self.nb = nb
 
-        main_frame_navigator = tk.PanedWindow(
-            main_frame_bottom, orient=tk.constants.HORIZONTAL)
+        main_frame_navigator = ttk.PanedWindow(
+            main_frame_bottom, orient=tk.HORIZONTAL)
         main_frame_navigator.pack_propagate(0)
 
-        frame_navigator_for_properties = tk.Frame(
+        frame_navigator_for_properties = ttk.Frame(
             main_frame_navigator)
 
         self.tree_widget_create(main_frame_navigator)
@@ -139,11 +132,10 @@ class App(tk.Tk):
         style.configure('Treeview', rowheight=30 *
                         self.context.ui_scaling_factor)
 
-        style.configure("Treeview.Heading", font='Arial 10 bold')
-        style.configure("Treeview.Column", padding=(
+        style.configure('Treeview.Heading', font='Arial 10 bold')
+        style.configure('Treeview.Column', padding=(
             5 * self.context.ui_scaling_factor))
-
-        default_font = tkfont.nametofont("TkDefaultFont")
+        default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
         self.context.load_icons(os.path.join(
@@ -189,8 +181,8 @@ class App(tk.Tk):
 
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
-            'name'), show='tree', selectmode='browse')
-        tree.pack(fill="both", expand=True, side="left")
+            'name'), show='tree', selectmode=tk.BROWSE)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
         # layout
         tree.column('#0', width=350 * self.context.ui_scaling_factor)
@@ -199,26 +191,26 @@ class App(tk.Tk):
 
         # bind selection
         tree.bind('<<TreeviewSelect>>', self.handle_tree_select)
-        tree.bind("<ButtonRelease-3>", self.handle_tree_right_button_release)
-        tree.bind("<Button-3>", self.handle_tree_right_button)
+        tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
+        tree.bind('<Button-3>', self.handle_tree_right_button)
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscroll=scroll_bar.set)
-        scroll_bar.pack(fill="y", side="right")
+        scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
         self.tree = tree
 
         popup = tk.Menu(tree, tearoff=0)
-        popup.add_command(label="Remove")
-        popup.add_command(label="Close")
-        popup.add_command(label="Begin update",
+        popup.add_command(label='Remove')
+        popup.add_command(label='Close')
+        popup.add_command(label='Begin update',
                           command=self.handle_begin_update)
-        popup.add_command(label="End update", command=self.handle_end_update)
-        popup.add_command(label="Lock", command=self.handle_lock)
-        popup.add_command(label="Unlock", command=self.handle_unlock)
+        popup.add_command(label='End update', command=self.handle_end_update)
+        popup.add_command(label='Lock', command=self.handle_lock)
+        popup.add_command(label='Unlock', command=self.handle_unlock)
         self.tree_popup = popup
 
     def tree_update(self, new_selected_node=None):
@@ -245,12 +237,14 @@ class App(tk.Tk):
             component) if component and daq.IFolder.can_cast_from(component) else None
         device = daq.IDevice.cast_from(
             component) if component and daq.IDevice.can_cast_from(component) else None
+        items = folder.get_items(daq.AnySearchFilter(
+        ) if self.context.view_hidden_components else None) if folder else []
 
         # tree view only in topology mode + parent exists
         parent_id = '' if display_type not in (
             DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None else component.parent.global_id
 
-        if folder is None or folder.items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
+        if folder is None or items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
             if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY,
                                 DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None):
                 self.tree_add_component(
@@ -276,17 +270,18 @@ class App(tk.Tk):
 
         if folder is not None:
             if not (daq.IFunctionBlock.can_cast_from(component)
-                    and display_type == DisplayType.FUNCTION_BLOCKS):
-                for item in folder.items:
+                    and display_type == DisplayType.FUNCTION_BLOCKS) and (self.context.view_hidden_components or folder.visible):
+                for item in items:
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type)
 
         if device is not None and display_type == DisplayType.TOPOLOGY:
             custom_components = device.custom_components
             for item in custom_components:
-                self.context.custom_component_ids.add(item.global_id)
-                self.tree_traverse_components_recursive(
-                    item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
+                if item.visible or self.context.view_hidden_components:
+                    self.context.custom_component_ids.add(item.global_id)
+                    self.tree_traverse_components_recursive(
+                        item, display_type=DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
 
     def tree_add_component(self, parent_node_id,
                            component, show_unknown=False):
@@ -345,9 +340,9 @@ class App(tk.Tk):
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''
-        current_iid = treeview_get_first_selection(self.tree) or ''
+        current_iid = utils.treeview_get_first_selection(self.tree) or ''
 
-        node = find_component(desired_iid, self.context.instance)
+        node = utils.find_component(desired_iid, self.context.instance)
 
         # if component is alive and in treeview
         if node and self.tree.exists(desired_iid):
@@ -371,7 +366,7 @@ class App(tk.Tk):
         def yview_wrapper(*args):
             moveto = float(args[1])
             moveto = moveto if moveto > 0 else 0.0
-            return canvas.yview('moveto', moveto)
+            return canvas.yview(tk.MOVETO, moveto)
 
         frame = parent_frame
         canvas = tk.Canvas(frame)
@@ -384,7 +379,7 @@ class App(tk.Tk):
             frame, orient=tk.VERTICAL, command=yview_wrapper)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        sframe = tk.Frame(canvas)
+        sframe = ttk.Frame(canvas)
         sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
 
         self.right_side_panel = sframe
@@ -411,8 +406,8 @@ class App(tk.Tk):
         self.add_function_block_dialog_show()
 
     def handle_save_config_button_clicked(self):
-        file = asksaveasfile(initialfile='config.json', title="Save configuration",
-                             defaultextension=".json", filetypes=[("All Files", "*.*"), ("Json", "*.json")])
+        file = asksaveasfile(initialfile='config.json', title='Save configuration',
+                             defaultextension='.json', filetypes=[('All Files', '*.*'), ('Json', '*.json')])
         if file is None:
             return
         config_string = self.context.instance.save_configuration()
@@ -431,32 +426,33 @@ class App(tk.Tk):
     def handle_tree_right_button(self, event):
         iid = event.widget.identify_row(event.y)
         if iid:
-            selected_iid = treeview_get_first_selection(event.widget) or ''
+            selected_iid = utils.treeview_get_first_selection(
+                event.widget) or ''
             if iid != selected_iid:
                 event.widget.selection_set(iid)
         else:
             event.widget.selection_set()
 
     def handle_tree_right_button_release(self, event):
-        iid = treeview_get_first_selection(self.tree)
+        iid = utils.treeview_get_first_selection(self.tree)
 
         self.tree_popup.entryconfig(
-            'Remove', state='disabled', command=None
+            'Remove', state=tk.DISABLED, command=None
         )
         self.tree_popup.entryconfig(
             'Close', command=self.tree_popup.grab_release)
 
         if iid:
-            node = find_component(iid, self.context.instance)
+            node = utils.find_component(iid, self.context.instance)
             if node:
                 if daq.IFunctionBlock.can_cast_from(
                         node) and not daq.IChannel.can_cast_from(node):
-                    if get_nearest_fb(node.parent) is None:
+                    if utils.get_nearest_fb(node.parent) is None:
                         self.tree_popup.entryconfig(
-                            "Remove", state="normal", command=lambda: self.handle_tree_menu_remove_function_block(node))
+                            'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
                 elif daq.IDevice.can_cast_from(node) and node.global_id != self.context.instance.global_id:
                     self.tree_popup.entryconfig(
-                        "Remove", state="normal", command=lambda: self.handle_tree_menu_remove_device(node))
+                        'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_device(node))
         try:
             self.tree_popup.tk_popup(event.x_root, event.y_root, 0)
         finally:
@@ -493,12 +489,18 @@ class App(tk.Tk):
             node) if node.global_id not in self.context.custom_component_ids else node
         if found is None:
             return
-        elif type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
+        if not found.visible and not self.context.view_hidden_components:
+            return
+        if type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
 
             upper_nodes = list()
+            parent_hidden = False
 
             current = found.parent
             while current is not None:
+                if not current.visible and not self.context.view_hidden_components:
+                    parent_hidden = True
+                    break
                 if daq.IDevice.can_cast_from(current):
                     break  # stop at device
                 if daq.ISyncComponent.can_cast_from(current):
@@ -516,6 +518,9 @@ class App(tk.Tk):
                         daq.IFunctionBlock.cast_from(current))
                 current = current.parent
 
+            if parent_hidden:
+                return
+
             for upper_node in reversed(upper_nodes):
                 block_view = BlockView(
                     self.right_side_panel, upper_node, self.context)
@@ -523,6 +528,9 @@ class App(tk.Tk):
 
             def draw_sub_components(component, level=0):
                 if component is None:
+                    return
+
+                if not component.visible and not self.context.view_hidden_components:
                     return
 
                 if daq.IFunctionBlock.can_cast_from(component):
@@ -556,7 +564,7 @@ class App(tk.Tk):
 
     def handle_tree_select(self, event):
 
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item is None:
             self.context.selected_node = None
             return
@@ -579,7 +587,7 @@ class App(tk.Tk):
 
         node = daq.IFunctionBlock.cast_from(node)
 
-        device = get_nearest_device(node.parent)
+        device = utils.get_nearest_device(node.parent)
         if device is None:
             return
 
@@ -613,50 +621,50 @@ class App(tk.Tk):
             'current')) if self.nb is not None else DisplayType.UNSPECIFIED
 
     def handle_begin_update(self):
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.begin_update_on_node(selected_item)
             self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
     def handle_end_update(self):
-        selected_item = treeview_get_first_selection(self.tree)
+        selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.end_update_on_node(selected_item)
             self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
     def begin_update_on_node(self, node):
-        node_obj = find_component(node, self.context.instance)
+        node_obj = utils.find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
         node_obj.begin_update()
 
     def end_update_on_node(self, node):
-        node_obj = find_component(node, self.context.instance)
+        node_obj = utils.find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
         node_obj.end_update()
 
     def handle_lock(self):
-        node = treeview_get_first_selection(self.tree)
-        component = find_component(node, self.context.instance)
+        node = utils.treeview_get_first_selection(self.tree)
+        component = utils.find_component(node, self.context.instance)
 
         try:
             device = daq.IDevice.cast_from(component)
             device.lock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print("Lock failed: ", e)
+            print('Lock failed: ', e)
 
     def handle_unlock(self):
-        node = treeview_get_first_selection(self.tree)
-        component = find_component(node, self.context.instance)
+        node = utils.treeview_get_first_selection(self.tree)
+        component = utils.find_component(node, self.context.instance)
 
         try:
             device = daq.IDevice.cast_from(component)
             device.unlock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print("Unlock failed: ", e)
+            print('Unlock failed: ', e)
 
     def set_node_update_status(self):
         for node in self.tree.get_children():
@@ -664,11 +672,11 @@ class App(tk.Tk):
 
     def _set_node_update_status_recursive(self, node):
         color = 'red'
-        node_obj = find_component(node, self.context.instance)
+        node_obj = utils.find_component(node, self.context.instance)
         node_text = self.get_standard_folder_name(node_obj.name)
         if node_obj.updating:
             self.tree.item(node, tags=('selected',),
-                           text=node_text + " [*]")
+                           text=node_text + ' [*]')
             self.tree.tag_configure('selected', foreground=color)
         else:
             self.tree.item(node, tags=())
@@ -682,7 +690,7 @@ class App(tk.Tk):
 
     def _set_node_lock_status_recursive(self, node, parent_locked=False):
         color = 'gray'
-        component = find_component(node, self.context.instance)
+        component = utils.find_component(node, self.context.instance)
 
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)

@@ -577,7 +577,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() != ctObject)
@@ -603,7 +603,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     if (OPENDAQ_FAILED(err))
         return err;
     
-    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     if (!serverCapabilitiesPtr.hasProperty(protocolId))
         return OPENDAQ_ERR_NOTFOUND;
 
@@ -620,7 +620,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
     if (OPENDAQ_FAILED(err))
         return err;
     
-    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     const auto props = serverCapabilitiesPtr.getAllProperties();
     for (const auto& prop : props)
     {
@@ -647,7 +647,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(ISt
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
     serverCapabilitiesPtr->hasProperty(protocolId, hasCapability);
     return OPENDAQ_SUCCESS;
 }
@@ -689,7 +689,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)

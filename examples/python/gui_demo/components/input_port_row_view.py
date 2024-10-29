@@ -1,23 +1,24 @@
 import tkinter as tk
-import opendaq as daq
 from tkinter import ttk
 
-from ..utils import *
+import opendaq as daq
+
+from .. import utils
 from ..event_port import EventPort
-from .attributes_dialog import AttributesDialog
 from ..app_context import AppContext
+from .attributes_dialog import AttributesDialog
 
 
-class InputPortRowView(tk.Frame):
+class InputPortRowView(ttk.Frame):
     def __init__(self, parent, input_port, context=None, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.input_port = input_port
         self.selection = ''
         self.context = context
         self.event_port = EventPort(self)
 
-        self.configure(padx=10, pady=5)
+        self.configure(padding=(10, 5))
 
         ttk.Label(self, text=input_port.name).grid(
             row=0, column=0, sticky=tk.NSEW)
@@ -45,7 +46,7 @@ class InputPortRowView(tk.Frame):
         self.grid_columnconfigure(3, weight=1, minsize=30)
         self.grid_columnconfigure((0, 1, 2, 3), uniform='uniform')
 
-        device = root_device(input_port)
+        device = utils.root_device(input_port)
         device = device if device is not None and daq.IDevice.can_cast_from(
             device) else None
 
@@ -63,9 +64,13 @@ class InputPortRowView(tk.Frame):
             self.dropdown.set(short_id)
 
     def fill_dropdown(self):
-        signals = ['none']
-        signals += [signal_id for signal_id in self.context.signals_for_device(
+        signals = [signal_id for signal_id in self.context.signals_for_device(
             self.device).keys()]
+        if not self.context.view_hidden_components:
+            signals = list(filter(lambda signal_id: self.context.signals_for_device(
+                self.device)[signal_id].visible, signals))
+        signals = ['none'] + signals
+
         self.dropdown['values'] = signals
         self.selection = ''
 
@@ -80,7 +85,7 @@ class InputPortRowView(tk.Frame):
 
     def handle_edit_clicked(self):
         if self.input_port is not None:
-            AttributesDialog(self, 'Attributes', self.input_port).show()
+            AttributesDialog(self, 'Attributes', self.input_port, self.context).show()
 
     def handle_connect_clicked(self):
         if (self.selection == 'none'):

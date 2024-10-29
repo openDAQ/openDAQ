@@ -68,6 +68,7 @@ PropertyObjectPtr WebsocketStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "LT"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("WebsocketStreamingPort")));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", ""));
     return discoveryConfig;
 }
 

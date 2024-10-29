@@ -73,7 +73,7 @@ public:
         , skipEvents(skipEvents)
     {
         if (!port.assigned())
-            throw ArgumentNullException("Signal must not be null.");
+            throw ArgumentNullException("Port must not be null.");
         
         port.asPtr<IOwnable>().setOwner(portBinder);
 
@@ -81,6 +81,7 @@ public:
 
         this->port = port;
         this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+        connection = port.getConnection();
 
         valueReader = createReaderForType(valueReadType, nullptr);
         domainReader = createReaderForType(domainReadType, nullptr);

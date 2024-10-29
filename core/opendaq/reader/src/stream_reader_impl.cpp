@@ -183,6 +183,7 @@ void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    connection = inputPort.getConnection();
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)

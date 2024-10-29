@@ -1,3 +1,15 @@
+# 29.10.2024:
+## Description
+- Support creating readers with connected input port
+
+## Required integration changes:
+- None
+
+```
++ [interface] IConnectionInternal : public IBaseObject
++ [function] IConnectionInternal::enqueueLastDescriptor()
+```
+
 # 24.10.2024:
 ## Description
 - Implement log file info interface

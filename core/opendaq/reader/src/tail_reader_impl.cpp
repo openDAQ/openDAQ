@@ -28,6 +28,7 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
     , cachedSamples(0)
 {
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    packetReceived(this->port.as<IInputPort>(true));
 }
 
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,

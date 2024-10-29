@@ -29,6 +29,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 
     portBinder = PropertyObject();
     this->port.asPtr<IOwnable>().setOwner(portBinder);
+    connection = this->port.getConnection();
 
     this->internalAddRef();
 

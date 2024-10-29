@@ -385,7 +385,7 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IBloc
         return OPENDAQ_IGNORED;
     }
 
-    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    const SizeT samplesToRead = *count == 0 ? 0 : *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepare(blocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();
@@ -416,7 +416,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
         return OPENDAQ_IGNORED;
     }
 
-    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    const SizeT samplesToRead = *count == 0 ? 0 : *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();

@@ -39,6 +39,8 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
 {
     initOverlap();
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    if (connection.assigned())
+        packetReceived(this->port.asPtrOrNull<IInputPort>(true));
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,

@@ -302,8 +302,8 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                 const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] =
                     parseDataDescriptorEventPacket(eventPacket);
 
-                valueDescriptorChanged |= valueDescChanged;
-                domainDescriptorChanged |= domainDescChanged;
+                valueDescriptorChanged = valueDescriptorChanged || valueDescChanged;
+                domainDescriptorChanged = domainDescriptorChanged || domainDescChanged;
 
                 if (valueDescChanged)
                     dataDescriptor = newValueDescriptor;

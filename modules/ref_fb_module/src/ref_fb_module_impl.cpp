@@ -13,14 +13,16 @@
 #include <ref_fb_module/version.h>
 #include <ref_fb_module/power_reader_fb_impl.h>
 #include <ref_fb_module/struct_decoder_fb_impl.h>
+#include <opendaq/module_info_factory.h>
+
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-
-RefFBModule::RefFBModule(ContextPtr ctx)
-    : Module("ReferenceFunctionBlockModule",
-             daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
-             std::move(ctx),
-             "ReferenceFunctionBlockModule")
+RefFBModule::RefFBModule(const ContextPtr& ctx)
+    : Module(daq::ModuleInfo(
+                 daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
+                             "ReferenceFunctionBlockModule",
+                             "ReferenceFunctionBlockModule"),
+             ctx)
 {
 }
 

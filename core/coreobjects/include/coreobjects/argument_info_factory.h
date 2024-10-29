@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param name The name of the argument.
  * @param type The type expected of the argument.
  */
-inline ArgumentInfoPtr ArgumentInfo(StringPtr name, CoreType type)
+inline ArgumentInfoPtr ArgumentInfo(const StringPtr& name, const CoreType& type)
 {
     return ArgumentInfoPtr::Adopt(ArgumentInfo_Create(name, type));
 }

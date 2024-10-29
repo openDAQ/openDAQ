@@ -3,14 +3,16 @@
 #include <ref_device_module/ref_device_impl.h>
 #include <ref_device_module/ref_device_module_impl.h>
 #include <ref_device_module/version.h>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceModule::RefDeviceModule(ContextPtr context)
-    : Module("ReferenceDeviceModule",
-             daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
-             std::move(context),
-             REF_MODULE_NAME)
+RefDeviceModule::RefDeviceModule(const ContextPtr& ctx)
+    : Module(daq::ModuleInfo(
+                 daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
+                 "ReferenceDeviceModule",
+                 "ReferenceDeviceModule"),
+             ctx)
     , maxNumberOfDevices(2)
 {
     auto options = this->context.getModuleOptions(REF_MODULE_NAME);

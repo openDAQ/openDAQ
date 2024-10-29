@@ -33,46 +33,22 @@
 #include <opendaq/server_capability_config_ptr.h>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class Module : public ImplementationOf<IModule>
 {
 public:
 
     /*!
-     * @brief Retrieves the module version information.
-     * @param[out] moduleVersion The semantic version information.
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
      */
-    ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** moduleVersion) override
+    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) override
     {
-        OPENDAQ_PARAM_NOT_NULL(moduleVersion);
+        OPENDAQ_PARAM_NOT_NULL(info);
 
-        *moduleVersion = version.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module name.
-     * @param[out] moduleName The module name.
-     */
-    ErrCode INTERFACE_FUNC getName(IString** moduleName) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleName);
-
-        *moduleName = name.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module id.
-     * @param[out] moduleId The module id.
-     */
-    ErrCode INTERFACE_FUNC getId(IString** moduleId) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleId);
-
-        *moduleId = id.addRefAndReturn();
+        *info = moduleInfo.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -384,17 +360,15 @@ public:
 protected:
     StringPtr name;
     StringPtr id;
-    VersionInfoPtr version;
+    ModuleInfoPtr moduleInfo;
 
     ContextPtr context;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
-        : name(std::move(name))
-        , id (std::move(id))
-        , version(std::move(version))
+    Module(ModuleInfoPtr info, ContextPtr context)
+        : moduleInfo(std::move(info))
         , context(std::move(context))
         , logger(this->context.getLogger())
         , loggerComponent( this->logger.assigned()

@@ -6,6 +6,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
     rtgen(SRC_ContextInternal context_internal.h)
     rtgen(SRC_DiscoveryServer discovery_server.h)
+    rtgen(SRC_ModuleInfo module_info.h)
 
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Module_PublicHeaders}
@@ -13,6 +14,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ModuleManagerUtils_PublicHeaders}
         ${SRC_ContextInternal_PublicHeaders}
         ${SRC_DiscoveryServer_PublicHeaders}
+        ${SRC_ModuleInfo_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -28,6 +30,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_Module_Cpp}
         ${SRC_ModuleManager_Cpp}
         ${SRC_DiscoveryServer_Cpp}
+        ${SRC_ModuleInfo_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -66,6 +69,13 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/context_impl.cpp
     )
 	
+    source_group("module_manager//info" FILES 
+        ${SDK_HEADERS_DIR}/module_info.h
+        ${SDK_HEADERS_DIR}/module_info_impl.h
+        ${SDK_HEADERS_DIR}/module_info_factory.h
+        ${SDK_SRC_DIR}/module_info_impl.cpp
+    )
+    
     source_group("module_manager//ping" FILES 
         ${SDK_HEADERS_DIR}/format.h
         ${SDK_HEADERS_DIR}/ipv4_header.h
@@ -99,6 +109,10 @@ set(SRC_PublicHeaders_Component
     icmp_header.h
     icmp_ping.h
     discovery_server_factory.h
+    module_info.h
+    module_info_factory.h
+    module_info_impl.h
+    
     PARENT_SCOPE
 )
 
@@ -110,6 +124,7 @@ set(SRC_PrivateHeaders_Component
     boost_dll.h
     context_impl.h
     mdns_discovery_server_impl.h
+    
     PARENT_SCOPE
 )
 
@@ -122,6 +137,7 @@ set(SRC_Cpp_Component
     icmp_header.cpp
     icmp_ping.cpp
     mdns_discovery_server_impl.cpp
+    module_info_impl.cpp
     module_manager.natvis
     PARENT_SCOPE
 )

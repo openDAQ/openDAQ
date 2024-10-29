@@ -8,9 +8,9 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <regex>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
-
 static std::string WebsocketDeviceTypeId = "OpenDAQLTStreaming";
 static std::string OldWebsocketDeviceTypeId = "OpenDAQLTStreamingOld";
 static std::string WebsocketDevicePrefix = "daq.lt";
@@ -19,11 +19,12 @@ static std::string OldWebsocketDevicePrefix = "daq.ws";
 using namespace discovery;
 using namespace daq::websocket_streaming;
 
-WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr context)
-    : Module("OpenDAQWebsocketClientModule",
-            daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context),
-            "OpenDAQWebsocketClientModule")
+WebsocketStreamingClientModule::WebsocketStreamingClientModule(const ContextPtr& ctx)
+    : Module(daq::ModuleInfo(
+                  daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
+                                 "OpenDAQWebsocketClientModule",
+                                 "OpenDAQWebsocketClientModule"),
+                 ctx)
     , deviceIndex(0)
     , discoveryClient(
         {

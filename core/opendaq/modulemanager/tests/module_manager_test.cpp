@@ -126,7 +126,7 @@ TEST_F(ModuleManagerTest, EnumDriver)
 #else
     for (const ModulePtr& module : moduleDrivers)
     {
-        std::cout << module.getName() << std::endl;
+        std::cout << module.getModuleInfo().getName() << std::endl;
     }
 #endif
 }

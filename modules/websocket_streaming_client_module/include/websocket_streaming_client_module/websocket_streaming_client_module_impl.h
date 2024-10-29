@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 class WebsocketStreamingClientModule final : public Module
 {
 public:
-    WebsocketStreamingClientModule(ContextPtr context);
+    WebsocketStreamingClientModule(const ContextPtr& ctx);
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;

@@ -68,19 +68,19 @@ TEST_F(NativeStreamingServerModuleTest, CreateModule)
 TEST_F(NativeStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQNativeStreamingServerModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQNativeStreamingServerModule");
 }
 
 TEST_F(NativeStreamingServerModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(NativeStreamingServerModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), NATIVE_STREAM_SRV_MODULE_MINOR_VERSION);

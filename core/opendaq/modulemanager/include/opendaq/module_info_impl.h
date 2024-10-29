@@ -1,7 +1,7 @@
 /*
  * Copyright 2022-2024 openDAQ d.o.o.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Module 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -15,13 +15,24 @@
  */
 
 #pragma once
-#include <coretypes/version_info_ptr.h>
+#include <coretypes/intfs.h>
+#include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline VersionInfoPtr VersionInfo(SizeT major, SizeT minor, SizeT patch)
+class ModuleInfoImpl : public ImplementationOf<IModuleInfo>
 {
-    return VersionInfoPtr{VersionInfo_Create(major, minor, patch)};
-}
+public:
+    ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
+
+    ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** versionInfo) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
+
+private:
+    VersionInfoPtr versionInfo;
+    StringPtr name;
+    StringPtr id;
+};
 
 END_NAMESPACE_OPENDAQ

@@ -13,9 +13,9 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
-
 static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
@@ -23,11 +23,12 @@ static const char* OpcUaScheme = "opc.tcp";
 using namespace discovery;
 using namespace daq::opcua;
 
-OpcUaClientModule::OpcUaClientModule(ContextPtr context)
-    : Module("OpenDAQOPCUAClientModule",
-            daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
-            std::move(context),
-            "OpenDAQOPCUAClientModule")
+OpcUaClientModule::OpcUaClientModule(const ContextPtr& ctx)
+    : Module(daq::ModuleInfo(
+                 daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
+                 "OpenDAQOPCUAClientModule",
+                 "OpenDAQOPCUAClientModule"),
+             ctx)
     , discoveryClient(
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)

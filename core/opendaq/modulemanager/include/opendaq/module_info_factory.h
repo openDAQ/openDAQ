@@ -15,15 +15,13 @@
  */
 
 #pragma once
-#include <empty_module/common.h>
-#include <opendaq/module_impl.h>
+#include <opendaq/module_info_ptr.h>
 
-BEGIN_NAMESPACE_EMPTY_MODULE
+BEGIN_NAMESPACE_OPENDAQ
 
-class EmptyModule final : public Module
+inline ModuleInfoPtr ModuleInfo(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id)
 {
-public:
-    explicit EmptyModule(const ContextPtr& ctx);
-};
+    return ModuleInfoPtr{ModuleInfo_Create(versionInfo, name, id)};
+}
 
-END_NAMESPACE_EMPTY_MODULE
+END_NAMESPACE_OPENDAQ

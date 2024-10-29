@@ -4,9 +4,10 @@
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/mock/mock_fb_factory.h>
-#include "opendaq/mock/mock_fb_module.h"
-#include "opendaq/mock/mock_fb.h"
+#include <opendaq/mock/mock_fb_module.h>
+#include <opendaq/mock/mock_fb.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/module_info_factory.h>
 
 using namespace daq;
 
@@ -15,14 +16,13 @@ MockFunctionBlockModuleImpl::MockFunctionBlockModuleImpl(daq::ContextPtr ctx)
 {
 }
 
-ErrCode MockFunctionBlockModuleImpl::getName(IString** name)
+daq::ErrCode INTERFACE_FUNC MockFunctionBlockModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
-    return createString(name, "MockFunctionBlockModule");
-}
+    if (info == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
-ErrCode MockFunctionBlockModuleImpl::getId(IString** id)
-{
-    return createString(id, "MockFunctionBlock");
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MockFunctionBlockModuleImpl::getAvailableDevices(IList** availableDevices)
@@ -112,15 +112,6 @@ ErrCode MockFunctionBlockModuleImpl::createServer(IServer** server,
                                                   IPropertyObject* /*config*/)
 {
     *server = nullptr;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockFunctionBlockModuleImpl::getVersionInfo(IVersionInfo** version)
-{
-    if (version == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *version = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

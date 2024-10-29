@@ -34,19 +34,19 @@ TEST_F(NativeStreamingClientModuleTest, CreateModule)
 TEST_F(NativeStreamingClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQNativeStreamingClientModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQNativeStreamingClientModule");
 }
 
 TEST_F(NativeStreamingClientModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(NativeStreamingClientModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), NATIVE_STREAM_CL_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), NATIVE_STREAM_CL_MODULE_MINOR_VERSION);

@@ -3,14 +3,16 @@
 #include <opcua_server_module/version.h>
 #include <coretypes/version_info_factory.h>
 #include <chrono>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
+OpcUaServerModule::OpcUaServerModule(const ContextPtr& ctx)
+    : Module(daq::ModuleInfo(
+                 daq::VersionInfo(OPCUA_SERVER_MODULE_MAJOR_VERSION, OPCUA_SERVER_MODULE_MINOR_VERSION, OPCUA_SERVER_MODULE_PATCH_VERSION),
+                 "OpenDAQOPCUAServerModule",
+                 "OpenDAQOPCUAServerModule"),
+             ctx)
 
-OpcUaServerModule::OpcUaServerModule(ContextPtr context)
-    : Module("OpenDAQOPCUAServerModule",
-             daq::VersionInfo(OPCUA_SERVER_MODULE_MAJOR_VERSION, OPCUA_SERVER_MODULE_MINOR_VERSION, OPCUA_SERVER_MODULE_PATCH_VERSION),
-             std::move(context),
-             "OpenDAQOPCUAServerModule")
 {
 }
 

@@ -34,19 +34,19 @@ TEST_F(OpcUaClientModuleTest, CreateModule)
 TEST_F(OpcUaClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQOPCUAClientModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQOPCUAClientModule");
 }
 
 TEST_F(OpcUaClientModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(OpcUaClientModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), OPCUA_CLIENT_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), OPCUA_CLIENT_MODULE_MINOR_VERSION);

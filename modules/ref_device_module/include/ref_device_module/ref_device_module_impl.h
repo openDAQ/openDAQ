@@ -23,8 +23,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceModule final : public Module
 {
 public:
-    explicit RefDeviceModule(ContextPtr context);
-
+    RefDeviceModule(const ContextPtr& ctx);
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;

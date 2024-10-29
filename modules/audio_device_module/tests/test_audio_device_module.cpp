@@ -31,19 +31,19 @@ TEST_F(AudioDeviceModuleTest, CreateModule)
 TEST_F(AudioDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "AudioDeviceModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "AudioDeviceModule");
 }
 
 TEST_F(AudioDeviceModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(AudioDeviceModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), AUDIO_DEVICE_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), AUDIO_DEVICE_MODULE_MINOR_VERSION);

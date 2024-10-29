@@ -30,7 +30,7 @@ enum class NativeType {config, streaming};
 class NativeStreamingClientModule final : public Module
 {
 public:
-    explicit NativeStreamingClientModule(ContextPtr context);
+    explicit NativeStreamingClientModule(const ContextPtr & ctx);
     ~NativeStreamingClientModule() override;
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;

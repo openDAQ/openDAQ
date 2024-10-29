@@ -136,6 +136,17 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 
+    /*!
+     * @brief Gets the data packet last value.
+     * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
+     * @param[in] index Index of the sample to obtain.
+     * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
+     *
+     * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
+     * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or
+     * ComplexFloat64, to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if
+     * there is exactly one dimension.
+     */
     virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
 };
 
@@ -217,20 +228,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * can be used. Other values are passed as an array of struct with uint32_t sample position field and value field.
  * Value field (as well as initial value) are of type defined as sample type in the descriptor.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
-                                             ConstantDataPacketWithDomain,
-                                             IDataPacket,
-                                             IDataPacket*,
-                                             domainPacket,
-                                             IDataDescriptor*,
-                                             descriptor,
-                                             SizeT,
-                                             sampleCount,
-                                             void*,
-                                             initialValue,
-                                             void*,
-                                             otherValues,
-                                             SizeT,
-                                             otherValueCount)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, ConstantDataPacketWithDomain, IDataPacket,
+    IDataPacket*, domainPacket,
+    IDataDescriptor*, descriptor,
+    SizeT, sampleCount,
+    void*, initialValue,
+    void*, otherValues,
+    SizeT, otherValueCount)
 
-    END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ

@@ -1,3 +1,4 @@
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
@@ -7,6 +8,9 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/scaling_ptr.h>
+
+#include "opendaq/deleter_factory.h"
+#include "opendaq/instance_factory.h"
 
 using DataPacketTest = testing::Test;
 
@@ -535,6 +539,7 @@ TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
 
     uint64_t lastValue;
 
+    auto* data = packet.getData();
     ASSERT_NO_THROW(lastValue = packet.getLastValue());
 
     ASSERT_EQ(lastValue, 15u);
@@ -701,4 +706,425 @@ TEST_F(DataPacketTest, ReferenceDomainOffsetExplicitDataRule)
     ASSERT_EQ(expected[0], data2[0]);
     ASSERT_EQ(expected[1], data2[1]);
     ASSERT_EQ(expected[2], data2[2]);
+}
+
+TEST_F(DataPacketTest, GetValueByIndex)
+{
+    // DataPacket
+    {
+        // 0-dimension
+        {
+            // Non-struct
+            {
+                // Linear data rule
+                {
+                    const auto descriptor = setupDescriptor(SampleType::Int32, LinearDataRule(1, 0), nullptr);
+                    const auto packet = DataPacket(descriptor, 3, 0);
+                    IntegerPtr sampleValue0;
+                    IntegerPtr sampleValue1;
+                    IntegerPtr sampleValue2;
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                    ASSERT_EQ(sampleValue0, 0);
+                    ASSERT_EQ(sampleValue1, 1);
+                    ASSERT_EQ(sampleValue2, 2);
+                }
+                // Constant data rule
+                {
+                    const auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
+                    const auto packet = ConstantDataPacketWithDomain(nullptr, descriptor, 3, 2);
+                    IntegerPtr sampleValue0;
+                    IntegerPtr sampleValue1;
+                    IntegerPtr sampleValue2;
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                    ASSERT_EQ(sampleValue0, 2);
+                    ASSERT_EQ(sampleValue1, 2);
+                    ASSERT_EQ(sampleValue2, 2);
+                }
+                // Explicit data rule
+                {
+                    const auto descriptor = setupDescriptor(SampleType::Int32, ExplicitDataRule(), nullptr);
+                    const auto packet = DataPacket(descriptor, 3, 0);
+                    using SampleTypePtr = SampleTypeToType<SampleType::Int32>::Type*;
+                    auto* data = static_cast<SampleTypePtr>(packet.getRawData());
+                    data[0] = 0;
+                    data[1] = 1;
+                    data[2] = 2;
+                    IntegerPtr sampleValue0;
+                    IntegerPtr sampleValue1;
+                    IntegerPtr sampleValue2;
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                    ASSERT_EQ(sampleValue0, 0);
+                    ASSERT_EQ(sampleValue1, 1);
+                    ASSERT_EQ(sampleValue2, 2);
+                }
+                // Explicit domain data rule
+                {
+                }
+                // Post scaled
+                {
+                    constexpr auto sampleType = SampleType::Float64;
+                    constexpr auto scaledSampleType = ScaledSampleType::Float64;
+                    constexpr auto scale = 2;
+                    constexpr auto offset = 1;
+                    const auto postScaling = LinearScaling(scale, offset, sampleType, scaledSampleType);
+                    const auto descriptor =
+                        DataDescriptorBuilder().setSampleType(sampleType).setRule(ExplicitDataRule()).setPostScaling(postScaling).build();
+                    const auto packet = DataPacket(descriptor, 3, 0);
+                    using SampleTypePtr = SampleTypeToType<sampleType>::Type*;
+                    auto* data = static_cast<SampleTypePtr>(packet.getRawData());
+                    data[0] = 0;
+                    data[1] = 1;
+                    data[2] = 2;
+                    FloatPtr sampleValue0;
+                    FloatPtr sampleValue1;
+                    FloatPtr sampleValue2;
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                    ASSERT_FLOAT_EQ(sampleValue0, 1.0);
+                    ASSERT_EQ(sampleValue1, 3.0);
+                    ASSERT_EQ(sampleValue2, 5.0);
+                }
+            }
+            // Struct
+            {
+                // Linear data rule
+                {
+                }
+                // Constant data rule
+                {
+                }
+                // Explicit data rule
+                {
+                    auto fieldNames = List<IString>();
+                    auto fieldTypes = List<IType>();
+
+                    fieldNames.pushBack("Voltage");
+                    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+                    fieldNames.pushBack("Current");
+                    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+                    const auto structType = StructType("Electric", fieldNames, fieldTypes);
+                    const auto typeManager = TypeManager();
+
+                    typeManager.addType(structType);
+
+                    const auto voltageDescriptor = DataDescriptorBuilder()
+                                                       .setSampleType(SampleType::Int32)
+                                                       .setRule(ExplicitDataRule())
+                                                       .setPostScaling(nullptr)
+                                                       .setName(String("Voltage"))
+                                                       .build();
+                    const auto currentDescriptor = DataDescriptorBuilder()
+                                                       .setSampleType(SampleType::Int32)
+                                                       .setRule(ExplicitDataRule())
+                                                       .setPostScaling(nullptr)
+                                                       .setName(String("Current"))
+                                                       .build();
+                    const auto structFields = List<daq::IDataDescriptor>(voltageDescriptor, currentDescriptor);
+                    const auto descriptorBuilder = DataDescriptorBuilder()
+                                                       .setSampleType(SampleType::Struct)
+                                                       .setRule(ExplicitDataRule())
+                                                       .setPostScaling(nullptr)
+                                                       .setStructFields(structFields)
+                                                       .setName("Electric");
+                    const auto descriptor = descriptorBuilder.build();
+                    constexpr auto voltageSampleType = SampleType::Int32;
+                    constexpr auto currentSampleType = SampleType::Int32;
+#pragma(push)
+#pragma(pack, 1)
+                    struct Measurements
+                    {
+                        using VoltageType = SampleTypeToType<voltageSampleType>::Type;
+                        using CurrentType = SampleTypeToType<currentSampleType>::Type;
+                        VoltageType voltage;
+                        CurrentType current;
+                    };
+#pragma(pop)
+                    const auto packet = DataPacket(descriptor, 3, 0);
+                    auto* rawData = static_cast<Measurements*>(packet.getRawData());
+                    auto* measurements = new (rawData) Measurements[3];
+
+                    measurements[0].voltage = 10;
+                    measurements[0].current = 10;
+
+                    measurements[1].voltage = 20;
+                    measurements[1].current = 20;
+
+                    measurements[2].voltage = 30;
+                    measurements[2].current = 30;
+
+                    StructPtr sampleValue0;
+                    StructPtr sampleValue1;
+                    StructPtr sampleValue2;
+
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0, typeManager));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1, typeManager));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2, typeManager));
+
+                    ASSERT_EQ(sampleValue0.get("Voltage"), 10);
+                    ASSERT_EQ(sampleValue0.get("Current"), 10);
+                    ASSERT_EQ(sampleValue1.get("Voltage"), 20);
+                    ASSERT_EQ(sampleValue1.get("Current"), 20);
+                    ASSERT_EQ(sampleValue2.get("Voltage"), 30);
+                    ASSERT_EQ(sampleValue2.get("Current"), 30);
+                }
+                // Explicit domain data rule
+                {
+                }
+                // Post scaled
+                {
+                }
+            }
+        }
+        // 1-dimension
+        {
+            // Non-struct
+            {
+                // Linear data rule
+                {
+                }
+                // Constant data rule
+                {
+                }
+                // Explicit data rule
+                {
+                    constexpr auto subSampleType = SampleType::Int32;
+                    auto dimensionLabels = List<INumber>(0, 1, 2);
+                    auto dimension = DimensionBuilder().setRule(ListDimensionRule(dimensionLabels)).build();
+                    auto dimensions = List<IDimension>(dimension);
+                    const auto descriptor = DataDescriptorBuilder()
+                                                .setSampleType(subSampleType)
+                                                .setRule(ExplicitDataRule())
+                                                .setPostScaling(nullptr)
+                                                .setDimensions(dimensions)
+                                                .build();
+                    const auto packet = DataPacket(descriptor, 3, 0);
+                    auto* data = packet.getData();
+                    const auto dataSize = packet.getDataSize();
+                    auto* rawData = packet.getRawData();
+                    const auto rawDataSize = packet.getRawDataSize();
+
+                    using SubSampleType = SampleTypeToType<subSampleType>::Type;
+                    auto subSamples = static_cast<SubSampleType(*)[3]>(rawData);
+                    subSamples[0][0] = 0;
+                    subSamples[0][1] = 1;
+                    subSamples[0][2] = 2;
+                    subSamples[1][0] = 3;
+                    subSamples[1][1] = 4;
+                    subSamples[1][2] = 5;
+                    subSamples[2][0] = 6;
+                    subSamples[2][1] = 7;
+                    subSamples[2][2] = 8;
+
+                    ListPtr<IInteger> sampleValue0;
+                    ListPtr<IInteger> sampleValue1;
+                    ListPtr<IInteger> sampleValue2;
+                    ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                    ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                    ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                    ASSERT_THAT(sampleValue0, testing::ElementsAre(0, 1, 2));
+                    ASSERT_THAT(sampleValue1, testing::ElementsAre(3, 4, 5));
+                    ASSERT_THAT(sampleValue2, testing::ElementsAre(6, 7, 8));
+                }
+                // Explicit domain data rule
+                {
+                }
+                // Post scaled
+                {
+                }
+            }
+            // Struct
+            {
+                // Linear data rule
+                {
+                }
+                // Constant data rule
+                {
+                }
+                // Explicit data rule
+                {
+                }
+                // Explicit domain data rule
+                {
+                }
+                // Post scaled
+                {
+                }
+            }
+        }
+    }
+    // DataPacketWithExternalMemory
+    {
+        // 0-dimension
+        {
+            // Linear data rule
+            {
+                constexpr auto sampleType = SampleType::Int32;
+                constexpr auto sampleCount = SizeT{3};
+                SampleTypeToType<sampleType>::Type data[sampleCount] = {};
+                const auto descriptor = setupDescriptor(sampleType, LinearDataRule(1, 0), nullptr);
+                const auto packet = DataPacketWithExternalMemory(
+                    nullptr,
+                    descriptor,
+                    sampleCount,
+                    data,
+                    Deleter([](auto* memory) {}),
+                    0,
+                    3);
+                IntegerPtr sampleValue0;
+                IntegerPtr sampleValue1;
+                IntegerPtr sampleValue2;
+                ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                ASSERT_EQ(sampleValue0, 0);
+                ASSERT_EQ(sampleValue1, 1);
+                ASSERT_EQ(sampleValue2, 2);
+            }
+            // Explicit data rule
+            {
+                constexpr auto sampleType = SampleType::Int32;
+                constexpr auto sampleCount = SizeT{3};
+                SampleTypeToType<sampleType>::Type data[sampleCount] = {0, 1, 2};
+                const auto descriptor = setupDescriptor(sampleType, ExplicitDataRule(), nullptr);
+                const auto packet = DataPacketWithExternalMemory(
+                    nullptr,
+                    descriptor,
+                    sampleCount,
+                    data,
+                    Deleter([](auto* memory) {}),
+                    0,
+                    3);
+                IntegerPtr sampleValue0;
+                IntegerPtr sampleValue1;
+                IntegerPtr sampleValue2;
+                ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                ASSERT_EQ(sampleValue0, 0);
+                ASSERT_EQ(sampleValue1, 1);
+                ASSERT_EQ(sampleValue2, 2);
+            }
+            // Post scaled
+            {
+                constexpr auto sampleType = SampleType::Float64;
+                constexpr auto scaledSampleType = ScaledSampleType::Float64;
+                constexpr auto sampleCount = SizeT{3};
+                constexpr auto scale = 2;
+                constexpr auto offset = 1;
+                const auto postScaling = LinearScaling(scale, offset, sampleType, scaledSampleType);
+                SampleTypeToType<sampleType>::Type data[sampleCount] = {0.0, 1.0, 2.0};
+                const auto descriptor =
+                    DataDescriptorBuilder().setSampleType(sampleType).setRule(ExplicitDataRule()).setPostScaling(postScaling).build();
+                const auto packet = DataPacketWithExternalMemory(
+                    nullptr,
+                    descriptor,
+                    sampleCount,
+                    data,
+                    Deleter([](auto* memory) {}),
+                    0,
+                    getSampleSize(sampleType) * sampleCount);
+                FloatPtr sampleValue0;
+                FloatPtr sampleValue1;
+                FloatPtr sampleValue2;
+                ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0));
+                ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
+                ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
+                ASSERT_FLOAT_EQ(sampleValue0, 1.0);
+                ASSERT_EQ(sampleValue1, 3.0);
+                ASSERT_EQ(sampleValue2, 5.0);
+            }
+            // Explicit data rule
+            {
+                auto fieldNames = List<IString>();
+                auto fieldTypes = List<IType>();
+
+                fieldNames.pushBack("Voltage");
+                fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+                fieldNames.pushBack("Current");
+                fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+                const auto structType = StructType("Electric", fieldNames, fieldTypes);
+                const auto typeManager = TypeManager();
+
+                typeManager.addType(structType);
+
+                const auto voltageDescriptor = DataDescriptorBuilder()
+                                                   .setSampleType(SampleType::Int32)
+                                                   .setRule(ExplicitDataRule())
+                                                   .setPostScaling(nullptr)
+                                                   .setName(String("Voltage"))
+                                                   .build();
+                const auto currentDescriptor = DataDescriptorBuilder()
+                                                   .setSampleType(SampleType::Int32)
+                                                   .setRule(ExplicitDataRule())
+                                                   .setPostScaling(nullptr)
+                                                   .setName(String("Current"))
+                                                   .build();
+                const auto structFields = List<daq::IDataDescriptor>(voltageDescriptor, currentDescriptor);
+                const auto descriptorBuilder = DataDescriptorBuilder()
+                                                   .setSampleType(SampleType::Struct)
+                                                   .setRule(ExplicitDataRule())
+                                                   .setPostScaling(nullptr)
+                                                   .setStructFields(structFields)
+                                                   .setName("Electric");
+                const auto descriptor = descriptorBuilder.build();
+                constexpr auto voltageSampleType = SampleType::Int32;
+                constexpr auto currentSampleType = SampleType::Int32;
+#pragma(push)
+#pragma(pack, 1)
+                struct Measurements
+                {
+                    using VoltageType = SampleTypeToType<voltageSampleType>::Type;
+                    using CurrentType = SampleTypeToType<currentSampleType>::Type;
+                    VoltageType voltage;
+                    CurrentType current;
+                };
+#pragma(pop)
+                // const auto packet = DataPacket(descriptor, 3, 0);
+                // auto* measurements = new Measurements[3];
+                constexpr auto sampleCount = 3;
+                std::unique_ptr<Measurements[]> measurements{new Measurements[sampleCount]};
+                const auto packet = DataPacketWithExternalMemory(
+                    nullptr,
+                    descriptor,
+                    sampleCount,
+                    measurements.get(),
+                    Deleter([](auto* memory) {}),
+                    0,
+                    sampleCount * sizeof(Measurements));
+
+                measurements[0].voltage = 10;
+                measurements[0].current = 10;
+
+                measurements[1].voltage = 20;
+                measurements[1].current = 20;
+
+                measurements[2].voltage = 30;
+                measurements[2].current = 30;
+
+                StructPtr sampleValue0;
+                StructPtr sampleValue1;
+                StructPtr sampleValue2;
+
+                ASSERT_NO_THROW(sampleValue0 = packet.getValueByIndex(0, typeManager));
+                ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1, typeManager));
+                ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2, typeManager));
+
+                ASSERT_EQ(sampleValue0.get("Voltage"), 10);
+                ASSERT_EQ(sampleValue0.get("Current"), 10);
+                ASSERT_EQ(sampleValue1.get("Voltage"), 20);
+                ASSERT_EQ(sampleValue1.get("Current"), 20);
+                ASSERT_EQ(sampleValue2.get("Voltage"), 30);
+                ASSERT_EQ(sampleValue2.get("Current"), 30);
+            }
+        }
+    }
 }

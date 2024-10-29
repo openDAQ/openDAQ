@@ -591,25 +591,27 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    const auto dimensionCount = descriptor.getDimensions().getCount();
+    return getValueByIndex(value, sampleCount - 1, typeManager);
 
-    if (dimensionCount > 1)
-        return OPENDAQ_IGNORED;
-
-    void* addr;
-    ErrCode err = this->getData(&addr);
-    if (OPENDAQ_FAILED(err))
-        return err;
-
-    addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
-
-    return daqTry(
-        [&]()
-        {
-            auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
-            *value = ptr.detach();
-            return OPENDAQ_SUCCESS;
-        });
+    // const auto dimensionCount = descriptor.getDimensions().getCount();
+    //
+    // if (dimensionCount > 1)
+    //     return OPENDAQ_IGNORED;
+    //
+    // void* addr;
+    // ErrCode err = this->getData(&addr);
+    // if (OPENDAQ_FAILED(err))
+    //     return err;
+    //
+    // addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
+    //
+    // return daqTry(
+    //     [&]()
+    //     {
+    //         auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
+    //         *value = ptr.detach();
+    //         return OPENDAQ_SUCCESS;
+    //     });
 }
 template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager)
@@ -623,25 +625,63 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT i
 
     readLock.lock();
 
-    auto* addr = static_cast<char*>(data) + (sampleCount - 1) * descriptor.getSampleSize();
-    auto calcFn = [this, addr, value, typeManager]()
+    auto calcFn = [this, &value, &typeManager, index]()
     {
         if (hasRawDataOnly)
         {
+            void* addr = static_cast<char*>(data) + index * descriptor.getSampleSize();
             auto valuePtr = buildFromDescriptor(addr, descriptor, typeManager);
             *value = valuePtr.detach();
         }
         else if (hasScalingCalc)
         {
-            void* output;
-            descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &output);
+            void* addr = static_cast<char*>(data) + index * descriptor.getSampleSize();
+            std::unique_ptr<char[]> output{new char[descriptor.getSampleSize()]};
+            void* outputData = output.get();
+            descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &outputData);
+            if (hasReferenceDomainOffset)
+            {
+                auto referenceDomainOffsetAdder =
+                    std::unique_ptr<ReferenceDomainOffsetAdder>(
+                        createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(),
+                            descriptor
+                                .getReferenceDomainInfo()
+                                .getReferenceDomainOffset(),
+                            1
+                        )
+                    );
+                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
+            }
+            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
         }
         else if (hasDataRuleCalc)
         {
-        }
-
-        if (hasReferenceDomainOffset)
-        {
+            void* addr = static_cast<char*>(data);
+            std::unique_ptr<char[]> output{new char[descriptor.getSampleSize()]};
+            void* outputData = output.get();
+            NumberPtr sampleOffset;
+            if (descriptor.getRule().getType() != DataRuleType::Constant)
+            {
+                addr = static_cast<char*>(outputData) + index * descriptor.getSampleSize();
+                sampleOffset = offset + index;
+            }
+            descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(sampleOffset, 1, addr, rawDataSize, &outputData);
+            if (hasReferenceDomainOffset)
+            {
+                auto referenceDomainOffsetAdder =
+                    std::unique_ptr<ReferenceDomainOffsetAdder>(
+                        createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(),
+                            descriptor
+                                .getReferenceDomainInfo()
+                                .getReferenceDomainOffset(),
+                            1
+                        )
+                    );
+                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
+            }
+            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
         }
     };
     daqTry(calcFn);

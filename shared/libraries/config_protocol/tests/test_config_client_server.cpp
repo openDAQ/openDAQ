@@ -538,48 +538,6 @@ TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
     client->getClientComm()->acceptsSignal("/dev/comp/test", "sig");
 }
 
-TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
-{
-    /*
-    MockDevice::Strict device;
-
-    EXPECT_CALL(device.mock(), isLocked(_))
-    .WillRepeatedly(
-        [](daq::Bool* locked) -> ErrCode
-        {
-            *locked = false;
-            return OPENDAQ_SUCCESS;
-        });
-
-    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
-        .WillOnce(Return(device.ptr.asPtr<IComponent>()));
-
-    EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
-    */
-
-    // this test should probaly be changed to call client->connect() first, so protocol version is correctly negotiated
-    ASSERT_THROW(client->getClientComm()->getAvailableDevices("/dev"), ServerVersionTooLowException);
-}
-
-TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
-{
-    const auto defaultConfig = PropertyObject();
-    defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
-    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
-
-    auto devTypes = Dict<IString, IDeviceType>();
-    devTypes.set("Id", DeviceType("Id", "Name", "Desc", "Prefix", defaultConfig));
-
-    //EXPECT_CALL(device.mock(), getAvailableDeviceTypes(_)).WillOnce(daq::Get<DictPtr<IString, IDeviceType>>(devTypes));
-
-    // this test should probaly be changed to call client->connect() first, so protocol version is correctly negotiated
-    ASSERT_THROW(client->getClientComm()->getAvailableDeviceTypes("//root"), ServerVersionTooLowException);
-    //const DictPtr<IString, IDeviceType> value = client->getClientComm()->getAvailableDeviceTypes("//root");
-    //ASSERT_EQ(devTypes.get("Id"), value.get("Id"));
-    //ASSERT_EQ(devTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
-}
-
-
 class RejectConnectionTest : public ConfigProtocolTest
 {
 public:

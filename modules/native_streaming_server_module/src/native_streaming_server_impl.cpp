@@ -57,7 +57,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         .setPrefix("daq.nd")
         .setConnectionType("TCP/IP")
         .setPort(port)
-        .setProtocolVersion(std::to_string(GetLatestSupportedConfigProtocolVersion()));
+        .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
 
     serverCapabilityConfig.addProperty(StringProperty("Path", path == "/" ? "" : path));
     rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
@@ -392,7 +392,7 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ_NS"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
-    discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestSupportedConfigProtocolVersion())));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
     return discoveryConfig;
 }
 

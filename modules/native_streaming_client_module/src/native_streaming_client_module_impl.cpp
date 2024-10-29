@@ -477,7 +477,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 
     if (nativeConfigType == NativeType::config)
     {
-        defaultConfig.addProperty(IntProperty("ProtocolVersion", GetLatestSupportedConfigProtocolVersion()));
+        defaultConfig.addProperty(IntProperty("ProtocolVersion", GetLatestConfigProtocolVersion()));
         defaultConfig.addProperty(IntProperty("ConfigProtocolRequestTimeout", 10000));
         defaultConfig.addProperty(BoolProperty("RestoreClientConfigOnReconnect", False));
 

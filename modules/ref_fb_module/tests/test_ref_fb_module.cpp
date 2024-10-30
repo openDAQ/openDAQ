@@ -11,6 +11,7 @@
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
 #include <thread>
+#include <future>
 #include "testutils/memcheck_listener.h"
 
 using RefFbModuleTest = testing::Test;
@@ -54,10 +55,18 @@ public:
         createModule(&module, context);
     }
 
-    int64_t* sendAndReceive(SignalPtr fbSignal)
+    std::vector<int64_t> sendAndReceive(SignalPtr fbSignal)
     {
         // Create reader
         auto reader = PacketReader(fbSignal);
+
+        std::promise<void> promise;
+        auto future = promise.get_future();
+
+        reader.setOnDataAvailable([&promise, &reader]
+        {
+            promise.set_value(); 
+        });
 
         // Create data packet
         auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
@@ -69,18 +78,24 @@ public:
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        future.wait_for(std::chrono::seconds(1));
+
         // Receive packet
         PacketPtr receivedPacket;
-        while (true)
+        auto packets = reader.readAll();
+        for (const auto packet : packets)
         {
-            receivedPacket = reader.read();
-            if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
-                break;
+            if (packet.getType() == PacketType::Data)
+            {
+                auto domainPacket = packet.asPtr<IDataPacket>(true).getDomainPacket();
+                size_t sampleCount = domainPacket.getDataSize() /  sizeof(int64_t);
+                std::vector<int64_t> result(sampleCount);
+                memcpy(result.data(), domainPacket.getData(), sampleCount * sizeof(int64_t));
+                return result;
+            }
         }
-
-        context.getScheduler().stop();
-
-        return static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+        return {};
     }
 };
 

@@ -2419,14 +2419,17 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
                       .setOverlap(OVERLAP)
                       .build();
 
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     reader.setOnDataAvailable([&]
     {
         auto status = reader.read(&samples[samplesRead], &count);
         samplesRead = status.getReadSamples();
-        if (status.getReadStatus() == ReadStatus::Event)
-            count = 1;
-        else
-            promise.set_value();
+        promise.set_value();
     });
 
     auto domainPacket1 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE - 1, 1);

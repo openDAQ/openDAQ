@@ -82,8 +82,7 @@ public:
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 
-        // future.wait_for(std::chrono::seconds(1));
-        future.wait();
+        future.wait_for(std::chrono::seconds(1));
 
         // Receive packet
         auto packets = reader.readAll();

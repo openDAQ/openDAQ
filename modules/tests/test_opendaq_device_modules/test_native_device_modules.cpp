@@ -153,6 +153,8 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
 
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
+    SKIP_TEST_MAC_CI;
+
     // workaround until exceptionsin opendaq/excpetions.h are correctly registered
     auto AssertErrorCode = [](const std::function<void()>& func, ErrCode expectedErrorCode)
     {

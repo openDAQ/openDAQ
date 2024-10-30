@@ -21,7 +21,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        Bool restoreClientConfigOnReconnect,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
-                                       std::thread::id reconnectionProcessingThreadId)
+                                       std::thread::id reconnectionProcessingThreadId,
+                                       const StringPtr& connectionString)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
@@ -31,6 +32,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , acceptNotificationPackets(true)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
+    , connectionString(connectionString)
 {
 }
 
@@ -105,7 +107,7 @@ void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& compone
             for (const auto& streaming : streamingSources)
                 allStreamingSources.pushBack(streaming);
 
-            // streaming sources are ordered by priority - cash first to be active
+            // streaming sources are ordered by priority - cache first to be active
             if (!streamingSources.empty())
                 activeStreamingSource = streamingSources[0];
         }
@@ -186,12 +188,23 @@ void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const Core
 
     auto deviceGlobalId = device.getGlobalId().toStdString();
     auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
-    if (deviceGlobalId != updatedComponentGlobalId && !IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId))
-        return;
+    if (deviceGlobalId == updatedComponentGlobalId ||
+        IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId) ||
+        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
+    {
+        LOG_I("Updated Component: {};", updatedComponentGlobalId);
 
-    LOG_I("Updated Component: {};", updatedComponentGlobalId);
-
-    enableStreamingForComponent(updatedComponent);
+        if (deviceGlobalId == updatedComponentGlobalId ||
+            IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
+        {
+            device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
+            enableStreamingForComponent(device);
+        }
+        else
+        {
+            enableStreamingForComponent(updatedComponent);
+        }
+    }
 }
 
 void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming)
@@ -458,7 +471,6 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
                                    const StringPtr& localId,
                                    const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
-    , deviceInfoSet(false)
 {
 }
 
@@ -530,9 +542,6 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    if (deviceInfoSet)
-        return;
-
     const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
 
     for (const auto& prop : deviceInfo.getAllProperties())
@@ -562,7 +571,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     newDeviceInfo.freeze();
 
     deviceInfo = newDeviceInfo;
-    deviceInfoSet = true;
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

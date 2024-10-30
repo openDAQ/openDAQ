@@ -144,6 +144,9 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
+            if (clientComm->getProtocolVersion() < 4)
+                return OPENDAQ_ERR_SERVER_VERSION_TOO_LOW;
+
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
                 return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");

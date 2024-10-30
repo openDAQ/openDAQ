@@ -3,23 +3,19 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <iostream>
+#include <coreobjects/argument_info_factory.h>
 
-#include "coreobjects/argument_info_factory.h"
-#include "opendaq/device_domain_factory.h"
-
-using namespace daq;
-using namespace std::chrono_literals;
-
-int main(int /*argc*/, const char* /*argv*/[])
+int main (int /*argc*/, const char* /*argv*/[])
 {
     // Set up the simulator
 
     // Create Instance
-    auto instance = Instance("");
+    auto instance = daq::Instance("");
     // Set Root Device
     instance.setRootDevice("daqref://device1");
     // Unlock all attributes (needed for OPC UA: RegressionTestComponent/setVisibleGetVisible)
-    auto componentPrivate = instance.getRootDevice().asPtr<IComponentPrivate>();
+    auto componentPrivate = instance.getRootDevice().asPtr<daq::IComponentPrivate>();
     componentPrivate.unlockAllAttributes();
     // Add Trigger Reference Function Block
     instance.addFunctionBlock("ref_fb_module_trigger");
@@ -28,29 +24,27 @@ int main(int /*argc*/, const char* /*argv*/[])
     instance.addServer("openDAQ Native Streaming", nullptr);
     instance.addServer("openDAQ LT Streaming", nullptr);
     // Add custom String Property
-    auto stringProperty = StringPropertyBuilder("TestString", "TestDefaultString").setDescription("TestDescription").build();
+    auto stringProperty = daq::StringPropertyBuilder("TestString", "TestDefaultString").setDescription("TestDescription").build();
     instance.addProperty(stringProperty);
     // Add custom Dictionary Property
-    auto dict = Dict<StringPtr, StringPtr>();
+    auto dict = daq::Dict<daq::IString, daq::IString>();
     dict.set("TestKey", "TestValue");
     instance.addProperty(DictProperty("TestDict", dict, true));
     // Add custom Int Property
-    auto list = List<IInteger>();
+    auto list = daq::List<daq::IInteger>();
     list.pushBack(1);
     list.pushBack(2);
     list.pushBack(3);
-    instance.addProperty(IntPropertyBuilder("TestInt", 42)
-                             .setUnit(Unit("TestUnit", -1, "TestName", "TestQunatity"))
-                             .setMinValue(-666)
-                             .setMaxValue(777)
-                             .setSuggestedValues(list)
-                             .setValidator(Validator("Value < 800"))
-                             .setCoercer(Coercer("if(Value > 900, Value, 900)"))
-                             .build());
+    instance.addProperty(daq::IntPropertyBuilder("TestInt", 42)
+                         .setUnit(daq::Unit("TestUnit", -1, "TestName", "TestQunatity"))
+                         .setMinValue(666)
+                         .setMaxValue(777)
+                         .setSuggestedValues(list)
+                         .build());
     // Add custom Selection Property
     instance.addProperty(SelectionProperty("TestSelection", list, 2, true));
     // Add custom Reference Property
-    instance.addProperty(ReferenceProperty("TestReference", EvalValue("%TestString")));
+    instance.addProperty(ReferenceProperty("TestReference", daq::EvalValue("%TestString")));
     // Add custom Struct Property
     instance.addProperty(StructProperty("TestStruct", Struct("TestName", dict, TypeManager())));
     // Add custom Argument Info Property

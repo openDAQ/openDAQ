@@ -316,7 +316,7 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
     ASSERT_EQ(json, deserializedJson);
 }
 
-TEST_F(PropertyObjectTest, DISABLED_SerializeList)
+TEST_F(PropertyObjectTest, SerializeList)
 {
     // Serializer fails to serialize default empty list property correctly.
 
@@ -327,7 +327,8 @@ TEST_F(PropertyObjectTest, DISABLED_SerializeList)
     auto serializer = JsonSerializer();
     auto deserializer = JsonDeserializer();
     obj.serialize(serializer);
-    const PropertyObjectPtr clone = deserializer.deserialize(serializer.getOutput());
+    const auto output = serializer.getOutput();
+    const PropertyObjectPtr clone = deserializer.deserialize(output);
     
     ASSERT_TRUE(clone.hasProperty("list"));
     ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("list"), clone.getPropertyValue("list")));

@@ -17,8 +17,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     users.pushBack(User("root", "$2b$10$k/Tj3yqFV7uQz42UCJK2n.4ECd.ySQ2Sfd81Kx.xfuMOeluvA/Vpy", {"admin"})); // password: root
     const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
 
-    const InstanceBuilderPtr instanceBuilder =
-        InstanceBuilder().addConfigProvider(configProvider).setAuthenticationProvider(authenticationProvider).addDiscoveryServer("mdns");
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder();
+    instanceBuilder.addConfigProvider(configProvider);
+    instanceBuilder.setAuthenticationProvider(authenticationProvider);
+    instanceBuilder.addDiscoveryServer("mdns");
 
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

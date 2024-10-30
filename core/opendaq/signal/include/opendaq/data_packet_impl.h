@@ -67,7 +67,7 @@ public:
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
-    ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) override;
+    ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
@@ -590,31 +590,10 @@ template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
-
     return getValueByIndex(value, sampleCount - 1, typeManager);
-
-    // const auto dimensionCount = descriptor.getDimensions().getCount();
-    //
-    // if (dimensionCount > 1)
-    //     return OPENDAQ_IGNORED;
-    //
-    // void* addr;
-    // ErrCode err = this->getData(&addr);
-    // if (OPENDAQ_FAILED(err))
-    //     return err;
-    //
-    // addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
-    //
-    // return daqTry(
-    //     [&]()
-    //     {
-    //         auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
-    //         *value = ptr.detach();
-    //         return OPENDAQ_SUCCESS;
-    //     });
 }
 template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager)
+ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -625,18 +604,18 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT i
 
     readLock.lock();
 
-    auto calcFn = [this, &value, &typeManager, index]()
+    auto calcFn = [this, &value, &typeManager, sampleIndex]()
     {
         if (hasRawDataOnly)
         {
-            void* addr = static_cast<char*>(data) + index * descriptor.getSampleSize();
+            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getSampleSize();
             auto valuePtr = buildFromDescriptor(addr, descriptor, typeManager);
             *value = valuePtr.detach();
         }
         else if (hasScalingCalc)
         {
-            void* addr = static_cast<char*>(data) + index * descriptor.getSampleSize();
-            std::unique_ptr<char[]> output{new char[descriptor.getSampleSize()]};
+            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getRawSampleSize();
+            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
             void* outputData = output.get();
             descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &outputData);
             if (hasReferenceDomainOffset)
@@ -657,16 +636,9 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT i
         }
         else if (hasDataRuleCalc)
         {
-            void* addr = static_cast<char*>(data);
-            std::unique_ptr<char[]> output{new char[descriptor.getSampleSize()]};
+            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
             void* outputData = output.get();
-            NumberPtr sampleOffset;
-            if (descriptor.getRule().getType() != DataRuleType::Constant)
-            {
-                addr = static_cast<char*>(outputData) + index * descriptor.getSampleSize();
-                sampleOffset = offset + index;
-            }
-            descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(sampleOffset, 1, addr, rawDataSize, &outputData);
+            descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateSample(offset, sampleIndex, data, rawDataSize, &outputData);
             if (hasReferenceDomainOffset)
             {
                 auto referenceDomainOffsetAdder =

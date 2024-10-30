@@ -59,6 +59,8 @@ public:
     // IDataRuleCalcPrivate
     void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const override;
     void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const override;
+    void* INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize) const override;
+    void INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output) const override;
     Bool INTERFACE_FUNC hasDataRuleCalc() const override;
 
     // ISerializable

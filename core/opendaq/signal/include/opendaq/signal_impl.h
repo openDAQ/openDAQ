@@ -133,7 +133,6 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    DataPacketPtr lastDataPacket;
     BaseObjectPtr lastDataValue;
 
 private:
@@ -648,8 +647,8 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
         auto dataPacket = packet.asPtrOrNull<IDataPacket>();
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
         {
-            lastDataPacket = std::move(dataPacket);
-            lastDataValue = dataPacket.getValueByIndex(dataPacket.getSampleCount() - 1);
+            auto typeManager = this->context.getTypeManager();
+            lastDataValue = dataPacket.getLastValue(typeManager);
         }
     }
 }
@@ -1181,7 +1180,7 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
     keepLastPacket = keepLastValue && isPublic && this->visible;
 
     if (!keepLastPacket)
-        lastDataPacket = nullptr;
+        lastDataValue = nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1190,25 +1189,11 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);
 
-    // new impl
-    switch (const auto rule = dataDescriptor.getRule(); rule.getType())
-    {
-        case DataRuleType::Other:
-            break;
-        case DataRuleType::Linear:
-            break;
-        case DataRuleType::Constant:
-            break;
-        case DataRuleType::Explicit:
-            break;
-    }
-    // end new impl
-
-    if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
+    if (!lastDataValue.assigned())
         return OPENDAQ_IGNORED;
 
-    auto typeManager = this->context.getTypeManager();
-    return lastDataPacket->getLastValue(value, typeManager);
+    *value = lastDataValue.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

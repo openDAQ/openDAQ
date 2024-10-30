@@ -788,8 +788,8 @@ TEST_F(DataPacketTest, GetValueByIndex)
                     ASSERT_NO_THROW(sampleValue1 = packet.getValueByIndex(1));
                     ASSERT_NO_THROW(sampleValue2 = packet.getValueByIndex(2));
                     ASSERT_FLOAT_EQ(sampleValue0, 1.0);
-                    ASSERT_EQ(sampleValue1, 3.0);
-                    ASSERT_EQ(sampleValue2, 5.0);
+                    ASSERT_FLOAT_EQ(sampleValue1, 3.0);
+                    ASSERT_FLOAT_EQ(sampleValue2, 5.0);
                 }
             }
             // Struct
@@ -1128,3 +1128,4 @@ TEST_F(DataPacketTest, GetValueByIndex)
         }
     }
 }
+

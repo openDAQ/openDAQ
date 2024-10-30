@@ -379,6 +379,21 @@ void DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT samp
         dataRuleCalc->calculateRule(packetOffset, sampleCount, input, inputSize, output);
 }
 
+void* DataDescriptorImpl::calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize) const
+{
+    if (dataRuleCalc)
+        return dataRuleCalc->calculateSample(packetOffset, sampleIndex, input, inputSize);
+
+    return nullptr;
+}
+
+void DataDescriptorImpl::calculateSample(
+    const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output) const
+{
+    if (dataRuleCalc)
+        dataRuleCalc->calculateSample(packetOffset, sampleIndex, input, inputSize, output);
+}
+
 Bool DataDescriptorImpl::hasDataRuleCalc() const
 {
     return (dataRuleCalc != nullptr) ? True : False;

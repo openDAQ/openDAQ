@@ -2102,7 +2102,7 @@ class MockNativeModule : public Module
 {
 public:
     MockNativeModule(const ContextPtr& context)
-        : Module(ModuleInfo(VersionInfo(1, 0, 0), "MockModule", "mock"), context)
+        : Module(ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock"), context)
     {
     }
 

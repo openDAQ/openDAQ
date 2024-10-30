@@ -49,7 +49,20 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleCalcPrivate, IBaseObject)
     virtual void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
         const = 0;
 
+    /*!
+     * @brief Calculates the sample according to the rule.
+     * @param packetOffset Packet offset.
+     * @param sampleIndex The index of sample in the packet.
+     * @returns A pointer to the calculated data.
+     */
     virtual void* INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize) const = 0;
+
+    /*!
+     * @brief Calculates the sample according to the rule.
+     * @param packetOffset Packet offset.
+     * @param sampleIndex The index of sample in the packet.
+     * @param[out] output A pointer to the calculated data.
+     */
     virtual void INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output)
         const = 0;
 

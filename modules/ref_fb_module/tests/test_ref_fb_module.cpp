@@ -65,7 +65,11 @@ public:
 
         reader.setOnDataAvailable([&promise, &reader]
         {
-            promise.set_value(); 
+            if (reader.getAvailableCount() > 1)
+            {
+                reader.setOnDataAvailable(nullptr);
+                promise.set_value();
+            }
         });
 
         // Create data packet
@@ -78,12 +82,12 @@ public:
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        future.wait_for(std::chrono::seconds(1));
+        // future.wait_for(std::chrono::seconds(1));
+        future.wait();
 
         // Receive packet
-        PacketPtr receivedPacket;
         auto packets = reader.readAll();
+        context.getScheduler().stop();
         for (const auto packet : packets)
         {
             if (packet.getType() == PacketType::Data)

@@ -20,9 +20,16 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
-
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
+    try
+    {
+        initOverlap();
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
@@ -36,8 +43,16 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
-    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    try
+    {
+        initOverlap();
+        this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -50,7 +65,15 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
+    try
+    {
+        initOverlap();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
@@ -63,9 +86,16 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , overlap(overlap)
     , info(old->info)
 {
-    initOverlap();
-
-    notify.dataReady = false;
+    try
+    {
+        initOverlap();
+        notify.dataReady = false;
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 ErrCode BlockReaderImpl::getBlockSize(SizeT* size)

@@ -51,15 +51,22 @@ public:
             throw ArgumentNullException("Signal must not be null.");
 
         this->internalAddRef();
+        try
+        {
+            port = InputPort(signal.getContext(), nullptr, "readsig", true);
+            port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
-        port = InputPort(signal.getContext(), nullptr, "readsig", true);
-        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+            port.connect(signal);
+            connection = port.getConnection();
 
-        port.connect(signal);
-        connection = port.getConnection();
-
-        valueReader = createReaderForType(valueReadType, nullptr);
-        domainReader = createReaderForType(domainReadType, nullptr);
+            valueReader = createReaderForType(valueReadType, nullptr);
+            domainReader = createReaderForType(domainReadType, nullptr);
+        }
+        catch (...)
+        {
+            this->releaseWeakRefOnException();
+            throw;
+        }
     }
 
     explicit ReaderImpl(InputPortConfigPtr port,
@@ -78,13 +85,20 @@ public:
         port.asPtr<IOwnable>().setOwner(portBinder);
 
         this->internalAddRef();
+        try
+        {
+            this->port = port;
+            this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+            connection = port.getConnection();
 
-        this->port = port;
-        this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-        connection = port.getConnection();
-
-        valueReader = createReaderForType(valueReadType, nullptr);
-        domainReader = createReaderForType(domainReadType, nullptr);
+            valueReader = createReaderForType(valueReadType, nullptr);
+            domainReader = createReaderForType(domainReadType, nullptr);
+        }
+        catch (...)
+        {
+            this->releaseWeakRefOnException();
+            throw;
+        }        
     }
 
     ~ReaderImpl() override
@@ -328,10 +342,17 @@ protected:
         port.asPtr<IOwnable>().setOwner(portBinder);
 
         this->internalAddRef();
-        
-        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-        if (connection.assigned())
-            readDescriptorFromPort();
+        try
+        {
+            port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+            if (connection.assigned())
+                readDescriptorFromPort();
+        }
+        catch (...)
+        {
+            this->releaseWeakRefOnException();
+            throw;
+        }
     }
 
     explicit ReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -357,9 +378,17 @@ protected:
         domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
 
         this->internalAddRef();
-        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-        if (connection.assigned())
-            readDescriptorFromPort();
+        try
+        {
+            port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+            if (connection.assigned())
+                readDescriptorFromPort();
+        }
+        catch (...)
+        {
+            this->releaseWeakRefOnException();
+            throw;
+        }
     }
 
     void inferReaderReadType(DataDescriptorPtr newDescriptor, std::unique_ptr<Reader>& reader)

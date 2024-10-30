@@ -736,6 +736,7 @@ ErrCode ConnectionImpl::enqueueLastDescriptor()
     {
         if (valueDataDescriptor.assigned() || domainDataDescriptor.assigned())
         {
+            eventPacketsCnt++;
             const auto dataDescriptorEventPacket = DataDescriptorChangedEventPacket(valueDataDescriptor, domainDataDescriptor);
             packets.emplace_front(dataDescriptorEventPacket);
         }

@@ -104,27 +104,35 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
     readerConfig.markAsInvalid();
 
     this->internalAddRef();
-    auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-    auto ports = readerConfig.getInputPorts();
-
-    checkEarlyPreconditionsAndCacheContext(ports);
-    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-    bool fromInputPorts;
-    checkPreconditions(ports, false, fromInputPorts);
-
-    SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
-
-    for (const auto& port : ports)
+    try
     {
-        sigInfo.port = port;
-        port.setListener(listener);
-        signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
-    }
+        auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
-    updateCommonSampleRateAndDividers();
-    if (invalid)
-        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+        auto ports = readerConfig.getInputPorts();
+
+        checkEarlyPreconditionsAndCacheContext(ports);
+        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+        bool fromInputPorts;
+        checkPreconditions(ports, false, fromInputPorts);
+
+        SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
+
+        for (const auto& port : ports)
+        {
+            sigInfo.port = port;
+            port.setListener(listener);
+            signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
+        }
+
+        updateCommonSampleRateAndDividers();
+        if (invalid)
+            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)

@@ -32,7 +32,15 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
-    connectSignal(signal);
+    try
+    {
+        connectSignal(signal);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
@@ -50,7 +58,15 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
-    connectInputPort(port);
+    try
+    {
+        connectInputPort(port);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -73,8 +89,16 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
     connection = inputPort.getConnection();
 
     this->internalAddRef();
-    if (connection.assigned())
-        readDescriptorFromPort();
+    try
+    {
+        if (connection.assigned())
+            readDescriptorFromPort();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
@@ -101,8 +125,16 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    if (connection.assigned())
-        readDescriptorFromPort();
+    try
+    {
+        if (connection.assigned())
+            readDescriptorFromPort();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
@@ -124,18 +156,25 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
     domainReader = createReaderForType(builder.getDomainReadType(), nullptr);
 
     this->internalAddRef();
-
-    if (auto port = builder.getInputPort(); port.assigned())
+    try
     {
-        connectInputPort(port);
+        if (auto port = builder.getInputPort(); port.assigned())
+        {
+            connectInputPort(port);
+        }
+        else if (auto signal = builder.getSignal(); signal.assigned())
+        {
+            connectSignal(builder.getSignal());
+        }
+        else 
+        {
+            throw ArgumentNullException("Signal or port must be set");
+        }
     }
-    else if (auto signal = builder.getSignal(); signal.assigned())
+    catch (...)
     {
-        connectSignal(builder.getSignal());
-    }
-    else 
-    {
-        throw ArgumentNullException("Signal or port must be set");
+        this->releaseWeakRefOnException();
+        throw;
     }
 }
 

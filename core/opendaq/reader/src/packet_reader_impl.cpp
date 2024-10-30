@@ -12,12 +12,19 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 
     port = InputPort(signal.getContext(), nullptr, "readsignal");
     this->internalAddRef();
-
-    port.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
-    port.connect(signal);
-    
-    connection = port.getConnection();
+    try
+    {
+        port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+        port.connect(signal);
+        
+        connection = port.getConnection();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
@@ -32,9 +39,16 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     connection = this->port.getConnection();
 
     this->internalAddRef();
-
-    this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    try
+    {
+        this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+        this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 PacketReaderImpl::~PacketReaderImpl()

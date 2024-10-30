@@ -1707,11 +1707,8 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
     *B = 15.1;
 
     // Send our packet
-    signal.sendPacket(dataPacket);
-
-    // Call getLastValue
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+    ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

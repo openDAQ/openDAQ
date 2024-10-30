@@ -602,9 +602,9 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
     if (dimensionCount > 1)
         return OPENDAQ_IGNORED;
 
-    readLock.lock();
+    std::lock_guard lk{readLock};
 
-    auto calcFn = [this, &value, &typeManager, sampleIndex]()
+    auto calcLastValue = [this, &value, &typeManager, sampleIndex]()
     {
         if (hasRawDataOnly)
         {
@@ -656,10 +656,8 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
             *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
         }
     };
-    daqTry(calcFn);
 
-    readLock.unlock();
-    return OPENDAQ_SUCCESS;
+    return daqTry(calcLastValue);
 }
 
 template <typename TInterface>

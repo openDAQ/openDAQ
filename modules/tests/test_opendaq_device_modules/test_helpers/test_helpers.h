@@ -105,17 +105,36 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool Ipv6IsDisabled()
+    static bool Ipv6IsDisabled(std::string hostName = "localhost")
     {
         boost::asio::io_service service;
         boost::asio::ip::tcp::resolver resolver(service);
 
-        // Resolve a localhost address. If IPv6 is available, it should resolve to an IPv6 address.
-        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v6(), "localhost", "");
+        // Resolve a localhost (or external) address. If IPv6 is available, it should resolve to an IPv6 address.
+        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v6(), hostName, "");
 
         boost::system::error_code ec;
         auto it = resolver.resolve(query, ec);
         return ec.failed();
+    }
+
+    [[maybe_unused]]
+    static bool isIpv6ConnectionString(const StringPtr& connectionString)
+    {
+        if (connectionString.assigned() && connectionString.getLength())
+            return connectionString.toStdString().find('[') != std::string::npos &&
+                   connectionString.toStdString().find(']') != std::string::npos;
+        else
+            return false;
+    }
+
+    [[maybe_unused]]
+    static bool isIpv4ConnectionString(const StringPtr& connectionString)
+    {
+        if (connectionString.assigned() && connectionString.getLength())
+            return !isIpv6ConnectionString(connectionString);
+        else
+            return false;
     }
 
     [[maybe_unused]]

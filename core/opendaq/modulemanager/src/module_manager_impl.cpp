@@ -449,7 +449,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
         const auto discoveredDeviceInfo = getDiscoveredDeviceInfo(connectionStringPtr, useSmartConnection);
         if (useSmartConnection)
-            connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo);
+            connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, config, loggerComponent);
 
         for (const auto& library : libraries)
         {
@@ -872,7 +872,10 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputC
     return nullptr;
 }
 
-StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString, const DeviceInfoPtr& discoveredDeviceInfo)
+StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
+                                                          const DeviceInfoPtr& discoveredDeviceInfo,
+                                                          const PropertyObjectPtr& config,
+                                                          const LoggerComponentPtr& loggerComponent)
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
@@ -891,6 +894,21 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
         }
     }
 
+    const PropertyObjectPtr generalConfig = isDefaultAddDeviceConfig(config)
+                                                ? config.getPropertyValue("General").asPtr<IPropertyObject>()
+                                                : populateGeneralConfig(config);
+    const StringPtr primaryAddessType = generalConfig.getPropertyValue("PrimaryAddressType");
+    if (isValidConnectionAddressType(primaryAddessType))
+    {
+        for (const auto& addrInfo : selectedCapability.getAddressInfo())
+        {
+            if (addrInfo.getType() == primaryAddessType)
+                return addrInfo.getConnectionString();
+        }
+        LOG_W("Selected server capability of device with connection string \"{}\" does not provide any addresses of primary {} type",
+              inputConnectionString,
+              primaryAddessType);
+    }
     return selectedCapability.getConnectionString();
 }
 
@@ -950,32 +968,80 @@ ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const
     return result;
 }
 
-StringPtr ModuleManagerImpl::getPreferredStreamingAddress(const DevicePtr& device)
+AddressInfoPtr ModuleManagerImpl::getDeviceConnectionAddress(const DevicePtr& device)
 {
     const auto info = device.getInfo();
     const auto configConnection = info.getConfigurationConnectionInfo();
+    const auto deviceInfoConnectionString = info.getConnectionString();
+
     if (!configConnection.assigned())
-        return "";
+        return nullptr;
 
-    const auto addressInfo = configConnection.getAddressInfo();
-    if (addressInfo.assigned() && addressInfo.getCount() > 0)
-        return addressInfo[0].getAddress();
+    const auto deviceConnectionString =
+        (deviceInfoConnectionString.assigned() && deviceInfoConnectionString.getLength())
+            ? deviceInfoConnectionString
+            : configConnection.getConnectionString();
 
-    return "";
+    for (const auto& addressInfo : configConnection.getAddressInfo())
+    {
+        if (deviceConnectionString == addressInfo.getConnectionString())
+            return addressInfo;
+    }
+
+    return nullptr;
+}
+
+AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
+                                                       const AddressInfoPtr& deviceConnectionAddress,
+                                                       const StringPtr& primaryAddressType)
+{
+    if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
+    {
+        // Attempt to reuse the address of device connection if it meets type constraints
+        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
+        {
+            for (const auto& addressInfo : availableAddresses)
+                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
+                    return addressInfo;
+        }
+
+        // If the device connection address is unavailable for streaming, search for any address matching type constraints
+        for (const auto& addressInfo : availableAddresses)
+        {
+            if (addressInfo.getType() == primaryAddressType)
+                return addressInfo;
+        }
+        LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
+    }
+
+    // Attempt to reuse the address of device connection
+    for (const auto& addressInfo : availableAddresses)
+    {
+        if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
+            return addressInfo;
+    }
+
+    return nullptr;
+}
+
+bool ModuleManagerImpl::isValidConnectionAddressType(const StringPtr& connectionAddressType)
+{
+    return connectionAddressType == "IPv4" || connectionAddressType == "IPv6";
 }
 
 void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
                                                  const PropertyObjectPtr& generalConfig,
                                                  const PropertyObjectPtr& config,
-                                                 const StringPtr& preferredAddress)
+                                                 const AddressInfoPtr& deviceConnectionAddress)
 {
     auto deviceInfo = device.getInfo();
     auto signals = device.getSignals(search::Recursive(search::Any()));
     
     const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
     const ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
+    const StringPtr primaryAddessType = generalConfig.getPropertyValue("PrimaryAddressType");
 
-     // protocol Id as a key, protocol priority as a value
+    // protocol Id as a key, protocol priority as a value
     std::unordered_set<std::string> allowedProtocolsSet;
     for (SizeT index = 0; index < allowedStreamingProtocols.getCount(); ++index)
     {
@@ -1015,17 +1081,8 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
         const SizeT protocolPriority = protocolIt->second;
 
         StreamingPtr streaming;
-        StringPtr connectionString;
-
-        if (preferredAddress.assigned() && preferredAddress != "")
-        {
-            for (const auto& addressInfo : cap.getAddressInfo())
-                if (addressInfo.getAddress() == preferredAddress)
-                    connectionString = addressInfo.getConnectionString();
-        }
-
-        if (!connectionString.assigned())
-            connectionString = cap.getConnectionString();
+        const auto streamingAddress = findStreamingAddress(cap.getAddressInfo(), deviceConnectionAddress, primaryAddessType);
+        StringPtr connectionString = streamingAddress.assigned() ? streamingAddress.getConnectionString() : cap.getConnectionString();
 
         if (!connectionString.assigned())
             continue;
@@ -1080,8 +1137,8 @@ void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDe
     PropertyObjectPtr generalConfig;
     PropertyObjectPtr addDeviceConfig;
 
-    // Preferably, use same address as used for config connection
-    const auto preferredAddress = getPreferredStreamingAddress(topDevice);
+    // Get the address used for device connection
+    const auto deviceConnectionAddress = getDeviceConnectionAddress(topDevice);
 
     if (isDefaultAddDeviceConfig(config))
     {
@@ -1089,7 +1146,9 @@ void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDe
         generalConfig = config.getPropertyValue("General");
     }
     else
+    {
         generalConfig = populateGeneralConfig(config);
+    }
 
     const StringPtr streamingHeuristic = generalConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
     const bool automaticallyConnectStreaming = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
@@ -1098,7 +1157,7 @@ void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDe
 
     if (streamingHeuristic == "MinConnections")
     {
-        attachStreamingsToDevice(topDevice, generalConfig, addDeviceConfig, preferredAddress);
+        attachStreamingsToDevice(topDevice, generalConfig, addDeviceConfig, deviceConnectionAddress);
     }
     else if (streamingHeuristic == "MinHops")
     {
@@ -1108,7 +1167,7 @@ void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDe
         const auto allDevicesInTree = getAllDevicesRecursively(topDevice);
         for (const auto& device : allDevicesInTree)
         {
-            attachStreamingsToDevice(device, generalConfig, addDeviceConfig, preferredAddress);
+            attachStreamingsToDevice(device, generalConfig, addDeviceConfig, deviceConnectionAddress);
         }
     }
 }
@@ -1248,6 +1307,15 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 
     obj.addProperty(StringProperty("Username", ""));
     obj.addProperty(StringProperty("Password", ""));
+
+    obj.addProperty(
+        StringPropertyBuilder("PrimaryAddressType", "")
+            .setDescription("Specifies the primary address type for establishing configuration and streaming protocols connections "
+                            "while using smart connection string with \"daq://\" prefix. "
+                            "Acceptable values are \"IPv4\" or \"IPv6\"; if left blank, any address type may be used. "
+                            "If no addresses of the specified type are available, the first available address of the alternate type will be used.")
+            .build()
+    );
 
     return obj.detach();
 }

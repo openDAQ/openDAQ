@@ -13,8 +13,7 @@ public:
     void SetUp() override
     {
         auto connectionString = std::get<1>(GetParam());
-        bool connectStringIpv6 = connectionString.find('[') != std::string::npos && connectionString.find(']') != std::string::npos;
-        if (connectStringIpv6 && test_helpers::Ipv6IsDisabled())
+        if (test_helpers::isIpv6ConnectionString(connectionString) && test_helpers::Ipv6IsDisabled())
         {
             GTEST_SKIP() << "Ipv6 is disabled";
         }

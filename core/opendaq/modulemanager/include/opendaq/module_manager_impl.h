@@ -67,7 +67,10 @@ private:
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
 
     DeviceInfoPtr getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const;
-    static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString, const DeviceInfoPtr& discoveredDeviceInfo);
+    static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
+                                                  const DeviceInfoPtr& discoveredDeviceInfo,
+                                                  const PropertyObjectPtr& config,
+                                                  const LoggerComponentPtr& loggerComponent);
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
@@ -88,12 +91,16 @@ private:
     static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
-    static StringPtr getPreferredStreamingAddress(const DevicePtr& device);
+    AddressInfoPtr findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
+                                              const AddressInfoPtr& deviceConnectionAddress,
+                                              const StringPtr& primaryAddressType);
+    static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
+    static bool isValidConnectionAddressType(const StringPtr& connectionAddressType);
     void configureStreamings(const MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
                                   const PropertyObjectPtr& generalConfig,
                                   const PropertyObjectPtr& config,
-                                  const StringPtr& preferredAddress);
+                                  const AddressInfoPtr& deviceConnectionAddress);
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
     static PropertyObjectPtr createGeneralConfig();

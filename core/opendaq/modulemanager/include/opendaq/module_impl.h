@@ -359,7 +359,6 @@ public:
 
 protected:
     StringPtr name;
-    StringPtr id;
     ModuleInfoPtr moduleInfo;
 
     ContextPtr context;

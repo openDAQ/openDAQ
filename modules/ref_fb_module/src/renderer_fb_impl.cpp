@@ -1191,6 +1191,7 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
             LOG_T("Processing {} event", eventPacket.getEventId())
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
+                // TODO handle Null-descriptor params ('Null' sample type descriptors)
                 DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 processSignalDescriptorChanged(signalContext, valueSignalDescriptor, domainSignalDescriptor);

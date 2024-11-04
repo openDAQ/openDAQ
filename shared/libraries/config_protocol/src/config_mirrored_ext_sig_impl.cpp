@@ -34,21 +34,20 @@ Bool ConfigMirroredExternalSignalImpl::onTriggerEvent(const EventPacketPtr& even
 
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = eventPacket.getParameters();
-        const DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-        const DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        const auto [signalDescriptorChanged, domainDescriptorChanged, newSignalDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
 
         Bool changed = False;
 
         {
             std::scoped_lock lock(signalMutex);
-            if (newSignalDescriptor.assigned() && newSignalDescriptor != mirroredDataDescriptor)
+            if (signalDescriptorChanged && newSignalDescriptor != mirroredDataDescriptor)
             {
                 mirroredDataDescriptor = newSignalDescriptor;
                 changed = True;
             }
         }
-        if (newSignalDescriptor.assigned() && changed && !this->coreEventMuted && this->coreEvent.assigned())
+        if (changed && !this->coreEventMuted && this->coreEvent.assigned())
         {
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::DataDescriptorChanged, Dict<IString, IBaseObject>({{"DataDescriptor", newSignalDescriptor}}));
@@ -58,7 +57,7 @@ Bool ConfigMirroredExternalSignalImpl::onTriggerEvent(const EventPacketPtr& even
 
         {
             std::scoped_lock lock(signalMutex);
-            if (newDomainDescriptor.assigned() && mirroredDomainDataDescriptor != newDomainDescriptor)
+            if (domainDescriptorChanged && mirroredDomainDataDescriptor != newDomainDescriptor)
             {
                 mirroredDomainDataDescriptor = newDomainDescriptor;
                 if (mirroredDomainSignal.assigned())

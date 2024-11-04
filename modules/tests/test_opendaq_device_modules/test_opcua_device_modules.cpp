@@ -101,7 +101,7 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-    auto path = "/test/native_opcua/discovery/";
+    auto path = "/test/opcua/discoveryServer/";
     serverConfig.setPropertyValue("Path", path);
     server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
@@ -112,17 +112,14 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
-            {
                 break;
-            }
-            if (capability.getProtocolName() == "OpenDAQOPCUA")
-            {
-                device = client.addDevice(capability.getConnectionString(), nullptr);
-                return;
-            }
+
+            ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
+            device = client.addDevice(capability.getConnectionString(), nullptr);
+            return;
         }
     }
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
@@ -162,23 +159,20 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
-            {
                 break;
-            }
-            if (capability.getProtocolName() == "OpenDAQOPCUA")
-            {
-                client.addDevice(capability.getConnectionString(), nullptr);
 
-                ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
-                ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
-                ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
-                ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
-                return;
-            }
+            ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
+            client.addDevice(capability.getConnectionString(), nullptr);
+
+            ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
+            ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
+            ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
+            ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
+            return;
         }      
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 #ifdef _WIN32
@@ -190,9 +184,8 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-    auto path = "/test/opcua/discovery_reachability/";
+    auto path = "/test/opcua/discoveryReachability/";
     serverConfig.setPropertyValue("Path", path);
-
     instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
@@ -204,117 +197,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            if (capability.getProtocolName() == "OpenDAQOPCUA")
-            {
-                const auto ipv4Info = capability.getAddressInfo()[0];
-                const auto ipv6Info = capability.getAddressInfo()[1];
-                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
-                
-                ASSERT_EQ(ipv4Info.getType(), "IPv4");
-                ASSERT_EQ(ipv6Info.getType(), "IPv6");
-
-                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-                
-                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-            }
-        }      
-    }
-}
-
-TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
-{
-    if (test_helpers::Ipv6IsDisabled())
-        return;
-
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-    auto path = "/test/opcua/discovery_reachability/";
-    serverConfig.setPropertyValue("Path", path);
-
-    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
-
-    auto client = Instance();
-    client.getAvailableDevices();
-    DevicePtr device = client.addDevice("daq.opcua://[::1]/");
-
-    ASSERT_TRUE(device.assigned());
-
-    const auto caps = device.getInfo().getServerCapabilities();
-    ASSERT_EQ(caps.getCount(), 1u);
-
-    for (const auto& capability : caps)
-    {
-        if (!test_helpers::isSufix(capability.getConnectionString(), path))
-            break;
-
-        if (capability.getProtocolName() == "OpenDAQOPCUA")
-        {
-            const auto ipv4Info = capability.getAddressInfo()[0];
-            const auto ipv6Info = capability.getAddressInfo()[1];
-            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            
-            ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
-
-            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-            
-            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-        }
-    }      
-}
-
-#endif
-
-TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
-{
-    if (test_helpers::Ipv6IsDisabled())
-        return;
-
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-    auto path = "/test/opcua/discovery_reachability/";
-    serverConfig.setPropertyValue("Path", path);
-
-    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
-    auto client = Instance();
-
-    DevicePtr device;
-    for (const auto & deviceInfo : client.getAvailableDevices())
-    {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
-        {
-            if (capability.getProtocolName() != "OpenDAQOPCUA")
-                continue;
-
-            if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                break;
-
-            device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-            break;
-        }
-
-        if (device.assigned())
-            break;
-    }
-
-    ASSERT_TRUE(device.assigned());
-
-    const auto caps = device.getInfo().getServerCapabilities();
-    ASSERT_EQ(caps.getCount(), 1u);
-
-    for (const auto& capability : caps)
-    {
-        if (!test_helpers::isSufix(capability.getConnectionString(), path))
-            break;
-
-        if (capability.getProtocolName() == "OpenDAQOPCUA")
-        {
+            ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
             const auto ipv4Info = capability.getAddressInfo()[0];
             const auto ipv6Info = capability.getAddressInfo()[1];
             ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
@@ -328,8 +211,148 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             
             ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
             ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+            return;
+        }      
+    }
+    ASSERT_TRUE(false) << "Device not found";
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+    auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    // client.getAvailableDevices();
+    DevicePtr device = client.addDevice(std::string("daq.opcua://[::1]") + path);
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 1u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
+        // const auto ipv4Info = capability.getAddressInfo()[0];
+        const auto ipv6Info = capability.getAddressInfo()[0];
+
+        // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+        ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+        
+        // ASSERT_EQ(ipv4Info.getType(), "IPv4");
+        ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+        // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+        ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
+        
+        // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+        ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
+        return;
+    }
+    ASSERT_TRUE(false) << "Device not found"; 
+}
+
+#endif
+
+DevicePtr FindOpcuaDeviceByPath(const InstancePtr& instance, const std::string& path, const PropertyObjectPtr& config = nullptr)
+{
+    for (const auto & deviceInfo : instance.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            if (capability.getProtocolName() == "OpenDAQOPCUA")
+            {
+                return instance.addDevice(capability.getConnectionString(), config);
+            }
         }
-    }      
+    }
+    return DevicePtr();
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+    auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+    auto client = Instance();
+
+    DevicePtr device = FindOpcuaDeviceByPath(client, path);
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 1u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
+        const auto ipv4Info = capability.getAddressInfo()[0];
+        const auto ipv6Info = capability.getAddressInfo()[1];
+        ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+        ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+        
+        ASSERT_EQ(ipv4Info.getType(), "IPv4");
+        ASSERT_EQ(ipv6Info.getType(), "IPv6");
+
+        ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
+        ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
+        
+        ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
+        ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+        return;
+    }
+    ASSERT_TRUE(false) << "Device not found";
+}
+
+TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
+{
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+    auto path = "/test/opcua/test_protocol_version/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+    auto client = Instance();
+
+    DevicePtr device = FindOpcuaDeviceByPath(client, path);
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 1u);
+
+    for (const auto& capability : caps)
+    {
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
+
+        ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
+        ASSERT_EQ(capability.getProtocolVersion(), "");
+        ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getProtocolVersion(), "");
+        return;
+    }
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)

@@ -1,0 +1,1 @@
+no CMakeLists.txt here, this directory contains a C# example to be built like with the quick-start guide of the documentation

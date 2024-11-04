@@ -41,6 +41,14 @@ void exampleSimple()
     ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
     auto reader = MultiReader(signals);
 
+    // Initialy we should have event packet for each signal
+    SizeT count = 0;
+    void* emptyValuesPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
+    void* emptyDomainPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
+    auto status = reader.readWithDomain(emptyValuesPerSignal, emptyDomainPerSignal, &count);
+    assert(status.getReadStatus() == ReadStatus::Event);
+    assert(status.getEventPackets().getCount() == NUM_SIGNALS);
+
     sig0.sendPacket();
     sig1.sendPacket();
     sig2.sendPacket();
@@ -60,7 +68,7 @@ void exampleSimple()
     // 523 * 3 = 1569 (1.569s) need 1123 to sync
     // 732 * 3 = 2196 (2.196s) need  123 to sync
     // 843 * 3 = 2529 (2.529s) need    0 to sync
-
+    
     available = reader.getAvailableCount();  // 446
     assert(available == 446);
 
@@ -72,7 +80,7 @@ void exampleSimple()
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count = SAMPLES;
+    count = SAMPLES;
     reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     // count = 446
     assert(count == 446);
@@ -126,6 +134,14 @@ void exampleWithTimeStamps()
     auto reader = MultiReader(signals);
     TimeReader timeReader(reader);
 
+    // Initialy we should have have packet for each signal
+    SizeT count = 0;
+    void* emptyValuesPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
+    void* emptyDomainPerSignal[NUM_SIGNALS]{nullptr, nullptr, nullptr};
+    auto status = reader.readWithDomain(emptyValuesPerSignal, emptyDomainPerSignal, &count);
+    assert(status.getReadStatus() == ReadStatus::Event);
+    assert(status.getEventPackets().getCount() == NUM_SIGNALS);
+
     sig0.sendPacket();
     sig1.sendPacket();
     sig2.sendPacket();
@@ -157,7 +173,7 @@ void exampleWithTimeStamps()
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
     void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count = SAMPLES;
+    count = SAMPLES;
     reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
     // count = 446
     assert(count == 446);

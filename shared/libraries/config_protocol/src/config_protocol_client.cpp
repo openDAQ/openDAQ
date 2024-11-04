@@ -9,23 +9,50 @@
 #include <config_protocol/config_client_sync_component_impl.h>
 #include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
+#include <opendaq/exceptions.h>
 
 namespace daq::config_protocol
 {
+
+// ClientCommand
+
+ClientCommand::ClientCommand(const std::string& name)
+    : ClientCommand(name, 0)
+{
+}
+
+daq::config_protocol::ClientCommand::ClientCommand(const std::string& name, uint16_t minServerVersion)
+    : name(name)
+    , minServerVersion(minServerVersion)
+{
+}
+
+std::string ClientCommand::getName() const
+{
+    return name;
+}
+
+uint16_t ClientCommand::getMinServerVersion() const
+{
+    return minServerVersion;
+}
+
+// ConfigProtocolClientComm
 
 ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
                                                    SendRequestCallback sendRequestCallback,
                                                    SendNoReplyRequestCallback sendNoReplyRequestCallback,
                                                    const ConfigProtocolStreamingProducerPtr& streamingProducer,
                                                    ComponentDeserializeCallback rootDeviceDeserializeCallback)
-        : daqContext(daqContext)
-        , id(0)
-        , sendRequestCallback(std::move(sendRequestCallback))
-        , sendNoReplyRequestCallback(std::move(sendNoReplyRequestCallback))
-        , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
-        , connected(false)
-        , protocolVersion(0)
-        , streamingProducerRef(streamingProducer)
+    : daqContext(daqContext)
+    , id(0)
+    , sendRequestCallback(std::move(sendRequestCallback))
+    , sendNoReplyRequestCallback(std::move(sendNoReplyRequestCallback))
+    , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
+    , connected(false)
+    , protocolVersion(0)
+    , streamingProducerRef(streamingProducer)
+    , loggerComponent(daqContext.getLogger().getOrAddComponent("NativeClient"))
 {
 }
 
@@ -164,6 +191,93 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableFunctionBlockTypes"));
+}
+
+ComponentHolderPtr ConfigProtocolClientComm::addFunctionBlock(const std::string& globalId,
+                                                              const StringPtr& typeId,
+                                                              const PropertyObjectPtr& config,
+                                                              const ComponentPtr& parentComponent)
+{
+    auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
+    return sendComponentCommand(globalId, ClientCommand("AddFunctionBlock"), params, parentComponent);
+}
+
+void ConfigProtocolClientComm::removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId)
+{
+    auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlockLocalId}});
+    sendComponentCommand(globalId, ClientCommand("RemoveFunctionBlock"), params);
+}
+
+uint64_t ConfigProtocolClientComm::getTicksSinceOrigin(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetTicksSinceOrigin"));
+}
+
+ListPtr<IDeviceInfo> ConfigProtocolClientComm::getAvailableDevices(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableDevices", 4));
+}
+
+DictPtr<IString, IDeviceType> ConfigProtocolClientComm::getAvailableDeviceTypes(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableDeviceTypes", 4));
+}
+
+ComponentHolderPtr ConfigProtocolClientComm::addDevice(const std::string& globalId,
+                                                       const StringPtr& connectionString,
+                                                       const PropertyObjectPtr& config,
+                                                       const ComponentPtr& parentComponent)
+{
+    auto params = Dict<IString, IBaseObject>({{"ConnectionString", connectionString}, {"Config", config}});
+    return sendComponentCommand(globalId, ClientCommand("AddDevice", 4), params, parentComponent);
+}
+
+void ConfigProtocolClientComm::removeDevice(const std::string& globalId, const StringPtr& deviceLocalId)
+{    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
+    sendComponentCommand(globalId, ClientCommand("RemoveDevice", 4), params);
+}
+
+void ConfigProtocolClientComm::connectSignal(const std::string& globalId, const std::string& globaSignallId)
+{
+    auto params = ParamsDict({{"SignalId", globaSignallId}});
+    sendComponentCommand(globalId, ClientCommand("ConnectSignal"), params, nullptr);
+}
+
+void ConfigProtocolClientComm::disconnectSignal(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("DisconnectSignal"), nullptr);
+}
+
+BooleanPtr ConfigProtocolClientComm::acceptsSignal(const std::string& globalId, const std::string& globaSignallId)
+{
+    auto params = ParamsDict({{"SignalId", globaSignallId}});
+    return sendComponentCommand(globalId, ClientCommand("AcceptsSignal"), params, nullptr);
+}
+
+DeviceInfoPtr ConfigProtocolClientComm::getInfo(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetInfo"));
+}
+
+TypeManagerPtr ConfigProtocolClientComm::getTypeManager()
+{
+    return sendCommand(ClientCommand("GetTypeManager"));
+}
+
+ListPtr<ILogFileInfo> ConfigProtocolClientComm::getLogFileInfos(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("getLogFileInfos", 5));
+}
+
+StringPtr ConfigProtocolClientComm::getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset)
+{
+    auto params = Dict<IString, IBaseObject>({{"Id", id}, {"Size", size}, {"Offset", offset}});
+    return sendComponentCommand(globalId, ClientCommand("GetLog", 5), params);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -180,7 +294,7 @@ void ConfigProtocolClientComm::lock(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    sendCommand("Lock", params);
+    sendCommand(ClientCommand("Lock", 3), params);
 }
 
 void ConfigProtocolClientComm::unlock(const std::string& globalId)
@@ -188,7 +302,7 @@ void ConfigProtocolClientComm::unlock(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    sendCommand("Unlock", params);
+    sendCommand(ClientCommand("Unlock", 3), params);
 }
 
 bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
@@ -196,7 +310,7 @@ bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    return sendCommand("IsLocked", params);
+    return sendCommand(ClientCommand("IsLocked", 3), params);
 }
 
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
@@ -410,7 +524,7 @@ void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const
     if (!unusedSignals.empty())
     {
         auto params = ParamsDict({{"SignalNumericIds", ListPtr<IInteger>::FromVector(unusedSignals)}});
-        sendNoReplyCommand("RemoveExternalSignals", params);
+        sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);
     }
 }
 
@@ -436,9 +550,22 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const Sign
                               {"SignalStringId", signal.getGlobalId()},
                               {"SerializedSignal", serializedSignal}});
 
-    sendComponentCommand(inputPortRemoteGlobalId, "ConnectExternalSignal", params, nullptr);
+    sendComponentCommand(inputPortRemoteGlobalId, ClientCommand("ConnectExternalSignal"), params, nullptr);
 
     streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
+}
+
+void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& command)
+{
+    if (protocolVersion < command.getMinServerVersion())
+    {
+        LOG_W("The client attempted to call a function \"{}\" that requires a version {} of openDAQ server. Actual server version is {}.",
+              command.getName(),
+              command.getMinServerVersion(),
+              protocolVersion);
+
+        throw ServerVersionTooLowException();
+    }
 }
 
 ComponentDeserializeContextPtr ConfigProtocolClientComm::createDeserializeContext(const std::string& remoteGlobalId,
@@ -463,7 +590,7 @@ ContextPtr ConfigProtocolClientComm::getDaqContext()
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& globalId,
-                                                             const StringPtr& command,
+                                                             const ClientCommand& command,
                                                              ParamsDictPtr& params,
                                                              const ComponentPtr& parentComponent)
 {
@@ -472,7 +599,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& gl
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& globalId,
-                                                             const StringPtr& command,
+                                                             const ClientCommand& command,
                                                              const ComponentPtr& parentComponent)
 {
     auto params = Dict<IString, IBaseObject>();
@@ -484,26 +611,30 @@ BaseObjectPtr ConfigProtocolClientComm::requestRootDevice(const ComponentPtr& pa
 {
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", "//root");
-    return sendComponentCommandInternal("GetComponent", params, parentComponent, true);
+    return sendComponentCommandInternal(ClientCommand("GetComponent"), params, parentComponent, true);
 }
 
 StringPtr ConfigProtocolClientComm::requestSerializedRootDevice()
 {
     auto params = Dict<IString, IBaseObject>();
-    return sendComponentCommandInternal("GetSerializedRootDevice", params, nullptr);
+    return sendComponentCommandInternal(ClientCommand("GetSerializedRootDevice"), params, nullptr);
 }
 
-BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolClientComm::sendCommand(const ClientCommand& command, const ParamsDictPtr& params)
 {
-    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
+    requireMinServerVersion(command);
+
+    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), nullptr);
 }
 
-void ConfigProtocolClientComm::sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params)
+void ConfigProtocolClientComm::sendNoReplyCommand(const ClientCommand& command, const ParamsDictPtr& params)
 {
-    auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command, params);
+    requireMinServerVersion(command);
+
+    auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command.getName(), params);
     sendNoReplyRequestCallback(sendNoReplyCommandRpcRequestPacketBuffer);
 }
 
@@ -617,12 +748,14 @@ void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
                                  });
 }
 
-BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
+BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const ClientCommand& command,
                                                                      const ParamsDictPtr& params,
                                                                      const ComponentPtr& parentComponent,
                                                                      bool isGetRootDeviceCommand)
 {
-    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
+    requireMinServerVersion(command);
+
+    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     std::string remoteGlobalId{};

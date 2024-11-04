@@ -168,7 +168,7 @@ TEST_F(RegressionTestDevice, getAvailableDevices)
     }
     else if (protocol == "nd")
     {
-        ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "Operation not supported by the protocol version currently in use");
+        ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "The client attempted to call a function that requires a newer version of the openDAQ server");
     }
 }
 
@@ -183,7 +183,7 @@ TEST_F(RegressionTestDevice, getAvailableDeviceTypes)
     else if (protocol == "nd")
     {
         ASSERT_THROW_MSG(
-            device.getAvailableDeviceTypes(), DaqException, "Operation not supported by the protocol version currently in use");
+            device.getAvailableDeviceTypes(), DaqException, "The client attempted to call a function that requires a newer version of the openDAQ server");
     }
 }
 

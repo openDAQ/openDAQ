@@ -163,7 +163,8 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     IErrorInfo* errorInfo_ = nullptr;
     IString* msg = nullptr;
     IString* source = nullptr;
-    Finally final([&errorInfo_, &msg, &source]() {
+    Finally final([&errorInfo_, &msg, &source]
+    {
         if (errorInfo_ != nullptr)
             errorInfo_->releaseRef();
         if (msg != nullptr)
@@ -176,14 +177,22 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     if (OPENDAQ_FAILED(err))
         return err;
 
-    char errorMsg[1024];
+    if constexpr (sizeof...(params) == 0)
+    {
+        err = createString(&msg, message.c_str());
+    }
+    else
+    {
+        char errorMsg[1024];
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
-    sprintf_s(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
+        sprintf_s(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
 #else
-    snprintf(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
+        snprintf(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
 #endif
 
-    err = createString(&msg, errorMsg);
+        err = createString(&msg, errorMsg);
+    }
+
     if (OPENDAQ_FAILED(err))
         return err;
 

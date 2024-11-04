@@ -141,7 +141,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             }
         }
     }
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 
@@ -201,7 +201,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
         }      
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 #ifdef _WIN32

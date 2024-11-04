@@ -31,6 +31,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
@@ -49,6 +53,19 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
     ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
 }
 
+TEST_F(ModulesDefaultConfigTest, NativeStreaming)
+{
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("Streaming");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+}
+
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
 {
     const auto instance = Instance();
@@ -56,6 +73,10 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)

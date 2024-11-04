@@ -143,7 +143,7 @@ protected:
     // is published only for subscribed signals.
     // as workaround we temporarily subscribe all signals to receive signal meta-info
     // at initialization stage.
-    // To manage this the 'availableSigInitStatus' is used, it is map of 4-element tuples, where:
+    // To manage this the 'availableSigInitStatus' is used, it is map of 3-element tuples, where:
     // 1-st is std::promise
     // 2-nd is std::future
     // 3-rd: boolean flag indicating that initial unsubscription completion ack is filtered-out

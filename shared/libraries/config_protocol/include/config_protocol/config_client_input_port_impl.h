@@ -19,6 +19,7 @@
 #include <opendaq/input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
+#include <opendaq/errors.h>
 
 namespace daq::config_protocol
 {
@@ -93,10 +94,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             {
                 StringPtr signalRemoteGlobalId;
                 checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-
-                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-                clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
+                clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
             }
             else
             {
@@ -120,7 +118,7 @@ inline ErrCode ConfigClientInputPortImpl::disconnect()
         {
             assert(this->deserializationComplete);
 
-            clientComm->sendComponentCommand(remoteGlobalId, "DisconnectSignal", nullptr);
+            clientComm->disconnectSignal(remoteGlobalId);
             return Super::disconnect();
         });
 }
@@ -146,9 +144,8 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return daqTry(
         [this, &signal, &accepts]
         {
-            if (!(clientComm->getProtocolVersion() >= 4))
-                return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE,
-                                     "Operation not supported by the protocol version currently in use");
+            if (clientComm->getProtocolVersion() < 4)
+                return OPENDAQ_ERR_SERVER_VERSION_TOO_LOW;
 
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
@@ -159,10 +156,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             {
                 StringPtr signalRemoteGlobalId;
                 checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-
-                auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-                BooleanPtr acceptsPtr = clientComm->sendComponentCommand(remoteGlobalId, "AcceptsSignal", params, nullptr);
+                BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
                 *accepts = acceptsPtr.getValue(False);
                 return OPENDAQ_SUCCESS;
             }

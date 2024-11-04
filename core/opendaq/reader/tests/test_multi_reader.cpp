@@ -8,6 +8,7 @@
 
 #include <gmock/gmock-matchers.h>
 
+#include <chrono>
 #include <future>
 #include <thread>
 #include <utility>
@@ -19,48 +20,6 @@ struct ReadSignal;
 
 static void zeroOutPacketData(const DataPacketPtr& packet);
 static DataPacketPtr createPacket(daq::SizeT numSamples, daq::Int offset, const ReadSignal& read);
-
-class TestEvent
-{
-public:
-    TestEvent()
-    {
-        std::cout << "TestEvent::TestEvent" << std::endl;
-    }
-    ~TestEvent()
-    {
-        std::cout << "TestEvent::~TestEvent" << std::endl;
-    }
-    template <typename Rep, typename Period>
-    auto wait_for(std::chrono::duration<Rep, Period> duration)
-    {
-        std::unique_lock ulock(m);
-        auto result = cv.wait_for(ulock, duration, [this] { return flag; });
-        return result;
-    }
-    void notify_one()
-    {
-        std::unique_lock ulock{m};
-        flag = true;
-        cv.notify_one();
-    }
-    void notify_all()
-    {
-        std::unique_lock ulock{m};
-        flag = true;
-        cv.notify_all();
-    }
-    void reset()
-    {
-        std::unique_lock ulock{m};
-        flag = false;
-    }
-
-private:
-    std::mutex m{};
-    std::condition_variable cv{};
-    bool flag{false};
-};
 
 struct ReadSignal
 {
@@ -2195,7 +2154,96 @@ TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
     ASSERT_THROW(MultiReaderFromBuilder(builder), InvalidParameterException);
 }
 
-TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
+TEST_F(MultiReaderTest, MultiReaderBuilderFromSignalsTimeouts)
+{
+    using namespace std::chrono_literals;
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 10, createDomainSignal());
+    auto sig1 = addSignal(0, 10, createDomainSignal());
+    auto sig2 = addSignal(0, 10, createDomainSignal());
+
+    SignalPtr signal0 = sig0.signal;
+    SignalPtr signal1 = sig1.signal;
+    SignalPtr signal2 = sig2.signal;
+
+    MultiReaderBuilderPtr builder = MultiReaderBuilder().addSignal(signal0).addSignal(signal1).addSignal(signal2);
+    auto multireader = builder.build();
+
+    using Type = SampleTypeToType<SampleType::Float64>::Type;
+    Type sig0Samples[10];
+    Type sig1Samples[10];
+    Type sig2Samples[10];
+
+    void* samples[3] = {sig0Samples, sig1Samples, sig2Samples};
+    auto count = SizeT{0};
+    auto status = multireader.read(samples, &count, 1000);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    auto start = std::chrono::steady_clock::now();
+    auto sendThread = std::thread([&sig0, &sig1, &sig2]() {
+        std::this_thread::sleep_for(1s);
+        sig0.createAndSendPacket(0);
+        sig1.createAndSendPacket(0);
+        sig2.createAndSendPacket(0);
+    });
+    count = SizeT(sig0.packetSize);
+    status = multireader.read(samples, &count, 10000);
+    auto end = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10);
+    ASSERT_LT(diff, 5000);
+
+    sendThread.join();
+}
+
+TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
+{
+    using namespace std::chrono_literals;
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 10, createDomainSignal());
+    auto sig1 = addSignal(0, 10, createDomainSignal());
+    auto sig2 = addSignal(0, 10, createDomainSignal());
+
+    auto multireader = MultiReader(signalsToList());
+
+    using Type = SampleTypeToType<SampleType::Float64>::Type;
+    Type sig0Samples[10];
+    Type sig1Samples[10];
+    Type sig2Samples[10];
+
+    void* samples[3] = {sig0Samples, sig1Samples, sig2Samples};
+    auto count = SizeT{0};
+    auto start = std::chrono::steady_clock::now();
+    auto status = multireader.read(samples, &count, 10000);
+    auto end = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_LT(diff, 5000);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    ASSERT_EQ(multireader.getAvailableCount(), 10);
+
+    count = SizeT(sig0.packetSize);
+    start = std::chrono::steady_clock::now();
+    status = multireader.read(samples, &count, 10000);
+    end = std::chrono::steady_clock::now();
+    diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Diff = " << diff << std::endl;
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10);
+    ASSERT_LT(diff, 5000);
+}
+
+TEST_F(MultiReaderTest, MultiReaderExceptionOnConstructor)
 {
     readSignals.reserve(1);
 
@@ -2333,7 +2381,7 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
     std::array<double[SAMPLES], NUM_SIGNALS> values{};
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
 
-    // check that we read 0 sampes as one of the ports is not connected
+    // check that we read 0 samples as one of the ports is not connected
     SizeT count{SAMPLES};
     MultiReaderStatusPtr status = multi.read(valuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
@@ -4168,18 +4216,25 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
         domainSignal.setDescriptor(newDomainDescriptor);
     };
 
+    auto notified = false;
     auto state = 0;
-    auto testEvent = TestEvent{};
+    auto cv = std::condition_variable{};
+    auto m = std::mutex{};
 
     multiReader.setOnDataAvailable(
         [this,
          &multiReader,
-         &testEvent,
+         &cv,
+         &m,
+         &notified,
          &state,
          &valuesPerSignal,
          &domainValuesPerSignal,
          NUM_SAMPLES]
         {
+            auto lck = std::unique_lock{m};
+            ASSERT_FALSE(notified);
+            
             switch (state)
             {
                 case 0:
@@ -4203,7 +4258,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                         ASSERT_EQ(domainDescriptor.getSampleType(), SampleTypeFromType<ClockTick>::SampleType);
                     }
 
-                    testEvent.notify_all();
                     state = 1;
                     break;
                 }
@@ -4213,7 +4267,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
                     ASSERT_EQ(count, NUM_SAMPLES);
-                    testEvent.notify_all();
 
                     state = 2;
                     break;
@@ -4244,7 +4297,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::UInt64);
 
                     multiReader.setActive(false);
-                    testEvent.notify_all();
 
                     state = 3;
                     break;
@@ -4273,8 +4325,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                         eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtrOrNull<IDataDescriptor>();
                     ASSERT_TRUE(domainDescriptor.assigned());
                     ASSERT_EQ(domainDescriptor.getSampleType(), SampleType::Float64);
-
-                    testEvent.notify_all();
 
                     state = 4;
                     break;
@@ -4306,8 +4356,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
                     multiReader.setActive(true);
 
-                    testEvent.notify_all();
-
                     state = 5;
                     break;
                 }
@@ -4323,7 +4371,6 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
                     ASSERT_EQ(count, NUM_SAMPLES);
-                    testEvent.notify_all();
 
                     state = 6;
                     break;
@@ -4333,6 +4380,8 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     GTEST_FAIL();
                 }
             }
+            notified = true;
+            cv.notify_all();
         });
 
     for (size_t i = 0; i < NUM_SIGNALS; i++)
@@ -4340,9 +4389,10 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
 
     while (state != 6)
     {
-        bool result = testEvent.wait_for(2s);
-        ASSERT_TRUE(result);
-        testEvent.reset();
+        auto lck = std::unique_lock{m};
+        auto cv_status = cv.wait_for(lck, 10s, [&notified] { return notified; });
+        ASSERT_TRUE(cv_status);
+        notified = false;
 
         switch (state)
         {
@@ -4418,6 +4468,8 @@ class MinReadCountTest : public MultiReaderTest, public testing::WithParamInterf
 
 TEST_P(MinReadCountTest, MinReadCount)
 {
+    auto timeoutMs = GetParam();
+
     constexpr auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
 
@@ -4425,7 +4477,7 @@ TEST_P(MinReadCountTest, MinReadCount)
     auto& sig1 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
     auto& sig2 = addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00"));
 
-    auto multi = MultiReaderBuilder().addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig1.signal).setMinReadCount(20).build();
+    auto multi = MultiReaderBuilder().addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig2.signal).setMinReadCount(20).build();
 
     sig0.createAndSendPacket(0);
     sig1.createAndSendPacket(0);
@@ -4441,11 +4493,11 @@ TEST_P(MinReadCountTest, MinReadCount)
 
     ASSERT_EQ(multi.getAvailableCount(), 0);
 
-    ASSERT_THROW(multi.read(valuesPerSignal, &count, GetParam()), InvalidParameterException);
+    ASSERT_THROW(multi.read(valuesPerSignal, &count, timeoutMs), InvalidParameterException);
     count = 10;
     ASSERT_THROW(multi.skipSamples(&count), InvalidParameterException);
     count = 10;
-    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domain, &count, GetParam()), InvalidParameterException);
+    ASSERT_THROW(multi.readWithDomain(valuesPerSignal, domain, &count, timeoutMs), InvalidParameterException);
 
     sig0.createAndSendPacket(1);
     sig1.createAndSendPacket(1);
@@ -4453,13 +4505,13 @@ TEST_P(MinReadCountTest, MinReadCount)
 
     ASSERT_EQ(multi.getAvailableCount(), 0);
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
     ASSERT_EQ(multi.getAvailableCount(), 20);
 
     count = 20;
-    multi.read(valuesPerSignal, &count, GetParam());
+    multi.read(valuesPerSignal, &count, timeoutMs);
 
     ASSERT_EQ(count, 20);
 
@@ -4474,12 +4526,12 @@ TEST_P(MinReadCountTest, MinReadCount)
     ASSERT_EQ(multi.getAvailableCount(), 0);
 
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(count, 0);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     count = 0;
-    status = multi.read(nullptr, &count, GetParam());
+    status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_EQ(count, 0);
 }

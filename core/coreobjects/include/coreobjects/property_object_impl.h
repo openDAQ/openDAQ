@@ -703,7 +703,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
     if (coreType == ctList)
     {
         const auto itemType = prop.getItemType();
-        if (!iterate(value, itemType))
+
+        if (itemType != ctUndefined && !iterate(value, itemType))
         {
             return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid list item type");
         }

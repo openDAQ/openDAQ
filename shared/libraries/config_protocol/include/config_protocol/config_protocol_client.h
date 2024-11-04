@@ -40,6 +40,20 @@ using ComponentDeserializeCallback = std::function<ErrCode(ISerializedObject*, I
 
 using ConfigProtocolStreamingProducerPtr = std::shared_ptr<ConfigProtocolStreamingProducer>;
 
+class ClientCommand
+{
+public:
+    ClientCommand(const std::string& name);
+    ClientCommand(const std::string& name, uint16_t minServerVersion);
+
+    std::string getName() const;
+    uint16_t getMinServerVersion() const;
+
+private:
+    std::string name;
+    uint16_t minServerVersion;
+};
+
 class ConfigProtocolClientComm : public std::enable_shared_from_this<ConfigProtocolClientComm>
 {
 public:
@@ -62,20 +76,32 @@ public:
     void lock(const std::string& globalId);
     void unlock(const std::string& globalId);
     bool isLocked(const std::string& globalId);
-
-    void beginUpdate(const std::string& globalId, const std::string& path);
-    void endUpdate(const std::string& globalId, const std::string& path, const ListPtr<IDict>& props = nullptr);
+    void beginUpdate(const std::string& globalId, const std::string& path = "");
+    void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
+    DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId);
+    ComponentHolderPtr addFunctionBlock(const std::string& globalId,
+                                        const StringPtr& typeId,
+                                        const PropertyObjectPtr& config = nullptr,
+                                        const ComponentPtr& parentComponent = nullptr);
+    void removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId);
+    uint64_t getTicksSinceOrigin(const std::string& globalId);
+    ListPtr<IDeviceInfo> getAvailableDevices(const std::string& globalId);
+    DictPtr<IString, IDeviceType> getAvailableDeviceTypes(const std::string& globalId);
+    ComponentHolderPtr addDevice(const std::string& globalId,
+                                 const StringPtr& connectionString,
+                                 const PropertyObjectPtr& config,
+                                 const ComponentPtr& parentComponent);
+    void removeDevice(const std::string& globalId, const StringPtr& deviceLocalId);
+    void connectSignal(const std::string& globalId, const std::string& globaSignallId);
+    void disconnectSignal(const std::string& globalId);
+    BooleanPtr acceptsSignal(const std::string& globalId, const std::string& globaSignallId);
+    DeviceInfoPtr getInfo(const std::string& globalId);
+    TypeManagerPtr getTypeManager();
+    ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);
+    StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
 
     bool getConnected() const;
     ContextPtr getDaqContext();
-
-    BaseObjectPtr sendComponentCommand(const StringPtr& globalId,
-                                       const StringPtr& command,
-                                       ParamsDictPtr& params,
-                                       const ComponentPtr& parentComponent = nullptr);
-    BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
-    BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
-    void sendNoReplyCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
 
     static SignalPtr findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId);
 
@@ -107,7 +133,9 @@ private:
     WeakRefPtr<IDevice> rootDeviceRef;
     uint16_t protocolVersion;
     std::weak_ptr<ConfigProtocolStreamingProducer> streamingProducerRef;
+    LoggerComponentPtr loggerComponent;
 
+    void requireMinServerVersion(const ClientCommand& command);
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
                                                             const ComponentPtr& root,
@@ -123,10 +151,19 @@ private:
                                         bool isGetRootDeviceReply = false);
     uint64_t generateId();
 
-    BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
+    BaseObjectPtr sendComponentCommand(const StringPtr& globalId,
+                                       const ClientCommand& command,
+                                       ParamsDictPtr& params,
+                                       const ComponentPtr& parentComponent = nullptr);
+    BaseObjectPtr sendComponentCommand(const StringPtr& globalId,
+                                       const ClientCommand& command,
+                                       const ComponentPtr& parentComponent = nullptr);
+    BaseObjectPtr sendComponentCommandInternal(const ClientCommand& command,
                                                const ParamsDictPtr& params,
                                                const ComponentPtr& parentComponent = nullptr,
                                                bool isGetRootDeviceCommand = false);
+    BaseObjectPtr sendCommand(const ClientCommand& command, const ParamsDictPtr& params = nullptr);
+    void sendNoReplyCommand(const ClientCommand& command, const ParamsDictPtr& params = nullptr);
 
     BaseObjectPtr requestRootDevice(const ComponentPtr& parentComponent);
     StringPtr requestSerializedRootDevice();
@@ -162,9 +199,10 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = std::numeric_limits<uint16_t>::max());
+    DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestConfigProtocolVersion());
     void reconnect(Bool restoreClientConfigOnReconnect);
     void disconnectExternalSignals();
+    uint16_t getProtocolVersion() const;
 
     DevicePtr getDevice();
     ConfigProtocolClientCommPtr getClientComm();
@@ -229,13 +267,13 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
         clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
 
-    const std::set<uint16_t> supportedClientVersions {0, 1, 2, 3, 4};
+    const std::set<uint16_t> supportedClientVersions = std::move(GetSupportedConfigProtocolVersions());
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;
     replyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedServerVersions);
 
-    if (protocolVersion != std::numeric_limits<uint16_t>::max())
+    if (protocolVersion != GetLatestConfigProtocolVersion())
     {
         if (std::find(supportedClientVersions.begin(), supportedClientVersions.end(), protocolVersion) == supportedClientVersions.end())
             throw ConfigProtocolException("Protocol not supported on client");
@@ -273,10 +311,16 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
 }
 
 template<class TRootDeviceImpl>
+uint16_t ConfigProtocolClient<TRootDeviceImpl>::getProtocolVersion() const
+{
+    return clientComm->getProtocolVersion();
+}
+
+template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
 {
     const auto localTypeManager = daqContext.getTypeManager();
-    const TypeManagerPtr typeManager = clientComm->sendCommand("GetTypeManager");
+    const TypeManagerPtr typeManager = clientComm->getTypeManager();
     const auto types = typeManager.getTypes();
 
     for (const auto& typeName : types)

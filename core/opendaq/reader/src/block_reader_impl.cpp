@@ -69,7 +69,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     initOverlap();
 
     this->internalAddRef();
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
 
     notify.dataReady = false;
 }

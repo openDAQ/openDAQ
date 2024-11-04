@@ -94,7 +94,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         daq::SizeT count = 100;
         timeReader.readWithDomain(samples, timeStamps, &count);
         if (count > 0)
-            std::cout << "Value: " << samples[count - 1] << ", Time: " << timeStamps[count - 1] << std::endl;
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << timeStamps[count - 1] << std::endl;
     }
 
     // Create an instance of the renderer function block

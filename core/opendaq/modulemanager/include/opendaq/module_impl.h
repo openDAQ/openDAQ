@@ -21,17 +21,13 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <coreobjects/property_object_factory.h>
-
 #include <coretypes/intfs.h>
-#include <coretypes/version_info_ptr.h>
 #include <coretypes/validation.h>
-
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_config_ptr.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_ptr.h>
 
@@ -358,7 +354,6 @@ public:
     }
 
 protected:
-    StringPtr name;
     ModuleInfoPtr moduleInfo;
 
     ContextPtr context;
@@ -371,7 +366,7 @@ protected:
         , context(std::move(context))
         , logger(this->context.getLogger())
         , loggerComponent( this->logger.assigned()
-                              ? this->logger.getOrAddComponent(this->name.assigned() ? this->name : "UnknownModule" )
+                  ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
                               : throw ArgumentNullException("Logger must not be null"))
     {
     }

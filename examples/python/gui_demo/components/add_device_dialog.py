@@ -181,7 +181,12 @@ class AddDeviceDialog(Dialog):
         if parent_device is None:
             return
 
-        for device_info in parent_device.available_devices:
+        try:
+            available_devices = parent_device.available_devices
+        except:
+            return
+
+        for device_info in available_devices:
             name = device_info.name
             conn = device_info.connection_string
             used = conn in self.context.enabled_devices

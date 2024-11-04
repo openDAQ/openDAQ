@@ -57,8 +57,8 @@ might be located at a slightly different path within the `build` folder.
 [source,shell]
 ----
 cd build/x64/msvc-22/full
-cmake --build .
-cmake --install . --prefix "openDAQ"
+cmake --build . --config Release
+cmake --install . --prefix "openDAQ" --config Release
 ----
 
 This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different
@@ -122,8 +122,8 @@ be located at a slightly different path within the `build` folder.
 [source,shell]
 ----
 cd build/x64/gcc/full/release
-cmake --build .
-cmake --install . --prefix "openDAQ"
+cmake --build . --config Release
+cmake --install . --prefix "openDAQ" --config Release
 ----
 
 This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different installation

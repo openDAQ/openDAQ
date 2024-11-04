@@ -10,7 +10,6 @@
 #include <opendaq/scaling_ptr.h>
 
 #include "opendaq/deleter_factory.h"
-#include "opendaq/instance_factory.h"
 
 using DataPacketTest = testing::Test;
 
@@ -539,7 +538,6 @@ TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
 
     uint64_t lastValue;
 
-    auto* data = packet.getData();
     ASSERT_NO_THROW(lastValue = packet.getLastValue());
 
     ASSERT_EQ(lastValue, 15u);
@@ -837,8 +835,7 @@ TEST_F(DataPacketTest, GetValueByIndex)
                     const auto descriptor = descriptorBuilder.build();
                     constexpr auto voltageSampleType = SampleType::Int32;
                     constexpr auto currentSampleType = SampleType::Int32;
-#pragma(push)
-#pragma(pack, 1)
+#pragma pack(push, 1)
                     struct Measurements
                     {
                         using VoltageType = SampleTypeToType<voltageSampleType>::Type;
@@ -846,7 +843,7 @@ TEST_F(DataPacketTest, GetValueByIndex)
                         VoltageType voltage;
                         CurrentType current;
                     };
-#pragma(pop)
+#pragma pack(pop)
                     const auto packet = DataPacket(descriptor, 3, 0);
                     auto* rawData = static_cast<Measurements*>(packet.getRawData());
                     auto* measurements = new (rawData) Measurements[3];
@@ -906,10 +903,7 @@ TEST_F(DataPacketTest, GetValueByIndex)
                                                 .setDimensions(dimensions)
                                                 .build();
                     const auto packet = DataPacket(descriptor, 3, 0);
-                    auto* data = packet.getData();
-                    const auto dataSize = packet.getDataSize();
                     auto* rawData = packet.getRawData();
-                    const auto rawDataSize = packet.getRawDataSize();
 
                     using SubSampleType = SampleTypeToType<subSampleType>::Type;
                     auto subSamples = static_cast<SubSampleType(*)[3]>(rawData);
@@ -1078,8 +1072,7 @@ TEST_F(DataPacketTest, GetValueByIndex)
                 const auto descriptor = descriptorBuilder.build();
                 constexpr auto voltageSampleType = SampleType::Int32;
                 constexpr auto currentSampleType = SampleType::Int32;
-#pragma(push)
-#pragma(pack, 1)
+#pragma pack(push, 1)
                 struct Measurements
                 {
                     using VoltageType = SampleTypeToType<voltageSampleType>::Type;
@@ -1087,7 +1080,7 @@ TEST_F(DataPacketTest, GetValueByIndex)
                     VoltageType voltage;
                     CurrentType current;
                 };
-#pragma(pop)
+#pragma pack(pop)
                 // const auto packet = DataPacket(descriptor, 3, 0);
                 // auto* measurements = new Measurements[3];
                 constexpr auto sampleCount = 3;

@@ -631,6 +631,8 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
                                      });
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
+        if (impl == nullptr)
+            throw InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl");
         impl->unfreeze();
         this->writeLocalValue(propName, clientPropObj);
         this->configureClonedObj(propName, clientPropObj);

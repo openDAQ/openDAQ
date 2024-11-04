@@ -1,9 +1,10 @@
-import opendaq as daq
 import tkinter as tk
 from tkinter import ttk
 
-from ..utils import *
-from ..app_context import *
+import opendaq as daq
+
+from .. import utils
+from ..app_context import AppContext, DeviceInfoLocal
 from ..event_port import *
 from .dialog import Dialog
 from .add_config_dialog import AddConfigDialog
@@ -25,10 +26,10 @@ class AddDeviceDialog(Dialog):
         parent_device_tree = ttk.Treeview(parent_device_tree_frame)
 
         parent_device_scroll_bar = ttk.Scrollbar(
-            parent_device_tree_frame, orient="vertical", command=parent_device_tree.yview)
+            parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
         parent_device_tree.configure(
             yscrollcommand=parent_device_scroll_bar.set)
-        parent_device_scroll_bar.pack(side="right", fill="y")
+        parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
@@ -37,22 +38,22 @@ class AddDeviceDialog(Dialog):
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
-        parent_device_tree.pack(fill="both", expand=True)
+        parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
         parent_device_tree_frame.grid(row=0, column=0)
-        parent_device_tree_frame.grid_configure(sticky='nsew')
+        parent_device_tree_frame.grid_configure(sticky=tk.NSEW)
 
         # device
 
         right_side_frame = ttk.Frame(self)
         device_tree_frame = ttk.Frame(right_side_frame)
         device_tree = ttk.Treeview(device_tree_frame, columns=('used', 'name', 'conn'), displaycolumns=(
-            'used', 'name', 'conn'), show='tree headings', selectmode='browse')
+            'used', 'name', 'conn'), show='tree headings', selectmode=tk.BROWSE)
 
         device_scroll_bar = ttk.Scrollbar(
-            device_tree_frame, orient="vertical", command=device_tree.yview)
+            device_tree_frame, orient=tk.VERTICAL, command=device_tree.yview)
         device_tree.configure(yscrollcommand=device_scroll_bar.set)
-        device_scroll_bar.pack(side="right", fill="y")
+        device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.device_tree = device_tree
         self.parent_device_tree = parent_device_tree
@@ -67,30 +68,29 @@ class AddDeviceDialog(Dialog):
         device_tree.column('conn', anchor=tk.W, minwidth=300)
 
         device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
-        device_tree.pack(fill="both", expand=True)
-        device_tree_frame.pack(fill="both", expand=True)
+        device_tree.pack(fill=tk.BOTH, expand=True)
+        device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
-        add_device_frame = tk.Frame(right_side_frame)
-        tk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
-        self.conn_string_entry = tk.Entry(add_device_frame)
+        add_device_frame = ttk.Frame(right_side_frame)
+        ttk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
+        self.conn_string_entry = ttk.Entry(add_device_frame)
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(
             side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
         self.add_device_option = tk.StringVar(add_device_frame)
-        self.add_device_option.set("no config")
-        add_device_options = ["no config", "with config"]
-        tk.OptionMenu(add_device_frame, self.add_device_option,
+        add_device_options = ['no config', 'with config']
+        ttk.OptionMenu(add_device_frame, self.add_device_option, 'no config',
                       *add_device_options).pack(side=tk.RIGHT)
 
-        tk.Button(add_device_frame, text='Add',
+        ttk.Button(add_device_frame, text='Add',
                   command=self.handle_add_device).pack(side=tk.RIGHT)
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
 
         right_side_frame.grid(row=0, column=1)
-        right_side_frame.grid_configure(sticky='nsew')
+        right_side_frame.grid_configure(sticky=tk.NSEW)
 
         self.grid_rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1, uniform='column')
@@ -111,14 +111,14 @@ class AddDeviceDialog(Dialog):
             self.parent_device_tree.selection_set(device_id)
 
     def is_add_with_config(self):
-        return self.add_device_option.get() == "with config"
+        return self.add_device_option.get() == 'with config'
 
     def handle_parent_device_selected(self, event):
-        selected_item = treeview_get_first_selection(
+        selected_item = utils.treeview_get_first_selection(
             self.parent_device_tree)
         if selected_item is None:
             return
-        parent_device = find_component(selected_item, self.context.instance)
+        parent_device = utils.find_component(selected_item, self.context.instance)
         if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
             parent_device = daq.IDevice.cast_from(parent_device)
             self.dialog_parent_device = parent_device
@@ -129,7 +129,7 @@ class AddDeviceDialog(Dialog):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
             return
-        selected_item = treeview_get_first_selection(
+        selected_item = utils.treeview_get_first_selection(
             self.device_tree)
         if selected_item is None:
             return
@@ -187,7 +187,7 @@ class AddDeviceDialog(Dialog):
             used = conn in self.context.enabled_devices
 
             tree.insert('', tk.END, iid=conn, values=(
-                yes_no[used], name, conn))
+                utils.yes_no[used], name, conn))
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())

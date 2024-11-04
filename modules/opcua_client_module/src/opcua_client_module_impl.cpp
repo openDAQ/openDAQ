@@ -69,6 +69,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 }
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix(DaqOpcUaDevicePrefix);
+                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
                 if (discoveredDevice.servicePort > 0)
                     cap.setPort(discoveredDevice.servicePort);
                 return cap;

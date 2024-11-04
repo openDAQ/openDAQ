@@ -1,18 +1,19 @@
-import opendaq as daq
 import tkinter as tk
+from tkinter import ttk
+
+import opendaq as daq
 
 from .input_port_row_view import InputPortRowView
-from tkinter import ttk, simpledialog
 
 
-class InputPortsView(tk.Frame):
+class InputPortsView(ttk.Frame):
     def __init__(self, parent, node, context=None, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.node = node
         self.context = context
 
-        self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
+        self.configure(padding=(10, 5), border=1, relief=tk.GROOVE)
 
         self.refresh()
 

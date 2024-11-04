@@ -78,7 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , protocolVersion(0)
-    , supportedServerVersions({0, 1, 2, 3, 4})
+    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -146,10 +146,12 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
     addHandler<DevicePtr>("IsLocked", &ConfigServerDevice::isLocked);
-    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
+    addHandler<DevicePtr>("getLogFileInfos", &ConfigServerDevice::getLogFileInfos);
     addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
     addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
     addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
+    addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
+    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 

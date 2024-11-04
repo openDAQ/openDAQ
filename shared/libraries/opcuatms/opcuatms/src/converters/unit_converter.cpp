@@ -32,6 +32,7 @@ OpcUaObject<UA_EUInformationWithQuantity> StructConverter<IUnit, UA_EUInformatio
 {
     OpcUaObject<UA_EUInformationWithQuantity> tmsUnit;
 
+    tmsUnit->namespaceUri = UA_STRING_ALLOC("http://www.opcfoundation.org/UA/units/un/cefact");
     tmsUnit->unitId = object.getId();
     tmsUnit->description = UA_LOCALIZEDTEXT_ALLOC("en-US", object.getName().getCharPtr());
     tmsUnit->displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", object.getSymbol().getCharPtr());

@@ -27,6 +27,7 @@
 #include <opendaq/server.h>
 #include <opendaq/update_parameters.h>
 #include <coreobjects/user.h>
+#include <opendaq/log_file_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -324,6 +325,29 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] locked True if device is locked.
      */
     virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;
+
+    // [elementType(logFileInfos, ILogFileInfo)]
+    /*!
+     * @brief Gets a list of available log files.
+     * @param[out] logFileInfos The list of available log files.
+     */
+    virtual ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) = 0;
+
+    /*!
+     * @brief Retrieves a chunk of the log file with the provided ID.
+     * 
+     * This function extracts a specified portion (or the entire content) of the log file, starting at the given offset. 
+     * If the size and offset are not specified, it will attempt to return the entire log file by default.
+     * 
+     * @param[out] log A string which stores requested log chunk.
+     * @param id Rhe ID of the log file to retrieve.
+     * @param size The size of the log chunk to retrieve in bytes. Defaults to -1, which means it will return all remaining bytes from the offset.
+     * @param offset The offset, in bytes, from where the log chunk should be read. Defaults to 0 (start of the file).
+     * 
+     * If size is set to -1, and offset is 0, the entire log file will be returned.
+     */
+    virtual ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size = -1, Int offset = 0) = 0;
+
 };
 /*!@}*/
 

@@ -68,6 +68,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
 
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
+                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
                 if (discoveredDevice.servicePort > 0)
                     cap.setPort(discoveredDevice.servicePort);
                 return cap;

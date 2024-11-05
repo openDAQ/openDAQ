@@ -100,6 +100,7 @@ private:
     BaseObjectPtr getFullPropName(const std::string& propName) const;
 
     void checkCanSetPropertyValue(const StringPtr& propName);
+    bool isBasePropertyObject(const PropertyObjectPtr& propObj);
 
     std::string getPath();
     void applyUpdatingPropsAndValuesProtocolVer0();
@@ -610,6 +611,14 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         if (!defaultValueObj.assigned())
             return;
 
+        if (!isBasePropertyObject(defaultValueObj))
+        {
+            auto clonedValue = defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
+            this->writeLocalValue(propName, clonedValue);
+            this->configureClonedObj(propName, clonedValue);
+            return;
+        }
+
         // This feels hacky...
         const auto serializer = JsonSerializer();
         defaultValueObj.serialize(serializer);
@@ -838,6 +847,14 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
             return;
     }
 }
+
+template <class Impl>
+bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
+{
+    return !propObj.supportsInterface<IServerCapabilityConfig>() 
+            && !propObj.supportsInterface<IAddressInfo>();
+}
+
 
 template <class Impl>
 std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPath()

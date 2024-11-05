@@ -29,8 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IConnectionInternal, IBaseObject)
 {
     /*!
-     * @brief Places a packet at the back of the queue.
-     * @param packet The packet to be enqueued.
+     * @brief Enqueues an event packet with the last descriptor at the front of the queue.
      */
     virtual ErrCode INTERFACE_FUNC enqueueLastDescriptor() = 0;
 };

@@ -1,4 +1,4 @@
-name: opendaq
+name: opendaq-specs
 title: openDAQ protocols specification
 version: {opendaq-version}
 start_page: ROOT:overview.adoc

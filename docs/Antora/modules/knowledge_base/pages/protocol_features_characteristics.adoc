@@ -120,18 +120,6 @@ The following table showcases which of the protocols supports what features. You
 ^|
 ^|
 
-| Authentication and access control
-| Clients can authenticate when connecting to the server. The server defines users and groups, restricting read, write, or execute access to different components based on group membership.
-^| ✅
-^|
-^|
-
-| Device locking
-| Client can lock a device. Once locked, no properties of the device can be changed via the protocol layer. Only the same user who locked the device can unlock it.
-^| ✅
-^|
-^|
-
 |===
 
 .Structure
@@ -203,6 +191,19 @@ The following table showcases which of the protocols supports what features. You
 ^| ✅
 ^| ✅
 ^| 
+
+| Authentication and access control
+| Clients can authenticate when connecting to the server. The server defines users and groups, restricting read, write, or execute access to different components based on group membership.
+^| ✅
+^|
+^|
+
+| Device locking
+| Client can lock a device. Once locked, no properties of the device can be changed via the protocol layer. Only the same user who locked the device can unlock it.
+^| ✅
+^|
+^|
+
 
 |===
 

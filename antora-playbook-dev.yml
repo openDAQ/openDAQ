@@ -19,7 +19,7 @@ content:
   sources:
   - url: .
     branches: HEAD
-    start_path: docs/Antora
+    start_paths: docs/Antora, docs/Antora-specs
 ui:
   bundle:
     url: https://github.com/openDAQ/antora-ui-spring/releases/download/1.4-opendaq/ui-bundle.zip

@@ -32,7 +32,7 @@ protected:
 
         const auto dataDescriptor = DataDescriptorBuilder()
                                         .setSampleType(SampleType::Struct)
-                                        .setName("Struct")
+                                        .setName("Struct2")
                                         .setStructFields(List<IDataDescriptor>(field1Descriptor, field2Descriptor))
                                         .build();
 

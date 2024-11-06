@@ -56,7 +56,7 @@ public:
         createModule(&module, context);
     }
 
-    std::shared_ptr<uint8_t[]> sendAndReceive(SignalPtr fbSignal)
+    std::vector<int64_t> sendAndReceive(SignalPtr fbSignal)
     {
         // Create reader
         auto reader = PacketReader(fbSignal);
@@ -83,8 +83,9 @@ public:
         auto receivedDomainPacket = receivedPacket.asPtr<IDataPacket>().getDomainPacket();
         auto* data = receivedDomainPacket.getData();
         auto dataSize = receivedDomainPacket.getDataSize();
-        auto domainPacketData = std::shared_ptr<uint8_t[]>(new uint8_t[dataSize]);
-        std::memcpy(domainPacketData.get(), data, dataSize);
+        auto vectorSize = dataSize / sizeof(int64_t);
+        auto domainPacketData = std::vector<int64_t>(vectorSize);
+        std::memcpy(domainPacketData.data(), data, dataSize);
         return domainPacketData;
     }
 };

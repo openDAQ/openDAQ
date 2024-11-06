@@ -186,6 +186,12 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         throw InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
     setKeepLastPacket();
+
+    if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
+    {
+        auto typeManager = this->context.getTypeManager();
+        addToTypeManagerRecursively(typeManager, dataDescriptor);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

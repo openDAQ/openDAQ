@@ -4462,6 +4462,155 @@ TEST_F(MultiReaderTest, ExpectSR)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Fail);
 }
 
+TEST_F(MultiReaderTest, TestReaderWithConnectedPortConnectionEmpty)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    constexpr const SizeT SAMPLES = 4u;
+
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = portsList();
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
+    portList[2].connect(sig2.signal);
+
+    for (const auto & port : portList)
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+    auto reader = MultiReaderFromPort(portList);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_EQ(status.getEventPackets().getCount(), 3u);
+    }
+
+    for (const auto & port : portList)
+    {
+        auto signal = port.getSignal().asPtr<ISignalConfig>(true);
+        ASSERT_TRUE(signal.assigned());
+
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), SAMPLES, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, signal.getDescriptor(), SAMPLES);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        for (SizeT i = 0; i < SAMPLES; i++)
+            dataPtr[i] = 111.1 * (i + 1);
+
+        signal.sendPacket(dataPacket);
+    }
+
+    {
+        std::array<double[SAMPLES], NUM_SIGNALS> values{};
+        void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+
+        SizeT count{SAMPLES};
+        auto status = reader.read(&valuesPerSignal, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, SAMPLES);
+        for (SizeT i = 0; i < SAMPLES; i++)
+        {
+            ASSERT_EQ(values[0][i], 111.1 * (i + 1));
+            ASSERT_EQ(values[1][i], 111.1 * (i + 1));
+            ASSERT_EQ(values[2][i], 111.1 * (i + 1));
+        }
+    }
+}
+
+TEST_F(MultiReaderTest, TestReaderWithConnectedPortConnectionNotEmpty)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    constexpr const SizeT SAMPLES = 4u;
+
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 30, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig2 = addSignal(0, 40, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = portsList();
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
+    portList[2].connect(sig2.signal);
+
+    for (const auto & port : portList)
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+
+    for (const auto & port : portList)
+    {
+        auto signal = port.getSignal().asPtr<ISignalConfig>(true);
+        ASSERT_TRUE(signal.assigned());
+
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), SAMPLES, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, signal.getDescriptor(), SAMPLES);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        for (SizeT i = 0; i < SAMPLES; i++)
+            dataPtr[i] = 111.1 * (i + 1);
+
+        signal.sendPacket(dataPacket);
+    }
+
+    auto reader = MultiReaderFromPort(portList);
+
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_EQ(status.getEventPackets().getCount(), 3u);
+    }
+
+    {
+        std::array<double[SAMPLES], NUM_SIGNALS> values{};
+        void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+
+        SizeT count{SAMPLES};
+        auto status = reader.read(&valuesPerSignal, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, SAMPLES);
+        for (SizeT i = 0; i < SAMPLES; i++)
+        {
+            ASSERT_EQ(values[0][i], 111.1 * (i + 1));
+            ASSERT_EQ(values[1][i], 111.1 * (i + 1));
+            ASSERT_EQ(values[2][i], 111.1 * (i + 1));
+        }
+    }
+}
+
 class MinReadCountTest : public MultiReaderTest, public testing::WithParamInterface<SizeT>
 {
 };

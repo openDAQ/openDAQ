@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/connection.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <coretypes/intfs.h>
@@ -30,10 +31,10 @@
 #include <queue>
 
 BEGIN_NAMESPACE_OPENDAQ
-class ConnectionImpl : public ImplementationOfWeak<IConnection>
+class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionInternal>
 {
 public:
-    using Super = ImplementationOfWeak<IConnection>;
+    using Super = ImplementationOfWeak<IConnection, IConnectionInternal>;
 
     explicit ConnectionImpl(
         const InputPortPtr& port,
@@ -61,6 +62,9 @@ public:
     ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
+
+    // IConnectionInternal
+    ErrCode INTERFACE_FUNC enqueueLastDescriptor() override;
 
     // IBaseObject
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
@@ -101,6 +105,9 @@ private:
     DomainValue delta;
     SampleType domainSampleType;
     LoggerComponentPtr loggerComponent;
+
+    DataDescriptorPtr valueDataDescriptor;
+    DataDescriptorPtr domainDataDescriptor;
 
 #ifdef OPENDAQ_THREAD_SAFE
     mutable std::mutex mutex;

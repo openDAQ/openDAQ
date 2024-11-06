@@ -174,6 +174,7 @@ function(create_component_source_groups_${BASE_NAME})
     
     source_group("signal//connection" FILES 
         ${SDK_HEADERS_DIR}/connection.h
+        ${SDK_HEADERS_DIR}/connection_internal.h
         ${SDK_HEADERS_DIR}/connection_impl.h
         ${SDK_HEADERS_DIR}/connection_factory.h
         ${SDK_SRC_DIR}/connection_impl.cpp

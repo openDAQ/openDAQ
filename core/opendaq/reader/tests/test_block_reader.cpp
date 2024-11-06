@@ -794,7 +794,6 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
                       .build();
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1 * BLOCK_SIZE, 1);
-
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1 * BLOCK_SIZE);
 
     // Set the first sample to
@@ -1864,7 +1863,7 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainOverlapped)
     auto eventPacket = DataDescriptorChangedEventPacket(nullptr, domainDescriptor);
     this->sendPacket(eventPacket);
 
-    auto domainPacket = DataPacket(domainDescriptor, BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(domainDescriptor, 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 11.1;
@@ -1945,7 +1944,7 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithNoDomainFromPacketOverlapped)
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
-    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 111.1;
@@ -2021,7 +2020,7 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomainFromPacketOverlapped)
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
-    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 111.1;
@@ -2115,7 +2114,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPortOverlapped)
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
-    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 111.1;
@@ -2187,7 +2186,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPortOverlapped)
                       .setOverlap(OVERLAP)
                       .build();
 
-    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 111.1;
@@ -2330,7 +2329,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallbackOverlapped)
         promise.set_value();
     });
 
-    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     dataPtr[0] = 111.1;
@@ -2420,9 +2419,15 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlockOverlapped)
                       .setOverlap(OVERLAP)
                       .build();
 
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     reader.setOnDataAvailable([&]
     {
-        BlockReaderStatusPtr status = reader.read(&samples[samplesRead], &count);
+        auto status = reader.read(&samples[samplesRead], &count);
         samplesRead = status.getReadSamples();
         promise.set_value();
     });
@@ -2714,7 +2719,7 @@ TYPED_TEST(BlockReaderTest, DeltaCheck)
 
     for (int i = 0; i < 5; i++)
     {
-        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, i*2);
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, i * 2);
         auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
         this->sendPacket(dataPacket);
     }
@@ -2733,5 +2738,127 @@ TYPED_TEST(BlockReaderTest, DeltaCheck)
         auto status = reader.read(samples, &count);
         ASSERT_EQ(count, 1u);
         ASSERT_EQ(status.getOffset(), 7);
+    }
+}
+
+TYPED_TEST(BlockReaderTest, TestReaderWithConnectedPortConnectionEmpty)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+
+    auto reader = BlockReaderBuilder().setInputPort(port)
+                                      .setValueReadType(SampleType::Float64)
+                                      .setDomainReadType(SampleType::RangeInt64)
+                                      .setBlockSize(BLOCK_SIZE)
+                                      .build();
+    
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    {
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 111.1;
+        dataPtr[1] = 222.2;
+        dataPtr[2] = 333.3;
+        dataPtr[3] = 444.4;
+
+        this->sendPacket(dataPacket);
+    }
+
+    {
+        SizeT count{2};
+        double samples[2 * BLOCK_SIZE]{};
+        auto status = reader.read(&samples, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, 2u);
+        ASSERT_EQ(samples[0], 111.1);
+        ASSERT_EQ(samples[1], 222.2);
+        ASSERT_EQ(samples[2], 333.3);
+        ASSERT_EQ(samples[3], 444.4);
+    }
+}
+
+TYPED_TEST(BlockReaderTest, TestReaderWithConnectedPortConnectionNotEmpty)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+
+    {
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 2 * BLOCK_SIZE, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 2 * BLOCK_SIZE);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 111.1;
+        dataPtr[1] = 222.2;
+        dataPtr[2] = 333.3;
+        dataPtr[3] = 444.4;
+
+        this->sendPacket(dataPacket);
+    }
+
+    auto reader = BlockReaderBuilder().setInputPort(port)
+                                      .setValueReadType(SampleType::Float64)
+                                      .setDomainReadType(SampleType::RangeInt64)
+                                      .setBlockSize(BLOCK_SIZE)
+                                      .build();
+    
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    {
+        SizeT count{2};
+        double samples[2 * BLOCK_SIZE]{};
+        auto status = reader.read(&samples, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, 2u);
+        ASSERT_EQ(samples[0], 111.1);
+        ASSERT_EQ(samples[1], 222.2);
+        ASSERT_EQ(samples[2], 333.3);
+        ASSERT_EQ(samples[3], 444.4);
     }
 }

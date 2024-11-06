@@ -48,7 +48,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         if (fromInputPorts)
             portBinder = PropertyObject();
 
-        connectPorts(ports, valueReadType, domainReadType, mode);
+        connectPorts(ports, valueReadType, domainReadType, mode, fromInputPorts);
     }
     catch (...)
     {
@@ -71,15 +71,14 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 
     auto oldSignals = old->getSignals();
     checkEarlyPreconditionsAndCacheContext(oldSignals);
-    checkPreconditions(oldSignals, false, fromInputPorts);
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
 
     this->internalAddRef();
     try
     {
+        checkPreconditions(oldSignals, false, fromInputPorts);
         auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
         for (auto& signal : old->signals)
         {
             signals.emplace_back(signal, listener, valueReadType, domainReadType);
@@ -105,26 +104,35 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
     readerConfig.markAsInvalid();
 
     this->internalAddRef();
-    auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-    auto ports = readerConfig.getInputPorts();
-
-    checkEarlyPreconditionsAndCacheContext(ports);
-    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-    bool fromInputPorts;
-    checkPreconditions(ports, false, fromInputPorts);
-
-    SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
-
-    for (const auto& port : ports)
+    try
     {
-        sigInfo.port = port;
-        signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
-    }
+        auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
-    updateCommonSampleRateAndDividers();
-    if (invalid)
-        throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+        auto ports = readerConfig.getInputPorts();
+
+        checkEarlyPreconditionsAndCacheContext(ports);
+        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+        bool fromInputPorts;
+        checkPreconditions(ports, false, fromInputPorts);
+
+        SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
+
+        for (const auto& port : ports)
+        {
+            sigInfo.port = port;
+            port.setListener(listener);
+            signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
+        }
+
+        updateCommonSampleRateAndDividers();
+        if (invalid)
+            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
@@ -143,7 +151,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
         if (fromInputPorts)
             portBinder = PropertyObject();
-        connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
+        connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode(), fromInputPorts);
     }
     catch (...)
     {
@@ -371,6 +379,8 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
     bool haveInputPorts = false;
     bool haveSignals = false;
 
+    auto listener = this->thisPtr<InputPortNotificationsPtr>();
+
     auto portList = List<IInputPortConfig>();
     for (const auto& el : list)
     {
@@ -378,26 +388,23 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         {
             if (haveInputPorts)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
+            haveSignals = true;
+
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             port.setNotificationMethod(PacketReadyNotification::SameThread);
+            port.setListener(listener);
             port.connect(signal);
             portList.pushBack(port);
-
-            haveSignals = true;
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
             if (haveSignals)
                 throw InvalidParameterException("Cannot pass both input ports and signals as items");
-
-            if (overrideMethod && port.getConnection().assigned())
-                throw InvalidParameterException("Signal has been connected to the port before the reader is created");
+            haveInputPorts = true;
 
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
             portList.pushBack(port);
-
-            haveInputPorts = true;
         }
         else
         {
@@ -449,7 +456,11 @@ void MultiReaderImpl::setStartInfo()
     }
 }
 
-void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode)
+void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
+                                   SampleType valueRead, 
+                                   SampleType domainRead, 
+                                   ReadMode mode,
+                                   bool fromInputPorts)
 {
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
@@ -457,7 +468,8 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
     {
         if (portBinder.assigned())
             port.asPtr<IOwnable>().setOwner(portBinder);
-        port.setListener(listener);
+        if (fromInputPorts)
+            port.setListener(listener);
 
         signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
     }

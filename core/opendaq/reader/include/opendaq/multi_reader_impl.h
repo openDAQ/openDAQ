@@ -94,7 +94,11 @@ private:
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
-    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
+                      SampleType valueRead, 
+                      SampleType domainRead, 
+                      ReadMode mode,
+                      bool fromInputPorts);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);

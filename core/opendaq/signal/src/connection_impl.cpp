@@ -680,15 +680,29 @@ void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
 {
     if (packet.getType() == PacketType::Data)
     {
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
-        if (dataPacket.assigned())
-        {
-            samplesCnt += dataPacket.getSampleCount();
-        }
+        auto dataPacket = packet.asPtr<IDataPacket>(true);
+        samplesCnt += dataPacket.getSampleCount();
     }
     else if (packet.getType() == PacketType::Event)
     {
         eventPacketsCnt++;
+        auto eventPacket = packet.asPtr<IEventPacket>(true);
+        if (!(eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
+            return;
+
+        const auto params = eventPacket.getParameters();
+        const DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+        const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+        if (valueDescriptorParam.assigned())
+        {
+            valueDataDescriptor = valueDescriptorParam;
+        }
+
+        if (domainDescriptorParam.assigned())
+        {
+            domainDataDescriptor = domainDescriptorParam;
+        }
     }
 }
 
@@ -714,6 +728,20 @@ void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)
             gapPacketsCnt--;
         }  
     }
+}
+
+ErrCode ConnectionImpl::enqueueLastDescriptor()
+{
+    return withLock([this]
+    {
+        if (valueDataDescriptor.assigned() || domainDataDescriptor.assigned())
+        {
+            eventPacketsCnt++;
+            const auto dataDescriptorEventPacket = DataDescriptorChangedEventPacket(valueDataDescriptor, domainDataDescriptor);
+            packets.emplace_front(dataDescriptorEventPacket);
+        }
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ConnectionImpl::DomainValue ConnectionImpl::numberToDomainValue(const NumberPtr& number)

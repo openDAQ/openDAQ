@@ -2,7 +2,11 @@ import opendaq
 
 def main():
     instance = opendaq.Instance()
-    
+
+    # show available devices' connection strings
+    for dev in instance.available_devices:
+        print(dev.connection_string)
+
     # add device, use real address instead of localhost
     device = instance.add_device("daq.nd://127.0.0.1")
     

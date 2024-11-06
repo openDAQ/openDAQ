@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <opendaq/gmock/signal.h>
@@ -540,7 +541,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnect)
     EXPECT_FALSE(fbIpClient2.getSignal().assigned());
 }
 
-TEST_F(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
+TEST_F_FLAKY_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
 {
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];

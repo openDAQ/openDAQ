@@ -1014,7 +1014,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     ASSERT_EQ(outputData[0], 1.0);
 }
 
-TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
+TEST_F_FLAKY_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;

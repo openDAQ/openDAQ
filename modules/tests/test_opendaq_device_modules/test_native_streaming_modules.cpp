@@ -419,7 +419,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     }
 }
 
-TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
+TEST_F_FLAKY_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

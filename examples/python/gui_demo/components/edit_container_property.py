@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox, simpledialog
+from tkinter import simpledialog
 
 import opendaq as daq
 
@@ -8,6 +8,7 @@ from .. import utils
 from .dialog import Dialog
 from ..app_context import AppContext
 from ..event_port import EventPort
+
 
 class EditContainerPropertyDialog(Dialog):
     def __init__(self, parent, property: daq.IProperty, context: AppContext, **kwargs):
@@ -19,7 +20,7 @@ class EditContainerPropertyDialog(Dialog):
 
         self.geometry('{}x{}'.format(
             800 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
-        
+
         item_types = []
         if isinstance(self.data, daq.IDict):
             item_types.append(str(self.property.key_type))
@@ -46,7 +47,8 @@ class EditContainerPropertyDialog(Dialog):
         # Upper buttons
         button_frame_top = ttk.Frame(self)
 
-        self.add_button = ttk.Button(button_frame_top, text='Add', command=self.add_item, width=10)
+        self.add_button = ttk.Button(
+            button_frame_top, text='Add', command=self.add_item, width=10)
         self.add_button.pack(
             padx=10, side=tk.LEFT)
         self.edit_button = ttk.Button(
@@ -61,7 +63,7 @@ class EditContainerPropertyDialog(Dialog):
             button_frame_top, text='Clear', command=self.clear, width=10)
         self.clear_button.pack(
             padx=10, side=tk.LEFT)
-        
+
         button_frame_top.pack(anchor=tk.E, pady=10)
 
         # Bottom buttons
@@ -75,7 +77,7 @@ class EditContainerPropertyDialog(Dialog):
             button_frame_bottom, text='Close', command=self.close, width=10)
         self.cancel_button.pack(
             padx=10, side=tk.LEFT)
-        
+
         button_frame_bottom.pack(anchor=tk.E, pady=10)
 
         # State
@@ -111,9 +113,10 @@ class EditContainerPropertyDialog(Dialog):
                 self.data_index = []
                 for key, value in self.data.items():
                     self.data_index.append(key)
-                    self.listbox.insert(tk.END, f'{str(key)} : {str(value)}')            
+                    self.listbox.insert(tk.END, f'{str(key)} : {str(value)}')
         except RuntimeError as e:
-            messagebox.showerror('Display error', f'Can\'t display data: {e}', parent=self)
+            utils.show_error(
+                'Display error', f'Can\'t display data: {e}', self)
 
         self.listbox.focus_set()
         self.listbox.select_set(tk.END)
@@ -124,23 +127,27 @@ class EditContainerPropertyDialog(Dialog):
             if value is None:
                 return
             try:
-                self.data.append(utils.value_to_coretype(value, self.property.item_type))
+                self.data.append(utils.value_to_coretype(
+                    value, self.property.item_type))
                 self.fill()
             except Exception as e:
-                messagebox.showerror('Add item error', f'Can\'t add item: {e}', parent=self)
+                utils.show_error('Add item error',
+                                 f'Can\'t add item: {e}', self)
         elif isinstance(self.data, daq.IDict):
             key = simpledialog.askstring('Add item', 'Key:', parent=self)
             if key is None:
                 return
-            self.update() #it is here for next dialog to be able to grab focus
+            self.update()  # it is here for next dialog to be able to grab focus
             value = simpledialog.askstring('Add item', 'Value:', parent=self)
             if value is None:
                 return
             try:
-                self.data[utils.value_to_coretype(key, self.property.key_type)] = utils.value_to_coretype(value, self.property.item_type)
+                self.data[utils.value_to_coretype(key, self.property.key_type)] = utils.value_to_coretype(
+                    value, self.property.item_type)
                 self.fill()
             except Exception as e:
-                messagebox.showerror('Add item error', f'Can\'t add item: {e}', parent=self)
+                utils.show_error('Add item error',
+                                 f'Can\'t add item: {e}', self)
 
     def edit_item(self):
         selection = self.listbox.curselection()
@@ -150,20 +157,24 @@ class EditContainerPropertyDialog(Dialog):
                     'Edit item', 'Value:', parent=self, initialvalue=self.data[selection[0]])
                 if new_value:
                     try:
-                        self.data[selection[0]] = utils.value_to_coretype(new_value, self.property.item_type)
+                        self.data[selection[0]] = utils.value_to_coretype(
+                            new_value, self.property.item_type)
                         self.fill()
                     except Exception as e:
-                        messagebox.showerror('Edit item error', f'Can\'t edit item: {e}', parent=self)
+                        utils.show_error('Edit item error',
+                                         f'Can\'t edit item: {e}', self)
             elif isinstance(self.data, daq.IDict):
-                key = self.data_index[selection[0]] 
+                key = self.data_index[selection[0]]
                 new_value = simpledialog.askstring(
                     'Edit item', 'Value:', parent=self, initialvalue=self.data[key])
                 if new_value:
                     try:
-                        self.data[utils.value_to_coretype(key, self.property.key_type)] = utils.value_to_coretype(new_value, self.property.item_type)
+                        self.data[utils.value_to_coretype(key, self.property.key_type)] = utils.value_to_coretype(
+                            new_value, self.property.item_type)
                         self.fill()
                     except Exception as e:
-                        messagebox.showerror('Edit item error', f'Can\'t edit item: {e}', parent=self)
+                        utils.show_error('Edit item error',
+                                         f'Can\'t edit item: {e}', self)
 
     def delete_item(self):
         selection = self.listbox.curselection()

@@ -105,9 +105,15 @@ class AddConfigDialog(Dialog):
     def edit_value(self, event):
         item_id = self.tree.selection()[0]
         path = utils.get_item_path(self.tree, item_id)
-        prop = utils.get_property_for_path(self.context, path, self.device_config)
+        prop = utils.get_property_for_path(
+            self.context, path, self.device_config)
         if prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
             EditContainerPropertyDialog(self, prop, self.context).show()
+        elif prop.value_type == daq.CoreType.ctBool:
+            column = self.tree.identify_column(event.x)
+            if column == '#1':
+                prop.value = not prop.value
+                self.tree.set(item_id, column, str(prop.value))
         else:
             column = self.tree.identify_column(event.x)
             if column == '#1':

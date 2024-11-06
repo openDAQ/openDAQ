@@ -32,6 +32,7 @@ void MemCheckListener::OnTestStart(const testing::TestInfo& info)
     #endif
 #endif
     expectMemoryLeak = false;
+    BaseTestListener::OnTestStart(info);
 }
 
 void MemCheckListener::OnTestEnd(const testing::TestInfo& info)

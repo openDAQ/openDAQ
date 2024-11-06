@@ -142,6 +142,7 @@ option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
+option(OPENDAQ_ENABLE_FLAKY_TEST_LABELS "Enable labeling flaky tests" OFF)
 
 # Additional build options
 option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
@@ -158,6 +159,7 @@ if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
 cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
+cmake_dependent_option(OPENDAQ_SKIP_FLAKY_TESTS "Skip tests marked as flaky" ON "OPENDAQ_ENABLE_FLAKY_TEST_LABELS" ON)
 
 if (OPENDAQ_ENABLE_TESTS)
     set(OPENDAQ_ENABLE_TEST_UTILS ON)
@@ -613,6 +615,16 @@ if (OPENDAQ_ENABLE_OPTIONAL_TESTS)
     message(STATUS "Optional tests enabled")
     add_compile_definitions(OPENDAQ_ENABLE_OPTIONAL_TESTS)
     set(OPENDAQ_TEST_COMPILE_DEFINES "OPENDAQ_ENABLE_OPTIONAL_TESTS=1")
+endif()
+
+if (OPENDAQ_ENABLE_FLAKY_TEST_LABELS)
+    message(STATUS "Labeling flaky tests enabled")
+    add_compile_definitions(OPENDAQ_ENABLE_FLAKY_TEST_LABELS)
+endif()
+
+if (OPENDAQ_SKIP_FLAKY_TESTS)
+    message(STATUS "Skipping flaky tests enabled")
+    add_compile_definitions(OPENDAQ_SKIP_FLAKY_TESTS)
 endif()
 
 if (OPENDAQ_ENABLE_PARAMETER_VALIDATION)
